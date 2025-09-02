@@ -16,11 +16,11 @@ export const Layout = ({ children }: LayoutProps) => {
     await signOut();
   };
 
-  const isAdmin = userRoles.includes('admin');
-  const isHR = userRoles.includes('hr_assistant');
-  const isHiringManager = userRoles.includes('hiring_manager');
-  const isPanelMember = userRoles.includes('panel_member');
-  const isCandidate = userRoles.includes('candidate');
+  const isAdmin = userRoles.includes('Admin');
+  const isHR = userRoles.includes('HR Assistant');
+  const isHiringManager = userRoles.includes('Hiring Manager');
+  const isPanelMember = userRoles.includes('Panel Member');
+  const isCandidate = userRoles.includes('Candidate');
 
   return (
     <div className="min-h-screen bg-background">

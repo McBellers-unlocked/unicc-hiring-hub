@@ -43,12 +43,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           // Defer role fetching with setTimeout to prevent recursion
           setTimeout(async () => {
             try {
-              const { data: roles } = await supabase.rpc('get_user_roles', {
-                _user_id: session.user.id
-              });
-              setUserRoles(roles || []);
+              const { data: userProfile } = await supabase
+                .from('users')
+                .select('role')
+                .eq('id', session.user.id)
+                .single();
+              
+              setUserRoles(userProfile?.role ? [userProfile.role] : []);
             } catch (error) {
-              console.error('Error fetching user roles:', error);
+              console.error('Error fetching user role:', error);
               setUserRoles([]);
             }
           }, 0);
@@ -68,12 +71,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (session?.user) {
         setTimeout(async () => {
           try {
-            const { data: roles } = await supabase.rpc('get_user_roles', {
-              _user_id: session.user.id
-            });
-            setUserRoles(roles || []);
+            const { data: userProfile } = await supabase
+              .from('users')
+              .select('role')
+              .eq('id', session.user.id)
+              .single();
+            
+            setUserRoles(userProfile?.role ? [userProfile.role] : []);
           } catch (error) {
-            console.error('Error fetching user roles:', error);
+            console.error('Error fetching user role:', error);
             setUserRoles([]);
           }
         }, 0);
@@ -102,6 +108,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       options: {
         emailRedirectTo: redirectUrl,
         data: {
+          name: `${firstName} ${lastName}`,
           first_name: firstName,
           last_name: lastName,
         }
