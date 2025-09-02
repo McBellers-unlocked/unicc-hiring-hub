@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 interface KillerQuestion {
   id: string;
   label: string;
-  input_type: 'boolean' | 'single_choice' | 'multiple_choice' | 'text';
+  input_type: 'boolean' | 'single' | 'multi' | 'text';
   rule: 'yes_required' | 'no_required' | 'custom';
   options?: any;
   custom_logic?: any;
@@ -282,7 +282,7 @@ export default function JobApplication() {
           </RadioGroup>
         )}
 
-        {question.input_type === 'single_choice' && question.options?.choices && (
+        {question.input_type === 'single' && question.options?.choices && (
           <RadioGroup
             value={killerAnswers[question.id]}
             onValueChange={(value) => setKillerAnswers(prev => ({
@@ -299,7 +299,7 @@ export default function JobApplication() {
           </RadioGroup>
         )}
 
-        {question.input_type === 'multiple_choice' && question.options?.choices && (
+        {question.input_type === 'multi' && question.options?.choices && (
           <div className="space-y-2">
             {question.options.choices.map((choice: string, index: number) => (
               <div key={index} className="flex items-center space-x-2">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,6 +36,7 @@ interface Job {
 
 export default function JobDetail() {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -266,7 +267,11 @@ export default function JobDetail() {
 
               <CardContent>
                 {!isClosed && (
-                  <Button size="lg" className="w-full mb-6">
+                  <Button 
+                    size="lg" 
+                    className="w-full mb-6"
+                    onClick={() => navigate(`/apply/${job.id}`)}
+                  >
                     Apply for this Position
                   </Button>
                 )}
@@ -364,7 +369,11 @@ export default function JobDetail() {
               {/* Apply Button Bottom */}
               {!isClosed && (
                 <div className="text-center">
-                  <Button size="lg" className="px-12">
+                  <Button 
+                    size="lg" 
+                    className="px-12"
+                    onClick={() => navigate(`/apply/${job.id}`)}
+                  >
                     Apply for this Position
                   </Button>
                 </div>
