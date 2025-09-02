@@ -36,10 +36,15 @@ export const Layout = ({ children }: LayoutProps) => {
               
               {user && (
                 <nav className="hidden md:flex space-x-4 ml-8">
-                  {(isAdmin || isHR || isHiringManager) && (
-                    <Link to="/jobs" className="hover:text-accent transition-colors">
-                      <Briefcase className="w-4 h-4 inline mr-1" />
-                      Jobs
+                  <Link to="/jobs" className="hover:text-accent transition-colors">
+                    <Briefcase className="w-4 h-4 inline mr-1" />
+                    Jobs
+                  </Link>
+                  
+                  {(isAdmin || isHR) && (
+                    <Link to="/admin/jobs" className="hover:text-accent transition-colors">
+                      <Settings className="w-4 h-4 inline mr-1" />
+                      Manage Jobs
                     </Link>
                   )}
                   
