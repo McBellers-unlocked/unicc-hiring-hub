@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
+import { UNICCLogo } from '@/components/UNICCLogo';
 
 export default function Auth() {
   const { user, signIn, signUp, loading } = useAuth();
@@ -76,9 +77,7 @@ export default function Auth() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 bg-primary text-primary-foreground rounded-md flex items-center justify-center font-bold text-sm mx-auto mb-4">
-            UN
-          </div>
+          <UNICCLogo size="md" className="text-primary mx-auto mb-4" />
           <p>Loading...</p>
         </div>
       </div>
@@ -89,9 +88,7 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-muted/50 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-primary text-primary-foreground rounded-md flex items-center justify-center font-bold text-lg mx-auto mb-4">
-            UN
-          </div>
+          <UNICCLogo size="lg" className="text-primary mx-auto mb-4" />
           <h1 className="text-3xl font-bold">UNICC ATS</h1>
           <p className="text-muted-foreground mt-2">Access your account</p>
         </div>

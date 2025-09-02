@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { Briefcase, Users, UserCheck, Settings, FileText, Calendar } from 'lucide-react';
+import { UNICCLogo } from '@/components/UNICCLogo';
 
 const Index = () => {
   const { user, userRoles, loading } = useAuth();
@@ -13,9 +14,7 @@ const Index = () => {
       <Layout>
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
-            <div className="w-8 h-8 bg-primary text-primary-foreground rounded-md flex items-center justify-center font-bold text-sm mx-auto mb-4">
-              UN
-            </div>
+            <UNICCLogo size="md" className="text-primary mx-auto mb-4" />
             <p>Loading...</p>
           </div>
         </div>
@@ -28,9 +27,7 @@ const Index = () => {
       <Layout>
         <div className="min-h-screen flex items-center justify-center bg-muted/20">
           <div className="text-center max-w-2xl px-4">
-            <div className="w-16 h-16 bg-primary text-primary-foreground rounded-lg flex items-center justify-center font-bold text-2xl mx-auto mb-8">
-              UN
-            </div>
+            <UNICCLogo size="lg" className="text-primary mx-auto mb-8" />
             <h1 className="text-4xl font-bold mb-4">Welcome to UNICC ATS</h1>
             <p className="text-xl text-muted-foreground mb-8">
               Streamlined applicant tracking system for UNICC recruitment processes

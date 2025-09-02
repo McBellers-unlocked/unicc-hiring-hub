@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Users, LogOut, Settings, Briefcase, UserCheck } from 'lucide-react';
+import { UNICCLogo } from '@/components/UNICCLogo';
 
 interface LayoutProps {
   children: ReactNode;
@@ -26,12 +27,10 @@ export const Layout = ({ children }: LayoutProps) => {
       {/* Header */}
       <header className="bg-primary text-primary-foreground shadow-lg">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center h-16">
             <div className="flex items-center space-x-4">
-              <Link to="/" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary-foreground text-primary rounded-md flex items-center justify-center font-bold text-sm">
-                  UN
-                </div>
+              <Link to="/" className="flex items-center space-x-3">
+                <UNICCLogo size="md" className="text-primary-foreground" />
                 <span className="text-xl font-bold">UNICC ATS</span>
               </Link>
               
@@ -75,7 +74,7 @@ export const Layout = ({ children }: LayoutProps) => {
               )}
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4">{/* rest of header content */}
               {user ? (
                 <div className="flex items-center space-x-4">
                   <span className="text-sm">
@@ -110,10 +109,8 @@ export const Layout = ({ children }: LayoutProps) => {
       <footer className="bg-muted text-muted-foreground py-8 mt-16">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 bg-primary text-primary-foreground rounded-md flex items-center justify-center font-bold text-xs">
-                UN
-              </div>
+            <div className="flex items-center space-x-3">
+              <UNICCLogo size="sm" className="text-primary" />
               <span className="font-semibold">UNICC ATS</span>
               <span className="text-sm">© 2024</span>
             </div>
