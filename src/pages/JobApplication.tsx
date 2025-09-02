@@ -313,7 +313,7 @@ export default function JobApplication() {
       setPHFData(data);
 
       if (isComplete) {
-        // Send confirmation email
+        // Send confirmation email and trigger scoring
         const emailResponse = await supabase.functions.invoke('send-application-confirmation', {
           body: {
             candidateName: formData.name,
@@ -326,6 +326,17 @@ export default function JobApplication() {
 
         if (emailResponse.error) {
           console.error('Failed to send confirmation email:', emailResponse.error);
+        }
+
+        // Trigger AI scoring in the background
+        const scoreResponse = await supabase.functions.invoke('score-application', {
+          body: { applicationId }
+        });
+
+        if (scoreResponse.error) {
+          console.error('Failed to trigger scoring:', scoreResponse.error);
+        } else {
+          console.log('Application scoring triggered successfully');
         }
 
         setCurrentStep('success');
