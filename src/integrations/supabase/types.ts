@@ -23,6 +23,9 @@ export type Database = {
           files: Json | null
           id: string
           job_id: string
+          phf_completed: boolean | null
+          phf_data: Json | null
+          photo_url: string | null
           source: string | null
           status: Database["public"]["Enums"]["application_status"] | null
           submitted_at: string
@@ -37,6 +40,9 @@ export type Database = {
           files?: Json | null
           id?: string
           job_id: string
+          phf_completed?: boolean | null
+          phf_data?: Json | null
+          photo_url?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["application_status"] | null
           submitted_at?: string
@@ -51,6 +57,9 @@ export type Database = {
           files?: Json | null
           id?: string
           job_id?: string
+          phf_completed?: boolean | null
+          phf_data?: Json | null
+          photo_url?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["application_status"] | null
           submitted_at?: string

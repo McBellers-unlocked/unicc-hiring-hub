@@ -7,11 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
-import { X, Upload, AlertCircle } from 'lucide-react';
+import { X, Upload, AlertCircle, FileText, Check, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { PHFForm } from '@/components/PHFForm';
 
 interface KillerQuestion {
   id: string;
@@ -31,6 +32,8 @@ interface Job {
   timezone?: string;
 }
 
+type ApplicationStep = 'basic' | 'phf' | 'success';
+
 export default function JobApplication() {
   const { jobId } = useParams();
   const navigate = useNavigate();
@@ -40,6 +43,8 @@ export default function JobApplication() {
   const [killerQuestions, setKillerQuestions] = useState<KillerQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [currentStep, setCurrentStep] = useState<ApplicationStep>('basic');
+  const [applicationId, setApplicationId] = useState<string | null>(null);
   
   // Form data
   const [formData, setFormData] = useState({
@@ -55,6 +60,7 @@ export default function JobApplication() {
   const [newLanguage, setNewLanguage] = useState('');
   const [killerAnswers, setKillerAnswers] = useState<Record<string, any>>({});
   const [files, setFiles] = useState<Record<string, File>>({});
+  const [phfData, setPHFData] = useState<any>({});
   
   // Validation states
   const [disqualified, setDisqualified] = useState(false);
@@ -197,7 +203,7 @@ export default function JobApplication() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleBasicFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (disqualified) {
@@ -222,29 +228,64 @@ export default function JobApplication() {
     setSubmitting(true);
 
     try {
-      // Create candidate and application
-      const response = await supabase.functions.invoke('submit-application', {
-        body: {
-          jobId,
-          candidate: {
-            ...formData,
-            languages
-          },
-          killerAnswers,
-          files: Object.keys(files)
-        }
-      });
+      // Upload files to storage first
+      const uploadedFiles: Record<string, string> = {};
+      for (const [key, file] of Object.entries(files)) {
+        const fileName = `${Date.now()}_${file.name}`;
+        const { data, error } = await supabase.storage
+          .from('application-files')
+          .upload(fileName, file);
+        
+        if (error) throw error;
+        uploadedFiles[key] = data.path;
+      }
 
-      if (response.error) throw response.error;
+      // Create candidate first
+      const candidateData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        location: formData.location,
+        work_auth: formData.work_auth,
+        linkedin_url: formData.linkedin_url,
+        languages: languages
+      };
 
+      const { data: candidate, error: candidateError } = await supabase
+        .from('candidates')
+        .insert(candidateData)
+        .select()
+        .single();
+
+      if (candidateError) throw candidateError;
+
+      // Create application
+      const applicationData = {
+        job_id: jobId,
+        candidate_id: candidate.id,
+        status: 'Application' as const,
+        answers: killerAnswers,
+        files: uploadedFiles
+      };
+
+      const { data: application, error: applicationError } = await supabase
+        .from('applications')
+        .insert(applicationData)
+        .select()
+        .single();
+
+      if (applicationError) throw applicationError;
+
+      setApplicationId(application.id);
+      setCurrentStep('phf');
+      
       toast({
-        title: "Application submitted successfully!",
-        description: "You will receive a confirmation email shortly."
+        title: "Basic information saved!",
+        description: "Please complete the Personal History Form to finish your application."
       });
 
-      navigate('/');
     } catch (error) {
-      console.error('Error submitting application:', error);
+      console.error('Error submitting basic form:', error);
       toast({
         title: "Submission failed",
         description: "Please try again or contact support",
@@ -253,6 +294,61 @@ export default function JobApplication() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handlePHFSave = async (data: any, isComplete: boolean) => {
+    if (!applicationId) return;
+
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({
+          phf_data: data,
+          phf_completed: isComplete
+        })
+        .eq('id', applicationId);
+
+      if (error) throw error;
+
+      setPHFData(data);
+
+      if (isComplete) {
+        // Send confirmation email
+        const emailResponse = await supabase.functions.invoke('send-application-confirmation', {
+          body: {
+            candidateName: formData.name,
+            candidateEmail: formData.email,
+            jobTitle: job?.title,
+            jobNoticeNo: job?.id,
+            closingDate: job?.closing_date
+          }
+        });
+
+        if (emailResponse.error) {
+          console.error('Failed to send confirmation email:', emailResponse.error);
+        }
+
+        setCurrentStep('success');
+      }
+    } catch (error) {
+      console.error('Error saving PHF:', error);
+      throw error;
+    }
+  };
+
+  const handleUploadPhoto = async (file: File): Promise<string> => {
+    const fileName = `photos/${Date.now()}_${file.name}`;
+    const { data, error } = await supabase.storage
+      .from('application-files')
+      .upload(fileName, file);
+    
+    if (error) throw error;
+    
+    const { data: { publicUrl } } = supabase.storage
+      .from('application-files')
+      .getPublicUrl(data.path);
+    
+    return publicUrl;
   };
 
   const renderKillerQuestion = (question: KillerQuestion) => {
@@ -363,6 +459,35 @@ export default function JobApplication() {
     return null;
   }
 
+  const renderStepIndicator = () => (
+    <div className="flex items-center space-x-4 mb-8">
+      <div className={`flex items-center space-x-2 ${currentStep === 'basic' ? 'text-primary' : currentStep === 'phf' || currentStep === 'success' ? 'text-green-600' : 'text-muted-foreground'}`}>
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${currentStep === 'basic' ? 'border-primary bg-primary text-primary-foreground' : currentStep === 'phf' || currentStep === 'success' ? 'border-green-600 bg-green-600 text-white' : 'border-muted-foreground'}`}>
+          {currentStep === 'phf' || currentStep === 'success' ? <Check className="h-4 w-4" /> : '1'}
+        </div>
+        <span className="font-medium">Basic Information</span>
+      </div>
+      
+      <div className={`h-px bg-border flex-1 ${currentStep === 'phf' || currentStep === 'success' ? 'bg-green-600' : ''}`} />
+      
+      <div className={`flex items-center space-x-2 ${currentStep === 'phf' ? 'text-primary' : currentStep === 'success' ? 'text-green-600' : 'text-muted-foreground'}`}>
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${currentStep === 'phf' ? 'border-primary bg-primary text-primary-foreground' : currentStep === 'success' ? 'border-green-600 bg-green-600 text-white' : 'border-muted-foreground'}`}>
+          {currentStep === 'success' ? <Check className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+        </div>
+        <span className="font-medium">Personal History Form</span>
+      </div>
+      
+      <div className={`h-px bg-border flex-1 ${currentStep === 'success' ? 'bg-green-600' : ''}`} />
+      
+      <div className={`flex items-center space-x-2 ${currentStep === 'success' ? 'text-green-600' : 'text-muted-foreground'}`}>
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${currentStep === 'success' ? 'border-green-600 bg-green-600 text-white' : 'border-muted-foreground'}`}>
+          {currentStep === 'success' ? <Check className="h-4 w-4" /> : '3'}
+        </div>
+        <span className="font-medium">Complete</span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -375,27 +500,42 @@ export default function JobApplication() {
                 {job.location} • {job.org_unit}
               </p>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/jobs/${job.id}`)}
-            >
-              View Job Details
-            </Button>
+            <div className="flex items-center space-x-2">
+              {currentStep === 'phf' && (
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentStep('basic')}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/jobs/${job.id}`)}
+              >
+                View Job Details
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        {disqualified && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Please review the highlighted questions. Based on your answers, you are not eligible for this role.
-            </AlertDescription>
-          </Alert>
-        )}
+        {renderStepIndicator()}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        {currentStep === 'basic' && (
+          <>
+            {disqualified && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Please review the highlighted questions. Based on your answers, you are not eligible for this role.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <form onSubmit={handleBasicFormSubmit} className="space-y-8">
           {/* Personal Information */}
           <Card>
             <CardHeader>
@@ -549,24 +689,65 @@ export default function JobApplication() {
             </Card>
           )}
 
-          {/* Submit */}
-          <div className="flex justify-end space-x-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate(`/jobs/${job.id}`)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={submitting || disqualified}
-              className="min-w-32"
-            >
-              {submitting ? 'Submitting...' : 'Submit Application'}
-            </Button>
-          </div>
-        </form>
+              {/* Submit */}
+              <div className="flex justify-end space-x-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate(`/jobs/${job.id}`)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={submitting || disqualified}
+                  className="min-w-32"
+                >
+                  {submitting ? 'Saving...' : 'Continue to PHF'}
+                </Button>
+              </div>
+            </form>
+          </>
+        )}
+
+        {currentStep === 'phf' && (
+          <PHFForm
+            initialData={phfData}
+            onSave={handlePHFSave}
+            onUploadPhoto={handleUploadPhoto}
+          />
+        )}
+
+        {currentStep === 'success' && (
+          <Card className="max-w-2xl mx-auto">
+            <CardContent className="pt-8 text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="h-8 w-8 text-green-600" />
+              </div>
+              <h2 className="text-2xl font-bold mb-4">Application Submitted Successfully!</h2>
+              <p className="text-muted-foreground mb-6">
+                Thank you for your application to {job.title}. We have received your submission and you should receive a confirmation email shortly.
+              </p>
+              <div className="bg-muted p-4 rounded-lg mb-6">
+                <h3 className="font-semibold mb-2">What happens next?</h3>
+                <ul className="text-sm text-left space-y-2">
+                  <li>• Your application will be reviewed by our recruitment team</li>
+                  <li>• We will contact you if your profile matches our requirements</li>
+                  <li>• The review process typically takes 2-3 weeks</li>
+                  <li>• Please note that due to high application volumes, we can only contact shortlisted candidates</li>
+                </ul>
+              </div>
+              <div className="flex justify-center space-x-4">
+                <Button onClick={() => navigate('/')}>
+                  Return to Jobs
+                </Button>
+                <Button variant="outline" onClick={() => navigate(`/jobs/${job.id}`)}>
+                  View Job Details
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
