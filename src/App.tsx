@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Jobs from "./pages/Jobs";
 import JobDetail from "./pages/JobDetail";
 import AdminJobs from "./pages/AdminJobs";
+import JobWizard from "./pages/JobWizard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,8 @@ const App = () => (
             <Route path="/jobs" element={<Jobs />} />
             <Route path="/jobs/:slug" element={<JobDetail />} />
             <Route path="/admin/jobs" element={<AdminJobs />} />
+            <Route path="/admin/jobs/new" element={<JobWizard />} />
+            <Route path="/admin/jobs/:jobId/edit" element={<JobWizard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
