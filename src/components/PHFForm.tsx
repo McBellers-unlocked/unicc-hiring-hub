@@ -2286,15 +2286,15 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
           <Tabs value={currentSection.toString()} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-6 lg:grid-cols-13">
+            <TabsList className="grid w-full grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-1 h-auto p-1">
               {SECTIONS.map((section, index) => (
                 <TabsTrigger 
                   key={index} 
                   value={index.toString()}
-                  className="text-xs px-2 py-1"
+                  className="text-xs px-3 py-2 h-auto whitespace-nowrap data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                   title={section}
                 >
-                  {index + 1}
+                  {index + 1}. {section}
                 </TabsTrigger>
               ))}
             </TabsList>
