@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Filter, User, FileText, Calendar, AlertCircle } from 'lucide-react';
+import { Search, Filter, User, FileText, Calendar, AlertCircle, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 
@@ -100,6 +100,48 @@ export default function AdminApplications() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteApplication = async (applicationId: string, candidateId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!confirm('Are you sure you want to delete this application? This will also delete the candidate record.')) {
+      return;
+    }
+
+    try {
+      // Delete the application (this will cascade delete related records)
+      const { error: appError } = await supabase
+        .from('applications')
+        .delete()
+        .eq('id', applicationId);
+
+      if (appError) throw appError;
+
+      // Delete the candidate
+      const { error: candidateError } = await supabase
+        .from('candidates')
+        .delete()
+        .eq('id', candidateId);
+
+      if (candidateError) throw candidateError;
+
+      toast({
+        title: "Success",
+        description: "Application and candidate deleted successfully",
+      });
+
+      // Refresh the applications list
+      fetchApplications();
+    } catch (error) {
+      console.error('Error deleting application:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete application",
+        variant: "destructive",
+      });
     }
   };
 
@@ -238,7 +280,7 @@ export default function AdminApplications() {
                       to={`/admin/applications/${application.id}`}
                       className="block"
                     >
-                      <Card className="p-3 hover:bg-muted/50 transition-colors cursor-pointer">
+                        <Card className="p-3 hover:bg-muted/50 transition-colors cursor-pointer">
                         <div className="space-y-2">
                           <div className="flex items-start justify-between">
                             <div className="flex items-center space-x-2">
@@ -247,9 +289,19 @@ export default function AdminApplications() {
                                 {application.candidate.name}
                               </span>
                             </div>
-                            {application.suggested_for_longlist && (
-                              <AlertCircle className="w-3 h-3 text-green-600" />
-                            )}
+                            <div className="flex items-center space-x-1">
+                              {application.suggested_for_longlist && (
+                                <AlertCircle className="w-3 h-3 text-green-600" />
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => deleteApplication(application.id, application.candidate.id, e)}
+                                className="h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
                           </div>
                           
                           <div className="flex items-center space-x-2">
