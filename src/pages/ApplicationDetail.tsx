@@ -13,6 +13,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { VideoRatingInterface } from '@/components/VideoRatingInterface';
+import { PanelInterviewScheduler } from '@/components/PanelInterviewScheduler';
+import { PanelInterviewList } from '@/components/PanelInterviewList';
 import { 
   ArrowLeft, 
   User, 
@@ -73,6 +75,8 @@ export default function ApplicationDetail() {
   const [statusChangeReason, setStatusChangeReason] = useState('');
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState('');
+  const [activeTab, setActiveTab] = useState("profile");
+  const [showScheduler, setShowScheduler] = useState(false);
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
@@ -316,13 +320,14 @@ export default function ApplicationDetail() {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="files">Files</TabsTrigger>
             <TabsTrigger value="ai-score">AI Score</TabsTrigger>
             <TabsTrigger value="emails">Emails</TabsTrigger>
             <TabsTrigger value="video">Video</TabsTrigger>
+            <TabsTrigger value="interviews">Interviews</TabsTrigger>
             <TabsTrigger value="feedback">Feedback</TabsTrigger>
           </TabsList>
 
@@ -453,6 +458,29 @@ export default function ApplicationDetail() {
                 onRatingUpdate={fetchApplication}
               />
             )}
+          </TabsContent>
+
+          <TabsContent value="interviews" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Panel Interviews</h3>
+              {application?.status === 'Shortlist' && (
+                <Button onClick={() => setShowScheduler(!showScheduler)}>
+                  {showScheduler ? 'Cancel' : 'Schedule Interview'}
+                </Button>
+              )}
+            </div>
+            
+            {showScheduler && (
+              <PanelInterviewScheduler
+                applicationId={id!}
+                onScheduled={() => {
+                  setShowScheduler(false);
+                  // Optionally refresh the interview list
+                }}
+              />
+            )}
+            
+            <PanelInterviewList applicationId={id!} />
           </TabsContent>
 
           <TabsContent value="feedback">

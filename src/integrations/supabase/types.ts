@@ -294,6 +294,7 @@ export type Database = {
           evaluator_id: string
           id: string
           overall: number | null
+          panel_interview_id: string | null
           recommendation: Database["public"]["Enums"]["recommendation"] | null
           responses: Json | null
           updated_at: string
@@ -304,6 +305,7 @@ export type Database = {
           evaluator_id: string
           id?: string
           overall?: number | null
+          panel_interview_id?: string | null
           recommendation?: Database["public"]["Enums"]["recommendation"] | null
           responses?: Json | null
           updated_at?: string
@@ -314,6 +316,7 @@ export type Database = {
           evaluator_id?: string
           id?: string
           overall?: number | null
+          panel_interview_id?: string | null
           recommendation?: Database["public"]["Enums"]["recommendation"] | null
           responses?: Json | null
           updated_at?: string
@@ -477,6 +480,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      panel_interview_participants: {
+        Row: {
+          confirmed: boolean | null
+          created_at: string
+          id: string
+          panel_interview_id: string
+          panelist_id: string
+          role: string | null
+        }
+        Insert: {
+          confirmed?: boolean | null
+          created_at?: string
+          id?: string
+          panel_interview_id: string
+          panelist_id: string
+          role?: string | null
+        }
+        Update: {
+          confirmed?: boolean | null
+          created_at?: string
+          id?: string
+          panel_interview_id?: string
+          panelist_id?: string
+          role?: string | null
+        }
+        Relationships: []
+      }
+      panel_interviews: {
+        Row: {
+          application_id: string
+          created_at: string
+          created_by: string
+          duration_minutes: number
+          feedback_template_id: string | null
+          id: string
+          location: string | null
+          meeting_link: string | null
+          notes: string | null
+          scheduled_at: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          created_by: string
+          duration_minutes?: number
+          feedback_template_id?: string | null
+          id?: string
+          location?: string | null
+          meeting_link?: string | null
+          notes?: string | null
+          scheduled_at: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          created_by?: string
+          duration_minutes?: number
+          feedback_template_id?: string | null
+          id?: string
+          location?: string | null
+          meeting_link?: string | null
+          notes?: string | null
+          scheduled_at?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       screening_scores: {
         Row: {
