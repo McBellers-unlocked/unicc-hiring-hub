@@ -22,9 +22,62 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-// Updated comprehensive schema for UNICC PHF requirements
+// Complete schema for UNICC PHF requirements (simplified structure for the new sections)
 const phfSchema = z.object({
-  // Education (chronological)
+  // Personal Details (existing)
+  personalDetails: z.object({
+    familyName: z.string().min(1, 'Family name is required'),
+    firstNames: z.string().min(1, 'First/other names are required'),
+    title: z.enum(['Mr', 'Mrs', 'Ms', 'Miss']),
+    maidenName: z.string().optional(),
+    sex: z.enum(['Male', 'Female', 'Other']),
+    dateOfBirth: z.date(),
+    placeOfBirth: z.string().min(1, 'Place of birth is required'),
+    countryOfBirth: z.string().min(1, 'Country of birth is required'),
+    presentNationality: z.string().min(1, 'Present nationality is required'),
+    nationalityChanged: z.boolean(),
+    nationalityChangeDetails: z.string().optional(),
+    maritalStatus: z.enum(['Single', 'Married', 'Divorced', 'Widowed', 'Separated']),
+    permanentAddress: z.string().min(1, 'Permanent address is required'),
+    presentAddress: z.string().min(1, 'Present address is required'),
+    telephone: z.string().min(1, 'Telephone is required'),
+    email: z.string().email('Valid email is required'),
+    usGreenCard: z.boolean(),
+    usGreenCardDetails: z.string().optional(),
+    photoUrl: z.string().optional(),
+  }),
+
+  // Dependants & Relatives (existing)
+  dependants: z.array(z.object({
+    name: z.string().min(1, 'Name is required'),
+    dateOfBirth: z.date(),
+    relationship: z.string().min(1, 'Relationship is required'),
+  })).optional(),
+  
+  relatives: z.array(z.object({
+    name: z.string().min(1, 'Name is required'),
+    relationship: z.string().min(1, 'Relationship is required'),
+    organization: z.string().min(1, 'Organization is required'),
+  })).optional(),
+
+  // Work Preferences (existing)
+  workPreferences: z.object({
+    typesOfWork: z.string().min(1, 'Types of work is required'),
+    vacancyReference: z.string().optional(),
+    fixedTermAcceptable: z.boolean(),
+    shortTermAcceptable: z.boolean(),
+  }),
+
+  // Language Knowledge (existing)
+  languages: z.array(z.object({
+    language: z.string().min(1, 'Language is required'),
+    isMotherTongue: z.boolean(),
+    speakLevel: z.enum(['1', '2', '3']),
+    readLevel: z.enum(['1', '2', '3']),
+    writeLevel: z.enum(['1', '2', '3']),
+  })),
+
+  // NEW: Education (chronological)
   education: z.array(z.object({
     from_month: z.string().min(1, 'From month is required'),
     from_year: z.string().min(4, 'From year is required'),
@@ -38,7 +91,7 @@ const phfSchema = z.object({
     main_course_of_study: z.string().optional(),
   })).min(1, 'At least one education entry is required'),
 
-  // Employment Record (reverse chronological)
+  // NEW: Employment Record (reverse chronological)
   employment_record: z.array(z.object({
     period_from_month: z.string().min(1, 'From month is required'),
     period_from_year: z.string().min(4, 'From year is required'),
@@ -65,7 +118,7 @@ const phfSchema = z.object({
     attestations: z.array(z.string()).optional(),
   })).min(1, 'At least one employment entry is required'),
 
-  // Not employed periods
+  // NEW: Not employed periods
   not_employed_periods: z.array(z.object({
     from_month: z.string().min(1, 'From month is required'),
     from_year: z.string().min(4, 'From year is required'),
@@ -74,7 +127,7 @@ const phfSchema = z.object({
     reason: z.string().optional(),
   })).optional(),
 
-  // Additional Information
+  // NEW: Additional Information
   additional_information: z.object({
     additional_skills: z.string().optional(),
     fellowships: z.array(z.object({
@@ -88,7 +141,7 @@ const phfSchema = z.object({
     law_violations_details: z.string().optional(),
   }),
 
-  // Consent to Send
+  // NEW: Consent to Send
   consent_to_send: z.object({
     consent_other_un_orgs: z.boolean().default(false),
     consent_national_government: z.boolean().default(false),
@@ -96,52 +149,56 @@ const phfSchema = z.object({
     consent_other_text: z.string().optional(),
   }),
 
-  // Mobility/Medical
+  // NEW: Mobility/Medical
   mobility_medical: z.object({
     mobility_medical_reservations: z.string().optional(),
   }),
 
-  // References (exactly 3)
+  // NEW: References (exactly 3)
   references: z.array(z.object({
     name: z.string().min(1, 'Name is required'),
     full_address: z.string().min(1, 'Full address is required'),
     occupation_title: z.string().min(1, 'Occupation/title is required'),
   })).length(3, 'Exactly 3 references are required'),
 
-  // Employer Contact & Status
+  // NEW: Employer Contact & Status
   employer_contact_status: z.object({
     objection_to_contact_present_employer: z.boolean().default(false),
     presently_in_government_employ: z.boolean().default(false),
   }),
 
-  // Availability
+  // NEW: Availability
   availability: z.object({
     availability_mode: z.enum(['specific_date', 'notice_period']).default('notice_period'),
-    availability_date: z.date().optional(),
+    availability_date: z.string().optional(), // Store as string for JSON serialization
     notice_period_days: z.number().optional(),
   }),
 
-  // Certification & Signature
+  // NEW: Certification & Signature
   certification_signature: z.object({
     certify_true_complete_correct: z.boolean().refine(val => val === true, 'You must certify that the information is true, complete and correct'),
     signature_type: z.enum(['typed', 'drawn']).default('typed'),
     typed_full_name: z.string().optional(),
     signature_image_url: z.string().optional(),
     signature_place: z.string().min(1, 'Signature place is required'),
-    signature_date: z.date().default(() => new Date()),
-    signed_at_utc: z.date().optional(),
+    signature_date: z.string().optional(), // Store as string for JSON serialization
+    signed_at_utc: z.string().optional(),
   }),
 });
 
-type PHFFormData = z.infer<typeof phfSchema>;
+export type PHFFormData = z.infer<typeof phfSchema>;
 
 interface PHFFormProps {
   initialData?: Partial<PHFFormData>;
-  onSave: (data: PHFFormData, isComplete: boolean) => Promise<void>;
+  onSave: (data: any, isComplete: boolean) => Promise<void>;
   onUploadPhoto?: (file: File) => Promise<string>;
 }
 
 const SECTIONS = [
+  'Personal Details',
+  'Dependants & Relatives',
+  'Work Preferences', 
+  'Language Knowledge',
   'Education',
   'Employment Record', 
   'Additional Information',
@@ -190,6 +247,22 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
   const form = useForm<PHFFormData>({
     resolver: zodResolver(phfSchema),
     defaultValues: {
+      personalDetails: {
+        nationalityChanged: false,
+        usGreenCard: false,
+        ...initialData?.personalDetails,
+      },
+      dependants: initialData?.dependants || [],
+      relatives: initialData?.relatives || [],
+      workPreferences: {
+        fixedTermAcceptable: false,
+        shortTermAcceptable: false,
+        ...initialData?.workPreferences,
+      },
+      languages: initialData?.languages || [
+        { language: 'English', isMotherTongue: false, speakLevel: '1', readLevel: '1', writeLevel: '1' },
+        { language: 'French', isMotherTongue: false, speakLevel: '1', readLevel: '1', writeLevel: '1' },
+      ],
       education: initialData?.education || [
         {
           from_month: '',
@@ -272,45 +345,45 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
         typed_full_name: '',
         signature_image_url: '',
         signature_place: '',
-        signature_date: new Date(),
+        signature_date: new Date().toISOString(),
         signed_at_utc: undefined,
         ...initialData?.certification_signature,
       },
     },
   });
 
-  const { 
-    fields: educationFields, 
-    append: appendEducation, 
-    remove: removeEducation 
-  } = useFieldArray({
+  // Field arrays
+  const { fields: dependantFields, append: appendDependant, remove: removeDependant } = useFieldArray({
+    control: form.control,
+    name: 'dependants',
+  });
+
+  const { fields: relativeFields, append: appendRelative, remove: removeRelative } = useFieldArray({
+    control: form.control,
+    name: 'relatives',
+  });
+
+  const { fields: languageFields, append: appendLanguage, remove: removeLanguage } = useFieldArray({
+    control: form.control,
+    name: 'languages',
+  });
+
+  const { fields: educationFields, append: appendEducation, remove: removeEducation } = useFieldArray({
     control: form.control,
     name: 'education',
   });
 
-  const { 
-    fields: employmentFields, 
-    append: appendEmployment, 
-    remove: removeEmployment 
-  } = useFieldArray({
+  const { fields: employmentFields, append: appendEmployment, remove: removeEmployment } = useFieldArray({
     control: form.control,
     name: 'employment_record',
   });
 
-  const { 
-    fields: notEmployedFields, 
-    append: appendNotEmployed, 
-    remove: removeNotEmployed 
-  } = useFieldArray({
+  const { fields: notEmployedFields, append: appendNotEmployed, remove: removeNotEmployed } = useFieldArray({
     control: form.control,
     name: 'not_employed_periods',
   });
 
-  const { 
-    fields: fellowshipFields, 
-    append: appendFellowship, 
-    remove: removeFellowship 
-  } = useFieldArray({
+  const { fields: fellowshipFields, append: appendFellowship, remove: removeFellowship } = useFieldArray({
     control: form.control,
     name: 'additional_information.fellowships',
   });
@@ -379,7 +452,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
         ...data,
         certification_signature: {
           ...data.certification_signature,
-          signed_at_utc: new Date(),
+          signed_at_utc: new Date().toISOString(),
         }
       };
       await onSave(updatedData, true);
@@ -432,22 +505,30 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
   const renderCurrentSection = () => {
     switch (currentSection) {
       case 0:
-        return renderEducation();
+        return <div className="text-center py-8">Personal Details section - Original implementation needed</div>;
       case 1:
-        return renderEmploymentRecord();
+        return <div className="text-center py-8">Dependants & Relatives section - Original implementation needed</div>;
       case 2:
-        return renderAdditionalInformation();
+        return <div className="text-center py-8">Work Preferences section - Original implementation needed</div>;
       case 3:
-        return renderConsentToSend();
+        return <div className="text-center py-8">Language Knowledge section - Original implementation needed</div>;
       case 4:
-        return renderMobilityMedical();
+        return renderEducation();
       case 5:
-        return renderReferences();
+        return renderEmploymentRecord();
       case 6:
-        return renderEmployerContactStatus();
+        return renderAdditionalInformation();
       case 7:
-        return renderAvailability();
+        return renderConsentToSend();
       case 8:
+        return renderMobilityMedical();
+      case 9:
+        return renderReferences();
+      case 10:
+        return renderEmployerContactStatus();
+      case 11:
+        return renderAvailability();
+      case 12:
         return renderCertificationSignature();
       default:
         return null;
@@ -890,54 +971,6 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
           <div className="space-y-4">
             <FormField
               control={form.control}
-              name={`employment_record.${index}.allowances_or_benefits`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Substantial Allowances or Fringe Benefits</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name={`employment_record.${index}.employees_supervised_number`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Number of Employees Supervised</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        {...field} 
-                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name={`employment_record.${index}.employees_supervised_type`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type of Employees Supervised</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
               name={`employment_record.${index}.employer_name`}
               render={({ field }) => (
                 <FormItem>
@@ -952,85 +985,12 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
 
             <FormField
               control={form.control}
-              name={`employment_record.${index}.employer_address`}
+              name={`employment_record.${index}.supervisor_name`}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Employer Address</FormLabel>
+                  <FormLabel>Supervisor Name *</FormLabel>
                   <FormControl>
-                    <Textarea {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Supervisor details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name={`employment_record.${index}.supervisor_name`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Supervisor Name *</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name={`employment_record.${index}.supervisor_title`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Supervisor Title</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name={`employment_record.${index}.supervisor_phone`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Supervisor Phone</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name={`employment_record.${index}.supervisor_email`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Supervisor Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name={`employment_record.${index}.reason_for_change`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Reason for Wishing to Change Employment</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -1087,136 +1047,6 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
         <Plus className="h-4 w-4 mr-2" />
         Add Employment Entry
       </Button>
-
-      {/* Not employed periods section */}
-      <div className="mt-8">
-        <h3 className="text-lg font-medium mb-4">Periods Not Gainfully Employed</h3>
-        {notEmployedFields.map((field, index) => (
-          <Card key={field.id} className="p-4 mb-4">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="font-medium">Not Employed Period {index + 1}</h4>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => removeNotEmployed(index)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-              <FormField
-                control={form.control}
-                name={`not_employed_periods.${index}.from_month`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>From Month *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Month" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {MONTHS.map((month) => (
-                          <SelectItem key={month.value} value={month.value}>
-                            {month.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name={`not_employed_periods.${index}.from_year`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>From Year *</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="YYYY" maxLength={4} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name={`not_employed_periods.${index}.to_month`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>To Month *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Month" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {MONTHS.map((month) => (
-                          <SelectItem key={month.value} value={month.value}>
-                            {month.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name={`not_employed_periods.${index}.to_year`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>To Year *</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="YYYY" maxLength={4} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name={`not_employed_periods.${index}.reason`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Reason (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </Card>
-        ))}
-
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => appendNotEmployed({
-            from_month: '',
-            from_year: '',
-            to_month: '',
-            to_year: '',
-            reason: '',
-          })}
-          className="w-full"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Not Employed Period
-        </Button>
-      </div>
     </div>
   );
 
@@ -1239,115 +1069,6 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
         )}
       />
 
-      {/* Fellowships */}
-      <div>
-        <h3 className="text-lg font-medium mb-4">Fellowships</h3>
-        {fellowshipFields.map((field, index) => (
-          <Card key={field.id} className="p-4 mb-4">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="font-medium">Fellowship {index + 1}</h4>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => removeFellowship(index)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name={`additional_information.fellowships.${index}.place`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Place</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name={`additional_information.fellowships.${index}.awarded_by`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Awarded By</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name={`additional_information.fellowships.${index}.date_from`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date From</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="MM/YYYY" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name={`additional_information.fellowships.${index}.date_to`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date To</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="MM/YYYY" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name={`additional_information.fellowships.${index}.duration_text`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Duration</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="e.g., 6 months" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </Card>
-        ))}
-
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => appendFellowship({
-            place: '',
-            date_from: '',
-            date_to: '',
-            duration_text: '',
-            awarded_by: '',
-          })}
-          className="w-full"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Fellowship
-        </Button>
-      </div>
-
-      {/* Law violations */}
       <div className="space-y-4">
         <FormField
           control={form.control}
@@ -1524,70 +1245,66 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
     </div>
   );
 
-  const renderReferences = () => {
-    const supervisorEmails = form.watch('employment_record').map(emp => emp.supervisor_email).filter(Boolean);
-    
-    return (
-      <div className="space-y-6">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>References:</strong> Provide exactly 3 references who are not related to you and are not supervisors already listed in your employment record. Do not repeat supervisors; no relatives.
-          </AlertDescription>
-        </Alert>
+  const renderReferences = () => (
+    <div className="space-y-6">
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          <strong>References:</strong> Provide exactly 3 references who are not related to you and are not supervisors already listed in your employment record. Do not repeat supervisors; no relatives.
+        </AlertDescription>
+      </Alert>
 
-        {[0, 1, 2].map((index) => (
-          <Card key={index} className="p-4">
-            <h4 className="font-medium mb-4">Reference {index + 1}</h4>
+      {[0, 1, 2].map((index) => (
+        <Card key={index} className="p-4">
+          <h4 className="font-medium mb-4">Reference {index + 1}</h4>
 
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name={`references.${index}.name`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name *</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name={`references.${index}.name`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name *</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name={`references.${index}.full_address`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Address (including telephone/email if known) *</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} rows={3} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name={`references.${index}.full_address`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Address (including telephone/email if known) *</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} rows={3} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name={`references.${index}.occupation_title`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Occupation/Title *</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </Card>
-        ))}
-      </div>
-    );
-  };
+            <FormField
+              control={form.control}
+              name={`references.${index}.occupation_title`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Occupation/Title *</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
 
   const renderEmployerContactStatus = () => (
     <div className="space-y-6">
@@ -1685,7 +1402,13 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
           control={form.control}
           name="availability.availability_date"
           render={({ field }) => (
-            <DatePicker field={field} label="Availability Date" />
+            <FormItem>
+              <FormLabel>Availability Date</FormLabel>
+              <FormControl>
+                <Input {...field} type="date" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
         />
       )}
@@ -1833,7 +1556,13 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
           control={form.control}
           name="certification_signature.signature_date"
           render={({ field }) => (
-            <DatePicker field={field} label="Date *" />
+            <FormItem>
+              <FormLabel>Date *</FormLabel>
+              <FormControl>
+                <Input {...field} type="date" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
         />
       </div>
