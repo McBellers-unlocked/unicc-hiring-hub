@@ -67,10 +67,11 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
     const items: ValidationItem[] = [];
 
     // Basic information
+    const hasLocation = Array.isArray(data.location) ? data.location.length > 0 : Boolean(data.location);
     items.push({
       label: 'Basic Information Complete',
-      status: data.title && data.category && data.location && data.org_unit ? 'pass' : 'fail',
-      description: 'Title, category, location, and organization unit are required',
+      status: data.title && data.category && hasLocation && data.org_unit ? 'pass' : 'fail',
+      description: 'Title, category, at least one location, and organization unit are required',
     });
 
     // Description and requirements
@@ -134,6 +135,7 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
 
       const finalJobData = {
         ...jobData,
+        location: Array.isArray(jobData.location) ? jobData.location.join(', ') : jobData.location,
         status: publish ? 'active' : 'draft',
         slug: slug,
         updated_at: new Date().toISOString(),
@@ -345,7 +347,7 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
                 <span className="font-medium">Category:</span> {data.category || 'Not set'}
               </div>
               <div>
-                <span className="font-medium">Location:</span> {data.location || 'Not set'}
+                <span className="font-medium">Location:</span> {Array.isArray(data.location) ? data.location.join(', ') : data.location || 'Not set'}
               </div>
               <div>
                 <span className="font-medium">Org Unit:</span> {data.org_unit || 'Not set'}

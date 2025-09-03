@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { CalendarIcon, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -47,6 +48,14 @@ const TIMEZONES = [
   'Australia/Sydney',
 ];
 
+const LOCATIONS = [
+  'New York, USA',
+  'Geneva, Switzerland',
+  'Valencia, Spain',
+  'Rome, Italy',
+  'Brindisi, Italy',
+];
+
 export function JobWizardStep1({ data, onUpdate, onNext }: Props) {
   const { toast } = useToast();
   const [formData, setFormData] = useState(data);
@@ -57,14 +66,31 @@ export function JobWizardStep1({ data, onUpdate, onNext }: Props) {
     onUpdate(updated);
   };
 
+  const handleLocationChange = (location: string, checked: boolean) => {
+    const currentLocations = formData.location || [];
+    const updatedLocations = checked
+      ? [...currentLocations, location]
+      : currentLocations.filter(loc => loc !== location);
+    updateField('location', updatedLocations);
+  };
+
   const validateAndProceed = () => {
-    const requiredFields = ['title', 'category', 'type', 'location', 'org_unit'];
+    const requiredFields = ['title', 'category', 'type', 'org_unit'];
     const missingFields = requiredFields.filter(field => !formData[field as keyof JobFormData]);
 
     if (missingFields.length > 0) {
       toast({
         title: "Validation Error",
         description: `Please fill in required fields: ${missingFields.join(', ')}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.location || formData.location.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please select at least one location",
         variant: "destructive",
       });
       return;
@@ -181,16 +207,31 @@ export function JobWizardStep1({ data, onUpdate, onNext }: Props) {
             />
           </div>
 
-          {/* Location */}
-          <div className="space-y-2">
-            <Label htmlFor="location">Location *</Label>
-            <Input
-              id="location"
-              value={formData.location}
-              onChange={(e) => updateField('location', e.target.value)}
-              placeholder="e.g., Geneva, Switzerland"
-              required
-            />
+          {/* Locations */}
+          <div className="space-y-3 md:col-span-2">
+            <Label>Locations *</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {LOCATIONS.map((location) => (
+                <div key={location} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`location-${location}`}
+                    checked={formData.location?.includes(location) || false}
+                    onCheckedChange={(checked) => handleLocationChange(location, checked as boolean)}
+                  />
+                  <Label
+                    htmlFor={`location-${location}`}
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    {location}
+                  </Label>
+                </div>
+              ))}
+            </div>
+            {formData.location && formData.location.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                Selected: {formData.location.join(', ')}
+              </p>
+            )}
           </div>
 
           {/* Org Unit */}

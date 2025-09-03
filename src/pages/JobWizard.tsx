@@ -23,7 +23,7 @@ export interface JobFormData {
   positions: number;
   grade: string;
   salary_estimate: string;
-  location: string;
+  location: string[];
   org_unit: string;
   issue_date: Date | null;
   closing_date: Date | null;
@@ -100,7 +100,7 @@ export default function JobWizard() {
     positions: 1,
     grade: '',
     salary_estimate: '',
-    location: '',
+    location: [],
     org_unit: '',
     issue_date: null,
     closing_date: null,
