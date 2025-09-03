@@ -618,27 +618,45 @@ export type Database = {
       video_answers: {
         Row: {
           application_id: string
+          azure_blob_url: string | null
           duration: number | null
+          file_size: number | null
           id: string
+          processing_status: string | null
           question_id: string
+          retry_count: number | null
           taken_at: string
+          transcript: string | null
           url: string
+          virus_scan_status: string | null
         }
         Insert: {
           application_id: string
+          azure_blob_url?: string | null
           duration?: number | null
+          file_size?: number | null
           id?: string
+          processing_status?: string | null
           question_id: string
+          retry_count?: number | null
           taken_at?: string
+          transcript?: string | null
           url: string
+          virus_scan_status?: string | null
         }
         Update: {
           application_id?: string
+          azure_blob_url?: string | null
           duration?: number | null
+          file_size?: number | null
           id?: string
+          processing_status?: string | null
           question_id?: string
+          retry_count?: number | null
           taken_at?: string
+          transcript?: string | null
           url?: string
+          virus_scan_status?: string | null
         }
         Relationships: [
           {
@@ -652,28 +670,43 @@ export type Database = {
       }
       video_question_sets: {
         Row: {
+          allow_retakes: boolean | null
+          answer_secs: number | null
           created_at: string
           created_by: string | null
           id: string
           job_id: string
+          max_retakes: number | null
           name: string
+          prep_secs: number | null
           questions: Json | null
+          read_secs: number | null
         }
         Insert: {
+          allow_retakes?: boolean | null
+          answer_secs?: number | null
           created_at?: string
           created_by?: string | null
           id?: string
           job_id: string
+          max_retakes?: number | null
           name: string
+          prep_secs?: number | null
           questions?: Json | null
+          read_secs?: number | null
         }
         Update: {
+          allow_retakes?: boolean | null
+          answer_secs?: number | null
           created_at?: string
           created_by?: string | null
           id?: string
           job_id?: string
+          max_retakes?: number | null
           name?: string
+          prep_secs?: number | null
           questions?: Json | null
+          read_secs?: number | null
         }
         Relationships: [
           {
@@ -688,6 +721,51 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_ratings: {
+        Row: {
+          comments: string | null
+          created_at: string
+          evaluator_id: string
+          id: string
+          rating: number | null
+          updated_at: string
+          video_answer_id: string
+        }
+        Insert: {
+          comments?: string | null
+          created_at?: string
+          evaluator_id: string
+          id?: string
+          rating?: number | null
+          updated_at?: string
+          video_answer_id: string
+        }
+        Update: {
+          comments?: string | null
+          created_at?: string
+          evaluator_id?: string
+          id?: string
+          rating?: number | null
+          updated_at?: string
+          video_answer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_ratings_evaluator_id_fkey"
+            columns: ["evaluator_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_ratings_video_answer_id_fkey"
+            columns: ["video_answer_id"]
+            isOneToOne: false
+            referencedRelation: "video_answers"
             referencedColumns: ["id"]
           },
         ]
