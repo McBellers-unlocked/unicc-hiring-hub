@@ -296,7 +296,7 @@ export default function JobApplication() {
     }
   };
 
-  const handlePHFSave = async (data: any, isComplete: boolean) => {
+  const handlePHFSave = async (data: PHFFormData, isComplete: boolean) => {
     if (!applicationId) return;
 
     try {
