@@ -54,6 +54,12 @@ export default function AdminApplications() {
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
                    userRoles.includes('Hiring Manager') || userRoles.includes('Panel Member');
   
+  useEffect(() => {
+    if (hasAccess) {
+      fetchApplications();
+    }
+  }, [hasAccess]);
+
   if (!hasAccess) {
     return (
       <Layout>
@@ -66,10 +72,6 @@ export default function AdminApplications() {
       </Layout>
     );
   }
-
-  useEffect(() => {
-    fetchApplications();
-  }, []);
 
   const fetchApplications = async () => {
     try {
