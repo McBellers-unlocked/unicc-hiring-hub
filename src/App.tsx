@@ -37,6 +37,7 @@ const App = () => (
             <Route path="/video-interview/:applicationId" element={<VideoInterview />} />
             <Route path="/panel-interview/:interviewId/feedback" element={<PanelInterviewFeedback />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/applications" element={<AdminApplications />} />
             <Route path="/admin/jobs" element={<AdminJobs />} />
             <Route path="/admin/jobs/new" element={<JobWizard />} />
             <Route path="/admin/jobs/:jobId/edit" element={<JobWizard />} />
