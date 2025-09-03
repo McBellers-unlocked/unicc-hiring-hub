@@ -43,6 +43,8 @@ interface ApplicationData {
   phf_data: any;
   phf_completed: boolean;
   photo_url: string | null;
+  phf_pdf_url: string | null;
+  candidate_phf_url: string | null;
   candidate: {
     id: string;
     name: string;
@@ -215,26 +217,43 @@ export default function ApplicationDetail() {
   };
 
   const renderFiles = () => {
-    if (!application?.files || Object.keys(application.files).length === 0) {
-      return <p className="text-muted-foreground">No files uploaded</p>;
-    }
-
     return (
-      <div className="space-y-2">
-        {Object.entries(application.files).map(([key, filePath]) => (
-          <div key={key} className="flex items-center justify-between p-2 border rounded">
-            <div className="flex items-center space-x-2">
-              <FileText className="w-4 h-4" />
-              <span className="capitalize">{key.replace('_', ' ')}</span>
+      <div className="space-y-6">
+        <PHFManager
+          applicationId={id!}
+          phfData={application.phf_data}
+          phfCompleted={application.phf_completed || false}
+          phfPdfUrl={application.phf_pdf_url}
+          candidatePhfUrl={application.candidate_phf_url}
+          photoUrl={application.photo_url}
+          onUpdate={fetchApplication}
+        />
+        
+        {application?.files && Object.keys(application.files).length > 0 && (
+          <div>
+            <h3 className="text-lg font-medium mb-4">Other Application Files</h3>
+            <div className="space-y-2">
+              {Object.entries(application.files).map(([key, filePath]) => (
+                <div key={key} className="flex items-center justify-between p-2 border rounded">
+                  <div className="flex items-center space-x-2">
+                    <FileText className="w-4 h-4" />
+                    <span className="capitalize">{key.replace('_', ' ')}</span>
+                  </div>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={filePath as string} target="_blank" rel="noopener noreferrer">
+                      <Download className="w-3 h-3 mr-1" />
+                      Download
+                    </a>
+                  </Button>
+                </div>
+              ))}
             </div>
-            <Button variant="outline" size="sm" asChild>
-              <a href={filePath as string} target="_blank" rel="noopener noreferrer">
-                <Download className="w-3 h-3 mr-1" />
-                Download
-              </a>
-            </Button>
           </div>
-        ))}
+        )}
+        
+        {(!application?.files || Object.keys(application.files).length === 0) && (
+          <p className="text-muted-foreground">No additional files uploaded</p>
+        )}
       </div>
     );
   };

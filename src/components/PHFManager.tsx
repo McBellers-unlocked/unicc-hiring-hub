@@ -12,6 +12,7 @@ interface PHFManagerProps {
   phfCompleted: boolean;
   phfPdfUrl?: string | null;
   candidatePhfUrl?: string | null;
+  photoUrl?: string | null;
   onUpdate: () => void;
 }
 
