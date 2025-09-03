@@ -93,6 +93,7 @@ export type Database = {
           entity: string
           entity_id: string
           id: string
+          metadata: Json | null
         }
         Insert: {
           action: string
@@ -103,6 +104,7 @@ export type Database = {
           entity: string
           entity_id: string
           id?: string
+          metadata?: Json | null
         }
         Update: {
           action?: string
@@ -113,6 +115,7 @@ export type Database = {
           entity?: string
           entity_id?: string
           id?: string
+          metadata?: Json | null
         }
         Relationships: [
           {
@@ -863,6 +866,15 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      log_email_sent: {
+        Args: {
+          p_actor_id: string
+          p_recipient: string
+          p_subject: string
+          p_template?: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
