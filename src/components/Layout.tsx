@@ -30,7 +30,7 @@ export const Layout = ({ children }: LayoutProps) => {
           <div className="flex items-center h-16">
             <div className="flex items-center space-x-4">
               <Link to="/" className="flex items-center space-x-3">
-                <UNICCLogo size="md" className="text-primary-foreground" />
+                <UNICCLogo size="md" variant="blue" className="text-primary-foreground" />
                 <span className="text-xl font-bold">UNICC ATS</span>
               </Link>
               
