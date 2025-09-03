@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { ApplicationScoring } from '@/components/ApplicationScoring';
+import { RequirementsChecklist } from '@/components/RequirementsChecklist';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,9 @@ import {
   CheckCircle,
   XCircle,
   Calendar,
-  MessageSquare
+  MessageSquare,
+  GraduationCap,
+  Briefcase
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -38,6 +41,7 @@ interface ApplicationData {
   id: string;
   status: string;
   submitted_at: string;
+  updated_at: string;
   suggested_for_longlist: boolean;
   files: any;
   answers: any;
@@ -79,7 +83,7 @@ export default function ApplicationDetail() {
   const [statusChangeReason, setStatusChangeReason] = useState('');
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState('');
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState("summary");
   const [showScheduler, setShowScheduler] = useState(false);
 
   // Check access permissions
@@ -310,39 +314,141 @@ export default function ApplicationDetail() {
           </div>
         </div>
 
-        {/* Status Change */}
+        {/* Status Management */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Status Management</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Status Management
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center space-x-4">
-              <Select value={application.status} onValueChange={handleStatusChange}>
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Application">Application</SelectItem>
-                  <SelectItem value="Longlist">Longlist</SelectItem>
-                  <SelectItem value="Shortlist">Shortlist</SelectItem>
-                  <SelectItem value="Pre-Recorded Video">Pre-Recorded Video</SelectItem>
-                  <SelectItem value="Panel Interview">Panel Interview</SelectItem>
-                  <SelectItem value="Offer">Offer</SelectItem>
-                  <SelectItem value="Roster">Roster</SelectItem>
-                  <SelectItem value="Rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-              {!canMoveToLonglist && (
-                <p className="text-sm text-muted-foreground">
-                  Only HR Assistants can move from Application to Longlist
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Current Status */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Current Status</h4>
+                <div className="flex items-center gap-3">
+                  {getStatusBadge(application.status)}
+                  {application.suggested_for_longlist && (
+                    <Badge variant="outline" className="text-green-700 border-green-300">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      AI Recommended
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Last updated: {format(new Date(application.updated_at || application.submitted_at), 'PPp')}
                 </p>
-              )}
+              </div>
+
+              {/* Status Change */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Move to Stage</h4>
+                <Select value={application.status} onValueChange={handleStatusChange}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select new status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Application">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        Application
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Longlist">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                        Longlist
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Shortlist">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                        Shortlist
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Pre-Recorded Video">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                        Pre-Recorded Video
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Panel Interview">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                        Panel Interview
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Offer">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        Offer
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Roster">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                        Roster
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Rejected">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                        Rejected
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {!canMoveToLonglist && (
+                  <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-md">
+                    <AlertCircle className="w-3 h-3 inline mr-1" />
+                    Only HR Assistants can move from Application to Longlist
+                  </p>
+                )}
+              </div>
+
+              {/* Quick Actions */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Quick Actions</h4>
+                <div className="flex flex-col gap-2">
+                  {application.status === 'Application' && canMoveToLonglist && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleStatusChange('Longlist')}
+                      className="justify-start"
+                    >
+                      Move to Longlist
+                    </Button>
+                  )}
+                  {application.status === 'Longlist' && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleStatusChange('Shortlist')}
+                      className="justify-start"
+                    >
+                      Move to Shortlist
+                    </Button>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleStatusChange('Rejected')}
+                    className="justify-start text-red-600 hover:text-red-700"
+                  >
+                    <XCircle className="w-3 h-3 mr-1" />
+                    Reject Application
+                  </Button>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
+            <TabsTrigger value="summary">Summary</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="files">Files</TabsTrigger>
             <TabsTrigger value="ai-score">AI Score</TabsTrigger>
@@ -351,6 +457,75 @@ export default function ApplicationDetail() {
             <TabsTrigger value="interviews">Interviews</TabsTrigger>
             <TabsTrigger value="feedback">Feedback</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="summary" className="space-y-6">
+            <RequirementsChecklist 
+              applicationId={application.id}
+              jobId={application.job.id}
+              phfData={application.phf_data}
+              candidateInfo={application.candidate}
+            />
+            
+            {/* Quick Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <GraduationCap className="w-8 h-8 text-primary" />
+                    <div>
+                      <h3 className="font-medium">Education</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {application.phf_data?.education?.length || 0} entries
+                      </p>
+                      {application.phf_data?.education?.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Latest: {application.phf_data.education[0]?.degree_or_certificate_title}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <Briefcase className="w-8 h-8 text-primary" />
+                    <div>
+                      <h3 className="font-medium">Experience</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {application.phf_data?.employment?.length || 0} positions
+                      </p>
+                      {application.phf_data?.employment?.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Current: {application.phf_data.employment[0]?.job_title}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-8 h-8 text-primary" />
+                    <div>
+                      <h3 className="font-medium">Languages</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {Object.keys(application.candidate.languages || {}).length} languages
+                      </p>
+                      {application.candidate.languages && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {Object.keys(application.candidate.languages).slice(0, 2).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           <TabsContent value="profile">
             <Card>
