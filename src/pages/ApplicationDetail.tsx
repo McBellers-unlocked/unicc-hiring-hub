@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { VideoRatingInterface } from '@/components/VideoRatingInterface';
 import { PanelInterviewScheduler } from '@/components/PanelInterviewScheduler';
 import { PanelInterviewList } from '@/components/PanelInterviewList';
+import { PHFManager } from '@/components/PHFManager';
 import { 
   ArrowLeft, 
   User, 

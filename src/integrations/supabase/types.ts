@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           answers: Json | null
           candidate_id: string
+          candidate_phf_url: string | null
           consents: Json | null
           created_at: string
           files: Json | null
@@ -25,6 +26,7 @@ export type Database = {
           job_id: string
           phf_completed: boolean | null
           phf_data: Json | null
+          phf_pdf_url: string | null
           photo_url: string | null
           source: string | null
           status: Database["public"]["Enums"]["application_status"] | null
@@ -35,6 +37,7 @@ export type Database = {
         Insert: {
           answers?: Json | null
           candidate_id: string
+          candidate_phf_url?: string | null
           consents?: Json | null
           created_at?: string
           files?: Json | null
@@ -42,6 +45,7 @@ export type Database = {
           job_id: string
           phf_completed?: boolean | null
           phf_data?: Json | null
+          phf_pdf_url?: string | null
           photo_url?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["application_status"] | null
@@ -52,6 +56,7 @@ export type Database = {
         Update: {
           answers?: Json | null
           candidate_id?: string
+          candidate_phf_url?: string | null
           consents?: Json | null
           created_at?: string
           files?: Json | null
@@ -59,6 +64,7 @@ export type Database = {
           job_id?: string
           phf_completed?: boolean | null
           phf_data?: Json | null
+          phf_pdf_url?: string | null
           photo_url?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["application_status"] | null
