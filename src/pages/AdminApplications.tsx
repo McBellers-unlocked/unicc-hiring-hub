@@ -17,6 +17,7 @@ interface Application {
   status: string;
   submitted_at: string;
   suggested_for_longlist: boolean;
+  phf_completed: boolean;
   candidate: {
     id: string;
     name: string;
@@ -110,6 +111,7 @@ export default function AdminApplications() {
           status,
           submitted_at,
           suggested_for_longlist,
+          phf_completed,
           candidate:candidates(id, name, email, location),
           job:jobs(id, title, org_unit),
           screening_scores(ai_score)
@@ -272,6 +274,71 @@ export default function AdminApplications() {
             </CardContent>
           </Card>
         )}
+
+        {/* PHF Completion Status Summary */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              PHF Completion Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {filteredApplications.length}
+                </div>
+                <div className="text-sm text-blue-600 dark:text-blue-400 font-medium">Total Applications</div>
+              </div>
+              
+              <div className="text-center p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {filteredApplications.filter(app => app.phf_completed).length}
+                </div>
+                <div className="text-sm text-green-600 dark:text-green-400 font-medium">PHF Completed</div>
+              </div>
+              
+              <div className="text-center p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                  {filteredApplications.filter(app => !app.phf_completed).length}
+                </div>
+                <div className="text-sm text-orange-600 dark:text-orange-400 font-medium">PHF Incomplete</div>
+              </div>
+              
+              <div className="text-center p-4 bg-gray-50 dark:bg-gray-950/20 rounded-lg border border-gray-200 dark:border-gray-800">
+                <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
+                  {filteredApplications.length > 0 ? Math.round((filteredApplications.filter(app => app.phf_completed).length / filteredApplications.length) * 100) : 0}%
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Completion Rate</div>
+              </div>
+            </div>
+            
+            {/* Detailed breakdown by status */}
+            <div className="mt-6">
+              <h4 className="font-medium mb-3 text-muted-foreground">PHF Status by Application Stage</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {applicationsByStatus.map((column) => {
+                  const statusApps = filteredApplications.filter(app => app.status === column.status);
+                  const completedInStatus = statusApps.filter(app => app.phf_completed).length;
+                  const incompleteInStatus = statusApps.filter(app => !app.phf_completed).length;
+                  
+                  if (statusApps.length === 0) return null;
+                  
+                  return (
+                    <div key={column.status} className="p-3 bg-muted/20 rounded-lg">
+                      <div className="font-medium text-sm mb-2">{column.title} ({statusApps.length})</div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-green-600 dark:text-green-400">✓ Completed: {completedInStatus}</span>
+                        <span className="text-orange-600 dark:text-orange-400">⧖ Incomplete: {incompleteInStatus}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Filters */}
         <Card className="mb-6">
