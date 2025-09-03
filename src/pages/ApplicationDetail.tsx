@@ -289,6 +289,18 @@ export default function ApplicationDetail() {
     );
   }
 
+  // Helper function to get current job
+  const getCurrentJob = (employment: any[]) => {
+    if (!employment || employment.length === 0) return null;
+    
+    // First, look for a job marked as current (is_present: true)
+    const currentJob = employment.find(job => job.is_present === true);
+    if (currentJob) return currentJob;
+    
+    // If no current job marked, get the most recent one (first in array, assuming sorted by date)
+    return employment[0];
+  };
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -498,7 +510,7 @@ export default function ApplicationDetail() {
                       </p>
                       {application.phf_data?.employment?.length > 0 && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          Current: {application.phf_data.employment[0]?.job_title}
+                          Current: {getCurrentJob(application.phf_data.employment)?.exact_title_of_post || 'Not specified'}
                         </p>
                       )}
                     </div>
@@ -512,14 +524,14 @@ export default function ApplicationDetail() {
                     <MapPin className="w-8 h-8 text-primary" />
                     <div>
                       <h3 className="font-medium">Languages</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {Object.keys(application.candidate.languages || {}).length} languages
-                      </p>
-                      {application.candidate.languages && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {Object.keys(application.candidate.languages).slice(0, 2).join(', ')}
-                        </p>
-                      )}
+                       <p className="text-sm text-muted-foreground">
+                         {application.phf_data?.languages?.length || 0} languages
+                       </p>
+                       {application.phf_data?.languages?.length > 0 && (
+                         <p className="text-xs text-muted-foreground mt-1">
+                           {application.phf_data.languages.slice(0, 2).map((lang: any) => lang.language).join(', ')}
+                         </p>
+                       )}
                     </div>
                   </div>
                 </CardContent>
@@ -577,18 +589,24 @@ export default function ApplicationDetail() {
                       </div>
                     )}
                     
-                    {application.candidate.languages && Object.keys(application.candidate.languages).length > 0 && (
+                    {application.phf_data?.languages && application.phf_data.languages.length > 0 && (
                       <div>
                         <h4 className="font-medium mb-2">Languages</h4>
                         <div className="space-y-1">
-                          {Object.entries(application.candidate.languages).map(([lang, level]) => (
-                            <div key={lang} className="flex justify-between">
-                              <span>{lang}</span>
-                               <Badge variant="outline">
-                                 {typeof level === 'string' ? level : 
-                                  typeof level === 'object' && level ? 
-                                    `${(level as any).reading || 'N/A'}` : 'N/A'}
-                               </Badge>
+                          {application.phf_data.languages.map((lang: any, index: number) => (
+                            <div key={index} className="flex justify-between">
+                              <span>{lang.language}</span>
+                               <div className="flex gap-1">
+                                 <Badge variant="outline" className="text-xs">
+                                   S: {lang.speaking}
+                                 </Badge>
+                                 <Badge variant="outline" className="text-xs">
+                                   R: {lang.reading}
+                                 </Badge>
+                                 <Badge variant="outline" className="text-xs">
+                                   W: {lang.writing}
+                                 </Badge>
+                               </div>
                             </div>
                           ))}
                         </div>

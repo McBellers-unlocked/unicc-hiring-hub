@@ -88,10 +88,10 @@ export function RequirementsChecklist({ applicationId, jobId, phfData, candidate
     });
 
     // Language Requirements
-    if (candidateInfo?.languages) {
+    if (phfData?.languages && phfData.languages.length > 0) {
       const langReqs = extractLanguageRequirements(jobRequirements);
       langReqs.forEach(req => {
-        const met = checkLanguageRequirement(req, candidateInfo.languages);
+        const met = checkLanguageRequirement(req, phfData.languages);
         reqs.push({
           id: `lang-${req.language}`,
           category: 'skills',
@@ -218,12 +218,17 @@ export function RequirementsChecklist({ applicationId, jobId, phfData, candidate
     const relevantJobs = [];
 
     employment.forEach(job => {
-      const duties = (job.duties_responsibilities || '').toLowerCase();
-      const jobTitle = (job.job_title || '').toLowerCase();
+      const duties = (job.duties_and_responsibilities || '').toLowerCase();
+      const jobTitle = (job.exact_title_of_post || '').toLowerCase();
       
       // Simple keyword matching for relevant experience
       if (duties.includes(req.type.toLowerCase()) || jobTitle.includes(req.type.toLowerCase())) {
-        const years = calculateYearsOfService(job.from_year, job.from_month, job.to_year, job.to_month);
+        const years = calculateYearsOfService(
+          parseInt(job.period_from_year), 
+          parseInt(job.period_from_month), 
+          job.period_to_year ? parseInt(job.period_to_year) : undefined, 
+          job.period_to_month ? parseInt(job.period_to_month) : undefined
+        );
         totalYears += years;
         relevantJobs.push(job);
       }
@@ -237,11 +242,11 @@ export function RequirementsChecklist({ applicationId, jobId, phfData, candidate
     return { met, evidence };
   };
 
-  const checkLanguageRequirement = (req: any, languages: any) => {
-    if (!languages || typeof languages !== 'object') return false;
+  const checkLanguageRequirement = (req: any, languages: any[]) => {
+    if (!languages || !Array.isArray(languages)) return false;
     
-    return Object.keys(languages).some(lang => 
-      lang.toLowerCase().includes(req.language.toLowerCase())
+    return languages.some(lang => 
+      lang.language && lang.language.toLowerCase().includes(req.language.toLowerCase())
     );
   };
 
