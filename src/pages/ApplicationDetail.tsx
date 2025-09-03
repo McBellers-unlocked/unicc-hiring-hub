@@ -16,6 +16,7 @@ import { VideoRatingInterface } from '@/components/VideoRatingInterface';
 import { PanelInterviewScheduler } from '@/components/PanelInterviewScheduler';
 import { PanelInterviewList } from '@/components/PanelInterviewList';
 import { PHFManager } from '@/components/PHFManager';
+import { VideoInterviewManager } from '@/components/VideoInterviewManager';
 import { 
   ArrowLeft, 
   User, 

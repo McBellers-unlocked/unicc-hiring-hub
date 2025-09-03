@@ -446,10 +446,13 @@ export default function JobApplication() {
         )}
 
         {hasError && (
-          <div className="text-destructive text-sm italic" aria-live="polite">
-            <AlertCircle className="inline w-4 h-4 mr-1" />
-            {hasError}
-          </div>
+          <Alert variant="destructive" className="mt-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Eligibility Requirement Not Met</AlertTitle>
+            <AlertDescription className="italic">
+              {hasError}
+            </AlertDescription>
+          </Alert>
         )}
       </div>
     );
@@ -700,6 +703,18 @@ export default function JobApplication() {
             </Card>
           )}
 
+              {/* Disqualification Warning */}
+              {disqualified && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Application Cannot Be Submitted</AlertTitle>
+                  <AlertDescription>
+                    You do not meet one or more essential requirements for this position. 
+                    Please review your answers above.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* Submit */}
               <div className="flex justify-end space-x-4">
                 <Button
@@ -714,7 +729,7 @@ export default function JobApplication() {
                   disabled={submitting || disqualified}
                   className="min-w-32"
                 >
-                  {submitting ? 'Saving...' : 'Continue to PHF'}
+                  {submitting ? 'Saving...' : disqualified ? 'Requirements Not Met' : 'Continue to PHF'}
                 </Button>
               </div>
             </form>
