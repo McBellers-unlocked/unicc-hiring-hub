@@ -409,7 +409,11 @@ export default function ApplicationDetail() {
                           {Object.entries(application.candidate.languages).map(([lang, level]) => (
                             <div key={lang} className="flex justify-between">
                               <span>{lang}</span>
-                              <Badge variant="outline">{level as string}</Badge>
+                               <Badge variant="outline">
+                                 {typeof level === 'string' ? level : 
+                                  typeof level === 'object' && level ? 
+                                    `${(level as any).reading || 'N/A'}` : 'N/A'}
+                               </Badge>
                             </div>
                           ))}
                         </div>
