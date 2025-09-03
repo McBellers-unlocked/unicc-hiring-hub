@@ -240,7 +240,7 @@ export default function JobApplication() {
         uploadedFiles[key] = data.path;
       }
 
-      // Create candidate first
+      // Find or create candidate
       const candidateData = {
         name: formData.name,
         email: formData.email,
@@ -251,13 +251,26 @@ export default function JobApplication() {
         languages: languages
       };
 
-      const { data: candidate, error: candidateError } = await supabase
+      // First try to find existing candidate by email
+      let { data: candidate, error: findError } = await supabase
         .from('candidates')
-        .insert(candidateData)
-        .select()
-        .single();
+        .select('*')
+        .eq('email', formData.email)
+        .maybeSingle();
 
-      if (candidateError) throw candidateError;
+      if (findError) throw findError;
+
+      // If candidate doesn't exist, create new one
+      if (!candidate) {
+        const { data: newCandidate, error: candidateError } = await supabase
+          .from('candidates')
+          .insert(candidateData)
+          .select()
+          .single();
+
+        if (candidateError) throw candidateError;
+        candidate = newCandidate;
+      }
 
       // Create application
       const applicationData = {
