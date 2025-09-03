@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { VideoRatingInterface } from '@/components/VideoRatingInterface';
 import { 
   ArrowLeft, 
   User, 
@@ -444,17 +445,14 @@ export default function ApplicationDetail() {
           </TabsContent>
 
           <TabsContent value="video">
-            <Card>
-              <CardHeader>
-                <CardTitle>Video Interviews</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p>Video interview functionality coming soon</p>
-                </div>
-              </CardContent>
-            </Card>
+            {application && (
+              <VideoRatingInterface
+                applicationId={application.id}
+                questions={[]} 
+                videoAnswers={[]} 
+                onRatingUpdate={fetchApplication}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="feedback">

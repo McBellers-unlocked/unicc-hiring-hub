@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { VideoQuestionManager } from '@/components/VideoQuestionManager';
 import { ArrowLeft, ArrowRight, Plus, Trash2, FileText, Paperclip, Mail } from 'lucide-react';
 import { JobFormData } from '@/pages/JobWizard';
 import { useToast } from '@/hooks/use-toast';
@@ -415,6 +416,9 @@ UNICC Human Resources Team`;
             </div>
           </CardContent>
         </Card>
+
+        {/* Video Questions */}
+        <VideoQuestionManager jobId="temp-job-id" />
 
         {/* Navigation */}
         <div className="flex justify-between pt-6">
