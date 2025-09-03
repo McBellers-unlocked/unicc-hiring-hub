@@ -85,7 +85,7 @@ export default function JobApplication() {
           .select('id, title, location, closing_date, org_unit, timezone')
           .eq('id', jobId)
           .eq('status', 'active')
-          .single(),
+          .maybeSingle(),
         supabase
           .from('killer_questions')
           .select('*')
