@@ -123,8 +123,17 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
     setIsSaving(true);
     
     try {
-      const jobData = {
-        ...data,
+      // Filter out fields that don't exist in the database schema
+      const {
+        essential_criteria,
+        killer_questions,
+        custom_fields,
+        consent_checkboxes,
+        ...jobData
+      } = data;
+
+      const finalJobData = {
+        ...jobData,
         status: publish ? 'active' : 'draft',
         slug: slug,
         updated_at: new Date().toISOString(),
@@ -133,14 +142,14 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
       let result;
       if (isEditing && jobId) {
         // Update existing job
-        const { id, created_at, ...updateData } = jobData as any;
+        const { id, created_at, ...updateData } = finalJobData as any;
         result = await supabase
           .from('jobs')
           .update(updateData)
           .eq('id', jobId);
       } else {
         // Create new job
-        const { id, ...insertData } = jobData as any;
+        const { id, ...insertData } = finalJobData as any;
         result = await supabase
           .from('jobs')
           .insert([insertData])
