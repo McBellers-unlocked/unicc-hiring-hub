@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Search, Filter, User, FileText, Calendar, AlertCircle, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { Link } from 'react-router-dom';
 
 interface Application {
   id: string;
@@ -43,12 +43,14 @@ interface StatusColumn {
 export default function AdminApplications() {
   const { userRoles } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [jobFilter, setJobFilter] = useState('all');
+  const [jobFilter, setJobFilter] = useState(searchParams.get('job') || 'all');
   const [aiFilter, setAiFilter] = useState('all');
+  const [selectedJobTitle, setSelectedJobTitle] = useState<string | null>(null);
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
@@ -59,6 +61,31 @@ export default function AdminApplications() {
       fetchApplications();
     }
   }, [hasAccess]);
+
+  // Handle URL parameter changes and fetch job title
+  useEffect(() => {
+    const jobId = searchParams.get('job');
+    if (jobId && jobId !== 'all') {
+      setJobFilter(jobId);
+      fetchJobTitle(jobId);
+    }
+  }, [searchParams]);
+
+  const fetchJobTitle = async (jobId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('title')
+        .eq('id', jobId)
+        .single();
+
+      if (error) throw error;
+      setSelectedJobTitle(data?.title || null);
+    } catch (error) {
+      console.error('Error fetching job title:', error);
+      setSelectedJobTitle(null);
+    }
+  };
 
   if (!hasAccess) {
     return (
@@ -205,10 +232,46 @@ export default function AdminApplications() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Applications</h1>
-            <p className="text-muted-foreground mt-2">Manage job applications across all stages</p>
+            <h1 className="text-3xl font-bold text-foreground">
+              {selectedJobTitle ? `Applications for ${selectedJobTitle}` : 'Applications'}
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              {selectedJobTitle 
+                ? `Manage applications for this specific job position - ${filteredApplications.length} total applications`
+                : 'Manage job applications across all stages'
+              }
+            </p>
+            {selectedJobTitle && (
+              <div className="mt-2">
+                <Link 
+                  to="/admin/applications" 
+                  className="text-primary hover:text-primary/80 text-sm underline"
+                >
+                  ← View all applications
+                </Link>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Application Stats Summary (when viewing specific job) */}
+        {selectedJobTitle && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-lg">Application Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {applicationsByStatus.map((column) => (
+                  <div key={column.status} className="text-center p-3 bg-muted/30 rounded-lg">
+                    <div className="text-2xl font-bold text-foreground">{column.count}</div>
+                    <div className="text-sm text-muted-foreground">{column.title}</div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Filters */}
         <Card className="mb-6">
