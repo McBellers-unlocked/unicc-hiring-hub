@@ -161,10 +161,14 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
 
       // Save essential criteria
       if (data.essential_criteria?.length) {
-        const criteriaData = data.essential_criteria.map(criterion => ({
-          ...criterion,
-          job_id: isEditing ? jobId : result.data?.id,
-        }));
+        const criteriaData = data.essential_criteria.map(criterion => {
+          // Remove the temporary ID and let the database generate a UUID
+          const { id, ...criterionWithoutId } = criterion;
+          return {
+            ...criterionWithoutId,
+            job_id: isEditing ? jobId : result.data?.id,
+          };
+        });
 
         if (isEditing) {
           // Delete existing criteria first
@@ -183,10 +187,14 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
 
       // Save killer questions
       if (data.killer_questions?.length) {
-        const questionsData = data.killer_questions.map(question => ({
-          ...question,
-          job_id: isEditing ? jobId : result.data?.id,
-        }));
+        const questionsData = data.killer_questions.map(question => {
+          // Remove the temporary ID and let the database generate a UUID
+          const { id, ...questionWithoutId } = question;
+          return {
+            ...questionWithoutId,
+            job_id: isEditing ? jobId : result.data?.id,
+          };
+        });
 
         if (isEditing) {
           // Delete existing questions first

@@ -153,7 +153,7 @@ export function JobWizardStep4({ data, onUpdate, onNext, onPrev }: Props) {
 
   useEffect(() => {
     onUpdate({ killer_questions: questions });
-  }, [questions, onUpdate]);
+  }, [questions]); // Remove onUpdate from dependency array to prevent infinite loop
 
   const validateAndProceed = () => {
     const invalidQuestions = questions.filter(q => !q.label.trim());

@@ -80,7 +80,7 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
 
   useEffect(() => {
     onUpdate({ essential_criteria: criteria });
-  }, [criteria, onUpdate]);
+  }, [criteria]); // Remove onUpdate from dependency array to prevent infinite loop
 
   const validateAndProceed = () => {
     if (criteria.length === 0) {
