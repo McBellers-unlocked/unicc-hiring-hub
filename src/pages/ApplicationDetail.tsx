@@ -92,6 +92,13 @@ export default function ApplicationDetail() {
   
   const canMoveToLonglist = userRoles.includes('Admin') || userRoles.includes('HR Assistant');
 
+  useEffect(() => {
+    if (id && hasAccess) {
+      fetchApplication();
+    }
+  }, [id, hasAccess]);
+
+  // Early return AFTER all hooks have been called
   if (!hasAccess) {
     return (
       <Layout>
@@ -104,12 +111,6 @@ export default function ApplicationDetail() {
       </Layout>
     );
   }
-
-  useEffect(() => {
-    if (id) {
-      fetchApplication();
-    }
-  }, [id]);
 
   const fetchApplication = async () => {
     try {
