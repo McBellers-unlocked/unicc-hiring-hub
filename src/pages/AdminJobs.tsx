@@ -63,23 +63,12 @@ export default function AdminJobs() {
   
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant');
-  
-  if (!hasAccess) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-destructive mb-4">Access Denied</h1>
-            <p className="text-muted-foreground">You don't have permission to access this page.</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
 
   useEffect(() => {
-    fetchJobs();
-  }, []);
+    if (hasAccess) {
+      fetchJobs();
+    }
+  }, [hasAccess]);
 
   const fetchJobs = async () => {
     try {
@@ -270,6 +259,8 @@ export default function AdminJobs() {
 
   // Auto-close jobs that have passed their closing date
   useEffect(() => {
+    if (!hasAccess) return;
+    
     const checkAndCloseExpiredJobs = async () => {
       const now = new Date().toISOString();
       
@@ -291,7 +282,7 @@ export default function AdminJobs() {
     // Check every minute
     const interval = setInterval(checkAndCloseExpiredJobs, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [hasAccess]);
 
   // Filter jobs based on search and filters
   const filteredJobs = jobs.filter(job => {
@@ -319,6 +310,19 @@ export default function AdminJobs() {
   // Get unique values for filters
   const uniqueOrgUnits = [...new Set(jobs.map(job => job.org_unit).filter(Boolean))];
   const uniqueLocations = [...new Set(jobs.map(job => job.location).filter(Boolean))];
+
+  if (!hasAccess) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-destructive mb-4">Access Denied</h1>
+            <p className="text-muted-foreground">You don't have permission to access this page.</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
