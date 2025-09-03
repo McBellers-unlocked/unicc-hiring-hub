@@ -14,6 +14,7 @@ import AdminApplications from "./pages/AdminApplications";
 import ApplicationDetail from "./pages/ApplicationDetail";
 import VideoInterview from "./pages/VideoInterview";
 import { PanelInterviewFeedback } from "./pages/PanelInterviewFeedback";
+import { Analytics } from "./pages/Analytics";
 import JobWizard from "./pages/JobWizard";
 import ApplicationScoringTest from "./pages/ApplicationScoringTest";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/apply/:jobId" element={<JobApplication />} />
             <Route path="/video-interview/:applicationId" element={<VideoInterview />} />
             <Route path="/panel-interview/:interviewId/feedback" element={<PanelInterviewFeedback />} />
+            <Route path="/analytics" element={<Analytics />} />
             <Route path="/admin/jobs" element={<AdminJobs />} />
             <Route path="/admin/jobs/new" element={<JobWizard />} />
             <Route path="/admin/jobs/:jobId/edit" element={<JobWizard />} />

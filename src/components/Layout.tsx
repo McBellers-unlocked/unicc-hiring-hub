@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Users, LogOut, Settings, Briefcase, UserCheck } from 'lucide-react';
+import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3 } from 'lucide-react';
 import { UNICCLogo } from '@/components/UNICCLogo';
 
 interface LayoutProps {
@@ -67,14 +67,21 @@ export const Layout = ({ children }: LayoutProps) => {
                       <Users className="w-4 h-4 inline mr-1" />
                       Users
                     </Link>
-                  )}
-                  
-                  {isAdmin && (
-                    <Link to="/settings" className="hover:text-accent transition-colors">
-                      <Settings className="w-4 h-4 inline mr-1" />
-                      Settings
-                    </Link>
-                  )}
+                   )}
+                   
+                   {(isAdmin || isHR) && (
+                     <Link to="/analytics" className="hover:text-accent transition-colors">
+                       <BarChart3 className="w-4 h-4 inline mr-1" />
+                       Analytics
+                     </Link>
+                   )}
+                   
+                   {isAdmin && (
+                     <Link to="/settings" className="hover:text-accent transition-colors">
+                       <Settings className="w-4 h-4 inline mr-1" />
+                       Settings
+                     </Link>
+                   )}
                 </nav>
               )}
             </div>
