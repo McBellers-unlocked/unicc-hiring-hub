@@ -2286,15 +2286,41 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
           <Tabs value={currentSection.toString()} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-1 h-auto p-1">
-              {SECTIONS.map((section, index) => (
+            <TabsList className="grid w-full grid-cols-5 gap-1 h-auto p-1">
+              {SECTIONS.slice(0, 5).map((section, index) => (
                 <TabsTrigger 
                   key={index} 
                   value={index.toString()}
-                  className="text-xs px-3 py-2 h-auto whitespace-nowrap data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  className="text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                   title={section}
                 >
                   {index + 1}. {section}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            
+            <TabsList className="grid w-full grid-cols-5 gap-1 h-auto p-1 mt-1">
+              {SECTIONS.slice(5, 10).map((section, index) => (
+                <TabsTrigger 
+                  key={index + 5} 
+                  value={(index + 5).toString()}
+                  className="text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  title={section}
+                >
+                  {index + 6}. {section}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            
+            <TabsList className="grid w-full grid-cols-3 gap-1 h-auto p-1 mt-1 max-w-md mx-auto">
+              {SECTIONS.slice(10, 13).map((section, index) => (
+                <TabsTrigger 
+                  key={index + 10} 
+                  value={(index + 10).toString()}
+                  className="text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  title={section}
+                >
+                  {index + 11}. {section}
                 </TabsTrigger>
               ))}
             </TabsList>
