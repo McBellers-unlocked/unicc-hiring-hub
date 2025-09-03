@@ -105,8 +105,8 @@ export default function AdminApplications() {
   const statusColumns: StatusColumn[] = [
     { status: 'Application', title: 'Applications', color: 'bg-blue-100 text-blue-800', count: 0 },
     { status: 'Longlist', title: 'Longlist', color: 'bg-yellow-100 text-yellow-800', count: 0 },
-    { status: 'Interview', title: 'Interview', color: 'bg-purple-100 text-purple-800', count: 0 },
-    { status: 'Final', title: 'Final Review', color: 'bg-orange-100 text-orange-800', count: 0 },
+    { status: 'Shortlist', title: 'Shortlist', color: 'bg-purple-100 text-purple-800', count: 0 },
+    { status: 'Panel Interview', title: 'Panel Interview', color: 'bg-orange-100 text-orange-800', count: 0 },
     { status: 'Offer', title: 'Offer', color: 'bg-green-100 text-green-800', count: 0 },
     { status: 'Rejected', title: 'Rejected', color: 'bg-red-100 text-red-800', count: 0 }
   ];

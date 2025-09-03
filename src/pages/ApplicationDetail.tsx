@@ -152,7 +152,7 @@ export default function ApplicationDetail() {
       // Update application status
       const { error: updateError } = await supabase
         .from('applications')
-        .update({ status: newStatus })
+        .update({ status: newStatus as any })
         .eq('id', id);
 
       if (updateError) throw updateError;
@@ -161,9 +161,9 @@ export default function ApplicationDetail() {
       const { error: logError } = await supabase
         .from('stage_events')
         .insert({
-          application_id: id,
-          from_stage: application?.status,
-          to_stage: newStatus,
+          application_id: id!,
+          from_stage: application?.status as any,
+          to_stage: newStatus as any,
           by_user: (await supabase.auth.getUser()).data.user?.id,
           reason: reason || null
         });
@@ -193,9 +193,11 @@ export default function ApplicationDetail() {
     const variants = {
       'Application': 'bg-blue-100 text-blue-800',
       'Longlist': 'bg-yellow-100 text-yellow-800',
-      'Interview': 'bg-purple-100 text-purple-800',
-      'Final': 'bg-orange-100 text-orange-800',
+      'Shortlist': 'bg-purple-100 text-purple-800',
+      'Pre-Recorded Video': 'bg-indigo-100 text-indigo-800',
+      'Panel Interview': 'bg-orange-100 text-orange-800',
       'Offer': 'bg-green-100 text-green-800',
+      'Roster': 'bg-emerald-100 text-emerald-800',
       'Rejected': 'bg-red-100 text-red-800'
     } as const;
 
@@ -296,9 +298,11 @@ export default function ApplicationDetail() {
                 <SelectContent>
                   <SelectItem value="Application">Application</SelectItem>
                   <SelectItem value="Longlist">Longlist</SelectItem>
-                  <SelectItem value="Interview">Interview</SelectItem>
-                  <SelectItem value="Final">Final Review</SelectItem>
+                  <SelectItem value="Shortlist">Shortlist</SelectItem>
+                  <SelectItem value="Pre-Recorded Video">Pre-Recorded Video</SelectItem>
+                  <SelectItem value="Panel Interview">Panel Interview</SelectItem>
                   <SelectItem value="Offer">Offer</SelectItem>
+                  <SelectItem value="Roster">Roster</SelectItem>
                   <SelectItem value="Rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>

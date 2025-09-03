@@ -520,6 +520,7 @@ export type Database = {
           by_user: string | null
           from_stage: Database["public"]["Enums"]["application_status"] | null
           id: string
+          reason: string | null
           to_stage: Database["public"]["Enums"]["application_status"]
         }
         Insert: {
@@ -528,6 +529,7 @@ export type Database = {
           by_user?: string | null
           from_stage?: Database["public"]["Enums"]["application_status"] | null
           id?: string
+          reason?: string | null
           to_stage: Database["public"]["Enums"]["application_status"]
         }
         Update: {
@@ -536,6 +538,7 @@ export type Database = {
           by_user?: string | null
           from_stage?: Database["public"]["Enums"]["application_status"] | null
           id?: string
+          reason?: string | null
           to_stage?: Database["public"]["Enums"]["application_status"]
         }
         Relationships: [
