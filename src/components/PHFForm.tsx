@@ -17,7 +17,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { AlertCircle, CalendarIcon, Plus, Trash2, Save, FileText } from 'lucide-react';
+import { AlertCircle, CalendarIcon, Plus, Trash2, Save, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
@@ -398,43 +398,100 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
     }
   };
 
-  const DatePicker = ({ field, label, disabled }: any) => (
-    <FormItem className="flex flex-col">
-      <FormLabel>{label}</FormLabel>
-      <Popover>
-        <PopoverTrigger asChild>
-          <FormControl>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-full pl-3 text-left font-normal",
-                !field.value && "text-muted-foreground"
-              )}
-              disabled={disabled}
-            >
-              {field.value ? (
-                format(field.value, "PPP")
-              ) : (
-                <span>Pick a date</span>
-              )}
-              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-            </Button>
-          </FormControl>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={field.value}
-            onSelect={field.onChange}
-            disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-            initialFocus
-            className="p-3 pointer-events-auto"
-          />
-        </PopoverContent>
-      </Popover>
-      <FormMessage />
-    </FormItem>
-  );
+  const DatePicker = ({ field, label, disabled }: any) => {
+    const [currentDate, setCurrentDate] = useState(field.value || new Date());
+    
+    const navigateYear = (direction: 'prev' | 'next') => {
+      const newDate = new Date(currentDate);
+      newDate.setFullYear(newDate.getFullYear() + (direction === 'next' ? 1 : -1));
+      setCurrentDate(newDate);
+    };
+
+    const navigateMonth = (direction: 'prev' | 'next') => {
+      const newDate = new Date(currentDate);
+      newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1));
+      setCurrentDate(newDate);
+    };
+
+    return (
+      <FormItem className="flex flex-col">
+        <FormLabel>{label}</FormLabel>
+        <Popover>
+          <PopoverTrigger asChild>
+            <FormControl>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full pl-3 text-left font-normal",
+                  !field.value && "text-muted-foreground"
+                )}
+                disabled={disabled}
+              >
+                {field.value ? (
+                  format(field.value, "dd/MM/yyyy")
+                ) : (
+                  <span>Pick a date</span>
+                )}
+                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+              </Button>
+            </FormControl>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <div className="flex items-center justify-between p-2 border-b">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateYear('prev')}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="flex items-center space-x-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigateMonth('prev')}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronLeft className="h-3 w-3" />
+                </Button>
+                <span className="text-sm font-medium min-w-[120px] text-center">
+                  {format(currentDate, "MMMM yyyy")}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigateMonth('next')}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronRight className="h-3 w-3" />
+                </Button>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateYear('next')}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <Calendar
+              mode="single"
+              selected={field.value}
+              onSelect={field.onChange}
+              disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+              month={currentDate}
+              onMonthChange={setCurrentDate}
+              initialFocus
+              className="p-3 pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
+        <FormMessage />
+      </FormItem>
+    );
+  };
 
   // Personal Details Section
   const renderPersonalDetails = () => (
