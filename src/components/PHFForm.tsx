@@ -16,15 +16,16 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { AlertCircle, CalendarIcon, Plus, Trash2, Save, FileText } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-// Complete schema for UNICC PHF requirements (simplified structure for the new sections)
+// Complete schema for UNICC PHF requirements
 const phfSchema = z.object({
-  // Personal Details (existing)
+  // Personal Details
   personalDetails: z.object({
     familyName: z.string().min(1, 'Family name is required'),
     firstNames: z.string().min(1, 'First/other names are required'),
@@ -47,142 +48,143 @@ const phfSchema = z.object({
     photoUrl: z.string().optional(),
   }),
 
-  // Dependants & Relatives (existing)
+  // Dependants & Relatives
   dependants: z.array(z.object({
     name: z.string().min(1, 'Name is required'),
-    dateOfBirth: z.date(),
     relationship: z.string().min(1, 'Relationship is required'),
-  })).optional(),
-  
+    dateOfBirth: z.date(),
+  })),
   relatives: z.array(z.object({
     name: z.string().min(1, 'Name is required'),
     relationship: z.string().min(1, 'Relationship is required'),
     organization: z.string().min(1, 'Organization is required'),
-  })).optional(),
-
-  // Work Preferences (existing)
-  workPreferences: z.object({
-    typesOfWork: z.string().min(1, 'Types of work is required'),
-    vacancyReference: z.string().optional(),
-    fixedTermAcceptable: z.boolean(),
-    shortTermAcceptable: z.boolean(),
-  }),
-
-  // Language Knowledge (existing)
-  languages: z.array(z.object({
-    language: z.string().min(1, 'Language is required'),
-    isMotherTongue: z.boolean(),
-    speakLevel: z.enum(['1', '2', '3']),
-    readLevel: z.enum(['1', '2', '3']),
-    writeLevel: z.enum(['1', '2', '3']),
+    position: z.string().min(1, 'Position is required'),
   })),
 
-  // NEW: Education (chronological)
+  // Work Preferences
+  workPreferences: z.object({
+    preferred_locations: z.string().optional(),
+    remote_work_preference: z.string().optional(),
+    travel_availability: z.string().optional(),
+    contract_type_preference: z.string().optional(),
+    notice_period: z.string().optional(),
+  }),
+
+  // Language Knowledge
+  languages: z.array(z.object({
+    language: z.string().min(1, 'Language is required'),
+    speaking: z.string().min(1, 'Speaking level is required'),
+    reading: z.string().min(1, 'Reading level is required'),
+    writing: z.string().min(1, 'Writing level is required'),
+  })),
+
+  // Education
   education: z.array(z.object({
     from_month: z.string().min(1, 'From month is required'),
     from_year: z.string().min(4, 'From year is required'),
-    to_month: z.string().min(1, 'To month is required'),
-    to_year: z.string().min(4, 'To year is required'),
-    is_present: z.boolean().default(false),
+    to_month: z.string().optional(),
+    to_year: z.string().optional(),
+    is_present: z.boolean(),
     institution_name: z.string().min(1, 'Institution name is required'),
-    institution_place: z.string().optional(),
-    institution_country: z.string().optional(),
-    degree_or_certificate_title: z.string().optional(),
-    main_course_of_study: z.string().optional(),
+    institution_place: z.string(),
+    institution_country: z.string(),
+    degree_or_certificate_title: z.string(),
+    main_course_of_study: z.string(),
   })).min(1, 'At least one education entry is required'),
 
-  // NEW: Employment Record (reverse chronological)
-  employment_record: z.array(z.object({
+  // Employment Record
+  employment: z.array(z.object({
     period_from_month: z.string().min(1, 'From month is required'),
     period_from_year: z.string().min(4, 'From year is required'),
-    period_to_month: z.string().min(1, 'To month is required'),
-    period_to_year: z.string().min(4, 'To year is required'),
-    is_present: z.boolean().default(false),
-    exact_title_of_post: z.string().min(1, 'Exact title of post is required'),
-    type_of_business: z.string().optional(),
-    is_un_system_post: z.boolean().default(false),
+    period_to_month: z.string().optional(),
+    period_to_year: z.string().optional(),
+    is_present: z.boolean(),
+    exact_title_of_post: z.string().min(1, 'Post title is required'),
+    type_of_business: z.string(),
+    is_un_system_post: z.boolean(),
     un_grade: z.string().optional(),
     annual_income_starting: z.number().optional(),
     annual_income_most_recent: z.number().optional(),
-    allowances_or_benefits: z.string().optional(),
+    allowances_or_benefits: z.string(),
     employees_supervised_number: z.number().optional(),
-    employees_supervised_type: z.string().optional(),
+    employees_supervised_type: z.string(),
     employer_name: z.string().min(1, 'Employer name is required'),
-    employer_address: z.string().optional(),
+    employer_address: z.string(),
     supervisor_name: z.string().min(1, 'Supervisor name is required'),
-    supervisor_title: z.string().optional(),
-    supervisor_phone: z.string().optional(),
-    supervisor_email: z.string().email().optional(),
-    reason_for_change: z.string().optional(),
-    duties_and_responsibilities: z.string().min(1, 'Duties and responsibilities are required'),
+    supervisor_title: z.string(),
+    supervisor_phone: z.string(),
+    supervisor_email: z.string().email().optional().or(z.literal('')),
+    reason_for_change: z.string(),
+    duties_and_responsibilities: z.string().min(1, 'Duties are required'),
     attestations: z.array(z.string()).optional(),
   })).min(1, 'At least one employment entry is required'),
 
-  // NEW: Not employed periods
-  not_employed_periods: z.array(z.object({
-    from_month: z.string().min(1, 'From month is required'),
-    from_year: z.string().min(4, 'From year is required'),
-    to_month: z.string().min(1, 'To month is required'),
-    to_year: z.string().min(4, 'To year is required'),
+  unemploymentPeriods: z.array(z.object({
+    from_month: z.string(),
+    from_year: z.string(),
+    to_month: z.string(),
+    to_year: z.string(),
     reason: z.string().optional(),
-  })).optional(),
+  })),
 
-  // NEW: Additional Information
-  additional_information: z.object({
-    additional_skills: z.string().optional(),
+  // Additional Information
+  additionalInformation: z.object({
+    additional_skills: z.string(),
     fellowships: z.array(z.object({
-      place: z.string().optional(),
-      date_from: z.string().optional(),
-      date_to: z.string().optional(),
-      duration_text: z.string().optional(),
-      awarded_by: z.string().optional(),
-    })).optional(),
-    law_violations_disclosed: z.boolean().default(false),
+      place: z.string(),
+      date_from: z.string(),
+      date_to: z.string(),
+      duration_text: z.string(),
+      awarded_by: z.string(),
+    })),
+    law_violations_disclosed: z.boolean(),
     law_violations_details: z.string().optional(),
   }),
 
-  // NEW: Consent to Send
-  consent_to_send: z.object({
-    consent_other_un_orgs: z.boolean().default(false),
-    consent_national_government: z.boolean().default(false),
-    consent_other: z.boolean().default(false),
+  // Consent to Send
+  consentToSend: z.object({
+    consent_other_un_orgs: z.boolean(),
+    consent_national_government: z.boolean(),
+    consent_other: z.boolean(),
     consent_other_text: z.string().optional(),
   }),
 
-  // NEW: Mobility/Medical
-  mobility_medical: z.object({
-    mobility_medical_reservations: z.string().optional(),
+  // Mobility/Medical
+  mobilityMedical: z.object({
+    mobility_medical_reservations: z.string(),
   }),
 
-  // NEW: References (exactly 3)
+  // References
   references: z.array(z.object({
     name: z.string().min(1, 'Name is required'),
     full_address: z.string().min(1, 'Full address is required'),
-    occupation_title: z.string().min(1, 'Occupation/title is required'),
+    occupation_title: z.string().min(1, 'Occupation is required'),
   })).length(3, 'Exactly 3 references are required'),
 
-  // NEW: Employer Contact & Status
-  employer_contact_status: z.object({
-    objection_to_contact_present_employer: z.boolean().default(false),
-    presently_in_government_employ: z.boolean().default(false),
+  // Employer Contact & Status
+  employerContact: z.object({
+    objection_to_contact_present_employer: z.boolean(),
+    presently_in_government_employ: z.boolean(),
   }),
 
-  // NEW: Availability
+  // Availability
   availability: z.object({
-    availability_mode: z.enum(['specific_date', 'notice_period']).default('notice_period'),
-    availability_date: z.string().optional(), // Store as string for JSON serialization
+    availability_date: z.date().optional(),
     notice_period_days: z.number().optional(),
+    availability_mode: z.enum(['date', 'notice_period']),
   }),
 
-  // NEW: Certification & Signature
-  certification_signature: z.object({
-    certify_true_complete_correct: z.boolean().refine(val => val === true, 'You must certify that the information is true, complete and correct'),
-    signature_type: z.enum(['typed', 'drawn']).default('typed'),
+  // Certification & Signature
+  certification: z.object({
+    certify_true_complete_correct: z.boolean().refine((val) => val === true, {
+      message: 'You must certify that the information is true and complete',
+    }),
+    signature_type: z.enum(['typed', 'drawn']),
     typed_full_name: z.string().optional(),
     signature_image_url: z.string().optional(),
     signature_place: z.string().min(1, 'Signature place is required'),
-    signature_date: z.string().optional(), // Store as string for JSON serialization
-    signed_at_utc: z.string().optional(),
+    signature_date: z.date(),
+    signed_at_utc: z.date().optional(),
   }),
 });
 
@@ -271,104 +273,57 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
       dependants: initialData?.dependants || [],
       relatives: initialData?.relatives || [],
       workPreferences: {
-        fixedTermAcceptable: false,
-        shortTermAcceptable: false,
-        ...initialData?.workPreferences,
+        preferred_locations: initialData?.workPreferences?.preferred_locations || '',
+        remote_work_preference: initialData?.workPreferences?.remote_work_preference || '',
+        travel_availability: initialData?.workPreferences?.travel_availability || '',
+        contract_type_preference: initialData?.workPreferences?.contract_type_preference || '',
+        notice_period: initialData?.workPreferences?.notice_period || '',
       },
-      languages: initialData?.languages || [
-        { language: 'English', isMotherTongue: false, speakLevel: '1', readLevel: '1', writeLevel: '1' },
-        { language: 'French', isMotherTongue: false, speakLevel: '1', readLevel: '1', writeLevel: '1' },
-      ],
-      education: initialData?.education || [
-        {
-          from_month: '',
-          from_year: '',
-          to_month: '',
-          to_year: '',
-          is_present: false,
-          institution_name: '',
-          institution_place: '',
-          institution_country: '',
-          degree_or_certificate_title: '',
-          main_course_of_study: '',
-        }
-      ],
-      employment_record: initialData?.employment_record || [
-        {
-          period_from_month: '',
-          period_from_year: '',
-          period_to_month: '',
-          period_to_year: '',
-          is_present: false,
-          exact_title_of_post: '',
-          type_of_business: '',
-          is_un_system_post: false,
-          un_grade: '',
-          annual_income_starting: undefined,
-          annual_income_most_recent: undefined,
-          allowances_or_benefits: '',
-          employees_supervised_number: undefined,
-          employees_supervised_type: '',
-          employer_name: '',
-          employer_address: '',
-          supervisor_name: '',
-          supervisor_title: '',
-          supervisor_phone: '',
-          supervisor_email: '',
-          reason_for_change: '',
-          duties_and_responsibilities: '',
-          attestations: [],
-        }
-      ],
-      not_employed_periods: initialData?.not_employed_periods || [],
-      additional_information: {
-        additional_skills: '',
-        fellowships: [],
-        law_violations_disclosed: false,
-        law_violations_details: '',
-        ...initialData?.additional_information,
+      languages: initialData?.languages || [],
+      education: initialData?.education || [],
+      employment: initialData?.employment || [],
+      unemploymentPeriods: initialData?.unemploymentPeriods || [],
+      additionalInformation: {
+        additional_skills: initialData?.additionalInformation?.additional_skills || '',
+        fellowships: initialData?.additionalInformation?.fellowships || [],
+        law_violations_disclosed: initialData?.additionalInformation?.law_violations_disclosed || false,
+        law_violations_details: initialData?.additionalInformation?.law_violations_details || '',
       },
-      consent_to_send: {
-        consent_other_un_orgs: false,
-        consent_national_government: false,
-        consent_other: false,
-        consent_other_text: '',
-        ...initialData?.consent_to_send,
+      consentToSend: {
+        consent_other_un_orgs: initialData?.consentToSend?.consent_other_un_orgs || false,
+        consent_national_government: initialData?.consentToSend?.consent_national_government || false,
+        consent_other: initialData?.consentToSend?.consent_other || false,
+        consent_other_text: initialData?.consentToSend?.consent_other_text || '',
       },
-      mobility_medical: {
-        mobility_medical_reservations: '',
-        ...initialData?.mobility_medical,
+      mobilityMedical: {
+        mobility_medical_reservations: initialData?.mobilityMedical?.mobility_medical_reservations || '',
       },
       references: initialData?.references || [
         { name: '', full_address: '', occupation_title: '' },
         { name: '', full_address: '', occupation_title: '' },
-        { name: '', full_address: '', occupation_title: '' },
+        { name: '', full_address: '', occupation_title: '' }
       ],
-      employer_contact_status: {
-        objection_to_contact_present_employer: false,
-        presently_in_government_employ: false,
-        ...initialData?.employer_contact_status,
+      employerContact: {
+        objection_to_contact_present_employer: initialData?.employerContact?.objection_to_contact_present_employer || false,
+        presently_in_government_employ: initialData?.employerContact?.presently_in_government_employ || false,
       },
       availability: {
-        availability_mode: 'notice_period',
-        availability_date: undefined,
-        notice_period_days: undefined,
-        ...initialData?.availability,
+        availability_date: initialData?.availability?.availability_date,
+        notice_period_days: initialData?.availability?.notice_period_days,
+        availability_mode: initialData?.availability?.availability_mode || 'date',
       },
-      certification_signature: {
-        certify_true_complete_correct: false,
-        signature_type: 'typed',
-        typed_full_name: '',
-        signature_image_url: '',
-        signature_place: '',
-        signature_date: new Date().toISOString(),
-        signed_at_utc: undefined,
-        ...initialData?.certification_signature,
+      certification: {
+        certify_true_complete_correct: initialData?.certification?.certify_true_complete_correct || false,
+        signature_type: initialData?.certification?.signature_type || 'typed',
+        typed_full_name: initialData?.certification?.typed_full_name || '',
+        signature_image_url: initialData?.certification?.signature_image_url || '',
+        signature_place: initialData?.certification?.signature_place || '',
+        signature_date: initialData?.certification?.signature_date || new Date(),
+        signed_at_utc: initialData?.certification?.signed_at_utc,
       },
     },
   });
 
-  // Field arrays
   const { fields: dependantFields, append: appendDependant, remove: removeDependant } = useFieldArray({
     control: form.control,
     name: 'dependants',
@@ -391,90 +346,53 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
 
   const { fields: employmentFields, append: appendEmployment, remove: removeEmployment } = useFieldArray({
     control: form.control,
-    name: 'employment_record',
+    name: 'employment',
   });
 
-  const { fields: notEmployedFields, append: appendNotEmployed, remove: removeNotEmployed } = useFieldArray({
+  const { fields: unemploymentFields, append: appendUnemployment, remove: removeUnemployment } = useFieldArray({
     control: form.control,
-    name: 'not_employed_periods',
+    name: 'unemploymentPeriods',
   });
 
   const { fields: fellowshipFields, append: appendFellowship, remove: removeFellowship } = useFieldArray({
     control: form.control,
-    name: 'additional_information.fellowships',
+    name: 'additionalInformation.fellowships',
   });
 
-  const progress = ((currentSection + 1) / SECTIONS.length) * 100;
-
-  // Signature canvas handling
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    setIsDrawing(true);
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.beginPath();
-      ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-    }
-  };
-
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !canvasRef.current) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    const ctx = canvasRef.current.getContext('2d');
-    if (ctx) {
-      ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-      ctx.stroke();
-    }
-  };
-
-  const stopDrawing = () => {
-    if (isDrawing && canvasRef.current) {
-      const dataUrl = canvasRef.current.toDataURL();
-      form.setValue('certification_signature.signature_image_url', dataUrl);
-    }
-    setIsDrawing(false);
-  };
-
-  const clearSignature = () => {
-    if (canvasRef.current) {
-      const ctx = canvasRef.current.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-        form.setValue('certification_signature.signature_image_url', '');
-      }
-    }
-  };
-
-  const handleSaveAndContinue = async () => {
+  const handleSubmit = async (data: PHFFormData) => {
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-      const data = form.getValues();
-      await onSave(data, false);
-      toast({ title: 'Progress saved' });
+      await onSave(data, true);
+      toast({
+        title: 'PHF Submitted',
+        description: 'Your Personal History Form has been submitted successfully.',
+      });
     } catch (error) {
-      toast({ title: 'Failed to save progress', variant: 'destructive' });
+      toast({
+        title: 'Submission Failed',
+        description: 'There was an error submitting your PHF. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleSubmit = async (data: PHFFormData) => {
+  const handleSaveAndContinue = async () => {
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-      // Set signed timestamp
-      const updatedData = {
-        ...data,
-        certification_signature: {
-          ...data.certification_signature,
-          signed_at_utc: new Date().toISOString(),
-        }
-      };
-      await onSave(updatedData, true);
-      toast({ title: 'PHF completed successfully!' });
+      const formData = form.getValues();
+      await onSave(formData, false);
+      toast({
+        title: 'Progress Saved',
+        description: 'Your progress has been saved.',
+      });
     } catch (error) {
-      toast({ title: 'Failed to submit PHF', variant: 'destructive' });
+      toast({
+        title: 'Save Failed',
+        description: 'There was an error saving your progress.',
+        variant: 'destructive',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -518,38 +436,734 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
     </FormItem>
   );
 
-  const renderCurrentSection = () => {
-    switch (currentSection) {
-      case 0:
-        return <div className="text-center py-8">Personal Details section - Original implementation needed</div>;
-      case 1:
-        return <div className="text-center py-8">Dependants & Relatives section - Original implementation needed</div>;
-      case 2:
-        return <div className="text-center py-8">Work Preferences section - Original implementation needed</div>;
-      case 3:
-        return <div className="text-center py-8">Language Knowledge section - Original implementation needed</div>;
-      case 4:
-        return renderEducation();
-      case 5:
-        return renderEmploymentRecord();
-      case 6:
-        return renderAdditionalInformation();
-      case 7:
-        return renderConsentToSend();
-      case 8:
-        return renderMobilityMedical();
-      case 9:
-        return renderReferences();
-      case 10:
-        return renderEmployerContactStatus();
-      case 11:
-        return renderAvailability();
-      case 12:
-        return renderCertificationSignature();
-      default:
-        return null;
-    }
-  };
+  // Personal Details Section
+  const renderPersonalDetails = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="personalDetails.familyName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Family Name *</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="Family name" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="personalDetails.firstNames"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>First/Other Names *</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="First and other names" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="personalDetails.title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Title *</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select title" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="Mr">Mr</SelectItem>
+                  <SelectItem value="Mrs">Mrs</SelectItem>
+                  <SelectItem value="Ms">Ms</SelectItem>
+                  <SelectItem value="Miss">Miss</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="personalDetails.maidenName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Maiden Name (if applicable)</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="Maiden name" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="personalDetails.sex"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Sex *</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select sex" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="personalDetails.dateOfBirth"
+          render={({ field }) => (
+            <DatePicker field={field} label="Date of Birth *" />
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="personalDetails.placeOfBirth"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Place of Birth *</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="City, State/Province" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="personalDetails.countryOfBirth"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Country of Birth *</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {COUNTRIES.map((country) => (
+                    <SelectItem key={country} value={country}>
+                      {country}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="personalDetails.presentNationality"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Present Nationality *</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select nationality" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {COUNTRIES.map((country) => (
+                    <SelectItem key={country} value={country}>
+                      {country}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="personalDetails.maritalStatus"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Marital Status *</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="Single">Single</SelectItem>
+                  <SelectItem value="Married">Married</SelectItem>
+                  <SelectItem value="Divorced">Divorced</SelectItem>
+                  <SelectItem value="Widowed">Widowed</SelectItem>
+                  <SelectItem value="Separated">Separated</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <FormField
+        control={form.control}
+        name="personalDetails.nationalityChanged"
+        render={({ field }) => (
+          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+            <FormControl>
+              <Checkbox
+                checked={field.value}
+                onCheckedChange={field.onChange}
+              />
+            </FormControl>
+            <div className="space-y-1 leading-none">
+              <FormLabel>
+                Have you ever changed your nationality?
+              </FormLabel>
+            </div>
+          </FormItem>
+        )}
+      />
+
+      {form.watch('personalDetails.nationalityChanged') && (
+        <FormField
+          control={form.control}
+          name="personalDetails.nationalityChangeDetails"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nationality Change Details</FormLabel>
+              <FormControl>
+                <Textarea {...field} placeholder="Please provide details about your nationality change" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+
+      <div className="grid grid-cols-1 gap-4">
+        <FormField
+          control={form.control}
+          name="personalDetails.permanentAddress"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Permanent Address *</FormLabel>
+              <FormControl>
+                <Textarea {...field} placeholder="Full permanent address" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="personalDetails.presentAddress"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Present Address *</FormLabel>
+              <FormControl>
+                <Textarea {...field} placeholder="Full present address" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="personalDetails.telephone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Telephone *</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="Phone number with country code" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="personalDetails.email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email *</FormLabel>
+              <FormControl>
+                <Input {...field} type="email" placeholder="email@example.com" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <FormField
+        control={form.control}
+        name="personalDetails.usGreenCard"
+        render={({ field }) => (
+          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+            <FormControl>
+              <Checkbox
+                checked={field.value}
+                onCheckedChange={field.onChange}
+              />
+            </FormControl>
+            <div className="space-y-1 leading-none">
+              <FormLabel>
+                Do you hold a US Green Card or equivalent?
+              </FormLabel>
+            </div>
+          </FormItem>
+        )}
+      />
+
+      {form.watch('personalDetails.usGreenCard') && (
+        <FormField
+          control={form.control}
+          name="personalDetails.usGreenCardDetails"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>US Green Card Details</FormLabel>
+              <FormControl>
+                <Textarea {...field} placeholder="Please provide details about your US Green Card or equivalent" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+    </div>
+  );
+
+  // Dependants & Relatives Section
+  const renderDependantsAndRelatives = () => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium mb-4">Dependants</h3>
+        <FormDescription className="mb-4">
+          Spouse and children under 18 or other dependants financially supported by you
+        </FormDescription>
+        
+        {dependantFields.map((field, index) => (
+          <Card key={field.id} className="mb-4">
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="font-medium">Dependant {index + 1}</h4>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => removeDependant(index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name={`dependants.${index}.name`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name *</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Full name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`dependants.${index}.relationship`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Relationship *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select relationship" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Spouse">Spouse</SelectItem>
+                          <SelectItem value="Child">Child</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`dependants.${index}.dateOfBirth`}
+                  render={({ field }) => (
+                    <DatePicker field={field} label="Date of Birth *" />
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => appendDependant({ name: '', relationship: 'Spouse', dateOfBirth: new Date() })}
+          className="w-full"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Dependant
+        </Button>
+      </div>
+
+      <Separator />
+
+      <div>
+        <h3 className="text-lg font-medium mb-4">Relatives in UN Organizations</h3>
+        <FormDescription className="mb-4">
+          List any relatives working in UN organizations or international organizations
+        </FormDescription>
+        
+        {relativeFields.map((field, index) => (
+          <Card key={field.id} className="mb-4">
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="font-medium">Relative {index + 1}</h4>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => removeRelative(index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name={`relatives.${index}.name`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name *</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Full name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`relatives.${index}.relationship`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Relationship *</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., Brother, Sister, Parent" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`relatives.${index}.organization`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Organization *</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="UN organization or international body" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`relatives.${index}.position`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Position *</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Job title/position" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => appendRelative({ name: '', relationship: '', organization: '', position: '' })}
+          className="w-full"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Relative
+        </Button>
+      </div>
+    </div>
+  );
+
+  // Work Preferences Section
+  const renderWorkPreferences = () => (
+    <div className="space-y-4">
+      <FormField
+        control={form.control}
+        name="workPreferences.preferred_locations"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Preferred Work Locations</FormLabel>
+            <FormDescription>
+              List countries/regions where you would prefer to work
+            </FormDescription>
+            <FormControl>
+              <Textarea {...field} placeholder="e.g., Europe, Asia, Africa, specific countries..." />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="workPreferences.remote_work_preference"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Remote Work Preference</FormLabel>
+            <Select onValueChange={field.onChange} value={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select preference" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="office_only">Office only</SelectItem>
+                <SelectItem value="hybrid">Hybrid (office + remote)</SelectItem>
+                <SelectItem value="remote_only">Remote only</SelectItem>
+                <SelectItem value="no_preference">No preference</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="workPreferences.travel_availability"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Travel Availability</FormLabel>
+            <Select onValueChange={field.onChange} value={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select availability" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="no_travel">No travel</SelectItem>
+                <SelectItem value="limited_travel">Limited travel (up to 25%)</SelectItem>
+                <SelectItem value="moderate_travel">Moderate travel (25-50%)</SelectItem>
+                <SelectItem value="extensive_travel">Extensive travel (50%+)</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="workPreferences.contract_type_preference"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Contract Type Preference</FormLabel>
+            <Select onValueChange={field.onChange} value={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select preference" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="permanent">Permanent</SelectItem>
+                <SelectItem value="fixed_term">Fixed term</SelectItem>
+                <SelectItem value="consultancy">Consultancy</SelectItem>
+                <SelectItem value="no_preference">No preference</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="workPreferences.notice_period"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Notice Period Required</FormLabel>
+            <FormControl>
+              <Input {...field} placeholder="e.g., 30 days, 3 months" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </div>
+  );
+
+  // Language Knowledge Section
+  const renderLanguageKnowledge = () => (
+    <div className="space-y-4">
+      <FormDescription>
+        Rate your proficiency in each language: Elementary, Intermediate, Advanced, Expert
+      </FormDescription>
+      
+      {languageFields.map((field, index) => (
+        <Card key={field.id} className="mb-4">
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="font-medium">Language {index + 1}</h4>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => removeLanguage(index)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <FormField
+                control={form.control}
+                name={`languages.${index}.language`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Language *</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="e.g., English, French" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name={`languages.${index}.speaking`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Speaking *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Level" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Elementary">Elementary</SelectItem>
+                        <SelectItem value="Intermediate">Intermediate</SelectItem>
+                        <SelectItem value="Advanced">Advanced</SelectItem>
+                        <SelectItem value="Expert">Expert</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name={`languages.${index}.reading`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Reading *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Level" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Elementary">Elementary</SelectItem>
+                        <SelectItem value="Intermediate">Intermediate</SelectItem>
+                        <SelectItem value="Advanced">Advanced</SelectItem>
+                        <SelectItem value="Expert">Expert</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name={`languages.${index}.writing`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Writing *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Level" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Elementary">Elementary</SelectItem>
+                        <SelectItem value="Intermediate">Intermediate</SelectItem>
+                        <SelectItem value="Advanced">Advanced</SelectItem>
+                        <SelectItem value="Expert">Expert</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+      
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => appendLanguage({ language: '', speaking: 'Elementary', reading: 'Elementary', writing: 'Elementary' })}
+        className="w-full"
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        Add Language
+      </Button>
+    </div>
+  );
 
   const renderEducation = () => (
     <div className="space-y-6">
@@ -621,7 +1235,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
               name={`education.${index}.to_month`}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>To Month *</FormLabel>
+                  <FormLabel>To Month</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -646,7 +1260,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
               name={`education.${index}.to_year`}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>To Year *</FormLabel>
+                  <FormLabel>To Year</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="YYYY" maxLength={4} />
                   </FormControl>
@@ -795,7 +1409,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <FormField
               control={form.control}
-              name={`employment_record.${index}.period_from_month`}
+              name={`employment.${index}.period_from_month`}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>From Month *</FormLabel>
@@ -820,7 +1434,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
 
             <FormField
               control={form.control}
-              name={`employment_record.${index}.period_from_year`}
+              name={`employment.${index}.period_from_year`}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>From Year *</FormLabel>
@@ -834,10 +1448,10 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
 
             <FormField
               control={form.control}
-              name={`employment_record.${index}.period_to_month`}
+              name={`employment.${index}.period_to_month`}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>To Month *</FormLabel>
+                  <FormLabel>To Month</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -860,10 +1474,10 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
 
             <FormField
               control={form.control}
-              name={`employment_record.${index}.period_to_year`}
+              name={`employment.${index}.period_to_year`}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>To Year *</FormLabel>
+                  <FormLabel>To Year</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="YYYY" maxLength={4} />
                   </FormControl>
@@ -877,7 +1491,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <FormField
               control={form.control}
-              name={`employment_record.${index}.exact_title_of_post`}
+              name={`employment.${index}.exact_title_of_post`}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Exact Title of Post *</FormLabel>
@@ -891,7 +1505,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
 
             <FormField
               control={form.control}
-              name={`employment_record.${index}.type_of_business`}
+              name={`employment.${index}.type_of_business`}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Type of Business</FormLabel>
@@ -907,7 +1521,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
           {/* UN System checkbox */}
           <FormField
             control={form.control}
-            name={`employment_record.${index}.is_un_system_post`}
+            name={`employment.${index}.is_un_system_post`}
             render={({ field }) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0 mb-4">
                 <FormControl>
@@ -929,10 +1543,10 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
           />
 
           {/* Conditional fields based on UN system */}
-          {form.watch(`employment_record.${index}.is_un_system_post`) ? (
+          {form.watch(`employment.${index}.is_un_system_post`) ? (
             <FormField
               control={form.control}
-              name={`employment_record.${index}.un_grade`}
+              name={`employment.${index}.un_grade`}
               render={({ field }) => (
                 <FormItem className="mb-4">
                   <FormLabel>UN Grade</FormLabel>
@@ -947,7 +1561,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <FormField
                 control={form.control}
-                name={`employment_record.${index}.annual_income_starting`}
+                name={`employment.${index}.annual_income_starting`}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Annual Income Starting</FormLabel>
@@ -965,7 +1579,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
 
               <FormField
                 control={form.control}
-                name={`employment_record.${index}.annual_income_most_recent`}
+                name={`employment.${index}.annual_income_most_recent`}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Annual Income Most Recent</FormLabel>
@@ -983,11 +1597,11 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
             </div>
           )}
 
-          {/* Rest of employment fields... */}
+          {/* Rest of employment fields */}
           <div className="space-y-4">
             <FormField
               control={form.control}
-              name={`employment_record.${index}.employer_name`}
+              name={`employment.${index}.employer_name`}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Employer Name *</FormLabel>
@@ -1001,7 +1615,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
 
             <FormField
               control={form.control}
-              name={`employment_record.${index}.supervisor_name`}
+              name={`employment.${index}.supervisor_name`}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Supervisor Name *</FormLabel>
@@ -1015,7 +1629,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
 
             <FormField
               control={form.control}
-              name={`employment_record.${index}.duties_and_responsibilities`}
+              name={`employment.${index}.duties_and_responsibilities`}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Duties and Responsibilities *</FormLabel>
@@ -1070,7 +1684,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
     <div className="space-y-6">
       <FormField
         control={form.control}
-        name="additional_information.additional_skills"
+        name="additionalInformation.additional_skills"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Additional Skills</FormLabel>
@@ -1088,7 +1702,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
       <div className="space-y-4">
         <FormField
           control={form.control}
-          name="additional_information.law_violations_disclosed"
+          name="additionalInformation.law_violations_disclosed"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0">
               <FormControl>
@@ -1109,10 +1723,10 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
           )}
         />
 
-        {form.watch('additional_information.law_violations_disclosed') && (
+        {form.watch('additionalInformation.law_violations_disclosed') && (
           <FormField
             control={form.control}
-            name="additional_information.law_violations_details"
+            name="additionalInformation.law_violations_details"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Law Violations Details</FormLabel>
@@ -1139,7 +1753,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
         <div className="space-y-4">
           <FormField
             control={form.control}
-            name="consent_to_send.consent_other_un_orgs"
+            name="consentToSend.consent_other_un_orgs"
             render={({ field }) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                 <FormControl>
@@ -1159,7 +1773,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
 
           <FormField
             control={form.control}
-            name="consent_to_send.consent_national_government"
+            name="consentToSend.consent_national_government"
             render={({ field }) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                 <FormControl>
@@ -1179,7 +1793,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
 
           <FormField
             control={form.control}
-            name="consent_to_send.consent_other"
+            name="consentToSend.consent_other"
             render={({ field }) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                 <FormControl>
@@ -1197,10 +1811,10 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
             )}
           />
 
-          {form.watch('consent_to_send.consent_other') && (
+          {form.watch('consentToSend.consent_other') && (
             <FormField
               control={form.control}
-              name="consent_to_send.consent_other_text"
+              name="consentToSend.consent_other_text"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Please specify other organizations</FormLabel>
@@ -1244,7 +1858,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
 
       <FormField
         control={form.control}
-        name="mobility_medical.mobility_medical_reservations"
+        name="mobilityMedical.mobility_medical_reservations"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Mobility/Medical Reservations</FormLabel>
@@ -1322,13 +1936,13 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
     </div>
   );
 
-  const renderEmployerContactStatus = () => (
+  const renderEmployerContact = () => (
     <div className="space-y-6">
       <h3 className="text-lg font-medium mb-4">Employer Contact & Status</h3>
 
       <FormField
         control={form.control}
-        name="employer_contact_status.objection_to_contact_present_employer"
+        name="employerContact.objection_to_contact_present_employer"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Do you object to our making inquiries of your present employer?</FormLabel>
@@ -1355,7 +1969,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
 
       <FormField
         control={form.control}
-        name="employer_contact_status.presently_in_government_employ"
+        name="employerContact.presently_in_government_employ"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Are you presently in government employ?</FormLabel>
@@ -1399,7 +2013,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
                 className="flex flex-col space-y-2"
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="specific_date" id="specific-date" />
+                  <RadioGroupItem value="date" id="specific-date" />
                   <Label htmlFor="specific-date">Specific Date</Label>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -1413,18 +2027,12 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
         )}
       />
 
-      {form.watch('availability.availability_mode') === 'specific_date' && (
+      {form.watch('availability.availability_mode') === 'date' && (
         <FormField
           control={form.control}
           name="availability.availability_date"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Availability Date</FormLabel>
-              <FormControl>
-                <Input {...field} type="date" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+            <DatePicker field={field} label="Availability Date" />
           )}
         />
       )}
@@ -1452,6 +2060,47 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
     </div>
   );
 
+  // Signature canvas handling
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    setIsDrawing(true);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.beginPath();
+      ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    }
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const ctx = canvasRef.current.getContext('2d');
+    if (ctx) {
+      ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+      ctx.stroke();
+    }
+  };
+
+  const stopDrawing = () => {
+    if (isDrawing && canvasRef.current) {
+      const dataUrl = canvasRef.current.toDataURL();
+      form.setValue('certification.signature_image_url', dataUrl);
+    }
+    setIsDrawing(false);
+  };
+
+  const clearSignature = () => {
+    if (canvasRef.current) {
+      const ctx = canvasRef.current.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        form.setValue('certification.signature_image_url', '');
+      }
+    }
+  };
+
   const renderCertificationSignature = () => (
     <div className="space-y-6">
       <h3 className="text-lg font-medium mb-4">Certification & Signature</h3>
@@ -1467,7 +2116,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
 
       <FormField
         control={form.control}
-        name="certification_signature.certify_true_complete_correct"
+        name="certification.certify_true_complete_correct"
         render={({ field }) => (
           <FormItem className="flex flex-row items-start space-x-3 space-y-0">
             <FormControl>
@@ -1491,7 +2140,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
 
       <FormField
         control={form.control}
-        name="certification_signature.signature_type"
+        name="certification.signature_type"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Signature Type</FormLabel>
@@ -1516,10 +2165,10 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
         )}
       />
 
-      {form.watch('certification_signature.signature_type') === 'typed' && (
+      {form.watch('certification.signature_type') === 'typed' && (
         <FormField
           control={form.control}
-          name="certification_signature.typed_full_name"
+          name="certification.typed_full_name"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Type Your Full Name</FormLabel>
@@ -1532,7 +2181,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
         />
       )}
 
-      {form.watch('certification_signature.signature_type') === 'drawn' && (
+      {form.watch('certification.signature_type') === 'drawn' && (
         <div className="space-y-4">
           <Label>Draw Your Signature</Label>
           <div className="border border-input rounded-md">
@@ -1556,7 +2205,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={form.control}
-          name="certification_signature.signature_place"
+          name="certification.signature_place"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Place *</FormLabel>
@@ -1570,33 +2219,59 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
 
         <FormField
           control={form.control}
-          name="certification_signature.signature_date"
+          name="certification.signature_date"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Date *</FormLabel>
-              <FormControl>
-                <Input {...field} type="date" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+            <DatePicker field={field} label="Date *" />
           )}
         />
       </div>
     </div>
   );
 
-  return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Personal History Form</h1>
-        <p className="text-muted-foreground">
-          Please complete all sections of the UNICC Personal History Form
-        </p>
-      </div>
+  const renderCurrentSection = () => {
+    switch (currentSection) {
+      case 0:
+        return renderPersonalDetails();
+      case 1:
+        return renderDependantsAndRelatives();
+      case 2:
+        return renderWorkPreferences();
+      case 3:
+        return renderLanguageKnowledge();
+      case 4:
+        return renderEducation();
+      case 5:
+        return renderEmploymentRecord();
+      case 6:
+        return renderAdditionalInformation();
+      case 7:
+        return renderConsentToSend();
+      case 8:
+        return renderMobilityMedical();
+      case 9:
+        return renderReferences();
+      case 10:
+        return renderEmployerContact();
+      case 11:
+        return renderAvailability();
+      case 12:
+        return renderCertificationSignature();
+      default:
+        return <div>Section not found</div>;
+    }
+  };
 
-      {/* Progress indicator */}
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-2">
+  const handleTabChange = (value: string) => {
+    setCurrentSection(parseInt(value));
+  };
+
+  const progress = ((currentSection + 1) / SECTIONS.length) * 100;
+
+  return (
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
+      {/* Progress Bar */}
+      <div className="space-y-2">
+        <div className="flex justify-between">
           <span className="text-sm font-medium">Progress</span>
           <span className="text-sm text-muted-foreground">
             {currentSection + 1} of {SECTIONS.length}
@@ -1610,14 +2285,33 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>{SECTIONS[currentSection]}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {renderCurrentSection()}
-            </CardContent>
-          </Card>
+          <Tabs value={currentSection.toString()} onValueChange={handleTabChange} className="w-full">
+            <TabsList className="grid w-full grid-cols-6 lg:grid-cols-13">
+              {SECTIONS.map((section, index) => (
+                <TabsTrigger 
+                  key={index} 
+                  value={index.toString()}
+                  className="text-xs px-2 py-1"
+                  title={section}
+                >
+                  {index + 1}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            {SECTIONS.map((section, index) => (
+              <TabsContent key={index} value={index.toString()}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{section}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {index === currentSection && renderCurrentSection()}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            ))}
+          </Tabs>
 
           {/* Navigation buttons */}
           <div className="flex justify-between">
