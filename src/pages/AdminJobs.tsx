@@ -467,17 +467,15 @@ export default function AdminJobs() {
                             onClick={() => navigate(`/admin/applications?job=${job.id}`)}
                           >
                             <div className="flex items-center text-primary hover:text-primary/80">
-                              <Users className="w-3 h-3 mr-1" />
+                              <Users className="w-4 h-4 mr-2" />
                               <span className="font-medium">{job.application_stats?.total || 0}</span>
                             </div>
                           </Button>
-                          {job.application_stats && job.application_stats.total > 0 && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              <div className="flex gap-2">
-                                <span>Completed: {job.application_stats.completed}</span>
-                                <span>•</span>
-                                <span>In Progress: {job.application_stats.in_progress}</span>
-                              </div>
+                          {job.application_stats && (
+                            <div className="text-xs text-muted-foreground mt-2 space-y-1">
+                              <div>Completed Applications: <span className="font-medium">{job.application_stats.completed}</span></div>
+                              <div>In progress: <span className="font-medium">{job.application_stats.in_progress}</span></div>
+                              <div>Total: <span className="font-medium">{job.application_stats.total}</span></div>
                             </div>
                           )}
                         </TableCell>
