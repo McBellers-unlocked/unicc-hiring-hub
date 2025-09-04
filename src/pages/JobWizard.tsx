@@ -270,8 +270,9 @@ export default function JobWizard() {
   };
 
   const handleStepClick = (stepNumber: number) => {
-    // Allow navigation to completed steps or current step
-    if (stepNumber <= currentStep) {
+    // When editing, allow navigation to any step
+    // When creating new, allow navigation to completed steps or current step
+    if (isEditing || stepNumber <= currentStep) {
       setCurrentStep(stepNumber);
     }
   };
@@ -392,9 +393,13 @@ export default function JobWizard() {
                   className={`p-3 rounded-lg border cursor-pointer transition-colors ${
                     step.id === currentStep
                       ? 'bg-primary text-primary-foreground border-primary'
-                      : step.id < currentStep
+                      : (isEditing || step.id < currentStep)
                       ? 'bg-accent text-accent-foreground border-accent hover:bg-accent/80'
                       : 'bg-muted text-muted-foreground border-border hover:bg-muted/80'
+                  } ${
+                    isEditing || step.id <= currentStep 
+                      ? 'hover:scale-105' 
+                      : 'cursor-not-allowed opacity-60'
                   }`}
                   onClick={() => handleStepClick(step.id)}
                 >
