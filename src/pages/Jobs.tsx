@@ -60,11 +60,15 @@ export default function Jobs() {
                          job.location?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesLocation = selectedLocations.length === 0 || selectedLocations.some(selectedLoc => {
       if (!job.location) return false;
-      const jobLocations = job.location.split(',').map(loc => {
-        const trimmed = loc.trim();
-        return trimmed.split(',')[0].trim();
-      });
-      return jobLocations.includes(selectedLoc);
+      // Extract cities from the location string (City, Country pattern)
+      const parts = job.location.split(',').map(part => part.trim());
+      const jobCities = [];
+      for (let i = 0; i < parts.length; i += 2) {
+        if (parts[i]) {
+          jobCities.push(parts[i]);
+        }
+      }
+      return jobCities.includes(selectedLoc);
     });
     const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(job.category);
     const matchesType = selectedTypes.length === 0 || selectedTypes.includes(getDisplayType(job.type));
@@ -76,13 +80,13 @@ export default function Jobs() {
     const allLocations: string[] = [];
     jobs.forEach(job => {
       if (job.location) {
-        // Split by comma and clean up each location, extracting just the city
-        const locations = job.location.split(',').map(loc => {
-          const trimmed = loc.trim();
-          // Extract just the city name (first part before any comma or country)
-          return trimmed.split(',')[0].trim();
-        });
-        allLocations.push(...locations);
+        // Split by comma and extract cities (assuming City, Country, City, Country pattern)
+        const parts = job.location.split(',').map(part => part.trim());
+        for (let i = 0; i < parts.length; i += 2) {
+          if (parts[i]) {
+            allLocations.push(parts[i]);
+          }
+        }
       }
     });
     return [...new Set(allLocations)].sort();
@@ -114,11 +118,15 @@ export default function Jobs() {
   const getLocationCount = (location: string) => {
     return jobs.filter(job => {
       if (!job.location) return false;
-      const jobLocations = job.location.split(',').map(loc => {
-        const trimmed = loc.trim();
-        return trimmed.split(',')[0].trim();
-      });
-      return jobLocations.includes(location);
+      // Extract cities from the location string (City, Country pattern)
+      const parts = job.location.split(',').map(part => part.trim());
+      const jobCities = [];
+      for (let i = 0; i < parts.length; i += 2) {
+        if (parts[i]) {
+          jobCities.push(parts[i]);
+        }
+      }
+      return jobCities.includes(location);
     }).length;
   };
   const getCategoryCount = (category: string) => jobs.filter(job => job.category === category).length;
