@@ -91,6 +91,8 @@ export default function JobWizard() {
   const { jobId } = useParams();
   const { toast } = useToast();
   
+  
+  
   const [currentStep, setCurrentStep] = useState(1);
   const [isEditing] = useState(!!jobId);
   const [loading, setLoading] = useState(!!jobId);
@@ -130,7 +132,10 @@ export default function JobWizard() {
 
   // Load existing job data when editing
   useEffect(() => {
-    if (!hasAccess || !jobId) return;
+    // Wait for userRoles to be loaded and check access
+    if (userRoles.length === 0 || !hasAccess || !jobId) {
+      return;
+    }
 
     const loadJobData = async () => {
       try {
@@ -233,7 +238,7 @@ export default function JobWizard() {
     };
 
     loadJobData();
-  }, [jobId, hasAccess, toast, navigate]);
+  }, [jobId, hasAccess, toast, navigate, userRoles]);
   
   if (!hasAccess) {
     return (
