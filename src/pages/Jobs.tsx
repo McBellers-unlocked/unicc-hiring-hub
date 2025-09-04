@@ -360,31 +360,59 @@ export default function Jobs() {
                                     }
                                   }
                                   
-                                  // Map countries to flag emojis
-                                  const getCountryFlag = (country: string) => {
-                                    const flagMap: Record<string, string> = {
-                                      'USA': '🇺🇸',
-                                      'Switzerland': '🇨🇭',
-                                      'Spain': '🇪🇸',
-                                      'Italy': '🇮🇹',
-                                      'France': '🇫🇷',
-                                      'Germany': '🇩🇪',
-                                      'UK': '🇬🇧',
-                                      'United Kingdom': '🇬🇧',
-                                      'Netherlands': '🇳🇱',
-                                      'Belgium': '🇧🇪',
-                                      'Austria': '🇦🇹'
+                                  // Map countries to ISO country codes for flag API
+                                  const getCountryCode = (country: string) => {
+                                    const countryMap: Record<string, string> = {
+                                      'USA': 'us',
+                                      'Switzerland': 'ch',
+                                      'Spain': 'es',
+                                      'Italy': 'it',
+                                      'France': 'fr',
+                                      'Germany': 'de',
+                                      'UK': 'gb',
+                                      'United Kingdom': 'gb',
+                                      'Netherlands': 'nl',
+                                      'Belgium': 'be',
+                                      'Austria': 'at',
+                                      'Canada': 'ca',
+                                      'Australia': 'au',
+                                      'Japan': 'jp',
+                                      'South Korea': 'kr',
+                                      'Brazil': 'br',
+                                      'Mexico': 'mx',
+                                      'India': 'in',
+                                      'China': 'cn',
+                                      'Russia': 'ru',
+                                      'Norway': 'no',
+                                      'Sweden': 'se',
+                                      'Denmark': 'dk',
+                                      'Finland': 'fi'
                                     };
-                                    return flagMap[country] || '🌍';
+                                    return countryMap[country] || null;
                                   };
                                   
-                                  return locations.map((location, index) => (
-                                    <div key={index} className="flex items-center text-sm text-muted-foreground">
-                                      <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
-                                      <span className="mr-2">{getCountryFlag(location.country)}</span>
-                                      <span>{location.city}</span>
-                                    </div>
-                                  ));
+                                  return locations.map((location, index) => {
+                                    const countryCode = getCountryCode(location.country);
+                                    return (
+                                      <div key={index} className="flex items-center text-sm text-muted-foreground">
+                                        <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
+                                        {countryCode ? (
+                                          <img 
+                                            src={`https://flagcdn.com/w20/${countryCode}.png`}
+                                            alt={`${location.country} flag`}
+                                            className="w-4 h-3 mr-2 object-cover rounded-sm"
+                                            onError={(e) => {
+                                              // Hide flag if it fails to load
+                                              e.currentTarget.style.display = 'none';
+                                            }}
+                                          />
+                                        ) : (
+                                          <span className="w-4 mr-2">🌍</span>
+                                        )}
+                                        <span>{location.city}</span>
+                                      </div>
+                                    );
+                                  });
                                 })()}
                               </div>
                             )}
