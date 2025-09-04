@@ -86,9 +86,22 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
 
   const initializeMedia = async () => {
     try {
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Media devices not supported in this browser');
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: hasCamera,
-        audio: hasMicrophone
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
       });
       
       setMediaStream(stream);
@@ -97,12 +110,37 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
       }
       
       return stream;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error accessing media devices:', error);
+      
+      let errorMessage = "Unable to access camera/microphone.";
+      let instructions = "";
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMessage = "Camera/microphone access denied.";
+        instructions = "Please click the camera icon in your browser's address bar and allow access, then refresh the page.";
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        errorMessage = "No camera or microphone found.";
+        instructions = "Please connect a camera and microphone and try again.";
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        errorMessage = "Camera/microphone is being used by another application.";
+        instructions = "Please close other applications using your camera/microphone and try again.";
+      } else if (error.name === 'OverconstrainedError' || error.name === 'ConstraintNotSatisfiedError') {
+        errorMessage = "Camera/microphone constraints not supported.";
+        instructions = "Your device may not support the required video/audio settings.";
+      } else if (error.name === 'NotSupportedError') {
+        errorMessage = "Media access not supported.";
+        instructions = "Please use a modern browser like Chrome, Firefox, or Safari.";
+      } else if (error.name === 'TypeError') {
+        errorMessage = "Media devices not available.";
+        instructions = "This site requires HTTPS to access camera/microphone. Please ensure you're using a secure connection.";
+      }
+      
       toast({
         title: "Media Access Error",
-        description: "Unable to access camera/microphone. Please check permissions.",
+        description: `${errorMessage} ${instructions}`,
         variant: "destructive",
+        duration: 8000, // Show longer for instructions
       });
       throw error;
     }
