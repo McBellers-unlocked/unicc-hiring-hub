@@ -52,9 +52,9 @@ export default function JobDetail() {
       const { data, error } = await supabase
         .from('jobs')
         .select('*')
-        .or(`slug.eq.${slug},id.eq.${slug}`)
+        .eq('slug', slug)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       setJob(data);
