@@ -209,6 +209,40 @@ export default function AdminApplications() {
     }
   });
 
+  // Define status phases in the correct order
+  const statusPhases = [
+    { status: 'Application', title: 'Applications', color: 'bg-blue-100 text-blue-800' },
+    { status: 'Longlist', title: 'Longlist', color: 'bg-yellow-100 text-yellow-800' },
+    { status: 'Shortlist', title: 'Shortlist', color: 'bg-purple-100 text-purple-800' },
+    { status: 'Video Interview', title: 'Video Interview', color: 'bg-indigo-100 text-indigo-800' },
+    { status: 'Panel Interview', title: 'Panel Interview', color: 'bg-orange-100 text-orange-800' },
+    { status: 'Recommended', title: 'Recommended Candidates', color: 'bg-cyan-100 text-cyan-800' },
+    { status: 'Offer', title: 'Offer', color: 'bg-green-100 text-green-800' },
+    { status: 'Roster', title: 'Roster', color: 'bg-emerald-100 text-emerald-800' },
+    { status: 'Rejected', title: 'Rejected', color: 'bg-red-100 text-red-800' }
+  ];
+
+  // Calculate stats by phase for the selected job
+  const phaseStats = statusPhases.map(phase => {
+    const phaseApps = applications.filter(app => app.status === phase.status);
+    const femaleApps = phaseApps.filter(app => app.candidate.gender === 'Female');
+    const femalePercentage = phaseApps.length > 0 ? (femaleApps.length / phaseApps.length) * 100 : 0;
+    
+    return {
+      ...phase,
+      count: phaseApps.length,
+      femaleCount: femaleApps.length,
+      femalePercentage: Math.round(femalePercentage)
+    };
+  });
+
+  // Update Applications phase to show total count
+  phaseStats[0] = {
+    ...phaseStats[0],
+    count: applications.length,
+    title: `Applications (${applications.length} total)`
+  };
+
   const getScoreBadge = (application: Application) => {
     const score = application.screening_scores?.[0]?.ai_score;
     if (score === null || score === undefined) return null;
@@ -278,6 +312,35 @@ export default function AdminApplications() {
                   ))}
                 </SelectContent>
               </Select>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Application Phase Overview */}
+        {selectedJobId && applications.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-lg">Application Overview by Phase</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Breakdown of applications for {selectedJob?.title}
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-9 gap-4">
+                {phaseStats.map((phase) => (
+                  <div key={phase.status} className="text-center p-4 bg-muted/30 rounded-lg border">
+                    <div className="text-2xl font-bold text-foreground mb-1">{phase.count}</div>
+                    <div className="text-sm text-muted-foreground mb-2 font-medium">
+                      {phase.title.replace(` (${applications.length} total)`, '')}
+                    </div>
+                    {phase.count > 0 && (
+                      <div className={`text-xs font-medium ${phase.femalePercentage < 50 ? 'text-red-600' : 'text-green-600'}`}>
+                        {phase.femalePercentage}% Female
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         )}
