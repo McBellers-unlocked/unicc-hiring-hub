@@ -60,7 +60,7 @@ export default function Jobs() {
                          job.location?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesLocation = selectedLocations.length === 0 || selectedLocations.includes(job.location);
     const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(job.category);
-    const matchesType = selectedTypes.length === 0 || selectedTypes.includes(job.type);
+    const matchesType = selectedTypes.length === 0 || selectedTypes.includes(getDisplayType(job.type));
     
     return matchesSearch && matchesLocation && matchesCategory && matchesType;
   });
@@ -69,9 +69,28 @@ export default function Jobs() {
   const uniqueCategories = [...new Set(jobs.map(job => job.category).filter(Boolean))];
   const uniqueTypes = [...new Set(jobs.map(job => job.type).filter(Boolean))];
 
+  const getDisplayType = (type: string) => {
+    if (!type) return '';
+    if (type.toLowerCase().includes('fixed') || type.toLowerCase().includes('term')) {
+      return 'Staff - Fixed term';
+    }
+    if (type.toLowerCase().includes('temporary') || type.toLowerCase().includes('temp')) {
+      return 'Staff - Temporary';
+    }
+    if (type.toLowerCase().includes('consultant')) {
+      return 'Consultant';
+    }
+    if (type.toLowerCase().includes('intern')) {
+      return 'Intern';
+    }
+    return type; // fallback to original
+  };
+
+  const uniqueDisplayTypes = [...new Set(jobs.map(job => getDisplayType(job.type)).filter(Boolean))];
+
   const getLocationCount = (location: string) => jobs.filter(job => job.location === location).length;
   const getCategoryCount = (category: string) => jobs.filter(job => job.category === category).length;
-  const getTypeCount = (type: string) => jobs.filter(job => job.type === type).length;
+  const getTypeCount = (displayType: string) => jobs.filter(job => getDisplayType(job.type) === displayType).length;
 
   const handleLocationChange = (location: string, checked: boolean) => {
     if (checked) {
@@ -89,11 +108,11 @@ export default function Jobs() {
     }
   };
 
-  const handleTypeChange = (type: string, checked: boolean) => {
+  const handleTypeChange = (displayType: string, checked: boolean) => {
     if (checked) {
-      setSelectedTypes([...selectedTypes, type]);
+      setSelectedTypes([...selectedTypes, displayType]);
     } else {
-      setSelectedTypes(selectedTypes.filter(t => t !== type));
+      setSelectedTypes(selectedTypes.filter(t => t !== displayType));
     }
   };
 
@@ -204,18 +223,18 @@ export default function Jobs() {
                   <div className="mb-6">
                     <label className="text-sm font-medium mb-3 block">Type</label>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {uniqueTypes.map(type => (
-                        <div key={type} className="flex items-center space-x-2">
+                      {uniqueDisplayTypes.map(displayType => (
+                        <div key={displayType} className="flex items-center space-x-2">
                           <Checkbox
-                            id={`type-${type}`}
-                            checked={selectedTypes.includes(type)}
-                            onCheckedChange={(checked) => handleTypeChange(type, checked as boolean)}
+                            id={`type-${displayType}`}
+                            checked={selectedTypes.includes(displayType)}
+                            onCheckedChange={(checked) => handleTypeChange(displayType, checked as boolean)}
                           />
                           <label 
-                            htmlFor={`type-${type}`} 
+                            htmlFor={`type-${displayType}`} 
                             className="text-sm font-normal flex-1 cursor-pointer"
                           >
-                            {type} ({getTypeCount(type)})
+                            {displayType} ({getTypeCount(displayType)})
                           </label>
                         </div>
                       ))}
@@ -302,7 +321,7 @@ export default function Jobs() {
                             <div className="flex flex-wrap gap-2">
                               {job.type && (
                                 <Badge variant="default" className="bg-primary text-primary-foreground">
-                                  {job.type}
+                                  {getDisplayType(job.type)}
                                 </Badge>
                               )}
                               {job.category && <Badge variant="outline">{job.category}</Badge>}
