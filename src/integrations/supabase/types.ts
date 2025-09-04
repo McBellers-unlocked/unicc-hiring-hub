@@ -755,6 +755,98 @@ export type Database = {
           },
         ]
       }
+      video_assignments: {
+        Row: {
+          application_id: string
+          attempts: number
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          deadline_at: string
+          extended_by: string | null
+          extension_reason: string | null
+          id: string
+          last_activity_at: string | null
+          opened_at: string | null
+          question_set_id: string
+          retakes_used_by_question: Json | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["video_assignment_status"]
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          deadline_at?: string
+          extended_by?: string | null
+          extension_reason?: string | null
+          id?: string
+          last_activity_at?: string | null
+          opened_at?: string | null
+          question_set_id: string
+          retakes_used_by_question?: Json | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["video_assignment_status"]
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          deadline_at?: string
+          extended_by?: string | null
+          extension_reason?: string | null
+          id?: string
+          last_activity_at?: string | null
+          opened_at?: string | null
+          question_set_id?: string
+          retakes_used_by_question?: Json | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["video_assignment_status"]
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      video_events: {
+        Row: {
+          assignment_id: string
+          at: string
+          id: string
+          meta: Json | null
+          type: Database["public"]["Enums"]["video_event_type"]
+        }
+        Insert: {
+          assignment_id: string
+          at?: string
+          id?: string
+          meta?: Json | null
+          type: Database["public"]["Enums"]["video_event_type"]
+        }
+        Update: {
+          assignment_id?: string
+          at?: string
+          id?: string
+          meta?: Json | null
+          type?: Database["public"]["Enums"]["video_event_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_events_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "video_assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       video_question_sets: {
         Row: {
           allow_retakes: boolean | null
@@ -882,6 +974,26 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_video_assignment_status: {
+        Args: {
+          assignment_token: string
+          event_meta?: Json
+          new_status: Database["public"]["Enums"]["video_assignment_status"]
+        }
+        Returns: boolean
+      }
+      validate_video_assignment_token: {
+        Args: { assignment_token: string }
+        Returns: {
+          application_id: string
+          assignment_id: string
+          deadline_at: string
+          question_set_id: string
+          questions: Json
+          retakes_used_by_question: Json
+          status: Database["public"]["Enums"]["video_assignment_status"]
+        }[]
+      }
     }
     Enums: {
       application_status:
@@ -902,6 +1014,22 @@ export type Database = {
         | "Hiring Manager"
         | "Panel Member"
         | "Candidate"
+      video_assignment_status:
+        | "NotStarted"
+        | "LinkOpened"
+        | "InProgress"
+        | "Completed"
+        | "Expired"
+        | "Failed"
+      video_event_type:
+        | "InviteSent"
+        | "LinkOpened"
+        | "Started"
+        | "AnswerUploaded"
+        | "Completed"
+        | "Expired"
+        | "ReminderSent"
+        | "Failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1048,6 +1176,24 @@ export const Constants = {
         "Hiring Manager",
         "Panel Member",
         "Candidate",
+      ],
+      video_assignment_status: [
+        "NotStarted",
+        "LinkOpened",
+        "InProgress",
+        "Completed",
+        "Expired",
+        "Failed",
+      ],
+      video_event_type: [
+        "InviteSent",
+        "LinkOpened",
+        "Started",
+        "AnswerUploaded",
+        "Completed",
+        "Expired",
+        "ReminderSent",
+        "Failed",
       ],
     },
   },
