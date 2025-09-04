@@ -346,18 +346,45 @@ export default function Jobs() {
                         <CardContent>
                           <div className="space-y-3">
                             {job.location && (
-                              <div className="flex items-center text-sm text-muted-foreground">
-                                <MapPin className="h-4 w-4 mr-2" />
+                              <div className="space-y-1">
                                 {(() => {
-                                  // Extract just the city names from "City, Country, City, Country" format
+                                  // Parse location string to extract city-country pairs
                                   const parts = job.location.split(',').map(part => part.trim());
-                                  const cities = [];
+                                  const locations = [];
                                   for (let i = 0; i < parts.length; i += 2) {
-                                    if (parts[i]) {
-                                      cities.push(parts[i]);
+                                    if (parts[i] && parts[i + 1]) {
+                                      locations.push({
+                                        city: parts[i],
+                                        country: parts[i + 1]
+                                      });
                                     }
                                   }
-                                  return cities.join(', ');
+                                  
+                                  // Map countries to flag emojis
+                                  const getCountryFlag = (country: string) => {
+                                    const flagMap: Record<string, string> = {
+                                      'USA': '🇺🇸',
+                                      'Switzerland': '🇨🇭',
+                                      'Spain': '🇪🇸',
+                                      'Italy': '🇮🇹',
+                                      'France': '🇫🇷',
+                                      'Germany': '🇩🇪',
+                                      'UK': '🇬🇧',
+                                      'United Kingdom': '🇬🇧',
+                                      'Netherlands': '🇳🇱',
+                                      'Belgium': '🇧🇪',
+                                      'Austria': '🇦🇹'
+                                    };
+                                    return flagMap[country] || '🌍';
+                                  };
+                                  
+                                  return locations.map((location, index) => (
+                                    <div key={index} className="flex items-center text-sm text-muted-foreground">
+                                      <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
+                                      <span className="mr-2">{getCountryFlag(location.country)}</span>
+                                      <span>{location.city}</span>
+                                    </div>
+                                  ));
                                 })()}
                               </div>
                             )}
