@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { JobWizardStep1 } from '@/components/job-wizard/JobWizardStep1';
 import { JobWizardStep2 } from '@/components/job-wizard/JobWizardStep2';
@@ -92,6 +93,7 @@ export default function JobWizard() {
   
   const [currentStep, setCurrentStep] = useState(1);
   const [isEditing] = useState(!!jobId);
+  const [loading, setLoading] = useState(!!jobId);
   const [formData, setFormData] = useState<JobFormData>({
     title: '',
     category: '',
@@ -125,6 +127,113 @@ export default function JobWizard() {
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant');
+
+  // Load existing job data when editing
+  useEffect(() => {
+    if (!hasAccess || !jobId) return;
+
+    const loadJobData = async () => {
+      try {
+        setLoading(true);
+        
+        // Load job data
+        const { data: jobData, error: jobError } = await supabase
+          .from('jobs')
+          .select('*')
+          .eq('id', jobId)
+          .single();
+
+        if (jobError) throw jobError;
+
+        // Load essential criteria
+        const { data: criteriaData, error: criteriaError } = await supabase
+          .from('essential_criteria')
+          .select('*')
+          .eq('job_id', jobId)
+          .order('created_at');
+
+        if (criteriaError) throw criteriaError;
+
+        // Load killer questions
+        const { data: questionsData, error: questionsError } = await supabase
+          .from('killer_questions')
+          .select('*')
+          .eq('job_id', jobId)
+          .order('created_at');
+
+        if (questionsError) throw questionsError;
+
+        // Parse location data - handle both string and array formats
+        let locationArray: string[] = [];
+        if (jobData.location) {
+          if (typeof jobData.location === 'string') {
+            locationArray = jobData.location.split(',').map(loc => loc.trim());
+          } else if (Array.isArray(jobData.location)) {
+            locationArray = jobData.location;
+          }
+        }
+
+        // Update form data with loaded data
+        setFormData({
+          title: jobData.title || '',
+          category: jobData.category || '',
+          notice_no: jobData.notice_no || '',
+          type: jobData.type || '',
+          positions: jobData.positions || 1,
+          grade: jobData.grade || '',
+          salary_estimate: jobData.salary_estimate || '',
+          location: locationArray,
+          org_unit: jobData.org_unit || '',
+          issue_date: jobData.issue_date ? new Date(jobData.issue_date) : null,
+          closing_date: jobData.closing_date ? new Date(jobData.closing_date) : null,
+          timezone: jobData.timezone || 'Europe/Zurich',
+          privacy_notice_url: jobData.privacy_notice_url || 'https://www.unicc.org/unicc-privacy-notice-for-applicants/',
+          eligibility_note: jobData.eligibility_note || '',
+          branding: (jobData.branding as Record<string, any>) || { preset: 'UNICC' },
+          description_md: jobData.description_md || '',
+          requirements_md: jobData.requirements_md || '',
+          essential_criteria: criteriaData?.map(criterion => ({
+            id: criterion.id,
+            label: criterion.label,
+            weight: criterion.weight,
+            must_have: criterion.must_have,
+            validator: criterion.validator || '',
+            params: (criterion.params as Record<string, any>) || {}
+          })) || [],
+          killer_questions: questionsData?.map(question => ({
+            id: question.id,
+            label: question.label,
+            input_type: question.input_type,
+            rule: question.rule,
+            options: (question.options as Record<string, any>) || {},
+            custom_logic: (question.custom_logic as Record<string, any>) || {}
+          })) || [],
+          attachments_required: (jobData.attachments_required as Record<string, any>) || {
+            motivation_letter: true,
+            personal_history_form: true,
+            cv: false,
+          },
+          custom_fields: [], // TODO: Load from job data if stored
+          consent_checkboxes: [], // TODO: Load from job data if stored
+          slug: jobData.slug || '',
+          status: jobData.status || 'draft',
+        });
+
+      } catch (error) {
+        console.error('Error loading job data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load job data. Please try again.",
+          variant: "destructive",
+        });
+        navigate('/admin/jobs');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadJobData();
+  }, [jobId, hasAccess, toast, navigate]);
   
   if (!hasAccess) {
     return (
@@ -224,6 +333,21 @@ export default function JobWizard() {
   };
 
   const progress = (currentStep / STEPS.length) * 100;
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8 max-w-6xl">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading job data...</p>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
