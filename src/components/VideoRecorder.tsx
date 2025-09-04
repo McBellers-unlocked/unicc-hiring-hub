@@ -62,6 +62,7 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
 
   useEffect(() => {
     checkMediaDevices();
+    initializeMedia(); // Request permissions immediately
     return () => {
       stopMediaStream();
     };
@@ -115,6 +116,7 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
   };
 
   const startTimer = (seconds: number) => {
+    stopTimer(); // Clear any existing timer first
     setTimeRemaining(seconds);
     
     timerRef.current = setInterval(() => {
@@ -140,20 +142,18 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
     
     switch (phase) {
       case 'reading':
-        setPhase('preparation');
-        if (currentQuestion.prep_secs > 0) {
-          startTimer(currentQuestion.prep_secs);
-        } else {
-          startRecording();
-        }
-        break;
-      case 'preparation':
+        // Skip directly to recording, no prep phase
         startRecording();
         break;
       case 'recording':
         stopRecording();
         break;
     }
+  };
+
+  const skipToRecording = () => {
+    stopTimer();
+    startRecording();
   };
 
   const startRecording = async () => {
@@ -417,6 +417,13 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
       <Card>
         <CardContent className="p-6">
           <div className="flex justify-center gap-4">
+            {phase === 'reading' && (
+              <Button onClick={skipToRecording} size="lg">
+                <Play className="w-4 h-4 mr-2" />
+                Start Recording
+              </Button>
+            )}
+
             {phase === 'recording' && (
               <Button onClick={stopRecording} variant="destructive">
                 <Square className="w-4 h-4 mr-2" />
@@ -443,13 +450,7 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
 
           {phase === 'reading' && (
             <div className="text-center text-muted-foreground">
-              Read the question carefully. Recording will start automatically.
-            </div>
-          )}
-
-          {phase === 'preparation' && (
-            <div className="text-center text-muted-foreground">
-              Use this time to prepare your answer. Recording will start automatically.
+              Read the question carefully. Click "Start Recording" when you're ready to answer.
             </div>
           )}
         </CardContent>
