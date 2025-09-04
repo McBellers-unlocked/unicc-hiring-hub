@@ -2468,8 +2468,8 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
               ))}
             </TabsList>
             
-            <TabsList className="grid w-full grid-cols-3 gap-1 h-auto p-1 mt-1 max-w-md mx-auto">
-              {SECTIONS.slice(10, 13).map((section, index) => (
+            <TabsList className="grid w-full grid-cols-4 gap-1 h-auto p-1 mt-1 max-w-lg mx-auto">
+              {SECTIONS.slice(10, 14).map((section, index) => (
                 <TabsTrigger 
                   key={index + 10} 
                   value={(index + 10).toString()}
