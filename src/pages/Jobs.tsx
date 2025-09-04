@@ -4,10 +4,10 @@ import { Layout } from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, MapPin, Calendar, Briefcase } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Search, MapPin, Calendar, Briefcase, Filter } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -29,9 +29,9 @@ export default function Jobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [locationFilter, setLocationFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
 
   useEffect(() => {
     fetchJobs();
@@ -58,9 +58,9 @@ export default function Jobs() {
     const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          job.notice_no?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          job.location?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesLocation = locationFilter === 'all' || job.location === locationFilter;
-    const matchesCategory = categoryFilter === 'all' || job.category === categoryFilter;
-    const matchesType = typeFilter === 'all' || job.type === typeFilter;
+    const matchesLocation = selectedLocations.length === 0 || selectedLocations.includes(job.location);
+    const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(job.category);
+    const matchesType = selectedTypes.length === 0 || selectedTypes.includes(job.type);
     
     return matchesSearch && matchesLocation && matchesCategory && matchesType;
   });
@@ -68,6 +68,41 @@ export default function Jobs() {
   const uniqueLocations = [...new Set(jobs.map(job => job.location).filter(Boolean))];
   const uniqueCategories = [...new Set(jobs.map(job => job.category).filter(Boolean))];
   const uniqueTypes = [...new Set(jobs.map(job => job.type).filter(Boolean))];
+
+  const getLocationCount = (location: string) => jobs.filter(job => job.location === location).length;
+  const getCategoryCount = (category: string) => jobs.filter(job => job.category === category).length;
+  const getTypeCount = (type: string) => jobs.filter(job => job.type === type).length;
+
+  const handleLocationChange = (location: string, checked: boolean) => {
+    if (checked) {
+      setSelectedLocations([...selectedLocations, location]);
+    } else {
+      setSelectedLocations(selectedLocations.filter(l => l !== location));
+    }
+  };
+
+  const handleCategoryChange = (category: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCategories([...selectedCategories, category]);
+    } else {
+      setSelectedCategories(selectedCategories.filter(c => c !== category));
+    }
+  };
+
+  const handleTypeChange = (type: string, checked: boolean) => {
+    if (checked) {
+      setSelectedTypes([...selectedTypes, type]);
+    } else {
+      setSelectedTypes(selectedTypes.filter(t => t !== type));
+    }
+  };
+
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setSelectedLocations([]);
+    setSelectedCategories([]);
+    setSelectedTypes([]);
+  };
 
   return (
     <Layout>
@@ -95,149 +130,198 @@ export default function Jobs() {
           </div>
         </div>
 
-        {/* Search and Filters */}
+        {/* Main Content with Sidebar */}
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
-            <div className="bg-card rounded-lg shadow-lg p-6 mb-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search jobs..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                
-                <Select value={locationFilter} onValueChange={setLocationFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Locations</SelectItem>
-                    {uniqueLocations.map(location => (
-                      <SelectItem key={location} value={location}>{location}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="flex gap-8">
+              {/* Sidebar Filters */}
+              <div className="w-80 shrink-0">
+                <div className="bg-card rounded-lg shadow-lg p-6 sticky top-8">
+                  <div className="flex items-center gap-2 mb-6">
+                    <Filter className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold text-lg">Filters</h3>
+                  </div>
 
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {uniqueCategories.map(category => (
-                      <SelectItem key={category} value={category}>{category}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  {/* Search */}
+                  <div className="mb-6">
+                    <label className="text-sm font-medium mb-2 block">Search</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search jobs..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
 
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    {uniqueTypes.map(type => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {(searchTerm || locationFilter !== 'all' || categoryFilter !== 'all' || typeFilter !== 'all') && (
-                <div className="mt-4 flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">
-                    {filteredJobs.length} {filteredJobs.length === 1 ? 'job' : 'jobs'} found
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSearchTerm('');
-                      setLocationFilter('all');
-                      setCategoryFilter('all');
-                      setTypeFilter('all');
-                    }}
-                  >
-                    Clear filters
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* Jobs Grid */}
-            {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
-                  <Card key={i}>
-                    <CardHeader>
-                      <Skeleton className="h-6 w-3/4" />
-                      <Skeleton className="h-4 w-1/2" />
-                    </CardHeader>
-                    <CardContent>
-                      <Skeleton className="h-4 w-full mb-2" />
-                      <Skeleton className="h-4 w-2/3" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : filteredJobs.length === 0 ? (
-              <div className="text-center py-12">
-                <Briefcase className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">No jobs found</h3>
-                <p className="text-muted-foreground">Try adjusting your search criteria or check back later for new opportunities.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredJobs.map((job) => (
-                  <Card key={job.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <CardTitle className="text-lg leading-tight">{job.title}</CardTitle>
-                        {job.positions > 1 && (
-                          <Badge variant="secondary">{job.positions} positions</Badge>
-                        )}
-                      </div>
-                      {job.notice_no && (
-                        <p className="text-sm text-muted-foreground">Notice No: {job.notice_no}</p>
-                      )}
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {job.location && (
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <MapPin className="h-4 w-4 mr-2" />
-                            {job.location}
-                          </div>
-                        )}
-                        
-                        {job.closing_date && (
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Calendar className="h-4 w-4 mr-2" />
-                            Closes {formatDistanceToNow(new Date(job.closing_date), { addSuffix: true })}
-                          </div>
-                        )}
-
-                        <div className="flex flex-wrap gap-2">
-                          {job.category && <Badge variant="outline">{job.category}</Badge>}
-                          {job.type && <Badge variant="outline">{job.type}</Badge>}
-                          {job.grade && <Badge variant="outline">{job.grade}</Badge>}
+                  {/* Location Filter */}
+                  <div className="mb-6">
+                    <label className="text-sm font-medium mb-3 block">Location</label>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {uniqueLocations.map(location => (
+                        <div key={location} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`location-${location}`}
+                            checked={selectedLocations.includes(location)}
+                            onCheckedChange={(checked) => handleLocationChange(location, checked as boolean)}
+                          />
+                          <label 
+                            htmlFor={`location-${location}`} 
+                            className="text-sm font-normal flex-1 cursor-pointer"
+                          >
+                            {location} ({getLocationCount(location)})
+                          </label>
                         </div>
+                      ))}
+                    </div>
+                  </div>
 
-                        <Link to={`/jobs/${job.slug || job.id}`} className="block mt-4">
-                          <Button className="w-full">
-                            View Details
-                          </Button>
-                        </Link>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                  {/* Category Filter */}
+                  <div className="mb-6">
+                    <label className="text-sm font-medium mb-3 block">Category</label>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {uniqueCategories.map(category => (
+                        <div key={category} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`category-${category}`}
+                            checked={selectedCategories.includes(category)}
+                            onCheckedChange={(checked) => handleCategoryChange(category, checked as boolean)}
+                          />
+                          <label 
+                            htmlFor={`category-${category}`} 
+                            className="text-sm font-normal flex-1 cursor-pointer"
+                          >
+                            {category} ({getCategoryCount(category)})
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Type Filter */}
+                  <div className="mb-6">
+                    <label className="text-sm font-medium mb-3 block">Type</label>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {uniqueTypes.map(type => (
+                        <div key={type} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`type-${type}`}
+                            checked={selectedTypes.includes(type)}
+                            onCheckedChange={(checked) => handleTypeChange(type, checked as boolean)}
+                          />
+                          <label 
+                            htmlFor={`type-${type}`} 
+                            className="text-sm font-normal flex-1 cursor-pointer"
+                          >
+                            {type} ({getTypeCount(type)})
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Clear Filters */}
+                  {(searchTerm || selectedLocations.length > 0 || selectedCategories.length > 0 || selectedTypes.length > 0) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearAllFilters}
+                      className="w-full"
+                    >
+                      Clear all filters
+                    </Button>
+                  )}
+                </div>
               </div>
-            )}
+
+              {/* Jobs Content */}
+              <div className="flex-1">
+                {(searchTerm || selectedLocations.length > 0 || selectedCategories.length > 0 || selectedTypes.length > 0) && (
+                  <div className="mb-6">
+                    <p className="text-sm text-muted-foreground">
+                      {filteredJobs.length} {filteredJobs.length === 1 ? 'job' : 'jobs'} found
+                    </p>
+                  </div>
+                )}
+
+                {/* Jobs Grid */}
+                {loading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {[...Array(6)].map((_, i) => (
+                      <Card key={i}>
+                        <CardHeader>
+                          <Skeleton className="h-6 w-3/4" />
+                          <Skeleton className="h-4 w-1/2" />
+                        </CardHeader>
+                        <CardContent>
+                          <Skeleton className="h-4 w-full mb-2" />
+                          <Skeleton className="h-4 w-2/3" />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : filteredJobs.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Briefcase className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">No jobs found</h3>
+                    <p className="text-muted-foreground">Try adjusting your search criteria or check back later for new opportunities.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {filteredJobs.map((job) => (
+                      <Card key={job.id} className="hover:shadow-lg transition-shadow">
+                        <CardHeader>
+                          <div className="flex justify-between items-start">
+                            <CardTitle className="text-lg leading-tight">{job.title}</CardTitle>
+                            {job.positions > 1 && (
+                              <Badge variant="secondary">{job.positions} positions</Badge>
+                            )}
+                          </div>
+                          {job.notice_no && (
+                            <p className="text-sm text-muted-foreground">Notice No: {job.notice_no}</p>
+                          )}
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {job.location && (
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <MapPin className="h-4 w-4 mr-2" />
+                                {job.location}
+                              </div>
+                            )}
+                            
+                            {job.closing_date && (
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <Calendar className="h-4 w-4 mr-2" />
+                                Closes {formatDistanceToNow(new Date(job.closing_date), { addSuffix: true })}
+                              </div>
+                            )}
+
+                            <div className="flex flex-wrap gap-2">
+                              {job.type && (
+                                <Badge variant="default" className="bg-primary text-primary-foreground">
+                                  {job.type}
+                                </Badge>
+                              )}
+                              {job.category && <Badge variant="outline">{job.category}</Badge>}
+                              {job.grade && <Badge variant="outline">{job.grade}</Badge>}
+                            </div>
+
+                            <Link to={`/jobs/${job.slug || job.id}`} className="block mt-4">
+                              <Button className="w-full">
+                                View Details
+                              </Button>
+                            </Link>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
