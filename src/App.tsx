@@ -35,7 +35,7 @@ const App = () => (
             <Route path="/jobs" element={<Jobs />} />
             <Route path="/jobs/:slug" element={<JobDetail />} />
             <Route path="/apply/:jobId" element={<JobApplication />} />
-            <Route path="/video-interview/:applicationId" element={<VideoInterview />} />
+            <Route path="/video-interview/:token" element={<VideoInterview />} />
             <Route path="/panel-interview/:interviewId/feedback" element={<PanelInterviewFeedback />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/applications" element={<AdminApplications />} />
