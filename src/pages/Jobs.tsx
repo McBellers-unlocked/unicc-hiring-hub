@@ -394,8 +394,7 @@ export default function Jobs() {
                                   return locations.map((location, index) => {
                                     const countryCode = getCountryCode(location.country);
                                     return (
-                                      <div key={index} className="flex items-center text-sm text-muted-foreground">
-                                        <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
+                                       <div key={index} className="flex items-center text-sm text-muted-foreground">
                                         {countryCode ? (
                                           <img 
                                             src={`https://flagcdn.com/w20/${countryCode}.png`}
