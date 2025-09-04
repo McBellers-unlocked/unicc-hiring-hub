@@ -58,14 +58,30 @@ export default function Jobs() {
     const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          job.notice_no?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          job.location?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesLocation = selectedLocations.length === 0 || selectedLocations.includes(job.location);
+    const matchesLocation = selectedLocations.length === 0 || selectedLocations.some(selectedLoc => {
+      if (!job.location) return false;
+      const jobLocations = job.location.split(',').map(loc => loc.trim());
+      return jobLocations.includes(selectedLoc);
+    });
     const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(job.category);
     const matchesType = selectedTypes.length === 0 || selectedTypes.includes(getDisplayType(job.type));
     
     return matchesSearch && matchesLocation && matchesCategory && matchesType;
   });
 
-  const uniqueLocations = [...new Set(jobs.map(job => job.location).filter(Boolean))];
+  const getAllLocations = () => {
+    const allLocations: string[] = [];
+    jobs.forEach(job => {
+      if (job.location) {
+        // Split by comma and clean up each location
+        const locations = job.location.split(',').map(loc => loc.trim());
+        allLocations.push(...locations);
+      }
+    });
+    return [...new Set(allLocations)].sort();
+  };
+
+  const uniqueLocations = getAllLocations();
   const uniqueCategories = [...new Set(jobs.map(job => job.category).filter(Boolean))];
   const uniqueTypes = [...new Set(jobs.map(job => job.type).filter(Boolean))];
 
@@ -88,7 +104,13 @@ export default function Jobs() {
 
   const uniqueDisplayTypes = [...new Set(jobs.map(job => getDisplayType(job.type)).filter(Boolean))];
 
-  const getLocationCount = (location: string) => jobs.filter(job => job.location === location).length;
+  const getLocationCount = (location: string) => {
+    return jobs.filter(job => {
+      if (!job.location) return false;
+      const jobLocations = job.location.split(',').map(loc => loc.trim());
+      return jobLocations.includes(location);
+    }).length;
+  };
   const getCategoryCount = (category: string) => jobs.filter(job => job.category === category).length;
   const getTypeCount = (displayType: string) => jobs.filter(job => getDisplayType(job.type) === displayType).length;
 
