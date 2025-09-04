@@ -17,6 +17,7 @@ interface Props {
   onUpdate: (data: Partial<JobFormData>) => void;
   onNext: () => void;
   onPrev: () => void;
+  jobId?: string;
 }
 
 interface CustomField {
@@ -44,7 +45,7 @@ const FIELD_TYPES = [
 
 const FILE_TYPES = ['pdf', 'doc', 'docx'];
 
-export function JobWizardStep5({ data, onUpdate, onNext, onPrev }: Props) {
+export function JobWizardStep5({ data, onUpdate, onNext, onPrev, jobId }: Props) {
   const { toast } = useToast();
   const [attachments, setAttachments] = useState(data.attachments_required || {
     motivation_letter: true,
@@ -418,7 +419,7 @@ UNICC Human Resources Team`;
         </Card>
 
         {/* Video Questions */}
-        <VideoQuestionManager jobId="temp-job-id" />
+        <VideoQuestionManager jobId={jobId || "temp-job-id"} />
 
         {/* Navigation */}
         <div className="flex justify-between pt-6">

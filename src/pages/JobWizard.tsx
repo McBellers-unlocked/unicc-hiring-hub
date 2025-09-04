@@ -321,6 +321,7 @@ export default function JobWizard() {
             onUpdate={(data) => updateFormData(5, data)}
             onNext={nextStep}
             onPrev={prevStep}
+            jobId={jobId}
           />
         );
       case 6:
