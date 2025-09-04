@@ -857,6 +857,7 @@ export type Database = {
           job_id: string
           max_retakes: number | null
           name: string
+          prep_and_read_secs: number | null
           prep_secs: number | null
           questions: Json | null
           read_secs: number | null
@@ -870,6 +871,7 @@ export type Database = {
           job_id: string
           max_retakes?: number | null
           name: string
+          prep_and_read_secs?: number | null
           prep_secs?: number | null
           questions?: Json | null
           read_secs?: number | null
@@ -883,6 +885,7 @@ export type Database = {
           job_id?: string
           max_retakes?: number | null
           name?: string
+          prep_and_read_secs?: number | null
           prep_secs?: number | null
           questions?: Json | null
           read_secs?: number | null

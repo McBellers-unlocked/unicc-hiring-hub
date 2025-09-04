@@ -12,8 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 interface VideoQuestion {
   id: string;
   text: string;
-  read_secs: number;
-  prep_secs: number;
+  prep_and_read_secs: number;
   answer_secs: number;
   allow_retakes: boolean;
   max_retakes: number;
@@ -139,7 +138,7 @@ export default function VideoInterview() {
   const calculateTotalTime = () => {
     if (!questionSet) return 0;
     return questionSet.questions.reduce((total, q) => 
-      total + q.read_secs + q.prep_secs + q.answer_secs, 0
+      total + q.prep_and_read_secs + q.answer_secs, 0
     );
   };
 
@@ -279,12 +278,12 @@ export default function VideoInterview() {
                       <div key={question.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                         <div className="flex items-center gap-3">
                           <Badge variant="outline">Q{index + 1}</Badge>
-                          <div className="text-sm">
-                            <div className="font-medium">{question.text.substring(0, 60)}...</div>
-                            <div className="text-muted-foreground">
-                              Read: {question.read_secs}s | Prep: {question.prep_secs}s | Answer: {question.answer_secs}s
+                            <div className="text-sm">
+                              <div className="font-medium">{question.text.substring(0, 60)}...</div>
+                              <div className="text-muted-foreground">
+                                Reading & Prep: {question.prep_and_read_secs}s | Answer: {question.answer_secs}s
+                              </div>
                             </div>
-                          </div>
                         </div>
                         {question.allow_retakes && (
                           <Badge variant="secondary">

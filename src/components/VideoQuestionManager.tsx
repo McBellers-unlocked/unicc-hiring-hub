@@ -13,8 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 interface VideoQuestion {
   id: string;
   text: string;
-  read_secs: number;
-  prep_secs: number;
+  prep_and_read_secs: number;
   answer_secs: number;
   allow_retakes: boolean;
   max_retakes: number;
@@ -25,8 +24,7 @@ interface VideoQuestionSet {
   name: string;
   job_id: string;
   questions: VideoQuestion[];
-  read_secs: number;
-  prep_secs: number;
+  prep_and_read_secs: number;
   answer_secs: number;
   allow_retakes: boolean;
   max_retakes: number;
@@ -82,8 +80,7 @@ export const VideoQuestionManager: React.FC<VideoQuestionManagerProps> = ({ jobI
       name: 'Video Interview Questions',
       job_id: jobId,
       questions: [],
-      read_secs: 30,
-      prep_secs: 30,
+      prep_and_read_secs: 60,
       answer_secs: 180,
       allow_retakes: false,
       max_retakes: 1
@@ -97,8 +94,7 @@ export const VideoQuestionManager: React.FC<VideoQuestionManagerProps> = ({ jobI
     const newQuestion: VideoQuestion = {
       id: `temp-${Date.now()}`,
       text: '',
-      read_secs: questionSet.read_secs,
-      prep_secs: questionSet.prep_secs,
+      prep_and_read_secs: questionSet.prep_and_read_secs,
       answer_secs: questionSet.answer_secs,
       allow_retakes: questionSet.allow_retakes,
       max_retakes: questionSet.max_retakes
@@ -140,8 +136,7 @@ export const VideoQuestionManager: React.FC<VideoQuestionManagerProps> = ({ jobI
         name: questionSet.name,
         job_id: jobId,
         questions: questionSet.questions as any,
-        read_secs: questionSet.read_secs,
-        prep_secs: questionSet.prep_secs,
+        prep_and_read_secs: questionSet.prep_and_read_secs,
         answer_secs: questionSet.answer_secs,
         allow_retakes: questionSet.allow_retakes,
         max_retakes: questionSet.max_retakes
@@ -253,25 +248,14 @@ export const VideoQuestionManager: React.FC<VideoQuestionManagerProps> = ({ jobI
               />
             </div>
             <div>
-              <Label htmlFor="read_secs">Default Read Time (seconds)</Label>
+              <Label htmlFor="prep_and_read_secs">Reading & Preparation Time (seconds)</Label>
               <Input
-                id="read_secs"
+                id="prep_and_read_secs"
                 type="number"
-                min="5"
+                min="10"
                 max="300"
-                value={questionSet?.read_secs || 30}
-                onChange={(e) => setQuestionSet(prev => prev ? { ...prev, read_secs: parseInt(e.target.value) } : null)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="prep_secs">Default Prep Time (seconds)</Label>
-              <Input
-                id="prep_secs"
-                type="number"
-                min="0"
-                max="300"
-                value={questionSet?.prep_secs || 30}
-                onChange={(e) => setQuestionSet(prev => prev ? { ...prev, prep_secs: parseInt(e.target.value) } : null)}
+                value={questionSet?.prep_and_read_secs || 60}
+                onChange={(e) => setQuestionSet(prev => prev ? { ...prev, prep_and_read_secs: parseInt(e.target.value) } : null)}
               />
             </div>
             <div>
@@ -339,12 +323,9 @@ export const VideoQuestionManager: React.FC<VideoQuestionManagerProps> = ({ jobI
                       <p className="text-foreground">{question.text}</p>
                     )}
 
-                    <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="font-medium">Read:</span> {question.read_secs}s
-                      </div>
-                      <div>
-                        <span className="font-medium">Prep:</span> {question.prep_secs}s
+                        <span className="font-medium">Reading & Prep:</span> {question.prep_and_read_secs}s
                       </div>
                       <div>
                         <span className="font-medium">Answer:</span> {question.answer_secs}s

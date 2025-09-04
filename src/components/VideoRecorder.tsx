@@ -21,8 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface VideoQuestion {
   id: string;
   text: string;
-  read_secs: number;
-  prep_secs: number;
+  prep_and_read_secs: number;
   answer_secs: number;
   allow_retakes: boolean;
   max_retakes: number;
@@ -34,7 +33,7 @@ interface VideoRecorderProps {
   onComplete?: () => void;
 }
 
-type RecordingPhase = 'reading' | 'preparation' | 'recording' | 'review' | 'completed';
+type RecordingPhase = 'preparation' | 'recording' | 'review' | 'completed';
 
 export const VideoRecorder: React.FC<VideoRecorderProps> = ({ 
   questions, 
@@ -42,7 +41,7 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
   onComplete 
 }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [phase, setPhase] = useState<RecordingPhase>('reading');
+  const [phase, setPhase] = useState<RecordingPhase>('preparation');
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
@@ -69,8 +68,8 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
   }, []);
 
   useEffect(() => {
-    if (currentQuestion && phase === 'reading') {
-      startTimer(currentQuestion.read_secs);
+    if (currentQuestion && phase === 'preparation') {
+      startTimer(currentQuestion.prep_and_read_secs);
     }
   }, [currentQuestionIndex, phase]);
 
@@ -179,8 +178,8 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
     stopTimer();
     
     switch (phase) {
-      case 'reading':
-        // Skip directly to recording, no prep phase
+      case 'preparation':
+        // Skip directly to recording from preparation phase
         startRecording();
         break;
       case 'recording':
@@ -251,8 +250,8 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
     if (retakeCount < currentQuestion.max_retakes) {
       setRetakeCount(prev => prev + 1);
       setRecordedBlob(null);
-      setPhase('reading');
-      startTimer(currentQuestion.read_secs);
+      setPhase('preparation');
+      startTimer(currentQuestion.prep_and_read_secs);
     }
   };
 
@@ -285,7 +284,7 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
       // Move to next question or complete
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
-        setPhase('reading');
+        setPhase('preparation');
         setRecordedBlob(null);
         setRetakeCount(0);
       } else {
@@ -318,10 +317,8 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
 
   const getPhaseTitle = () => {
     switch (phase) {
-      case 'reading':
-        return 'Read the Question';
       case 'preparation':
-        return 'Preparation Time';
+        return 'Reading and Preparation Time';
       case 'recording':
         return 'Recording Your Answer';
       case 'review':
@@ -335,10 +332,8 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
 
   const getPhaseIcon = () => {
     switch (phase) {
-      case 'reading':
-        return <AlertCircle className="w-5 h-5" />;
       case 'preparation':
-        return <Play className="w-5 h-5" />;
+        return <AlertCircle className="w-5 h-5" />;
       case 'recording':
         return <Camera className="w-5 h-5 text-red-500" />;
       case 'review':
@@ -437,12 +432,9 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
           
           <Separator className="my-4" />
           
-          <div className="grid grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="font-medium">Read Time:</span> {currentQuestion.read_secs}s
-            </div>
-            <div>
-              <span className="font-medium">Prep Time:</span> {currentQuestion.prep_secs}s
+              <span className="font-medium">Reading & Prep Time:</span> {currentQuestion.prep_and_read_secs}s
             </div>
             <div>
               <span className="font-medium">Answer Time:</span> {currentQuestion.answer_secs}s
@@ -455,7 +447,7 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
       <Card>
         <CardContent className="p-6">
           <div className="flex justify-center gap-4">
-            {phase === 'reading' && (
+            {phase === 'preparation' && (
               <Button onClick={skipToRecording} size="lg">
                 <Play className="w-4 h-4 mr-2" />
                 Start Recording
@@ -486,9 +478,9 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
             )}
           </div>
 
-          {phase === 'reading' && (
+          {phase === 'preparation' && (
             <div className="text-center text-muted-foreground">
-              Read the question carefully. Click "Start Recording" when you're ready to answer.
+              Read the question carefully and prepare your answer. Click "Start Recording" when you're ready to answer.
             </div>
           )}
         </CardContent>
