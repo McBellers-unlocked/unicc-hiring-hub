@@ -214,7 +214,7 @@ export default function AdminApplications() {
     { status: 'Application', title: 'Applications', color: 'bg-blue-100 text-blue-800' },
     { status: 'Longlist', title: 'Longlist', color: 'bg-yellow-100 text-yellow-800' },
     { status: 'Shortlist', title: 'Shortlist', color: 'bg-purple-100 text-purple-800' },
-    { status: 'Video Interview', title: 'Video Interview', color: 'bg-indigo-100 text-indigo-800' },
+    { status: 'Pre-Recorded Video', title: 'Video Interview', color: 'bg-indigo-100 text-indigo-800' },
     { status: 'Panel Interview', title: 'Panel Interview', color: 'bg-orange-100 text-orange-800' },
     { status: 'Recommended', title: 'Recommended Candidates', color: 'bg-cyan-100 text-cyan-800' },
     { status: 'Offer', title: 'Offer', color: 'bg-green-100 text-green-800' },
@@ -240,7 +240,8 @@ export default function AdminApplications() {
   phaseStats[0] = {
     ...phaseStats[0],
     count: applications.length,
-    title: `Applications (${applications.length} total)`
+    title: `Applications (${applications.length} total)`,
+    femalePercentage: applications.length > 0 ? Math.round((applications.filter(app => app.candidate.gender === 'Female').length / applications.length) * 100) : 0
   };
 
   const getScoreBadge = (application: Application) => {
@@ -382,6 +383,7 @@ export default function AdminApplications() {
                     <SelectItem value="Longlist">Longlist</SelectItem>
                     <SelectItem value="Shortlist">Shortlist</SelectItem>
                     <SelectItem value="Video Interview">Video Interview</SelectItem>
+                    <SelectItem value="Pre-Recorded Video">Pre-Recorded Video</SelectItem>
                     <SelectItem value="Panel Interview">Panel Interview</SelectItem>
                     <SelectItem value="Recommended">Recommended</SelectItem>
                     <SelectItem value="Offer">Offer</SelectItem>
