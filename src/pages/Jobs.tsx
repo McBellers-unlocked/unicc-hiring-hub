@@ -60,7 +60,10 @@ export default function Jobs() {
                          job.location?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesLocation = selectedLocations.length === 0 || selectedLocations.some(selectedLoc => {
       if (!job.location) return false;
-      const jobLocations = job.location.split(',').map(loc => loc.trim());
+      const jobLocations = job.location.split(',').map(loc => {
+        const trimmed = loc.trim();
+        return trimmed.split(',')[0].trim();
+      });
       return jobLocations.includes(selectedLoc);
     });
     const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(job.category);
@@ -73,8 +76,12 @@ export default function Jobs() {
     const allLocations: string[] = [];
     jobs.forEach(job => {
       if (job.location) {
-        // Split by comma and clean up each location
-        const locations = job.location.split(',').map(loc => loc.trim());
+        // Split by comma and clean up each location, extracting just the city
+        const locations = job.location.split(',').map(loc => {
+          const trimmed = loc.trim();
+          // Extract just the city name (first part before any comma or country)
+          return trimmed.split(',')[0].trim();
+        });
         allLocations.push(...locations);
       }
     });
@@ -107,7 +114,10 @@ export default function Jobs() {
   const getLocationCount = (location: string) => {
     return jobs.filter(job => {
       if (!job.location) return false;
-      const jobLocations = job.location.split(',').map(loc => loc.trim());
+      const jobLocations = job.location.split(',').map(loc => {
+        const trimmed = loc.trim();
+        return trimmed.split(',')[0].trim();
+      });
       return jobLocations.includes(location);
     }).length;
   };
