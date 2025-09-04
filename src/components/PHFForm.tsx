@@ -31,7 +31,9 @@ const phfSchema = z.object({
     firstNames: z.string().min(1, 'First/other names are required'),
     title: z.enum(['Mr', 'Mrs', 'Ms', 'Miss']),
     maidenName: z.string().optional(),
-    sex: z.enum(['Male', 'Female', 'Other']),
+    sex: z.enum(['Male', 'Female']).refine((val) => val !== undefined, {
+      message: 'Sex selection is required',
+    }),
     dateOfBirth: z.date(),
     placeOfBirth: z.string().min(1, 'Place of birth is required'),
     countryOfBirth: z.string().min(1, 'Country of birth is required'),
@@ -90,6 +92,8 @@ const phfSchema = z.object({
     institution_country: z.string(),
     degree_or_certificate_title: z.string(),
     main_course_of_study: z.string(),
+    is_completed: z.boolean(),
+    certificate_url: z.string().optional(),
   })).min(1, 'At least one education entry is required'),
 
   // Employment Record
@@ -174,6 +178,11 @@ const phfSchema = z.object({
     availability_mode: z.enum(['date', 'notice_period']),
   }),
 
+  // Motivation Letter
+  motivationLetter: z.object({
+    motivation_letter_url: z.string().min(1, 'Motivation letter is required'),
+  }),
+
   // Certification & Signature
   certification: z.object({
     certify_true_complete_correct: z.boolean().refine((val) => val === true, {
@@ -209,6 +218,7 @@ const SECTIONS = [
   'References',
   'Employer Contact & Status',
   'Availability',
+  'Motivation Letter',
   'Certification & Signature'
 ];
 
@@ -311,6 +321,9 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
         availability_date: initialData?.availability?.availability_date,
         notice_period_days: initialData?.availability?.notice_period_days,
         availability_mode: initialData?.availability?.availability_mode || 'date',
+      },
+      motivationLetter: {
+        motivation_letter_url: initialData?.motivationLetter?.motivation_letter_url || '',
       },
       certification: {
         certify_true_complete_correct: initialData?.certification?.certify_true_complete_correct || false,
@@ -578,7 +591,6 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
                 <SelectContent>
                   <SelectItem value="Male">Male</SelectItem>
                   <SelectItem value="Female">Female</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -1409,6 +1421,54 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
               </FormItem>
             )}
           />
+
+          <div className="mt-4 space-y-4">
+            <FormField
+              control={form.control}
+              name={`education.${index}.is_completed`}
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      This qualification is completed
+                    </FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            {form.watch(`education.${index}.is_completed`) && (
+              <FormField
+                control={form.control}
+                name={`education.${index}.certificate_url`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Upload Certificate *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="file"
+                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            // Handle file upload - you'll need to implement this
+                            field.onChange(file.name); // Placeholder
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+          </div>
         </Card>
       ))}
 
@@ -1426,6 +1486,8 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
           institution_country: '',
           degree_or_certificate_title: '',
           main_course_of_study: '',
+          is_completed: false,
+          certificate_url: '',
         })}
         className="w-full"
       >
@@ -2158,6 +2220,41 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
     }
   };
 
+  const renderMotivationLetter = () => (
+    <div className="space-y-6">
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Guidance:</strong> Please upload your motivation letter explaining your interest in this position and how your experience makes you suitable for the role.
+        </AlertDescription>
+      </Alert>
+
+      <FormField
+        control={form.control}
+        name="motivationLetter.motivation_letter_url"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Motivation Letter *</FormLabel>
+            <FormControl>
+              <Input
+                type="file"
+                accept=".pdf,.doc,.docx"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    // Handle file upload - you'll need to implement this
+                    field.onChange(file.name); // Placeholder
+                  }
+                }}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </div>
+  );
+
   const renderCertificationSignature = () => (
     <div className="space-y-6">
       <h3 className="text-lg font-medium mb-4">Certification & Signature</h3>
@@ -2312,6 +2409,8 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
       case 11:
         return renderAvailability();
       case 12:
+        return renderMotivationLetter();
+      case 13:
         return renderCertificationSignature();
       default:
         return <div>Section not found</div>;

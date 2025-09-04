@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -53,12 +53,8 @@ export default function JobApplication() {
     phone: '',
     location: '',
     work_auth: '',
-    linkedin_url: '',
-    gender: ''
+    linkedin_url: ''
   });
-  
-  const [languages, setLanguages] = useState<string[]>([]);
-  const [newLanguage, setNewLanguage] = useState('');
   const [killerAnswers, setKillerAnswers] = useState<Record<string, any>>({});
   const [files, setFiles] = useState<Record<string, File>>({});
   const [phfData, setPHFData] = useState<any>({});
@@ -160,16 +156,6 @@ export default function JobApplication() {
     setDisqualified(isDisqualified);
   };
 
-  const addLanguage = () => {
-    if (newLanguage.trim() && !languages.includes(newLanguage.trim())) {
-      setLanguages([...languages, newLanguage.trim()]);
-      setNewLanguage('');
-    }
-  };
-
-  const removeLanguage = (language: string) => {
-    setLanguages(languages.filter(l => l !== language));
-  };
 
   const handleFileChange = (field: string, file: File | null) => {
     if (file) {
@@ -217,10 +203,10 @@ export default function JobApplication() {
     }
 
     // Validate required fields
-    if (!formData.name || !formData.email || !files.motivation_letter) {
+    if (!formData.name || !formData.email) {
       toast({
         title: "Missing required fields",
-        description: "Please fill in all required fields and upload your motivation letter",
+        description: "Please fill in all required fields",
         variant: "destructive"
       });
       return;
@@ -248,9 +234,7 @@ export default function JobApplication() {
         phone: formData.phone,
         location: formData.location,
         work_auth: formData.work_auth,
-        linkedin_url: formData.linkedin_url,
-        gender: formData.gender,
-        languages: languages
+        linkedin_url: formData.linkedin_url
       };
 
       // First try to find existing candidate by email
@@ -633,106 +617,18 @@ export default function JobApplication() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="gender">Gender (Optional)</Label>
-                  <select
-                    id="gender"
-                    value={formData.gender}
-                    onChange={(e) => setFormData(prev => ({ ...prev, gender: e.target.value }))}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="">Prefer not to say</option>
-                    <option value="Female">Female</option>
-                    <option value="Male">Male</option>
-                    <option value="Non-binary">Non-binary</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    This information helps us track diversity and is completely optional
-                  </p>
-                </div>
-                <div></div>
-              </div>
-
-              <div>
-                <Label>Languages</Label>
-                <div className="flex gap-2 mb-2">
-                  <Input
-                    value={newLanguage}
-                    onChange={(e) => setNewLanguage(e.target.value)}
-                    placeholder="Add a language..."
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addLanguage())}
-                  />
-                  <Button type="button" onClick={addLanguage} variant="outline">
-                    Add
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {languages.map((language) => (
-                    <Badge key={language} variant="secondary" className="flex items-center gap-1">
-                      {language}
-                      <X
-                        className="h-3 w-3 cursor-pointer hover:text-destructive"
-                        onClick={() => removeLanguage(language)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
-              </div>
             </CardContent>
           </Card>
 
-          {/* File Uploads */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Required Documents</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="motivation_letter">Motivation Letter *</Label>
-                <div className="mt-2 flex items-center gap-2">
-                  <Input
-                    id="motivation_letter"
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    onChange={(e) => handleFileChange('motivation_letter', e.target.files?.[0] || null)}
-                    required
-                  />
-                  {files.motivation_letter && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Upload className="h-4 w-4" />
-                      {files.motivation_letter.name}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="cv">CV (Optional)</Label>
-                <div className="mt-2 flex items-center gap-2">
-                  <Input
-                    id="cv"
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    onChange={(e) => handleFileChange('cv', e.target.files?.[0] || null)}
-                  />
-                  {files.cv && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Upload className="h-4 w-4" />
-                      {files.cv.name}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Killer Questions */}
           {killerQuestions.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle>Essential Requirements</CardTitle>
+                <CardDescription>
+                  Please answer all questions accurately as your responses will be assessed later in the recruitment process.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {killerQuestions.map(renderKillerQuestion)}
