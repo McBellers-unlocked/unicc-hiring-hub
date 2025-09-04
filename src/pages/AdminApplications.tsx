@@ -23,6 +23,7 @@ interface Application {
     name: string;
     email: string;
     location: string | null;
+    gender: string | null;
   };
   job: {
     id: string;
@@ -39,6 +40,8 @@ interface StatusColumn {
   title: string;
   color: string;
   count: number;
+  femaleCount: number;
+  femalePercentage: number;
 }
 
 export default function AdminApplications() {
@@ -112,7 +115,7 @@ export default function AdminApplications() {
           submitted_at,
           suggested_for_longlist,
           phf_completed,
-          candidate:candidates(id, name, email, location),
+          candidate:candidates(id, name, email, location, gender),
           job:jobs(id, title, org_unit),
           screening_scores(ai_score)
         `)
@@ -174,15 +177,17 @@ export default function AdminApplications() {
     }
   };
 
-  // Define status columns
+  // Define status columns in the correct order
   const statusColumns: StatusColumn[] = [
-    { status: 'Application', title: 'Applications', color: 'bg-blue-100 text-blue-800', count: 0 },
-    { status: 'Longlist', title: 'Longlist', color: 'bg-yellow-100 text-yellow-800', count: 0 },
-    { status: 'Pre-Recorded Video', title: 'Video Interview', color: 'bg-indigo-100 text-indigo-800', count: 0 },
-    { status: 'Shortlist', title: 'Shortlist', color: 'bg-purple-100 text-purple-800', count: 0 },
-    { status: 'Panel Interview', title: 'Panel Interview', color: 'bg-orange-100 text-orange-800', count: 0 },
-    { status: 'Offer', title: 'Offer', color: 'bg-green-100 text-green-800', count: 0 },
-    { status: 'Rejected', title: 'Rejected', color: 'bg-red-100 text-red-800', count: 0 }
+    { status: 'Application', title: 'Applications', color: 'bg-blue-100 text-blue-800', count: 0, femaleCount: 0, femalePercentage: 0 },
+    { status: 'Longlist', title: 'Longlist', color: 'bg-yellow-100 text-yellow-800', count: 0, femaleCount: 0, femalePercentage: 0 },
+    { status: 'Shortlist', title: 'Shortlist', color: 'bg-purple-100 text-purple-800', count: 0, femaleCount: 0, femalePercentage: 0 },
+    { status: 'Pre-Recorded Video', title: 'Video Interview', color: 'bg-indigo-100 text-indigo-800', count: 0, femaleCount: 0, femalePercentage: 0 },
+    { status: 'Panel Interview', title: 'Panel Interview', color: 'bg-orange-100 text-orange-800', count: 0, femaleCount: 0, femalePercentage: 0 },
+    { status: 'Recommended', title: 'Recommended Candidates', color: 'bg-cyan-100 text-cyan-800', count: 0, femaleCount: 0, femalePercentage: 0 },
+    { status: 'Offer', title: 'Offer', color: 'bg-green-100 text-green-800', count: 0, femaleCount: 0, femalePercentage: 0 },
+    { status: 'Roster', title: 'Roster', color: 'bg-emerald-100 text-emerald-800', count: 0, femaleCount: 0, femalePercentage: 0 },
+    { status: 'Rejected', title: 'Rejected', color: 'bg-red-100 text-red-800', count: 0, femaleCount: 0, femalePercentage: 0 }
   ];
 
   // Filter applications
@@ -203,12 +208,36 @@ export default function AdminApplications() {
     return matchesSearch && matchesJob && matchesAI;
   });
 
-  // Group applications by status and update counts
-  const applicationsByStatus = statusColumns.map(column => ({
-    ...column,
-    applications: filteredApplications.filter(app => app.status === column.status),
-    count: filteredApplications.filter(app => app.status === column.status).length
-  }));
+  // Calculate total applications count (across all stages)
+  const totalApplicationsCount = filteredApplications.length;
+
+  // Group applications by status and calculate gender diversity
+  const applicationsByStatus = statusColumns.map(column => {
+    const statusApps = filteredApplications.filter(app => app.status === column.status);
+    const femaleApps = statusApps.filter(app => app.candidate.gender === 'Female');
+    const femaleCount = femaleApps.length;
+    const femalePercentage = statusApps.length > 0 ? (femaleCount / statusApps.length) * 100 : 0;
+    
+    return {
+      ...column,
+      applications: statusApps,
+      count: statusApps.length,
+      femaleCount,
+      femalePercentage
+    };
+  });
+
+  // Update the Applications column to show total count
+  const updatedApplicationsByStatus = applicationsByStatus.map(column => {
+    if (column.status === 'Application') {
+      return {
+        ...column,
+        count: totalApplicationsCount, // Show total applications for first column
+        title: `Applications (${totalApplicationsCount} total)`
+      };
+    }
+    return column;
+  });
 
   // Get unique jobs for filter
   const uniqueJobs = [...new Set(applications.map(app => app.job))].filter((job, index, self) => 
@@ -264,11 +293,16 @@ export default function AdminApplications() {
               <CardTitle className="text-lg">Application Overview</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {applicationsByStatus.map((column) => (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-9 gap-4">
+                {updatedApplicationsByStatus.map((column) => (
                   <div key={column.status} className="text-center p-3 bg-muted/30 rounded-lg">
                     <div className="text-2xl font-bold text-foreground">{column.count}</div>
-                    <div className="text-sm text-muted-foreground">{column.title}</div>
+                    <div className="text-sm text-muted-foreground mb-1">{column.title}</div>
+                    {column.count > 0 && (
+                      <div className={`text-xs font-medium ${column.femalePercentage < 50 ? 'text-red-600' : 'text-green-600'}`}>
+                        {column.femalePercentage.toFixed(0)}% Female
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -319,7 +353,7 @@ export default function AdminApplications() {
             <div className="mt-6">
               <h4 className="font-medium mb-3 text-muted-foreground">PHF Status by Application Stage</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {applicationsByStatus.map((column) => {
+                {updatedApplicationsByStatus.map((column) => {
                   const statusApps = filteredApplications.filter(app => app.status === column.status);
                   const completedInStatus = statusApps.filter(app => app.phf_completed).length;
                   const incompleteInStatus = statusApps.filter(app => !app.phf_completed).length;
@@ -328,7 +362,12 @@ export default function AdminApplications() {
                   
                   return (
                     <div key={column.status} className="p-3 bg-muted/20 rounded-lg">
-                      <div className="font-medium text-sm mb-2">{column.title} ({statusApps.length})</div>
+                      <div className="font-medium text-sm mb-2">
+                        {column.title} ({statusApps.length})
+                        <span className={`ml-2 text-xs ${column.femalePercentage < 50 ? 'text-red-600' : 'text-green-600'}`}>
+                          {column.femalePercentage.toFixed(0)}% Female
+                        </span>
+                      </div>
                       <div className="flex justify-between text-xs">
                         <span className="text-green-600 dark:text-green-400">✓ Completed: {completedInStatus}</span>
                         <span className="text-orange-600 dark:text-orange-400">⧖ Incomplete: {incompleteInStatus}</span>
@@ -384,15 +423,25 @@ export default function AdminApplications() {
         </Card>
 
         {/* Kanban Board */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          {applicationsByStatus.map((column) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-9 gap-4">
+          {updatedApplicationsByStatus.map((column) => (
             <Card key={column.status} className="flex flex-col h-fit">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center justify-between text-sm">
-                  <span>{column.title}</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {column.count}
-                  </Badge>
+                  <span>{column.title.split(' (')[0]}</span>
+                  <div className="flex flex-col items-end">
+                    <Badge variant="secondary" className="text-xs mb-1">
+                      {column.applications.length}
+                    </Badge>
+                    {column.applications.length > 0 && (
+                      <Badge 
+                        variant="outline" 
+                        className={`text-xs ${column.femalePercentage < 50 ? 'text-red-600 border-red-600' : 'text-green-600 border-green-600'}`}
+                      >
+                        {column.femalePercentage.toFixed(0)}% F
+                      </Badge>
+                    )}
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 flex-1">
