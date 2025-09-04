@@ -348,7 +348,17 @@ export default function Jobs() {
                             {job.location && (
                               <div className="flex items-center text-sm text-muted-foreground">
                                 <MapPin className="h-4 w-4 mr-2" />
-                                {job.location}
+                                {(() => {
+                                  // Extract just the city names from "City, Country, City, Country" format
+                                  const parts = job.location.split(',').map(part => part.trim());
+                                  const cities = [];
+                                  for (let i = 0; i < parts.length; i += 2) {
+                                    if (parts[i]) {
+                                      cities.push(parts[i]);
+                                    }
+                                  }
+                                  return cities.join(', ');
+                                })()}
                               </div>
                             )}
                             
