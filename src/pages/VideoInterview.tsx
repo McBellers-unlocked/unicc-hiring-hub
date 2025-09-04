@@ -32,24 +32,36 @@ interface Job {
 }
 
 export default function VideoInterview() {
-  const { applicationId } = useParams();
+  const { token } = useParams();
   const navigate = useNavigate();
   const [questionSet, setQuestionSet] = useState<VideoQuestionSet | null>(null);
   const [job, setJob] = useState<Job | null>(null);
   const [hasStarted, setHasStarted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isValidLink, setIsValidLink] = useState(false);
+  const [applicationId, setApplicationId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (applicationId) {
+    if (token) {
       validateAndLoadInterview();
     }
-  }, [applicationId]);
+  }, [token]);
 
   const validateAndLoadInterview = async () => {
     try {
-      // First, validate the application exists and get job info
+      // First, validate the token and get assignment details
+      const { data: validationData, error: validationError } = await supabase
+        .rpc('validate_video_assignment_token', { assignment_token: token });
+
+      if (validationError || !validationData || validationData.length === 0) {
+        throw new Error('Invalid or expired video interview link');
+      }
+
+      const assignment = validationData[0];
+      setApplicationId(assignment.application_id);
+
+      // Get application and job details
       const { data: application, error: appError } = await supabase
         .from('applications')
         .select(`
@@ -61,29 +73,18 @@ export default function VideoInterview() {
             org_unit
           )
         `)
-        .eq('id', applicationId)
+        .eq('id', assignment.application_id)
         .single();
 
       if (appError || !application) {
-        throw new Error('Invalid application link');
-      }
-
-      // Load video question set for this job
-      const { data: questionSetData, error: qsError } = await supabase
-        .from('video_question_sets')
-        .select('*')
-        .eq('job_id', application.job_id)
-        .single();
-
-      if (qsError || !questionSetData) {
-        throw new Error('No video questions configured for this position');
+        throw new Error('Invalid application data');
       }
 
       // Check if candidate has already completed video interview
       const { data: existingAnswers, error: answersError } = await supabase
         .from('video_answers')
         .select('id')
-        .eq('application_id', applicationId);
+        .eq('application_id', assignment.application_id);
 
       if (answersError) throw answersError;
 
@@ -103,12 +104,19 @@ export default function VideoInterview() {
       });
 
       setQuestionSet({
-        id: questionSetData.id,
-        name: questionSetData.name,
-        questions: (questionSetData.questions as any as VideoQuestion[]) || []
+        id: assignment.question_set_id,
+        name: 'Video Interview Questions',
+        questions: (assignment.questions as any as VideoQuestion[]) || []
       });
 
       setIsValidLink(true);
+
+      // Update assignment status to opened
+      await supabase.rpc('update_video_assignment_status', {
+        assignment_token: token,
+        new_status: 'LinkOpened'
+      });
+
     } catch (error) {
       console.error('Error loading interview:', error);
       toast({
