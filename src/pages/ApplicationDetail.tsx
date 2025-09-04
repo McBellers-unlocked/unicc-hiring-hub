@@ -85,6 +85,8 @@ export default function ApplicationDetail() {
   const [pendingStatus, setPendingStatus] = useState('');
   const [activeTab, setActiveTab] = useState("summary");
   const [showScheduler, setShowScheduler] = useState(false);
+  const [videoQuestions, setVideoQuestions] = useState<any[]>([]);
+  const [videoAnswers, setVideoAnswers] = useState<any[]>([]);
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
@@ -95,6 +97,7 @@ export default function ApplicationDetail() {
   useEffect(() => {
     if (id && hasAccess) {
       fetchApplication();
+      fetchVideoData();
     }
   }, [id, hasAccess]);
 
@@ -137,6 +140,44 @@ export default function ApplicationDetail() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchVideoData = async () => {
+    try {
+      // Fetch video answers
+      const { data: answers, error: answersError } = await supabase
+        .from('video_answers')
+        .select('*')
+        .eq('application_id', id)
+        .order('taken_at', { ascending: true });
+
+      if (answersError) throw answersError;
+      setVideoAnswers(answers || []);
+
+      // Fetch video questions if answers exist
+      if (answers && answers.length > 0) {
+        // Get the application's job to find the question set
+        const { data: app, error: appError } = await supabase
+          .from('applications')
+          .select('job_id')
+          .eq('id', id)
+          .single();
+
+        if (appError) throw appError;
+
+        // Get the video question set for this job
+        const { data: questionSet, error: questionSetError } = await supabase
+          .from('video_question_sets')
+          .select('questions')
+          .eq('job_id', app.job_id)
+          .single();
+
+        if (questionSetError) throw questionSetError;
+        setVideoQuestions(Array.isArray(questionSet?.questions) ? questionSet.questions : []);
+      }
+    } catch (error) {
+      console.error('Error fetching video data:', error);
     }
   };
 
@@ -672,9 +713,12 @@ export default function ApplicationDetail() {
             {application && (
               <VideoRatingInterface
                 applicationId={application.id}
-                questions={[]} 
-                videoAnswers={[]} 
-                onRatingUpdate={fetchApplication}
+                questions={videoQuestions} 
+                videoAnswers={videoAnswers} 
+                onRatingUpdate={() => {
+                  fetchApplication();
+                  fetchVideoData();
+                }}
               />
             )}
           </TabsContent>
