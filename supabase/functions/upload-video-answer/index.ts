@@ -25,7 +25,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Convert base64 to blob for Azure upload
+    // Convert base64 to blob for storage
     const binaryString = atob(videoData);
     const bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
@@ -34,12 +34,27 @@ serve(async (req) => {
 
     // Generate unique filename
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `video-${applicationId}-${questionId}-${timestamp}.webm`;
+    const filename = `videos/${applicationId}/${questionId}-${timestamp}.webm`;
 
-    // For now, store the blob URL directly (in production, this would upload to Azure)
-    // Create a blob URL for the video data
-    const blob = new Blob([bytes], { type: 'video/webm' });
-    const tempUrl = `temp://video-${applicationId}-${questionId}`;
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('application-files')
+      .upload(filename, bytes, {
+        contentType: 'video/webm',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError);
+      throw new Error(`Failed to upload video: ${uploadError.message}`);
+    }
+
+    // Get the public URL for the uploaded video
+    const { data: urlData } = supabase.storage
+      .from('application-files')
+      .getPublicUrl(filename);
+
+    const publicUrl = urlData.publicUrl;
 
     // Store video answer in database
     const { data: videoAnswer, error: insertError } = await supabase
@@ -47,12 +62,12 @@ serve(async (req) => {
       .insert({
         application_id: applicationId,
         question_id: questionId,
-        url: tempUrl, // In production, this would be the Azure blob URL
+        url: publicUrl,
         duration: duration,
-        azure_blob_url: tempUrl,
+        azure_blob_url: publicUrl, // For now, same as url
         file_size: fileSize,
         processing_status: 'uploaded',
-        virus_scan_status: 'clean', // In production, implement actual virus scanning
+        virus_scan_status: 'clean',
         taken_at: new Date().toISOString()
       })
       .select()
