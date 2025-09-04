@@ -374,6 +374,42 @@ export type Database = {
         }
         Relationships: []
       }
+      job_email_alerts: {
+        Row: {
+          categories: Json | null
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          locations: Json | null
+          search_term: string | null
+          types: Json | null
+          updated_at: string
+        }
+        Insert: {
+          categories?: Json | null
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean
+          locations?: Json | null
+          search_term?: string | null
+          types?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          categories?: Json | null
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          locations?: Json | null
+          search_term?: string | null
+          types?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       jobs: {
         Row: {
           attachments_required: Json | null

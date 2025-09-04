@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { JobEmailAlert } from '@/components/JobEmailAlert';
 import { Search, MapPin, Calendar, Briefcase, Filter } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
@@ -379,6 +380,17 @@ export default function Jobs() {
                     ))}
                   </div>
                 )}
+
+                {/* Email Alert Component */}
+                <JobEmailAlert
+                  searchTerm={searchTerm}
+                  selectedLocations={selectedLocations}
+                  selectedCategories={selectedCategories}
+                  selectedTypes={selectedTypes}
+                  availableLocations={uniqueLocations}
+                  availableCategories={uniqueCategories}
+                  availableTypes={uniqueDisplayTypes}
+                />
               </div>
             </div>
           </div>
