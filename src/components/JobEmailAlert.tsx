@@ -13,19 +13,18 @@ interface JobEmailAlertProps {
   selectedLocations: string[];
   selectedCategories: string[];
   selectedTypes: string[];
-  availableLocations: string[];
-  availableCategories: string[];
-  availableTypes: string[];
 }
+
+// Predefined options for all possible values
+const ALL_LOCATIONS = ['Brindisi', 'Geneva', 'New York', 'Rome', 'Valencia'];
+const ALL_CATEGORIES = ['Human Resources', 'Information Technology', 'Procurement', 'Finance', 'Legal', 'Administration'];
+const ALL_TYPES = ['Staff - Fixed term', 'Staff - Temporary', 'Consultant', 'Intern'];
 
 export function JobEmailAlert({
   searchTerm,
   selectedLocations,
   selectedCategories,
   selectedTypes,
-  availableLocations,
-  availableCategories,
-  availableTypes,
 }: JobEmailAlertProps) {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -153,11 +152,11 @@ export function JobEmailAlert({
             />
           </div>
 
-          {availableLocations.length > 0 && (
+          {ALL_LOCATIONS.length > 0 && (
             <div>
               <Label className="text-sm font-medium mb-2 block">Locations (optional)</Label>
               <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                {availableLocations.map(location => (
+                {ALL_LOCATIONS.map(location => (
                   <div key={location} className="flex items-center space-x-2">
                     <Checkbox
                       id={`alert-location-${location}`}
@@ -176,11 +175,11 @@ export function JobEmailAlert({
             </div>
           )}
 
-          {availableCategories.length > 0 && (
+          {ALL_CATEGORIES.length > 0 && (
             <div>
               <Label className="text-sm font-medium mb-2 block">Categories (optional)</Label>
               <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
-                {availableCategories.map(category => (
+                {ALL_CATEGORIES.map(category => (
                   <div key={category} className="flex items-center space-x-2">
                     <Checkbox
                       id={`alert-category-${category}`}
@@ -199,11 +198,11 @@ export function JobEmailAlert({
             </div>
           )}
 
-          {availableTypes.length > 0 && (
+          {ALL_TYPES.length > 0 && (
             <div>
               <Label className="text-sm font-medium mb-2 block">Types (optional)</Label>
               <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
-                {availableTypes.map(type => (
+                {ALL_TYPES.map(type => (
                   <div key={type} className="flex items-center space-x-2">
                     <Checkbox
                       id={`alert-type-${type}`}

@@ -387,9 +387,6 @@ export default function Jobs() {
                   selectedLocations={selectedLocations}
                   selectedCategories={selectedCategories}
                   selectedTypes={selectedTypes}
-                  availableLocations={uniqueLocations}
-                  availableCategories={uniqueCategories}
-                  availableTypes={uniqueDisplayTypes}
                 />
               </div>
             </div>
