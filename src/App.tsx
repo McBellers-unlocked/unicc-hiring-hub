@@ -19,6 +19,7 @@ import JobWizard from "./pages/JobWizard";
 import ApplicationScoringTest from "./pages/ApplicationScoringTest";
 import VideoTestInterface from "./pages/VideoTestInterface";
 import JobRequisitions from "./pages/JobRequisitions";
+import AdminRequisitions from "./pages/AdminRequisitions";
 import JobRequisitionForm from "./pages/JobRequisitionForm";
 import JobRequisitionDetail from "./pages/JobRequisitionDetail";
 import NotFound from "./pages/NotFound";
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/admin/video-test" element={<VideoTestInterface />} />
             <Route path="/admin/scoring" element={<ApplicationScoringTest />} />
             <Route path="/requisitions" element={<JobRequisitions />} />
+            <Route path="/admin/requisitions" element={<AdminRequisitions />} />
             <Route path="/requisitions/new" element={<JobRequisitionForm />} />
             <Route path="/requisitions/:id" element={<JobRequisitionDetail />} />
             <Route path="/requisitions/:id/edit" element={<JobRequisitionForm />} />
