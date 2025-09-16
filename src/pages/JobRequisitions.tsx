@@ -62,27 +62,26 @@ export default function JobRequisitions() {
       return <Badge variant="default" className="bg-green-500">Converted to Job</Badge>;
     }
     
-    if (requisition.director_approval) {
-      return <Badge variant="default" className="bg-blue-500">Director Approved</Badge>;
+    switch (requisition.status) {
+      case 'draft':
+        return <Badge variant="secondary">Draft</Badge>;
+      case 'hr_review':
+        return <Badge variant="default" className="bg-orange-500">HR Review</Badge>;
+      case 'hr_amendments':
+        return <Badge variant="destructive">Requires Amendments</Badge>;
+      case 'hiring_manager_review':
+        return <Badge variant="default" className="bg-blue-500">Manager Review</Badge>;
+      case 'chief_division_review':
+        return <Badge variant="default" className="bg-purple-500">Chief Review</Badge>;
+      case 'director_review':
+        return <Badge variant="default" className="bg-amber-500">Director Review</Badge>;
+      case 'approved':
+        return <Badge variant="default" className="bg-green-500">Approved</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive">Rejected</Badge>;
+      default:
+        return <Badge variant="outline">Unknown Status</Badge>;
     }
-    
-    const approvals = [
-      requisition.finance_controller_approval,
-      requisition.chief_of_division_approval,
-      requisition.deputy_director_approval,
-    ];
-    
-    const approvedCount = approvals.filter(Boolean).length;
-    
-    if (approvedCount === 3) {
-      return <Badge variant="default" className="bg-amber-500">Awaiting Director</Badge>;
-    }
-    
-    if (approvedCount > 0) {
-      return <Badge variant="secondary">Partially Approved ({approvedCount}/3)</Badge>;
-    }
-    
-    return <Badge variant="outline">Pending Approval</Badge>;
   };
 
   const getApprovalProgress = (requisition: JobRequisition) => {

@@ -34,6 +34,12 @@ interface JobRequisition {
   chief_of_division_approval: boolean;
   deputy_director_approval: boolean;
   director_approval: boolean;
+  hr_reviewed: boolean;
+  hr_reviewed_by: string;
+  hr_reviewed_at: string;
+  hr_comments: string;
+  hiring_manager_confirmed_hr_changes: boolean;
+  hiring_manager_confirmed_at: string;
   pdf_url: string;
   converted_to_job_id: string;
   comments: any;
