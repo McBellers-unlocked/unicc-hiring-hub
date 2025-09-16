@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, Send, FileText, Briefcase, ChevronDown } from "lucide-react";
+import { ArrowLeft, Save, Send, FileText, Briefcase, ChevronDown, CheckCircle2 } from "lucide-react";
 
 // Organizational structure
 const DIVISIONS = {
@@ -131,9 +131,9 @@ export default function JobRequisitionForm() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-
   const [selectedDivision, setSelectedDivision] = useState<string>("");
   const [selectedUnit, setSelectedUnit] = useState<string>("");
+  const [currentRequisition, setCurrentRequisition] = useState<any>(null);
 
   const form = useForm<RequisitionFormData>({
     resolver: zodResolver(requisitionSchema),
@@ -177,6 +177,8 @@ export default function JobRequisitionForm() {
         .single();
 
       if (error) throw error;
+
+      setCurrentRequisition(data);
 
       if (data) {
         // Parse existing unit_section_division to set division and unit
@@ -317,6 +319,40 @@ export default function JobRequisitionForm() {
       setSaving(false);
     }
   };
+
+  const handleAcceptChanges = async () => {
+    try {
+      setSaving(true);
+      const { error } = await supabase
+        .from('job_requisitions')
+        .update({
+          hiring_manager_confirmed_hr_changes: true,
+          hiring_manager_confirmed_at: new Date().toISOString(),
+          status: 'hiring_manager_review'
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Changes accepted. HR can now send for chief approval.",
+      });
+
+      // Refresh the requisition data
+      fetchRequisition();
+    } catch (error) {
+      console.error('Error accepting changes:', error);
+      toast({
+        title: "Error",
+        description: "Failed to accept changes",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
 
   const generatePDF = async () => {
     if (!id || id === 'new') {
@@ -1011,6 +1047,19 @@ export default function JobRequisitionForm() {
               )}
             </div>
             <div className="flex gap-2">
+              {/* Show Accept Changes button if status is hr_amendments */}
+              {currentRequisition?.status === 'hr_amendments' && (
+                <Button
+                  type="button"
+                  onClick={handleAcceptChanges}
+                  disabled={saving}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Accept Changes
+                </Button>
+              )}
+              
               <Button
                 type="button"
                 variant="outline"
@@ -1020,14 +1069,18 @@ export default function JobRequisitionForm() {
                 <Save className="h-4 w-4 mr-2" />
                 Save Draft
               </Button>
-              <Button
-                type="button"
-                onClick={() => onSubmit(form.getValues(), true)}
-                disabled={saving || !(form.getValues('confirmChiefApproval') && form.getValues('confirmFinanceApproval') && form.getValues('confirmDeputyApproval'))}
-              >
-                <Send className="h-4 w-4 mr-2" />
-                Submit for Approval
-              </Button>
+              
+              {/* Only show Submit for Approval if not in hr_amendments status */}
+              {currentRequisition?.status !== 'hr_amendments' && (
+                <Button
+                  type="button"
+                  onClick={() => onSubmit(form.getValues(), true)}
+                  disabled={saving || !(form.getValues('confirmChiefApproval') && form.getValues('confirmFinanceApproval') && form.getValues('confirmDeputyApproval'))}
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Submit for Approval
+                </Button>
+              )}
             </div>
           </div>
         </form>

@@ -310,13 +310,23 @@ export default function AdminRequisitions() {
                             )}
 
                             {requisition.status === 'hiring_manager_review' && (isAdmin || isHR) && (
-                              <Button
-                                size="sm"
-                                onClick={() => handleHiringManagerConfirmation(requisition.id)}
-                              >
-                                <CheckCircle2 className="h-4 w-4 mr-1" />
-                                Send to Chief Review
-                              </Button>
+                              <>
+                                {requisition.hiring_manager_confirmed_hr_changes ? (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleHiringManagerConfirmation(requisition.id)}
+                                    className="bg-green-600 hover:bg-green-700"
+                                  >
+                                    <CheckCircle2 className="h-4 w-4 mr-1" />
+                                    Send to Chief Review
+                                  </Button>
+                                ) : (
+                                  <Badge variant="secondary" className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    Waiting for Manager Confirmation
+                                  </Badge>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>
@@ -335,6 +345,16 @@ export default function AdminRequisitions() {
                               <span className="flex items-center gap-1">
                                 <CheckCircle2 className="h-3 w-3 text-green-600" />
                                 {requisition.hr_reviewed_at && new Date(requisition.hr_reviewed_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {requisition.hiring_manager_confirmed_hr_changes && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">Manager Confirmed Changes:</span>
+                              <span className="flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                {requisition.hiring_manager_confirmed_at && new Date(requisition.hiring_manager_confirmed_at).toLocaleDateString()}
                               </span>
                             </div>
                           )}
