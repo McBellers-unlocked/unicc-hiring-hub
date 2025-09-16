@@ -147,7 +147,11 @@ export default function AdminRequisitions() {
       case 'hr_amendments':
         return { label: 'HR Amendments', color: 'destructive', icon: XCircle };
       case 'hiring_manager_review':
-        return { label: 'Manager Review', color: 'warning', icon: Clock };
+        if (requisition.hiring_manager_confirmed_hr_changes) {
+          return { label: 'Manager Confirmed', color: 'success', icon: CheckCircle2 };
+        } else {
+          return { label: 'Manager Review', color: 'warning', icon: Clock };
+        }
       case 'chief_division_review':
         return { label: 'Chief Review', color: 'info', icon: Clock };
       case 'director_review':
@@ -260,7 +264,10 @@ export default function AdminRequisitions() {
                               <CardTitle className="text-lg">{requisition.position_title}</CardTitle>
                               <Badge 
                                 variant={getStatusVariant(statusInfo.color)} 
-                                className={`flex items-center gap-1 ${statusInfo.color === 'warning' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}`}
+                                className={`flex items-center gap-1 ${
+                                  statusInfo.color === 'warning' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 
+                                  statusInfo.color === 'success' ? 'bg-green-500 hover:bg-green-600 text-white' : ''
+                                }`}
                               >
                                 <StatusIcon className="h-3 w-3" />
                                 {statusInfo.label}
