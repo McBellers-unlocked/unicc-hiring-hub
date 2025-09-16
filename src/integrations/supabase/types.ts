@@ -436,6 +436,12 @@ export type Database = {
           finance_controller_approved_by: string | null
           global_competencies: Json | null
           grade: string | null
+          hiring_manager_confirmed_at: string | null
+          hiring_manager_confirmed_hr_changes: boolean | null
+          hr_comments: string | null
+          hr_reviewed: boolean | null
+          hr_reviewed_at: string | null
+          hr_reviewed_by: string | null
           id: string
           language_requirements: Json | null
           leadership_competencies: Json | null
@@ -478,6 +484,12 @@ export type Database = {
           finance_controller_approved_by?: string | null
           global_competencies?: Json | null
           grade?: string | null
+          hiring_manager_confirmed_at?: string | null
+          hiring_manager_confirmed_hr_changes?: boolean | null
+          hr_comments?: string | null
+          hr_reviewed?: boolean | null
+          hr_reviewed_at?: string | null
+          hr_reviewed_by?: string | null
           id?: string
           language_requirements?: Json | null
           leadership_competencies?: Json | null
@@ -520,6 +532,12 @@ export type Database = {
           finance_controller_approved_by?: string | null
           global_competencies?: Json | null
           grade?: string | null
+          hiring_manager_confirmed_at?: string | null
+          hiring_manager_confirmed_hr_changes?: boolean | null
+          hr_comments?: string | null
+          hr_reviewed?: boolean | null
+          hr_reviewed_at?: string | null
+          hr_reviewed_by?: string | null
           id?: string
           language_requirements?: Json | null
           leadership_competencies?: Json | null
