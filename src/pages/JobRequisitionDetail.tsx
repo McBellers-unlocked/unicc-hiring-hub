@@ -175,6 +175,35 @@ export default function JobRequisitionDetail() {
     }
   };
 
+  const acceptHRChanges = async () => {
+    try {
+      const { error } = await supabase
+        .from('job_requisitions')
+        .update({
+          hiring_manager_confirmed_hr_changes: true,
+          hiring_manager_confirmed_at: new Date().toISOString(),
+          status: 'hiring_manager_review'
+        })
+        .eq('id', requisition?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "HR changes accepted successfully",
+      });
+
+      fetchRequisition(); // Refresh the data
+    } catch (error) {
+      console.error('Error accepting HR changes:', error);
+      toast({
+        title: "Error",
+        description: "Failed to accept HR changes",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
@@ -247,6 +276,12 @@ export default function JobRequisitionDetail() {
           </p>
         </div>
         <div className="flex gap-2">
+          {requisition.status === 'hr_amendments' && requisition.created_by === user?.id && (
+            <Button onClick={acceptHRChanges} className="bg-green-600 hover:bg-green-700">
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Accept HR Changes
+            </Button>
+          )}
           <Button variant="outline" onClick={() => navigate(`/requisitions/${requisition.id}/edit`)}>
             Edit
           </Button>
@@ -401,6 +436,32 @@ export default function JobRequisitionDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {/* HR Review Section */}
+        {requisition.hr_reviewed && requisition.hr_comments && (
+          <Card className="border-amber-200 bg-amber-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-amber-800">
+                <MessageSquare className="h-5 w-5" />
+                HR Review & Amendments
+              </CardTitle>
+              <CardDescription className="text-amber-700">
+                Reviewed on {format(new Date(requisition.hr_reviewed_at), 'MMM dd, yyyy')}
+                {requisition.hiring_manager_confirmed_hr_changes && (
+                  <span className="ml-2 inline-flex items-center gap-1 text-green-700">
+                    <CheckCircle className="h-4 w-4" />
+                    Changes accepted by hiring manager
+                  </span>
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-white p-4 rounded-lg border border-amber-200">
+                <p className="whitespace-pre-wrap">{requisition.hr_comments}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Comments Section */}
         <Card>
