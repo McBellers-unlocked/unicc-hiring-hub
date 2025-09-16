@@ -18,6 +18,9 @@ import { Analytics } from "./pages/Analytics";
 import JobWizard from "./pages/JobWizard";
 import ApplicationScoringTest from "./pages/ApplicationScoringTest";
 import VideoTestInterface from "./pages/VideoTestInterface";
+import JobRequisitions from "./pages/JobRequisitions";
+import JobRequisitionForm from "./pages/JobRequisitionForm";
+import JobRequisitionDetail from "./pages/JobRequisitionDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +49,10 @@ const App = () => (
             <Route path="/admin/applications/:id" element={<ApplicationDetail />} />
             <Route path="/admin/video-test" element={<VideoTestInterface />} />
             <Route path="/admin/scoring" element={<ApplicationScoringTest />} />
+            <Route path="/requisitions" element={<JobRequisitions />} />
+            <Route path="/requisitions/new" element={<JobRequisitionForm />} />
+            <Route path="/requisitions/:id" element={<JobRequisitionDetail />} />
+            <Route path="/requisitions/:id/edit" element={<JobRequisitionForm />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

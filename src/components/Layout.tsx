@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3 } from 'lucide-react';
+import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText } from 'lucide-react';
 import { UNICCLogo } from '@/components/UNICCLogo';
 
 interface LayoutProps {
@@ -40,6 +40,13 @@ export const Layout = ({ children }: LayoutProps) => {
                     <Briefcase className="w-4 h-4 inline mr-1" />
                     Jobs
                   </Link>
+                  
+                  {(isAdmin || isHR || isHiringManager) && (
+                    <Link to="/requisitions" className="hover:text-accent transition-colors">
+                      <FileText className="w-4 h-4 inline mr-1" />
+                      Requisitions
+                    </Link>
+                  )}
                   
                   {(isAdmin || isHR) && (
                     <Link to="/admin/jobs" className="hover:text-accent transition-colors">
