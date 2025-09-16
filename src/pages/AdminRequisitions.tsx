@@ -147,7 +147,7 @@ export default function AdminRequisitions() {
       case 'hr_amendments':
         return { label: 'HR Amendments', color: 'destructive', icon: XCircle };
       case 'hiring_manager_review':
-        return { label: 'Manager Review', color: 'info', icon: Clock };
+        return { label: 'Manager Review', color: 'warning', icon: Clock };
       case 'chief_division_review':
         return { label: 'Chief Review', color: 'info', icon: Clock };
       case 'director_review':
@@ -349,7 +349,26 @@ export default function AdminRequisitions() {
                             </div>
                           )}
                           
-                          {requisition.hiring_manager_confirmed_hr_changes && (
+                          {requisition.status === 'hiring_manager_review' && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">Manager Confirmed Changes:</span>
+                              <span className="flex items-center gap-1">
+                                {requisition.hiring_manager_confirmed_hr_changes ? (
+                                  <>
+                                    <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                    {requisition.hiring_manager_confirmed_at && new Date(requisition.hiring_manager_confirmed_at).toLocaleDateString()}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Clock className="h-3 w-3 text-orange-500" />
+                                    <span className="text-orange-600">Pending Confirmation</span>
+                                  </>
+                                )}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {requisition.hiring_manager_confirmed_hr_changes && requisition.status !== 'hiring_manager_review' && (
                             <div className="flex items-center justify-between text-sm">
                               <span className="text-muted-foreground">Manager Confirmed Changes:</span>
                               <span className="flex items-center gap-1">
