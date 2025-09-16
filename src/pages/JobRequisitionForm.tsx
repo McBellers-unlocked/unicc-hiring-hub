@@ -13,7 +13,85 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, Send, FileText, Briefcase } from "lucide-react";
+import { ArrowLeft, Save, Send, FileText, Briefcase, ChevronDown } from "lucide-react";
+
+// Organizational structure
+const DIVISIONS = {
+  "CS": "Cybersecurity division (CS)",
+  "DD": "Digital Delivery division (DD)", 
+  "DS": "Digital Solutions Centre (DS)",
+  "DO": "Director (DO)",
+  "MS": "Management and Strategy (MS)",
+  "OP": "Operations (OP)"
+};
+
+const DIVISION_UNITS = {
+  "CS": [
+    "CISO Section (CISO)",
+    "Investigative Support Unit (CSI)", 
+    "Cybersecurity Solutions & Strategy Unit (CSS)",
+    "Cybersecurity Assurance & Architecture Section (CSA)",
+    "Cybersecurity Engineering Unit (CSE)",
+    "Cybersecurity Networking Unit (CSN)",
+    "Cybersecurity Operations Section (CSO)",
+    "Organizational Resilience Unit (CSR)"
+  ],
+  "DD": [
+    "Data and Artificial Intelligence Section (DDA)",
+    "Digital Development Center Section (DDC)",
+    "Digital Business Solutions Section (DDD)",
+    "Artificial Intelligence and Machine Learning Unit (DDAI)",
+    "Data Management Unit (DDAM)",
+    "Enterprise Service Management Unit (DDES)",
+    "Enterprise Solutions Section (DDE)",
+    "Hyperautomation Solutions Unit (DDHA)",
+    "MS Dynamics Unit (DDMS)",
+    "Projects & Programmes Section (DDP)",
+    "Programme Portfolio Unit (DDPG)",
+    "Project Portfolio Unit (DDPM)",
+    "Governance PMO Unit (DDPO)"
+  ],
+  "DS": [
+    "Digital Products Unit (DSDP)",
+    "Business Solutions Unit (DSB)",
+    "Digital Customer Services Unit (DSCS)",
+    "Unite Digital Workspace Services Unit (DSDW)",
+    "Learning Services Unit (DSL)",
+    "Digital Public Solutions Unit (DSPS)"
+  ],
+  "DO": [
+    "UNICC Directorate (DOD)",
+    "External Relations and Strategic Partnerships Section (DOE)",
+    "Digital ID Programme (DOP)",
+    "Business Relationship Management Section (DBR)"
+  ],
+  "MS": [
+    "Policy (Legal) Unit (MSL)",
+    "Business Control Section (MSB)",
+    "Process and Change Unit (MSBP)",
+    "Finance and Accounting Section (MSF)",
+    "GRC & QA Unit (MSG)",
+    "Human Resources Section (MSH)",
+    "Talent Unit (MSHT)",
+    "Procurement Section (MSP)"
+  ],
+  "OP": [
+    "Infrastructure and Platform Operations Unit (OPBO)",
+    "Customer IT Resilience Team (OPBR)",
+    "Data Center Support Unit (OPBS)",
+    "Customer Services Centre (OPC)",
+    "Service Desk Unit (OPCS)",
+    "Cloud Services Section (OPD)",
+    "Cloud Operations and Platform Service Unit (OPDA)",
+    "Digital Workplace Service Unit (OPDM)",
+    "Infrastructure and Operations Business Section (OPM)",
+    "Service Excellence Unit (OPMX)",
+    "On-premise Services (OPO)",
+    "Platform Architecture and Service Automation Unit (OPOA)",
+    "Oracle Unit (OPOU)",
+    "SAP Unit (OPOS)"
+  ]
+};
 
 const requisitionSchema = z.object({
   position_title: z.string().min(1, "Position title is required"),
@@ -53,6 +131,9 @@ export default function JobRequisitionForm() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const [selectedDivision, setSelectedDivision] = useState<string>("");
+  const [selectedUnit, setSelectedUnit] = useState<string>("");
 
   const form = useForm<RequisitionFormData>({
     resolver: zodResolver(requisitionSchema),
@@ -98,6 +179,16 @@ export default function JobRequisitionForm() {
       if (error) throw error;
 
       if (data) {
+        // Parse existing unit_section_division to set division and unit
+        const existingUnit = data.unit_section_division || "";
+        const divisionKey = Object.keys(DIVISION_UNITS).find(key => 
+          DIVISION_UNITS[key].includes(existingUnit)
+        );
+        if (divisionKey) {
+          setSelectedDivision(divisionKey);
+          setSelectedUnit(existingUnit);
+        }
+
         form.reset({
           position_title: data.position_title || "",
           grade: data.grade || "",
@@ -371,11 +462,56 @@ export default function JobRequisitionForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Unit/Section/Division *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Talent Unit (MSHT)" {...field} />
-                    </FormControl>
+                    <div className="space-y-3">
+                      <div>
+                        <FormLabel className="text-sm text-muted-foreground">Division</FormLabel>
+                        <Select 
+                          value={selectedDivision} 
+                          onValueChange={(value) => {
+                            setSelectedDivision(value);
+                            setSelectedUnit("");
+                            field.onChange("");
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select division..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(DIVISIONS).map(([key, name]) => (
+                              <SelectItem key={key} value={key}>
+                                {name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {selectedDivision && (
+                        <div>
+                          <FormLabel className="text-sm text-muted-foreground">Unit/Section</FormLabel>
+                          <Select 
+                            value={selectedUnit} 
+                            onValueChange={(value) => {
+                              setSelectedUnit(value);
+                              field.onChange(value);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select unit/section..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {DIVISION_UNITS[selectedDivision].map((unit) => (
+                                <SelectItem key={unit} value={unit}>
+                                  {unit}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
                     <FormDescription>
-                      Choose only the lowest level of group hierarchy, accompanied by the acronym of the group selected - i.e. Talent Unit (MSHT)
+                      Choose the division first, then select the specific unit/section within that division.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
