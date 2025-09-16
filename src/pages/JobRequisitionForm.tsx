@@ -149,7 +149,7 @@ export default function JobRequisitionForm() {
           .update({
             ...formData,
             duty_station: JSON.stringify(formData.duty_station),
-            status: submit ? 'submitted' : 'draft',
+            status: submit ? 'hr_review' : 'draft',
           })
           .eq('id', id);
 
@@ -162,7 +162,7 @@ export default function JobRequisitionForm() {
             ...formData,
             duty_station: JSON.stringify(formData.duty_station),
             created_by: user?.id,
-            status: submit ? 'submitted' : 'draft',
+            status: submit ? 'hr_review' : 'draft',
           })
           .select()
           .single();
