@@ -19,7 +19,7 @@ const requisitionSchema = z.object({
   position_title: z.string().min(1, "Position title is required"),
   grade: z.string().min(1, "Grade is required"),
   unit_section_division: z.string().min(1, "Unit/Section/Division is required"),
-  duty_station: z.string().min(1, "Duty station is required"),
+  duty_station: z.array(z.string()).min(1, "At least one duty station is required"),
   nature_of_position: z.string().min(1, "Nature of position is required"),
   start_date: z.string().optional(),
   positions_available: z.number().min(1, "At least 1 position required"),
@@ -30,8 +30,17 @@ const requisitionSchema = z.object({
   desirable_experience: z.string().optional(),
   essential_education: z.string().min(1, "Essential education is required"),
   desirable_education: z.string().optional(),
-  confirmApprovals: z.boolean().refine(val => val === true, {
-    message: "You must confirm that you have the required approvals"
+  core_competencies: z.array(z.string()).optional(),
+  management_competencies: z.array(z.string()).optional(),
+  leadership_competencies: z.array(z.string()).optional(),
+  confirmChiefApproval: z.boolean().refine(val => val === true, {
+    message: "You must confirm Chief of Division approval"
+  }),
+  confirmFinanceApproval: z.boolean().refine(val => val === true, {
+    message: "You must confirm Finance Controller approval"
+  }),
+  confirmDeputyApproval: z.boolean().refine(val => val === true, {
+    message: "You must confirm Deputy Director approval"
   }),
 });
 
@@ -51,7 +60,7 @@ export default function JobRequisitionForm() {
       position_title: "",
       grade: "",
       unit_section_division: "",
-      duty_station: "",
+      duty_station: [],
       nature_of_position: "",
       start_date: "",
       positions_available: 1,
@@ -62,7 +71,12 @@ export default function JobRequisitionForm() {
       desirable_experience: "",
       essential_education: "",
       desirable_education: "",
-      confirmApprovals: false,
+      core_competencies: [],
+      management_competencies: [],
+      leadership_competencies: [],
+      confirmChiefApproval: false,
+      confirmFinanceApproval: false,
+      confirmDeputyApproval: false,
     },
   });
 
@@ -88,7 +102,7 @@ export default function JobRequisitionForm() {
           position_title: data.position_title || "",
           grade: data.grade || "",
           unit_section_division: data.unit_section_division || "",
-          duty_station: data.duty_station || "",
+          duty_station: Array.isArray(data.duty_station) ? data.duty_station : (data.duty_station ? JSON.parse(data.duty_station) : []),
           nature_of_position: data.nature_of_position || "",
           start_date: data.start_date || "",
           positions_available: data.positions_available || 1,
@@ -99,7 +113,12 @@ export default function JobRequisitionForm() {
           desirable_experience: data.desirable_experience || "",
           essential_education: data.essential_education || "",
           desirable_education: data.desirable_education || "",
-          confirmApprovals: true, // Assume already confirmed for existing requisitions
+          core_competencies: Array.isArray(data.core_competencies) ? data.core_competencies as string[] : [],
+          management_competencies: Array.isArray(data.management_competencies) ? data.management_competencies as string[] : [],
+          leadership_competencies: Array.isArray(data.leadership_competencies) ? data.leadership_competencies as string[] : [],
+          confirmChiefApproval: true,
+          confirmFinanceApproval: true,
+          confirmDeputyApproval: true,
         });
       }
     } catch (error) {
@@ -118,7 +137,10 @@ export default function JobRequisitionForm() {
     try {
       setSaving(true);
       const formData = { ...data };
-      delete formData.confirmApprovals; // Remove this field before saving
+      // Remove confirmation fields before saving
+      delete formData.confirmChiefApproval;
+      delete formData.confirmFinanceApproval;
+      delete formData.confirmDeputyApproval;
 
       if (id && id !== 'new') {
         // Update existing requisition
@@ -126,6 +148,7 @@ export default function JobRequisitionForm() {
           .from('job_requisitions')
           .update({
             ...formData,
+            duty_station: JSON.stringify(formData.duty_station),
             status: submit ? 'submitted' : 'draft',
           })
           .eq('id', id);
@@ -137,6 +160,7 @@ export default function JobRequisitionForm() {
           .from('job_requisitions')
           .insert({
             ...formData,
+            duty_station: JSON.stringify(formData.duty_station),
             created_by: user?.id,
             status: submit ? 'submitted' : 'draft',
           })
@@ -300,7 +324,23 @@ export default function JobRequisitionForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Grade *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={(value) => {
+                        field.onChange(value);
+                        // Auto-populate minimum experience requirements
+                        const experienceMap = {
+                          'P1': 'At least 1 year of experience in relevant field',
+                          'P2': 'At least 2 years of experience in relevant field',
+                          'P3': 'At least 5 years of experience in relevant field',
+                          'P4': 'At least 7 years of experience in relevant field',
+                          'P5': 'At least 10 years of experience in relevant field'
+                        };
+                        if (experienceMap[value]) {
+                          const currentExperience = form.getValues('essential_experience');
+                          if (!currentExperience) {
+                            form.setValue('essential_experience', experienceMap[value] + ' (minimum requirement - please expand as needed)');
+                          }
+                        }
+                      }} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select grade" />
@@ -316,6 +356,9 @@ export default function JobRequisitionForm() {
                           <SelectItem value="D2">D2</SelectItem>
                         </SelectContent>
                       </Select>
+                      <FormDescription>
+                        Selecting a grade will auto-populate minimum experience requirements
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -332,51 +375,69 @@ export default function JobRequisitionForm() {
                       <Input placeholder="e.g., Talent Unit (MSHT)" {...field} />
                     </FormControl>
                     <FormDescription>
-                      Provide the lowest level of group hierarchy with acronym
+                      Choose only the lowest level of group hierarchy, accompanied by the acronym of the group selected - i.e. Talent Unit (MSHT)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="duty_station"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Duty Station *</FormLabel>
+              <FormField
+                control={form.control}
+                name="duty_station"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Duty Station *</FormLabel>
+                    <FormDescription>
+                      Select all applicable duty stations (multiple selection allowed)
+                    </FormDescription>
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      {['Brindisi', 'Geneva', 'New York', 'Rome', 'Valencia'].map((station) => (
+                        <div key={station} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={station}
+                            checked={field.value?.includes(station) || false}
+                            onCheckedChange={(checked) => {
+                              const current = field.value || [];
+                              if (checked) {
+                                field.onChange([...current, station]);
+                              } else {
+                                field.onChange(current.filter(s => s !== station));
+                              }
+                            }}
+                          />
+                          <label htmlFor={station} className="text-sm">{station}</label>
+                        </div>
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="nature_of_position"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nature of Position *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <Input placeholder="e.g., Valencia, Spain" {...field} />
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select nature" />
+                        </SelectTrigger>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="nature_of_position"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nature of Position *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select nature" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Fixed Term">Fixed Term</SelectItem>
-                          <SelectItem value="Temporary">Temporary</SelectItem>
-                          <SelectItem value="Consultant">Consultant</SelectItem>
-                          <SelectItem value="Permanent">Permanent</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                      <SelectContent>
+                        <SelectItem value="Fixed Term">Fixed Term</SelectItem>
+                        <SelectItem value="Temporary">Temporary</SelectItem>
+                        <SelectItem value="Consultant">Consultant</SelectItem>
+                        <SelectItem value="Permanent">Permanent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
@@ -566,13 +627,152 @@ export default function JobRequisitionForm() {
 
           <Card>
             <CardHeader>
+              <CardTitle>Competencies</CardTitle>
+              <CardDescription>
+                Select a maximum of five core, management and leadership competencies in order of priority. 
+                It is recommended not to select more than 6 competencies in total.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <h4 className="font-medium mb-3">Mandatory Competencies</h4>
+                <p className="text-sm text-muted-foreground mb-2">These competencies are automatically included for all positions:</p>
+                <ul className="text-sm space-y-1">
+                  <li>• Teamwork: Develops and promotes effective relationships with colleagues and team members</li>
+                  <li>• Communicating: Expresses oneself clearly in conversations and interactions with others</li>
+                  <li>• Respecting and promoting individual and cultural differences</li>
+                  <li>• Creating an empowering and motivating environment (for Supervisory positions only)</li>
+                </ul>
+              </div>
+
+              <FormField
+                control={form.control}
+                name="core_competencies"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Core Competencies</FormLabel>
+                    <FormDescription>Select up to 3 core competencies</FormDescription>
+                    <div className="space-y-2">
+                      {[
+                        'Knowing and managing yourself: Manages ambiguity and pressure in a self-reflective way',
+                        'Producing results: Produces and delivers quality results',
+                        'Moving forward in a changing environment: Is open to and proposes new approaches',
+                        'Setting an example: Acts within UNICC/WHO professional, ethical and legal boundaries'
+                      ].map((competency) => {
+                        const key = competency.split(':')[0];
+                        return (
+                          <div key={key} className="flex items-start space-x-2">
+                            <Checkbox
+                              id={key}
+                              checked={field.value?.includes(key) || false}
+                              onCheckedChange={(checked) => {
+                                const current = field.value || [];
+                                if (checked && current.length < 3) {
+                                  field.onChange([...current, key]);
+                                } else if (!checked) {
+                                  field.onChange(current.filter(c => c !== key));
+                                }
+                              }}
+                              disabled={!field.value?.includes(key) && (field.value?.length || 0) >= 3}
+                            />
+                            <label htmlFor={key} className="text-sm leading-relaxed">{competency}</label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="management_competencies"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Management Competencies</FormLabel>
+                    <FormDescription>Select up to 2 management competencies</FormDescription>
+                    <div className="space-y-2">
+                      {[
+                        'Ensuring effective use of resources: Identifies priorities in accordance with UNICC strategic directions',
+                        'Building and promoting partnerships: Develops and strengthens internal and external partnerships'
+                      ].map((competency) => {
+                        const key = competency.split(':')[0];
+                        return (
+                          <div key={key} className="flex items-start space-x-2">
+                            <Checkbox
+                              id={key}
+                              checked={field.value?.includes(key) || false}
+                              onCheckedChange={(checked) => {
+                                const current = field.value || [];
+                                if (checked && current.length < 2) {
+                                  field.onChange([...current, key]);
+                                } else if (!checked) {
+                                  field.onChange(current.filter(c => c !== key));
+                                }
+                              }}
+                              disabled={!field.value?.includes(key) && (field.value?.length || 0) >= 2}
+                            />
+                            <label htmlFor={key} className="text-sm leading-relaxed">{competency}</label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="leadership_competencies"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Leadership Competencies</FormLabel>
+                    <FormDescription>Select up to 2 leadership competencies</FormDescription>
+                    <div className="space-y-2">
+                      {[
+                        'Driving UNICC to a successful future: Demonstrates broad-based understanding of growing ICT complexities',
+                        'Promoting innovation and Organizational learning: Invigorates the Organization by building learning culture',
+                        'Promoting UNICC position: Positions UNICC as a leader in ICT services'
+                      ].map((competency) => {
+                        const key = competency.split(':')[0];
+                        return (
+                          <div key={key} className="flex items-start space-x-2">
+                            <Checkbox
+                              id={key}
+                              checked={field.value?.includes(key) || false}
+                              onCheckedChange={(checked) => {
+                                const current = field.value || [];
+                                if (checked && current.length < 2) {
+                                  field.onChange([...current, key]);
+                                } else if (!checked) {
+                                  field.onChange(current.filter(c => c !== key));
+                                }
+                              }}
+                              disabled={!field.value?.includes(key) && (field.value?.length || 0) >= 2}
+                            />
+                            <label htmlFor={key} className="text-sm leading-relaxed">{competency}</label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Approval Confirmation</CardTitle>
               <CardDescription>Confirm that you have the necessary approvals before submitting</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <FormField
                 control={form.control}
-                name="confirmApprovals"
+                name="confirmChiefApproval"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                     <FormControl>
@@ -583,11 +783,50 @@ export default function JobRequisitionForm() {
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel>
-                        I confirm that I have obtained approval from the Chief of Division, Finance Controller, and Deputy Director before submitting this requisition.
+                        I confirm that I have obtained approval from the Chief of Division
                       </FormLabel>
-                      <FormDescription>
-                        This confirmation is required before the requisition can be submitted for final approval.
-                      </FormDescription>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="confirmFinanceApproval"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        I confirm that I have obtained approval from the Finance Controller
+                      </FormLabel>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="confirmDeputyApproval"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        I confirm that I have obtained approval from the Deputy Director
+                      </FormLabel>
                       <FormMessage />
                     </div>
                   </FormItem>
@@ -624,7 +863,7 @@ export default function JobRequisitionForm() {
               <Button
                 type="button"
                 onClick={() => onSubmit(form.getValues(), true)}
-                disabled={saving || !form.getValues('confirmApprovals')}
+                disabled={saving || !(form.getValues('confirmChiefApproval') && form.getValues('confirmFinanceApproval') && form.getValues('confirmDeputyApproval'))}
               >
                 <Send className="h-4 w-4 mr-2" />
                 Submit for Approval
