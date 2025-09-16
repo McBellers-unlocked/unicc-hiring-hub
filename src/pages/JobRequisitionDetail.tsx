@@ -276,7 +276,9 @@ export default function JobRequisitionDetail() {
           </p>
         </div>
         <div className="flex gap-2">
-          {requisition.status === 'hr_amendments' && requisition.created_by === user?.id && (
+          {((requisition.status === 'hr_amendments') || 
+            (requisition.status === 'hiring_manager_review' && requisition.hr_reviewed && !requisition.hiring_manager_confirmed_hr_changes)) && 
+           requisition.created_by === user?.id && (
             <Button onClick={acceptHRChanges} className="bg-green-600 hover:bg-green-700">
               <CheckCircle className="h-4 w-4 mr-2" />
               Accept HR Changes
@@ -438,7 +440,7 @@ export default function JobRequisitionDetail() {
         </Card>
 
         {/* HR Review Section */}
-        {requisition.hr_reviewed && requisition.hr_comments && (
+        {requisition.hr_reviewed && (
           <Card className="border-amber-200 bg-amber-50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-amber-800">
@@ -446,7 +448,7 @@ export default function JobRequisitionDetail() {
                 HR Review & Amendments
               </CardTitle>
               <CardDescription className="text-amber-700">
-                Reviewed on {format(new Date(requisition.hr_reviewed_at), 'MMM dd, yyyy')}
+                Reviewed on {requisition.hr_reviewed_at ? format(new Date(requisition.hr_reviewed_at), 'MMM dd, yyyy') : 'Recently'}
                 {requisition.hiring_manager_confirmed_hr_changes && (
                   <span className="ml-2 inline-flex items-center gap-1 text-green-700">
                     <CheckCircle className="h-4 w-4" />
@@ -457,7 +459,9 @@ export default function JobRequisitionDetail() {
             </CardHeader>
             <CardContent>
               <div className="bg-white p-4 rounded-lg border border-amber-200">
-                <p className="whitespace-pre-wrap">{requisition.hr_comments}</p>
+                <p className="whitespace-pre-wrap">
+                  {requisition.hr_comments || "HR has reviewed this requisition. Please confirm you are happy with any changes made and accept to proceed to the next approval stage."}
+                </p>
               </div>
             </CardContent>
           </Card>
