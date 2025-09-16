@@ -234,13 +234,37 @@ export default function JobRequisitionForm() {
       delete formData.confirmDeputyApproval;
 
       if (id && id !== 'new') {
+        // Get current requisition to check status
+        const { data: currentReq, error: fetchError } = await supabase
+          .from('job_requisitions')
+          .select('status, hr_reviewed')
+          .eq('id', id)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        let newStatus = 'draft';
+        if (submit) {
+          // Determine next status based on current workflow state
+          if (currentReq.status === 'hr_amendments') {
+            // If HR sent it back for amendments, next step is hiring manager confirmation
+            newStatus = 'hiring_manager_review';
+          } else if (currentReq.hr_reviewed && currentReq.status === 'hiring_manager_review') {
+            // If HR already reviewed and manager is reconfirming, stay in manager review
+            newStatus = 'hiring_manager_review';
+          } else {
+            // Initial submission goes to HR review
+            newStatus = 'hr_review';
+          }
+        }
+
         // Update existing requisition
         const { error } = await supabase
           .from('job_requisitions')
           .update({
             ...formData,
             duty_station: JSON.stringify(formData.duty_station),
-            status: submit ? 'hr_review' : 'draft',
+            status: newStatus,
           })
           .eq('id', id);
 

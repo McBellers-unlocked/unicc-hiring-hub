@@ -109,6 +109,35 @@ export default function AdminRequisitions() {
     }
   };
 
+  const handleHiringManagerConfirmation = async (requisitionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('job_requisitions')
+        .update({
+          hiring_manager_confirmed_hr_changes: true,
+          hiring_manager_confirmed_at: new Date().toISOString(),
+          status: 'chief_division_review'
+        })
+        .eq('id', requisitionId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Requisition sent to Chief of Division for approval",
+      });
+
+      fetchRequisitions();
+    } catch (error) {
+      console.error('Error updating requisition:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update requisition",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusInfo = (requisition: JobRequisition) => {
     switch (requisition.status) {
       case 'draft':
@@ -148,9 +177,11 @@ export default function AdminRequisitions() {
         return requisitions.filter(r => r.status === 'hr_review');
       case 'amendments':
         return requisitions.filter(r => r.status === 'hr_amendments');
+      case 'manager-confirmation':
+        return requisitions.filter(r => r.status === 'hiring_manager_review');
       case 'in-progress':
         return requisitions.filter(r => 
-          ['hiring_manager_review', 'chief_division_review', 'director_review'].includes(r.status)
+          ['chief_division_review', 'director_review'].includes(r.status)
         );
       case 'completed':
         return requisitions.filter(r => ['approved', 'rejected'].includes(r.status));
@@ -196,11 +227,17 @@ export default function AdminRequisitions() {
                 {filterRequisitions('amendments').length}
               </Badge>
             </TabsTrigger>
+            <TabsTrigger value="manager-confirmation">
+              Manager Confirmation
+              <Badge variant="secondary" className="ml-2">
+                {filterRequisitions('manager-confirmation').length}
+              </Badge>
+            </TabsTrigger>
             <TabsTrigger value="in-progress">In Progress</TabsTrigger>
             <TabsTrigger value="completed">Completed</TabsTrigger>
           </TabsList>
 
-          {(['all', 'pending-hr', 'amendments', 'in-progress', 'completed'] as const).map(tabValue => (
+          {(['all', 'pending-hr', 'amendments', 'manager-confirmation', 'in-progress', 'completed'] as const).map(tabValue => (
             <TabsContent key={tabValue} value={tabValue} className="space-y-4">
               {filterRequisitions(tabValue).length === 0 ? (
                 <Card>
@@ -270,6 +307,16 @@ export default function AdminRequisitions() {
                                   Approve
                                 </Button>
                               </div>
+                            )}
+
+                            {requisition.status === 'hiring_manager_review' && (isAdmin || isHR) && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleHiringManagerConfirmation(requisition.id)}
+                              >
+                                <CheckCircle2 className="h-4 w-4 mr-1" />
+                                Send to Chief Review
+                              </Button>
                             )}
                           </div>
                         </div>
