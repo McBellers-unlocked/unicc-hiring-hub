@@ -164,7 +164,7 @@ export default function AdminRequisitions() {
   const getStatusVariant = (color: string) => {
     switch (color) {
       case 'success': return 'default';
-      case 'warning': return 'secondary';
+      case 'warning': return 'default'; // Changed to default so we can style it orange
       case 'destructive': return 'destructive';
       case 'info': return 'outline';
       default: return 'secondary';
@@ -258,7 +258,10 @@ export default function AdminRequisitions() {
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <CardTitle className="text-lg">{requisition.position_title}</CardTitle>
-                              <Badge variant={getStatusVariant(statusInfo.color)} className="flex items-center gap-1">
+                              <Badge 
+                                variant={getStatusVariant(statusInfo.color)} 
+                                className={`flex items-center gap-1 ${statusInfo.color === 'warning' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}`}
+                              >
                                 <StatusIcon className="h-3 w-3" />
                                 {statusInfo.label}
                               </Badge>
