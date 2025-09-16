@@ -410,6 +410,135 @@ export type Database = {
         }
         Relationships: []
       }
+      job_requisitions: {
+        Row: {
+          chief_of_division_approval: boolean | null
+          chief_of_division_approved_at: string | null
+          chief_of_division_approved_by: string | null
+          comments: Json | null
+          converted_to_job_id: string | null
+          core_competencies: Json | null
+          created_at: string
+          created_by: string
+          deputy_director_approval: boolean | null
+          deputy_director_approved_at: string | null
+          deputy_director_approved_by: string | null
+          desirable_education: string | null
+          desirable_experience: string | null
+          director_approval: boolean | null
+          director_approved_at: string | null
+          director_approved_by: string | null
+          duty_station: string | null
+          essential_education: string | null
+          essential_experience: string | null
+          finance_controller_approval: boolean | null
+          finance_controller_approved_at: string | null
+          finance_controller_approved_by: string | null
+          global_competencies: Json | null
+          grade: string | null
+          id: string
+          language_requirements: Json | null
+          leadership_competencies: Json | null
+          main_duties_responsibilities: string | null
+          management_competencies: Json | null
+          nature_of_position: string | null
+          objectives_of_programme: string | null
+          pdf_url: string | null
+          position_title: string | null
+          positions_available: number | null
+          purpose_of_position: string | null
+          reference_number: string | null
+          start_date: string | null
+          status: string
+          unit_section_division: string | null
+          updated_at: string
+        }
+        Insert: {
+          chief_of_division_approval?: boolean | null
+          chief_of_division_approved_at?: string | null
+          chief_of_division_approved_by?: string | null
+          comments?: Json | null
+          converted_to_job_id?: string | null
+          core_competencies?: Json | null
+          created_at?: string
+          created_by: string
+          deputy_director_approval?: boolean | null
+          deputy_director_approved_at?: string | null
+          deputy_director_approved_by?: string | null
+          desirable_education?: string | null
+          desirable_experience?: string | null
+          director_approval?: boolean | null
+          director_approved_at?: string | null
+          director_approved_by?: string | null
+          duty_station?: string | null
+          essential_education?: string | null
+          essential_experience?: string | null
+          finance_controller_approval?: boolean | null
+          finance_controller_approved_at?: string | null
+          finance_controller_approved_by?: string | null
+          global_competencies?: Json | null
+          grade?: string | null
+          id?: string
+          language_requirements?: Json | null
+          leadership_competencies?: Json | null
+          main_duties_responsibilities?: string | null
+          management_competencies?: Json | null
+          nature_of_position?: string | null
+          objectives_of_programme?: string | null
+          pdf_url?: string | null
+          position_title?: string | null
+          positions_available?: number | null
+          purpose_of_position?: string | null
+          reference_number?: string | null
+          start_date?: string | null
+          status?: string
+          unit_section_division?: string | null
+          updated_at?: string
+        }
+        Update: {
+          chief_of_division_approval?: boolean | null
+          chief_of_division_approved_at?: string | null
+          chief_of_division_approved_by?: string | null
+          comments?: Json | null
+          converted_to_job_id?: string | null
+          core_competencies?: Json | null
+          created_at?: string
+          created_by?: string
+          deputy_director_approval?: boolean | null
+          deputy_director_approved_at?: string | null
+          deputy_director_approved_by?: string | null
+          desirable_education?: string | null
+          desirable_experience?: string | null
+          director_approval?: boolean | null
+          director_approved_at?: string | null
+          director_approved_by?: string | null
+          duty_station?: string | null
+          essential_education?: string | null
+          essential_experience?: string | null
+          finance_controller_approval?: boolean | null
+          finance_controller_approved_at?: string | null
+          finance_controller_approved_by?: string | null
+          global_competencies?: Json | null
+          grade?: string | null
+          id?: string
+          language_requirements?: Json | null
+          leadership_competencies?: Json | null
+          main_duties_responsibilities?: string | null
+          management_competencies?: Json | null
+          nature_of_position?: string | null
+          objectives_of_programme?: string | null
+          pdf_url?: string | null
+          position_title?: string | null
+          positions_available?: number | null
+          purpose_of_position?: string | null
+          reference_number?: string | null
+          start_date?: string | null
+          status?: string
+          unit_section_division?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       jobs: {
         Row: {
           attachments_required: Json | null
@@ -996,6 +1125,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_requisition_reference: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
