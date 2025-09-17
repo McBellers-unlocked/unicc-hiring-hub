@@ -127,13 +127,12 @@ ${JSON.stringify(requisition.language_requirements, null, 2)}
 
 # Competencies
 
-${requisition.global_competencies?.filter(comp => comp.name && comp.name.trim()).map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || ''}
-
-${requisition.core_competencies?.filter(comp => comp.name && comp.name.trim()).map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || ''}
-
-${requisition.leadership_competencies?.filter(comp => comp.name && comp.name.trim()).map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || ''}
-
-${requisition.management_competencies?.filter(comp => comp.name && comp.name.trim()).map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || ''}
+${[
+  ...(requisition.global_competencies?.filter(comp => comp.name && comp.name.trim()) || []),
+  ...(requisition.core_competencies?.filter(comp => comp.name && comp.name.trim()) || []),
+  ...(requisition.leadership_competencies?.filter(comp => comp.name && comp.name.trim()) || []),
+  ...(requisition.management_competencies?.filter(comp => comp.name && comp.name.trim()) || [])
+].map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || 'No specific competencies defined'}
       `.trim(),
       status: 'active', // Set to active status for immediate publishing
       category: 'Professional',
