@@ -175,6 +175,69 @@ export default function AdminRequisitions() {
     }
   };
 
+  const ApprovalTimeline = ({ requisition }: { requisition: JobRequisition }) => {
+    const stages = [
+      {
+        key: 'submission',
+        label: 'Submission',
+        isCompleted: true // Always completed since requisition exists
+      },
+      {
+        key: 'hr_review',
+        label: 'HR Review',
+        isCompleted: requisition.hr_reviewed
+      },
+      {
+        key: 'hiring_manager',
+        label: 'Manager Approval',
+        isCompleted: requisition.hiring_manager_confirmed_hr_changes
+      },
+      {
+        key: 'chief_approval',
+        label: 'Chief Approval',
+        isCompleted: requisition.chief_of_division_approval
+      },
+      {
+        key: 'director_approval',
+        label: 'Director Approval',
+        isCompleted: requisition.director_approval
+      }
+    ];
+
+    return (
+      <div className="flex items-center justify-between py-3 px-4 bg-muted/30 rounded-lg">
+        {stages.map((stage, index) => (
+          <div key={stage.key} className="flex items-center">
+            <div className="flex flex-col items-center">
+              <div className={`
+                w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors
+                ${stage.isCompleted 
+                  ? 'bg-green-500 border-green-500 text-white' 
+                  : 'bg-background border-muted-foreground text-muted-foreground'
+                }
+              `}>
+                {stage.isCompleted ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : (
+                  <Clock className="h-4 w-4" />
+                )}
+              </div>
+              <span className="text-xs mt-1 text-center max-w-16 leading-tight">
+                {stage.label}
+              </span>
+            </div>
+            {index < stages.length - 1 && (
+              <div className={`
+                w-12 h-0.5 mx-2 transition-colors
+                ${stage.isCompleted ? 'bg-green-500' : 'bg-muted-foreground/30'}
+              `} />
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const filterRequisitions = (status: string) => {
     switch (status) {
       case 'pending-hr':
@@ -343,11 +406,14 @@ export default function AdminRequisitions() {
                       </CardHeader>
                       
                       <CardContent>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">Unit/Division:</span>
-                            <span>{requisition.unit_section_division}</span>
-                          </div>
+                        <div className="space-y-4">
+                          <ApprovalTimeline requisition={requisition} />
+                          
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">Unit/Division:</span>
+                              <span>{requisition.unit_section_division}</span>
+                            </div>
                           
                           {requisition.hr_reviewed && (
                             <div className="flex items-center justify-between text-sm">
@@ -400,10 +466,11 @@ export default function AdminRequisitions() {
                             )}
                             {requisition.finance_controller_approval && (
                               <Badge variant="outline" className="text-xs">Finance Approved</Badge>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
+                             )}
+                           </div>
+                         </div>
+                         </div>
+                       </CardContent>
                     </Card>
                   );
                 })
