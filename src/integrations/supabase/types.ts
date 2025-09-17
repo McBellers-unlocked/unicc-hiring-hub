@@ -429,6 +429,7 @@ export type Database = {
           director_approved_at: string | null
           director_approved_by: string | null
           duty_station: string | null
+          eligible_grades: string | null
           essential_education: string | null
           essential_experience: string | null
           finance_controller_approval: boolean | null
@@ -456,6 +457,7 @@ export type Database = {
           reference_number: string | null
           start_date: string | null
           status: string
+          temporary_duration: string | null
           unit_section_division: string | null
           updated_at: string
         }
@@ -477,6 +479,7 @@ export type Database = {
           director_approved_at?: string | null
           director_approved_by?: string | null
           duty_station?: string | null
+          eligible_grades?: string | null
           essential_education?: string | null
           essential_experience?: string | null
           finance_controller_approval?: boolean | null
@@ -504,6 +507,7 @@ export type Database = {
           reference_number?: string | null
           start_date?: string | null
           status?: string
+          temporary_duration?: string | null
           unit_section_division?: string | null
           updated_at?: string
         }
@@ -525,6 +529,7 @@ export type Database = {
           director_approved_at?: string | null
           director_approved_by?: string | null
           duty_station?: string | null
+          eligible_grades?: string | null
           essential_education?: string | null
           essential_experience?: string | null
           finance_controller_approval?: boolean | null
@@ -552,6 +557,7 @@ export type Database = {
           reference_number?: string | null
           start_date?: string | null
           status?: string
+          temporary_duration?: string | null
           unit_section_division?: string | null
           updated_at?: string
         }

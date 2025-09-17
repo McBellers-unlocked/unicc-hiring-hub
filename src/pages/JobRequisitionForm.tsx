@@ -95,10 +95,11 @@ const DIVISION_UNITS = {
 
 const requisitionSchema = z.object({
   position_title: z.string().min(1, "Position title is required"),
-  grade: z.string().min(1, "Grade is required"),
+  nature_of_position: z.string().min(1, "Nature of position is required"),
+  grade: z.string().optional(),
+  eligible_grades: z.string().optional(),
   unit_section_division: z.string().min(1, "Unit/Section/Division is required"),
   duty_station: z.array(z.string()).min(1, "At least one duty station is required"),
-  nature_of_position: z.string().min(1, "Nature of position is required"),
   temporary_duration: z.string().optional(),
   start_date: z.string().optional(),
   positions_available: z.number().min(1, "At least 1 position required"),
@@ -115,12 +116,6 @@ const requisitionSchema = z.object({
   confirmChiefApproval: z.boolean().refine(val => val === true, {
     message: "You must confirm Chief of Division approval"
   }),
-  confirmFinanceApproval: z.boolean().refine(val => val === true, {
-    message: "You must confirm Finance Controller approval"
-  }),
-  confirmDeputyApproval: z.boolean().refine(val => val === true, {
-    message: "You must confirm Deputy Director approval"
-  }),
 });
 
 type RequisitionFormData = z.infer<typeof requisitionSchema>;
@@ -136,15 +131,21 @@ export default function JobRequisitionForm() {
   const [selectedUnit, setSelectedUnit] = useState<string>("");
   const [currentRequisition, setCurrentRequisition] = useState<any>(null);
   const [showTemporaryDuration, setShowTemporaryDuration] = useState<boolean>(false);
+  const [showGrade, setShowGrade] = useState<boolean>(false);
+  const [showEligibleGrades, setShowEligibleGrades] = useState<boolean>(false);
+  const [selectedCoreCompetencies, setSelectedCoreCompetencies] = useState<string[]>([]);
+  const [selectedManagementCompetencies, setSelectedManagementCompetencies] = useState<string[]>([]);
+  const [selectedLeadershipCompetencies, setSelectedLeadershipCompetencies] = useState<string[]>([]);
 
   const form = useForm<RequisitionFormData>({
     resolver: zodResolver(requisitionSchema),
     defaultValues: {
       position_title: "",
+      nature_of_position: "",
       grade: "",
+      eligible_grades: "",
       unit_section_division: "",
       duty_station: [],
-      nature_of_position: "",
       temporary_duration: "",
       start_date: "",
       positions_available: 1,
@@ -159,8 +160,6 @@ export default function JobRequisitionForm() {
       management_competencies: [],
       leadership_competencies: [],
       confirmChiefApproval: false,
-      confirmFinanceApproval: false,
-      confirmDeputyApproval: false,
     },
   });
 
@@ -198,13 +197,29 @@ export default function JobRequisitionForm() {
         if (data.nature_of_position === "Temporary") {
           setShowTemporaryDuration(true);
         }
+        
+        // Set grade visibility
+        if (data.nature_of_position && data.nature_of_position !== "Individual Consultant" && data.nature_of_position !== "Intern") {
+          setShowGrade(true);
+        }
+        
+        // Set eligible grades visibility for STDA
+        if (data.nature_of_position === "STDA") {
+          setShowEligibleGrades(true);
+        }
+        
+        // Set competencies selections
+        setSelectedCoreCompetencies(Array.isArray(data.core_competencies) ? data.core_competencies as string[] : []);
+        setSelectedManagementCompetencies(Array.isArray(data.management_competencies) ? data.management_competencies as string[] : []);
+        setSelectedLeadershipCompetencies(Array.isArray(data.leadership_competencies) ? data.leadership_competencies as string[] : []);
 
         form.reset({
           position_title: data.position_title || "",
+          nature_of_position: data.nature_of_position || "",
           grade: data.grade || "",
+          eligible_grades: (data as any).eligible_grades || "",
           unit_section_division: data.unit_section_division || "",
           duty_station: Array.isArray(data.duty_station) ? data.duty_station : (data.duty_station ? JSON.parse(data.duty_station) : []),
-          nature_of_position: data.nature_of_position || "",
           temporary_duration: (data as any).temporary_duration || "",
           start_date: data.start_date || "",
           positions_available: data.positions_available || 1,
@@ -219,8 +234,6 @@ export default function JobRequisitionForm() {
           management_competencies: Array.isArray(data.management_competencies) ? data.management_competencies as string[] : [],
           leadership_competencies: Array.isArray(data.leadership_competencies) ? data.leadership_competencies as string[] : [],
           confirmChiefApproval: true,
-          confirmFinanceApproval: true,
-          confirmDeputyApproval: true,
         });
       }
     } catch (error) {
@@ -241,8 +254,6 @@ export default function JobRequisitionForm() {
       const formData = { ...data };
       // Remove confirmation fields before saving
       delete formData.confirmChiefApproval;
-      delete formData.confirmFinanceApproval;
-      delete formData.confirmDeputyApproval;
 
       if (id && id !== 'new') {
         // Get current requisition to check status
@@ -467,20 +478,86 @@ export default function JobRequisitionForm() {
               <CardDescription>Basic details about the position you're requesting</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="position_title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Position Title *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Senior ICT Analyst" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="nature_of_position"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nature of Position *</FormLabel>
+                    <Select onValueChange={(value) => {
+                      field.onChange(value);
+                      // Show/hide grade based on nature
+                      if (value === "Individual Consultant" || value === "Intern") {
+                        setShowGrade(false);
+                        form.setValue('grade', '');
+                      } else {
+                        setShowGrade(true);
+                      }
+                      // Show/hide STDA eligible grades
+                      setShowEligibleGrades(value === "STDA");
+                      // Show/hide temporary duration
+                      setShowTemporaryDuration(value === "Temporary");
+                      if (value !== "Temporary") {
+                        form.setValue('temporary_duration', '');
+                      }
+                    }} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select nature of position" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Fixed term">Fixed term</SelectItem>
+                        <SelectItem value="Temporary">Temporary</SelectItem>
+                        <SelectItem value="Individual Consultant">Individual Consultant</SelectItem>
+                        <SelectItem value="STDA">STDA</SelectItem>
+                        <SelectItem value="Intern">Intern</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {showTemporaryDuration && (
                 <FormField
                   control={form.control}
-                  name="position_title"
+                  name="temporary_duration"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Position Title *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., Senior ICT Analyst" {...field} />
-                      </FormControl>
+                      <FormLabel>Duration</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select duration" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="6 months">6 months</SelectItem>
+                          <SelectItem value="12 months">12 months</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+              )}
+
+              {showGrade && (
                 <FormField
                   control={form.control}
                   name="grade"
@@ -510,6 +587,10 @@ export default function JobRequisitionForm() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="G3">G3</SelectItem>
+                          <SelectItem value="G4">G4</SelectItem>
+                          <SelectItem value="G5">G5</SelectItem>
+                          <SelectItem value="G6">G6</SelectItem>
                           <SelectItem value="P1">P1</SelectItem>
                           <SelectItem value="P2">P2</SelectItem>
                           <SelectItem value="P3">P3</SelectItem>
@@ -526,7 +607,40 @@ export default function JobRequisitionForm() {
                     </FormItem>
                   )}
                 />
-              </div>
+              )}
+
+              {showEligibleGrades && (
+                <FormField
+                  control={form.control}
+                  name="eligible_grades"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Eligible Grades</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select eligible grades" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="G3">G3</SelectItem>
+                          <SelectItem value="G4">G4</SelectItem>
+                          <SelectItem value="G5">G5</SelectItem>
+                          <SelectItem value="G6">G6</SelectItem>
+                          <SelectItem value="P1">P1</SelectItem>
+                          <SelectItem value="P2">P2</SelectItem>
+                          <SelectItem value="P3">P3</SelectItem>
+                          <SelectItem value="P4">P4</SelectItem>
+                          <SelectItem value="P5">P5</SelectItem>
+                          <SelectItem value="D1">D1</SelectItem>
+                          <SelectItem value="D2">D2</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={form.control}
@@ -895,7 +1009,7 @@ export default function JobRequisitionForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Core Competencies</FormLabel>
-                    <FormDescription>Select up to 3 core competencies</FormDescription>
+                    <FormDescription>Select core competencies</FormDescription>
                     <div className="space-y-2">
                       {[
                         'Knowing and managing yourself: Manages ambiguity and pressure in a self-reflective way',
@@ -904,6 +1018,8 @@ export default function JobRequisitionForm() {
                         'Setting an example: Acts within UNICC/WHO professional, ethical and legal boundaries'
                       ].map((competency) => {
                         const key = competency.split(':')[0];
+                        const totalSelected = (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
+                        const isDisabled = !field.value?.includes(key) && totalSelected >= 6;
                         return (
                           <div key={key} className="flex items-start space-x-2">
                             <Checkbox
@@ -911,15 +1027,20 @@ export default function JobRequisitionForm() {
                               checked={field.value?.includes(key) || false}
                               onCheckedChange={(checked) => {
                                 const current = field.value || [];
-                                if (checked && current.length < 3) {
-                                  field.onChange([...current, key]);
-                                } else if (!checked) {
-                                  field.onChange(current.filter(c => c !== key));
+                                if (checked) {
+                                  const newValue = [...current, key];
+                                  field.onChange(newValue);
+                                  setSelectedCoreCompetencies(newValue);
+                                } else {
+                                  const newValue = current.filter(c => c !== key);
+                                  field.onChange(newValue);
+                                  setSelectedCoreCompetencies(newValue);
                                 }
                               }}
-                              disabled={!field.value?.includes(key) && (field.value?.length || 0) >= 3}
+                              disabled={isDisabled}
+                              className={isDisabled ? "opacity-50" : ""}
                             />
-                            <label htmlFor={key} className="text-sm leading-relaxed">{competency}</label>
+                            <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>{competency}</label>
                           </div>
                         );
                       })}
@@ -935,13 +1056,15 @@ export default function JobRequisitionForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Management Competencies</FormLabel>
-                    <FormDescription>Select up to 2 management competencies</FormDescription>
+                    <FormDescription>Select management competencies</FormDescription>
                     <div className="space-y-2">
                       {[
                         'Ensuring effective use of resources: Identifies priorities in accordance with UNICC strategic directions',
                         'Building and promoting partnerships: Develops and strengthens internal and external partnerships'
                       ].map((competency) => {
                         const key = competency.split(':')[0];
+                        const totalSelected = (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
+                        const isDisabled = !field.value?.includes(key) && totalSelected >= 6;
                         return (
                           <div key={key} className="flex items-start space-x-2">
                             <Checkbox
@@ -949,15 +1072,20 @@ export default function JobRequisitionForm() {
                               checked={field.value?.includes(key) || false}
                               onCheckedChange={(checked) => {
                                 const current = field.value || [];
-                                if (checked && current.length < 2) {
-                                  field.onChange([...current, key]);
-                                } else if (!checked) {
-                                  field.onChange(current.filter(c => c !== key));
+                                if (checked) {
+                                  const newValue = [...current, key];
+                                  field.onChange(newValue);
+                                  setSelectedManagementCompetencies(newValue);
+                                } else {
+                                  const newValue = current.filter(c => c !== key);
+                                  field.onChange(newValue);
+                                  setSelectedManagementCompetencies(newValue);
                                 }
                               }}
-                              disabled={!field.value?.includes(key) && (field.value?.length || 0) >= 2}
+                              disabled={isDisabled}
+                              className={isDisabled ? "opacity-50" : ""}
                             />
-                            <label htmlFor={key} className="text-sm leading-relaxed">{competency}</label>
+                            <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>{competency}</label>
                           </div>
                         );
                       })}
@@ -973,7 +1101,7 @@ export default function JobRequisitionForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Leadership Competencies</FormLabel>
-                    <FormDescription>Select up to 2 leadership competencies</FormDescription>
+                    <FormDescription>Select leadership competencies</FormDescription>
                     <div className="space-y-2">
                       {[
                         'Driving UNICC to a successful future: Demonstrates broad-based understanding of growing ICT complexities',
@@ -981,6 +1109,8 @@ export default function JobRequisitionForm() {
                         'Promoting UNICC position: Positions UNICC as a leader in ICT services'
                       ].map((competency) => {
                         const key = competency.split(':')[0];
+                        const totalSelected = (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
+                        const isDisabled = !field.value?.includes(key) && totalSelected >= 6;
                         return (
                           <div key={key} className="flex items-start space-x-2">
                             <Checkbox
@@ -988,15 +1118,20 @@ export default function JobRequisitionForm() {
                               checked={field.value?.includes(key) || false}
                               onCheckedChange={(checked) => {
                                 const current = field.value || [];
-                                if (checked && current.length < 2) {
-                                  field.onChange([...current, key]);
-                                } else if (!checked) {
-                                  field.onChange(current.filter(c => c !== key));
+                                if (checked) {
+                                  const newValue = [...current, key];
+                                  field.onChange(newValue);
+                                  setSelectedLeadershipCompetencies(newValue);
+                                } else {
+                                  const newValue = current.filter(c => c !== key);
+                                  field.onChange(newValue);
+                                  setSelectedLeadershipCompetencies(newValue);
                                 }
                               }}
-                              disabled={!field.value?.includes(key) && (field.value?.length || 0) >= 2}
+                              disabled={isDisabled}
+                              className={isDisabled ? "opacity-50" : ""}
                             />
-                            <label htmlFor={key} className="text-sm leading-relaxed">{competency}</label>
+                            <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>{competency}</label>
                           </div>
                         );
                       })}
@@ -1035,47 +1170,6 @@ export default function JobRequisitionForm() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="confirmFinanceApproval"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        I confirm that I have obtained approval from the Finance Controller
-                      </FormLabel>
-                      <FormMessage />
-                    </div>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="confirmDeputyApproval"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        I confirm that I have obtained approval from the Deputy Director
-                      </FormLabel>
-                      <FormMessage />
-                    </div>
-                  </FormItem>
-                )}
-              />
             </CardContent>
           </Card>
 
@@ -1123,7 +1217,7 @@ export default function JobRequisitionForm() {
                 <Button
                   type="button"
                   onClick={() => onSubmit(form.getValues(), true)}
-                  disabled={saving || !(form.getValues('confirmChiefApproval') && form.getValues('confirmFinanceApproval') && form.getValues('confirmDeputyApproval'))}
+                  disabled={saving || !form.getValues('confirmChiefApproval')}
                 >
                   <Send className="h-4 w-4 mr-2" />
                   Submit for Approval
