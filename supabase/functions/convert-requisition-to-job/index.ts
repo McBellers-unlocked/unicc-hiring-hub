@@ -124,6 +124,24 @@ ${requisition.desirable_education || ''}
 # Language Requirements
 
 ${JSON.stringify(requisition.language_requirements, null, 2)}
+
+# Competencies
+
+## Global Competencies
+
+${requisition.global_competencies?.map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || ''}
+
+## Core Competencies
+
+${requisition.core_competencies?.map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || ''}
+
+## Leadership Competencies
+
+${requisition.leadership_competencies?.map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || ''}
+
+## Management Competencies
+
+${requisition.management_competencies?.map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || ''}
       `.trim(),
       status: 'active', // Set to active status for immediate publishing
       category: 'Professional',
