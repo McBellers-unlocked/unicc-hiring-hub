@@ -63,11 +63,31 @@ Deno.serve(async (req) => {
     }
 
     // Convert requisition data to job format
+    // Map nature_of_position to correct job type
+    let jobType = requisition.nature_of_position;
+    switch (requisition.nature_of_position) {
+      case 'Fixed term':
+      case 'Fixed Term':
+        jobType = 'Fixed-term';
+        break;
+      case 'Individual Consultant':
+        jobType = 'Consultant';
+        break;
+      case 'Temporary':
+        jobType = 'Temporary';
+        break;
+      case 'Intern':
+        jobType = 'Intern';
+        break;
+      default:
+        jobType = requisition.nature_of_position;
+    }
+
     const jobData = {
       title: requisition.position_title,
       notice_no: `${requisition.reference_number}-JOB`,
       grade: requisition.grade,
-      type: requisition.nature_of_position,
+      type: jobType,
       location: requisition.duty_station,
       org_unit: requisition.unit_section_division,
       positions: requisition.positions_available,
