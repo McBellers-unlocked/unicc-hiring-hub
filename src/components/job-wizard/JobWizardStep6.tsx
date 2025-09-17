@@ -160,52 +160,6 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
       if (result.error) throw result.error;
 
       // Save killer questions
-      if (data.killer_questions && data.killer_questions.length > 0) {
-        for (const question of data.killer_questions) {
-          if (question.id.startsWith('question-')) {
-            const { error: questionError } = await supabase
-              .from('killer_questions')
-              .insert({
-                job_id: isEditing ? jobId : result.data?.id,
-                label: question.label,
-                input_type: question.input_type,
-                rule: question.rule,
-                options: question.options,
-                custom_logic: question.custom_logic,
-              });
-
-            if (questionError) {
-              console.error('Error saving killer question:', questionError);
-              throw questionError;
-            }
-          }
-        }
-      }
-        const criteriaData = data.essential_criteria.map(criterion => {
-          // Remove the temporary ID and let the database generate a UUID
-          const { id, ...criterionWithoutId } = criterion;
-          return {
-            ...criterionWithoutId,
-            job_id: isEditing ? jobId : result.data?.id,
-          };
-        });
-
-        if (isEditing) {
-          // Delete existing criteria first
-          await supabase
-            .from('essential_criteria')
-            .delete()
-            .eq('job_id', jobId);
-        }
-
-        const { error: criteriaError } = await supabase
-          .from('essential_criteria')
-          .insert(criteriaData);
-
-        if (criteriaError) throw criteriaError;
-      }
-
-      // Save killer questions
       if (data.killer_questions?.length) {
         const questionsData = data.killer_questions.map(question => {
           // Remove the temporary ID and let the database generate a UUID
