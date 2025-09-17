@@ -105,7 +105,7 @@ ${requisition.desirable_education || ''}
 
 ${JSON.stringify(requisition.language_requirements, null, 2)}
       `.trim(),
-      status: 'active',
+      status: 'active', // Set to active status for immediate publishing
       category: 'Professional',
       salary_estimate: requisition.grade,
       timezone: 'Europe/Zurich',
