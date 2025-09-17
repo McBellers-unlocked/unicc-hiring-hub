@@ -742,60 +742,6 @@ export default function JobRequisitionForm() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="nature_of_position"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nature of Position *</FormLabel>
-                    <Select onValueChange={(value) => {
-                      field.onChange(value);
-                      setShowTemporaryDuration(value === "Temporary");
-                      if (value !== "Temporary") {
-                        form.setValue("temporary_duration", "");
-                      }
-                    }} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select nature" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Fixed term">Fixed term</SelectItem>
-                        <SelectItem value="Temporary">Temporary</SelectItem>
-                        <SelectItem value="Individual Consultant">Individual Consultant</SelectItem>
-                        <SelectItem value="STDA">STDA</SelectItem>
-                        <SelectItem value="Intern">Intern</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {showTemporaryDuration && (
-                <FormField
-                  control={form.control}
-                  name="temporary_duration"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Temporary Duration *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select duration" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="6 months">6 months</SelectItem>
-                          <SelectItem value="12 months">12 months</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
