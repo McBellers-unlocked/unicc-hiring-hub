@@ -15,6 +15,8 @@ interface JobRequisition {
   position_title: string;
   status: string;
   created_at: string;
+  hr_reviewed: boolean;
+  hiring_manager_confirmed_hr_changes: boolean;
   finance_controller_approval: boolean;
   chief_of_division_approval: boolean;
   deputy_director_approval: boolean;
@@ -86,10 +88,11 @@ export default function JobRequisitions() {
 
   const getApprovalProgress = (requisition: JobRequisition) => {
     const steps = [
-      { label: "Finance Controller", approved: requisition.finance_controller_approval },
-      { label: "Chief of Division", approved: requisition.chief_of_division_approval },
-      { label: "Deputy Director", approved: requisition.deputy_director_approval },
-      { label: "Director", approved: requisition.director_approval },
+      { label: "Submission", approved: true }, // Always completed since requisition exists
+      { label: "HR Review", approved: requisition.hr_reviewed },
+      { label: "Hiring Manager Approval", approved: requisition.hiring_manager_confirmed_hr_changes },
+      { label: "Chief Approval", approved: requisition.chief_of_division_approval },
+      { label: "Director Approval", approved: requisition.director_approval },
     ];
 
     return (
