@@ -99,6 +99,7 @@ const requisitionSchema = z.object({
   unit_section_division: z.string().min(1, "Unit/Section/Division is required"),
   duty_station: z.array(z.string()).min(1, "At least one duty station is required"),
   nature_of_position: z.string().min(1, "Nature of position is required"),
+  temporary_duration: z.string().optional(),
   start_date: z.string().optional(),
   positions_available: z.number().min(1, "At least 1 position required"),
   purpose_of_position: z.string().min(1, "Purpose of position is required"),
@@ -134,6 +135,7 @@ export default function JobRequisitionForm() {
   const [selectedDivision, setSelectedDivision] = useState<string>("");
   const [selectedUnit, setSelectedUnit] = useState<string>("");
   const [currentRequisition, setCurrentRequisition] = useState<any>(null);
+  const [showTemporaryDuration, setShowTemporaryDuration] = useState<boolean>(false);
 
   const form = useForm<RequisitionFormData>({
     resolver: zodResolver(requisitionSchema),
@@ -143,6 +145,7 @@ export default function JobRequisitionForm() {
       unit_section_division: "",
       duty_station: [],
       nature_of_position: "",
+      temporary_duration: "",
       start_date: "",
       positions_available: 1,
       purpose_of_position: "",
@@ -191,12 +194,18 @@ export default function JobRequisitionForm() {
           setSelectedUnit(existingUnit);
         }
 
+        // Set temporary duration visibility
+        if (data.nature_of_position === "Temporary") {
+          setShowTemporaryDuration(true);
+        }
+
         form.reset({
           position_title: data.position_title || "",
           grade: data.grade || "",
           unit_section_division: data.unit_section_division || "",
           duty_station: Array.isArray(data.duty_station) ? data.duty_station : (data.duty_station ? JSON.parse(data.duty_station) : []),
           nature_of_position: data.nature_of_position || "",
+          temporary_duration: (data as any).temporary_duration || "",
           start_date: data.start_date || "",
           positions_available: data.positions_available || 1,
           purpose_of_position: data.purpose_of_position || "",
@@ -546,29 +555,34 @@ export default function JobRequisitionForm() {
                         </Select>
                       </div>
                       
-                      {selectedDivision && (
-                        <div>
-                          <FormLabel className="text-sm text-muted-foreground">Unit/Section</FormLabel>
-                          <Select 
-                            value={selectedUnit} 
-                            onValueChange={(value) => {
-                              setSelectedUnit(value);
-                              field.onChange(value);
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select unit/section..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {DIVISION_UNITS[selectedDivision].map((unit) => (
-                                <SelectItem key={unit} value={unit}>
-                                  {unit}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
+                       {selectedDivision && (
+                         <div>
+                           <FormLabel className="text-sm text-muted-foreground">Unit/Section</FormLabel>
+                           <Select 
+                             value={selectedUnit} 
+                             onValueChange={(value) => {
+                               setSelectedUnit(value);
+                               field.onChange(value);
+                             }}
+                           >
+                             <SelectTrigger>
+                               <SelectValue placeholder="Select unit/section..." />
+                             </SelectTrigger>
+                             <SelectContent>
+                               {/* Main Division Option */}
+                               <SelectItem key={selectedDivision} value={DIVISIONS[selectedDivision]}>
+                                 {DIVISIONS[selectedDivision]} (Main Division)
+                               </SelectItem>
+                               {/* Individual Units/Sections */}
+                               {DIVISION_UNITS[selectedDivision].map((unit) => (
+                                 <SelectItem key={unit} value={unit}>
+                                   {unit}
+                                 </SelectItem>
+                               ))}
+                             </SelectContent>
+                           </Select>
+                         </div>
+                       )}
                     </div>
                     <FormDescription>
                       Choose the division first, then select the specific unit/section within that division.
@@ -617,23 +631,54 @@ export default function JobRequisitionForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nature of Position *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={(value) => {
+                      field.onChange(value);
+                      setShowTemporaryDuration(value === "Temporary");
+                      if (value !== "Temporary") {
+                        form.setValue("temporary_duration", "");
+                      }
+                    }} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select nature" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Fixed Term">Fixed Term</SelectItem>
+                        <SelectItem value="Fixed term">Fixed term</SelectItem>
                         <SelectItem value="Temporary">Temporary</SelectItem>
-                        <SelectItem value="Consultant">Consultant</SelectItem>
-                        <SelectItem value="Permanent">Permanent</SelectItem>
+                        <SelectItem value="Individual Consultant">Individual Consultant</SelectItem>
+                        <SelectItem value="STDA">STDA</SelectItem>
+                        <SelectItem value="Intern">Intern</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {showTemporaryDuration && (
+                <FormField
+                  control={form.control}
+                  name="temporary_duration"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Temporary Duration *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select duration" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="6 months">6 months</SelectItem>
+                          <SelectItem value="12 months">12 months</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
