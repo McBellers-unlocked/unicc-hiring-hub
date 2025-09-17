@@ -127,21 +127,13 @@ ${JSON.stringify(requisition.language_requirements, null, 2)}
 
 # Competencies
 
-## Global Competencies
+${requisition.global_competencies?.filter(comp => comp.name && comp.name.trim()).map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || ''}
 
-${requisition.global_competencies?.map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || ''}
+${requisition.core_competencies?.filter(comp => comp.name && comp.name.trim()).map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || ''}
 
-## Core Competencies
+${requisition.leadership_competencies?.filter(comp => comp.name && comp.name.trim()).map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || ''}
 
-${requisition.core_competencies?.map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || ''}
-
-## Leadership Competencies
-
-${requisition.leadership_competencies?.map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || ''}
-
-## Management Competencies
-
-${requisition.management_competencies?.map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || ''}
+${requisition.management_competencies?.filter(comp => comp.name && comp.name.trim()).map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || ''}
       `.trim(),
       status: 'active', // Set to active status for immediate publishing
       category: 'Professional',
