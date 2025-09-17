@@ -28,6 +28,10 @@ interface JobRequisition {
   essential_education: string;
   desirable_education: string;
   language_requirements: any;
+  global_competencies: string[] | any;
+  core_competencies: string[] | any;
+  leadership_competencies: string[] | any;
+  management_competencies: string[] | any;
   status: string;
   created_at: string;
   finance_controller_approval: boolean;
@@ -390,6 +394,83 @@ export default function JobRequisitionDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Competencies */}
+        {((Array.isArray(requisition.global_competencies) && requisition.global_competencies.length > 0) ||
+          (Array.isArray(requisition.core_competencies) && requisition.core_competencies.length > 0) ||
+          (Array.isArray(requisition.leadership_competencies) && requisition.leadership_competencies.length > 0) ||
+          (Array.isArray(requisition.management_competencies) && requisition.management_competencies.length > 0)) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Competencies</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {Array.isArray(requisition.global_competencies) && requisition.global_competencies.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Global Competencies</label>
+                  <ul className="mt-1 space-y-1">
+                    {requisition.global_competencies.map((comp: any, index: number) => (
+                      <li key={index} className="text-sm">
+                        • {typeof comp === 'string' ? comp : comp.name || comp}
+                        {typeof comp === 'object' && comp.description && (
+                          <span className="text-muted-foreground ml-2">- {comp.description}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {Array.isArray(requisition.core_competencies) && requisition.core_competencies.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Core Competencies</label>
+                  <ul className="mt-1 space-y-1">
+                    {requisition.core_competencies.map((comp: any, index: number) => (
+                      <li key={index} className="text-sm">
+                        • {typeof comp === 'string' ? comp : comp.name || comp}
+                        {typeof comp === 'object' && comp.description && (
+                          <span className="text-muted-foreground ml-2">- {comp.description}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {Array.isArray(requisition.leadership_competencies) && requisition.leadership_competencies.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Leadership Competencies</label>
+                  <ul className="mt-1 space-y-1">
+                    {requisition.leadership_competencies.map((comp: any, index: number) => (
+                      <li key={index} className="text-sm">
+                        • {typeof comp === 'string' ? comp : comp.name || comp}
+                        {typeof comp === 'object' && comp.description && (
+                          <span className="text-muted-foreground ml-2">- {comp.description}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {Array.isArray(requisition.management_competencies) && requisition.management_competencies.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Management Competencies</label>
+                  <ul className="mt-1 space-y-1">
+                    {requisition.management_competencies.map((comp: any, index: number) => (
+                      <li key={index} className="text-sm">
+                        • {typeof comp === 'string' ? comp : comp.name || comp}
+                        {typeof comp === 'object' && comp.description && (
+                          <span className="text-muted-foreground ml-2">- {comp.description}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Approval Status */}
         <Card>
