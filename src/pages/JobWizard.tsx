@@ -37,15 +37,8 @@ export interface JobFormData {
   description_md: string;
   requirements_md: string;
 
-  // Step 3: Essential Criteria
-  essential_criteria: Array<{
-    id: string;
-    label: string;
-    weight: number;
-    must_have: boolean;
-    validator: string;
-    params: Record<string, any>;
-  }>;
+  // Step 3: Requirements (moved from step 2)
+  // Essential criteria removed as per requirements
 
   // Step 4: Killer Questions
   killer_questions: Array<{
@@ -78,8 +71,8 @@ export interface JobFormData {
 
 const STEPS = [
   { id: 1, title: 'Basics & Meta', description: 'Job details and metadata' },
-  { id: 2, title: 'Description & Requirements', description: 'Content and requirements' },
-  { id: 3, title: 'Essential Criteria', description: 'Scoring criteria setup' },
+  { id: 2, title: 'Job Description', description: 'Position description content' },
+  { id: 3, title: 'Requirements', description: 'Essential and desirable requirements' },
   { id: 4, title: 'Killer Questions', description: 'Screening questions' },
   { id: 5, title: 'Application Form', description: 'Attachments and custom fields' },
   { id: 6, title: 'Review & Publish', description: 'Final review and publishing' },
@@ -121,7 +114,6 @@ export default function JobWizard() {
     branding: { preset: 'UNICC' },
     description_md: '',
     requirements_md: '',
-    essential_criteria: [],
     killer_questions: [],
     attachments_required: {
       motivation_letter: true,
@@ -223,7 +215,6 @@ ${requisition.desirable_education || ''}
 
 ${JSON.stringify(requisition.language_requirements, null, 2)}
             `.trim(),
-            essential_criteria: [],
             killer_questions: [],
             attachments_required: {
               motivation_letter: true,
@@ -251,15 +242,6 @@ ${JSON.stringify(requisition.language_requirements, null, 2)}
         // Check if this job was converted from a requisition
         const wasConvertedFromRequisition = jobData.notice_no?.endsWith('-JOB') || false;
         setIsConvertedFromRequisition(wasConvertedFromRequisition);
-
-        // Load essential criteria
-        const { data: criteriaData, error: criteriaError } = await supabase
-          .from('essential_criteria')
-          .select('*')
-          .eq('job_id', jobId)
-          .order('created_at');
-
-        if (criteriaError) throw criteriaError;
 
         // Load killer questions
         const { data: questionsData, error: questionsError } = await supabase
@@ -310,14 +292,6 @@ ${JSON.stringify(requisition.language_requirements, null, 2)}
           branding: (jobData.branding as Record<string, any>) || { preset: 'UNICC' },
           description_md: jobData.description_md || '',
           requirements_md: jobData.requirements_md || '',
-          essential_criteria: criteriaData?.map(criterion => ({
-            id: criterion.id,
-            label: criterion.label,
-            weight: criterion.weight,
-            must_have: criterion.must_have,
-            validator: criterion.validator || '',
-            params: (criterion.params as Record<string, any>) || {}
-          })) || [],
           killer_questions: questionsData?.map(question => ({
             id: question.id,
             label: question.label,

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { JobFormData } from '@/pages/JobWizard';
 import { useToast } from '@/hooks/use-toast';
@@ -19,11 +18,9 @@ interface Props {
 export function JobWizardStep2({ data, onUpdate, onNext, onPrev }: Props) {
   const { toast } = useToast();
   const [descriptionContent, setDescriptionContent] = useState(data.description_md || '');
-  const [requirementsContent, setRequirementsContent] = useState(data.requirements_md || '');
 
   const updateField = (field: keyof JobFormData, value: any) => {
-    const updated = { [field]: value };
-    onUpdate(updated);
+    onUpdate({ [field]: value });
   };
 
   const handleDescriptionChange = (value: string | undefined) => {
@@ -32,27 +29,11 @@ export function JobWizardStep2({ data, onUpdate, onNext, onPrev }: Props) {
     updateField('description_md', content);
   };
 
-  const handleRequirementsChange = (value: string | undefined) => {
-    const content = value || '';
-    setRequirementsContent(content);
-    updateField('requirements_md', content);
-  };
-
-
   const validateAndProceed = () => {
     if (!descriptionContent.trim()) {
       toast({
         title: "Validation Error",
-        description: "Please provide a job description",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!requirementsContent.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please provide job requirements",
+        description: "Please provide a job description before proceeding",
         variant: "destructive",
       });
       return;
@@ -61,106 +42,53 @@ export function JobWizardStep2({ data, onUpdate, onNext, onPrev }: Props) {
     onNext();
   };
 
-  const descriptionTemplate = `# Position Description
+  const descriptionTemplate = `# Purpose of the Position
 
-## Purpose
-[Describe the main purpose and objectives of this position]
+Describe the main purpose and role of this position within the organization.
 
-## Main Duties and Responsibilities
-- [Key responsibility 1]
-- [Key responsibility 2]
-- [Key responsibility 3]
+# Objectives of the Programme
 
-## Other Information
-[Additional information about the role, team, or working conditions]
-`;
+Outline the key objectives and goals this position will contribute to.
 
-  const requirementsTemplate = `# Requirements
+# Main Duties and Responsibilities
 
-## Experience and Skills
-- [Required experience 1]
-- [Required skill 1]
-- [Preferred experience/skill]
-
-## Education
-- [Minimum education requirement]
-- [Preferred qualifications]
-
-## Languages
-- [Language requirements with proficiency levels]
-
-## Core Competencies
-- [Competency 1]
-- [Competency 2]
-- [Competency 3]
-`;
+- List the primary responsibilities
+- Detail key tasks and duties
+- Include any special requirements`;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Step 2: Description & Requirements</CardTitle>
+        <CardTitle>Step 2: Job Description</CardTitle>
         <p className="text-muted-foreground">
-          Create comprehensive job description and requirements using markdown
+          Create a comprehensive job description using markdown
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
-
-        <Tabs defaultValue="description" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="description">Job Description</TabsTrigger>
-            <TabsTrigger value="requirements">Requirements</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="description" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-medium">Position Description</Label>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDescriptionChange(descriptionTemplate)}
-              >
-                Use Template
-              </Button>
-            </div>
-            <div className="border rounded-lg overflow-hidden">
-              <MDEditor
-                value={descriptionContent}
-                onChange={handleDescriptionChange}
-                height={400}
-                preview="edit"
-                data-color-mode="light"
-              />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Include: Purpose, Objectives, Main Duties, and Other Information
-            </p>
-          </TabsContent>
-
-          <TabsContent value="requirements" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-medium">Requirements</Label>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleRequirementsChange(requirementsTemplate)}
-              >
-                Use Template
-              </Button>
-            </div>
-            <div className="border rounded-lg overflow-hidden">
-              <MDEditor
-                value={requirementsContent}
-                onChange={handleRequirementsChange}
-                height={400}
-                preview="edit"
-                data-color-mode="light"
-              />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Include: Experience/Skills, Education, Languages, and Core Competencies
-            </p>
-          </TabsContent>
-        </Tabs>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-base font-medium">Position Description</Label>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDescriptionChange(descriptionTemplate)}
+            >
+              Use Template
+            </Button>
+          </div>
+          <div className="border rounded-lg overflow-hidden">
+            <MDEditor
+              value={descriptionContent}
+              onChange={handleDescriptionChange}
+              height={400}
+              preview="edit"
+              data-color-mode="light"
+            />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Include: Purpose, Objectives, Main Duties, and Other Information
+          </p>
+        </div>
 
         {/* Navigation */}
         <div className="flex justify-between pt-6">
@@ -169,7 +97,7 @@ export function JobWizardStep2({ data, onUpdate, onNext, onPrev }: Props) {
             Previous: Basics & Meta
           </Button>
           <Button onClick={validateAndProceed}>
-            Next: Essential Criteria
+            Next: Requirements
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>

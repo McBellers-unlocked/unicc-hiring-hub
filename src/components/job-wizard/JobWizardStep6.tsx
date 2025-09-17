@@ -81,12 +81,11 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
       description: 'Job description and requirements sections must be completed',
     });
 
-    // Essential criteria weights
-    const totalWeight = data.essential_criteria?.reduce((sum, c) => sum + c.weight, 0) || 0;
+    // Content validation
     items.push({
-      label: 'Essential Criteria Weights = 100%',
-      status: totalWeight === 100 ? 'pass' : 'fail',
-      description: `Total criteria weight is ${totalWeight}%, must equal 100%`,
+      label: 'Job Content Complete',
+      status: data.description_md && data.requirements_md ? 'pass' : 'fail',
+      description: 'Job description and requirements sections must be completed',
     });
 
     // Killer questions
@@ -126,7 +125,6 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
     try {
       // Filter out fields that don't exist in the database schema
       const {
-        essential_criteria,
         killer_questions,
         custom_fields,
         consent_checkboxes,
@@ -161,8 +159,28 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
 
       if (result.error) throw result.error;
 
-      // Save essential criteria
-      if (data.essential_criteria?.length) {
+      // Save killer questions
+      if (data.killer_questions && data.killer_questions.length > 0) {
+        for (const question of data.killer_questions) {
+          if (question.id.startsWith('question-')) {
+            const { error: questionError } = await supabase
+              .from('killer_questions')
+              .insert({
+                job_id: isEditing ? jobId : result.data?.id,
+                label: question.label,
+                input_type: question.input_type,
+                rule: question.rule,
+                options: question.options,
+                custom_logic: question.custom_logic,
+              });
+
+            if (questionError) {
+              console.error('Error saving killer question:', questionError);
+              throw questionError;
+            }
+          }
+        }
+      }
         const criteriaData = data.essential_criteria.map(criterion => {
           // Remove the temporary ID and let the database generate a UUID
           const { id, ...criterionWithoutId } = criterion;
@@ -353,7 +371,7 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
                 <span className="font-medium">Org Unit:</span> {data.org_unit || 'Not set'}
               </div>
               <div>
-                <span className="font-medium">Essential Criteria:</span> {data.essential_criteria?.length || 0} items
+                <span className="font-medium">Requirements:</span> {data.requirements_md ? 'Complete' : 'Not set'}
               </div>
               <div>
                 <span className="font-medium">Killer Questions:</span> {data.killer_questions?.length || 0} questions
