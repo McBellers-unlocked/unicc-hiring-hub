@@ -19,6 +19,7 @@ interface Props {
   onUpdate: (data: Partial<JobFormData>) => void;
   onNext: () => void;
   isConvertingFromRequisition?: boolean;
+  isConvertedFromRequisition?: boolean;
   requisitionData?: any;
 }
 
@@ -58,9 +59,12 @@ const LOCATIONS = [
   'Brindisi, Italy',
 ];
 
-export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisition = false, requisitionData }: Props) {
+export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisition = false, isConvertedFromRequisition = false, requisitionData }: Props) {
   const { toast } = useToast();
   const [formData, setFormData] = useState(data);
+  
+  // Determine if this is a requisition-based job (either converting or already converted)
+  const isRequisitionBased = isConvertingFromRequisition || isConvertedFromRequisition;
 
   const updateField = (field: keyof JobFormData, value: any) => {
     const updated = { ...formData, [field]: value };
@@ -77,7 +81,7 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
   };
 
   const validateAndProceed = () => {
-    const requiredFields = ['title', 'category', 'type', 'org_unit'];
+    const requiredFields = ['title', 'type', 'org_unit']; // Removed category from required fields
     const missingFields = requiredFields.filter(field => !formData[field as keyof JobFormData]);
 
     if (missingFields.length > 0) {
@@ -127,32 +131,34 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
               onChange={(e) => updateField('title', e.target.value)}
               placeholder="e.g., Senior Software Developer"
               required
-              disabled={isConvertingFromRequisition}
-              className={isConvertingFromRequisition ? "bg-muted" : ""}
+              disabled={isRequisitionBased}
+              className={isRequisitionBased ? "bg-muted" : ""}
             />
-            {isConvertingFromRequisition && (
+            {isRequisitionBased && (
               <p className="text-xs text-muted-foreground">
-                Mapped from Position Description: {requisitionData?.position_title}
+                Mapped from Position Description
               </p>
             )}
           </div>
 
-          {/* Category */}
-          <div className="space-y-2">
-            <Label htmlFor="category">Category *</Label>
-            <Select value={formData.category} onValueChange={(value) => updateField('category', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {JOB_CATEGORIES.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Category - Hidden for requisition-based jobs */}
+          {!isRequisitionBased && (
+            <div className="space-y-2">
+              <Label htmlFor="category">Category *</Label>
+              <Select value={formData.category} onValueChange={(value) => updateField('category', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {JOB_CATEGORIES.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Notice Number */}
           <div className="space-y-2">
@@ -162,12 +168,12 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
               value={formData.notice_no}
               onChange={(e) => updateField('notice_no', e.target.value)}
               placeholder="e.g., UNICC/2024/001"
-              disabled={isConvertingFromRequisition}
-              className={isConvertingFromRequisition ? "bg-muted" : ""}
+              disabled={isRequisitionBased}
+              className={isRequisitionBased ? "bg-muted" : ""}
             />
-            {isConvertingFromRequisition && (
+            {isRequisitionBased && (
               <p className="text-xs text-muted-foreground">
-                Mapped from PD Reference: {requisitionData?.reference_number}
+                Mapped from PD Reference
               </p>
             )}
           </div>
@@ -178,9 +184,9 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
             <Select 
               value={formData.type} 
               onValueChange={(value) => updateField('type', value)}
-              disabled={isConvertingFromRequisition}
+              disabled={isRequisitionBased}
             >
-              <SelectTrigger className={isConvertingFromRequisition ? "bg-muted" : ""}>
+              <SelectTrigger className={isRequisitionBased ? "bg-muted" : ""}>
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
@@ -191,9 +197,9 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
                 ))}
               </SelectContent>
             </Select>
-            {isConvertingFromRequisition && (
+            {isRequisitionBased && (
               <p className="text-xs text-muted-foreground">
-                Mapped from Nature of Position: {requisitionData?.nature_of_position}
+                Mapped from Nature of Position
               </p>
             )}
           </div>
@@ -207,12 +213,12 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
               min="1"
               value={formData.positions}
               onChange={(e) => updateField('positions', parseInt(e.target.value) || 1)}
-              disabled={isConvertingFromRequisition}
-              className={isConvertingFromRequisition ? "bg-muted" : ""}
+              disabled={isRequisitionBased}
+              className={isRequisitionBased ? "bg-muted" : ""}
             />
-            {isConvertingFromRequisition && (
+            {isRequisitionBased && (
               <p className="text-xs text-muted-foreground">
-                Mapped from PD: {requisitionData?.positions_available} position(s)
+                Mapped from PD
               </p>
             )}
           </div>
@@ -225,12 +231,12 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
               value={formData.grade}
               onChange={(e) => updateField('grade', e.target.value)}
               placeholder="e.g., P3, P4, NOB"
-              disabled={isConvertingFromRequisition}
-              className={isConvertingFromRequisition ? "bg-muted" : ""}
+              disabled={isRequisitionBased}
+              className={isRequisitionBased ? "bg-muted" : ""}
             />
-            {isConvertingFromRequisition && (
+            {isRequisitionBased && (
               <p className="text-xs text-muted-foreground">
-                Mapped from PD Grade: {requisitionData?.grade || 'N/A'}
+                Mapped from PD Grade
               </p>
             )}
           </div>
@@ -249,7 +255,7 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
           {/* Locations */}
           <div className="space-y-3 md:col-span-2">
             <Label>Duty Station *</Label>
-            {isConvertingFromRequisition ? (
+            {isRequisitionBased ? (
               <div className="p-3 bg-muted rounded-md">
                 <p className="text-sm">
                   {formData.location && formData.location.length > 0 
@@ -297,12 +303,12 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
               onChange={(e) => updateField('org_unit', e.target.value)}
               placeholder="e.g., Technology Division"
               required
-              disabled={isConvertingFromRequisition}
-              className={isConvertingFromRequisition ? "bg-muted" : ""}
+              disabled={isRequisitionBased}
+              className={isRequisitionBased ? "bg-muted" : ""}
             />
-            {isConvertingFromRequisition && (
+            {isRequisitionBased && (
               <p className="text-xs text-muted-foreground">
-                Mapped from PD: {requisitionData?.unit_section_division}
+                Mapped from PD
               </p>
             )}
           </div>
@@ -324,8 +330,8 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
             </Select>
           </div>
 
-          {/* Issue Date - Hidden when converting from requisition */}
-          {!isConvertingFromRequisition && (
+          {/* Issue Date - Hidden when requisition-based */}
+          {!isRequisitionBased && (
             <div className="space-y-2">
               <Label>Issue Date</Label>
               <Popover>
@@ -380,7 +386,7 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
                 />
               </PopoverContent>
             </Popover>
-            {isConvertingFromRequisition && (
+            {isRequisitionBased && (
               <p className="text-xs text-muted-foreground">
                 Please set the application closing date
               </p>

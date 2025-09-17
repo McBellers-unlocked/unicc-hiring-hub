@@ -101,6 +101,7 @@ export default function JobWizard() {
   const [isEditing] = useState(!!jobId);
   const [loading, setLoading] = useState(!!jobId || !!requisitionId);
   const [isConvertingFromRequisition] = useState(!!requisitionId);
+  const [isConvertedFromRequisition, setIsConvertedFromRequisition] = useState(false);
   const [requisitionData, setRequisitionData] = useState<any>(null);
   const [formData, setFormData] = useState<JobFormData>({
     title: '',
@@ -247,6 +248,10 @@ ${JSON.stringify(requisition.language_requirements, null, 2)}
 
         if (jobError) throw jobError;
 
+        // Check if this job was converted from a requisition
+        const wasConvertedFromRequisition = jobData.notice_no?.endsWith('-JOB') || false;
+        setIsConvertedFromRequisition(wasConvertedFromRequisition);
+
         // Load essential criteria
         const { data: criteriaData, error: criteriaError } = await supabase
           .from('essential_criteria')
@@ -383,6 +388,7 @@ ${JSON.stringify(requisition.language_requirements, null, 2)}
             onUpdate={(data) => updateFormData(1, data)}
             onNext={nextStep}
             isConvertingFromRequisition={isConvertingFromRequisition}
+            isConvertedFromRequisition={isConvertedFromRequisition}
             requisitionData={requisitionData}
           />
         );
