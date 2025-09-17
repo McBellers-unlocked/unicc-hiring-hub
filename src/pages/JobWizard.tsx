@@ -274,7 +274,18 @@ ${JSON.stringify(requisition.language_requirements, null, 2)}
         let locationArray: string[] = [];
         if (jobData.location) {
           if (typeof jobData.location === 'string') {
-            locationArray = jobData.location.split(',').map(loc => loc.trim());
+            // Try to parse as JSON first (for data from edge function conversion)
+            try {
+              const parsed = JSON.parse(jobData.location);
+              if (Array.isArray(parsed)) {
+                locationArray = parsed;
+              } else {
+                locationArray = [parsed];
+              }
+            } catch {
+              // Fallback to comma-separated parsing
+              locationArray = jobData.location.split(',').map(loc => loc.trim());
+            }
           } else if (Array.isArray(jobData.location)) {
             locationArray = jobData.location;
           }
