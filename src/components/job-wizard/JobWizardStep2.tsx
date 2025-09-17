@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, ArrowRight, Upload, FileText } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { JobFormData } from '@/pages/JobWizard';
 import { useToast } from '@/hooks/use-toast';
 import MDEditor from '@uiw/react-md-editor';
@@ -38,12 +38,6 @@ export function JobWizardStep2({ data, onUpdate, onNext, onPrev }: Props) {
     updateField('requirements_md', content);
   };
 
-  const handleImportDocument = () => {
-    toast({
-      title: "Import Feature",
-      description: "Document import functionality will be implemented in a future update.",
-    });
-  };
 
   const validateAndProceed = () => {
     if (!descriptionContent.trim()) {
@@ -110,24 +104,6 @@ export function JobWizardStep2({ data, onUpdate, onNext, onPrev }: Props) {
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Import Document Section */}
-        <Card className="bg-muted/50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <FileText className="w-5 h-5 text-muted-foreground" />
-                <span className="font-medium">Import from Document</span>
-              </div>
-              <Button variant="outline" onClick={handleImportDocument}>
-                <Upload className="w-4 h-4 mr-2" />
-                Import Document
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground mt-2">
-              Upload a document or paste text to auto-split into description and requirements sections
-            </p>
-          </CardContent>
-        </Card>
 
         <Tabs defaultValue="description" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
