@@ -23,6 +23,8 @@ import AdminRequisitions from "./pages/AdminRequisitions";
 import JobRequisitionForm from "./pages/JobRequisitionForm";
 import JobRequisitionDetail from "./pages/JobRequisitionDetail";
 import JobRequisitionHREdit from "./pages/JobRequisitionHREdit";
+import ChiefOfDivisionView from "./pages/ChiefOfDivisionView";
+import DirectorView from "./pages/DirectorView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +59,8 @@ const App = () => (
             <Route path="/requisitions/:id" element={<JobRequisitionDetail />} />
             <Route path="/requisitions/:id/edit" element={<JobRequisitionForm />} />
             <Route path="/requisitions/:id/hr-edit" element={<JobRequisitionHREdit />} />
+            <Route path="/test/chief-view" element={<ChiefOfDivisionView />} />
+            <Route path="/test/director-view" element={<DirectorView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
