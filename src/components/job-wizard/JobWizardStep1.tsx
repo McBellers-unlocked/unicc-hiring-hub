@@ -18,6 +18,8 @@ interface Props {
   data: JobFormData;
   onUpdate: (data: Partial<JobFormData>) => void;
   onNext: () => void;
+  isConvertingFromRequisition?: boolean;
+  requisitionData?: any;
 }
 
 const JOB_CATEGORIES = [
@@ -56,7 +58,7 @@ const LOCATIONS = [
   'Brindisi, Italy',
 ];
 
-export function JobWizardStep1({ data, onUpdate, onNext }: Props) {
+export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisition = false, requisitionData }: Props) {
   const { toast } = useToast();
   const [formData, setFormData] = useState(data);
 
@@ -96,10 +98,10 @@ export function JobWizardStep1({ data, onUpdate, onNext }: Props) {
       return;
     }
 
-    if (formData.closing_date && formData.issue_date && formData.closing_date <= formData.issue_date) {
+    if (!formData.closing_date) {
       toast({
         title: "Validation Error",
-        description: "Closing date must be after issue date",
+        description: "Please select a closing date",
         variant: "destructive",
       });
       return;
@@ -125,7 +127,14 @@ export function JobWizardStep1({ data, onUpdate, onNext }: Props) {
               onChange={(e) => updateField('title', e.target.value)}
               placeholder="e.g., Senior Software Developer"
               required
+              disabled={isConvertingFromRequisition}
+              className={isConvertingFromRequisition ? "bg-muted" : ""}
             />
+            {isConvertingFromRequisition && (
+              <p className="text-xs text-muted-foreground">
+                Mapped from Position Description: {requisitionData?.position_title}
+              </p>
+            )}
           </div>
 
           {/* Category */}
@@ -153,14 +162,25 @@ export function JobWizardStep1({ data, onUpdate, onNext }: Props) {
               value={formData.notice_no}
               onChange={(e) => updateField('notice_no', e.target.value)}
               placeholder="e.g., UNICC/2024/001"
+              disabled={isConvertingFromRequisition}
+              className={isConvertingFromRequisition ? "bg-muted" : ""}
             />
+            {isConvertingFromRequisition && (
+              <p className="text-xs text-muted-foreground">
+                Mapped from PD Reference: {requisitionData?.reference_number}
+              </p>
+            )}
           </div>
 
           {/* Type */}
           <div className="space-y-2">
             <Label htmlFor="type">Employment Type *</Label>
-            <Select value={formData.type} onValueChange={(value) => updateField('type', value)}>
-              <SelectTrigger>
+            <Select 
+              value={formData.type} 
+              onValueChange={(value) => updateField('type', value)}
+              disabled={isConvertingFromRequisition}
+            >
+              <SelectTrigger className={isConvertingFromRequisition ? "bg-muted" : ""}>
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
@@ -171,6 +191,11 @@ export function JobWizardStep1({ data, onUpdate, onNext }: Props) {
                 ))}
               </SelectContent>
             </Select>
+            {isConvertingFromRequisition && (
+              <p className="text-xs text-muted-foreground">
+                Mapped from Nature of Position: {requisitionData?.nature_of_position}
+              </p>
+            )}
           </div>
 
           {/* Positions */}
@@ -182,7 +207,14 @@ export function JobWizardStep1({ data, onUpdate, onNext }: Props) {
               min="1"
               value={formData.positions}
               onChange={(e) => updateField('positions', parseInt(e.target.value) || 1)}
+              disabled={isConvertingFromRequisition}
+              className={isConvertingFromRequisition ? "bg-muted" : ""}
             />
+            {isConvertingFromRequisition && (
+              <p className="text-xs text-muted-foreground">
+                Mapped from PD: {requisitionData?.positions_available} position(s)
+              </p>
+            )}
           </div>
 
           {/* Grade */}
@@ -193,7 +225,14 @@ export function JobWizardStep1({ data, onUpdate, onNext }: Props) {
               value={formData.grade}
               onChange={(e) => updateField('grade', e.target.value)}
               placeholder="e.g., P3, P4, NOB"
+              disabled={isConvertingFromRequisition}
+              className={isConvertingFromRequisition ? "bg-muted" : ""}
             />
+            {isConvertingFromRequisition && (
+              <p className="text-xs text-muted-foreground">
+                Mapped from PD Grade: {requisitionData?.grade || 'N/A'}
+              </p>
+            )}
           </div>
 
           {/* Salary Estimate */}
@@ -209,41 +248,63 @@ export function JobWizardStep1({ data, onUpdate, onNext }: Props) {
 
           {/* Locations */}
           <div className="space-y-3 md:col-span-2">
-            <Label>Locations *</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {LOCATIONS.map((location) => (
-                <div key={location} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`location-${location}`}
-                    checked={formData.location?.includes(location) || false}
-                    onCheckedChange={(checked) => handleLocationChange(location, checked as boolean)}
-                  />
-                  <Label
-                    htmlFor={`location-${location}`}
-                    className="text-sm font-normal cursor-pointer"
-                  >
-                    {location}
-                  </Label>
+            <Label>Duty Station *</Label>
+            {isConvertingFromRequisition ? (
+              <div className="p-3 bg-muted rounded-md">
+                <p className="text-sm">
+                  {formData.location && formData.location.length > 0 
+                    ? formData.location.join(', ')
+                    : 'No duty station specified'}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Mapped from PD Duty Station
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {LOCATIONS.map((location) => (
+                    <div key={location} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`location-${location}`}
+                        checked={formData.location?.includes(location) || false}
+                        onCheckedChange={(checked) => handleLocationChange(location, checked as boolean)}
+                      />
+                      <Label
+                        htmlFor={`location-${location}`}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {location}
+                      </Label>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            {formData.location && formData.location.length > 0 && (
-              <p className="text-sm text-muted-foreground">
-                Selected: {formData.location.join(', ')}
-              </p>
+                {formData.location && formData.location.length > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Selected: {formData.location.join(', ')}
+                  </p>
+                )}
+              </>
             )}
           </div>
 
           {/* Org Unit */}
           <div className="space-y-2">
-            <Label htmlFor="org_unit">Organization Unit *</Label>
+            <Label htmlFor="org_unit">Unit/Section/Division *</Label>
             <Input
               id="org_unit"
               value={formData.org_unit}
               onChange={(e) => updateField('org_unit', e.target.value)}
               placeholder="e.g., Technology Division"
               required
+              disabled={isConvertingFromRequisition}
+              className={isConvertingFromRequisition ? "bg-muted" : ""}
             />
+            {isConvertingFromRequisition && (
+              <p className="text-xs text-muted-foreground">
+                Mapped from PD: {requisitionData?.unit_section_division}
+              </p>
+            )}
           </div>
 
           {/* Timezone */}
@@ -263,37 +324,39 @@ export function JobWizardStep1({ data, onUpdate, onNext }: Props) {
             </Select>
           </div>
 
-          {/* Issue Date */}
-          <div className="space-y-2">
-            <Label>Issue Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.issue_date && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.issue_date ? format(formData.issue_date, "PPP") : "Pick a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={formData.issue_date || undefined}
-                  onSelect={(date) => updateField('issue_date', date)}
-                  initialFocus
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+          {/* Issue Date - Hidden when converting from requisition */}
+          {!isConvertingFromRequisition && (
+            <div className="space-y-2">
+              <Label>Issue Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formData.issue_date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.issue_date ? format(formData.issue_date, "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.issue_date || undefined}
+                    onSelect={(date) => updateField('issue_date', date)}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
 
           {/* Closing Date */}
           <div className="space-y-2">
-            <Label>Closing Date</Label>
+            <Label>Closing Date *</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -317,6 +380,11 @@ export function JobWizardStep1({ data, onUpdate, onNext }: Props) {
                 />
               </PopoverContent>
             </Popover>
+            {isConvertingFromRequisition && (
+              <p className="text-xs text-muted-foreground">
+                Please set the application closing date
+              </p>
+            )}
           </div>
         </div>
 

@@ -91,11 +91,17 @@ export default function JobWizard() {
   const { jobId } = useParams();
   const { toast } = useToast();
   
+  // Check if converting from requisition
+  const urlParams = new URLSearchParams(window.location.search);
+  const requisitionId = urlParams.get('from_requisition');
+  
   
   
   const [currentStep, setCurrentStep] = useState(1);
   const [isEditing] = useState(!!jobId);
-  const [loading, setLoading] = useState(!!jobId);
+  const [loading, setLoading] = useState(!!jobId || !!requisitionId);
+  const [isConvertingFromRequisition] = useState(!!requisitionId);
+  const [requisitionData, setRequisitionData] = useState<any>(null);
   const [formData, setFormData] = useState<JobFormData>({
     title: '',
     category: '',
@@ -130,10 +136,10 @@ export default function JobWizard() {
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant');
 
-  // Load existing job data when editing
+  // Load existing job data when editing or converting from requisition
   useEffect(() => {
     // Wait for userRoles to be loaded and check access
-    if (userRoles.length === 0 || !hasAccess || !jobId) {
+    if (userRoles.length === 0 || !hasAccess || (!jobId && !requisitionId)) {
       return;
     }
 
@@ -141,7 +147,98 @@ export default function JobWizard() {
       try {
         setLoading(true);
         
-        // Load job data
+        if (requisitionId) {
+          // Load requisition data to convert to job
+          const { data: requisition, error: reqError } = await supabase
+            .from('job_requisitions')
+            .select('*')
+            .eq('id', requisitionId)
+            .single();
+
+          if (reqError) throw reqError;
+          setRequisitionData(requisition);
+
+          // Map requisition data to job form data
+          const locationArray = requisition.duty_station ? 
+            (typeof requisition.duty_station === 'string' ? 
+              JSON.parse(requisition.duty_station) : 
+              requisition.duty_station) : [];
+
+          // Map grade based on position type
+          let mappedGrade = requisition.grade || '';
+          if (requisition.nature_of_position === 'Individual Consultant') {
+            mappedGrade = 'Consultant';
+          } else if (requisition.nature_of_position === 'Intern') {
+            mappedGrade = 'Intern';
+          }
+
+          setFormData({
+            title: requisition.position_title || '',
+            category: 'Professional', // Default category
+            notice_no: requisition.reference_number || '',
+            type: requisition.nature_of_position || '',
+            positions: requisition.positions_available || 1,
+            grade: mappedGrade,
+            salary_estimate: '',
+            location: locationArray,
+            org_unit: requisition.unit_section_division || '',
+            issue_date: null, // Removed as requested
+            closing_date: null, // Will be set by user
+            timezone: 'Europe/Zurich',
+            privacy_notice_url: 'https://www.unicc.org/unicc-privacy-notice-for-applicants/',
+            eligibility_note: '',
+            branding: { preset: 'UNICC' },
+            description_md: `
+# Purpose of the Position
+
+${requisition.purpose_of_position || ''}
+
+# Objectives of the Programme
+
+${requisition.objectives_of_programme || ''}
+
+# Main Duties and Responsibilities
+
+${requisition.main_duties_responsibilities || ''}
+            `.trim(),
+            requirements_md: `
+# Essential Experience
+
+${requisition.essential_experience || ''}
+
+# Desirable Experience
+
+${requisition.desirable_experience || ''}
+
+# Essential Education
+
+${requisition.essential_education || ''}
+
+# Desirable Education
+
+${requisition.desirable_education || ''}
+
+# Language Requirements
+
+${JSON.stringify(requisition.language_requirements, null, 2)}
+            `.trim(),
+            essential_criteria: [],
+            killer_questions: [],
+            attachments_required: {
+              motivation_letter: true,
+              personal_history_form: true,
+              cv: false,
+            },
+            custom_fields: [],
+            consent_checkboxes: [],
+            slug: '',
+            status: 'draft',
+          });
+          setLoading(false);
+          return;
+        }
+        
+        // Load job data (existing logic)
         const { data: jobData, error: jobError } = await supabase
           .from('jobs')
           .select('*')
@@ -238,7 +335,7 @@ export default function JobWizard() {
     };
 
     loadJobData();
-  }, [jobId, hasAccess, toast, navigate, userRoles]);
+  }, [jobId, requisitionId, hasAccess, toast, navigate, userRoles]);
   
   if (!hasAccess) {
     return (
@@ -285,6 +382,8 @@ export default function JobWizard() {
             data={formData}
             onUpdate={(data) => updateFormData(1, data)}
             onNext={nextStep}
+            isConvertingFromRequisition={isConvertingFromRequisition}
+            requisitionData={requisitionData}
           />
         );
       case 2:
@@ -362,7 +461,7 @@ export default function JobWizard() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-foreground">
-              {isEditing ? 'Edit Job' : 'Create New Job'}
+              {isEditing ? 'Edit Job' : isConvertingFromRequisition ? 'Convert PD to Vacancy Notice' : 'Create New Job'}
             </h1>
             <p className="text-muted-foreground mt-2">
               Step {currentStep} of {STEPS.length}: {STEPS[currentStep - 1]?.title}
