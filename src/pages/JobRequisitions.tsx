@@ -16,11 +16,17 @@ interface JobRequisition {
   status: string;
   created_at: string;
   hr_reviewed: boolean;
+  hr_reviewed_at: string | null;
   hiring_manager_confirmed_hr_changes: boolean;
+  hiring_manager_confirmed_at: string | null;
   finance_controller_approval: boolean;
+  finance_controller_approved_at: string | null;
   chief_of_division_approval: boolean;
+  chief_of_division_approved_at: string | null;
   deputy_director_approval: boolean;
+  deputy_director_approved_at: string | null;
   director_approval: boolean;
+  director_approved_at: string | null;
   pdf_url?: string;
   converted_to_job_id?: string;
 }
@@ -88,26 +94,53 @@ export default function JobRequisitions() {
 
   const getApprovalProgress = (requisition: JobRequisition) => {
     const steps = [
-      { label: "Submission", approved: true }, // Always completed since requisition exists
-      { label: "HR Review", approved: requisition.hr_reviewed },
-      { label: "Hiring Manager Approval", approved: requisition.hiring_manager_confirmed_hr_changes },
-      { label: "Chief Approval", approved: requisition.chief_of_division_approval },
-      { label: "Director Approval", approved: requisition.director_approval },
+      { 
+        label: "Submission", 
+        approved: true,
+        completedAt: requisition.created_at
+      },
+      { 
+        label: "HR Review", 
+        approved: requisition.hr_reviewed,
+        completedAt: requisition.hr_reviewed_at
+      },
+      { 
+        label: "Hiring Manager Approval", 
+        approved: requisition.hiring_manager_confirmed_hr_changes,
+        completedAt: requisition.hiring_manager_confirmed_at
+      },
+      { 
+        label: "Chief Approval", 
+        approved: requisition.chief_of_division_approval,
+        completedAt: requisition.chief_of_division_approved_at
+      },
+      { 
+        label: "Director Approval", 
+        approved: requisition.director_approval,
+        completedAt: requisition.director_approved_at
+      },
     ];
 
     return (
       <div className="flex space-x-2 mt-2">
         {steps.map((step, index) => (
-          <div key={index} className="flex items-center text-xs">
-            {step.approved ? (
-              <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
-            ) : (
-              <Clock className="h-4 w-4 text-gray-400 mr-1" />
+          <div key={index} className="flex flex-col items-center text-xs">
+            <div className="flex items-center">
+              {step.approved ? (
+                <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+              ) : (
+                <Clock className="h-4 w-4 text-gray-400 mr-1" />
+              )}
+              <span className={step.approved ? "text-green-700" : "text-gray-500"}>
+                {step.label}
+              </span>
+            </div>
+            {step.approved && step.completedAt && (
+              <span className="text-xs text-muted-foreground mt-1">
+                {new Date(step.completedAt).toLocaleDateString()}
+              </span>
             )}
-            <span className={step.approved ? "text-green-700" : "text-gray-500"}>
-              {step.label}
-            </span>
-            {index < steps.length - 1 && <span className="mx-2">→</span>}
+            {index < steps.length - 1 && <span className="mx-2 mt-2">→</span>}
           </div>
         ))}
       </div>

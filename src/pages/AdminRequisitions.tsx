@@ -35,9 +35,13 @@ interface JobRequisition {
   hiring_manager_confirmed_hr_changes: boolean;
   hiring_manager_confirmed_at: string | null;
   chief_of_division_approval: boolean;
+  chief_of_division_approved_at: string | null;
   director_approval: boolean;
+  director_approved_at: string | null;
   deputy_director_approval: boolean;
+  deputy_director_approved_at: string | null;
   finance_controller_approval: boolean;
+  finance_controller_approved_at: string | null;
 }
 
 export default function AdminRequisitions() {
@@ -180,27 +184,32 @@ export default function AdminRequisitions() {
       {
         key: 'submission',
         label: 'Submission',
-        isCompleted: true // Always completed since requisition exists
+        isCompleted: true,
+        completedAt: requisition.created_at
       },
       {
         key: 'hr_review',
         label: 'HR Review',
-        isCompleted: requisition.hr_reviewed
+        isCompleted: requisition.hr_reviewed,
+        completedAt: requisition.hr_reviewed_at
       },
       {
         key: 'hiring_manager',
         label: 'Manager Approval',
-        isCompleted: requisition.hiring_manager_confirmed_hr_changes
+        isCompleted: requisition.hiring_manager_confirmed_hr_changes,
+        completedAt: requisition.hiring_manager_confirmed_at
       },
       {
         key: 'chief_approval',
         label: 'Chief Approval',
-        isCompleted: requisition.chief_of_division_approval
+        isCompleted: requisition.chief_of_division_approval,
+        completedAt: requisition.chief_of_division_approved_at
       },
       {
         key: 'director_approval',
         label: 'Director Approval',
-        isCompleted: requisition.director_approval
+        isCompleted: requisition.director_approval,
+        completedAt: requisition.director_approved_at
       }
     ];
 
@@ -225,6 +234,11 @@ export default function AdminRequisitions() {
               <span className="text-xs mt-1 text-center max-w-16 leading-tight">
                 {stage.label}
               </span>
+              {stage.isCompleted && stage.completedAt && (
+                <span className="text-xs text-muted-foreground mt-1">
+                  {new Date(stage.completedAt).toLocaleDateString()}
+                </span>
+              )}
             </div>
             {index < stages.length - 1 && (
               <div className={`
