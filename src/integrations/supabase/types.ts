@@ -1143,8 +1143,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      generate_requisition_reference: {
-        Args: Record<PropertyKey, never>
+      generate_position_description_reference: {
+        Args: { p_duty_station: string; p_nature_of_position: string }
         Returns: string
       }
       get_user_role: {

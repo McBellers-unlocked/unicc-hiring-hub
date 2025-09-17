@@ -44,7 +44,7 @@ export const Layout = ({ children }: LayoutProps) => {
                   {(isAdmin || isHR || isHiringManager) && (
                     <Link to="/requisitions" className="hover:text-accent transition-colors">
                       <FileText className="w-4 h-4 inline mr-1" />
-                      Requisitions
+                      PD Pipeline
                     </Link>
                   )}
                   
@@ -58,7 +58,7 @@ export const Layout = ({ children }: LayoutProps) => {
                   {(isAdmin || isHR) && (
                     <Link to="/admin/requisitions" className="hover:text-accent transition-colors">
                       <FileText className="w-4 h-4 inline mr-1" />
-                      Manage Requisitions
+                      Manage PD Pipeline
                     </Link>
                   )}
                   

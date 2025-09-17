@@ -227,7 +227,7 @@ export default function JobRequisitionForm() {
       console.error('Error fetching requisition:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch requisition data",
+        description: "Failed to fetch position description data",
         variant: "destructive",
       });
     } finally {
@@ -297,7 +297,10 @@ export default function JobRequisitionForm() {
 
         // Generate reference number
         const { data: refData, error: refError } = await supabase
-          .rpc('generate_requisition_reference');
+          .rpc('generate_position_description_reference', {
+            p_nature_of_position: formData.nature_of_position,
+            p_duty_station: JSON.stringify(formData.duty_station)
+          });
 
         if (!refError && refData) {
           await supabase
@@ -311,7 +314,7 @@ export default function JobRequisitionForm() {
 
       toast({
         title: "Success",
-        description: submit ? "Requisition submitted successfully" : "Requisition saved as draft",
+        description: submit ? "Position description submitted successfully" : "Position description saved as draft",
       });
 
       if (submit) {
@@ -321,7 +324,7 @@ export default function JobRequisitionForm() {
       console.error('Error saving requisition:', error);
       toast({
         title: "Error",
-        description: "Failed to save requisition",
+        description: "Failed to save position description",
         variant: "destructive",
       });
     } finally {
@@ -367,7 +370,7 @@ export default function JobRequisitionForm() {
     if (!id || id === 'new') {
       toast({
         title: "Error",
-        description: "Please save the requisition first",
+        description: "Please save the position description first",
         variant: "destructive",
       });
       return;
@@ -402,7 +405,7 @@ export default function JobRequisitionForm() {
     if (!id || id === 'new') {
       toast({
         title: "Error",
-        description: "Please save the requisition first",
+        description: "Please save the position description first",
         variant: "destructive",
       });
       return;
@@ -418,7 +421,7 @@ export default function JobRequisitionForm() {
           <CardContent className="flex items-center justify-center h-64">
             <div className="text-center">
               <p className="text-lg font-semibold">Access Denied</p>
-              <p className="text-muted-foreground">You don't have permission to create job requisitions.</p>
+              <p className="text-muted-foreground">You don't have permission to create position descriptions.</p>
             </div>
           </CardContent>
         </Card>
@@ -446,13 +449,13 @@ export default function JobRequisitionForm() {
       <div className="flex items-center gap-4 mb-6">
         <Button variant="outline" onClick={() => navigate('/requisitions')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Requisitions
+          Back to PD Pipeline
         </Button>
         <div>
           <h1 className="text-3xl font-bold">
-            {id === 'new' ? 'New Job Requisition' : 'Edit Job Requisition'}
+            {id === 'new' ? 'New Position Description' : 'Edit Position Description'}
           </h1>
-          <p className="text-muted-foreground">Create a position description request</p>
+          <p className="text-muted-foreground">Create a position description</p>
         </div>
       </div>
 

@@ -99,7 +99,7 @@ export default function AdminRequisitions() {
 
       toast({
         title: "Success",
-        description: `Requisition ${approved ? 'approved' : 'sent back for amendments'}`,
+        description: `Position description ${approved ? 'approved' : 'sent back for amendments'}`,
       });
 
       fetchRequisitions();
@@ -128,7 +128,7 @@ export default function AdminRequisitions() {
 
       toast({
         title: "Success",
-        description: "Requisition sent to Chief of Division for approval",
+        description: "Position description sent to Chief of Division for approval",
       });
 
       fetchRequisitions();
@@ -289,13 +289,13 @@ export default function AdminRequisitions() {
     <Layout>
       <div className="container mx-auto p-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Manage Requisitions</h1>
-          <p className="text-muted-foreground">Review and approve job requisitions</p>
+          <h1 className="text-3xl font-bold">Manage PD Pipeline</h1>
+          <p className="text-muted-foreground">Review and approve position descriptions</p>
         </div>
 
         <Tabs defaultValue="all" className="space-y-6">
           <TabsList>
-            <TabsTrigger value="all">All Requisitions</TabsTrigger>
+            <TabsTrigger value="all">All Position Descriptions</TabsTrigger>
             <TabsTrigger value="pending-hr">
               Pending HR Review
               <Badge variant="secondary" className="ml-2">
@@ -324,7 +324,7 @@ export default function AdminRequisitions() {
                 <Card>
                   <CardContent className="flex flex-col items-center justify-center py-12">
                     <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">No requisitions found</p>
+                    <p className="text-muted-foreground">No position descriptions found</p>
                   </CardContent>
                 </Card>
               ) : (

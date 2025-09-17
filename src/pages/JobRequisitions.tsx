@@ -57,7 +57,7 @@ export default function JobRequisitions() {
       console.error('Error fetching requisitions:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch job requisitions",
+        description: "Failed to fetch position descriptions",
         variant: "destructive",
       });
     } finally {
@@ -183,13 +183,13 @@ export default function JobRequisitions() {
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Job Requisitions</h1>
-          <p className="text-muted-foreground">Manage position requests and approvals</p>
+          <h1 className="text-3xl font-bold">PD Pipeline</h1>
+          <p className="text-muted-foreground">Manage position descriptions and approvals</p>
         </div>
         {userRoles.some(role => ['Admin', 'Hiring Manager'].includes(role)) && (
           <Button onClick={() => navigate('/requisitions/new')} className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
-            New Requisition
+            New Position Description
           </Button>
         )}
       </div>
@@ -215,11 +215,11 @@ export default function JobRequisitions() {
               <CardContent className="flex items-center justify-center h-64">
                 <div className="text-center">
                   <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-lg font-semibold">No Requisitions Found</p>
-                  <p className="text-muted-foreground mb-4">Get started by creating your first job requisition.</p>
+                  <p className="text-lg font-semibold">No Position Descriptions Found</p>
+                  <p className="text-muted-foreground mb-4">Get started by creating your first position description.</p>
                   {userRoles.some(role => ['Admin', 'Hiring Manager'].includes(role)) && (
                     <Button onClick={() => navigate('/requisitions/new')}>
-                      Create Requisition
+                      Create Position Description
                     </Button>
                   )}
                 </div>
