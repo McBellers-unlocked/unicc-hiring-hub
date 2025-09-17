@@ -439,7 +439,10 @@ export type Database = {
           grade: string | null
           hiring_manager_confirmed_at: string | null
           hiring_manager_confirmed_hr_changes: boolean | null
+          hr_change_summary: string | null
+          hr_changes: Json | null
           hr_comments: string | null
+          hr_original_data: Json | null
           hr_reviewed: boolean | null
           hr_reviewed_at: string | null
           hr_reviewed_by: string | null
@@ -489,7 +492,10 @@ export type Database = {
           grade?: string | null
           hiring_manager_confirmed_at?: string | null
           hiring_manager_confirmed_hr_changes?: boolean | null
+          hr_change_summary?: string | null
+          hr_changes?: Json | null
           hr_comments?: string | null
+          hr_original_data?: Json | null
           hr_reviewed?: boolean | null
           hr_reviewed_at?: string | null
           hr_reviewed_by?: string | null
@@ -539,7 +545,10 @@ export type Database = {
           grade?: string | null
           hiring_manager_confirmed_at?: string | null
           hiring_manager_confirmed_hr_changes?: boolean | null
+          hr_change_summary?: string | null
+          hr_changes?: Json | null
           hr_comments?: string | null
+          hr_original_data?: Json | null
           hr_reviewed?: boolean | null
           hr_reviewed_at?: string | null
           hr_reviewed_by?: string | null

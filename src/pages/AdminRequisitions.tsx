@@ -17,7 +17,8 @@ import {
   Eye,
   Calendar,
   User,
-  Building
+  Building,
+  Edit2
 } from "lucide-react";
 
 interface JobRequisition {
@@ -375,6 +376,18 @@ export default function AdminRequisitions() {
                               <Eye className="h-4 w-4 mr-1" />
                               View
                             </Button>
+                            
+                            {requisition.status === 'hr_review' && (isAdmin || isHR) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/requisitions/${requisition.id}/hr-edit`)}
+                                className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                              >
+                                <Edit2 className="h-4 w-4 mr-1" />
+                                Edit & Review
+                              </Button>
+                            )}
                             
                             {requisition.status === 'hr_review' && (isAdmin || isHR) && (
                               <div className="flex gap-2">

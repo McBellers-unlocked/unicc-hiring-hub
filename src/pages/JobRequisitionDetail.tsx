@@ -44,6 +44,9 @@ interface JobRequisition {
   converted_to_job_id: string;
   comments: any;
   created_by: string;
+  hr_original_data: any;
+  hr_changes: any;
+  hr_change_summary: string;
 }
 
 export default function JobRequisitionDetail() {
@@ -457,12 +460,55 @@ export default function JobRequisitionDetail() {
                 )}
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="bg-white p-4 rounded-lg border border-amber-200">
-                <p className="whitespace-pre-wrap">
-                  {requisition.hr_comments || "HR has reviewed this requisition. Please confirm you are happy with any changes made and accept to proceed to the next approval stage."}
-                </p>
-              </div>
+            <CardContent className="space-y-4">
+              {requisition.hr_change_summary && (
+                <div className="bg-white p-4 rounded-lg border border-amber-200">
+                  <h4 className="font-medium text-amber-800 mb-2">Summary of Changes:</h4>
+                  <p className="whitespace-pre-wrap text-amber-700">
+                    {requisition.hr_change_summary}
+                  </p>
+                </div>
+              )}
+              
+              {Array.isArray(requisition.hr_changes) && requisition.hr_changes.length > 0 && (
+                <div className="bg-white p-4 rounded-lg border border-amber-200">
+                  <h4 className="font-medium text-amber-800 mb-3">Detailed Changes:</h4>
+                  <div className="space-y-3">
+                    {requisition.hr_changes.map((change: any, index: number) => (
+                      <div key={index} className="border-l-4 border-amber-400 pl-4">
+                        <div className="font-medium text-amber-800">{change.label}</div>
+                        <div className="text-sm space-y-1 mt-1">
+                          <div>
+                            <span className="text-red-600 font-medium">Original:</span>
+                            <span className="text-red-600 ml-2">{change.originalValue || '(empty)'}</span>
+                          </div>
+                          <div>
+                            <span className="text-green-600 font-medium">Modified:</span>
+                            <span className="text-green-600 ml-2">{change.newValue || '(empty)'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {requisition.hr_comments && (
+                <div className="bg-white p-4 rounded-lg border border-amber-200">
+                  <h4 className="font-medium text-amber-800 mb-2">Additional Comments:</h4>
+                  <p className="whitespace-pre-wrap text-amber-700">
+                    {requisition.hr_comments}
+                  </p>
+                </div>
+              )}
+              
+              {!requisition.hr_change_summary && !requisition.hr_changes && !requisition.hr_comments && (
+                <div className="bg-white p-4 rounded-lg border border-amber-200">
+                  <p className="text-amber-700">
+                    HR has reviewed this requisition. Please confirm you are happy with any changes made and accept to proceed to the next approval stage.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
