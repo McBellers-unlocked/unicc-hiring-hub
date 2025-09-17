@@ -258,9 +258,21 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
             {isRequisitionBased ? (
               <div className="p-3 bg-muted rounded-md">
                 <p className="text-sm">
-                  {formData.location && formData.location.length > 0 
-                    ? formData.location.join(', ')
-                    : 'No duty station specified'}
+                  {(() => {
+                    if (!formData.location || formData.location.length === 0) {
+                      return 'No duty station specified';
+                    }
+                    // Handle both array and string formats
+                    let locations: string[] = formData.location;
+                    if (typeof formData.location === 'string') {
+                      try {
+                        locations = JSON.parse(formData.location);
+                      } catch {
+                        locations = [formData.location];
+                      }
+                    }
+                    return Array.isArray(locations) ? locations.join(', ') : String(locations);
+                  })()}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Mapped from PD Duty Station
