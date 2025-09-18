@@ -450,10 +450,10 @@ export default function JobRequisitionDetail() {
                 <label className="text-sm font-medium text-muted-foreground">Mandatory Competencies</label>
                 <p className="text-xs text-muted-foreground mb-2">These competencies are automatically included for all positions:</p>
                 <ul className="mt-1 space-y-1 text-sm">
-                  <li>• <strong>Teamwork:</strong> Develops and promotes effective relationships with colleagues and team members</li>
-                  <li>• <strong>Communicating:</strong> Expresses oneself clearly in conversations and interactions with others</li>
-                  <li>• <strong>Respecting and promoting individual and cultural differences</strong></li>
-                  <li>• <strong>Creating an empowering and motivating environment</strong> (for Supervisory positions only)</li>
+                  <li>• <strong>Teamwork:</strong> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.</li>
+                  <li>• <strong>Communicating:</strong> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.</li>
+                  <li>• <strong>Respecting and promoting individual and cultural differences:</strong> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.</li>
+                  <li>• <strong>Creating an empowering and motivating environment</strong> (for Supervisory positions only): Guides and motivates staff towards meeting challenges and achieving objectives. Promotes ownership and responsibility for desired outcomes at all levels.</li>
                 </ul>
               </div>
 
@@ -472,13 +472,11 @@ export default function JobRequisitionDetail() {
                       
                       const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
                       const definition = getCompetencyDefinition(competencyName);
+                      const [name, ...description] = definition.split(':');
                       
                       return (
                         <li key={index} className="text-sm">
-                          • <strong>{definition.includes(':') ? definition : competencyName}</strong>
-                          {!definition.includes(':') && typeof comp === 'object' && comp.description && (
-                            <span className="text-muted-foreground ml-2">: {comp.description}</span>
-                          )}
+                          • <strong>{name}:</strong> {description.join(':').trim()}
                         </li>
                       );
                     })}
@@ -493,20 +491,21 @@ export default function JobRequisitionDetail() {
                     {requisition.core_competencies.map((comp: any, index: number) => {
                       const getCoreCompetencyDefinition = (compName: string) => {
                         const coreCompetencies = [
-                          'Knowing and managing yourself: Manages ambiguity and pressure in a self-reflective way',
-                          'Producing results: Produces and delivers quality results',
-                          'Moving forward in a changing environment: Is open to and proposes new approaches',
-                          'Setting an example: Acts within UNICC/WHO professional, ethical and legal boundaries'
+                          'Knowing and managing yourself: Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.',
+                          'Producing results: Produces and delivers quality results. Is action oriented and committed to achieving outcomes.',
+                          'Moving forward in a changing environment: Is open to and proposes new approaches and ideas. Adapts and responds positively to change.',
+                          'Setting an example: Acts within UNICC\'s / WHO\'s professional, ethical and legal boundaries and encourages others to adhere to these. Behaves consistently in accordance with clear personal ethics and values.'
                         ];
                         return coreCompetencies.find(def => def.startsWith(compName)) || compName;
                       };
                       
                       const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
                       const definition = getCoreCompetencyDefinition(competencyName);
+                      const [name, ...description] = definition.split(':');
                       
                       return (
                         <li key={index} className="text-sm">
-                          • <strong>{definition}</strong>
+                          • <strong>{name}:</strong> {description.join(':').trim()}
                         </li>
                       );
                     })}
@@ -521,19 +520,20 @@ export default function JobRequisitionDetail() {
                     {requisition.leadership_competencies.map((comp: any, index: number) => {
                       const getLeadershipCompetencyDefinition = (compName: string) => {
                         const leadershipCompetencies = [
-                          'Driving UNICC to a successful future: Demonstrates broad-based understanding of growing ICT complexities',
-                          'Promoting innovation and Organizational learning: Invigorates the Organization by building learning culture',
-                          'Promoting UNICC position: Positions UNICC as a leader in ICT services'
+                          'Driving UNICC to a successful future: Demonstrates a broad-based understanding of the growing complexities of ICT issues and activities. Creates a compelling vision of shared goals, and develops a roadmap for successfully achieving real progress in improving ICT services.',
+                          'Promoting innovation and Organizational learning: Invigorates the Organization by building a culture which encourages learning and development. Sponsors innovative approaches and solutions.',
+                          'Promoting UNICC\'s position: Positions UNICC as a leader in ICT services. Gains support for UNICC\'s mission. Coordinates plans and communicates in a way that attracts support from intended audiences.'
                         ];
                         return leadershipCompetencies.find(def => def.startsWith(compName)) || compName;
                       };
                       
                       const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
                       const definition = getLeadershipCompetencyDefinition(competencyName);
+                      const [name, ...description] = definition.split(':');
                       
                       return (
                         <li key={index} className="text-sm">
-                          • <strong>{definition}</strong>
+                          • <strong>{name}:</strong> {description.join(':').trim()}
                         </li>
                       );
                     })}
@@ -548,18 +548,19 @@ export default function JobRequisitionDetail() {
                     {requisition.management_competencies.map((comp: any, index: number) => {
                       const getManagementCompetencyDefinition = (compName: string) => {
                         const managementCompetencies = [
-                          'Ensuring effective use of resources: Identifies priorities in accordance with UNICC strategic directions',
-                          'Building and promoting partnerships: Develops and strengthens internal and external partnerships'
+                          'Ensuring effective use of resources: Identifies priorities in accordance with UNICC\'s strategic directions. Develops and implements action plans, organizes the necessary resources and monitors outcomes.',
+                          'Building and promoting partnerships across the Organization and beyond: Develops and strengthens internal and external partnerships that can provide information, assistance and support to UNICC. Identifies and uses synergies across the Organization and with external partners.'
                         ];
                         return managementCompetencies.find(def => def.startsWith(compName)) || compName;
                       };
                       
                       const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
                       const definition = getManagementCompetencyDefinition(competencyName);
+                      const [name, ...description] = definition.split(':');
                       
                       return (
                         <li key={index} className="text-sm">
-                          • <strong>{definition}</strong>
+                          • <strong>{name}:</strong> {description.join(':').trim()}
                         </li>
                       );
                     })}

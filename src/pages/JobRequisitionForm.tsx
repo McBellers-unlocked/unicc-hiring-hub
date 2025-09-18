@@ -1008,10 +1008,10 @@ export default function JobRequisitionForm() {
                     <FormDescription>Select core competencies</FormDescription>
                     <div className="space-y-2">
                       {[
-                        'Knowing and managing yourself: Manages ambiguity and pressure in a self-reflective way',
-                        'Producing results: Produces and delivers quality results',
-                        'Moving forward in a changing environment: Is open to and proposes new approaches',
-                        'Setting an example: Acts within UNICC/WHO professional, ethical and legal boundaries'
+                        'Knowing and managing yourself: Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.',
+                        'Producing results: Produces and delivers quality results. Is action oriented and committed to achieving outcomes.',
+                        'Moving forward in a changing environment: Is open to and proposes new approaches and ideas. Adapts and responds positively to change.',
+                        'Setting an example: Acts within UNICC\'s / WHO\'s professional, ethical and legal boundaries and encourages others to adhere to these. Behaves consistently in accordance with clear personal ethics and values.'
                       ].map((competency) => {
                         const key = competency.split(':')[0];
                         const totalSelected = (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
@@ -1036,7 +1036,9 @@ export default function JobRequisitionForm() {
                               disabled={isDisabled}
                               className={isDisabled ? "opacity-50" : ""}
                             />
-                            <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>{competency}</label>
+                            <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>
+                              <strong>{competency.split(':')[0]}:</strong> {competency.split(':').slice(1).join(':').trim()}
+                            </label>
                           </div>
                         );
                       })}
@@ -1055,8 +1057,8 @@ export default function JobRequisitionForm() {
                     <FormDescription>Select management competencies</FormDescription>
                     <div className="space-y-2">
                       {[
-                        'Ensuring effective use of resources: Identifies priorities in accordance with UNICC strategic directions',
-                        'Building and promoting partnerships: Develops and strengthens internal and external partnerships'
+                        'Ensuring effective use of resources: Identifies priorities in accordance with UNICC\'s strategic directions. Develops and implements action plans, organizes the necessary resources and monitors outcomes.',
+                        'Building and promoting partnerships across the Organization and beyond: Develops and strengthens internal and external partnerships that can provide information, assistance and support to UNICC. Identifies and uses synergies across the Organization and with external partners.'
                       ].map((competency) => {
                         const key = competency.split(':')[0];
                         const totalSelected = (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
@@ -1081,7 +1083,9 @@ export default function JobRequisitionForm() {
                               disabled={isDisabled}
                               className={isDisabled ? "opacity-50" : ""}
                             />
-                            <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>{competency}</label>
+                            <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>
+                              <strong>{competency.split(':')[0]}:</strong> {competency.split(':').slice(1).join(':').trim()}
+                            </label>
                           </div>
                         );
                       })}
@@ -1100,9 +1104,9 @@ export default function JobRequisitionForm() {
                     <FormDescription>Select leadership competencies</FormDescription>
                     <div className="space-y-2">
                       {[
-                        'Driving UNICC to a successful future: Demonstrates broad-based understanding of growing ICT complexities',
-                        'Promoting innovation and Organizational learning: Invigorates the Organization by building learning culture',
-                        'Promoting UNICC position: Positions UNICC as a leader in ICT services'
+                        'Driving UNICC to a successful future: Demonstrates a broad-based understanding of the growing complexities of ICT issues and activities. Creates a compelling vision of shared goals, and develops a roadmap for successfully achieving real progress in improving ICT services.',
+                        'Promoting innovation and Organizational learning: Invigorates the Organization by building a culture which encourages learning and development. Sponsors innovative approaches and solutions.',
+                        'Promoting UNICC\'s position: Positions UNICC as a leader in ICT services. Gains support for UNICC\'s mission. Coordinates plans and communicates in a way that attracts support from intended audiences.'
                       ].map((competency) => {
                         const key = competency.split(':')[0];
                         const totalSelected = (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
@@ -1127,7 +1131,9 @@ export default function JobRequisitionForm() {
                               disabled={isDisabled}
                               className={isDisabled ? "opacity-50" : ""}
                             />
-                            <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>{competency}</label>
+                            <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>
+                              <strong>{competency.split(':')[0]}:</strong> {competency.split(':').slice(1).join(':').trim()}
+                            </label>
                           </div>
                         );
                       })}
