@@ -62,9 +62,20 @@ const LOCATIONS = [
 export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisition = false, isConvertedFromRequisition = false, requisitionData }: Props) {
   const { toast } = useToast();
   const [formData, setFormData] = useState(data);
+  const [closingDateOpen, setClosingDateOpen] = useState(false);
+  const [issueDateOpen, setIssueDateOpen] = useState(false);
   
   // Determine if this is a requisition-based job (either converting or already converted)
   const isRequisitionBased = isConvertingFromRequisition || isConvertedFromRequisition;
+
+  // Add debugging
+  console.log('JobWizardStep1 props:', { 
+    isConvertingFromRequisition, 
+    isConvertedFromRequisition, 
+    isRequisitionBased,
+    title: formData.title,
+    notice_no: formData.notice_no
+  });
 
   const updateField = (field: keyof JobFormData, value: any) => {
     const updated = { ...formData, [field]: value };
@@ -346,36 +357,39 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
           {!isRequisitionBased && (
             <div className="space-y-2">
               <Label>Issue Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formData.issue_date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.issue_date ? format(formData.issue_date, "PPP") : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.issue_date || undefined}
-                    onSelect={(date) => updateField('issue_date', date)}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
+               <Popover open={issueDateOpen} onOpenChange={setIssueDateOpen}>
+                 <PopoverTrigger asChild>
+                   <Button
+                     variant="outline"
+                     className={cn(
+                       "w-full justify-start text-left font-normal",
+                       !formData.issue_date && "text-muted-foreground"
+                     )}
+                   >
+                     <CalendarIcon className="mr-2 h-4 w-4" />
+                     {formData.issue_date ? format(formData.issue_date, "PPP") : "Pick a date"}
+                   </Button>
+                 </PopoverTrigger>
+                 <PopoverContent className="w-auto p-0" align="start">
+                   <Calendar
+                     mode="single"
+                     selected={formData.issue_date || undefined}
+                     onSelect={(date) => {
+                       updateField('issue_date', date);
+                       setIssueDateOpen(false);
+                     }}
+                     initialFocus
+                     className="pointer-events-auto"
+                   />
+                 </PopoverContent>
+               </Popover>
             </div>
           )}
 
           {/* Closing Date */}
           <div className="space-y-2">
             <Label>Closing Date *</Label>
-            <Popover>
+            <Popover open={closingDateOpen} onOpenChange={setClosingDateOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -394,8 +408,7 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
                    selected={formData.closing_date || undefined}
                    onSelect={(date) => {
                      updateField('closing_date', date);
-                     // Close the popover after selection
-                     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+                     setClosingDateOpen(false);
                    }}
                    initialFocus
                    className="pointer-events-auto"
