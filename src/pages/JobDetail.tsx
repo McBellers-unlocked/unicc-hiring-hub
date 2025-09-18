@@ -27,6 +27,8 @@ interface Job {
   closing_date: string;
   description_md: string;
   requirements_md: string;
+  language_requirements: string;
+  competencies: string;
   eligibility_note: string;
   privacy_notice_url: string;
   branding: any;
@@ -433,6 +435,48 @@ export default function JobDetail() {
                       className="prose prose-sm max-w-none"
                       dangerouslySetInnerHTML={{ 
                         __html: job.requirements_md
+                          .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline; display: block; margin: 16px 0 8px 0;">$1</strong>')
+                          .replace(/^-\s*/gm, '• ')
+                          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                          .replace(/\n\n/g, '<br><br>')
+                          .replace(/\n/g, '<br>') 
+                      }}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              {job.language_requirements && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Language Requirements</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div 
+                      className="prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ 
+                        __html: job.language_requirements
+                          .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline; display: block; margin: 16px 0 8px 0;">$1</strong>')
+                          .replace(/^-\s*/gm, '• ')
+                          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                          .replace(/\n\n/g, '<br><br>')
+                          .replace(/\n/g, '<br>') 
+                      }}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              {job.competencies && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Competencies</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div 
+                      className="prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ 
+                        __html: job.competencies
                           .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline; display: block; margin: 16px 0 8px 0;">$1</strong>')
                           .replace(/^-\s*/gm, '• ')
                           .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
