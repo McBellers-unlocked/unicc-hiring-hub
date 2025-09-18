@@ -410,7 +410,14 @@ export default function JobDetail() {
                   <CardContent>
                     <div 
                       className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: job.description_md.replace(/\n/g, '<br>') }}
+                      dangerouslySetInnerHTML={{ 
+                        __html: job.description_md
+                          .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline; display: block; margin: 16px 0 8px 0;">$1</strong>')
+                          .replace(/^-\s*/gm, '• ')
+                          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                          .replace(/\n\n/g, '<br><br>')
+                          .replace(/\n/g, '<br>') 
+                      }}
                     />
                   </CardContent>
                 </Card>
@@ -424,7 +431,14 @@ export default function JobDetail() {
                   <CardContent>
                     <div 
                       className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: job.requirements_md.replace(/\n/g, '<br>') }}
+                      dangerouslySetInnerHTML={{ 
+                        __html: job.requirements_md
+                          .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline; display: block; margin: 16px 0 8px 0;">$1</strong>')
+                          .replace(/^-\s*/gm, '• ')
+                          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                          .replace(/\n\n/g, '<br><br>')
+                          .replace(/\n/g, '<br>') 
+                      }}
                     />
                   </CardContent>
                 </Card>

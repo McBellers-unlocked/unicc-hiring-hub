@@ -143,9 +143,9 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
                 className="prose prose-sm max-w-none text-foreground"
                 dangerouslySetInnerHTML={{ 
                   __html: languageContent
-                    .replace(/^#+\s*/gm, '<strong>')
-                    .replace(/(?<=<strong>.*?)$/gm, '</strong>')
+                    .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline;">$1</strong>')
                     .replace(/^-\s*/gm, '• ')
+                    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
                     .replace(/\n/g, '<br>') 
                 }}
               />
@@ -166,9 +166,9 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
                 className="prose prose-sm max-w-none text-foreground"
                 dangerouslySetInnerHTML={{ 
                   __html: competenciesContent
-                    .replace(/^#+\s*/gm, '<strong>')
-                    .replace(/(?<=<strong>.*?)$/gm, '</strong>')
+                    .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline;">$1</strong>')
                     .replace(/^-\s*/gm, '• ')
+                    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
                     .replace(/\n/g, '<br>') 
                 }}
               />
