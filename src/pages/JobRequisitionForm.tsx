@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, Send, FileText, Briefcase, ChevronDown, CheckCircle2 } from "lucide-react";
+import MDEditor from '@uiw/react-md-editor';
 
 // Organizational structure
 const DIVISIONS = {
@@ -114,6 +115,10 @@ const requisitionSchema = z.object({
   management_competencies: z.array(z.string()).optional(),
   leadership_competencies: z.array(z.string()).optional(),
   un_language_advantage: z.boolean().optional(),
+  is_supervisor_role: z.boolean().optional(),
+  french_level: z.string().optional(),
+  spanish_level: z.string().optional(),
+  italian_level: z.string().optional(),
   confirmChiefApproval: z.boolean().refine(val => val === true, {
     message: "You must confirm Chief of Division approval"
   }),
@@ -137,6 +142,7 @@ export default function JobRequisitionForm() {
   const [selectedCoreCompetencies, setSelectedCoreCompetencies] = useState<string[]>([]);
   const [selectedManagementCompetencies, setSelectedManagementCompetencies] = useState<string[]>([]);
   const [selectedLeadershipCompetencies, setSelectedLeadershipCompetencies] = useState<string[]>([]);
+  const [isSupervisorRole, setIsSupervisorRole] = useState<boolean>(false);
 
   const form = useForm<RequisitionFormData>({
     resolver: zodResolver(requisitionSchema),
@@ -161,6 +167,10 @@ export default function JobRequisitionForm() {
       management_competencies: [],
       leadership_competencies: [],
       un_language_advantage: false,
+      is_supervisor_role: false,
+      french_level: "",
+      spanish_level: "",
+      italian_level: "",
       confirmChiefApproval: false,
     },
   });
@@ -848,10 +858,12 @@ export default function JobRequisitionForm() {
                   <FormItem>
                     <FormLabel>Main Duties and Responsibilities *</FormLabel>
                     <FormControl>
-                      <Textarea 
-                        placeholder="List the main duties and responsibilities. Use WHAT, WHY, HOW structure for each duty..."
-                        className="min-h-[200px]"
-                        {...field} 
+                      <MDEditor
+                        value={field.value}
+                        onChange={(val) => field.onChange(val || "")}
+                        preview="edit"
+                        hideToolbar={false}
+                        data-color-mode="light"
                       />
                     </FormControl>
                     <FormDescription>
@@ -878,10 +890,12 @@ export default function JobRequisitionForm() {
                     <FormItem>
                       <FormLabel>Essential Experience *</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="e.g., At least 5 years of experience in ICT systems..."
-                          className="min-h-[100px]"
-                          {...field} 
+                        <MDEditor
+                          value={field.value}
+                          onChange={(val) => field.onChange(val || "")}
+                          preview="edit"
+                          hideToolbar={false}
+                          data-color-mode="light"
                         />
                       </FormControl>
                       <FormMessage />
@@ -895,10 +909,12 @@ export default function JobRequisitionForm() {
                     <FormItem>
                       <FormLabel>Desirable Experience</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Additional experience that would be beneficial..."
-                          className="min-h-[100px]"
-                          {...field} 
+                        <MDEditor
+                          value={field.value}
+                          onChange={(val) => field.onChange(val || "")}
+                          preview="edit"
+                          hideToolbar={false}
+                          data-color-mode="light"
                         />
                       </FormControl>
                       <FormMessage />
@@ -915,10 +931,12 @@ export default function JobRequisitionForm() {
                     <FormItem>
                       <FormLabel>Essential Education *</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="e.g., Advanced university degree in Computer Science..."
-                          className="min-h-[100px]"
-                          {...field} 
+                        <MDEditor
+                          value={field.value}
+                          onChange={(val) => field.onChange(val || "")}
+                          preview="edit"
+                          hideToolbar={false}
+                          data-color-mode="light"
                         />
                       </FormControl>
                       <FormMessage />
@@ -932,10 +950,12 @@ export default function JobRequisitionForm() {
                     <FormItem>
                       <FormLabel>Desirable Education</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Additional qualifications that would be beneficial..."
-                          className="min-h-[100px]"
-                          {...field} 
+                        <MDEditor
+                          value={field.value}
+                          onChange={(val) => field.onChange(val || "")}
+                          preview="edit"
+                          hideToolbar={false}
+                          data-color-mode="light"
                         />
                       </FormControl>
                       <FormMessage />
@@ -962,8 +982,133 @@ export default function JobRequisitionForm() {
                     </div>
                   </div>
                 </div>
+                
                 <div>
-                  <h4 className="font-medium mb-2">Additional Language Skills</h4>
+                  <h4 className="font-medium mb-3">Additional Language Skills</h4>
+                  <div className="space-y-4">
+                    {/* French */}
+                    <div>
+                      <FormField
+                        control={form.control}
+                        name="french_level"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>French</FormLabel>
+                            <div className="flex items-center space-x-4">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="french_beginner"
+                                  checked={field.value === "beginner"}
+                                  onCheckedChange={(checked) => field.onChange(checked ? "beginner" : "")}
+                                />
+                                <label htmlFor="french_beginner" className="text-sm">Beginner</label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="french_intermediate"
+                                  checked={field.value === "intermediate"}
+                                  onCheckedChange={(checked) => field.onChange(checked ? "intermediate" : "")}
+                                />
+                                <label htmlFor="french_intermediate" className="text-sm">Intermediate</label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="french_expert"
+                                  checked={field.value === "expert"}
+                                  onCheckedChange={(checked) => field.onChange(checked ? "expert" : "")}
+                                />
+                                <label htmlFor="french_expert" className="text-sm">Expert</label>
+                              </div>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    {/* Spanish */}
+                    <div>
+                      <FormField
+                        control={form.control}
+                        name="spanish_level"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Spanish</FormLabel>
+                            <div className="flex items-center space-x-4">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="spanish_beginner"
+                                  checked={field.value === "beginner"}
+                                  onCheckedChange={(checked) => field.onChange(checked ? "beginner" : "")}
+                                />
+                                <label htmlFor="spanish_beginner" className="text-sm">Beginner</label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="spanish_intermediate"
+                                  checked={field.value === "intermediate"}
+                                  onCheckedChange={(checked) => field.onChange(checked ? "intermediate" : "")}
+                                />
+                                <label htmlFor="spanish_intermediate" className="text-sm">Intermediate</label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="spanish_expert"
+                                  checked={field.value === "expert"}
+                                  onCheckedChange={(checked) => field.onChange(checked ? "expert" : "")}
+                                />
+                                <label htmlFor="spanish_expert" className="text-sm">Expert</label>
+                              </div>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    {/* Italian */}
+                    <div>
+                      <FormField
+                        control={form.control}
+                        name="italian_level"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Italian</FormLabel>
+                            <div className="flex items-center space-x-4">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="italian_beginner"
+                                  checked={field.value === "beginner"}
+                                  onCheckedChange={(checked) => field.onChange(checked ? "beginner" : "")}
+                                />
+                                <label htmlFor="italian_beginner" className="text-sm">Beginner</label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="italian_intermediate"
+                                  checked={field.value === "intermediate"}
+                                  onCheckedChange={(checked) => field.onChange(checked ? "intermediate" : "")}
+                                />
+                                <label htmlFor="italian_intermediate" className="text-sm">Intermediate</label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="italian_expert"
+                                  checked={field.value === "expert"}
+                                  onCheckedChange={(checked) => field.onChange(checked ? "expert" : "")}
+                                />
+                                <label htmlFor="italian_expert" className="text-sm">Expert</label>
+                              </div>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="un_language_advantage"
@@ -989,13 +1134,44 @@ export default function JobRequisitionForm() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
+                <h4 className="font-medium mb-3">Role Type</h4>
+                <FormField
+                  control={form.control}
+                  name="is_supervisor_role"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={(checked) => {
+                            field.onChange(checked);
+                            setIsSupervisorRole(!!checked);
+                          }}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          This is a supervisor role
+                        </FormLabel>
+                        <FormDescription>
+                          Check this if the position involves supervising staff members
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div>
                 <h4 className="font-medium mb-3">Mandatory Competencies</h4>
                 <p className="text-sm text-muted-foreground mb-2">These competencies are automatically included for all positions:</p>
                 <ul className="text-sm space-y-1">
                   <li>• <span className="font-bold">Teamwork:</span> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.</li>
                   <li>• <span className="font-bold">Communicating:</span> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.</li>
                   <li>• <span className="font-bold">Respecting and promoting individual and cultural differences:</span> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.</li>
-                  <li>• <span className="font-bold">Creating an empowering and motivating environment</span> (for Supervisory positions only): Guides and motivates staff towards meeting challenges and achieving objectives. Promotes ownership and responsibility for desired outcomes at all levels.</li>
+                  {(form.watch('is_supervisor_role') || isSupervisorRole) && (
+                    <li>• <span className="font-bold">Creating an empowering and motivating environment:</span> Guides and motivates staff towards meeting challenges and achieving objectives. Promotes ownership and responsibility for desired outcomes at all levels.</li>
+                  )}
                 </ul>
               </div>
 
