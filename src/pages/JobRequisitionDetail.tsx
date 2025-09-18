@@ -507,16 +507,6 @@ export default function JobRequisitionDetail() {
           <CardContent>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                {requisition.chief_of_division_approval ? (
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                ) : (
-                  <Clock className="h-5 w-5 text-gray-400" />
-                )}
-                <span className={requisition.chief_of_division_approval ? "text-green-700" : "text-gray-500"}>
-                  Chief of Division Approval
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
                 {requisition.hr_reviewed ? (
                   <CheckCircle className="h-5 w-5 text-green-500" />
                 ) : (
@@ -537,12 +527,12 @@ export default function JobRequisitionDetail() {
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                {requisition.deputy_director_approval ? (
+                {requisition.chief_of_division_approval ? (
                   <CheckCircle className="h-5 w-5 text-green-500" />
                 ) : (
                   <Clock className="h-5 w-5 text-gray-400" />
                 )}
-                <span className={requisition.deputy_director_approval ? "text-green-700" : "text-gray-500"}>
+                <span className={requisition.chief_of_division_approval ? "text-green-700" : "text-gray-500"}>
                   Chief of Division Final Approval
                 </span>
               </div>
