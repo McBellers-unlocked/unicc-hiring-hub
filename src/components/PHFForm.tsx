@@ -411,6 +411,27 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
     }
   };
 
+  const handleNextSection = async () => {
+    setIsSubmitting(true);
+    try {
+      const formData = form.getValues();
+      await onSave(formData, false);
+      setCurrentSection(Math.min(SECTIONS.length - 1, currentSection + 1));
+      toast({
+        title: 'Progress Saved',
+        description: 'Moving to next section. Progress saved.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Save Failed',
+        description: 'There was an error saving your progress.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const DatePicker = ({ field, label, disabled }: any) => {
     const [currentDate, setCurrentDate] = useState(field.value instanceof Date ? field.value : new Date());
     const [inputValue, setInputValue] = useState(
@@ -2587,7 +2608,8 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
               {currentSection < SECTIONS.length - 1 ? (
                 <Button
                   type="button"
-                  onClick={() => setCurrentSection(Math.min(SECTIONS.length - 1, currentSection + 1))}
+                  onClick={handleNextSection}
+                  disabled={isSubmitting}
                 >
                   Next
                 </Button>
