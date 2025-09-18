@@ -388,15 +388,19 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
                   {formData.closing_date ? format(formData.closing_date, "PPP p") : "Pick date & time"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={formData.closing_date || undefined}
-                  onSelect={(date) => updateField('closing_date', date)}
-                  initialFocus
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
+               <PopoverContent className="w-auto p-0" align="start">
+                 <Calendar
+                   mode="single"
+                   selected={formData.closing_date || undefined}
+                   onSelect={(date) => {
+                     updateField('closing_date', date);
+                     // Close the popover after selection
+                     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+                   }}
+                   initialFocus
+                   className="pointer-events-auto"
+                 />
+               </PopoverContent>
             </Popover>
             {isRequisitionBased && (
               <p className="text-xs text-muted-foreground">

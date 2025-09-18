@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
 
     const jobData = {
       title: requisition.position_title,
-      notice_no: `${requisition.reference_number}-JOB`,
+      notice_no: requisition.reference_number,
       grade: requisition.grade,
       type: jobType,
       location: requisition.duty_station,
@@ -121,15 +121,36 @@ ${requisition.essential_education || ''}
 
 ${requisition.desirable_education || ''}
       `.trim(),
-      language_requirements: requisition.language_requirements ? 
-        (typeof requisition.language_requirements === 'object' ? 
-          Object.entries(requisition.language_requirements).map(([lang, level]) => 
-            `- **${lang.charAt(0).toUpperCase() + lang.slice(1)}**: ${level}`
-          ).join('\n') : 
-          String(requisition.language_requirements)
-        ) : '',
+      language_requirements: (() => {
+        let langReq = '# Language Requirements\n\n- **English**: Expert knowledge is required\n';
+        if ((requisition as any).un_language_advantage) {
+          langReq += '- Knowledge of another UN language would be an advantage\n';
+        }
+        if (requisition.language_requirements) {
+          if (typeof requisition.language_requirements === 'object') {
+            const additional = Object.entries(requisition.language_requirements)
+              .filter(([lang]) => lang.toLowerCase() !== 'english')
+              .map(([lang, level]) => `- **${lang.charAt(0).toUpperCase() + lang.slice(1)}**: ${level}`)
+              .join('\n');
+            if (additional) langReq += additional;
+          } else {
+            langReq += requisition.language_requirements;
+          }
+        }
+        return langReq;
+      })(),
       competencies: (() => {
         const competencyGroups = [];
+        
+        // Add mandatory competencies first
+        const mandatoryCompetencies = [
+          'Teamwork: Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.',
+          'Communicating: Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.',
+          'Respecting and promoting individual and cultural differences: Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.',
+          'Creating an empowering and motivating environment (only for Supervisors please select if the position is meant to hold formal hierarchy under it) Guides and motivates staff towards meeting challenges and achieving objectives. Promotes ownership and responsibility for desired outcomes at all levels.'
+        ];
+        
+        competencyGroups.push('# Mandatory Competencies\n\n' + mandatoryCompetencies.map(comp => `- ${comp}`).join('\n'));
         
         if (requisition.global_competencies?.length) {
           competencyGroups.push('# Global Competencies\n\n' + requisition.global_competencies.map(comp => `- ${comp}`).join('\n'));
