@@ -71,11 +71,17 @@ export default function JobRequisitionDetail() {
 
   const fetchRequisition = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('job_requisitions')
         .select('*')
-        .eq('id', id)
-        .single();
+        .eq('id', id);
+
+      // If user is only a hiring manager (not admin/HR), restrict to their own requisitions
+      if (userRoles.includes('Hiring Manager') && !userRoles.includes('Admin') && !userRoles.includes('HR Assistant')) {
+        query = query.eq('created_by', user?.id);
+      }
+
+      const { data, error } = await query.single();
 
       if (error) throw error;
       setRequisition(data);
@@ -291,14 +297,27 @@ export default function JobRequisitionDetail() {
               Accept HR Changes
             </Button>
           )}
-          <Button variant="outline" onClick={() => navigate(`/requisitions/${requisition.id}/edit`)}>
-            Edit
-          </Button>
-          <Button variant="outline" onClick={generatePDF}>
-            <FileText className="h-4 w-4 mr-2" />
-            Generate PDF
-          </Button>
-          {requisition.director_approval && !requisition.converted_to_job_id && (
+          
+          {/* Edit button - hiring managers can only edit drafts or amendments */}
+          {(userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
+           (userRoles.includes('Hiring Manager') && requisition.created_by === user?.id && 
+            (requisition.status === 'draft' || requisition.status === 'hr_amendments'))) && (
+            <Button variant="outline" onClick={() => navigate(`/requisitions/${requisition.id}/edit`)}>
+              Edit
+            </Button>
+          )}
+          
+          {/* PDF generation - only for Admin and HR Assistant */}
+          {(userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
+            <Button variant="outline" onClick={generatePDF}>
+              <FileText className="h-4 w-4 mr-2" />
+              Generate PDF
+            </Button>
+          )}
+          
+          {/* Convert to Job - only for Admin and HR Assistant */}
+          {requisition.director_approval && !requisition.converted_to_job_id && 
+           (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
             <Button onClick={convertToJob}>
               <Briefcase className="h-4 w-4 mr-2" />
               Convert to Job

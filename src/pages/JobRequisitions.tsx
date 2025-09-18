@@ -15,6 +15,7 @@ interface JobRequisition {
   position_title: string;
   status: string;
   created_at: string;
+  created_by: string;
   hr_reviewed: boolean;
   hr_reviewed_at: string | null;
   hr_sent_at: string | null;
@@ -51,10 +52,16 @@ export default function JobRequisitions() {
 
   const fetchRequisitions = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('job_requisitions')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
+
+      // Hiring managers should only see their own requisitions
+      if (userRoles.includes('Hiring Manager') && !userRoles.includes('Admin') && !userRoles.includes('HR Assistant')) {
+        query = query.eq('created_by', user?.id);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
       setRequisitions(data || []);
@@ -265,7 +272,8 @@ export default function JobRequisitions() {
                       >
                         View Details
                       </Button>
-                      {requisition.pdf_url && (
+                      {/* Only show PDF for Admin and HR Assistant */}
+                      {requisition.pdf_url && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
                         <Button
                           variant="outline"
                           size="sm"
