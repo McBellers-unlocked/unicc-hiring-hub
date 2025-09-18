@@ -25,6 +25,7 @@ import JobRequisitionDetail from "./pages/JobRequisitionDetail";
 import JobRequisitionHREdit from "./pages/JobRequisitionHREdit";
 import ChiefOfDivisionView from "./pages/ChiefOfDivisionView";
 import DirectorView from "./pages/DirectorView";
+import MyApplications from "./pages/MyApplications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/my-applications" element={<MyApplications />} />
             <Route path="/jobs" element={<Jobs />} />
             <Route path="/jobs/:slug" element={<JobDetail />} />
             <Route path="/apply/:jobId" element={<JobApplication />} />

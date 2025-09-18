@@ -100,6 +100,7 @@ export default function JobApplication() {
 
       setJob(jobResponse.data);
       setKillerQuestions(questionsResponse.data || []);
+      console.log('Loaded killer questions:', questionsResponse.data);
     } catch (error) {
       console.error('Error fetching job:', error);
       toast({
@@ -640,6 +641,9 @@ export default function JobApplication() {
 
 
           {/* Killer Questions */}
+          <div className="mb-4">
+            <p className="text-sm text-gray-600">Debug: Found {killerQuestions.length} killer questions</p>
+          </div>
           {killerQuestions.length > 0 && (
             <Card>
               <CardHeader>
