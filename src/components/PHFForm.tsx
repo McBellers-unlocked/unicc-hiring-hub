@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -263,6 +263,11 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const { toast } = useToast();
+
+  // Update current section when initialTab changes (e.g., when loading saved progress)
+  useEffect(() => {
+    setCurrentSection(initialTab);
+  }, [initialTab]);
 
   const form = useForm<PHFFormData>({
     resolver: zodResolver(phfSchema),
@@ -2656,42 +2661,74 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
           <Tabs value={currentSection.toString()} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-5 gap-1 h-auto p-1">
-              {SECTIONS.slice(0, 5).map((section, index) => (
-                <TabsTrigger 
-                  key={index} 
-                  value={index.toString()}
-                  className="text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  title={section}
-                >
-                  {index + 1}. {section}
-                </TabsTrigger>
-              ))}
+               {SECTIONS.slice(0, 5).map((section, index) => {
+                 const isAccessible = completedTabs.has(index);
+                 return (
+                   <TabsTrigger 
+                     key={index} 
+                     value={index.toString()}
+                     disabled={!isAccessible}
+                     className={cn(
+                       "text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
+                       !isAccessible && "opacity-50 cursor-not-allowed bg-muted text-muted-foreground",
+                       isAccessible && completedTabs.has(index) && index !== currentSection && "bg-green-100 text-green-700"
+                     )}
+                     title={section}
+                   >
+                     {index + 1}. {section}
+                     {!isAccessible && " 🔒"}
+                     {isAccessible && index < currentSection && " ✓"}
+                   </TabsTrigger>
+                 );
+               })}
             </TabsList>
             
             <TabsList className="grid w-full grid-cols-5 gap-1 h-auto p-1 mt-1">
-              {SECTIONS.slice(5, 10).map((section, index) => (
-                <TabsTrigger 
-                  key={index + 5} 
-                  value={(index + 5).toString()}
-                  className="text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  title={section}
-                >
-                  {index + 6}. {section}
-                </TabsTrigger>
-              ))}
+               {SECTIONS.slice(5, 10).map((section, index) => {
+                 const tabIndex = index + 5;
+                 const isAccessible = completedTabs.has(tabIndex);
+                 return (
+                   <TabsTrigger 
+                     key={tabIndex} 
+                     value={tabIndex.toString()}
+                     disabled={!isAccessible}
+                     className={cn(
+                       "text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
+                       !isAccessible && "opacity-50 cursor-not-allowed bg-muted text-muted-foreground",
+                       isAccessible && tabIndex < currentSection && "bg-green-100 text-green-700"
+                     )}
+                     title={section}
+                   >
+                     {tabIndex + 1}. {section}
+                     {!isAccessible && " 🔒"}
+                     {isAccessible && tabIndex < currentSection && " ✓"}
+                   </TabsTrigger>
+                 );
+               })}
             </TabsList>
             
             <TabsList className="grid w-full grid-cols-5 gap-1 h-auto p-1 mt-1">
-              {SECTIONS.slice(10, 15).map((section, index) => (
-                <TabsTrigger 
-                  key={index + 10} 
-                  value={(index + 10).toString()}
-                  className="text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  title={section}
-                >
-                  {index + 11}. {section}
-                </TabsTrigger>
-              ))}
+               {SECTIONS.slice(10, 15).map((section, index) => {
+                 const tabIndex = index + 10;
+                 const isAccessible = completedTabs.has(tabIndex);
+                 return (
+                   <TabsTrigger 
+                     key={tabIndex} 
+                     value={tabIndex.toString()}
+                     disabled={!isAccessible}
+                     className={cn(
+                       "text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
+                       !isAccessible && "opacity-50 cursor-not-allowed bg-muted text-muted-foreground",
+                       isAccessible && tabIndex < currentSection && "bg-green-100 text-green-700"
+                     )}
+                     title={section}
+                   >
+                     {tabIndex + 1}. {section}
+                     {!isAccessible && " 🔒"}
+                     {isAccessible && tabIndex < currentSection && " ✓"}
+                   </TabsTrigger>
+                 );
+               })}
             </TabsList>
 
             {SECTIONS.map((section, index) => (

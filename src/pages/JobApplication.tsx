@@ -66,6 +66,8 @@ export default function JobApplication() {
   
   // Function to determine the next incomplete tab
   const getNextIncompleteTab = () => {
+    if (completedTabs.size === 0) return 0; // Start with eligibility questions
+    
     const sortedCompleted = Array.from(completedTabs).sort((a, b) => a - b);
     
     // Find the first gap or return the next number after the highest completed
@@ -80,7 +82,10 @@ export default function JobApplication() {
     
     // No gaps found, return next after highest completed (max 14 for 15 tabs total)
     const highest = Math.max(...sortedCompleted);
-    return Math.min(highest + 1, 14);
+    const nextTab = highest + 1;
+    
+    // If all tabs are completed, stay on the last tab
+    return nextTab > 14 ? 14 : nextTab;
   };
 
   // Function to mark tab as completed and unlock next tab
@@ -481,6 +486,9 @@ export default function JobApplication() {
                     setKillerAnswers(prev => ({ ...prev, [questionId]: answer }))
                   }
                   disqualified={disqualified}
+                  completedTabs={completedTabs}
+                  onTabCompleted={markTabCompleted}
+                  initialTab={getNextIncompleteTab()}
                 />
               </CardContent>
             </Card>
