@@ -207,6 +207,9 @@ interface PHFFormProps {
   killerAnswers?: Record<string, any>;
   onKillerAnswerChange?: (questionId: string, answer: any) => void;
   disqualified?: boolean;
+  completedTabs?: Set<number>;
+  onTabCompleted?: (tabIndex: number) => void;
+  initialTab?: number;
 }
 
 const SECTIONS = [
@@ -254,8 +257,8 @@ I acknowledge that my application and all supporting documents will be held in c
 
 I confirm that I have read and agree to the Privacy Notice for Applicants and understand how my personal data will be processed.`;
 
-export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = [], killerAnswers = {}, onKillerAnswerChange, disqualified = false }: PHFFormProps) {
-  const [currentSection, setCurrentSection] = useState(0);
+export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = [], killerAnswers = {}, onKillerAnswerChange, disqualified = false, completedTabs = new Set([0]), onTabCompleted, initialTab = 0 }: PHFFormProps) {
+  const [currentSection, setCurrentSection] = useState(initialTab);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -447,7 +450,11 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     try {
       const formData = form.getValues();
       await onSave(formData, false);
+      
+      // Mark current tab as completed and move to next
+      onTabCompleted?.(currentSection);
       setCurrentSection(Math.min(SECTIONS.length - 1, currentSection + 1));
+      
       toast({
         title: 'Progress Saved',
         description: 'Moving to next section. Progress saved.',
@@ -460,6 +467,14 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleTabChange = (value: string) => {
+    const targetTab = parseInt(value);
+    // Only allow access to completed tabs or the next available tab
+    if (completedTabs.has(targetTab)) {
+      setCurrentSection(targetTab);
     }
   };
 
@@ -2618,9 +2633,6 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     }
   };
 
-  const handleTabChange = (value: string) => {
-    setCurrentSection(parseInt(value));
-  };
 
   const progress = ((currentSection + 1) / SECTIONS.length) * 100;
 

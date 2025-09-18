@@ -46,6 +46,7 @@ export default function JobApplication() {
   
   const [killerAnswers, setKillerAnswers] = useState<Record<string, any>>({});
   const [phfData, setPHFData] = useState<any>({});
+  const [completedTabs, setCompletedTabs] = useState<Set<number>>(new Set([0])); // Tab 0 starts accessible
   
   // Validation states
   const [disqualified, setDisqualified] = useState(false);
@@ -62,16 +63,48 @@ export default function JobApplication() {
   useEffect(() => {
     validateKillerQuestions();
   }, [killerAnswers, killerQuestions]);
+  
+  // Function to determine the next incomplete tab
+  const getNextIncompleteTab = () => {
+    const sortedCompleted = Array.from(completedTabs).sort((a, b) => a - b);
+    
+    // Find the first gap or return the next number after the highest completed
+    for (let i = 0; i < sortedCompleted.length; i++) {
+      if (i === 0 && sortedCompleted[i] > 0) {
+        return 0; // Gap at the beginning
+      }
+      if (i < sortedCompleted.length - 1 && sortedCompleted[i + 1] - sortedCompleted[i] > 1) {
+        return sortedCompleted[i] + 1; // Gap in the middle
+      }
+    }
+    
+    // No gaps found, return next after highest completed (max 14 for 15 tabs total)
+    const highest = Math.max(...sortedCompleted);
+    return Math.min(highest + 1, 14);
+  };
+
+  // Function to mark tab as completed and unlock next tab
+  const markTabCompleted = (tabIndex: number) => {
+    const newCompleted = new Set(completedTabs);
+    newCompleted.add(tabIndex);
+    
+    // Also unlock the next tab if it exists
+    if (tabIndex < 14) {
+      newCompleted.add(tabIndex + 1);
+    }
+    
+    setCompletedTabs(newCompleted);
+  };
 
   const fetchJobAndQuestions = async () => {
     try {
       const [jobResponse, questionsResponse] = await Promise.all([
         supabase
           .from('jobs')
-          .select('id, title, location, closing_date, org_unit, timezone')
+          .select('*')
           .eq('id', jobId)
           .eq('status', 'active')
-          .maybeSingle(),
+          .single(),
         supabase
           .from('killer_questions')
           .select('*')
@@ -120,6 +153,9 @@ export default function JobApplication() {
           }
           if (progressData.killerAnswers) {
             setKillerAnswers(progressData.killerAnswers);
+          }
+          if (progressData.completedTabs) {
+            setCompletedTabs(new Set(progressData.completedTabs));
           }
           console.log('Loaded progress from localStorage:', progressData);
         } catch (e) {
@@ -225,6 +261,7 @@ export default function JobApplication() {
         const progressData = {
           phfData,
           killerAnswers,
+          completedTabs: Array.from(completedTabs),
           timestamp: new Date().toISOString()
         };
         localStorage.setItem(progressKey, JSON.stringify(progressData));
