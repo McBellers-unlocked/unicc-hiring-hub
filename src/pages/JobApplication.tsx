@@ -109,6 +109,25 @@ export default function JobApplication() {
 
   const loadExistingApplication = async () => {
     try {
+      // First check localStorage for saved progress
+      const progressKey = `phf_progress_${jobId}`;
+      const savedProgress = localStorage.getItem(progressKey);
+      if (savedProgress) {
+        try {
+          const progressData = JSON.parse(savedProgress);
+          if (progressData.phfData) {
+            setPHFData(progressData.phfData);
+          }
+          if (progressData.killerAnswers) {
+            setKillerAnswers(progressData.killerAnswers);
+          }
+          console.log('Loaded progress from localStorage:', progressData);
+        } catch (e) {
+          console.error('Error parsing saved progress:', e);
+          localStorage.removeItem(progressKey);
+        }
+      }
+
       // Try to get user's email from current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.email) return;
@@ -200,6 +219,25 @@ export default function JobApplication() {
     try {
       setSubmitting(true);
 
+      // For partial saves (progress), save to localStorage for persistence
+      if (!isComplete) {
+        const progressKey = `phf_progress_${jobId}`;
+        const progressData = {
+          phfData,
+          killerAnswers,
+          timestamp: new Date().toISOString()
+        };
+        localStorage.setItem(progressKey, JSON.stringify(progressData));
+        
+        setPHFData(phfData);
+        toast({
+          title: "Progress saved",
+          description: "Your progress has been saved.",
+        });
+        return;
+      }
+
+      // Only for complete submissions, do the full validation and database operations
       // Check if killer questions are answered and validate
       const unansweredQuestions = killerQuestions.filter(q => 
         killerAnswers[q.id] === undefined || killerAnswers[q.id] === null || killerAnswers[q.id] === ''
@@ -226,7 +264,7 @@ export default function JobApplication() {
       // Get user's email from PHF data
       const userEmail = phfData.personalDetails?.email;
       if (!userEmail) {
-        throw new Error('Email is required');
+        throw new Error('Email is required for submission');
       }
 
       // Create or find candidate
@@ -299,6 +337,10 @@ export default function JobApplication() {
         setApplicationId(application.id);
       }
 
+      // Clear saved progress since application is now submitted
+      const progressKey = `phf_progress_${jobId}`;
+      localStorage.removeItem(progressKey);
+      
       setCurrentStep('success');
       toast({
         title: "Application submitted successfully!",
