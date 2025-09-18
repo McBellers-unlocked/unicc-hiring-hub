@@ -88,16 +88,10 @@ export default function JobApplication() {
     return nextTab > 14 ? 14 : nextTab;
   };
 
-  // Function to mark tab as completed and unlock next tab
+  // Function to mark tab as completed
   const markTabCompleted = (tabIndex: number) => {
     const newCompleted = new Set(completedTabs);
     newCompleted.add(tabIndex);
-    
-    // Also unlock the next tab if it exists
-    if (tabIndex < 14) {
-      newCompleted.add(tabIndex + 1);
-    }
-    
     setCompletedTabs(newCompleted);
   };
 
