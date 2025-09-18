@@ -72,11 +72,24 @@ export default function Jobs() {
           jobCities = [String(parsed)];
         }
       } catch {
-        // Parse as comma-separated string (for manually created jobs)
-        const parts = job.location.split(',').map(part => part.trim());
-        for (let i = 0; i < parts.length; i += 2) {
-          if (parts[i]) {
-            jobCities.push(parts[i]);
+        // Check if it's a single city name (for converted jobs)
+        const locationMap: Record<string, string> = {
+          'Geneva': 'Switzerland',
+          'Valencia': 'Spain',
+          'New York': 'USA',
+          'Brindisi': 'Italy',
+          'Rome': 'Italy'
+        };
+        
+        if (locationMap[job.location]) {
+          jobCities = [job.location];
+        } else {
+          // Parse as comma-separated string (for manually created jobs)
+          const parts = job.location.split(',').map(part => part.trim());
+          for (let i = 0; i < parts.length; i += 2) {
+            if (parts[i]) {
+              jobCities.push(parts[i]);
+            }
           }
         }
       }
@@ -101,11 +114,24 @@ export default function Jobs() {
             allLocations.push(String(parsed));
           }
         } catch {
-          // Parse as comma-separated string (for manually created jobs)
-          const parts = job.location.split(',').map(part => part.trim());
-          for (let i = 0; i < parts.length; i += 2) {
-            if (parts[i]) {
-              allLocations.push(parts[i]);
+          // Check if it's a single city name (for converted jobs)
+          const locationMap: Record<string, string> = {
+            'Geneva': 'Switzerland',
+            'Valencia': 'Spain',
+            'New York': 'USA',
+            'Brindisi': 'Italy',
+            'Rome': 'Italy'
+          };
+          
+          if (locationMap[job.location]) {
+            allLocations.push(job.location);
+          } else {
+            // Parse as comma-separated string (for manually created jobs)
+            const parts = job.location.split(',').map(part => part.trim());
+            for (let i = 0; i < parts.length; i += 2) {
+              if (parts[i]) {
+                allLocations.push(parts[i]);
+              }
             }
           }
         }
@@ -151,11 +177,24 @@ export default function Jobs() {
           jobCities = [String(parsed)];
         }
       } catch {
-        // Parse as comma-separated string (for manually created jobs)
-        const parts = job.location.split(',').map(part => part.trim());
-        for (let i = 0; i < parts.length; i += 2) {
-          if (parts[i]) {
-            jobCities.push(parts[i]);
+        // Check if it's a single city name (for converted jobs)
+        const locationMap: Record<string, string> = {
+          'Geneva': 'Switzerland',
+          'Valencia': 'Spain',
+          'New York': 'USA',
+          'Brindisi': 'Italy',
+          'Rome': 'Italy'
+        };
+        
+        if (locationMap[job.location]) {
+          jobCities = [job.location];
+        } else {
+          // Parse as comma-separated string (for manually created jobs)
+          const parts = job.location.split(',').map(part => part.trim());
+          for (let i = 0; i < parts.length; i += 2) {
+            if (parts[i]) {
+              jobCities.push(parts[i]);
+            }
           }
         }
       }
@@ -414,14 +453,28 @@ export default function Jobs() {
                                         locations = [{ city: city, country: locationMap[city] || 'International' }];
                                       }
                                     } catch {
-                                      // Parse as comma-separated string (for manually created jobs)
-                                      const parts = job.location.split(',').map(part => part.trim());
-                                      for (let i = 0; i < parts.length; i += 2) {
-                                        if (parts[i] && parts[i + 1]) {
-                                          locations.push({
-                                            city: parts[i],
-                                            country: parts[i + 1]
-                                          });
+                                      // Check if it's a single city name (for converted jobs)
+                                      const locationMap: Record<string, string> = {
+                                        'Geneva': 'Switzerland',
+                                        'Valencia': 'Spain',
+                                        'New York': 'USA',
+                                        'Brindisi': 'Italy',
+                                        'Rome': 'Italy'
+                                      };
+                                      
+                                      // If it matches a known city, treat it as a single location
+                                      if (locationMap[job.location]) {
+                                        locations = [{ city: job.location, country: locationMap[job.location] }];
+                                      } else {
+                                        // Parse as comma-separated string (for manually created jobs)
+                                        const parts = job.location.split(',').map(part => part.trim());
+                                        for (let i = 0; i < parts.length; i += 2) {
+                                          if (parts[i] && parts[i + 1]) {
+                                            locations.push({
+                                              city: parts[i],
+                                              country: parts[i + 1]
+                                            });
+                                          }
                                         }
                                       }
                                     }
