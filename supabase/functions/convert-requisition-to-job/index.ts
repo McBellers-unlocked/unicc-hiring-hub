@@ -149,7 +149,7 @@ ${requisition.desirable_education || ''}
         
         return competencyGroups.join('\n\n') || '';
       })(),
-      status: 'active', // Set to active status for immediate publishing
+      status: 'draft', // Set to draft status until HR publishes through job wizard
       category: 'Professional',
       salary_estimate: requisition.grade,
       timezone: 'Europe/Zurich',
