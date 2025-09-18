@@ -18,7 +18,7 @@ export default function DirectorView() {
         .from("job_requisitions")
         .select("*")
         .eq("chief_of_division_approval", true)
-        .is("director_approval", null)
+        .or("director_approval.is.null,director_approval.eq.false")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
