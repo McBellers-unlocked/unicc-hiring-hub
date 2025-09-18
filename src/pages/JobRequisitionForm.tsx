@@ -281,10 +281,11 @@ export default function JobRequisitionForm() {
         }
 
         // Update existing requisition
+        const { un_language_advantage, ...cleanFormData } = formData as any;
         const { error } = await supabase
           .from('job_requisitions')
           .update({
-            ...formData,
+            ...cleanFormData,
             duty_station: JSON.stringify(formData.duty_station),
             status: newStatus,
           })
@@ -293,10 +294,11 @@ export default function JobRequisitionForm() {
         if (error) throw error;
       } else {
         // Create new requisition
+        const { un_language_advantage, ...cleanFormData } = formData as any;
         const { data: newRequisition, error } = await supabase
           .from('job_requisitions')
           .insert({
-            ...formData,
+            ...cleanFormData,
             duty_station: JSON.stringify(formData.duty_station),
             created_by: user?.id,
             status: submit ? 'hr_review' : 'draft',
