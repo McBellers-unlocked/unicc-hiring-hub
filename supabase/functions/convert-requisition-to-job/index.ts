@@ -128,12 +128,27 @@ ${requisition.desirable_education || ''}
           ).join('\n') : 
           String(requisition.language_requirements)
         ) : '',
-      competencies: [
-        ...(requisition.global_competencies?.filter(comp => comp.name && comp.name.trim()) || []),
-        ...(requisition.core_competencies?.filter(comp => comp.name && comp.name.trim()) || []),
-        ...(requisition.leadership_competencies?.filter(comp => comp.name && comp.name.trim()) || []),
-        ...(requisition.management_competencies?.filter(comp => comp.name && comp.name.trim()) || [])
-      ].map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || '',
+      competencies: (() => {
+        const competencyGroups = [];
+        
+        if (requisition.global_competencies?.length) {
+          competencyGroups.push('# Global Competencies\n\n' + requisition.global_competencies.map(comp => `- ${comp}`).join('\n'));
+        }
+        
+        if (requisition.core_competencies?.length) {
+          competencyGroups.push('# Core Competencies\n\n' + requisition.core_competencies.map(comp => `- ${comp}`).join('\n'));
+        }
+        
+        if (requisition.management_competencies?.length) {
+          competencyGroups.push('# Management Competencies\n\n' + requisition.management_competencies.map(comp => `- ${comp}`).join('\n'));
+        }
+        
+        if (requisition.leadership_competencies?.length) {
+          competencyGroups.push('# Leadership Competencies\n\n' + requisition.leadership_competencies.map(comp => `- ${comp}`).join('\n'));
+        }
+        
+        return competencyGroups.join('\n\n') || '';
+      })(),
       status: 'active', // Set to active status for immediate publishing
       category: 'Professional',
       salary_estimate: requisition.grade,
