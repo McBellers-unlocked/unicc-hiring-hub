@@ -136,54 +136,48 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
 
         {/* Language Requirements Section */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label className="text-base font-medium">Language Requirements</Label>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleLanguageChange(languageTemplate)}
-            >
-              Use Template
-            </Button>
-          </div>
-          <div className="border rounded-lg overflow-hidden">
-            <MDEditor
-              value={languageContent}
-              onChange={handleLanguageChange}
-              height={200}
-              preview="edit"
-              data-color-mode="light"
-            />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Specify required and desirable language skills
-          </p>
+          <Label className="text-base font-medium">Language Requirements</Label>
+          {languageContent ? (
+            <div className="p-4 bg-muted/20 rounded-lg">
+              <div 
+                className="prose prose-sm max-w-none text-foreground"
+                dangerouslySetInnerHTML={{ 
+                  __html: languageContent
+                    .replace(/^#+\s*/gm, '<strong>')
+                    .replace(/(?<=<strong>.*?)$/gm, '</strong>')
+                    .replace(/^-\s*/gm, '• ')
+                    .replace(/\n/g, '<br>') 
+                }}
+              />
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm italic p-4 border rounded-lg">
+              No language requirements specified
+            </p>
+          )}
         </div>
 
         {/* Competencies Section */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label className="text-base font-medium">Competencies</Label>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleCompetenciesChange(competenciesTemplate)}
-            >
-              Use Template
-            </Button>
-          </div>
-          <div className="border rounded-lg overflow-hidden">
-            <MDEditor
-              value={competenciesContent}
-              onChange={handleCompetenciesChange}
-              height={250}
-              preview="edit"
-              data-color-mode="light"
-            />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Define core, leadership, and technical competencies
-          </p>
+          <Label className="text-base font-medium">Competencies</Label>
+          {competenciesContent ? (
+            <div className="p-4 bg-muted/20 rounded-lg">
+              <div 
+                className="prose prose-sm max-w-none text-foreground"
+                dangerouslySetInnerHTML={{ 
+                  __html: competenciesContent
+                    .replace(/^#+\s*/gm, '<strong>')
+                    .replace(/(?<=<strong>.*?)$/gm, '</strong>')
+                    .replace(/^-\s*/gm, '• ')
+                    .replace(/\n/g, '<br>') 
+                }}
+              />
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm italic p-4 border rounded-lg">
+              No competencies specified
+            </p>
+          )}
         </div>
 
         {/* Navigation */}
