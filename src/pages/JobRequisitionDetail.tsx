@@ -410,6 +410,31 @@ export default function JobRequisitionDetail() {
           </CardContent>
         </Card>
 
+        {/* Language Requirements */}
+        {requisition.language_requirements && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Language Requirements</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {typeof requisition.language_requirements === 'string' ? (
+                  <p className="whitespace-pre-wrap">{requisition.language_requirements}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {Object.entries(requisition.language_requirements).map(([lang, req]: [string, any]) => (
+                      <div key={lang}>
+                        <span className="font-medium capitalize">{lang}:</span>
+                        <span className="ml-2">{req}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Competencies */}
         {((Array.isArray(requisition.global_competencies) && requisition.global_competencies.length > 0) ||
           (Array.isArray(requisition.core_competencies) && requisition.core_competencies.length > 0) ||
@@ -425,10 +450,10 @@ export default function JobRequisitionDetail() {
                 <label className="text-sm font-medium text-muted-foreground">Mandatory Competencies</label>
                 <p className="text-xs text-muted-foreground mb-2">These competencies are automatically included for all positions:</p>
                 <ul className="mt-1 space-y-1 text-sm">
-                  <li>• Teamwork: Develops and promotes effective relationships with colleagues and team members</li>
-                  <li>• Communicating: Expresses oneself clearly in conversations and interactions with others</li>
-                  <li>• Respecting and promoting individual and cultural differences</li>
-                  <li>• Creating an empowering and motivating environment (for Supervisory positions only)</li>
+                  <li>• <strong>Teamwork:</strong> Develops and promotes effective relationships with colleagues and team members</li>
+                  <li>• <strong>Communicating:</strong> Expresses oneself clearly in conversations and interactions with others</li>
+                  <li>• <strong>Respecting and promoting individual and cultural differences</strong></li>
+                  <li>• <strong>Creating an empowering and motivating environment</strong> (for Supervisory positions only)</li>
                 </ul>
               </div>
 
@@ -436,14 +461,27 @@ export default function JobRequisitionDetail() {
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Global Competencies</label>
                   <ul className="mt-1 space-y-1">
-                    {requisition.global_competencies.map((comp: any, index: number) => (
-                      <li key={index} className="text-sm">
-                        • {typeof comp === 'string' ? comp : comp.name || comp}
-                        {typeof comp === 'object' && comp.description && (
-                          <span className="text-muted-foreground ml-2">- {comp.description}</span>
-                        )}
-                      </li>
-                    ))}
+                    {requisition.global_competencies.map((comp: any, index: number) => {
+                      const getCompetencyDefinition = (compName: string) => {
+                        const globalCompetencies = [
+                          'Integrity: Acts in accordance with organizational values. Takes responsibility for actions and decisions',
+                          'Customer orientation: Provides excellent service in a professional and caring manner'
+                        ];
+                        return globalCompetencies.find(def => def.startsWith(compName)) || compName;
+                      };
+                      
+                      const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                      const definition = getCompetencyDefinition(competencyName);
+                      
+                      return (
+                        <li key={index} className="text-sm">
+                          • <strong>{definition.includes(':') ? definition : competencyName}</strong>
+                          {!definition.includes(':') && typeof comp === 'object' && comp.description && (
+                            <span className="text-muted-foreground ml-2">: {comp.description}</span>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}
@@ -452,14 +490,26 @@ export default function JobRequisitionDetail() {
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Core Competencies</label>
                   <ul className="mt-1 space-y-1">
-                    {requisition.core_competencies.map((comp: any, index: number) => (
-                      <li key={index} className="text-sm">
-                        • {typeof comp === 'string' ? comp : comp.name || comp}
-                        {typeof comp === 'object' && comp.description && (
-                          <span className="text-muted-foreground ml-2">- {comp.description}</span>
-                        )}
-                      </li>
-                    ))}
+                    {requisition.core_competencies.map((comp: any, index: number) => {
+                      const getCoreCompetencyDefinition = (compName: string) => {
+                        const coreCompetencies = [
+                          'Knowing and managing yourself: Manages ambiguity and pressure in a self-reflective way',
+                          'Producing results: Produces and delivers quality results',
+                          'Moving forward in a changing environment: Is open to and proposes new approaches',
+                          'Setting an example: Acts within UNICC/WHO professional, ethical and legal boundaries'
+                        ];
+                        return coreCompetencies.find(def => def.startsWith(compName)) || compName;
+                      };
+                      
+                      const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                      const definition = getCoreCompetencyDefinition(competencyName);
+                      
+                      return (
+                        <li key={index} className="text-sm">
+                          • <strong>{definition}</strong>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}
@@ -468,14 +518,25 @@ export default function JobRequisitionDetail() {
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Leadership Competencies</label>
                   <ul className="mt-1 space-y-1">
-                    {requisition.leadership_competencies.map((comp: any, index: number) => (
-                      <li key={index} className="text-sm">
-                        • {typeof comp === 'string' ? comp : comp.name || comp}
-                        {typeof comp === 'object' && comp.description && (
-                          <span className="text-muted-foreground ml-2">- {comp.description}</span>
-                        )}
-                      </li>
-                    ))}
+                    {requisition.leadership_competencies.map((comp: any, index: number) => {
+                      const getLeadershipCompetencyDefinition = (compName: string) => {
+                        const leadershipCompetencies = [
+                          'Driving UNICC to a successful future: Demonstrates broad-based understanding of growing ICT complexities',
+                          'Promoting innovation and Organizational learning: Invigorates the Organization by building learning culture',
+                          'Promoting UNICC position: Positions UNICC as a leader in ICT services'
+                        ];
+                        return leadershipCompetencies.find(def => def.startsWith(compName)) || compName;
+                      };
+                      
+                      const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                      const definition = getLeadershipCompetencyDefinition(competencyName);
+                      
+                      return (
+                        <li key={index} className="text-sm">
+                          • <strong>{definition}</strong>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}
@@ -484,14 +545,24 @@ export default function JobRequisitionDetail() {
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Management Competencies</label>
                   <ul className="mt-1 space-y-1">
-                    {requisition.management_competencies.map((comp: any, index: number) => (
-                      <li key={index} className="text-sm">
-                        • {typeof comp === 'string' ? comp : comp.name || comp}
-                        {typeof comp === 'object' && comp.description && (
-                          <span className="text-muted-foreground ml-2">- {comp.description}</span>
-                        )}
-                      </li>
-                    ))}
+                    {requisition.management_competencies.map((comp: any, index: number) => {
+                      const getManagementCompetencyDefinition = (compName: string) => {
+                        const managementCompetencies = [
+                          'Ensuring effective use of resources: Identifies priorities in accordance with UNICC strategic directions',
+                          'Building and promoting partnerships: Develops and strengthens internal and external partnerships'
+                        ];
+                        return managementCompetencies.find(def => def.startsWith(compName)) || compName;
+                      };
+                      
+                      const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                      const definition = getManagementCompetencyDefinition(competencyName);
+                      
+                      return (
+                        <li key={index} className="text-sm">
+                          • <strong>{definition}</strong>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}
