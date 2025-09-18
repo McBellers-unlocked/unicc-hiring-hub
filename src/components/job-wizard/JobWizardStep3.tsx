@@ -19,6 +19,8 @@ interface Props {
 export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
   const { toast } = useToast();
   const [requirementsContent, setRequirementsContent] = useState(data.requirements_md || '');
+  const [languageContent, setLanguageContent] = useState(data.language_requirements || '');
+  const [competenciesContent, setCompetenciesContent] = useState(data.competencies || '');
 
   const updateField = (field: keyof JobFormData, value: any) => {
     onUpdate({ [field]: value });
@@ -28,6 +30,18 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
     const content = value || '';
     setRequirementsContent(content);
     updateField('requirements_md', content);
+  };
+
+  const handleLanguageChange = (value: string | undefined) => {
+    const content = value || '';
+    setLanguageContent(content);
+    updateField('language_requirements', content);
+  };
+
+  const handleCompetenciesChange = (value: string | undefined) => {
+    const content = value || '';
+    setCompetenciesContent(content);
+    updateField('competencies', content);
   };
 
   const validateAndProceed = () => {
@@ -53,7 +67,6 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
 
 - Required degree level and field
 - Professional certifications
-- Language requirements
 
 # Desirable Experience
 
@@ -64,6 +77,28 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
 
 - Additional qualifications that would be advantageous`;
 
+  const languageTemplate = `# Language Requirements
+
+- English: Expert knowledge is required
+- French: Working knowledge is desirable
+- Spanish: Basic knowledge is an advantage`;
+
+  const competenciesTemplate = `# Core Competencies
+
+- Communication
+- Teamwork and Collaboration
+- Problem Solving
+
+# Leadership Competencies
+
+- Leading People
+- Strategic Thinking
+- Change Management
+
+# Technical Competencies
+
+- Relevant technical skills for the position`;
+
   return (
     <Card>
       <CardHeader>
@@ -73,6 +108,7 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Requirements Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label className="text-base font-medium">Requirements</Label>
@@ -88,13 +124,65 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
             <MDEditor
               value={requirementsContent}
               onChange={handleRequirementsChange}
-              height={400}
+              height={300}
               preview="edit"
               data-color-mode="light"
             />
           </div>
           <p className="text-sm text-muted-foreground">
-            Include: Essential Experience, Essential Education, Desirable Experience, Desirable Education, Language Requirements
+            Include: Essential Experience, Essential Education, Desirable Experience, Desirable Education
+          </p>
+        </div>
+
+        {/* Language Requirements Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-base font-medium">Language Requirements</Label>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleLanguageChange(languageTemplate)}
+            >
+              Use Template
+            </Button>
+          </div>
+          <div className="border rounded-lg overflow-hidden">
+            <MDEditor
+              value={languageContent}
+              onChange={handleLanguageChange}
+              height={200}
+              preview="edit"
+              data-color-mode="light"
+            />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Specify required and desirable language skills
+          </p>
+        </div>
+
+        {/* Competencies Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-base font-medium">Competencies</Label>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleCompetenciesChange(competenciesTemplate)}
+            >
+              Use Template
+            </Button>
+          </div>
+          <div className="border rounded-lg overflow-hidden">
+            <MDEditor
+              value={competenciesContent}
+              onChange={handleCompetenciesChange}
+              height={250}
+              preview="edit"
+              data-color-mode="light"
+            />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Define core, leadership, and technical competencies
           </p>
         </div>
 

@@ -38,7 +38,8 @@ export interface JobFormData {
   requirements_md: string;
 
   // Step 3: Requirements (moved from step 2)
-  // Essential criteria removed as per requirements
+  language_requirements: string;
+  competencies: string;
 
   // Step 4: Killer Questions
   killer_questions: Array<{
@@ -114,6 +115,8 @@ export default function JobWizard() {
     branding: { preset: 'UNICC' },
     description_md: '',
     requirements_md: '',
+    language_requirements: '',
+    competencies: '',
     killer_questions: [],
     attachments_required: {
       motivation_letter: true,
@@ -210,11 +213,10 @@ ${requisition.essential_education || ''}
 # Desirable Education
 
 ${requisition.desirable_education || ''}
-
-# Language Requirements
-
-${JSON.stringify(requisition.language_requirements, null, 2)}
             `.trim(),
+            language_requirements: requisition.language_requirements ? 
+              JSON.stringify(requisition.language_requirements, null, 2) : '',
+            competencies: '',
             killer_questions: [],
             attachments_required: {
               motivation_letter: true,
@@ -292,6 +294,8 @@ ${JSON.stringify(requisition.language_requirements, null, 2)}
           branding: (jobData.branding as Record<string, any>) || { preset: 'UNICC' },
           description_md: jobData.description_md || '',
           requirements_md: jobData.requirements_md || '',
+          language_requirements: '',
+          competencies: '',
           killer_questions: questionsData?.map(question => ({
             id: question.id,
             label: question.label,
