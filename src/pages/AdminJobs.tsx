@@ -332,12 +332,6 @@ export default function AdminJobs() {
             <h1 className="text-3xl font-bold text-foreground">Job Management</h1>
             <p className="text-muted-foreground mt-2">Manage job postings and applications</p>
           </div>
-          <Link to="/admin/jobs/new">
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              New Job
-            </Button>
-          </Link>
         </div>
 
         <Card>
