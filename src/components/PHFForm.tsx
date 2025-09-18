@@ -34,7 +34,7 @@ const phfSchema = z.object({
     sex: z.enum(['Male', 'Female']).refine((val) => val !== undefined, {
       message: 'Sex selection is required',
     }),
-    dateOfBirth: z.date(),
+    dateOfBirth: z.union([z.date(), z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, 'Date must be in DD/MM/YYYY format')]),
     placeOfBirth: z.string().min(1, 'Place of birth is required'),
     countryOfBirth: z.string().min(1, 'Country of birth is required'),
     presentNationality: z.string().min(1, 'Present nationality is required'),
@@ -412,7 +412,9 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
   };
 
   const DatePicker = ({ field, label, disabled }: any) => {
-    const [currentDate, setCurrentDate] = useState(field.value || new Date());
+    const [currentDate, setCurrentDate] = useState(field.value instanceof Date ? field.value : new Date());
+    const [inputMode, setInputMode] = useState<'picker' | 'text'>('picker');
+    const [textValue, setTextValue] = useState('');
     
     const navigateYear = (direction: 'prev' | 'next') => {
       const newDate = new Date(currentDate);
@@ -426,81 +428,162 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
       setCurrentDate(newDate);
     };
 
+    const handleTextChange = (value: string) => {
+      setTextValue(value);
+      // Validate and convert DD/MM/YYYY to Date
+      const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+      const match = value.match(dateRegex);
+      if (match) {
+        const [, day, month, year] = match;
+        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        if (date.getDate() == parseInt(day) && date.getMonth() == parseInt(month) - 1 && date.getFullYear() == parseInt(year)) {
+          field.onChange(value); // Store as string for text mode
+        }
+      } else if (value === '') {
+        field.onChange('');
+      }
+    };
+
+    const formatDateToText = (date: Date) => {
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear().toString();
+      return `${day}/${month}/${year}`;
+    };
+
     return (
       <FormItem className="flex flex-col">
         <FormLabel>{label}</FormLabel>
-        <Popover>
-          <PopoverTrigger asChild>
-            <FormControl>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full pl-3 text-left font-normal",
-                  !field.value && "text-muted-foreground"
-                )}
-                disabled={disabled}
-              >
-                {field.value ? (
-                  format(field.value, "dd/MM/yyyy")
-                ) : (
-                  <span>Pick a date</span>
-                )}
-                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-              </Button>
-            </FormControl>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <div className="flex items-center justify-between p-2 border-b">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigateYear('prev')}
-                className="h-8 w-8 p-0"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <div className="flex items-center space-x-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigateMonth('prev')}
-                  className="h-8 w-8 p-0"
-                >
-                  <ChevronLeft className="h-3 w-3" />
-                </Button>
-                <span className="text-sm font-medium min-w-[120px] text-center">
-                  {format(currentDate, "MMMM yyyy")}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigateMonth('next')}
-                  className="h-8 w-8 p-0"
-                >
-                  <ChevronRight className="h-3 w-3" />
-                </Button>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigateYear('next')}
-                className="h-8 w-8 p-0"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+        <div className="space-y-3">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="date-picker-mode"
+                checked={inputMode === 'picker'}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    setInputMode('picker');
+                    if (typeof field.value === 'string' && field.value.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                      // Convert text date to Date object
+                      const [day, month, year] = field.value.split('/');
+                      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                      field.onChange(date);
+                      setCurrentDate(date);
+                    }
+                  }
+                }}
+              />
+              <Label htmlFor="date-picker-mode">Use date picker</Label>
             </div>
-            <Calendar
-              mode="single"
-              selected={field.value}
-              onSelect={field.onChange}
-              disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-              month={currentDate}
-              onMonthChange={setCurrentDate}
-              initialFocus
-              className="p-3 pointer-events-auto"
-            />
-          </PopoverContent>
-        </Popover>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="text-input-mode"
+                checked={inputMode === 'text'}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    setInputMode('text');
+                    if (field.value instanceof Date) {
+                      const textDate = formatDateToText(field.value);
+                      setTextValue(textDate);
+                      field.onChange(textDate);
+                    }
+                  }
+                }}
+              />
+              <Label htmlFor="text-input-mode">Enter manually (DD/MM/YYYY)</Label>
+            </div>
+          </div>
+
+          {inputMode === 'picker' ? (
+            <Popover>
+              <PopoverTrigger asChild>
+                <FormControl>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full pl-3 text-left font-normal",
+                      !field.value && "text-muted-foreground"
+                    )}
+                    disabled={disabled}
+                  >
+                    {field.value instanceof Date ? (
+                      format(field.value, "dd/MM/yyyy")
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  </Button>
+                </FormControl>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <div className="flex items-center justify-between p-2 border-b">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigateYear('prev')}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="flex items-center space-x-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigateMonth('prev')}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronLeft className="h-3 w-3" />
+                    </Button>
+                    <span className="text-sm font-medium min-w-[120px] text-center">
+                      {format(currentDate, "MMMM yyyy")}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigateMonth('next')}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronRight className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigateYear('next')}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Calendar
+                  mode="single"
+                  selected={field.value instanceof Date ? field.value : currentDate}
+                  onSelect={(date) => {
+                    if (date) {
+                      field.onChange(date);
+                      setCurrentDate(date);
+                    }
+                  }}
+                  disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                  month={currentDate}
+                  onMonthChange={setCurrentDate}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <FormControl>
+              <Input
+                placeholder="DD/MM/YYYY"
+                value={textValue}
+                onChange={(e) => handleTextChange(e.target.value)}
+                disabled={disabled}
+                maxLength={10}
+              />
+            </FormControl>
+          )}
+        </div>
         <FormMessage />
       </FormItem>
     );
@@ -746,6 +829,20 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
             </FormItem>
           )}
         />
+
+        {/* Checkbox to copy permanent address to present address */}
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="same-address"
+            onCheckedChange={(checked) => {
+              if (checked) {
+                const permanentAddress = form.getValues('personalDetails.permanentAddress');
+                form.setValue('personalDetails.presentAddress', permanentAddress);
+              }
+            }}
+          />
+          <Label htmlFor="same-address">Present address is same as permanent address</Label>
+        </div>
 
         <FormField
           control={form.control}
