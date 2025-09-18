@@ -67,6 +67,7 @@ export default function JobApplication() {
   useEffect(() => {
     if (jobId) {
       fetchJobAndQuestions();
+      loadExistingApplication();
     }
   }, [jobId]);
 
@@ -117,6 +118,100 @@ export default function JobApplication() {
       navigate('/');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadExistingApplication = async () => {
+    try {
+      // Try to get user's email from current user or localStorage
+      let userEmail = '';
+      
+      // Check if user is authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        userEmail = user.email || '';
+      } else {
+        // For non-authenticated users, check localStorage for saved applications
+        const savedApplications = localStorage.getItem('savedApplications');
+        if (savedApplications) {
+          try {
+            const parsed = JSON.parse(savedApplications);
+            const existingApp = parsed.find((app: any) => app.job_id === jobId);
+            if (existingApp) {
+              // Load data from localStorage
+              if (existingApp.candidate_data) {
+                setFormData(existingApp.candidate_data);
+              }
+              if (existingApp.phf_data) {
+                setPHFData(existingApp.phf_data);
+                setCurrentStep('phf'); // If PHF data exists, go to PHF step
+              }
+              if (existingApp.killer_answers) {
+                setKillerAnswers(existingApp.killer_answers);
+              }
+              setApplicationId(existingApp.id);
+            }
+          } catch (error) {
+            console.error('Error parsing saved applications:', error);
+          }
+        }
+        return;
+      }
+
+      if (!userEmail) return;
+
+      // For authenticated users, load from database
+      // First get the candidate record
+      const { data: candidate } = await supabase
+        .from('candidates')
+        .select('id, name, email, phone, location, work_auth, linkedin_url')
+        .eq('email', userEmail)
+        .maybeSingle();
+
+      if (!candidate) return;
+
+      // Load candidate data into form
+      setFormData({
+        name: candidate.name || '',
+        email: candidate.email || '',
+        phone: candidate.phone || '',
+        location: candidate.location || '',
+        work_auth: candidate.work_auth || '',
+        linkedin_url: candidate.linkedin_url || ''
+      });
+
+      // Check if application exists for this job and candidate
+      const { data: existingApplication } = await supabase
+        .from('applications')
+        .select('id, phf_data, phf_completed, answers')
+        .eq('job_id', jobId)
+        .eq('candidate_id', candidate.id)
+        .maybeSingle();
+
+      if (existingApplication) {
+        setApplicationId(existingApplication.id);
+        
+        // Load existing application data
+        if (existingApplication.answers && typeof existingApplication.answers === 'object') {
+          setKillerAnswers(existingApplication.answers as Record<string, any>);
+        }
+        
+        if (existingApplication.phf_data && typeof existingApplication.phf_data === 'object') {
+          setPHFData(existingApplication.phf_data);
+        }
+
+        // Determine which step to show
+        if (existingApplication.phf_completed) {
+          setCurrentStep('success');
+        } else if (existingApplication.phf_data && Object.keys(existingApplication.phf_data).length > 0) {
+          setCurrentStep('phf');
+        } else {
+          // Basic info exists, so move to PHF step
+          setCurrentStep('phf');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading existing application:', error);
     }
   };
 
@@ -274,10 +369,16 @@ export default function JobApplication() {
         .maybeSingle();
 
       if (existingApplication) {
+        // Update existing application instead of creating new one
+        setApplicationId(existingApplication.id);
+        
+        // Move to PHF step since basic info is already saved
+        setCurrentStep('phf');
+        
         toast({
-          title: "Application already exists",
-          description: "You have already applied for this position. You can only apply once per job.",
-          variant: "destructive"
+          title: "Application Updated",
+          description: "Your basic information has been updated. Please continue with the PHF form.",
+          variant: "default"
         });
         setSubmitting(false);
         return;
