@@ -455,6 +455,35 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
       }
     }
 
+    // Validate Personal Details section (section 1) before proceeding
+    if (currentSection === 1) {
+      // Trigger validation for personal details fields
+      const isValid = await form.trigger([
+        'personalDetails.familyName',
+        'personalDetails.firstNames', 
+        'personalDetails.title',
+        'personalDetails.sex',
+        'personalDetails.dateOfBirth',
+        'personalDetails.placeOfBirth',
+        'personalDetails.countryOfBirth',
+        'personalDetails.presentNationality',
+        'personalDetails.maritalStatus',
+        'personalDetails.permanentAddress',
+        'personalDetails.presentAddress',
+        'personalDetails.telephone',
+        'personalDetails.email'
+      ] as const);
+      
+      if (!isValid) {
+        toast({
+          title: 'Please complete all required fields',
+          description: 'All fields in Personal Details must be completed before proceeding.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const formData = form.getValues();
