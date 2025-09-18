@@ -251,6 +251,13 @@ ${requisition.desirable_education || ''}
 
         if (jobError) throw jobError;
 
+        // Debug: Log the loaded data to help with troubleshooting
+        console.log('Loaded job data:', {
+          language_requirements: jobData.language_requirements,
+          competencies: jobData.competencies,
+          requirements_md: jobData.requirements_md
+        });
+
         // Check if this job was converted from a requisition
         const wasConvertedFromRequisition = jobData.notice_no?.endsWith('-JOB') || false;
         setIsConvertedFromRequisition(wasConvertedFromRequisition);
