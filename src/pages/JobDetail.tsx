@@ -266,16 +266,12 @@ export default function JobDetail() {
                             if (locationMap[job.location]) {
                               locations = [{ city: job.location, country: locationMap[job.location] }];
                             } else {
-                              // Parse as comma-separated string (for manually created jobs)
-                              const parts = job.location.split(',').map(part => part.trim());
-                              for (let i = 0; i < parts.length; i += 2) {
-                                if (parts[i] && parts[i + 1]) {
-                                  locations.push({
-                                    city: parts[i],
-                                    country: parts[i + 1]
-                                  });
-                                }
-                              }
+                              // Parse as comma-separated string of cities
+                              const cities = job.location.split(',').map(city => city.trim()).filter(Boolean);
+                              locations = cities.map(city => ({
+                                city: city,
+                                country: locationMap[city] || 'International'
+                              }));
                             }
                           }
                         }
