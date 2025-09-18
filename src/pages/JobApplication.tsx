@@ -647,9 +647,6 @@ export default function JobApplication() {
 
 
           {/* Killer Questions */}
-          <div className="mb-4">
-            <p className="text-sm text-gray-600">Debug: Found {killerQuestions.length} killer questions</p>
-          </div>
           {killerQuestions.length > 0 && (
             <Card>
               <CardHeader>
