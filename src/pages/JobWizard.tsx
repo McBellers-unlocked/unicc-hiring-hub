@@ -215,46 +215,63 @@ ${requisition.essential_education || ''}
 ${requisition.desirable_education || ''}
             `.trim(),
              language_requirements: (() => {
-               let langReq = '# Language Requirements\n\n- **English**: Expert knowledge is required\n';
-               if ((requisition as any).un_language_advantage) {
-                 langReq += '- Knowledge of another UN language would be an advantage\n';
-               }
-               if (requisition.language_requirements) {
-                 if (typeof requisition.language_requirements === 'object') {
-                   const additional = Object.entries(requisition.language_requirements)
-                     .filter(([lang]) => lang.toLowerCase() !== 'english')
-                     .map(([lang, level]) => `- **${lang.charAt(0).toUpperCase() + lang.slice(1)}**: ${level}`)
-                     .join('\n');
-                   if (additional) langReq += additional;
-                 } else {
-                   langReq += requisition.language_requirements;
+               let langReq = '# Language Requirements\n\n## Required Language Skills\n\n- **English**: Expert knowledge is required\n\n## Additional Language Skills\n\n';
+               
+               // Check for UN language advantage from language_requirements object
+               if (requisition.language_requirements && typeof requisition.language_requirements === 'object') {
+                 if ((requisition.language_requirements as any).un_language_advantage) {
+                   langReq += '- Knowledge of another UN language would be an advantage\n';
                  }
+                 
+                 // Add other language requirements
+                 const additional = Object.entries(requisition.language_requirements)
+                   .filter(([key]) => key.toLowerCase() !== 'english' && key !== 'un_language_advantage')
+                   .map(([lang, level]) => `- **${lang.charAt(0).toUpperCase() + lang.slice(1)}**: ${level}`)
+                   .join('\n');
+                 if (additional) langReq += additional;
                }
+               
                return langReq;
              })(),
              competencies: (() => {
                const competencyGroups = [];
                
-               // Add mandatory competencies first
-               const mandatoryCompetencies = [
-                 'Teamwork: Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.',
-                 'Communicating: Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.',
-                 'Respecting and promoting individual and cultural differences: Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.',
-                 'Creating an empowering and motivating environment (only for Supervisors please select if the position is meant to hold formal hierarchy under it) Guides and motivates staff towards meeting challenges and achieving objectives. Promotes ownership and responsibility for desired outcomes at all levels.'
-               ];
+               // Add mandatory competencies section
+               competencyGroups.push('# Mandatory Competencies\n\nThese competencies are automatically included for all positions:\n\n• **Teamwork**: Develops and promotes effective relationships with colleagues and team members\n• **Communicating**: Expresses oneself clearly in conversations and interactions with others\n• **Respecting and promoting individual and cultural differences**: Demonstrates the ability to work constructively with people of all backgrounds and orientations\n• **Creating an empowering and motivating environment** (for Supervisory positions only)');
                
-               competencyGroups.push('# Mandatory Competencies\n\n' + mandatoryCompetencies.map(comp => `- ${comp}`).join('\n'));
+               // Add Core Competencies if they exist
+               if (Array.isArray(requisition.core_competencies) && requisition.core_competencies.length > 0) {
+                 const coreComps = requisition.core_competencies
+                   .filter((comp: any) => comp.name && comp.name.trim())
+                   .map((comp: any) => `• **${comp.name}**: ${comp.description || ''}`)
+                   .join('\n');
+                 if (coreComps) {
+                   competencyGroups.push('# Core Competencies\n\nSelect core competencies\n\n' + coreComps);
+                 }
+               }
                
-               // Add other competencies if they exist
-               const allCompetencies = [
+               // Add Management Competencies if they exist
+               if (Array.isArray(requisition.management_competencies) && requisition.management_competencies.length > 0) {
+                 const mgmtComps = requisition.management_competencies
+                   .filter((comp: any) => comp.name && comp.name.trim())
+                   .map((comp: any) => `• **${comp.name}**: ${comp.description || ''}`)
+                   .join('\n');
+                 if (mgmtComps) {
+                   competencyGroups.push('# Management Competencies\n\nSelect management competencies\n\n' + mgmtComps);
+                 }
+               }
+               
+               // Add Global/Leadership Competencies if they exist
+               const otherCompetencies = [
                  ...(Array.isArray(requisition.global_competencies) ? requisition.global_competencies.filter((comp: any) => comp.name && comp.name.trim()) : []),
-                 ...(Array.isArray(requisition.core_competencies) ? requisition.core_competencies.filter((comp: any) => comp.name && comp.name.trim()) : []),
-                 ...(Array.isArray(requisition.leadership_competencies) ? requisition.leadership_competencies.filter((comp: any) => comp.name && comp.name.trim()) : []),
-                 ...(Array.isArray(requisition.management_competencies) ? requisition.management_competencies.filter((comp: any) => comp.name && comp.name.trim()) : [])
+                 ...(Array.isArray(requisition.leadership_competencies) ? requisition.leadership_competencies.filter((comp: any) => comp.name && comp.name.trim()) : [])
                ];
                
-               if (allCompetencies.length > 0) {
-                 competencyGroups.push('# Selected Competencies\n\n' + allCompetencies.map((comp: any) => `- **${comp.name}**: ${comp.description || ''}`).join('\n'));
+               if (otherCompetencies.length > 0) {
+                 const otherComps = otherCompetencies
+                   .map((comp: any) => `• **${comp.name}**: ${comp.description || ''}`)
+                   .join('\n');
+                 competencyGroups.push('# Additional Competencies\n\n' + otherComps);
                }
                
                return competencyGroups.join('\n\n') || '';

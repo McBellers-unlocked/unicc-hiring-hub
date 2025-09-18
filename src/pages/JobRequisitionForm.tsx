@@ -235,7 +235,7 @@ export default function JobRequisitionForm() {
           core_competencies: Array.isArray(data.core_competencies) ? data.core_competencies as string[] : [],
           management_competencies: Array.isArray(data.management_competencies) ? data.management_competencies as string[] : [],
           leadership_competencies: Array.isArray(data.leadership_competencies) ? data.leadership_competencies as string[] : [],
-          un_language_advantage: (data as any).un_language_advantage || false,
+          un_language_advantage: (data.language_requirements as any)?.un_language_advantage || false,
           confirmChiefApproval: true,
         });
       }
@@ -285,11 +285,17 @@ export default function JobRequisitionForm() {
 
         // Update existing requisition
         const { un_language_advantage, ...cleanFormData } = formData as any;
+        const updatedLanguageRequirements = {
+          english: "Expert knowledge is required",
+          un_language_advantage: un_language_advantage || false
+        };
+        
         const { error } = await supabase
           .from('job_requisitions')
           .update({
             ...cleanFormData,
             duty_station: JSON.stringify(formData.duty_station),
+            language_requirements: updatedLanguageRequirements,
             status: newStatus,
           })
           .eq('id', id);
@@ -298,11 +304,17 @@ export default function JobRequisitionForm() {
       } else {
         // Create new requisition
         const { un_language_advantage, ...cleanFormData } = formData as any;
+        const updatedLanguageRequirements = {
+          english: "Expert knowledge is required",
+          un_language_advantage: un_language_advantage || false
+        };
+        
         const { data: newRequisition, error } = await supabase
           .from('job_requisitions')
           .insert({
             ...cleanFormData,
             duty_station: JSON.stringify(formData.duty_station),
+            language_requirements: updatedLanguageRequirements,
             created_by: user?.id,
             status: submit ? 'hr_review' : 'draft',
           })
