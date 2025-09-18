@@ -992,10 +992,10 @@ export default function JobRequisitionForm() {
                 <h4 className="font-medium mb-3">Mandatory Competencies</h4>
                 <p className="text-sm text-muted-foreground mb-2">These competencies are automatically included for all positions:</p>
                 <ul className="text-sm space-y-1">
-                  <li>• Teamwork: Develops and promotes effective relationships with colleagues and team members</li>
-                  <li>• Communicating: Expresses oneself clearly in conversations and interactions with others</li>
-                  <li>• Respecting and promoting individual and cultural differences</li>
-                  <li>• Creating an empowering and motivating environment (for Supervisory positions only)</li>
+                  <li>• <span className="font-bold">Teamwork:</span> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.</li>
+                  <li>• <span className="font-bold">Communicating:</span> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.</li>
+                  <li>• <span className="font-bold">Respecting and promoting individual and cultural differences:</span> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.</li>
+                  <li>• <span className="font-bold">Creating an empowering and motivating environment</span> (for Supervisory positions only): Guides and motivates staff towards meeting challenges and achieving objectives. Promotes ownership and responsibility for desired outcomes at all levels.</li>
                 </ul>
               </div>
 
