@@ -68,15 +68,6 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
   // Determine if this is a requisition-based job (either converting or already converted)
   const isRequisitionBased = isConvertingFromRequisition || isConvertedFromRequisition;
 
-  // Add debugging
-  console.log('JobWizardStep1 props:', { 
-    isConvertingFromRequisition, 
-    isConvertedFromRequisition, 
-    isRequisitionBased,
-    title: formData.title,
-    notice_no: formData.notice_no
-  });
-
   const updateField = (field: keyof JobFormData, value: any) => {
     const updated = { ...formData, [field]: value };
     setFormData(updated);

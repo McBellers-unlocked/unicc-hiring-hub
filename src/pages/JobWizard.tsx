@@ -290,8 +290,14 @@ ${requisition.desirable_education || ''}
           requirements_md: jobData.requirements_md
         });
 
-        // Check if this job was converted from a requisition
-        const wasConvertedFromRequisition = jobData.notice_no?.endsWith('-JOB') || false;
+        // Check if this job was converted from a requisition by looking for a matching reference number
+        const { data: requisitionData } = await supabase
+          .from('job_requisitions')
+          .select('id, reference_number')
+          .eq('reference_number', jobData.notice_no)
+          .limit(1);
+        
+        const wasConvertedFromRequisition = requisitionData && requisitionData.length > 0;
         setIsConvertedFromRequisition(wasConvertedFromRequisition);
 
         // Load killer questions
