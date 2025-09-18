@@ -31,62 +31,93 @@ export default function MyApplications() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    
     fetchApplications();
-  }, [user, navigate]);
+  }, [user]);
 
   const fetchApplications = async () => {
-    if (!user) return;
-
     try {
-      // First get the candidate record for this user
-      const { data: candidate, error: candidateError } = await supabase
-        .from('candidates')
-        .select('id')
-        .eq('email', user.email)
-        .maybeSingle();
+      // If user is authenticated, get their applications from database
+      if (user) {
+        // First get the candidate record for this user
+        const { data: candidate, error: candidateError } = await supabase
+          .from('candidates')
+          .select('id')
+          .eq('email', user.email)
+          .maybeSingle();
 
-      if (candidateError) throw candidateError;
+        if (candidateError) throw candidateError;
 
-      if (!candidate) {
-        setApplications([]);
-        setLoading(false);
-        return;
-      }
-
-      // Then get applications for this candidate
-      const { data: applicationsData, error: applicationsError } = await supabase
-        .from('applications')
-        .select(`
-          id,
-          status,
-          submitted_at,
-          phf_completed,
-          job_id,
-          jobs!inner (
-            id,
-            title,
-            location,
-            closing_date,
-            notice_no
-          )
-        `)
-        .eq('candidate_id', candidate.id)
-        .order('submitted_at', { ascending: false });
-
-      if (applicationsError) throw applicationsError;
-
-      setApplications(applicationsData?.map(app => ({
-        ...app,
-        job: {
-          ...app.jobs,
-          id: app.job_id
+        if (!candidate) {
+          setApplications([]);
+          setLoading(false);
+          return;
         }
-      })) || []);
+
+        // Then get applications for this candidate
+        const { data: applicationsData, error: applicationsError } = await supabase
+          .from('applications')
+          .select(`
+            id,
+            status,
+            submitted_at,
+            phf_completed,
+            job_id,
+            jobs!inner (
+              id,
+              title,
+              location,
+              closing_date,
+              notice_no
+            )
+          `)
+          .eq('candidate_id', candidate.id)
+          .order('submitted_at', { ascending: false });
+
+        if (applicationsError) throw applicationsError;
+
+        setApplications(applicationsData?.map(app => ({
+          ...app,
+          job: {
+            ...app.jobs,
+            id: app.job_id
+          }
+        })) || []);
+      } else {
+        // For non-authenticated users, get from localStorage
+        const savedApplications = localStorage.getItem('savedApplications');
+        if (savedApplications) {
+          try {
+            const parsed = JSON.parse(savedApplications);
+            // Also fetch job details for each saved application
+            const applicationsWithJobs = await Promise.all(
+              parsed.map(async (app: any) => {
+                const { data: jobData } = await supabase
+                  .from('jobs')
+                  .select('id, title, location, closing_date, notice_no')
+                  .eq('id', app.job_id)
+                  .maybeSingle();
+                
+                return {
+                  ...app,
+                  job: jobData || {
+                    id: app.job_id,
+                    title: 'Unknown Job',
+                    location: '',
+                    closing_date: '',
+                    notice_no: ''
+                  }
+                };
+              })
+            );
+            setApplications(applicationsWithJobs);
+          } catch (error) {
+            console.error('Error parsing saved applications:', error);
+            setApplications([]);
+          }
+        } else {
+          setApplications([]);
+        }
+      }
     } catch (error) {
       console.error('Error fetching applications:', error);
       toast({
@@ -94,6 +125,7 @@ export default function MyApplications() {
         description: "Failed to load your applications",
         variant: "destructive"
       });
+      setApplications([]);
     } finally {
       setLoading(false);
     }
