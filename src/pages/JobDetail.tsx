@@ -218,7 +218,6 @@ export default function JobDetail() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                   {job.location && (
                     <div className="flex items-center text-muted-foreground">
-                      <MapPin className="h-4 w-4 mr-2" />
                       {(() => {
                         // Handle both JSON array format and string format for location
                         let locations = [];
