@@ -422,12 +422,29 @@ export default function JobRequisitionDetail() {
                   <p className="whitespace-pre-wrap">{requisition.language_requirements}</p>
                 ) : (
                   <div className="space-y-2">
-                    {Object.entries(requisition.language_requirements).map(([lang, req]: [string, any]) => (
-                      <div key={lang}>
-                        <span className="font-medium capitalize">{lang}:</span>
-                        <span className="ml-2">{req}</span>
-                      </div>
-                    ))}
+                    {Object.entries(requisition.language_requirements).map(([lang, req]: [string, any]) => {
+                      // Handle special case for UN language advantage
+                      if (lang === 'un_language_advantage' && req) {
+                        return (
+                          <div key={lang}>
+                            <span className="ml-2">Knowledge of another UN language would be an advantage</span>
+                          </div>
+                        );
+                      }
+                      
+                      // Skip if UN language advantage is false
+                      if (lang === 'un_language_advantage' && !req) {
+                        return null;
+                      }
+                      
+                      // Handle other language requirements
+                      return (
+                        <div key={lang}>
+                          <span className="font-medium capitalize">{lang}:</span>
+                          <span className="ml-2">{req}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
