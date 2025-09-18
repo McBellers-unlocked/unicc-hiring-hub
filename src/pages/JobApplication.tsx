@@ -258,6 +258,24 @@ export default function JobApplication() {
         candidate = newCandidate;
       }
 
+      // Check if application already exists
+      const { data: existingApplication } = await supabase
+        .from('applications')
+        .select('id')
+        .eq('job_id', jobId)
+        .eq('candidate_id', candidate.id)
+        .maybeSingle();
+
+      if (existingApplication) {
+        toast({
+          title: "Application already exists",
+          description: "You have already applied for this position. You can only apply once per job.",
+          variant: "destructive"
+        });
+        setSubmitting(false);
+        return;
+      }
+
       // Create application
       const applicationData = {
         job_id: jobId,
