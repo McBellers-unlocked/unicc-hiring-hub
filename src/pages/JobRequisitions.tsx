@@ -17,16 +17,21 @@ interface JobRequisition {
   created_at: string;
   hr_reviewed: boolean;
   hr_reviewed_at: string | null;
+  hr_sent_at: string | null;
   hiring_manager_confirmed_hr_changes: boolean;
   hiring_manager_confirmed_at: string | null;
+  hiring_manager_sent_at: string | null;
   finance_controller_approval: boolean;
   finance_controller_approved_at: string | null;
   chief_of_division_approval: boolean;
   chief_of_division_approved_at: string | null;
+  chief_of_division_sent_at: string | null;
   deputy_director_approval: boolean;
   deputy_director_approved_at: string | null;
+  deputy_director_sent_at: string | null;
   director_approval: boolean;
   director_approved_at: string | null;
+  director_sent_at: string | null;
   pdf_url?: string;
   converted_to_job_id?: string;
 }
@@ -97,27 +102,32 @@ export default function JobRequisitions() {
       { 
         label: "Submission", 
         approved: true,
-        completedAt: requisition.created_at
+        sentAt: requisition.created_at,
+        approvedAt: requisition.created_at
       },
       { 
         label: "HR Review", 
         approved: requisition.hr_reviewed,
-        completedAt: requisition.hr_reviewed_at
+        sentAt: requisition.hr_sent_at,
+        approvedAt: requisition.hr_reviewed_at
       },
       { 
         label: "Hiring Manager Approval", 
         approved: requisition.hiring_manager_confirmed_hr_changes,
-        completedAt: requisition.hiring_manager_confirmed_at
+        sentAt: requisition.hiring_manager_sent_at,
+        approvedAt: requisition.hiring_manager_confirmed_at
       },
       { 
         label: "Chief Approval", 
         approved: requisition.chief_of_division_approval,
-        completedAt: requisition.chief_of_division_approved_at
+        sentAt: requisition.chief_of_division_sent_at,
+        approvedAt: requisition.chief_of_division_approved_at
       },
       { 
         label: "Director Approval", 
         approved: requisition.director_approval,
-        completedAt: requisition.director_approved_at
+        sentAt: requisition.director_sent_at,
+        approvedAt: requisition.director_approved_at
       },
     ];
 
@@ -135,11 +145,18 @@ export default function JobRequisitions() {
                 {step.label}
               </span>
             </div>
-            {step.approved && step.completedAt && (
-              <span className="text-xs text-muted-foreground mt-1">
-                {new Date(step.completedAt).toLocaleDateString()}
-              </span>
-            )}
+            <div className="flex flex-col items-center mt-1 space-y-1">
+              {step.sentAt && (
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-medium">Sent:</span> {new Date(step.sentAt).toLocaleDateString()}
+                </div>
+              )}
+              {step.approved && step.approvedAt && (
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-medium">Approved:</span> {new Date(step.approvedAt).toLocaleDateString()}
+                </div>
+              )}
+            </div>
             {index < steps.length - 1 && <span className="mx-2 mt-2">→</span>}
           </div>
         ))}

@@ -415,6 +415,7 @@ export type Database = {
           chief_of_division_approval: boolean | null
           chief_of_division_approved_at: string | null
           chief_of_division_approved_by: string | null
+          chief_of_division_sent_at: string | null
           comments: Json | null
           converted_to_job_id: string | null
           core_competencies: Json | null
@@ -423,11 +424,13 @@ export type Database = {
           deputy_director_approval: boolean | null
           deputy_director_approved_at: string | null
           deputy_director_approved_by: string | null
+          deputy_director_sent_at: string | null
           desirable_education: string | null
           desirable_experience: string | null
           director_approval: boolean | null
           director_approved_at: string | null
           director_approved_by: string | null
+          director_sent_at: string | null
           duty_station: string | null
           eligible_grades: string | null
           essential_education: string | null
@@ -439,6 +442,7 @@ export type Database = {
           grade: string | null
           hiring_manager_confirmed_at: string | null
           hiring_manager_confirmed_hr_changes: boolean | null
+          hiring_manager_sent_at: string | null
           hr_change_summary: string | null
           hr_changes: Json | null
           hr_comments: string | null
@@ -446,6 +450,7 @@ export type Database = {
           hr_reviewed: boolean | null
           hr_reviewed_at: string | null
           hr_reviewed_by: string | null
+          hr_sent_at: string | null
           id: string
           language_requirements: Json | null
           leadership_competencies: Json | null
@@ -468,6 +473,7 @@ export type Database = {
           chief_of_division_approval?: boolean | null
           chief_of_division_approved_at?: string | null
           chief_of_division_approved_by?: string | null
+          chief_of_division_sent_at?: string | null
           comments?: Json | null
           converted_to_job_id?: string | null
           core_competencies?: Json | null
@@ -476,11 +482,13 @@ export type Database = {
           deputy_director_approval?: boolean | null
           deputy_director_approved_at?: string | null
           deputy_director_approved_by?: string | null
+          deputy_director_sent_at?: string | null
           desirable_education?: string | null
           desirable_experience?: string | null
           director_approval?: boolean | null
           director_approved_at?: string | null
           director_approved_by?: string | null
+          director_sent_at?: string | null
           duty_station?: string | null
           eligible_grades?: string | null
           essential_education?: string | null
@@ -492,6 +500,7 @@ export type Database = {
           grade?: string | null
           hiring_manager_confirmed_at?: string | null
           hiring_manager_confirmed_hr_changes?: boolean | null
+          hiring_manager_sent_at?: string | null
           hr_change_summary?: string | null
           hr_changes?: Json | null
           hr_comments?: string | null
@@ -499,6 +508,7 @@ export type Database = {
           hr_reviewed?: boolean | null
           hr_reviewed_at?: string | null
           hr_reviewed_by?: string | null
+          hr_sent_at?: string | null
           id?: string
           language_requirements?: Json | null
           leadership_competencies?: Json | null
@@ -521,6 +531,7 @@ export type Database = {
           chief_of_division_approval?: boolean | null
           chief_of_division_approved_at?: string | null
           chief_of_division_approved_by?: string | null
+          chief_of_division_sent_at?: string | null
           comments?: Json | null
           converted_to_job_id?: string | null
           core_competencies?: Json | null
@@ -529,11 +540,13 @@ export type Database = {
           deputy_director_approval?: boolean | null
           deputy_director_approved_at?: string | null
           deputy_director_approved_by?: string | null
+          deputy_director_sent_at?: string | null
           desirable_education?: string | null
           desirable_experience?: string | null
           director_approval?: boolean | null
           director_approved_at?: string | null
           director_approved_by?: string | null
+          director_sent_at?: string | null
           duty_station?: string | null
           eligible_grades?: string | null
           essential_education?: string | null
@@ -545,6 +558,7 @@ export type Database = {
           grade?: string | null
           hiring_manager_confirmed_at?: string | null
           hiring_manager_confirmed_hr_changes?: boolean | null
+          hiring_manager_sent_at?: string | null
           hr_change_summary?: string | null
           hr_changes?: Json | null
           hr_comments?: string | null
@@ -552,6 +566,7 @@ export type Database = {
           hr_reviewed?: boolean | null
           hr_reviewed_at?: string | null
           hr_reviewed_by?: string | null
+          hr_sent_at?: string | null
           id?: string
           language_requirements?: Json | null
           leadership_competencies?: Json | null
