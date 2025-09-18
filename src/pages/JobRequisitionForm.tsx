@@ -113,6 +113,7 @@ const requisitionSchema = z.object({
   core_competencies: z.array(z.string()).optional(),
   management_competencies: z.array(z.string()).optional(),
   leadership_competencies: z.array(z.string()).optional(),
+  un_language_advantage: z.boolean().optional(),
   confirmChiefApproval: z.boolean().refine(val => val === true, {
     message: "You must confirm Chief of Division approval"
   }),
@@ -159,6 +160,7 @@ export default function JobRequisitionForm() {
       core_competencies: [],
       management_competencies: [],
       leadership_competencies: [],
+      un_language_advantage: false,
       confirmChiefApproval: false,
     },
   });
@@ -233,6 +235,7 @@ export default function JobRequisitionForm() {
           core_competencies: Array.isArray(data.core_competencies) ? data.core_competencies as string[] : [],
           management_competencies: Array.isArray(data.management_competencies) ? data.management_competencies as string[] : [],
           leadership_competencies: Array.isArray(data.leadership_competencies) ? data.leadership_competencies as string[] : [],
+          un_language_advantage: (data as any).un_language_advantage || false,
           confirmChiefApproval: true,
         });
       }
@@ -945,6 +948,19 @@ export default function JobRequisitionForm() {
                       <div className="w-2 h-2 bg-primary rounded-full"></div>
                       <span className="text-sm font-medium">English: Expert knowledge is required</span>
                     </div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2">Additional Language Skills</h4>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="un_language_advantage"
+                      checked={form.watch('un_language_advantage') || false}
+                      onCheckedChange={(checked) => form.setValue('un_language_advantage', !!checked)}
+                    />
+                    <label htmlFor="un_language_advantage" className="text-sm">
+                      Knowledge of another UN language would be an advantage
+                    </label>
                   </div>
                 </div>
               </div>

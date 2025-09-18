@@ -214,13 +214,24 @@ ${requisition.essential_education || ''}
 
 ${requisition.desirable_education || ''}
             `.trim(),
-            language_requirements: requisition.language_requirements ? 
-              (typeof requisition.language_requirements === 'object' ? 
-                Object.entries(requisition.language_requirements).map(([lang, level]) => 
-                  `- **${lang.charAt(0).toUpperCase() + lang.slice(1)}**: ${level}`
-                ).join('\n') : 
-                String(requisition.language_requirements)
-              ) : '',
+            language_requirements: (() => {
+              let langReq = '# Language Requirements\n\n- **English**: Expert knowledge is required\n';
+              if ((requisition as any).un_language_advantage) {
+                langReq += '- Knowledge of another UN language would be an advantage\n';
+              }
+              if (requisition.language_requirements) {
+                if (typeof requisition.language_requirements === 'object') {
+                  const additional = Object.entries(requisition.language_requirements)
+                    .filter(([lang]) => lang.toLowerCase() !== 'english')
+                    .map(([lang, level]) => `- **${lang.charAt(0).toUpperCase() + lang.slice(1)}**: ${level}`)
+                    .join('\n');
+                  if (additional) langReq += additional;
+                } else {
+                  langReq += requisition.language_requirements;
+                }
+              }
+              return langReq;
+            })(),
             competencies: [
               ...(Array.isArray(requisition.global_competencies) ? requisition.global_competencies.filter((comp: any) => comp.name && comp.name.trim()) : []),
               ...(Array.isArray(requisition.core_competencies) ? requisition.core_competencies.filter((comp: any) => comp.name && comp.name.trim()) : []),

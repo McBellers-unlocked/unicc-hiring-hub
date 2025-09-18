@@ -325,7 +325,22 @@ export default function JobRequisitionDetail() {
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Duty Station</label>
-                <p>{requisition.duty_station}</p>
+                <p>{
+                  (() => {
+                    try {
+                      if (typeof requisition.duty_station === 'string') {
+                        const parsed = JSON.parse(requisition.duty_station);
+                        return Array.isArray(parsed) ? parsed.join(', ') : String(parsed);
+                      } else if (Array.isArray(requisition.duty_station)) {
+                        return (requisition.duty_station as string[]).join(', ');
+                      } else {
+                        return String(requisition.duty_station || 'Not specified');
+                      }
+                    } catch {
+                      return String(requisition.duty_station || 'Not specified');
+                    }
+                  })()
+                }</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Nature of Position</label>
@@ -405,6 +420,18 @@ export default function JobRequisitionDetail() {
               <CardTitle>Competencies</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Mandatory Competencies */}
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Mandatory Competencies</label>
+                <p className="text-xs text-muted-foreground mb-2">These competencies are automatically included for all positions:</p>
+                <ul className="mt-1 space-y-1 text-sm">
+                  <li>• Teamwork: Develops and promotes effective relationships with colleagues and team members</li>
+                  <li>• Communicating: Expresses oneself clearly in conversations and interactions with others</li>
+                  <li>• Respecting and promoting individual and cultural differences</li>
+                  <li>• Creating an empowering and motivating environment (for Supervisory positions only)</li>
+                </ul>
+              </div>
+
               {Array.isArray(requisition.global_competencies) && requisition.global_competencies.length > 0 && (
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Global Competencies</label>
@@ -480,16 +507,6 @@ export default function JobRequisitionDetail() {
           <CardContent>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                {requisition.finance_controller_approval ? (
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                ) : (
-                  <Clock className="h-5 w-5 text-gray-400" />
-                )}
-                <span className={requisition.finance_controller_approval ? "text-green-700" : "text-gray-500"}>
-                  Finance Controller Approval
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
                 {requisition.chief_of_division_approval ? (
                   <CheckCircle className="h-5 w-5 text-green-500" />
                 ) : (
@@ -500,13 +517,33 @@ export default function JobRequisitionDetail() {
                 </span>
               </div>
               <div className="flex items-center gap-3">
+                {requisition.hr_reviewed ? (
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                ) : (
+                  <Clock className="h-5 w-5 text-gray-400" />
+                )}
+                <span className={requisition.hr_reviewed ? "text-green-700" : "text-gray-500"}>
+                  HR Review
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                {requisition.hiring_manager_confirmed_hr_changes ? (
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                ) : (
+                  <Clock className="h-5 w-5 text-gray-400" />
+                )}
+                <span className={requisition.hiring_manager_confirmed_hr_changes ? "text-green-700" : "text-gray-500"}>
+                  Hiring Manager Approval
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
                 {requisition.deputy_director_approval ? (
                   <CheckCircle className="h-5 w-5 text-green-500" />
                 ) : (
                   <Clock className="h-5 w-5 text-gray-400" />
                 )}
                 <span className={requisition.deputy_director_approval ? "text-green-700" : "text-gray-500"}>
-                  Deputy Director Approval
+                  Chief of Division Final Approval
                 </span>
               </div>
               <div className="flex items-center gap-3">
