@@ -348,15 +348,50 @@ export default function Jobs() {
                             {job.location && (
                               <div className="space-y-1">
                                 {(() => {
-                                  // Parse location string to extract city-country pairs
-                                  const parts = job.location.split(',').map(part => part.trim());
-                                  const locations = [];
-                                  for (let i = 0; i < parts.length; i += 2) {
-                                    if (parts[i] && parts[i + 1]) {
-                                      locations.push({
-                                        city: parts[i],
-                                        country: parts[i + 1]
-                                      });
+                                  let locations = [];
+                                  
+                                  // Handle both JSON array format and string format
+                                  if (typeof job.location === 'string') {
+                                    try {
+                                      // Try to parse as JSON first (for converted jobs)
+                                      const parsed = JSON.parse(job.location);
+                                      if (Array.isArray(parsed)) {
+                                        // Map common locations to countries for converted jobs
+                                        const locationMap: Record<string, string> = {
+                                          'Geneva': 'Switzerland',
+                                          'Valencia': 'Spain',
+                                          'New York': 'USA',
+                                          'Brindisi': 'Italy',
+                                          'Rome': 'Italy'
+                                        };
+                                        
+                                        locations = parsed.map(city => ({
+                                          city: city,
+                                          country: locationMap[city] || 'International'
+                                        }));
+                                      } else {
+                                        // Single location from JSON
+                                        const city = String(parsed);
+                                        const locationMap: Record<string, string> = {
+                                          'Geneva': 'Switzerland',
+                                          'Valencia': 'Spain',
+                                          'New York': 'USA',
+                                          'Brindisi': 'Italy',
+                                          'Rome': 'Italy'
+                                        };
+                                        locations = [{ city: city, country: locationMap[city] || 'International' }];
+                                      }
+                                    } catch {
+                                      // Parse as comma-separated string (for manually created jobs)
+                                      const parts = job.location.split(',').map(part => part.trim());
+                                      for (let i = 0; i < parts.length; i += 2) {
+                                        if (parts[i] && parts[i + 1]) {
+                                          locations.push({
+                                            city: parts[i],
+                                            country: parts[i + 1]
+                                          });
+                                        }
+                                      }
                                     }
                                   }
                                   
@@ -429,7 +464,7 @@ export default function Jobs() {
                                   {getDisplayType(job.type)}
                                 </Badge>
                               )}
-                              {job.category && <Badge variant="outline">{job.category}</Badge>}
+                              
                               {job.grade && <Badge variant="outline">{job.grade}</Badge>}
                             </div>
 
