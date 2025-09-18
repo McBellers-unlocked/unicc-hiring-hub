@@ -450,10 +450,10 @@ export default function JobRequisitionDetail() {
                 <label className="text-sm font-medium text-muted-foreground">Mandatory Competencies</label>
                 <p className="text-xs text-muted-foreground mb-2">These competencies are automatically included for all positions:</p>
                 <ul className="mt-1 space-y-1 text-sm">
-                  <li>• <strong>Teamwork:</strong> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.</li>
-                  <li>• <strong>Communicating:</strong> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.</li>
-                  <li>• <strong>Respecting and promoting individual and cultural differences:</strong> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.</li>
-                  <li>• <strong>Creating an empowering and motivating environment</strong> (for Supervisory positions only): Guides and motivates staff towards meeting challenges and achieving objectives. Promotes ownership and responsibility for desired outcomes at all levels.</li>
+                  <li>• <span className="font-bold">Teamwork:</span> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.</li>
+                  <li>• <span className="font-bold">Communicating:</span> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.</li>
+                  <li>• <span className="font-bold">Respecting and promoting individual and cultural differences:</span> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.</li>
+                  <li>• <span className="font-bold">Creating an empowering and motivating environment</span> (for Supervisory positions only): Guides and motivates staff towards meeting challenges and achieving objectives. Promotes ownership and responsibility for desired outcomes at all levels.</li>
                 </ul>
               </div>
 
@@ -533,7 +533,7 @@ export default function JobRequisitionDetail() {
                       
                       return (
                         <li key={index} className="text-sm">
-                          • <strong>{name}:</strong> {description.join(':').trim()}
+                          • <span className="font-bold">{name}:</span> {description.join(':').trim()}
                         </li>
                       );
                     })}

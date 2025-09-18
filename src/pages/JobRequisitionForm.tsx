@@ -1037,7 +1037,7 @@ export default function JobRequisitionForm() {
                               className={isDisabled ? "opacity-50" : ""}
                             />
                             <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>
-                              <strong>{competency.split(':')[0]}:</strong> {competency.split(':').slice(1).join(':').trim()}
+                              <span className="font-bold">{competency.split(':')[0]}:</span> {competency.split(':').slice(1).join(':').trim()}
                             </label>
                           </div>
                         );
@@ -1084,7 +1084,7 @@ export default function JobRequisitionForm() {
                               className={isDisabled ? "opacity-50" : ""}
                             />
                             <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>
-                              <strong>{competency.split(':')[0]}:</strong> {competency.split(':').slice(1).join(':').trim()}
+                              <span className="font-bold">{competency.split(':')[0]}:</span> {competency.split(':').slice(1).join(':').trim()}
                             </label>
                           </div>
                         );
@@ -1132,7 +1132,7 @@ export default function JobRequisitionForm() {
                               className={isDisabled ? "opacity-50" : ""}
                             />
                             <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>
-                              <strong>{competency.split(':')[0]}:</strong> {competency.split(':').slice(1).join(':').trim()}
+                              <span className="font-bold">{competency.split(':')[0]}:</span> {competency.split(':').slice(1).join(':').trim()}
                             </label>
                           </div>
                         );
