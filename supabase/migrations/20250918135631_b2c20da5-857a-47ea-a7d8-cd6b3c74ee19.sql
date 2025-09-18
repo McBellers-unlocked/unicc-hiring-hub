@@ -1,0 +1,1 @@
+UPDATE users SET role = 'Hiring Manager' WHERE email = 'valente@unicc.org';
