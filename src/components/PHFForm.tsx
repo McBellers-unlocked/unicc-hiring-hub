@@ -278,7 +278,11 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         title: initialData?.personalDetails?.title || 'Mr',
         maidenName: initialData?.personalDetails?.maidenName || '',
         sex: initialData?.personalDetails?.sex || 'Male',
-        dateOfBirth: initialData?.personalDetails?.dateOfBirth || new Date(),
+        dateOfBirth: initialData?.personalDetails?.dateOfBirth ? 
+          (typeof initialData.personalDetails.dateOfBirth === 'string' ? 
+            new Date(initialData.personalDetails.dateOfBirth) : 
+            initialData.personalDetails.dateOfBirth) : 
+          new Date(),
         placeOfBirth: initialData?.personalDetails?.placeOfBirth || '',
         countryOfBirth: initialData?.personalDetails?.countryOfBirth || '',
         presentNationality: initialData?.personalDetails?.presentNationality || '',
@@ -484,11 +488,30 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
   };
 
   const DatePicker = ({ field, label, disabled }: any) => {
-    const [currentDate, setCurrentDate] = useState(field.value instanceof Date ? field.value : new Date());
-    const [inputValue, setInputValue] = useState(
-      field.value instanceof Date ? format(field.value, "dd/MM/yyyy") : 
-      typeof field.value === 'string' ? field.value : ''
-    );
+    // Helper function to parse date value
+    const parseDate = (value: any): Date => {
+      if (value instanceof Date) return value;
+      if (typeof value === 'string') {
+        // Handle ISO strings from localStorage
+        if (value.includes('T') || value.includes('Z')) {
+          return new Date(value);
+        }
+        // Handle DD/MM/YYYY format
+        const dateRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+        const match = value.match(dateRegex);
+        if (match) {
+          const [, day, month, year] = match;
+          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        }
+      }
+      return new Date();
+    };
+
+    const [currentDate, setCurrentDate] = useState(() => parseDate(field.value));
+    const [inputValue, setInputValue] = useState(() => {
+      const date = parseDate(field.value);
+      return format(date, "dd/MM/yyyy");
+    });
     
     const navigateYear = (direction: 'prev' | 'next') => {
       const newDate = new Date(currentDate);
