@@ -110,6 +110,7 @@ const requisitionSchema = z.object({
   desirable_experience: z.string().optional(),
   essential_education: z.string().min(1, "Essential education is required"),
   desirable_education: z.string().optional(),
+  un_language_advantage: z.boolean().optional(),
   core_competencies: z.array(z.string()).optional(),
   management_competencies: z.array(z.string()).optional(),
   leadership_competencies: z.array(z.string()).optional(),
@@ -156,6 +157,7 @@ export default function JobRequisitionForm() {
       desirable_experience: "",
       essential_education: "",
       desirable_education: "",
+      un_language_advantage: false,
       core_competencies: [],
       management_competencies: [],
       leadership_competencies: [],
@@ -230,6 +232,7 @@ export default function JobRequisitionForm() {
           desirable_experience: data.desirable_experience || "",
           essential_education: data.essential_education || "",
           desirable_education: data.desirable_education || "",
+          un_language_advantage: (data as any).un_language_advantage || false,
           core_competencies: Array.isArray(data.core_competencies) ? data.core_competencies as string[] : [],
           management_competencies: Array.isArray(data.management_competencies) ? data.management_competencies as string[] : [],
           leadership_competencies: Array.isArray(data.leadership_competencies) ? data.leadership_competencies as string[] : [],
@@ -921,6 +924,52 @@ export default function JobRequisitionForm() {
                           {...field} 
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Language Requirements</CardTitle>
+              <CardDescription>Specify language requirements for this position</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-2">Required Language Skills</h4>
+                  <div className="p-3 bg-muted/20 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-primary rounded-full"></div>
+                      <span className="text-sm font-medium">English: Expert knowledge is required</span>
+                    </div>
+                  </div>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="un_language_advantage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-start space-x-3">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="text-sm font-normal">
+                            Knowledge of another UN official language will be an advantage
+                          </FormLabel>
+                          <FormDescription className="text-xs text-muted-foreground">
+                            UN official languages: Arabic, Chinese, English, French, Russian, Spanish
+                          </FormDescription>
+                        </div>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
