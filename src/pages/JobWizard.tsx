@@ -215,8 +215,18 @@ ${requisition.essential_education || ''}
 ${requisition.desirable_education || ''}
             `.trim(),
             language_requirements: requisition.language_requirements ? 
-              JSON.stringify(requisition.language_requirements, null, 2) : '',
-            competencies: '',
+              (typeof requisition.language_requirements === 'object' ? 
+                Object.entries(requisition.language_requirements).map(([lang, level]) => 
+                  `- **${lang.charAt(0).toUpperCase() + lang.slice(1)}**: ${level}`
+                ).join('\n') : 
+                String(requisition.language_requirements)
+              ) : '',
+            competencies: [
+              ...(Array.isArray(requisition.global_competencies) ? requisition.global_competencies.filter((comp: any) => comp.name && comp.name.trim()) : []),
+              ...(Array.isArray(requisition.core_competencies) ? requisition.core_competencies.filter((comp: any) => comp.name && comp.name.trim()) : []),
+              ...(Array.isArray(requisition.leadership_competencies) ? requisition.leadership_competencies.filter((comp: any) => comp.name && comp.name.trim()) : []),
+              ...(Array.isArray(requisition.management_competencies) ? requisition.management_competencies.filter((comp: any) => comp.name && comp.name.trim()) : [])
+            ].map((comp: any) => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || '',
             killer_questions: [],
             attachments_required: {
               motivation_letter: true,
@@ -294,8 +304,8 @@ ${requisition.desirable_education || ''}
           branding: (jobData.branding as Record<string, any>) || { preset: 'UNICC' },
           description_md: jobData.description_md || '',
           requirements_md: jobData.requirements_md || '',
-          language_requirements: '',
-          competencies: '',
+          language_requirements: jobData.language_requirements || '',
+          competencies: jobData.competencies || '',
           killer_questions: questionsData?.map(question => ({
             id: question.id,
             label: question.label,

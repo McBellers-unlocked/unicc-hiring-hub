@@ -120,20 +120,20 @@ ${requisition.essential_education || ''}
 # Desirable Education
 
 ${requisition.desirable_education || ''}
-
-# Language Requirements
-
-${JSON.stringify(requisition.language_requirements, null, 2)}
-
-# Competencies
-
-${[
-  ...(requisition.global_competencies?.filter(comp => comp.name && comp.name.trim()) || []),
-  ...(requisition.core_competencies?.filter(comp => comp.name && comp.name.trim()) || []),
-  ...(requisition.leadership_competencies?.filter(comp => comp.name && comp.name.trim()) || []),
-  ...(requisition.management_competencies?.filter(comp => comp.name && comp.name.trim()) || [])
-].map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || 'No specific competencies defined'}
       `.trim(),
+      language_requirements: requisition.language_requirements ? 
+        (typeof requisition.language_requirements === 'object' ? 
+          Object.entries(requisition.language_requirements).map(([lang, level]) => 
+            `- **${lang.charAt(0).toUpperCase() + lang.slice(1)}**: ${level}`
+          ).join('\n') : 
+          String(requisition.language_requirements)
+        ) : '',
+      competencies: [
+        ...(requisition.global_competencies?.filter(comp => comp.name && comp.name.trim()) || []),
+        ...(requisition.core_competencies?.filter(comp => comp.name && comp.name.trim()) || []),
+        ...(requisition.leadership_competencies?.filter(comp => comp.name && comp.name.trim()) || []),
+        ...(requisition.management_competencies?.filter(comp => comp.name && comp.name.trim()) || [])
+      ].map(comp => `- **${comp.name}**: ${comp.description || ''}`).join('\n') || '',
       status: 'active', // Set to active status for immediate publishing
       category: 'Professional',
       salary_estimate: requisition.grade,

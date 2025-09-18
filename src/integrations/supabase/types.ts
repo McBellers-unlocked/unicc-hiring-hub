@@ -578,12 +578,14 @@ export type Database = {
           branding: Json | null
           category: string | null
           closing_date: string | null
+          competencies: string | null
           created_at: string
           description_md: string | null
           eligibility_note: string | null
           grade: string | null
           id: string
           issue_date: string | null
+          language_requirements: string | null
           location: string | null
           notice_no: string | null
           org_unit: string | null
@@ -603,12 +605,14 @@ export type Database = {
           branding?: Json | null
           category?: string | null
           closing_date?: string | null
+          competencies?: string | null
           created_at?: string
           description_md?: string | null
           eligibility_note?: string | null
           grade?: string | null
           id?: string
           issue_date?: string | null
+          language_requirements?: string | null
           location?: string | null
           notice_no?: string | null
           org_unit?: string | null
@@ -628,12 +632,14 @@ export type Database = {
           branding?: Json | null
           category?: string | null
           closing_date?: string | null
+          competencies?: string | null
           created_at?: string
           description_md?: string | null
           eligibility_note?: string | null
           grade?: string | null
           id?: string
           issue_date?: string | null
+          language_requirements?: string | null
           location?: string | null
           notice_no?: string | null
           org_unit?: string | null
