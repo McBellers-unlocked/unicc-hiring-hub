@@ -84,13 +84,8 @@ export default function Jobs() {
         if (locationMap[job.location]) {
           jobCities = [job.location];
         } else {
-          // Parse as comma-separated string (for manually created jobs)
-          const parts = job.location.split(',').map(part => part.trim());
-          for (let i = 0; i < parts.length; i += 2) {
-            if (parts[i]) {
-              jobCities.push(parts[i]);
-            }
-          }
+          // Parse as comma-separated string of cities
+          jobCities = job.location.split(',').map(city => city.trim()).filter(Boolean);
         }
       }
       return jobCities.includes(selectedLoc);
@@ -126,13 +121,9 @@ export default function Jobs() {
           if (locationMap[job.location]) {
             allLocations.push(job.location);
           } else {
-            // Parse as comma-separated string (for manually created jobs)
-            const parts = job.location.split(',').map(part => part.trim());
-            for (let i = 0; i < parts.length; i += 2) {
-              if (parts[i]) {
-                allLocations.push(parts[i]);
-              }
-            }
+            // Parse as comma-separated string of cities
+            const cities = job.location.split(',').map(city => city.trim()).filter(Boolean);
+            allLocations.push(...cities);
           }
         }
       }
@@ -189,13 +180,8 @@ export default function Jobs() {
         if (locationMap[job.location]) {
           jobCities = [job.location];
         } else {
-          // Parse as comma-separated string (for manually created jobs)
-          const parts = job.location.split(',').map(part => part.trim());
-          for (let i = 0; i < parts.length; i += 2) {
-            if (parts[i]) {
-              jobCities.push(parts[i]);
-            }
-          }
+          // Parse as comma-separated string of cities
+          jobCities = job.location.split(',').map(city => city.trim()).filter(Boolean);
         }
       }
       return jobCities.includes(location);
@@ -421,64 +407,60 @@ export default function Jobs() {
                                 {(() => {
                                   let locations = [];
                                   
-                                  // Handle both JSON array format and string format
-                                  if (typeof job.location === 'string') {
-                                    try {
-                                      // Try to parse as JSON first (for converted jobs)
-                                      const parsed = JSON.parse(job.location);
-                                      if (Array.isArray(parsed)) {
-                                        // Map common locations to countries for converted jobs
-                                        const locationMap: Record<string, string> = {
-                                          'Geneva': 'Switzerland',
-                                          'Valencia': 'Spain',
-                                          'New York': 'USA',
-                                          'Brindisi': 'Italy',
-                                          'Rome': 'Italy'
-                                        };
-                                        
-                                        locations = parsed.map(city => ({
-                                          city: city,
-                                          country: locationMap[city] || 'International'
-                                        }));
-                                      } else {
-                                        // Single location from JSON
-                                        const city = String(parsed);
-                                        const locationMap: Record<string, string> = {
-                                          'Geneva': 'Switzerland',
-                                          'Valencia': 'Spain',
-                                          'New York': 'USA',
-                                          'Brindisi': 'Italy',
-                                          'Rome': 'Italy'
-                                        };
-                                        locations = [{ city: city, country: locationMap[city] || 'International' }];
-                                      }
-                                    } catch {
-                                      // Check if it's a single city name (for converted jobs)
-                                      const locationMap: Record<string, string> = {
-                                        'Geneva': 'Switzerland',
-                                        'Valencia': 'Spain',
-                                        'New York': 'USA',
-                                        'Brindisi': 'Italy',
-                                        'Rome': 'Italy'
-                                      };
-                                      
-                                      // If it matches a known city, treat it as a single location
-                                      if (locationMap[job.location]) {
-                                        locations = [{ city: job.location, country: locationMap[job.location] }];
-                                      } else {
-                                        // Parse as comma-separated string (for manually created jobs)
-                                        const parts = job.location.split(',').map(part => part.trim());
-                                        for (let i = 0; i < parts.length; i += 2) {
-                                          if (parts[i] && parts[i + 1]) {
-                                            locations.push({
-                                              city: parts[i],
-                                              country: parts[i + 1]
-                                            });
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
+                                   // Handle both JSON array format and string format
+                                   if (typeof job.location === 'string') {
+                                     try {
+                                       // Try to parse as JSON first (for converted jobs)
+                                       const parsed = JSON.parse(job.location);
+                                       if (Array.isArray(parsed)) {
+                                         // Map common locations to countries for converted jobs
+                                         const locationMap: Record<string, string> = {
+                                           'Geneva': 'Switzerland',
+                                           'Valencia': 'Spain',
+                                           'New York': 'USA',
+                                           'Brindisi': 'Italy',
+                                           'Rome': 'Italy'
+                                         };
+                                         
+                                         locations = parsed.map(city => ({
+                                           city: city,
+                                           country: locationMap[city] || 'International'
+                                         }));
+                                       } else {
+                                         // Single location from JSON
+                                         const city = String(parsed);
+                                         const locationMap: Record<string, string> = {
+                                           'Geneva': 'Switzerland',
+                                           'Valencia': 'Spain',
+                                           'New York': 'USA',
+                                           'Brindisi': 'Italy',
+                                           'Rome': 'Italy'
+                                         };
+                                         locations = [{ city: city, country: locationMap[city] || 'International' }];
+                                       }
+                                     } catch {
+                                       // Check if it's a single city name (for converted jobs)
+                                       const locationMap: Record<string, string> = {
+                                         'Geneva': 'Switzerland',
+                                         'Valencia': 'Spain',
+                                         'New York': 'USA',
+                                         'Brindisi': 'Italy',
+                                         'Rome': 'Italy'
+                                       };
+                                       
+                                       // If it matches a known city, treat it as a single location
+                                       if (locationMap[job.location]) {
+                                         locations = [{ city: job.location, country: locationMap[job.location] }];
+                                       } else {
+                                         // Parse as comma-separated string of cities
+                                         const cities = job.location.split(',').map(city => city.trim()).filter(Boolean);
+                                         locations = cities.map(city => ({
+                                           city: city,
+                                           country: locationMap[city] || 'International'
+                                         }));
+                                       }
+                                     }
+                                   }
                                   
                                   // Map countries to ISO country codes for flag API
                                   const getCountryCode = (country: string) => {
