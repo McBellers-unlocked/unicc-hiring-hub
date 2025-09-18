@@ -203,9 +203,14 @@ interface PHFFormProps {
   initialData?: Partial<PHFFormData>;
   onSave: (data: any, isComplete: boolean) => Promise<void>;
   onUploadPhoto?: (file: File) => Promise<string>;
+  killerQuestions?: any[];
+  killerAnswers?: Record<string, any>;
+  onKillerAnswerChange?: (questionId: string, answer: any) => void;
+  disqualified?: boolean;
 }
 
 const SECTIONS = [
+  'Eligibility Questions',
   'Personal Details',
   'Dependants & Relatives',
   'Work Preferences', 
@@ -249,7 +254,7 @@ I acknowledge that my application and all supporting documents will be held in c
 
 I confirm that I have read and agree to the Privacy Notice for Applicants and understand how my personal data will be processed.`;
 
-export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
+export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = [], killerAnswers = {}, onKillerAnswerChange, disqualified = false }: PHFFormProps) {
   const [currentSection, setCurrentSection] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -412,6 +417,32 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
   };
 
   const handleNextSection = async () => {
+    // If we're on the eligibility questions section (0) and user is disqualified, prevent progression
+    if (currentSection === 0 && disqualified) {
+      toast({
+        title: 'Cannot proceed',
+        description: 'Based on your answers to the eligibility questions, you are not eligible for this position.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Check if eligibility questions are answered before proceeding from section 0
+    if (currentSection === 0 && killerQuestions.length > 0) {
+      const unansweredQuestions = killerQuestions.filter(q => 
+        killerAnswers[q.id] === undefined || killerAnswers[q.id] === null || killerAnswers[q.id] === ''
+      );
+
+      if (unansweredQuestions.length > 0) {
+        toast({
+          title: 'Please answer all questions',
+          description: 'All eligibility questions must be answered before proceeding.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const formData = form.getValues();
@@ -2470,35 +2501,117 @@ export function PHFForm({ initialData, onSave, onUploadPhoto }: PHFFormProps) {
     </div>
   );
 
+  const renderEligibilityQuestions = () => {
+    if (killerQuestions.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">No eligibility questions have been set for this position.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold mb-2">Eligibility Requirements</h3>
+          <p className="text-muted-foreground">
+            Please answer these questions to determine your eligibility for this position. All questions must be answered to proceed.
+          </p>
+        </div>
+
+        {disqualified && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Based on your answers to the eligibility questions, you are not eligible for this position.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {killerQuestions.map((question) => (
+          <div key={question.id} className="space-y-3 p-4 border rounded-lg">
+            <Label className="text-base font-medium">{question.label}</Label>
+            
+            {question.input_type === 'boolean' && (
+              <RadioGroup
+                value={killerAnswers[question.id]?.toString() || ''}
+                onValueChange={(value) => 
+                  onKillerAnswerChange?.(question.id, value === 'true')
+                }
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="true" id={`${question.id}-yes`} />
+                  <Label htmlFor={`${question.id}-yes`}>Yes</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="false" id={`${question.id}-no`} />
+                  <Label htmlFor={`${question.id}-no`}>No</Label>
+                </div>
+              </RadioGroup>
+            )}
+
+            {question.input_type === 'text' && (
+              <Input
+                value={killerAnswers[question.id] || ''}
+                onChange={(e) => onKillerAnswerChange?.(question.id, e.target.value)}
+                placeholder="Enter your answer..."
+              />
+            )}
+
+            {question.input_type === 'select' && question.options && (
+              <Select
+                value={killerAnswers[question.id] || ''}
+                onValueChange={(value) => onKillerAnswerChange?.(question.id, value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select an option..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(question.options).map(([key, value]) => (
+                    <SelectItem key={key} value={key}>
+                      {value as string}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const renderCurrentSection = () => {
     switch (currentSection) {
       case 0:
-        return renderPersonalDetails();
+        return renderEligibilityQuestions();
       case 1:
-        return renderDependantsAndRelatives();
+        return renderPersonalDetails();
       case 2:
-        return renderWorkPreferences();
+        return renderDependantsAndRelatives();
       case 3:
-        return renderLanguageKnowledge();
+        return renderWorkPreferences();
       case 4:
-        return renderEducation();
+        return renderLanguageKnowledge();
       case 5:
-        return renderEmploymentRecord();
+        return renderEducation();
       case 6:
-        return renderAdditionalInformation();
+        return renderEmploymentRecord();
       case 7:
-        return renderConsentToSend();
+        return renderAdditionalInformation();
       case 8:
-        return renderMobilityMedical();
+        return renderConsentToSend();
       case 9:
-        return renderReferences();
+        return renderMobilityMedical();
       case 10:
-        return renderEmployerContact();
+        return renderReferences();
       case 11:
-        return renderAvailability();
+        return renderEmployerContact();
       case 12:
-        return renderMotivationLetter();
+        return renderAvailability();
       case 13:
+        return renderMotivationLetter();
+      case 14:
         return renderCertificationSignature();
       default:
         return <div>Section not found</div>;

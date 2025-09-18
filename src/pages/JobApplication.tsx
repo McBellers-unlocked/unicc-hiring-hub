@@ -317,57 +317,8 @@ export default function JobApplication() {
     }
   };
 
-  const renderKillerQuestions = () => {
-    if (killerQuestions.length === 0) return null;
-
-    return (
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Eligibility Questions</CardTitle>
-          <CardDescription>
-            Please answer these questions to determine your eligibility for this position.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {killerQuestions.map((question) => (
-            <div key={question.id} className="space-y-3">
-              <Label className="text-base font-medium">{question.label}</Label>
-              
-              {question.input_type === 'boolean' && (
-                <RadioGroup
-                  value={killerAnswers[question.id]?.toString() || ''}
-                  onValueChange={(value) => 
-                    setKillerAnswers(prev => ({ 
-                      ...prev, 
-                      [question.id]: value === 'true' 
-                    }))
-                  }
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="true" id={`${question.id}-yes`} />
-                    <Label htmlFor={`${question.id}-yes`}>Yes</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="false" id={`${question.id}-no`} />
-                    <Label htmlFor={`${question.id}-no`}>No</Label>
-                  </div>
-                </RadioGroup>
-              )}
-
-              {questionErrors[question.id] && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    {questionErrors[question.id]}
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-    );
-  };
+  // Killer questions are now handled within the PHF form as the first tab
+  const renderKillerQuestions = () => null;
 
   if (loading) {
     return (
@@ -445,6 +396,12 @@ export default function JobApplication() {
                 <PHFForm
                   onSave={handlePHFSubmit}
                   initialData={phfData}
+                  killerQuestions={killerQuestions}
+                  killerAnswers={killerAnswers}
+                  onKillerAnswerChange={(questionId, answer) => 
+                    setKillerAnswers(prev => ({ ...prev, [questionId]: answer }))
+                  }
+                  disqualified={disqualified}
                 />
               </CardContent>
             </Card>
