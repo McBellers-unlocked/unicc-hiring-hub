@@ -93,6 +93,11 @@ export default function JobApplication() {
         throw jobResponse.error;
       }
 
+      if (questionsResponse.error) {
+        console.error('Error fetching killer questions:', questionsResponse.error);
+        throw questionsResponse.error;
+      }
+
       if (!jobResponse.data) {
         navigate('/404');
         return;
@@ -101,6 +106,7 @@ export default function JobApplication() {
       setJob(jobResponse.data);
       setKillerQuestions(questionsResponse.data || []);
       console.log('Loaded killer questions:', questionsResponse.data);
+      console.log('Job ID being used:', jobId);
     } catch (error) {
       console.error('Error fetching job:', error);
       toast({
