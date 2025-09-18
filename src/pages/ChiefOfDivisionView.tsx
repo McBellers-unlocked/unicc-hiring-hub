@@ -18,7 +18,7 @@ export default function ChiefOfDivisionView() {
         .from("job_requisitions")
         .select("*")
         .eq("hr_reviewed", true)
-        .is("chief_of_division_approval", null)
+        .or("chief_of_division_approval.is.null,chief_of_division_approval.eq.false")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
