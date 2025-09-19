@@ -15,6 +15,7 @@ interface JobRequisition {
   position_title: string;
   status: string;
   created_at: string;
+  updated_at: string;
   created_by: string;
   hr_reviewed: boolean;
   hr_reviewed_at: string | null;
@@ -135,6 +136,12 @@ export default function JobRequisitions() {
         approved: requisition.director_approval,
         sentAt: requisition.director_sent_at,
         approvedAt: requisition.director_approved_at
+      },
+      { 
+        label: "Published", 
+        approved: !!requisition.converted_to_job_id,
+        sentAt: requisition.converted_to_job_id ? requisition.updated_at : null,
+        approvedAt: requisition.converted_to_job_id ? requisition.updated_at : null
       },
     ];
 
