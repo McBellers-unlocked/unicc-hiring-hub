@@ -42,6 +42,11 @@ interface FieldChange {
   label: string;
   originalValue: string;
   newValue: string;
+  diffStats?: {
+    wordsAdded: number;
+    wordsRemoved: number;
+    wordsModified: number;
+  };
 }
 
 export default function JobRequisitionHREdit() {
@@ -117,11 +122,22 @@ export default function JobRequisitionHREdit() {
       const newValue = String(formData[field.key as keyof JobRequisition] || '');
       
       if (originalValue !== newValue) {
+        // Calculate basic diff statistics
+        const originalWords = originalValue.trim().split(/\s+/).filter(word => word.length > 0);
+        const newWords = newValue.trim().split(/\s+/).filter(word => word.length > 0);
+        const wordsAdded = Math.max(0, newWords.length - originalWords.length);
+        const wordsRemoved = Math.max(0, originalWords.length - newWords.length);
+        
         changes.push({
           field: field.key,
           label: field.label,
           originalValue,
-          newValue
+          newValue,
+          diffStats: {
+            wordsAdded,
+            wordsRemoved,
+            wordsModified: Math.min(originalWords.length, newWords.length)
+          }
         });
       }
     });

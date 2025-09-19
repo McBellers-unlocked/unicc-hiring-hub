@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, FileText, Briefcase, CheckCircle, Clock, MessageSquare, Download } from "lucide-react";
 import { format } from "date-fns";
+import { DiffSummary } from "@/components/DiffViewer";
 
 interface JobRequisition {
   id: string;
@@ -687,24 +688,9 @@ export default function JobRequisitionDetail() {
               )}
               
               {Array.isArray(requisition.hr_changes) && requisition.hr_changes.length > 0 && (
-                <div className="bg-white p-4 rounded-lg border border-amber-200">
-                  <h4 className="font-medium text-amber-800 mb-3">Detailed Changes:</h4>
-                  <div className="space-y-3">
-                    {requisition.hr_changes.map((change: any, index: number) => (
-                      <div key={index} className="border-l-4 border-amber-400 pl-4">
-                        <div className="font-medium text-amber-800">{change.label}</div>
-                        <div className="text-sm space-y-1 mt-1">
-                          <div>
-                            <span className="text-red-600 font-medium">Original:</span>
-                            <span className="text-red-600 ml-2">{change.originalValue || '(empty)'}</span>
-                          </div>
-                          <div>
-                            <span className="text-green-600 font-medium">Modified:</span>
-                            <span className="text-green-600 ml-2">{change.newValue || '(empty)'}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                <div className="bg-white rounded-lg border border-amber-200">
+                  <div className="p-4">
+                    <DiffSummary changes={requisition.hr_changes} />
                   </div>
                 </div>
               )}
