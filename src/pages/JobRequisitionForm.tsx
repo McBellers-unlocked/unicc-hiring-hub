@@ -294,7 +294,7 @@ export default function JobRequisitionForm() {
         }
 
         // Update existing requisition
-        const { un_language_advantage, ...cleanFormData } = formData as any;
+        const { un_language_advantage, french_level, spanish_level, italian_level, is_supervisor_role, ...cleanFormData } = formData as any;
         const updatedLanguageRequirements = {
           english: "Expert knowledge is required",
           un_language_advantage: un_language_advantage || false
@@ -313,7 +313,7 @@ export default function JobRequisitionForm() {
         if (error) throw error;
       } else {
         // Create new requisition
-        const { un_language_advantage, ...cleanFormData } = formData as any;
+        const { un_language_advantage, french_level, spanish_level, italian_level, is_supervisor_role, ...cleanFormData } = formData as any;
         const updatedLanguageRequirements = {
           english: "Expert knowledge is required",
           un_language_advantage: un_language_advantage || false
