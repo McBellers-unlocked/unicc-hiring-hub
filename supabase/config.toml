@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.video-assignment-webhook]
 verify_jwt = false
+
+[functions.fix-phf-completion]
+verify_jwt = false
