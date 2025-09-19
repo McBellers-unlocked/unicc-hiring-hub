@@ -341,17 +341,21 @@ export default function JobApplication() {
       }
 
       if (applicationId) {
-        // Update existing application
+        // Update existing application with PHF completion
         const { error: updateError } = await supabase
           .from('applications')
           .update({
             phf_data: phfData,
             phf_completed: true,
-            answers: killerAnswers
+            answers: killerAnswers,
+            updated_at: new Date().toISOString()
           })
           .eq('id', applicationId);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('Error updating application:', updateError);
+          throw updateError;
+        }
       } else {
         // Create new application
         const applicationData = {
