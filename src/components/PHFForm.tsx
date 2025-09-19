@@ -22,6 +22,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import MDEditor from '@uiw/react-md-editor';
 
 // Complete schema for UNICC PHF requirements
 const phfSchema = z.object({
@@ -180,7 +181,9 @@ const phfSchema = z.object({
 
   // Motivation Letter
   motivationLetter: z.object({
-    motivation_letter_url: z.string().min(1, 'Motivation letter is required'),
+    motivation_letter_content: z.string()
+      .min(1, 'Motivation letter is required')
+      .max(4000, 'Motivation letter must not exceed 4,000 characters'),
   }),
 
   // Certification & Signature
@@ -340,7 +343,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         availability_mode: initialData?.availability?.availability_mode || 'date',
       },
       motivationLetter: {
-        motivation_letter_url: initialData?.motivationLetter?.motivation_letter_url || '',
+        motivation_letter_content: initialData?.motivationLetter?.motivation_letter_content || '',
       },
       certification: {
         certify_true_complete_correct: initialData?.certification?.certify_true_complete_correct || false,
@@ -2411,40 +2414,67 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     }
   };
 
-  const renderMotivationLetter = () => (
-    <div className="space-y-6">
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          <strong>Guidance:</strong> Please upload your motivation letter explaining your interest in this position and how your experience makes you suitable for the role.
-        </AlertDescription>
-      </Alert>
+  const renderMotivationLetter = () => {
+    const motivationContent = form.watch('motivationLetter.motivation_letter_content') || '';
+    const characterCount = motivationContent.length;
+    const remainingChars = 4000 - characterCount;
+    
+    return (
+      <div className="space-y-6">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <p><strong>Guidance:</strong> Please write a short letter to share your motivation for this role. This is your chance to tell us why you're interested, what makes you a strong fit, and what you can contribute.</p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>We recommend keeping it 250–400 words (3–4 short paragraphs)</li>
+                <li>Please avoid repeating your CV in full</li>
+                <li>Focus on your motivation, relevant skills, and achievements</li>
+                <li>Maximum length: 4,000 characters (about one typed page)</li>
+              </ul>
+            </div>
+          </AlertDescription>
+        </Alert>
 
-      <FormField
-        control={form.control}
-        name="motivationLetter.motivation_letter_url"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Motivation Letter *</FormLabel>
-            <FormControl>
-              <Input
-                type="file"
-                accept=".pdf,.doc,.docx"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    // Handle file upload - you'll need to implement this
-                    field.onChange(file.name); // Placeholder
-                  }
-                }}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-    </div>
-  );
+        <FormField
+          control={form.control}
+          name="motivationLetter.motivation_letter_content"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Personal Statement / Motivation Letter *</FormLabel>
+              <FormControl>
+                <div className="space-y-2">
+                  <MDEditor
+                    value={field.value}
+                    onChange={(value) => field.onChange(value || '')}
+                    preview="edit"
+                    hideToolbar
+                    data-color-mode="light"
+                    style={{ backgroundColor: 'white' }}
+                  />
+                  <div className="flex justify-between items-center text-sm">
+                    <span className={cn(
+                      "text-muted-foreground",
+                      characterCount > 4000 && "text-destructive font-medium"
+                    )}>
+                      {characterCount.toLocaleString()} / 4,000 characters
+                    </span>
+                    <span className={cn(
+                      "text-muted-foreground",
+                      remainingChars < 0 && "text-destructive font-medium"
+                    )}>
+                      {remainingChars < 0 ? `${Math.abs(remainingChars)} over limit` : `${remainingChars} remaining`}
+                    </span>
+                  </div>
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+    );
+  };
 
   const renderCertificationSignature = () => (
     <div className="space-y-6">
