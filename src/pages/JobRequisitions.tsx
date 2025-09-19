@@ -79,7 +79,7 @@ export default function JobRequisitions() {
 
   const getStatusBadge = (requisition: JobRequisition) => {
     if (requisition.converted_to_job_id) {
-      return <Badge variant="default" className="bg-green-500">Converted to Job</Badge>;
+      return <Badge variant="default" className="bg-green-500">Published</Badge>;
     }
     
     switch (requisition.status) {

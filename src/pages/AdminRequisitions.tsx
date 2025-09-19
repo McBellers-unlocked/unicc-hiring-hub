@@ -43,6 +43,7 @@ interface JobRequisition {
   deputy_director_approved_at: string | null;
   finance_controller_approval: boolean;
   finance_controller_approved_at: string | null;
+  converted_to_job_id?: string;
 }
 
 export default function AdminRequisitions() {
@@ -144,6 +145,11 @@ export default function AdminRequisitions() {
   };
 
   const getStatusInfo = (requisition: JobRequisition) => {
+    // Check if converted to job (published)
+    if ((requisition as any).converted_to_job_id) {
+      return { label: 'Published', color: 'success', icon: CheckCircle2 };
+    }
+    
     switch (requisition.status) {
       case 'draft':
         return { label: 'Draft', color: 'secondary', icon: Clock };
@@ -266,7 +272,7 @@ export default function AdminRequisitions() {
           ['chief_division_review', 'director_review'].includes(r.status)
         );
       case 'completed':
-        return requisitions.filter(r => ['approved', 'rejected'].includes(r.status));
+        return requisitions.filter(r => ['approved', 'rejected'].includes(r.status) || r.converted_to_job_id);
       default:
         return requisitions;
     }
