@@ -369,7 +369,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         const hasEducation = formValues.education && formValues.education.length > 0;
         if (!hasEducation) return 'warning';
         const educationIncomplete = formValues.education.some(edu => 
-          !edu.from_month || !edu.from_year || !edu.institution_name || !edu.degree_type
+          !edu.institution_name || !edu.degree_type || !edu.from_month || !edu.from_year
         );
         return educationIncomplete || formErrors.education ? 'warning' : 'valid';
         
@@ -377,7 +377,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         const hasEmployment = formValues.employment && formValues.employment.length > 0;
         if (!hasEmployment) return 'warning';
         const employmentIncomplete = formValues.employment.some(emp => 
-          !emp.period_from_month || !emp.period_from_year || !emp.exact_title_of_post || !emp.employer_name || !emp.supervisor_name || !emp.duties_and_responsibilities
+          !emp.employer_name || !emp.exact_title_of_post || !emp.period_from_month || !emp.period_from_year || !emp.duties_and_responsibilities
         );
         return employmentIncomplete || formErrors.employment ? 'warning' : 'valid';
         
