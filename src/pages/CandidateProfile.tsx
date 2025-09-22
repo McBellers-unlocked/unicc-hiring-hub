@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Edit, Calendar, Building, Mail, Phone, Globe } from "lucide-react";
-import { getCountryFlag, getAvailabilityInfo } from "@/lib/countryFlags";
+import { getCountryFlagUrl, getAvailabilityInfo, formatExperienceYears } from "@/lib/countryFlags";
 
 interface CandidateProfile {
   id: string;
@@ -27,6 +27,7 @@ interface CandidateProfile {
   privacy_setting: string;
   profile_photo_url?: string;
   preferred_locations: any;
+  years_of_experience_months?: number;
   years_of_experience?: number;
   current_position?: string;
   current_organization?: string;
@@ -68,7 +69,9 @@ export default function CandidateProfile() {
 
         // Calculate years of experience if not present or if 0
         if (!normalizedProfile.years_of_experience || normalizedProfile.years_of_experience === 0) {
-          normalizedProfile.years_of_experience = calculateYearsOfExperience(normalizedProfile.work_experience);
+          const experienceMonths = calculateYearsOfExperience(normalizedProfile.work_experience);
+          (normalizedProfile as any).years_of_experience_months = experienceMonths;
+          normalizedProfile.years_of_experience = Math.round(experienceMonths / 12 * 10) / 10;
         }
 
         setProfile(normalizedProfile);
@@ -141,7 +144,7 @@ export default function CandidateProfile() {
       }
     });
     
-    return Math.round(totalMonths / 12 * 10) / 10; // Round to 1 decimal place
+    return totalMonths; // Return total months instead of years
   };
 
   if (loading) {
@@ -198,7 +201,15 @@ export default function CandidateProfile() {
                    <div className="flex flex-wrap gap-2 mt-2">
                      {profile.location && (
                        <Badge variant="outline" className="flex items-center gap-1">
-                         <span className="text-base">{getCountryFlag(profile.location)}</span>
+                         {getCountryFlagUrl(profile.location) ? (
+                           <img 
+                             src={getCountryFlagUrl(profile.location)} 
+                             alt={`${profile.location} flag`} 
+                             className="w-4 h-3 object-cover rounded-sm"
+                           />
+                         ) : (
+                           <span className="text-xs">🌍</span>
+                         )}
                          {profile.location}
                        </Badge>
                      )}
@@ -210,10 +221,10 @@ export default function CandidateProfile() {
                        <div className={`h-2 w-2 rounded-full ${getAvailabilityInfo(profile.availability_status).color}`}></div>
                        {getAvailabilityInfo(profile.availability_status).label}
                      </Badge>
-                     {profile.years_of_experience > 0 && (
+                     {(profile as any).years_of_experience_months > 0 && (
                        <Badge variant="outline" className="flex items-center gap-1">
                          <Calendar className="h-3 w-3" />
-                         {profile.years_of_experience} years exp.
+                         {formatExperienceYears((profile as any).years_of_experience_months)} exp.
                        </Badge>
                      )}
                    </div>

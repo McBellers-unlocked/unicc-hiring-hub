@@ -39,6 +39,7 @@ interface CandidateProfile {
   profile_photo_url?: string;
   preferred_locations: any;
   years_of_experience?: number;
+  years_of_experience_months?: number;
   current_position?: string;
   current_organization?: string;
   willing_to_relocate: boolean;
@@ -160,15 +161,20 @@ export default function CandidateProfileEdit() {
       }
     });
     
-    return Math.round(totalMonths / 12 * 10) / 10; // Round to 1 decimal place
+    return totalMonths; // Return total months instead of years
   };
 
   // Auto-update years of experience when work experience changes
   useEffect(() => {
     if (profile) {
-      const calculatedYears = calculateYearsOfExperience();
+      const calculatedMonths = calculateYearsOfExperience();
+      const calculatedYears = Math.round(calculatedMonths / 12 * 10) / 10;
       if (calculatedYears !== profile.years_of_experience) {
-        setProfile({ ...profile, years_of_experience: calculatedYears });
+        setProfile({ 
+          ...profile, 
+          years_of_experience: calculatedYears,
+          years_of_experience_months: calculatedMonths
+        });
       }
     }
   }, [profile?.work_experience]);
