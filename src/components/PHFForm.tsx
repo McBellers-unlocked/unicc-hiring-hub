@@ -1424,24 +1424,105 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
 
   const renderAdditionalInformation = () => (
     <div className="space-y-6">
+      {/* Skills Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <div className="h-5 w-5 bg-primary rounded-sm"></div>
+            Skills
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {candidateProfile?.skills && candidateProfile.skills.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {candidateProfile.skills.map((skill: string, index: number) => (
+                <Badge key={index} variant="secondary" className="text-sm">
+                  {skill}
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">No skills added yet</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Certifications Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <div className="h-5 w-5 bg-primary rounded-sm"></div>
+            Certifications & Licenses
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {candidateProfile?.certifications && candidateProfile.certifications.length > 0 ? (
+            <div className="space-y-3">
+              {candidateProfile.certifications.map((cert: any, index: number) => (
+                <div key={index} className="border rounded-lg p-4 bg-card">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1 flex-1">
+                      <h4 className="font-medium text-lg">{cert.name}</h4>
+                      <p className="text-muted-foreground font-medium">{cert.issuing_organization}</p>
+                      <div className="text-sm text-muted-foreground">
+                        {cert.issue_date && (
+                          <span>Issued: {new Date(cert.issue_date).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' })}</span>
+                        )}
+                        {cert.expiry_date && (
+                          <>
+                            <span className="mx-2">•</span>
+                            <span>Expires: {new Date(cert.expiry_date).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' })}</span>
+                          </>
+                        )}
+                      </div>
+                      {cert.credential_id && (
+                        <p className="text-sm text-muted-foreground">
+                          Credential ID: {cert.credential_id}
+                        </p>
+                      )}
+                      {cert.description && (
+                        <p className="text-sm text-muted-foreground mt-2">
+                          {cert.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">No certifications added yet</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Additional Skills Text Field */}
       <FormField
         control={form.control}
         name="additionalInformation.additional_skills"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Additional Skills</FormLabel>
+            <FormLabel>Additional Skills & Competencies</FormLabel>
             <FormDescription>
-              Please describe any additional skills, particularly computing skills
+              Describe any additional skills, competencies, or relevant qualifications not covered above
             </FormDescription>
             <FormControl>
-              <Textarea {...field} rows={4} />
+              <Textarea {...field} rows={4} placeholder="List any additional technical skills, soft skills, languages, or other competencies..." />
             </FormControl>
             <FormMessage />
           </FormItem>
         )}
       />
 
+      {/* Law Violations */}
       <div className="space-y-4">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Legal Disclosure:</strong> Have you ever been charged with, convicted of, or pleaded guilty to any criminal offense? Include all instances, regardless of whether the case was dismissed, expunged, or resulted in a deferred prosecution.
+          </AlertDescription>
+        </Alert>
+
         <FormField
           control={form.control}
           name="additionalInformation.law_violations_disclosed"
@@ -1455,11 +1536,8 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
               </FormControl>
               <div className="space-y-1 leading-none">
                 <FormLabel>
-                  Law Violations Disclosed
+                  Yes, I have legal matters to disclose
                 </FormLabel>
-                <FormDescription>
-                  Check if you need to disclose any law violations
-                </FormDescription>
               </div>
             </FormItem>
           )}
@@ -1471,7 +1549,10 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
             name="additionalInformation.law_violations_details"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Law Violations Details</FormLabel>
+                <FormLabel>Legal Disclosure Details *</FormLabel>
+                <FormDescription>
+                  Please provide full details of all legal matters, including dates, charges, outcomes, and current status. Failure to disclose may result in disqualification.
+                </FormDescription>
                 <FormControl>
                   <Textarea {...field} rows={4} />
                 </FormControl>
