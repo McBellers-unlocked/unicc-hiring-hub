@@ -17,7 +17,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { AlertCircle, CalendarIcon, Plus, Trash2, Save, FileText, ChevronLeft, ChevronRight, User, Accessibility } from 'lucide-react';
+import { AlertCircle, CalendarIcon, Plus, Trash2, Save, FileText, ChevronLeft, ChevronRight, User, Accessibility, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
@@ -332,6 +332,96 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
   useEffect(() => {
     setCurrentSection(initialTab);
   }, [initialTab]);
+
+  // Validation status helper function
+  const getSectionValidationStatus = (sectionIndex: number) => {
+    const formValues = form.getValues();
+    const formErrors = form.formState.errors;
+    
+    switch (sectionIndex) {
+      case 0: // Eligibility Questions
+        // Check killer question answers
+        if (killerQuestions.length > 0) {
+          const hasUnanswered = killerQuestions.some(q => 
+            killerAnswers[q.id] === undefined || killerAnswers[q.id] === null || killerAnswers[q.id] === ''
+          );
+          return hasUnanswered || disqualified ? 'warning' : 'valid';
+        }
+        return 'valid';
+        
+      case 1: // Personal Details
+        const personalRequired = ['familyName', 'firstNames', 'sex', 'dateOfBirth', 'placeOfBirth', 'countryOfBirth', 'presentNationality', 'maritalStatus', 'permanentAddress', 'presentAddress', 'telephone', 'email'];
+        const personalMissing = personalRequired.some(field => 
+          !formValues.personalDetails?.[field] || formValues.personalDetails?.[field] === ''
+        );
+        return personalMissing || formErrors.personalDetails ? 'warning' : 'valid';
+        
+      case 2: // Dependants & Relatives
+        return 'valid'; // Optional section
+        
+      case 3: // Work Preferences
+        return 'valid'; // Optional section
+        
+      case 4: // Language Proficiency
+        return 'valid'; // Optional section
+        
+      case 5: // Education
+        const hasEducation = formValues.education && formValues.education.length > 0;
+        if (!hasEducation) return 'warning';
+        const educationIncomplete = formValues.education.some(edu => 
+          !edu.from_month || !edu.from_year || !edu.institution_name || !edu.degree_type
+        );
+        return educationIncomplete || formErrors.education ? 'warning' : 'valid';
+        
+      case 6: // Employment Record
+        const hasEmployment = formValues.employment && formValues.employment.length > 0;
+        if (!hasEmployment) return 'warning';
+        const employmentIncomplete = formValues.employment.some(emp => 
+          !emp.period_from_month || !emp.period_from_year || !emp.exact_title_of_post || !emp.employer_name || !emp.supervisor_name || !emp.duties_and_responsibilities
+        );
+        return employmentIncomplete || formErrors.employment ? 'warning' : 'valid';
+        
+      case 7: // Additional Information
+        return 'valid'; // Optional section
+        
+      case 8: // Consent to Send
+        return 'valid'; // Optional section
+        
+      case 9: // Mobility/Medical
+        return 'valid'; // Optional section
+        
+      case 10: // References
+        const hasThreeRefs = formValues.references && formValues.references.length === 3;
+        if (!hasThreeRefs) return 'warning';
+        const refsIncomplete = formValues.references.some(ref => 
+          !ref.name || !ref.full_address || !ref.occupation_title
+        );
+        return refsIncomplete || formErrors.references ? 'warning' : 'valid';
+        
+      case 11: // Employer Contact & Status
+        const employerContactMissing = formValues.employerContact?.objection_to_contact_present_employer === undefined || 
+                                      formValues.employerContact?.presently_in_government_employ === undefined;
+        return employerContactMissing || formErrors.employerContact ? 'warning' : 'valid';
+        
+      case 12: // Availability
+        const availabilityMissing = !formValues.availability?.availability_mode;
+        return availabilityMissing || formErrors.availability ? 'warning' : 'valid';
+        
+      case 13: // Motivation Letter
+        const motivationMissing = !formValues.motivationLetter?.motivation_letter_content || 
+                                 formValues.motivationLetter?.motivation_letter_content?.trim() === '';
+        return motivationMissing || formErrors.motivationLetter ? 'warning' : 'valid';
+        
+      case 14: // Certification & Signature
+        const certificationMissing = !formValues.certification?.certify_true_complete_correct || 
+                                    !formValues.certification?.signature_place ||
+                                    !formValues.certification?.signature_date;
+        return certificationMissing || formErrors.certification ? 'warning' : 'valid';
+        
+      default:
+        return 'valid';
+    }
+  };
 
   const form = useForm<PHFFormData>({
     resolver: zodResolver(phfSchema),
@@ -2774,21 +2864,26 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                {SECTIONS.slice(0, 5).map((section, index) => {
                   // Allow free navigation to all tabs
                   const isAccessible = true;
+                  const validationStatus = getSectionValidationStatus(index);
+                  const hasWarning = validationStatus === 'warning';
+                  const isCompleted = completedTabs.has(index) && index !== currentSection;
                   return (
                     <TabsTrigger 
                       key={index} 
                       value={index.toString()}
                       disabled={false}
                      className={cn(
-                       "text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
+                       "text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-1",
                        !isAccessible && "opacity-50 cursor-not-allowed bg-muted text-muted-foreground",
-                       isAccessible && completedTabs.has(index) && index !== currentSection && "bg-green-100 text-green-700"
+                       isCompleted && !hasWarning && "bg-green-100 text-green-700",
+                       hasWarning && "bg-amber-50 text-amber-700 border-amber-200"
                      )}
                      title={section}
                    >
-                     {index + 1}. {section}
-                     {!isAccessible && " 🔒"}
-                     {isAccessible && index < currentSection && " ✓"}
+                     <span>{index + 1}. {section}</span>
+                     {!isAccessible && <span>🔒</span>}
+                     {isCompleted && !hasWarning && <span>✓</span>}
+                     {hasWarning && <AlertTriangle className="h-3 w-3" />}
                    </TabsTrigger>
                  );
                })}
@@ -2799,21 +2894,26 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                  const tabIndex = index + 5;
                   // Allow free navigation to all tabs
                   const isAccessible = true;
+                  const validationStatus = getSectionValidationStatus(tabIndex);
+                  const hasWarning = validationStatus === 'warning';
+                  const isCompleted = completedTabs.has(tabIndex) && tabIndex !== currentSection;
                   return (
                     <TabsTrigger 
                       key={tabIndex} 
                       value={tabIndex.toString()}
                       disabled={false}
                      className={cn(
-                       "text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
+                       "text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-1",
                        !isAccessible && "opacity-50 cursor-not-allowed bg-muted text-muted-foreground",
-                       isAccessible && tabIndex < currentSection && "bg-green-100 text-green-700"
+                       isCompleted && !hasWarning && "bg-green-100 text-green-700",
+                       hasWarning && "bg-amber-50 text-amber-700 border-amber-200"
                      )}
                      title={section}
                    >
-                     {tabIndex + 1}. {section}
-                     {!isAccessible && " 🔒"}
-                     {isAccessible && tabIndex < currentSection && " ✓"}
+                     <span>{tabIndex + 1}. {section}</span>
+                     {!isAccessible && <span>🔒</span>}
+                     {isCompleted && !hasWarning && <span>✓</span>}
+                     {hasWarning && <AlertTriangle className="h-3 w-3" />}
                    </TabsTrigger>
                  );
                })}
@@ -2824,21 +2924,26 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                  const tabIndex = index + 10;
                   // Allow free navigation to all tabs
                   const isAccessible = true;
+                  const validationStatus = getSectionValidationStatus(tabIndex);
+                  const hasWarning = validationStatus === 'warning';
+                  const isCompleted = completedTabs.has(tabIndex) && tabIndex !== currentSection;
                   return (
                     <TabsTrigger 
                       key={tabIndex} 
                       value={tabIndex.toString()}
                       disabled={false}
                      className={cn(
-                       "text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
+                       "text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-1",
                        !isAccessible && "opacity-50 cursor-not-allowed bg-muted text-muted-foreground",
-                       isAccessible && tabIndex < currentSection && "bg-green-100 text-green-700"
+                       isCompleted && !hasWarning && "bg-green-100 text-green-700",
+                       hasWarning && "bg-amber-50 text-amber-700 border-amber-200"
                      )}
                      title={section}
                    >
-                     {tabIndex + 1}. {section}
-                     {!isAccessible && " 🔒"}
-                     {isAccessible && tabIndex < currentSection && " ✓"}
+                     <span>{tabIndex + 1}. {section}</span>
+                     {!isAccessible && <span>🔒</span>}
+                     {isCompleted && !hasWarning && <span>✓</span>}
+                     {hasWarning && <AlertTriangle className="h-3 w-3" />}
                    </TabsTrigger>
                  );
                })}
