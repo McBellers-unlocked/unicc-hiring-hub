@@ -697,7 +697,7 @@ export default function AdminApplications() {
               )}
 
               {/* Enhanced Table */}
-              <div className="border rounded-lg">
+              <div className="border rounded-lg overflow-hidden shadow-sm">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -707,15 +707,15 @@ export default function AdminApplications() {
                           onCheckedChange={toggleAllApplications}
                         />
                       </TableHead>
-                       <TableHead>Candidate</TableHead>
-                       <TableHead>Education</TableHead>
-                       <TableHead>Current Role</TableHead>
-                       <TableHead>Total Experience</TableHead>
-                       <TableHead>Languages</TableHead>
-                       <TableHead>Status</TableHead>
-                       <TableHead>Longlist</TableHead>
-                       <TableHead>Match Score</TableHead>
-                       <TableHead>Actions</TableHead>
+                       <TableHead className="text-left font-semibold">Candidate</TableHead>
+                       <TableHead className="text-left font-semibold">Education</TableHead>
+                       <TableHead className="text-left font-semibold">Current Role</TableHead>
+                       <TableHead className="text-center font-semibold">Experience</TableHead>
+                       <TableHead className="text-left font-semibold">Languages</TableHead>
+                       <TableHead className="text-center font-semibold">Status</TableHead>
+                       <TableHead className="text-center font-semibold">Longlist</TableHead>
+                       <TableHead className="text-center font-semibold">Match</TableHead>
+                       <TableHead className="text-center font-semibold">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -732,53 +732,70 @@ export default function AdminApplications() {
                          </TableCell>
                        </TableRow>
                     ) : (
-                      filteredApplications.map((application) => (
-                        <>
-                          <TableRow key={application.id} className="hover:bg-muted/50">
+                       filteredApplications.map((application) => (
+                         <>
+                           <TableRow key={application.id} className="hover:bg-muted/30 transition-colors duration-150 border-b border-border/50">
                             <TableCell>
                               <Checkbox
                                 checked={selectedApplications.has(application.id)}
                                 onCheckedChange={() => toggleApplicationSelection(application.id)}
                               />
                             </TableCell>
-                            <TableCell>
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                  <User className="w-4 h-4 text-muted-foreground" />
-                                  <div>
-                                    <div className="font-medium">{application.candidate.name}</div>
-                                    <div className="text-sm text-muted-foreground">{application.candidate.email}</div>
-                                    {application.candidate.location && (
-                                      <div className="text-sm text-muted-foreground">{application.candidate.location}</div>
-                                    )}
-                                  </div>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => toggleRowExpansion(application.id)}
-                                >
-                                  {expandedRows.has(application.id) ? 
-                                    <ChevronDown className="w-4 h-4" /> : 
-                                    <ChevronRight className="w-4 h-4" />
-                                  }
-                                </Button>
-                              </div>
-                            </TableCell>
-                             <TableCell>
-                               <div className="flex items-center space-x-2">
-                                 <GraduationCap className="w-4 h-4 text-muted-foreground" />
-                                 <div className="text-sm">
+                             <TableCell className="min-w-[250px]">
+                               <div className="flex items-center justify-between">
+                                 <div className="flex items-start space-x-3 flex-1 min-w-0">
+                                   <div className="flex-shrink-0 mt-0.5">
+                                     <User className="w-4 h-4 text-muted-foreground" />
+                                   </div>
+                                   <div className="flex-1 min-w-0">
+                                     <div className="font-medium text-sm leading-tight truncate" title={application.candidate.name}>
+                                       {application.candidate.name}
+                                     </div>
+                                     <div className="text-xs text-muted-foreground leading-tight truncate" title={application.candidate.email}>
+                                       {application.candidate.email}
+                                     </div>
+                                     {application.candidate.location && (
+                                       <div className="text-xs text-muted-foreground leading-tight truncate" title={application.candidate.location}>
+                                         📍 {application.candidate.location}
+                                       </div>
+                                     )}
+                                   </div>
+                                 </div>
+                                 <Button
+                                   variant="ghost"
+                                   size="sm"
+                                   onClick={() => toggleRowExpansion(application.id)}
+                                   className="flex-shrink-0 ml-2"
+                                 >
+                                   {expandedRows.has(application.id) ? 
+                                     <ChevronDown className="w-4 h-4" /> : 
+                                     <ChevronRight className="w-4 h-4" />
+                                   }
+                                 </Button>
+                               </div>
+                             </TableCell>
+                             <TableCell className="min-w-[200px]">
+                               <div className="flex items-start space-x-3">
+                                 <div className="flex-shrink-0 mt-0.5">
+                                   <GraduationCap className="w-4 h-4 text-muted-foreground" />
+                                 </div>
+                                 <div className="flex-1 min-w-0">
                                    {(() => {
                                      const education = getEducationDetails(application.candidate.education);
                                      return (
-                                       <div>
-                                         <div className="font-medium">{education.degree}</div>
+                                       <div className="space-y-1">
+                                         <div className="font-medium text-sm leading-tight truncate" title={education.degree}>
+                                           {education.degree}
+                                         </div>
                                          {education.university && (
-                                           <div className="text-xs text-muted-foreground">{education.university}</div>
+                                           <div className="text-xs text-muted-foreground leading-tight truncate" title={education.university}>
+                                             {education.university}
+                                           </div>
                                          )}
                                          {education.year && (
-                                           <div className="text-xs text-muted-foreground">{education.year}</div>
+                                           <div className="text-xs text-muted-foreground font-medium">
+                                             {education.year}
+                                           </div>
                                          )}
                                        </div>
                                      );
@@ -786,93 +803,122 @@ export default function AdminApplications() {
                                  </div>
                                </div>
                              </TableCell>
-                             <TableCell>
-                               <div className="flex items-center space-x-2">
-                                 <Briefcase className="w-4 h-4 text-muted-foreground" />
-                                 <div className="text-sm">
+                             <TableCell className="min-w-[220px]">
+                               <div className="flex items-start space-x-3">
+                                 <div className="flex-shrink-0 mt-0.5">
+                                   <Briefcase className="w-4 h-4 text-muted-foreground" />
+                                 </div>
+                                 <div className="flex-1 min-w-0">
                                    {(() => {
                                      const currentJob = getCurrentJobDetails(application.candidate.work_experience);
                                      return (
-                                       <div>
-                                         <div className="font-medium">{currentJob.title}</div>
+                                       <div className="space-y-1">
+                                         <div className="font-medium text-sm leading-tight truncate" title={currentJob.title}>
+                                           {currentJob.title}
+                                         </div>
                                          {currentJob.organization && (
-                                           <div className="text-xs text-muted-foreground">{currentJob.organization}</div>
+                                           <div className="text-xs text-muted-foreground leading-tight truncate" title={currentJob.organization}>
+                                             {currentJob.organization}
+                                           </div>
                                          )}
-                                         {currentJob.length && (
-                                           <div className="text-xs text-muted-foreground">{currentJob.length}</div>
-                                         )}
-                                         {application.candidate.un_experience && (
-                                           <Badge variant="outline" className="ml-1 text-xs">UN</Badge>
-                                         )}
+                                         <div className="flex items-center gap-2">
+                                           {currentJob.length && (
+                                             <span className="text-xs text-muted-foreground font-medium">
+                                               {currentJob.length}
+                                             </span>
+                                           )}
+                                           {application.candidate.un_experience && (
+                                             <Badge variant="outline" className="text-xs px-1.5 py-0.5">UN</Badge>
+                                           )}
+                                         </div>
                                        </div>
                                      );
                                    })()}
                                  </div>
                                </div>
                              </TableCell>
-                             <TableCell>
-                               <div className="flex items-center space-x-2">
-                                 <Briefcase className="w-4 h-4 text-muted-foreground" />
-                                 <span className="text-sm font-medium">
-                                   {getTotalExperience(application.candidate.work_experience, application.candidate.years_of_experience)}
-                                 </span>
+                             <TableCell className="min-w-[120px]">
+                               <div className="flex items-center justify-center">
+                                 <div className="text-center">
+                                   <div className="font-semibold text-sm text-foreground">
+                                     {getTotalExperience(application.candidate.work_experience, application.candidate.years_of_experience)}
+                                   </div>
+                                   <div className="text-xs text-muted-foreground">
+                                     total
+                                   </div>
+                                 </div>
                                </div>
                              </TableCell>
-                            <TableCell>
-                              <div className="flex items-center space-x-2">
-                                <Languages className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm">{getLanguageSummary(application.candidate.languages)}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {getStatusBadge(application.status)}
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                size="sm"
-                                variant={application.suggested_for_longlist ? "default" : "outline"}
-                                onClick={() => application.suggested_for_longlist ? 
-                                  removeFromLonglist([application.id]) : 
-                                  addToLonglist([application.id])
-                                }
-                              >
-                                {application.suggested_for_longlist ? (
-                                  <>
-                                    <Check className="w-4 h-4 mr-1" />
-                                    In Longlist
-                                  </>
-                                ) : (
-                                  <>
-                                    <Plus className="w-4 h-4 mr-1" />
-                                    Add to Longlist
-                                  </>
-                                )}
-                              </Button>
-                            </TableCell>
-                            <TableCell>
-                              {getScoreBadge(application)}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center space-x-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => navigate(`/application/${application.id}`)}
-                                >
-                                  <Eye className="w-4 h-4 mr-1" />
-                                  View
-                                </Button>
-                                {(userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={(e) => deleteApplication(application.id, application.candidate.id, e)}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                )}
-                              </div>
-                            </TableCell>
+                             <TableCell className="min-w-[150px]">
+                               <div className="flex items-start space-x-3">
+                                 <div className="flex-shrink-0 mt-0.5">
+                                   <Languages className="w-4 h-4 text-muted-foreground" />
+                                 </div>
+                                 <div className="flex-1 min-w-0">
+                                   <span className="text-sm leading-tight truncate block" title={getLanguageSummary(application.candidate.languages)}>
+                                     {getLanguageSummary(application.candidate.languages)}
+                                   </span>
+                                 </div>
+                               </div>
+                             </TableCell>
+                             <TableCell className="min-w-[120px]">
+                               <div className="flex justify-center">
+                                 {getStatusBadge(application.status)}
+                               </div>
+                             </TableCell>
+                             <TableCell className="min-w-[140px]">
+                               <div className="flex justify-center">
+                                 <Button
+                                   size="sm"
+                                   variant={application.suggested_for_longlist ? "default" : "outline"}
+                                   onClick={() => application.suggested_for_longlist ? 
+                                     removeFromLonglist([application.id]) : 
+                                     addToLonglist([application.id])
+                                   }
+                                   className="whitespace-nowrap"
+                                 >
+                                   {application.suggested_for_longlist ? (
+                                     <>
+                                       <Check className="w-3 h-3 mr-1.5" />
+                                       Listed
+                                     </>
+                                   ) : (
+                                     <>
+                                       <Plus className="w-3 h-3 mr-1.5" />
+                                       Add
+                                     </>
+                                   )}
+                                 </Button>
+                               </div>
+                             </TableCell>
+                             <TableCell className="min-w-[100px]">
+                               <div className="flex justify-center">
+                                 {getScoreBadge(application)}
+                               </div>
+                             </TableCell>
+                             <TableCell className="min-w-[120px]">
+                               <div className="flex items-center justify-center space-x-1">
+                                 <Button
+                                   size="sm"
+                                   variant="outline"
+                                   onClick={() => navigate(`/application/${application.id}`)}
+                                   className="whitespace-nowrap"
+                                 >
+                                   <Eye className="w-3 h-3 mr-1" />
+                                   View
+                                 </Button>
+                                 {(userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
+                                   <Button
+                                     size="sm"
+                                     variant="destructive"
+                                     onClick={(e) => deleteApplication(application.id, application.candidate.id, e)}
+                                     className="px-2"
+                                   >
+                                     <Trash2 className="w-3 h-3" />
+                                   </Button>
+                                 )}
+                               </div>
+                             </TableCell>
                           </TableRow>
                           
                            {/* Expanded Row Details */}
