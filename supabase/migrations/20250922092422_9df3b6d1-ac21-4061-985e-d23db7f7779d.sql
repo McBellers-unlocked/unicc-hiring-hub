@@ -1,0 +1,22 @@
+-- Expand candidates table for LinkedIn-style profiles
+ALTER TABLE public.candidates 
+ADD COLUMN professional_summary TEXT,
+ADD COLUMN skills JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN certifications JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN education JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN work_experience JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN availability_status TEXT DEFAULT 'available',
+ADD COLUMN profile_completion_percentage INTEGER DEFAULT 0,
+ADD COLUMN privacy_setting TEXT DEFAULT 'internal_un' CHECK (privacy_setting IN ('public', 'internal_un', 'organization_specific')),
+ADD COLUMN profile_photo_url TEXT,
+ADD COLUMN portfolio_attachments JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN preferred_locations JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN years_of_experience INTEGER,
+ADD COLUMN current_position TEXT,
+ADD COLUMN current_organization TEXT,
+ADD COLUMN salary_expectation_range TEXT,
+ADD COLUMN notice_period TEXT,
+ADD COLUMN willing_to_relocate BOOLEAN DEFAULT false,
+ADD COLUMN security_clearance_level TEXT,
+ADD COLUMN un_experience BOOLEAN DEFAULT false,
+ADD COLUMN un_organizations_worked JSONB DEFAULT '[]'::jsonb;

@@ -135,7 +135,12 @@ export type Database = {
       }
       candidates: {
         Row: {
+          availability_status: string | null
+          certifications: Json | null
           created_at: string
+          current_organization: string | null
+          current_position: string | null
+          education: Json | null
           email: string
           gender: string | null
           id: string
@@ -143,12 +148,32 @@ export type Database = {
           linkedin_url: string | null
           location: string | null
           name: string
+          notice_period: string | null
           phone: string | null
+          portfolio_attachments: Json | null
+          preferred_locations: Json | null
+          privacy_setting: string | null
+          professional_summary: string | null
+          profile_completion_percentage: number | null
+          profile_photo_url: string | null
+          salary_expectation_range: string | null
+          security_clearance_level: string | null
+          skills: Json | null
+          un_experience: boolean | null
+          un_organizations_worked: Json | null
           updated_at: string
+          willing_to_relocate: boolean | null
           work_auth: string | null
+          work_experience: Json | null
+          years_of_experience: number | null
         }
         Insert: {
+          availability_status?: string | null
+          certifications?: Json | null
           created_at?: string
+          current_organization?: string | null
+          current_position?: string | null
+          education?: Json | null
           email: string
           gender?: string | null
           id?: string
@@ -156,12 +181,32 @@ export type Database = {
           linkedin_url?: string | null
           location?: string | null
           name: string
+          notice_period?: string | null
           phone?: string | null
+          portfolio_attachments?: Json | null
+          preferred_locations?: Json | null
+          privacy_setting?: string | null
+          professional_summary?: string | null
+          profile_completion_percentage?: number | null
+          profile_photo_url?: string | null
+          salary_expectation_range?: string | null
+          security_clearance_level?: string | null
+          skills?: Json | null
+          un_experience?: boolean | null
+          un_organizations_worked?: Json | null
           updated_at?: string
+          willing_to_relocate?: boolean | null
           work_auth?: string | null
+          work_experience?: Json | null
+          years_of_experience?: number | null
         }
         Update: {
+          availability_status?: string | null
+          certifications?: Json | null
           created_at?: string
+          current_organization?: string | null
+          current_position?: string | null
+          education?: Json | null
           email?: string
           gender?: string | null
           id?: string
@@ -169,9 +214,24 @@ export type Database = {
           linkedin_url?: string | null
           location?: string | null
           name?: string
+          notice_period?: string | null
           phone?: string | null
+          portfolio_attachments?: Json | null
+          preferred_locations?: Json | null
+          privacy_setting?: string | null
+          professional_summary?: string | null
+          profile_completion_percentage?: number | null
+          profile_photo_url?: string | null
+          salary_expectation_range?: string | null
+          security_clearance_level?: string | null
+          skills?: Json | null
+          un_experience?: boolean | null
+          un_organizations_worked?: Json | null
           updated_at?: string
+          willing_to_relocate?: boolean | null
           work_auth?: string | null
+          work_experience?: Json | null
+          years_of_experience?: number | null
         }
         Relationships: []
       }
