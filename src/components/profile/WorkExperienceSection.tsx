@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, Briefcase } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Plus, Trash2, Briefcase, ChevronDown, ChevronUp, Edit2 } from "lucide-react";
 
 interface WorkExperience {
   company: string;
@@ -26,6 +27,7 @@ interface WorkExperienceSectionProps {
 }
 
 export default function WorkExperienceSection({ workExperience, onChange }: WorkExperienceSectionProps) {
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const [newWork, setNewWork] = useState<WorkExperience>({
     company: "",
     position: "",
@@ -66,6 +68,16 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
     onChange(updated);
   };
 
+  const toggleExpanded = (index: number) => {
+    const newExpanded = new Set(expandedItems);
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index);
+    } else {
+      newExpanded.add(index);
+    }
+    setExpandedItems(newExpanded);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -76,114 +88,147 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Existing Work Experience Entries */}
-        {workExperience.map((work, index) => (
-          <div key={index} className="border rounded-lg p-4 space-y-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h4 className="font-medium">{work.position}</h4>
-                <p className="text-sm text-muted-foreground">{work.company}</p>
-                {work.isUNExperience && (
-                  <span className="inline-block mt-1 px-2 py-1 text-xs bg-primary/10 text-primary rounded">
-                    UN Experience
-                  </span>
-                )}
+        {workExperience.map((work, index) => {
+          const isExpanded = expandedItems.has(index);
+          return (
+            <Collapsible key={index} open={isExpanded} onOpenChange={() => toggleExpanded(index)}>
+              <div className="border rounded-lg overflow-hidden">
+                {/* Collapsed Summary View */}
+                <div className="p-4 bg-muted/30">
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium">{work.position}</h4>
+                        {work.isUNExperience && (
+                          <span className="px-2 py-1 text-xs bg-primary/20 text-primary rounded">
+                            UN Experience
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{work.company}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {work.startDate} - {work.isCurrent ? "Present" : work.endDate}
+                        {work.location && ` • ${work.location}`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <Edit2 className="h-4 w-4 mr-1" />
+                          Edit
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 ml-1" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 ml-1" />
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeWorkExperience(index)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expanded Edit View */}
+                <CollapsibleContent>
+                  <div className="p-4 space-y-4 border-t">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Company/Organization</Label>
+                        <Input
+                          value={work.company}
+                          onChange={(e) => updateWorkExperience(index, 'company', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label>Position Title</Label>
+                        <Input
+                          value={work.position}
+                          onChange={(e) => updateWorkExperience(index, 'position', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label>Employment Type</Label>
+                        <Select
+                          value={work.type}
+                          onValueChange={(value) => updateWorkExperience(index, 'type', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Full-time">Full-time</SelectItem>
+                            <SelectItem value="Part-time">Part-time</SelectItem>
+                            <SelectItem value="Contract">Contract</SelectItem>
+                            <SelectItem value="Internship">Internship</SelectItem>
+                            <SelectItem value="Consultant">Consultant</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Location</Label>
+                        <Input
+                          value={work.location}
+                          onChange={(e) => updateWorkExperience(index, 'location', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label>Start Date</Label>
+                        <Input
+                          type="month"
+                          value={work.startDate}
+                          onChange={(e) => updateWorkExperience(index, 'startDate', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label>End Date</Label>
+                        <Input
+                          type="month"
+                          value={work.endDate}
+                          onChange={(e) => updateWorkExperience(index, 'endDate', e.target.value)}
+                          disabled={work.isCurrent}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`current-${index}`}
+                          checked={work.isCurrent}
+                          onCheckedChange={(checked) => updateWorkExperience(index, 'isCurrent', !!checked)}
+                        />
+                        <Label htmlFor={`current-${index}`}>I currently work here</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`un-exp-${index}`}
+                          checked={work.isUNExperience}
+                          onCheckedChange={(checked) => updateWorkExperience(index, 'isUNExperience', !!checked)}
+                        />
+                        <Label htmlFor={`un-exp-${index}`}>This is UN system experience</Label>
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Description</Label>
+                      <Textarea
+                        value={work.description}
+                        onChange={(e) => updateWorkExperience(index, 'description', e.target.value)}
+                        placeholder="Describe your responsibilities and achievements..."
+                        rows={4}
+                      />
+                    </div>
+                  </div>
+                </CollapsibleContent>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => removeWorkExperience(index)}
-                className="text-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Company/Organization</Label>
-                <Input
-                  value={work.company}
-                  onChange={(e) => updateWorkExperience(index, 'company', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Position Title</Label>
-                <Input
-                  value={work.position}
-                  onChange={(e) => updateWorkExperience(index, 'position', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Employment Type</Label>
-                <Select
-                  value={work.type}
-                  onValueChange={(value) => updateWorkExperience(index, 'type', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Full-time">Full-time</SelectItem>
-                    <SelectItem value="Part-time">Part-time</SelectItem>
-                    <SelectItem value="Contract">Contract</SelectItem>
-                    <SelectItem value="Internship">Internship</SelectItem>
-                    <SelectItem value="Consultant">Consultant</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Location</Label>
-                <Input
-                  value={work.location}
-                  onChange={(e) => updateWorkExperience(index, 'location', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Start Date</Label>
-                <Input
-                  type="month"
-                  value={work.startDate}
-                  onChange={(e) => updateWorkExperience(index, 'startDate', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>End Date</Label>
-                <Input
-                  type="month"
-                  value={work.endDate}
-                  onChange={(e) => updateWorkExperience(index, 'endDate', e.target.value)}
-                  disabled={work.isCurrent}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id={`current-${index}`}
-                  checked={work.isCurrent}
-                  onCheckedChange={(checked) => updateWorkExperience(index, 'isCurrent', !!checked)}
-                />
-                <Label htmlFor={`current-${index}`}>I currently work here</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id={`un-exp-${index}`}
-                  checked={work.isUNExperience}
-                  onCheckedChange={(checked) => updateWorkExperience(index, 'isUNExperience', !!checked)}
-                />
-                <Label htmlFor={`un-exp-${index}`}>This is UN system experience</Label>
-              </div>
-            </div>
-            <div>
-              <Label>Description</Label>
-              <Textarea
-                value={work.description}
-                onChange={(e) => updateWorkExperience(index, 'description', e.target.value)}
-                placeholder="Describe your responsibilities and achievements..."
-                rows={4}
-              />
-            </div>
-          </div>
-        ))}
+            </Collapsible>
+          );
+        })}
 
         {/* Add New Work Experience */}
         <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 space-y-4">

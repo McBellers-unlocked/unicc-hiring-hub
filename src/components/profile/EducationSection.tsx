@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, GraduationCap } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Plus, Trash2, GraduationCap, ChevronDown, ChevronUp, Edit2 } from "lucide-react";
 
 interface Education {
   institution: string;
@@ -23,6 +24,7 @@ interface EducationSectionProps {
 }
 
 export default function EducationSection({ education, onChange }: EducationSectionProps) {
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const [newEducation, setNewEducation] = useState<Education>({
     institution: "",
     degree: "",
@@ -59,6 +61,16 @@ export default function EducationSection({ education, onChange }: EducationSecti
     onChange(updated);
   };
 
+  const toggleExpanded = (index: number) => {
+    const newExpanded = new Set(expandedItems);
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index);
+    } else {
+      newExpanded.add(index);
+    }
+    setExpandedItems(newExpanded);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -69,88 +81,122 @@ export default function EducationSection({ education, onChange }: EducationSecti
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Existing Education Entries */}
-        {education.map((edu, index) => (
-          <div key={index} className="border rounded-lg p-4 space-y-4">
-            <div className="flex justify-between items-start">
-              <h4 className="font-medium">{edu.institution}</h4>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => removeEducation(index)}
-                className="text-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Institution</Label>
-                <Input
-                  value={edu.institution}
-                  onChange={(e) => updateEducation(index, 'institution', e.target.value)}
-                />
+        {education.map((edu, index) => {
+          const isExpanded = expandedItems.has(index);
+          return (
+            <Collapsible key={index} open={isExpanded} onOpenChange={() => toggleExpanded(index)}>
+              <div className="border rounded-lg overflow-hidden">
+                {/* Collapsed Summary View */}
+                <div className="p-4 bg-muted/30">
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1">
+                      <h4 className="font-medium">{edu.degree} in {edu.field}</h4>
+                      <p className="text-sm text-muted-foreground">{edu.institution}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {edu.startDate} - {edu.endDate}
+                        {edu.grade && ` • Grade: ${edu.grade}`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <Edit2 className="h-4 w-4 mr-1" />
+                          Edit
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 ml-1" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 ml-1" />
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeEducation(index)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expanded Edit View */}
+                <CollapsibleContent>
+                  <div className="p-4 space-y-4 border-t">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Institution</Label>
+                        <Input
+                          value={edu.institution}
+                          onChange={(e) => updateEducation(index, 'institution', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label>Degree</Label>
+                        <Select
+                          value={edu.degree}
+                          onValueChange={(value) => updateEducation(index, 'degree', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select degree" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Bachelor's">Bachelor's</SelectItem>
+                            <SelectItem value="Master's">Master's</SelectItem>
+                            <SelectItem value="PhD">PhD</SelectItem>
+                            <SelectItem value="Associate">Associate</SelectItem>
+                            <SelectItem value="Certificate">Certificate</SelectItem>
+                            <SelectItem value="Diploma">Diploma</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Field of Study</Label>
+                        <Input
+                          value={edu.field}
+                          onChange={(e) => updateEducation(index, 'field', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label>Grade/GPA (optional)</Label>
+                        <Input
+                          value={edu.grade || ""}
+                          onChange={(e) => updateEducation(index, 'grade', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label>Start Date</Label>
+                        <Input
+                          type="month"
+                          value={edu.startDate}
+                          onChange={(e) => updateEducation(index, 'startDate', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label>End Date</Label>
+                        <Input
+                          type="month"
+                          value={edu.endDate}
+                          onChange={(e) => updateEducation(index, 'endDate', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Description (optional)</Label>
+                      <Textarea
+                        value={edu.description || ""}
+                        onChange={(e) => updateEducation(index, 'description', e.target.value)}
+                        placeholder="Describe achievements, thesis, notable projects..."
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                </CollapsibleContent>
               </div>
-              <div>
-                <Label>Degree</Label>
-                <Select
-                  value={edu.degree}
-                  onValueChange={(value) => updateEducation(index, 'degree', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select degree" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Bachelor's">Bachelor's</SelectItem>
-                    <SelectItem value="Master's">Master's</SelectItem>
-                    <SelectItem value="PhD">PhD</SelectItem>
-                    <SelectItem value="Associate">Associate</SelectItem>
-                    <SelectItem value="Certificate">Certificate</SelectItem>
-                    <SelectItem value="Diploma">Diploma</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Field of Study</Label>
-                <Input
-                  value={edu.field}
-                  onChange={(e) => updateEducation(index, 'field', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Grade/GPA (optional)</Label>
-                <Input
-                  value={edu.grade || ""}
-                  onChange={(e) => updateEducation(index, 'grade', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Start Date</Label>
-                <Input
-                  type="month"
-                  value={edu.startDate}
-                  onChange={(e) => updateEducation(index, 'startDate', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>End Date</Label>
-                <Input
-                  type="month"
-                  value={edu.endDate}
-                  onChange={(e) => updateEducation(index, 'endDate', e.target.value)}
-                />
-              </div>
-            </div>
-            <div>
-              <Label>Description (optional)</Label>
-              <Textarea
-                value={edu.description || ""}
-                onChange={(e) => updateEducation(index, 'description', e.target.value)}
-                placeholder="Describe achievements, thesis, notable projects..."
-                rows={3}
-              />
-            </div>
-          </div>
-        ))}
+            </Collapsible>
+          );
+        })}
 
         {/* Add New Education */}
         <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 space-y-4">

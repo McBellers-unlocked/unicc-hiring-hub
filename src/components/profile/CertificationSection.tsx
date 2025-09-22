@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Award } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Plus, Trash2, Award, ChevronDown, ChevronUp, Edit2 } from "lucide-react";
 
 interface Certification {
   name: string;
@@ -21,6 +22,7 @@ interface CertificationSectionProps {
 }
 
 export default function CertificationSection({ certifications, onChange }: CertificationSectionProps) {
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const [newCert, setNewCert] = useState<Certification>({
     name: "",
     issuer: "",
@@ -55,6 +57,16 @@ export default function CertificationSection({ certifications, onChange }: Certi
     onChange(updated);
   };
 
+  const toggleExpanded = (index: number) => {
+    const newExpanded = new Set(expandedItems);
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index);
+    } else {
+      newExpanded.add(index);
+    }
+    setExpandedItems(newExpanded);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -65,73 +77,104 @@ export default function CertificationSection({ certifications, onChange }: Certi
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Existing Certifications */}
-        {certifications.map((cert, index) => (
-          <div key={index} className="border rounded-lg p-4 space-y-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h4 className="font-medium">{cert.name}</h4>
-                <p className="text-sm text-muted-foreground">{cert.issuer}</p>
+        {certifications.map((cert, index) => {
+          const isExpanded = expandedItems.has(index);
+          return (
+            <Collapsible key={index} open={isExpanded} onOpenChange={() => toggleExpanded(index)}>
+              <div className="border rounded-lg overflow-hidden">
+                {/* Collapsed Summary View */}
+                <div className="p-4 bg-muted/30">
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1">
+                      <h4 className="font-medium">{cert.name}</h4>
+                      <p className="text-sm text-muted-foreground">{cert.issuer}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Issued: {cert.issueDate}
+                        {cert.expiryDate && ` • Expires: ${cert.expiryDate}`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <Edit2 className="h-4 w-4 mr-1" />
+                          Edit
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 ml-1" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 ml-1" />
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeCertification(index)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expanded Edit View */}
+                <CollapsibleContent>
+                  <div className="p-4 space-y-4 border-t">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Certification Name</Label>
+                        <Input
+                          value={cert.name}
+                          onChange={(e) => updateCertification(index, 'name', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label>Issuing Organization</Label>
+                        <Input
+                          value={cert.issuer}
+                          onChange={(e) => updateCertification(index, 'issuer', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label>Issue Date</Label>
+                        <Input
+                          type="month"
+                          value={cert.issueDate}
+                          onChange={(e) => updateCertification(index, 'issueDate', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label>Expiry Date (optional)</Label>
+                        <Input
+                          type="month"
+                          value={cert.expiryDate || ""}
+                          onChange={(e) => updateCertification(index, 'expiryDate', e.target.value)}
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <Label>Credential ID/URL (optional)</Label>
+                        <Input
+                          value={cert.credentialId || ""}
+                          onChange={(e) => updateCertification(index, 'credentialId', e.target.value)}
+                          placeholder="Certificate number or verification URL"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Description (optional)</Label>
+                      <Textarea
+                        value={cert.description || ""}
+                        onChange={(e) => updateCertification(index, 'description', e.target.value)}
+                        placeholder="Brief description of the certification..."
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                </CollapsibleContent>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => removeCertification(index)}
-                className="text-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Certification Name</Label>
-                <Input
-                  value={cert.name}
-                  onChange={(e) => updateCertification(index, 'name', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Issuing Organization</Label>
-                <Input
-                  value={cert.issuer}
-                  onChange={(e) => updateCertification(index, 'issuer', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Issue Date</Label>
-                <Input
-                  type="month"
-                  value={cert.issueDate}
-                  onChange={(e) => updateCertification(index, 'issueDate', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Expiry Date (optional)</Label>
-                <Input
-                  type="month"
-                  value={cert.expiryDate || ""}
-                  onChange={(e) => updateCertification(index, 'expiryDate', e.target.value)}
-                />
-              </div>
-              <div className="md:col-span-2">
-                <Label>Credential ID/URL (optional)</Label>
-                <Input
-                  value={cert.credentialId || ""}
-                  onChange={(e) => updateCertification(index, 'credentialId', e.target.value)}
-                  placeholder="Certificate number or verification URL"
-                />
-              </div>
-            </div>
-            <div>
-              <Label>Description (optional)</Label>
-              <Textarea
-                value={cert.description || ""}
-                onChange={(e) => updateCertification(index, 'description', e.target.value)}
-                placeholder="Brief description of the certification..."
-                rows={2}
-              />
-            </div>
-          </div>
-        ))}
+            </Collapsible>
+          );
+        })}
 
         {/* Add New Certification */}
         <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 space-y-4">
