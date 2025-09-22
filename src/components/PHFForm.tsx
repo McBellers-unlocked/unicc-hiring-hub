@@ -447,8 +447,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         return employerContactMissing || formErrors.employerContact ? 'warning' : 'valid';
         
       case 12: // Availability
-        const availabilityMissing = !formValues.availability?.availability_mode;
-        return availabilityMissing || formErrors.availability ? 'warning' : 'valid';
+        return 'valid'; // Optional section
         
       case 13: // Motivation Letter
         const motivationMissing = !formValues.motivationLetter?.motivation_letter_content || 
