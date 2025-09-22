@@ -28,13 +28,13 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, candidateDa
   const formatDate = (date: any) => {
     if (!date) return '';
     const d = new Date(date);
-    return d.toLocaleDateString();
+    return d.toLocaleDateString('en-GB'); // DD/MM/YYYY format
   };
 
   const formatDateTime = (date: any) => {
     if (!date) return '';
     const d = new Date(date);
-    return d.toLocaleString();
+    return d.toLocaleString('en-GB'); // DD/MM/YYYY, HH:MM:SS format
   };
 
   const nextSection = () => {
@@ -87,6 +87,11 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, candidateDa
       return phfData.languages;
     }
     return candidateData?.languages || {};
+  };
+
+  const capitalizeFirst = (str: string) => {
+    if (!str) return str;
+    return str.charAt(0).toUpperCase() + str.slice(1);
   };
 
   return (
@@ -233,9 +238,9 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, candidateDa
                         if (category === 'un_languages') {
                           return Object.entries(langs).map(([lang, level]: [string, any]) => (
                             <div key={lang} className="border rounded p-4">
-                              <h4 className="font-semibold mb-2 capitalize">{lang.replace('_', ' ')}</h4>
+                              <h4 className="font-semibold mb-2">{capitalizeFirst(lang.replace('_', ' '))}</h4>
                               <div className="text-sm">
-                                <span className="font-medium">Level:</span> {level || 'Not specified'}
+                                <span className="font-medium">Level:</span> {capitalizeFirst(level) || 'Not specified'}
                               </div>
                             </div>
                           ));
