@@ -229,8 +229,8 @@ export default function CandidateProfileEdit() {
     });
     
     const sections = {
-      basicInfo: !!(profile.name && profile.location && profile.gender),
-      personalDetails: !!(profile.first_name && profile.email && profile.phone && profile.date_of_birth),
+      basicInfo: !!(profile.name && profile.location),
+      personalDetails: !!(profile.first_name && profile.email && profile.phone && profile.date_of_birth && profile.gender),
       professionalSummary: !!(profile.professional_summary && profile.professional_summary.trim().length > 50),
       workExperience: Array.isArray(profile.work_experience) && profile.work_experience.length > 0,
       education: Array.isArray(profile.education) && profile.education.length > 0,
@@ -278,8 +278,8 @@ export default function CandidateProfileEdit() {
     };
 
     return {
-      basicInfo: !!(profile.name && profile.location && profile.gender),
-      personalDetails: !!(profile.first_name && profile.email && profile.phone && profile.date_of_birth),
+      basicInfo: !!(profile.name && profile.location),
+      personalDetails: !!(profile.first_name && profile.email && profile.phone && profile.date_of_birth && profile.gender),
       professionalSummary: !!(profile.professional_summary && profile.professional_summary.trim().length > 50),
       workExperience: Array.isArray(profile.work_experience) && profile.work_experience.length > 0,
       education: Array.isArray(profile.education) && profile.education.length > 0,

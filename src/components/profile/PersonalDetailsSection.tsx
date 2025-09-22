@@ -24,6 +24,7 @@ const personalDetailsSchema = z.object({
   email: z.string().email('Invalid email address'),
   phone: z.string().optional(),
   maiden_name: z.string().optional(),
+  gender: z.enum(['Male', 'Female']).optional(),
   date_of_birth: z.date().nullable().optional(),
   place_of_birth: z.string().optional(),
   country_of_birth: z.string().optional(),
@@ -59,6 +60,7 @@ interface PersonalDetailsSectionProps {
     email?: string;
     phone?: string;
     maiden_name?: string;
+    gender?: string;
     date_of_birth?: string | Date;
     present_address_line1?: string;
     present_address_line2?: string;
@@ -89,6 +91,7 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
       email: initialData?.email || '',
       phone: initialData?.phone || '',
       maiden_name: initialData?.maiden_name || '',
+      gender: initialData?.gender || 'Male',
       date_of_birth: initialData?.date_of_birth ? 
         (initialData.date_of_birth instanceof Date ? 
           initialData.date_of_birth : 
@@ -131,6 +134,7 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
           email: data.email,
           phone: data.phone || null,
           maiden_name: data.maiden_name || null,
+          gender: data.gender || null,
           date_of_birth: data.date_of_birth ? data.date_of_birth.toISOString().split('T')[0] : null,
           place_of_birth: data.place_of_birth || null,
           country_of_birth: data.country_of_birth || null,
@@ -464,32 +468,56 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                   </FormItem>
                 )}
               />
-            )}
+             )}
 
-            <FormField
-              control={form.control}
-              name="marital_status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Marital Status</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select marital status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Single">Single</SelectItem>
-                      <SelectItem value="Married">Married</SelectItem>
-                      <SelectItem value="Divorced">Divorced</SelectItem>
-                      <SelectItem value="Widowed">Widowed</SelectItem>
-                      <SelectItem value="Separated">Separated</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <FormField
+                 control={form.control}
+                 name="marital_status"
+                 render={({ field }) => (
+                   <FormItem>
+                     <FormLabel>Marital Status</FormLabel>
+                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                       <FormControl>
+                         <SelectTrigger>
+                           <SelectValue placeholder="Select marital status" />
+                         </SelectTrigger>
+                       </FormControl>
+                       <SelectContent>
+                         <SelectItem value="Single">Single</SelectItem>
+                         <SelectItem value="Married">Married</SelectItem>
+                         <SelectItem value="Divorced">Divorced</SelectItem>
+                         <SelectItem value="Widowed">Widowed</SelectItem>
+                         <SelectItem value="Separated">Separated</SelectItem>
+                       </SelectContent>
+                     </Select>
+                     <FormMessage />
+                   </FormItem>
+                 )}
+               />
+
+               <FormField
+                 control={form.control}
+                 name="gender"
+                 render={({ field }) => (
+                   <FormItem>
+                     <FormLabel>Gender</FormLabel>
+                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                       <FormControl>
+                         <SelectTrigger>
+                           <SelectValue placeholder="Select gender" />
+                         </SelectTrigger>
+                       </FormControl>
+                       <SelectContent>
+                         <SelectItem value="Male">Male</SelectItem>
+                         <SelectItem value="Female">Female</SelectItem>
+                       </SelectContent>
+                     </Select>
+                     <FormMessage />
+                   </FormItem>
+                 )}
+               />
+             </div>
 
             <div className="space-y-6">
               <h3 className="text-lg font-medium">Permanent Address</h3>
