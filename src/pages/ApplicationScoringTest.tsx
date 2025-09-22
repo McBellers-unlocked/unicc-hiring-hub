@@ -117,7 +117,7 @@ export default function ApplicationScoringTest() {
                 <CheckCircle className="h-4 w-4" />
               )}
               <AlertDescription>
-                {result.error || `Scoring completed! AI Score: ${result.aiScore}, Recommended: ${result.recommendForLonglist ? 'Yes' : 'No'}`}
+                {result.error || `Enhanced scoring completed! Match Score: ${result.aiScore}%, Recommended: ${result.recommendForLonglist ? 'Yes' : 'No'}`}
               </AlertDescription>
             </Alert>
           )}

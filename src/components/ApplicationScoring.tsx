@@ -21,6 +21,27 @@ interface ScoringBreakdown {
   passedMustHaves: boolean;
   recommendForLonglist: boolean;
   analysisVersion: string;
+  jobRequirements?: {
+    technical_skills: string[];
+    experience_areas: string[];
+    education_requirements: string[];
+    language_requirements: string[];
+    soft_skills: string[];
+    years_experience: number;
+  };
+  candidateAnalysis?: {
+    strengths: string[];
+    gaps: string[];
+    evidence: string[];
+    detailedScores: {
+      technical_match: number;
+      experience_match: number;
+      education_match: number;
+      language_match: number;
+      motivation_alignment: number;
+      overall_fit: number;
+    };
+  };
 }
 
 interface ApplicationScoringProps {
@@ -209,12 +230,165 @@ export function ApplicationScoring({ applicationId }: ApplicationScoringProps) {
         </CardContent>
       </Card>
 
+      {/* Enhanced Match Analysis */}
+      {scoringData.candidateAnalysis && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Match Analysis Summary</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Comprehensive evaluation of candidate fit against job requirements
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              {/* Match Scores */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Detailed Match Scores</h4>
+                {Object.entries(scoringData.candidateAnalysis.detailedScores).map(([key, score]) => (
+                  <div key={key} className="flex items-center justify-between">
+                    <span className="text-sm capitalize">
+                      {key.replace('_', ' ')}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Progress value={score} className="w-20 h-2" />
+                      <span className={`text-sm font-medium ${getScoreColor(score)}`}>
+                        {Math.round(score)}%
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Strengths & Gaps */}
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-green-600 mb-2">Key Strengths</h4>
+                  <ul className="text-sm space-y-1">
+                    {scoringData.candidateAnalysis.strengths.map((strength, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                        {strength}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-orange-600 mb-2">Areas for Consideration</h4>
+                  <ul className="text-sm space-y-1">
+                    {scoringData.candidateAnalysis.gaps.map((gap, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <Info className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                        {gap}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Evidence */}
+            <div className="border-t pt-4">
+              <h4 className="font-medium mb-3">Supporting Evidence</h4>
+              <div className="grid gap-3">
+                {scoringData.candidateAnalysis.evidence.map((evidence, index) => (
+                  <div key={index} className="text-sm text-muted-foreground bg-muted/30 p-3 rounded">
+                    {evidence}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Job Requirements vs Candidate Profile */}
+      {scoringData.jobRequirements && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Job Requirements Analysis</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Extracted requirements from job description and essential criteria
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-2">Technical Skills Required</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {scoringData.jobRequirements.technical_skills.map((skill, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-2">Experience Areas</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {scoringData.jobRequirements.experience_areas.map((area, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {area}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-2">Language Requirements</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {scoringData.jobRequirements.language_requirements.map((lang, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {lang}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-2">Education Requirements</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {scoringData.jobRequirements.education_requirements.map((edu, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {edu}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-2">Soft Skills</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {scoringData.jobRequirements.soft_skills.map((skill, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-2">Experience Level</h4>
+                  <Badge variant="default" className="text-sm">
+                    {scoringData.jobRequirements.years_experience}+ years required
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Detailed Criterion Breakdown */}
       <Card>
         <CardHeader>
-          <CardTitle>Detailed Scoring Breakdown</CardTitle>
+          <CardTitle>Essential Criteria Scoring</CardTitle>
           <p className="text-sm text-muted-foreground">
-            AI analysis of application materials against essential criteria
+            Detailed evaluation against specific job criteria
           </p>
         </CardHeader>
         <CardContent>
@@ -263,24 +437,41 @@ export function ApplicationScoring({ applicationId }: ApplicationScoringProps) {
       {/* Scoring Methodology */}
       <Card>
         <CardHeader>
-          <CardTitle>Scoring Methodology</CardTitle>
+          <CardTitle>Enhanced Scoring Methodology</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-sm text-muted-foreground space-y-2">
-            <p><strong>Scoring Scale:</strong></p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              <li>0-30: No evidence or very limited evidence found</li>
-              <li>31-69: Moderate evidence with some gaps</li>
-              <li>70-100: Strong evidence meeting or exceeding requirements</li>
-            </ul>
-            <p className="mt-4"><strong>Longlist Criteria:</strong></p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              <li>Overall weighted score ≥ 70</li>
-              <li>All must-have criteria ≥ 70</li>
-            </ul>
-            <p className="mt-4 text-xs">
+          <div className="text-sm text-muted-foreground space-y-3">
+            <div>
+              <p><strong>Dynamic Analysis Process:</strong></p>
+              <ul className="list-disc list-inside space-y-1 ml-4">
+                <li>Job requirements extracted from description and essential criteria</li>
+                <li>Candidate profile analyzed including work experience, education, and motivation</li>
+                <li>Semantic matching using AI to understand context beyond keywords</li>
+                <li>Evidence-based scoring with specific justifications</li>
+              </ul>
+            </div>
+            
+            <div>
+              <p><strong>Scoring Scale:</strong></p>
+              <ul className="list-disc list-inside space-y-1 ml-4">
+                <li>0-30: No evidence or very limited evidence found</li>
+                <li>31-69: Moderate evidence with some gaps</li>
+                <li>70-100: Strong evidence meeting or exceeding requirements</li>
+              </ul>
+            </div>
+            
+            <div>
+              <p><strong>Match Recommendation Criteria:</strong></p>
+              <ul className="list-disc list-inside space-y-1 ml-4">
+                <li>Overall weighted score ≥ 70</li>
+                <li>All must-have criteria ≥ 70</li>
+                <li>Comprehensive analysis of technical, experience, and cultural fit</li>
+              </ul>
+            </div>
+            
+            <p className="mt-4 text-xs border-t pt-2">
               Analysis Version: {scoringData.analysisVersion} | 
-              Powered by AI document analysis
+              Enhanced AI-powered candidate matching system
             </p>
           </div>
         </CardContent>

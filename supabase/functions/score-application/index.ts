@@ -14,15 +14,25 @@ const supabase = createClient(
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-interface EvidenceAnalysis {
-  adminExperience: number;
-  internationalContext: number;
-  officeTools: number;
-  draftingSkills: number;
-  reportingSkills: number;
-  englishProficiency: number;
-  localEligibility: number;
-  financeExperience: number;
+interface JobRequirements {
+  technical_skills: string[];
+  experience_areas: string[];
+  education_requirements: string[];
+  language_requirements: string[];
+  soft_skills: string[];
+  years_experience: number;
+}
+
+interface CandidateAnalysis {
+  technical_match: number;
+  experience_match: number;
+  education_match: number;
+  language_match: number;
+  motivation_alignment: number;
+  overall_fit: number;
+  strengths: string[];
+  gaps: string[];
+  evidence: string[];
 }
 
 interface CriterionScore {
@@ -51,44 +61,33 @@ const extractTextFromFiles = async (files: Record<string, string>): Promise<stri
   return fileContents;
 };
 
-const analyzeApplicationWithAI = async (
-  applicationText: string,
-  killerAnswers: Record<string, any>,
+const extractJobRequirements = async (
+  jobTitle: string,
+  jobDescription: string,
   essentialCriteria: any[]
-): Promise<EvidenceAnalysis> => {
+): Promise<JobRequirements> => {
   const prompt = `
-Analyze the following job application materials and extract evidence for these key criteria. Score each area from 0-100 based on the strength of evidence provided.
+Analyze this job posting and extract structured requirements:
 
-APPLICATION MATERIALS:
-${applicationText}
+JOB TITLE: ${jobTitle}
 
-CANDIDATE ANSWERS:
-${JSON.stringify(killerAnswers, null, 2)}
+JOB DESCRIPTION:
+${jobDescription}
 
-Please analyze and score the following criteria (0-100):
+ESSENTIAL CRITERIA:
+${JSON.stringify(essentialCriteria, null, 2)}
 
-1. ADMINISTRATIVE EXPERIENCE (0-100): Years of relevant administrative/support experience
-2. INTERNATIONAL CONTEXT (0-100): Experience working in international organizations, UN system, or multicultural environments
-3. OFFICE TOOLS PROFICIENCY (0-100): Proficiency in Microsoft Office, Google Workspace, or similar productivity tools
-4. DRAFTING SKILLS (0-100): Ability to draft documents, correspondence, reports, or communications
-5. REPORTING SKILLS (0-100): Experience creating reports, data analysis, or information synthesis
-6. ENGLISH PROFICIENCY (0-100): Written and spoken English communication skills
-7. LOCAL ELIGIBILITY (0-100): Work authorization, visa status, or eligibility to work in required locations
-8. FINANCE EXPERIENCE (0-100): Experience with financial processes, budgeting, procurement, or accounting
-
-Return ONLY a JSON object with this exact structure:
+Extract and return ONLY a JSON object with this structure:
 {
-  "adminExperience": <score 0-100>,
-  "internationalContext": <score 0-100>,
-  "officeTools": <score 0-100>,
-  "draftingSkills": <score 0-100>,
-  "reportingSkills": <score 0-100>,
-  "englishProficiency": <score 0-100>,
-  "localEligibility": <score 0-100>,
-  "financeExperience": <score 0-100>
+  "technical_skills": ["list of specific technical skills and software required"],
+  "experience_areas": ["list of relevant work experience areas"],
+  "education_requirements": ["education level and field requirements"],
+  "language_requirements": ["language skills needed"],
+  "soft_skills": ["communication, leadership, analytical skills etc"],
+  "years_experience": <minimum years of experience as number>
 }
 
-Be objective and base scores on actual evidence found in the materials. If no evidence is found for a criterion, score it 0-30. Moderate evidence scores 31-69. Strong evidence scores 70-100.
+Focus on concrete, specific requirements mentioned in the job posting.
 `;
 
   try {
@@ -103,7 +102,7 @@ Be objective and base scores on actual evidence found in the materials. If no ev
         messages: [
           {
             role: 'system',
-            content: 'You are an expert HR analyst specializing in evaluating job applications for international organizations. Provide accurate, objective assessments based on evidence.'
+            content: 'You are an expert at analyzing job requirements and extracting structured data.'
           },
           {
             role: 'user',
@@ -111,7 +110,7 @@ Be objective and base scores on actual evidence found in the materials. If no ev
           }
         ],
         max_tokens: 1000,
-        temperature: 0.3
+        temperature: 0.1
       }),
     });
 
@@ -126,55 +125,214 @@ Be objective and base scores on actual evidence found in the materials. If no ev
       throw new Error('No content received from OpenAI');
     }
 
-    // Parse the JSON response
-    const analysis = JSON.parse(content);
-    return analysis as EvidenceAnalysis;
+    return JSON.parse(content) as JobRequirements;
 
   } catch (error) {
-    console.error('Error analyzing application with AI:', error);
-    // Return default scores if AI analysis fails
+    console.error('Error extracting job requirements:', error);
     return {
-      adminExperience: 50,
-      internationalContext: 50,
-      officeTools: 50,
-      draftingSkills: 50,
-      reportingSkills: 50,
-      englishProficiency: 50,
-      localEligibility: 50,
-      financeExperience: 50
+      technical_skills: [],
+      experience_areas: [],
+      education_requirements: [],
+      language_requirements: [],
+      soft_skills: [],
+      years_experience: 0
     };
   }
 };
 
-const mapCriteriaToEvidence = (
-  criteria: any[],
-  evidence: EvidenceAnalysis
-): Record<string, CriterionScore> => {
-  const mapping: Record<string, keyof EvidenceAnalysis> = {
-    'Administrative Experience': 'adminExperience',
-    'International Context': 'internationalContext',
-    'Office Tools': 'officeTools',
-    'Drafting Skills': 'draftingSkills',
-    'Reporting': 'reportingSkills',
-    'English Proficiency': 'englishProficiency',
-    'Local Eligibility': 'localEligibility',
-    'Finance Experience': 'financeExperience'
-  };
+const analyzeApplicationWithAI = async (
+  jobRequirements: JobRequirements,
+  candidateData: any,
+  motivationLetter: string,
+  workExperience: any[],
+  education: any[],
+  skills: string[]
+): Promise<CandidateAnalysis> => {
+  const prompt = `
+Compare this candidate against the job requirements and provide a detailed match analysis:
 
+JOB REQUIREMENTS:
+${JSON.stringify(jobRequirements, null, 2)}
+
+CANDIDATE PROFILE:
+Name: ${candidateData.name}
+Professional Summary: ${candidateData.professional_summary || 'Not provided'}
+Current Position: ${candidateData.current_position || 'Not provided'}
+Years of Experience: ${candidateData.years_of_experience || 0}
+
+WORK EXPERIENCE:
+${JSON.stringify(workExperience, null, 2)}
+
+EDUCATION:
+${JSON.stringify(education, null, 2)}
+
+SKILLS:
+${JSON.stringify(skills, null, 2)}
+
+MOTIVATION LETTER:
+${motivationLetter}
+
+LANGUAGES:
+${JSON.stringify(candidateData.languages, null, 2)}
+
+Analyze the candidate thoroughly and return ONLY a JSON object with this structure:
+{
+  "technical_match": <score 0-100 for technical skills alignment>,
+  "experience_match": <score 0-100 for relevant experience match>,
+  "education_match": <score 0-100 for education requirements match>,
+  "language_match": <score 0-100 for language requirements match>,
+  "motivation_alignment": <score 0-100 for motivation and cultural fit>,
+  "overall_fit": <score 0-100 for overall candidate fit>,
+  "strengths": ["list of 3-5 key candidate strengths relevant to this role"],
+  "gaps": ["list of 2-4 areas where candidate may not fully meet requirements"],
+  "evidence": ["list of 4-6 specific pieces of evidence supporting the scores"]
+}
+
+Base scores on concrete evidence from the candidate's background. Consider:
+- Specific matching skills and technologies
+- Relevant work experience duration and responsibilities
+- Education level and field alignment
+- Language proficiency levels
+- Motivation letter quality and job understanding
+- Cultural fit indicators
+`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4.1-2025-04-14',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert HR analyst with deep experience in matching candidates to job requirements. Provide thorough, evidence-based analysis.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.2
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content;
+    
+    if (!content) {
+      throw new Error('No content received from OpenAI');
+    }
+
+    return JSON.parse(content) as CandidateAnalysis;
+
+  } catch (error) {
+    console.error('Error analyzing candidate:', error);
+    return {
+      technical_match: 50,
+      experience_match: 50,
+      education_match: 50,
+      language_match: 50,
+      motivation_alignment: 50,
+      overall_fit: 50,
+      strengths: ['Assessment unavailable'],
+      gaps: ['Unable to analyze'],
+      evidence: ['Analysis failed']
+    };
+  }
+};
+
+const mapAnalysisToScores = (
+  analysis: CandidateAnalysis,
+  essentialCriteria: any[]
+): Record<string, CriterionScore> => {
   const scores: Record<string, CriterionScore> = {};
 
-  criteria.forEach(criterion => {
-    const evidenceKey = mapping[criterion.label] || 'adminExperience';
-    const score = evidence[evidenceKey] || 0;
+  // Create scores for each essential criterion based on the analysis
+  essentialCriteria.forEach(criterion => {
+    let score = 50; // Default score
+    let evidence = 'Analysis pending';
+    
+    // Map criterion to relevant analysis dimension
+    const label = criterion.label.toLowerCase();
+    
+    if (label.includes('technical') || label.includes('software') || label.includes('tool')) {
+      score = analysis.technical_match;
+      evidence = `Technical skills match: ${score}/100. Key strengths: ${analysis.strengths.filter(s => s.toLowerCase().includes('technical') || s.toLowerCase().includes('software')).join(', ') || 'General technical competency'}`;
+    } else if (label.includes('experience') || label.includes('years')) {
+      score = analysis.experience_match;
+      evidence = `Experience match: ${score}/100. Relevant background in: ${analysis.strengths.filter(s => s.toLowerCase().includes('experience')).join(', ') || 'Professional experience areas'}`;
+    } else if (label.includes('education') || label.includes('degree') || label.includes('qualification')) {
+      score = analysis.education_match;
+      evidence = `Education match: ${score}/100. ${analysis.evidence.filter(e => e.toLowerCase().includes('education') || e.toLowerCase().includes('degree')).join('. ') || 'Educational background assessed'}`;
+    } else if (label.includes('language') || label.includes('english') || label.includes('communication')) {
+      score = analysis.language_match;
+      evidence = `Language skills match: ${score}/100. ${analysis.evidence.filter(e => e.toLowerCase().includes('language') || e.toLowerCase().includes('english')).join('. ') || 'Communication skills evaluated'}`;
+    } else {
+      // For other criteria, use overall fit
+      score = analysis.overall_fit;
+      evidence = `Overall fit assessment: ${score}/100. ${analysis.evidence[0] || 'General competency evaluation'}`;
+    }
     
     scores[criterion.id] = {
-      score: score,
-      evidence: `Analyzed from application materials: ${score}/100 based on documented evidence`,
-      confidence: score > 70 ? 0.9 : score > 40 ? 0.7 : 0.5,
+      score: Math.round(score),
+      evidence: evidence,
+      confidence: score > 70 ? 0.9 : score > 50 ? 0.7 : 0.5,
       weight: criterion.weight || 1,
       mustHave: criterion.must_have || false
     };
   });
+
+  // If no essential criteria, create default scores based on analysis
+  if (essentialCriteria.length === 0) {
+    scores['technical_skills'] = {
+      score: Math.round(analysis.technical_match),
+      evidence: `Technical competency: ${analysis.technical_match}/100`,
+      confidence: 0.8,
+      weight: 2,
+      mustHave: false
+    };
+    
+    scores['relevant_experience'] = {
+      score: Math.round(analysis.experience_match),
+      evidence: `Relevant experience: ${analysis.experience_match}/100`,
+      confidence: 0.8,
+      weight: 3,
+      mustHave: true
+    };
+    
+    scores['education_background'] = {
+      score: Math.round(analysis.education_match),
+      evidence: `Educational background: ${analysis.education_match}/100`,
+      confidence: 0.7,
+      weight: 1,
+      mustHave: false
+    };
+    
+    scores['communication_skills'] = {
+      score: Math.round(analysis.language_match),
+      evidence: `Communication skills: ${analysis.language_match}/100`,
+      confidence: 0.8,
+      weight: 2,
+      mustHave: true
+    };
+    
+    scores['cultural_fit'] = {
+      score: Math.round(analysis.motivation_alignment),
+      evidence: `Cultural fit and motivation: ${analysis.motivation_alignment}/100`,
+      confidence: 0.7,
+      weight: 1,
+      mustHave: false
+    };
+  }
 
   return scores;
 };
@@ -217,7 +375,7 @@ serve(async (req) => {
 
     console.log(`Starting scoring for application: ${applicationId}`);
 
-    // Fetch application with related data
+    // Fetch application with related data including job description
     const { data: application, error: appError } = await supabase
       .from('applications')
       .select(`
@@ -226,6 +384,8 @@ serve(async (req) => {
         jobs!inner(
           id,
           title,
+          description_md,
+          requirements_md,
           essential_criteria(*)
         )
       `)
@@ -242,41 +402,48 @@ serve(async (req) => {
 
     console.log(`Found application for job: ${application.jobs.title}`);
 
-    // Extract text from uploaded files
-    const applicationText = await extractTextFromFiles(application.files || {});
-    
-    // Combine application text with candidate information
-    const fullApplicationText = `
-CANDIDATE INFORMATION:
-Name: ${application.candidates.name}
-Email: ${application.candidates.email}
-Phone: ${application.candidates.phone || 'Not provided'}
-Location: ${application.candidates.location || 'Not provided'}
-Work Authorization: ${application.candidates.work_auth || 'Not provided'}
-LinkedIn: ${application.candidates.linkedin_url || 'Not provided'}
-Languages: ${JSON.stringify(application.candidates.languages || [])}
-
-APPLICATION DOCUMENTS:
-${applicationText}
-
-PERSONAL HISTORY FORM:
-${JSON.stringify(application.phf_data || {}, null, 2)}
-    `.trim();
-
-    // Analyze application with AI
-    console.log('Analyzing application with AI...');
-    const evidence = await analyzeApplicationWithAI(
-      fullApplicationText,
-      application.answers || {},
+    // Extract job requirements from job description and essential criteria
+    console.log('Extracting job requirements...');
+    const jobDescription = `${application.jobs.description_md || ''}\n\n${application.jobs.requirements_md || ''}`;
+    const jobRequirements = await extractJobRequirements(
+      application.jobs.title,
+      jobDescription,
       application.jobs.essential_criteria || []
     );
 
-    console.log('AI analysis completed:', evidence);
+    console.log('Job requirements extracted:', jobRequirements);
 
-    // Map criteria to evidence and calculate scores
-    const criteriaScores = mapCriteriaToEvidence(
-      application.jobs.essential_criteria || [],
-      evidence
+    // Prepare candidate data for comprehensive analysis
+    const candidateData = application.candidates;
+    const workExperience = candidateData.work_experience || candidateData.phf_work_experience || [];
+    const education = candidateData.education || candidateData.phf_education || [];
+    const skills = candidateData.skills || [];
+    
+    // Extract motivation letter from various possible sources
+    const motivationLetter = 
+      candidateData.motivation_letter || 
+      application.answers?.motivation_letter || 
+      application.answers?.cover_letter || 
+      application.phf_data?.motivation_letter || 
+      '';
+
+    // Analyze candidate comprehensively
+    console.log('Analyzing candidate with enhanced AI...');
+    const candidateAnalysis = await analyzeApplicationWithAI(
+      jobRequirements,
+      candidateData,
+      motivationLetter,
+      workExperience,
+      education,
+      skills
+    );
+
+    console.log('Enhanced AI analysis completed:', candidateAnalysis);
+
+    // Map analysis to criterion scores
+    const criteriaScores = mapAnalysisToScores(
+      candidateAnalysis,
+      application.jobs.essential_criteria || []
     );
 
     // Calculate overall score and check requirements
@@ -286,12 +453,26 @@ ${JSON.stringify(application.phf_data || {}, null, 2)}
 
     console.log(`Overall score: ${overallScore}, Passed must-haves: ${passedMustHaves}, Recommend: ${recommendForLonglist}`);
 
-    const breakdown: ScoringBreakdown = {
+    const breakdown = {
       criteria: criteriaScores,
       overallScore,
       passedMustHaves,
       recommendForLonglist,
-      analysisVersion: '1.0'
+      analysisVersion: '2.0',
+      jobRequirements,
+      candidateAnalysis: {
+        strengths: candidateAnalysis.strengths,
+        gaps: candidateAnalysis.gaps,
+        evidence: candidateAnalysis.evidence,
+        detailedScores: {
+          technical_match: candidateAnalysis.technical_match,
+          experience_match: candidateAnalysis.experience_match,
+          education_match: candidateAnalysis.education_match,
+          language_match: candidateAnalysis.language_match,
+          motivation_alignment: candidateAnalysis.motivation_alignment,
+          overall_fit: candidateAnalysis.overall_fit
+        }
+      }
     };
 
     // Create screening score record
@@ -301,7 +482,7 @@ ${JSON.stringify(application.phf_data || {}, null, 2)}
         application_id: applicationId,
         ai_score: overallScore,
         rubric_breakdown: breakdown,
-        version: '1.0'
+        version: '2.0'
       });
 
     if (scoreError) {
