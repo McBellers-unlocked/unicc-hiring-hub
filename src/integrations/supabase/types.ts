@@ -137,19 +137,28 @@ export type Database = {
         Row: {
           additional_fellowships: Json | null
           availability_date: string | null
+          availability_date_detailed: string | null
           availability_mode: string | null
+          availability_mode_detailed: string | null
           availability_status: string | null
           certifications: Json | null
+          contract_type_preference: string | null
           country_of_birth: string | null
+          country_of_birth_detailed: string | null
           created_at: string
           current_organization: string | null
           current_position: string | null
           date_of_birth: string | null
           dependants: Json | null
+          dependants_detailed: Json | null
           education: Json | null
           email: string
+          email_public: boolean | null
+          family_name: string | null
+          fellowships: Json | null
           first_name: string | null
           gender: string | null
+          government_employment: boolean | null
           has_security_clearance: boolean | null
           id: string
           languages: Json | null
@@ -159,47 +168,67 @@ export type Database = {
           linkedin_url: string | null
           location: string | null
           maiden_name: string | null
+          maiden_name_detailed: string | null
           marital_status: string | null
+          marital_status_detailed: string | null
           middle_names: string | null
           mobility_medical_reservations: string | null
+          motivation_letter: string | null
           name: string
           nationality_change_details: string | null
+          nationality_change_details_detailed: string | null
           nationality_changed: boolean | null
           notice_period: string | null
           notice_period_days: number | null
+          notice_period_detailed: string | null
           objection_to_contact_present_employer: boolean | null
           permanent_address: string | null
+          permanent_address_detailed: string | null
           permanent_address_line1: string | null
           permanent_address_line2: string | null
           permanent_city: string | null
           permanent_country: string | null
           personal_references: Json | null
+          phf_education: Json | null
+          phf_work_experience: Json | null
           phone: string | null
+          phone_public: boolean | null
           place_of_birth: string | null
+          place_of_birth_detailed: string | null
           portfolio_attachments: Json | null
           preferred_locations: Json | null
           present_address: string | null
+          present_address_detailed: string | null
           present_address_line1: string | null
           present_address_line2: string | null
           present_address_same_as_permanent: boolean | null
           present_city: string | null
           present_country: string | null
           present_nationality: string | null
+          present_nationality_detailed: string | null
           presently_in_government_employ: boolean | null
           privacy_setting: string | null
           professional_summary: string | null
           profile_completion_percentage: number | null
           profile_photo_url: string | null
           relatives: Json | null
+          relatives_detailed: Json | null
+          remote_work_preference: string | null
           salary_expectation_range: string | null
           security_clearance_level: string | null
           skills: Json | null
+          supervisor_contact_consent: boolean | null
+          telephone_detailed: string | null
           title: string | null
+          travel_availability: string | null
           un_experience: boolean | null
           un_organizations_worked: Json | null
+          unemployment_periods: Json | null
           updated_at: string
           us_green_card: boolean | null
+          us_green_card_detailed: boolean | null
           us_green_card_details: string | null
+          us_green_card_details_detailed: string | null
           willing_to_relocate: boolean | null
           work_auth: string | null
           work_experience: Json | null
@@ -209,19 +238,28 @@ export type Database = {
         Insert: {
           additional_fellowships?: Json | null
           availability_date?: string | null
+          availability_date_detailed?: string | null
           availability_mode?: string | null
+          availability_mode_detailed?: string | null
           availability_status?: string | null
           certifications?: Json | null
+          contract_type_preference?: string | null
           country_of_birth?: string | null
+          country_of_birth_detailed?: string | null
           created_at?: string
           current_organization?: string | null
           current_position?: string | null
           date_of_birth?: string | null
           dependants?: Json | null
+          dependants_detailed?: Json | null
           education?: Json | null
           email: string
+          email_public?: boolean | null
+          family_name?: string | null
+          fellowships?: Json | null
           first_name?: string | null
           gender?: string | null
+          government_employment?: boolean | null
           has_security_clearance?: boolean | null
           id?: string
           languages?: Json | null
@@ -231,47 +269,67 @@ export type Database = {
           linkedin_url?: string | null
           location?: string | null
           maiden_name?: string | null
+          maiden_name_detailed?: string | null
           marital_status?: string | null
+          marital_status_detailed?: string | null
           middle_names?: string | null
           mobility_medical_reservations?: string | null
+          motivation_letter?: string | null
           name: string
           nationality_change_details?: string | null
+          nationality_change_details_detailed?: string | null
           nationality_changed?: boolean | null
           notice_period?: string | null
           notice_period_days?: number | null
+          notice_period_detailed?: string | null
           objection_to_contact_present_employer?: boolean | null
           permanent_address?: string | null
+          permanent_address_detailed?: string | null
           permanent_address_line1?: string | null
           permanent_address_line2?: string | null
           permanent_city?: string | null
           permanent_country?: string | null
           personal_references?: Json | null
+          phf_education?: Json | null
+          phf_work_experience?: Json | null
           phone?: string | null
+          phone_public?: boolean | null
           place_of_birth?: string | null
+          place_of_birth_detailed?: string | null
           portfolio_attachments?: Json | null
           preferred_locations?: Json | null
           present_address?: string | null
+          present_address_detailed?: string | null
           present_address_line1?: string | null
           present_address_line2?: string | null
           present_address_same_as_permanent?: boolean | null
           present_city?: string | null
           present_country?: string | null
           present_nationality?: string | null
+          present_nationality_detailed?: string | null
           presently_in_government_employ?: boolean | null
           privacy_setting?: string | null
           professional_summary?: string | null
           profile_completion_percentage?: number | null
           profile_photo_url?: string | null
           relatives?: Json | null
+          relatives_detailed?: Json | null
+          remote_work_preference?: string | null
           salary_expectation_range?: string | null
           security_clearance_level?: string | null
           skills?: Json | null
+          supervisor_contact_consent?: boolean | null
+          telephone_detailed?: string | null
           title?: string | null
+          travel_availability?: string | null
           un_experience?: boolean | null
           un_organizations_worked?: Json | null
+          unemployment_periods?: Json | null
           updated_at?: string
           us_green_card?: boolean | null
+          us_green_card_detailed?: boolean | null
           us_green_card_details?: string | null
+          us_green_card_details_detailed?: string | null
           willing_to_relocate?: boolean | null
           work_auth?: string | null
           work_experience?: Json | null
@@ -281,19 +339,28 @@ export type Database = {
         Update: {
           additional_fellowships?: Json | null
           availability_date?: string | null
+          availability_date_detailed?: string | null
           availability_mode?: string | null
+          availability_mode_detailed?: string | null
           availability_status?: string | null
           certifications?: Json | null
+          contract_type_preference?: string | null
           country_of_birth?: string | null
+          country_of_birth_detailed?: string | null
           created_at?: string
           current_organization?: string | null
           current_position?: string | null
           date_of_birth?: string | null
           dependants?: Json | null
+          dependants_detailed?: Json | null
           education?: Json | null
           email?: string
+          email_public?: boolean | null
+          family_name?: string | null
+          fellowships?: Json | null
           first_name?: string | null
           gender?: string | null
+          government_employment?: boolean | null
           has_security_clearance?: boolean | null
           id?: string
           languages?: Json | null
@@ -303,47 +370,67 @@ export type Database = {
           linkedin_url?: string | null
           location?: string | null
           maiden_name?: string | null
+          maiden_name_detailed?: string | null
           marital_status?: string | null
+          marital_status_detailed?: string | null
           middle_names?: string | null
           mobility_medical_reservations?: string | null
+          motivation_letter?: string | null
           name?: string
           nationality_change_details?: string | null
+          nationality_change_details_detailed?: string | null
           nationality_changed?: boolean | null
           notice_period?: string | null
           notice_period_days?: number | null
+          notice_period_detailed?: string | null
           objection_to_contact_present_employer?: boolean | null
           permanent_address?: string | null
+          permanent_address_detailed?: string | null
           permanent_address_line1?: string | null
           permanent_address_line2?: string | null
           permanent_city?: string | null
           permanent_country?: string | null
           personal_references?: Json | null
+          phf_education?: Json | null
+          phf_work_experience?: Json | null
           phone?: string | null
+          phone_public?: boolean | null
           place_of_birth?: string | null
+          place_of_birth_detailed?: string | null
           portfolio_attachments?: Json | null
           preferred_locations?: Json | null
           present_address?: string | null
+          present_address_detailed?: string | null
           present_address_line1?: string | null
           present_address_line2?: string | null
           present_address_same_as_permanent?: boolean | null
           present_city?: string | null
           present_country?: string | null
           present_nationality?: string | null
+          present_nationality_detailed?: string | null
           presently_in_government_employ?: boolean | null
           privacy_setting?: string | null
           professional_summary?: string | null
           profile_completion_percentage?: number | null
           profile_photo_url?: string | null
           relatives?: Json | null
+          relatives_detailed?: Json | null
+          remote_work_preference?: string | null
           salary_expectation_range?: string | null
           security_clearance_level?: string | null
           skills?: Json | null
+          supervisor_contact_consent?: boolean | null
+          telephone_detailed?: string | null
           title?: string | null
+          travel_availability?: string | null
           un_experience?: boolean | null
           un_organizations_worked?: Json | null
+          unemployment_periods?: Json | null
           updated_at?: string
           us_green_card?: boolean | null
+          us_green_card_detailed?: boolean | null
           us_green_card_details?: string | null
+          us_green_card_details_detailed?: string | null
           willing_to_relocate?: boolean | null
           work_auth?: string | null
           work_experience?: Json | null

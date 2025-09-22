@@ -53,7 +53,13 @@ interface CandidateProfile {
   has_security_clearance: boolean;
   portfolio_attachments: any;
   profile_completion_percentage?: number;
-  // New personal detail fields
+  // Enhanced PHF-compatible fields
+  phf_work_experience?: any;
+  phf_education?: any;
+  dependants_detailed?: any;
+  relatives_detailed?: any;
+  motivation_letter?: string;
+  // Personal detail fields
   title?: string;
   first_name?: string;
   last_name?: string;
