@@ -303,6 +303,8 @@ export default function AdminApplications() {
     
     // Otherwise, assume the whole string is the country
     return location.trim();
+  };
+
   // Enhanced filter and sort applications
   const filteredApplications = applications.filter(app => {
     const matchesSearch = app.candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1100,4 +1102,3 @@ export default function AdminApplications() {
   );
 }
 
-export default AdminApplications;
