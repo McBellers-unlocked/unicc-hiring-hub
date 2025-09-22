@@ -191,7 +191,8 @@ export function createPHFDataFromProfile(profile: any): any {
         ? profile.preferred_locations.join(', ') 
         : (profile.preferred_locations || ''),
       remote_work_preference: profile.remote_work_preference || '',
-      travel_availability: profile.travel_availability || '',
+      travel_availability: profile.travel_availability || 
+        (profile.willing_to_relocate ? 'Yes, willing to relocate' : 'Prefer current location'),
       contract_type_preference: profile.contract_type_preference || '',
       notice_period: profile.notice_period_detailed || profile.notice_period || '',
     },
