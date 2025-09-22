@@ -114,7 +114,12 @@ export default function CandidateApplicationView() {
             phone,
             location,
             linkedin_url,
-            work_auth
+            work_auth,
+            education,
+            work_experience,
+            skills,
+            certifications,
+            languages
           ),
           job:jobs!applications_job_id_fkey (
             id,
@@ -202,6 +207,7 @@ export default function CandidateApplicationView() {
     return (
       <PHFTabViewer
         phfData={application.phf_data}
+        candidateData={application.candidate}
         photoUrl={application.photo_url}
         onClose={() => setShowPHFPreview(false)}
       />

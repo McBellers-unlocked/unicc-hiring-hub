@@ -8,6 +8,7 @@ import { X, ChevronLeft, ChevronRight, User, MapPin, Calendar, GraduationCap, Br
 
 interface PHFTabViewerProps {
   phfData: any;
+  candidateData?: any; // Add candidate data as backup
   photoUrl?: string;
   onClose: () => void;
 }
@@ -16,11 +17,12 @@ const SECTIONS = [
   { id: 'personal', title: 'Personal Details', icon: User },
   { id: 'education', title: 'Education', icon: GraduationCap },
   { id: 'employment', title: 'Employment', icon: Briefcase },
+  { id: 'additional', title: 'Additional Info', icon: Globe },
   { id: 'motivation', title: 'Motivation', icon: FileText },
   { id: 'summary', title: 'Summary', icon: Shield },
 ];
 
-export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, photoUrl, onClose }) => {
+export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, candidateData, photoUrl, onClose }) => {
   const [currentSection, setCurrentSection] = useState(0);
 
   const formatDate = (date: any) => {
@@ -51,6 +53,42 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, photoUrl, o
     return path.split('.').reduce((current, key) => current?.[key], obj) || defaultValue;
   };
 
+  // Helper function to get data from PHF or fallback to candidate data
+  const getEducationData = () => {
+    if (phfData?.education && phfData.education.length > 0) {
+      return phfData.education;
+    }
+    return candidateData?.education || [];
+  };
+
+  const getEmploymentData = () => {
+    if (phfData?.employment && phfData.employment.length > 0) {
+      return phfData.employment;
+    }
+    return candidateData?.work_experience || [];
+  };
+
+  const getSkillsData = () => {
+    if (phfData?.additionalInformation?.additional_skills) {
+      return phfData.additionalInformation.additional_skills;
+    }
+    if (candidateData?.skills && Array.isArray(candidateData.skills)) {
+      return candidateData.skills.join(', ');
+    }
+    return '';
+  };
+
+  const getCertificationsData = () => {
+    return candidateData?.certifications || [];
+  };
+
+  const getLanguagesData = () => {
+    if (phfData?.languages) {
+      return phfData.languages;
+    }
+    return candidateData?.languages || {};
+  };
+
   return (
     <div className="fixed inset-0 bg-background z-50 overflow-auto">
       {/* Header */}
@@ -69,7 +107,7 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, photoUrl, o
 
       <div className="max-w-6xl mx-auto p-6">
         <Tabs value={currentSection.toString()} onValueChange={(value) => setCurrentSection(parseInt(value))} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 gap-1 h-auto p-1 mb-6">
+          <TabsList className="grid w-full grid-cols-6 gap-1 h-auto p-1 mb-6">
             {SECTIONS.map((section, index) => {
               const Icon = section.icon;
               return (
@@ -181,7 +219,7 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, photoUrl, o
               </Card>
 
               {/* Languages */}
-              {phfData?.languages && Object.keys(phfData.languages).length > 0 && (
+              {Object.keys(getLanguagesData()).length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -191,22 +229,19 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, photoUrl, o
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {Object.entries(phfData.languages).map(([language, skills]: [string, any]) => (
-                        <div key={language} className="border rounded p-4">
-                          <h4 className="font-semibold mb-2">{language}</h4>
-                          <div className="grid grid-cols-3 gap-4 text-sm">
-                            <div>
-                              <span className="font-medium">Reading:</span> {skills.reading || 'Not specified'}
+                      {Object.entries(getLanguagesData()).map(([category, langs]: [string, any]) => {
+                        if (category === 'un_languages') {
+                          return Object.entries(langs).map(([lang, level]: [string, any]) => (
+                            <div key={lang} className="border rounded p-4">
+                              <h4 className="font-semibold mb-2 capitalize">{lang.replace('_', ' ')}</h4>
+                              <div className="text-sm">
+                                <span className="font-medium">Level:</span> {level || 'Not specified'}
+                              </div>
                             </div>
-                            <div>
-                              <span className="font-medium">Writing:</span> {skills.writing || 'Not specified'}
-                            </div>
-                            <div>
-                              <span className="font-medium">Speaking:</span> {skills.speaking || 'Not specified'}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                          ));
+                        }
+                        return null;
+                      }).flat()}
                     </div>
                   </CardContent>
                 </Card>
@@ -224,9 +259,9 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, photoUrl, o
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {phfData?.education && phfData.education.length > 0 ? (
+                {getEducationData().length > 0 ? (
                   <div className="space-y-4">
-                    {phfData.education.map((edu: any, index: number) => (
+                    {getEducationData().map((edu: any, index: number) => (
                       <div key={index} className="border rounded p-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
@@ -239,7 +274,7 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, photoUrl, o
                           </div>
                           <div>
                             <label className="text-sm font-medium text-muted-foreground">Field of Study</label>
-                            <div className="mt-1">{edu.main_course_of_study || edu.field_of_study || 'Not specified'}</div>
+                            <div className="mt-1">{edu.main_course_of_study || edu.field_of_study || edu.field || 'Not specified'}</div>
                           </div>
                           <div>
                             <label className="text-sm font-medium text-muted-foreground">Location</label>
@@ -248,10 +283,10 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, photoUrl, o
                           <div>
                             <label className="text-sm font-medium text-muted-foreground">Period</label>
                             <div className="mt-1">
-                              {edu.from_month && edu.from_year ? `${edu.from_month}/${edu.from_year}` : edu.start_date || 'Not specified'} - 
+                              {edu.from_month && edu.from_year ? `${edu.from_month}/${edu.from_year}` : (edu.startDate || 'Not specified')} - 
                               {edu.is_present ? ' Present' : 
                                 (edu.to_month && edu.to_year ? ` ${edu.to_month}/${edu.to_year}` : 
-                                 (edu.end_date ? ` ${edu.end_date}` : ' Not specified'))}
+                                 (edu.endDate ? ` ${edu.endDate}` : ' Not specified'))}
                             </div>
                           </div>
                           <div>
@@ -287,9 +322,9 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, photoUrl, o
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {phfData?.employment && phfData.employment.length > 0 ? (
+                {getEmploymentData().length > 0 ? (
                   <div className="space-y-4">
-                    {phfData.employment.map((emp: any, index: number) => (
+                    {getEmploymentData().map((emp: any, index: number) => (
                       <div key={index} className="border rounded p-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
@@ -307,10 +342,10 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, photoUrl, o
                           <div>
                             <label className="text-sm font-medium text-muted-foreground">Period</label>
                             <div className="mt-1">
-                              {emp.from_month && emp.from_year ? `${emp.from_month}/${emp.from_year}` : emp.start_date || 'Not specified'} - 
-                              {emp.is_present ? ' Present' : 
+                              {emp.from_month && emp.from_year ? `${emp.from_month}/${emp.from_year}` : (emp.startDate || 'Not specified')} - 
+                              {emp.is_present || emp.isCurrent ? ' Present' : 
                                 (emp.to_month && emp.to_year ? ` ${emp.to_month}/${emp.to_year}` : 
-                                 (emp.end_date ? ` ${emp.end_date}` : ' Not specified'))}
+                                 (emp.endDate ? ` ${emp.endDate}` : ' Not specified'))}
                             </div>
                           </div>
                           <div>
@@ -321,10 +356,10 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, photoUrl, o
                             <label className="text-sm font-medium text-muted-foreground">Salary</label>
                             <div className="mt-1">{emp.salary || 'Not specified'}</div>
                           </div>
-                          {emp.main_duties_responsibilities && (
+                          {(emp.main_duties_responsibilities || emp.description) && (
                             <div className="md:col-span-2">
                               <label className="text-sm font-medium text-muted-foreground">Main Duties & Responsibilities</label>
-                              <div className="mt-1 p-3 bg-muted rounded whitespace-pre-wrap">{emp.main_duties_responsibilities}</div>
+                              <div className="mt-1 p-3 bg-muted rounded whitespace-pre-wrap">{emp.main_duties_responsibilities || emp.description}</div>
                             </div>
                           )}
                         </div>
@@ -340,8 +375,248 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, photoUrl, o
             </Card>
           </TabsContent>
 
-          {/* Motivation Tab */}
+          {/* Additional Information Tab */}
           <TabsContent value="3">
+            <div className="space-y-6">
+              {/* Skills */}
+              {getSkillsData() && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Globe className="h-5 w-5" />
+                      Skills & Competencies
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {getSkillsData().split(',').map((skill: string, index: number) => (
+                        <Badge key={index} variant="secondary" className="text-sm">
+                          {skill.trim()}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Certifications */}
+              {getCertificationsData().length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <GraduationCap className="h-5 w-5" />
+                      Certifications
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {getCertificationsData().map((cert: any, index: number) => (
+                        <div key={index} className="border rounded p-3">
+                          <h4 className="font-semibold">{cert.name}</h4>
+                          {cert.issuer && <p className="text-muted-foreground">{cert.issuer}</p>}
+                          <div className="flex gap-4 text-sm mt-2">
+                            {cert.issueDate && <span>Issued: {cert.issueDate}</span>}
+                            {cert.expiryDate && <span>Expires: {cert.expiryDate}</span>}
+                          </div>
+                          {cert.credentialId && <p className="text-xs text-muted-foreground mt-1">ID: {cert.credentialId}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Skills */}
+              {phfData?.additionalInformation?.additional_skills && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Globe className="h-5 w-5" />
+                      Skills & Competencies
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {phfData.additionalInformation.additional_skills.split(',').map((skill: string, index: number) => (
+                        <Badge key={index} variant="secondary" className="text-sm">
+                          {skill.trim()}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Fellowships */}
+              {phfData?.additionalInformation?.fellowships && phfData.additionalInformation.fellowships.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <GraduationCap className="h-5 w-5" />
+                      Fellowships & Awards
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {phfData.additionalInformation.fellowships.map((fellowship: any, index: number) => (
+                        <div key={index} className="border rounded p-3">
+                          <h4 className="font-semibold">{fellowship.name || fellowship.title}</h4>
+                          {fellowship.organization && <p className="text-muted-foreground">{fellowship.organization}</p>}
+                          {fellowship.year && <p className="text-sm">{fellowship.year}</p>}
+                          {fellowship.description && <p className="text-sm mt-2">{fellowship.description}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Work Preferences */}
+              {phfData?.workPreferences && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MapPin className="h-5 w-5" />
+                      Work Preferences
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Preferred Locations</label>
+                        <div className="mt-1 p-2 bg-muted rounded">{getFieldValue(phfData, 'workPreferences.preferred_locations') || 'Not specified'}</div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Travel Availability</label>
+                        <div className="mt-1 p-2 bg-muted rounded">{getFieldValue(phfData, 'workPreferences.travel_availability') || 'Not specified'}</div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Remote Work Preference</label>
+                        <div className="mt-1 p-2 bg-muted rounded">{getFieldValue(phfData, 'workPreferences.remote_work_preference') || 'Not specified'}</div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Contract Type Preference</label>
+                        <div className="mt-1 p-2 bg-muted rounded">{getFieldValue(phfData, 'workPreferences.contract_type_preference') || 'Not specified'}</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* References */}
+              {phfData?.references && phfData.references.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      References
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {phfData.references.map((ref: any, index: number) => (
+                        <div key={index} className="border rounded p-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Name</label>
+                              <div className="mt-1 font-medium">{ref.name || ref.full_name || 'Not specified'}</div>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Title/Occupation</label>
+                              <div className="mt-1">{ref.title || ref.occupation_title || 'Not specified'}</div>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Organization</label>
+                              <div className="mt-1">{ref.organization || ref.company || 'Not specified'}</div>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Contact</label>
+                              <div className="mt-1">
+                                {ref.email && <div>{ref.email}</div>}
+                                {ref.phone && <div>{ref.phone}</div>}
+                                {ref.full_address && <div className="text-sm text-muted-foreground">{ref.full_address}</div>}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Dependants */}
+              {phfData?.dependants && phfData.dependants.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Heart className="h-5 w-5" />
+                      Dependants
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {phfData.dependants.map((dep: any, index: number) => (
+                        <div key={index} className="border rounded p-3">
+                          <div className="grid grid-cols-3 gap-4">
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Name</label>
+                              <div className="mt-1">{dep.full_name || dep.name || 'Not specified'}</div>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Relationship</label>
+                              <div className="mt-1">{dep.relationship_to_applicant || dep.relationship || 'Not specified'}</div>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Date of Birth</label>
+                              <div className="mt-1">{formatDate(dep.date_of_birth) || 'Not specified'}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Relatives in UN System */}
+              {phfData?.relatives && phfData.relatives.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Relatives in UN System
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {phfData.relatives.map((rel: any, index: number) => (
+                        <div key={index} className="border rounded p-3">
+                          <div className="grid grid-cols-3 gap-4">
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Name</label>
+                              <div className="mt-1">{rel.full_name || rel.name || 'Not specified'}</div>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Relationship</label>
+                              <div className="mt-1">{rel.relationship_to_applicant || rel.relationship || 'Not specified'}</div>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">Organization</label>
+                              <div className="mt-1">{rel.organization || 'Not specified'}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Motivation Tab */}
+          <TabsContent value="4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -366,7 +641,7 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, photoUrl, o
           </TabsContent>
 
           {/* Summary Tab */}
-          <TabsContent value="4">
+          <TabsContent value="5">
             <div className="space-y-6">
               <Card>
                 <CardHeader>

@@ -336,10 +336,14 @@ export default function JobApplication() {
         ...phfData,
         education: phfData.education && phfData.education.length > 0 
           ? phfData.education 
-          : (candidateProfile?.phf_education || candidateProfile?.education || []),
+          : (candidateProfile?.phf_education && candidateProfile.phf_education.length > 0
+            ? candidateProfile.phf_education 
+            : candidateProfile?.education || []),
         employment: phfData.employment && phfData.employment.length > 0 
           ? phfData.employment 
-          : (candidateProfile?.phf_work_experience || candidateProfile?.work_experience || [])
+          : (candidateProfile?.phf_work_experience && candidateProfile.phf_work_experience.length > 0
+            ? candidateProfile.phf_work_experience 
+            : candidateProfile?.work_experience || [])
       };
         
       if (existingCandidate) {
