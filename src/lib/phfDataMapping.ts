@@ -170,8 +170,12 @@ export function createPHFDataFromProfile(profile: any): any {
       nationalityChanged: profile.nationality_changed || false,
       nationalityChangeDetails: profile.nationality_change_details_detailed || '',
       maritalStatus: profile.marital_status_detailed || 'Single',
-      permanentAddress: profile.permanent_address_detailed || profile.permanent_address || '',
-      presentAddress: profile.present_address_detailed || profile.present_address || '',
+      permanentAddress: profile.permanent_address_detailed || profile.permanent_address || 
+        (profile.permanent_address_line1 ? 
+          `${profile.permanent_address_line1}${profile.permanent_address_line2 ? ', ' + profile.permanent_address_line2 : ''}, ${profile.permanent_city || ''}, ${profile.permanent_country || ''}`.trim().replace(/,\s*$/, '') : ''),
+      presentAddress: profile.present_address_detailed || profile.present_address || 
+        (profile.present_address_line1 ? 
+          `${profile.present_address_line1}${profile.present_address_line2 ? ', ' + profile.present_address_line2 : ''}, ${profile.present_city || ''}, ${profile.present_country || ''}`.trim().replace(/,\s*$/, '') : ''),
       telephone: profile.telephone_detailed || profile.phone || '',
       email: profile.email || '',
       usGreenCard: profile.us_green_card_detailed || false,
