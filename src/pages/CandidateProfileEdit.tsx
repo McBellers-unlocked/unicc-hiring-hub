@@ -18,6 +18,9 @@ import CertificationSection from "@/components/profile/CertificationSection";
 import LanguageSection from "@/components/profile/LanguageSection";
 import ProfilePhotoSection from "@/components/profile/ProfilePhotoSection";
 import ProfileCompletionWidget from "@/components/profile/ProfileCompletionWidget";
+import PortfolioSection from "@/components/profile/PortfolioSection";
+import ProfileAnalyticsSection from "@/components/profile/ProfileAnalyticsSection";
+import JobRecommendationsSection from "@/components/profile/JobRecommendationsSection";
 
 interface CandidateProfile {
   id: string;
@@ -295,11 +298,18 @@ export default function CandidateProfileEdit() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Left Column - Profile Completion */}
+        {/* Left Column - Profile Completion & Analytics */}
         <div className="lg:col-span-1 space-y-6">
           <ProfileCompletionWidget 
             completionData={getCompletionData()}
             overallPercentage={calculateCompletionPercentage()}
+          />
+          <ProfileAnalyticsSection
+            profileId={profile.id || "new"}
+            completionPercentage={calculateCompletionPercentage()}
+          />
+          <JobRecommendationsSection
+            candidateProfile={profile}
           />
         </div>
 
@@ -462,6 +472,13 @@ export default function CandidateProfileEdit() {
           <CertificationSection
             certifications={profile.certifications}
             onChange={(certifications) => setProfile({ ...profile, certifications: certifications })}
+          />
+
+          {/* Portfolio & Documents */}
+          <PortfolioSection
+            portfolioFiles={profile.portfolio_attachments}
+            email={profile.email}
+            onChange={(files) => setProfile({ ...profile, portfolio_attachments: files })}
           />
 
           {/* Languages */}
