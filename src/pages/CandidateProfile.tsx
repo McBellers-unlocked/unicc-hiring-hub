@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, MapPin, Calendar, Building, Mail, Phone, Globe } from "lucide-react";
+import { Edit, Calendar, Building, Mail, Phone, Globe } from "lucide-react";
+import { getCountryFlag, getAvailabilityInfo } from "@/lib/countryFlags";
 
 interface CandidateProfile {
   id: string;
@@ -64,6 +65,12 @@ export default function CandidateProfile() {
           preferred_locations: Array.isArray(data.preferred_locations) ? data.preferred_locations : [],
           un_organizations_worked: Array.isArray(data.un_organizations_worked) ? data.un_organizations_worked : [],
         };
+
+        // Calculate years of experience if not present or if 0
+        if (!normalizedProfile.years_of_experience || normalizedProfile.years_of_experience === 0) {
+          normalizedProfile.years_of_experience = calculateYearsOfExperience(normalizedProfile.work_experience);
+        }
+
         setProfile(normalizedProfile);
         
         // Check if this is the user's own profile
@@ -87,6 +94,56 @@ export default function CandidateProfile() {
     }
   }, [id, user, toast]);
 
+  // Calculate years of experience from work history
+  const calculateYearsOfExperience = (workExperience: any[]) => {
+    if (!workExperience || workExperience.length === 0) return 0;
+    
+    let totalMonths = 0;
+    
+    workExperience.forEach((job: any) => {
+      if (job.from_year || job.startDate) {
+        let startYear, startMonth, endYear, endMonth;
+        
+        // Handle different date formats
+        if (job.from_year) {
+          startYear = parseInt(job.from_year);
+          startMonth = parseInt(job.from_month) || 1;
+        } else if (job.startDate) {
+          const [year, month] = job.startDate.split('-');
+          startYear = parseInt(year);
+          startMonth = parseInt(month) || 1;
+        }
+        
+        if (job.is_present || job.isCurrent) {
+          const now = new Date();
+          endYear = now.getFullYear();
+          endMonth = now.getMonth() + 1;
+        } else if (job.to_year) {
+          endYear = parseInt(job.to_year);
+          endMonth = parseInt(job.to_month) || 12;
+        } else if (job.endDate) {
+          const [year, month] = job.endDate.split('-');
+          endYear = parseInt(year);
+          endMonth = parseInt(month) || 12;
+        } else {
+          return; // Skip invalid entries
+        }
+        
+        if (startYear && endYear) {
+          const startDate = new Date(startYear, startMonth - 1);
+          const endDate = new Date(endYear, endMonth - 1);
+          const monthDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
+          
+          if (monthDiff > 0) {
+            totalMonths += monthDiff;
+          }
+        }
+      }
+    });
+    
+    return Math.round(totalMonths / 12 * 10) / 10; // Round to 1 decimal place
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto py-8">
@@ -109,14 +166,6 @@ export default function CandidateProfile() {
     );
   }
 
-  const getAvailabilityColor = (status: string) => {
-    switch (status) {
-      case "available": return "bg-green-500";
-      case "employed_open": return "bg-yellow-500";
-      case "not_available": return "bg-red-500";
-      default: return "bg-gray-500";
-    }
-  };
 
   return (
     <div className="container mx-auto py-8 max-w-4xl">
@@ -146,24 +195,28 @@ export default function CandidateProfile() {
                       {profile.current_organization}
                     </p>
                   )}
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {profile.location && (
-                      <Badge variant="outline" className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {profile.location}
-                      </Badge>
-                    )}
-                    <Badge variant="outline" className={`flex items-center gap-1`}>
-                      <div className={`h-2 w-2 rounded-full ${getAvailabilityColor(profile.availability_status)}`}></div>
-                      {profile.availability_status.replace('_', ' ')}
-                    </Badge>
-                    {profile.years_of_experience && (
-                      <Badge variant="outline" className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {profile.years_of_experience} years exp.
-                      </Badge>
-                    )}
-                  </div>
+                   <div className="flex flex-wrap gap-2 mt-2">
+                     {profile.location && (
+                       <Badge variant="outline" className="flex items-center gap-1">
+                         <span className="text-base">{getCountryFlag(profile.location)}</span>
+                         {profile.location}
+                       </Badge>
+                     )}
+                     <Badge 
+                       variant="outline" 
+                       className={`flex items-center gap-1`}
+                       title={getAvailabilityInfo(profile.availability_status).description}
+                     >
+                       <div className={`h-2 w-2 rounded-full ${getAvailabilityInfo(profile.availability_status).color}`}></div>
+                       {getAvailabilityInfo(profile.availability_status).label}
+                     </Badge>
+                     {profile.years_of_experience > 0 && (
+                       <Badge variant="outline" className="flex items-center gap-1">
+                         <Calendar className="h-3 w-3" />
+                         {profile.years_of_experience} years exp.
+                       </Badge>
+                     )}
+                   </div>
                 </div>
                 
                 {isOwnProfile && (
