@@ -1,8 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Briefcase, Info, Plus } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Briefcase, Info, Plus, Calendar } from 'lucide-react';
 
 interface WorkExperienceEntry {
   position: string;
@@ -22,6 +28,19 @@ interface PHFWorkExperienceSectionProps {
 export default function PHFWorkExperienceSection({ profileWorkExperience }: PHFWorkExperienceSectionProps) {
   // Debug: Log the data to check what's being passed
   console.log('PHFWorkExperienceSection - profileWorkExperience:', profileWorkExperience);
+  
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newExperience, setNewExperience] = useState({
+    company: '',
+    position: '',
+    employmentType: 'Full-time',
+    location: '',
+    startDate: '',
+    endDate: '',
+    isCurrent: false,
+    isUNExperience: false,
+    description: ''
+  });
   const formatDateRange = (startDate: string, endDate?: string, isCurrent?: boolean) => {
     const formatDate = (date: string) => {
       if (!date) return '';
@@ -36,6 +55,24 @@ export default function PHFWorkExperienceSection({ profileWorkExperience }: PHFW
     const end = isCurrent ? 'Present' : (endDate ? formatDate(endDate) : 'Present');
     
     return `${start} - ${end}`;
+  };
+
+  const handleAddExperience = () => {
+    // This would typically call a parent function to add the experience
+    console.log('Adding new experience:', newExperience);
+    setIsAddDialogOpen(false);
+    // Reset form
+    setNewExperience({
+      company: '',
+      position: '',
+      employmentType: 'Full-time',
+      location: '',
+      startDate: '',
+      endDate: '',
+      isCurrent: false,
+      isUNExperience: false,
+      description: ''
+    });
   };
 
   return (
@@ -104,10 +141,142 @@ export default function PHFWorkExperienceSection({ profileWorkExperience }: PHFW
         {/* Add Employment Entry Button */}
         <div className="border-2 border-dashed border-muted rounded-lg p-8">
           <div className="text-center">
-            <Button variant="outline" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Employment Entry
-            </Button>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Employment Entry
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Add Work Experience</DialogTitle>
+                </DialogHeader>
+                
+                <div className="space-y-6 py-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="company">Company/Organization *</Label>
+                      <Input
+                        id="company"
+                        placeholder="Company name"
+                        value={newExperience.company}
+                        onChange={(e) => setNewExperience(prev => ({ ...prev, company: e.target.value }))}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="position">Position Title *</Label>
+                      <Input
+                        id="position"
+                        placeholder="Your role"
+                        value={newExperience.position}
+                        onChange={(e) => setNewExperience(prev => ({ ...prev, position: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="employmentType">Employment Type</Label>
+                      <Select 
+                        value={newExperience.employmentType} 
+                        onValueChange={(value) => setNewExperience(prev => ({ ...prev, employmentType: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Full-time">Full-time</SelectItem>
+                          <SelectItem value="Part-time">Part-time</SelectItem>
+                          <SelectItem value="Contract">Contract</SelectItem>
+                          <SelectItem value="Freelance">Freelance</SelectItem>
+                          <SelectItem value="Internship">Internship</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Location</Label>
+                      <Input
+                        id="location"
+                        placeholder="City, Country"
+                        value={newExperience.location}
+                        onChange={(e) => setNewExperience(prev => ({ ...prev, location: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="startDate">Start Date</Label>
+                      <Input
+                        id="startDate"
+                        type="month"
+                        value={newExperience.startDate}
+                        onChange={(e) => setNewExperience(prev => ({ ...prev, startDate: e.target.value }))}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="endDate">End Date</Label>
+                      <Input
+                        id="endDate"
+                        type="month"
+                        value={newExperience.endDate}
+                        onChange={(e) => setNewExperience(prev => ({ ...prev, endDate: e.target.value }))}
+                        disabled={newExperience.isCurrent}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="isCurrent"
+                        checked={newExperience.isCurrent}
+                        onCheckedChange={(checked) => setNewExperience(prev => ({ 
+                          ...prev, 
+                          isCurrent: checked as boolean,
+                          endDate: checked ? '' : prev.endDate
+                        }))}
+                      />
+                      <Label htmlFor="isCurrent">I currently work here</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="isUNExperience"
+                        checked={newExperience.isUNExperience}
+                        onCheckedChange={(checked) => setNewExperience(prev => ({ ...prev, isUNExperience: checked as boolean }))}
+                      />
+                      <Label htmlFor="isUNExperience">This is UN system experience</Label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Describe your responsibilities and achievements..."
+                      rows={4}
+                      value={newExperience.description}
+                      onChange={(e) => setNewExperience(prev => ({ ...prev, description: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleAddExperience} className="bg-blue-600 hover:bg-blue-700 text-white">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Work Experience
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </CardContent>
