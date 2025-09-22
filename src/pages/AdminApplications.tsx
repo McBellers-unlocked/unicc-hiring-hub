@@ -748,8 +748,16 @@ export default function AdminApplications() {
                                      <User className="w-4 h-4 text-muted-foreground" />
                                    </div>
                                    <div className="flex-1 min-w-0">
-                                     <div className="font-medium text-sm leading-tight truncate" title={application.candidate.name}>
-                                       {application.candidate.name}
+                                     <div className="flex items-center gap-2">
+                                       <div className="font-medium text-sm leading-tight truncate" title={application.candidate.name}>
+                                         {application.candidate.name}
+                                       </div>
+                                       {application.candidate.gender && (
+                                         <span className="text-sm flex-shrink-0" title={`Gender: ${application.candidate.gender}`}>
+                                           {application.candidate.gender === 'Male' ? '♂' : 
+                                            application.candidate.gender === 'Female' ? '♀' : ''}
+                                         </span>
+                                       )}
                                      </div>
                                      <div className="text-xs text-muted-foreground leading-tight truncate" title={application.candidate.email}>
                                        {application.candidate.email}
