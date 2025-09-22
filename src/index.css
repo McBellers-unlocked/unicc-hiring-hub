@@ -109,3 +109,56 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* React DatePicker styling */
+.react-datepicker {
+  @apply border border-border bg-background shadow-md rounded-md !important;
+  font-family: inherit !important;
+}
+
+.react-datepicker__header {
+  @apply bg-muted border-b border-border !important;
+}
+
+.react-datepicker__current-month {
+  @apply text-foreground font-medium !important;
+}
+
+.react-datepicker__day-name {
+  @apply text-muted-foreground text-sm font-medium !important;
+}
+
+.react-datepicker__day {
+  @apply text-foreground hover:bg-accent hover:text-accent-foreground rounded-md !important;
+}
+
+.react-datepicker__day--selected {
+  @apply bg-primary text-primary-foreground hover:bg-primary !important;
+}
+
+.react-datepicker__day--today {
+  @apply bg-accent text-accent-foreground !important;
+}
+
+.react-datepicker__day--keyboard-selected {
+  @apply bg-accent text-accent-foreground !important;
+}
+
+.react-datepicker__navigation {
+  @apply text-muted-foreground hover:text-foreground !important;
+}
+
+.react-datepicker__month-dropdown,
+.react-datepicker__year-dropdown {
+  @apply bg-background border border-border shadow-md !important;
+}
+
+.react-datepicker__month-option,
+.react-datepicker__year-option {
+  @apply text-foreground hover:bg-accent !important;
+}
+
+.react-datepicker__month-option--selected,
+.react-datepicker__year-option--selected {
+  @apply bg-primary text-primary-foreground !important;
+}
