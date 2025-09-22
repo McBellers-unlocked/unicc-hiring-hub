@@ -2,97 +2,22 @@
 
 import { format, parse } from 'date-fns';
 
-// Convert profile languages to PHF format
-export function convertLanguagesToPHF(profileLanguages: any): any[] {
-  const phfLanguages: any[] = [];
-  
-  // Handle UN official languages
-  if (profileLanguages.un_languages) {
-    Object.entries(profileLanguages.un_languages).forEach(([code, proficiency]: [string, any]) => {
-      if (proficiency && proficiency !== 'none') {
-        const languageNames: Record<string, string> = {
-          'en': 'English',
-          'fr': 'French', 
-          'es': 'Spanish',
-          'ar': 'Arabic',
-          'zh': 'Chinese',
-          'ru': 'Russian'
-        };
-        
-        phfLanguages.push({
-          language: languageNames[code] || code,
-          speaking: proficiency,
-          reading: proficiency,
-          writing: proficiency,
-        });
-      }
-    });
-  }
-  
-  // Handle other languages
-  if (Array.isArray(profileLanguages.other_languages)) {
-    profileLanguages.other_languages.forEach((lang: any) => {
-      if (lang.language && lang.proficiency && lang.proficiency !== 'none') {
-        phfLanguages.push({
-          language: lang.language,
-          speaking: lang.proficiency,
-          reading: lang.proficiency,
-          writing: lang.proficiency,
-        });
-      }
-    });
-  }
-  
-  // Fallback: Handle simple languages object format
-  if (!profileLanguages.un_languages && !profileLanguages.other_languages && typeof profileLanguages === 'object') {
-    Object.entries(profileLanguages).forEach(([language, level]: [string, any]) => {
-      if (level && level !== 'none') {
-        phfLanguages.push({
-          language,
-          speaking: level,
-          reading: level, 
-          writing: level,
-        });
-      }
-    });
-  }
-  
-  return phfLanguages;
+// Convert profile languages to PHF format (keeping same structure)
+export function convertLanguagesToPHF(profileLanguages: any): any {
+  // Return the languages in the same format as the profile
+  return {
+    un_languages: profileLanguages?.un_languages || {},
+    other_languages: profileLanguages?.other_languages || []
+  };
 }
 
-// Convert PHF languages back to profile format
-export function convertPHFToLanguages(phfLanguages: any[]): any {
-  if (!Array.isArray(phfLanguages)) return { un_languages: {}, other_languages: [] };
-  
-  const unLanguageCodes: Record<string, string> = {
-    'English': 'en',
-    'French': 'fr',
-    'Spanish': 'es', 
-    'Arabic': 'ar',
-    'Chinese': 'zh',
-    'Russian': 'ru'
-  };
-  
-  const unLanguages: Record<string, string> = {};
-  const otherLanguages: any[] = [];
-  
-  phfLanguages.forEach((lang: any) => {
-    const code = unLanguageCodes[lang.language];
-    if (code) {
-      // This is a UN official language
-      unLanguages[code] = lang.speaking || lang.reading || lang.writing;
-    } else {
-      // This is another language
-      otherLanguages.push({
-        language: lang.language,
-        proficiency: lang.speaking || lang.reading || lang.writing
-      });
-    }
-  });
-  
+// Convert PHF languages back to profile format (already same format)
+export function convertPHFToLanguages(phfLanguages: any): any {
+  // Since we're keeping the same format, just return it
+  if (!phfLanguages) return { un_languages: {}, other_languages: [] };
   return {
-    un_languages: unLanguages,
-    other_languages: otherLanguages
+    un_languages: phfLanguages.un_languages || {},
+    other_languages: phfLanguages.other_languages || []
   };
 }
 
