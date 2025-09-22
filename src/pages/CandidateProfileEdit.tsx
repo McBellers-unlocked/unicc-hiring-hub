@@ -515,16 +515,16 @@ export default function CandidateProfileEdit() {
             onChange={(workExperience) => setProfile({ ...profile, work_experience: workExperience })}
           />
 
-          {/* Languages */}
-          <LanguageSection
-            languages={profile.languages}
-            onChange={(languages) => setProfile({ ...profile, languages: languages })}
-          />
-
           {/* Education */}
           <EducationSection
             education={profile.education}
             onChange={(education) => setProfile({ ...profile, education: education })}
+          />
+
+          {/* Languages */}
+          <LanguageSection
+            languages={profile.languages}
+            onChange={(languages) => setProfile({ ...profile, languages: languages })}
           />
 
           {/* Skills */}
