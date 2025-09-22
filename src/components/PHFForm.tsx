@@ -388,6 +388,14 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     },
   });
 
+  // Update form values when initialData changes
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0) {
+      console.log('Resetting form with initialData:', initialData);
+      form.reset(initialData);
+    }
+  }, [initialData, form]);
+
   const { fields: dependantFields, append: appendDependant, remove: removeDependant } = useFieldArray({
     control: form.control,
     name: 'dependants',

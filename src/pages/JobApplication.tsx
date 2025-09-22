@@ -297,7 +297,8 @@ export default function JobApplication() {
         };
         
         setPHFData(prefilledData);
-        console.log('Pre-filled form with candidate profile data');
+        console.log('Pre-filled form with candidate profile data:', prefilledData);
+        console.log('Candidate data used:', candidate);
       }
     } catch (error) {
       console.error('Error loading existing application:', error);
