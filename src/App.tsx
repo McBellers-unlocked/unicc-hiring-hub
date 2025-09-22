@@ -28,6 +28,7 @@ import DirectorView from "./pages/DirectorView";
 import MyApplications from "./pages/MyApplications";
 import CandidateProfile from "./pages/CandidateProfile";
 import CandidateProfileEdit from "./pages/CandidateProfileEdit";
+import CandidateApplicationView from "./pages/CandidateApplicationView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/my-applications" element={<MyApplications />} />
+            <Route path="/my-applications/:id" element={<CandidateApplicationView />} />
             <Route path="/candidate-profile/:id" element={<CandidateProfile />} />
             <Route path="/candidate-profile/edit" element={<CandidateProfileEdit />} />
             <Route path="/candidate-profile/:id/edit" element={<CandidateProfileEdit />} />

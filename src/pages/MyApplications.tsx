@@ -251,14 +251,27 @@ export default function MyApplications() {
                         </div>
                       )}
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/apply/${application.job_id}`)}
-                      disabled={application.phf_completed}
-                    >
-                      {application.phf_completed ? 'Application Complete' : 'Continue Application'}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {application.phf_completed && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/my-applications/${application.id}`)}
+                          className="flex items-center gap-2"
+                        >
+                          <FileText className="h-4 w-4" />
+                          View Application
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/apply/${application.job_id}`)}
+                        disabled={application.phf_completed}
+                      >
+                        {application.phf_completed ? 'Application Complete' : 'Continue Application'}
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
