@@ -10,7 +10,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { User, MapPin, Briefcase, AlertCircle, Edit3, FileText, Search } from 'lucide-react';
+import { User, MapPin, Briefcase, AlertCircle, Edit3, FileText, Search, Calendar, Building } from 'lucide-react';
+import { getCountryFlagUrl, getAvailabilityInfo, formatExperienceYears } from '@/lib/countryFlags';
 
 // Import existing components for tabs
 import JobsContent from './dashboard/JobsContent';
@@ -89,6 +90,56 @@ export default function CandidateDashboard() {
       .slice(0, 2);
   };
 
+  // Calculate years of experience from work history
+  const calculateYearsOfExperience = (workExperience: any[]) => {
+    if (!workExperience || workExperience.length === 0) return 0;
+    
+    let totalMonths = 0;
+    
+    workExperience.forEach((job: any) => {
+      if (job.from_year || job.startDate) {
+        let startYear, startMonth, endYear, endMonth;
+        
+        // Handle different date formats
+        if (job.from_year) {
+          startYear = parseInt(job.from_year);
+          startMonth = parseInt(job.from_month) || 1;
+        } else if (job.startDate) {
+          const [year, month] = job.startDate.split('-');
+          startYear = parseInt(year);
+          startMonth = parseInt(month) || 1;
+        }
+        
+        if (job.is_present || job.isCurrent) {
+          const now = new Date();
+          endYear = now.getFullYear();
+          endMonth = now.getMonth() + 1;
+        } else if (job.to_year) {
+          endYear = parseInt(job.to_year);
+          endMonth = parseInt(job.to_month) || 12;
+        } else if (job.endDate) {
+          const [year, month] = job.endDate.split('-');
+          endYear = parseInt(year);
+          endMonth = parseInt(month) || 12;
+        } else {
+          return; // Skip invalid entries
+        }
+        
+        if (startYear && endYear) {
+          const startDate = new Date(startYear, startMonth - 1);
+          const endDate = new Date(endYear, endMonth - 1);
+          const monthDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
+          
+          if (monthDiff > 0) {
+            totalMonths += monthDiff;
+          }
+        }
+      }
+    });
+    
+    return totalMonths; // Return total months instead of years
+  };
+
   const getAvailabilityColor = (status?: string) => {
     switch (status?.toLowerCase()) {
       case 'available':
@@ -162,29 +213,50 @@ export default function CandidateDashboard() {
                     <p className="text-lg text-muted-foreground">{profile.current_position}</p>
                   )}
                   {profile.current_organization && (
-                    <p className="text-sm text-muted-foreground">{profile.current_organization}</p>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Building className="h-4 w-4" />
+                      {profile.current_organization}
+                    </p>
                   )}
                   
-                  <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                    {profile.location && (
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        {profile.location}
-                      </div>
-                    )}
-                    {profile.years_of_experience && (
-                      <div className="flex items-center gap-1">
-                        <Briefcase className="h-4 w-4" />
-                        {profile.years_of_experience} years experience
-                      </div>
-                    )}
-                  </div>
-                  
-                  {profile.availability_status && (
-                    <Badge className={`mt-2 ${getAvailabilityColor(profile.availability_status)}`}>
-                      {profile.availability_status}
-                    </Badge>
-                  )}
+                   <div className="flex flex-wrap gap-2 mt-2">
+                     {profile.location && (
+                       <Badge variant="outline" className="flex items-center gap-1">
+                         {getCountryFlagUrl(profile.location) && (
+                           <img 
+                             src={getCountryFlagUrl(profile.location)} 
+                             alt={`${profile.location} flag`} 
+                             className="w-4 h-3 object-cover rounded-sm"
+                             onError={(e) => {
+                               e.currentTarget.style.display = 'none';
+                             }}
+                           />
+                         )}
+                         {profile.location}
+                       </Badge>
+                     )}
+                     
+                     {profile.availability_status && (
+                       <Badge 
+                         variant="outline" 
+                         className="flex items-center gap-1"
+                         title={getAvailabilityInfo(profile.availability_status).description}
+                       >
+                         <div className={`h-2 w-2 rounded-full ${getAvailabilityInfo(profile.availability_status).color}`}></div>
+                         {getAvailabilityInfo(profile.availability_status).label}
+                       </Badge>
+                     )}
+                     
+                     {profile.work_experience && profile.work_experience.length > 0 && (() => {
+                       const totalMonths = calculateYearsOfExperience(profile.work_experience);
+                       return totalMonths > 0 ? (
+                         <Badge variant="outline" className="flex items-center gap-1">
+                           <Calendar className="h-3 w-3" />
+                           {formatExperienceYears(totalMonths)} exp.
+                         </Badge>
+                       ) : null;
+                     })()}
+                   </div>
                 </div>
                 
                 <Button
