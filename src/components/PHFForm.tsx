@@ -91,6 +91,21 @@ const phfSchema = z.object({
     institution_name: z.string().min(1, 'Institution name is required'),
     institution_place: z.string(),
     institution_country: z.string(),
+    degree_type: z.enum([
+      'High School Diploma',
+      'Secondary Education Certificate',
+      'A-Levels',
+      'International Baccalaureate',
+      'Bachelor\'s Degree',
+      'Bachelor\'s Degree (Honors)',
+      'Master\'s Degree',
+      'PhD',
+      'Post-Doctoral',
+      'Professional Certificate',
+      'Technical Diploma',
+      'Professional License',
+      'Other'
+    ]),
     degree_or_certificate_title: z.string(),
     main_course_of_study: z.string(),
     is_completed: z.boolean(),
@@ -250,6 +265,22 @@ const MONTHS = [
 
 const COUNTRIES = [
   'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cabo Verde', 'Cambodia', 'Cameroon', 'Canada', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic', 'Democratic Republic of the Congo', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Timor-Leste', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe'
+];
+
+const DEGREE_TYPES = [
+  { value: 'High School Diploma', label: 'High School Diploma' },
+  { value: 'Secondary Education Certificate', label: 'Secondary Education Certificate' },
+  { value: 'A-Levels', label: 'A-Levels' },
+  { value: 'International Baccalaureate', label: 'International Baccalaureate' },
+  { value: 'Bachelor\'s Degree', label: 'Bachelor\'s Degree' },
+  { value: 'Bachelor\'s Degree (Honors)', label: 'Bachelor\'s Degree (Honors)' },
+  { value: 'Master\'s Degree', label: 'Master\'s Degree' },
+  { value: 'PhD', label: 'PhD' },
+  { value: 'Post-Doctoral', label: 'Post-Doctoral' },
+  { value: 'Professional Certificate', label: 'Professional Certificate' },
+  { value: 'Technical Diploma', label: 'Technical Diploma' },
+  { value: 'Professional License', label: 'Professional License' },
+  { value: 'Other', label: 'Other' },
 ];
 
 const CERTIFICATION_TEXT = `I certify that the statements made by me in answer to the foregoing questions are true, complete and correct to the best of my knowledge and belief. I understand that any false statement may lead to the rejection of my application or cancellation of any appointment offered to me.
@@ -1589,12 +1620,37 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
 
             <FormField
               control={form.control}
+              name={`education.${index}.degree_type`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Degree Type *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select degree type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {DEGREE_TYPES.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name={`education.${index}.degree_or_certificate_title`}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Degree or Certificate Title</FormLabel>
+                  <FormLabel>Specific Degree/Certificate Title</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} placeholder="e.g., Bachelor of Science in Computer Science" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -1637,31 +1693,36 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
               )}
             />
 
-            {form.watch(`education.${index}.is_completed`) && (
-              <FormField
-                control={form.control}
-                name={`education.${index}.certificate_url`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Upload Certificate *</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="file"
-                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            // Handle file upload - you'll need to implement this
-                            field.onChange(file.name); // Placeholder
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+            <FormField
+              control={form.control}
+              name={`education.${index}.certificate_url`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Upload Certificate {!form.watch(`education.${index}.is_completed`) ? '(Optional)' : '(Optional - may be requested later)'}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="file"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          // Handle file upload - you'll need to implement this
+                          field.onChange(file.name); // Placeholder
+                        }
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                  {form.watch(`education.${index}.is_completed`) && (
+                    <FormDescription>
+                      Certificates may be verified if you are selected for this position.
+                    </FormDescription>
+                  )}
+                </FormItem>
+              )}
+            />
           </div>
         </Card>
       ))}
@@ -1678,6 +1739,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
           institution_name: '',
           institution_place: '',
           institution_country: '',
+          degree_type: 'Bachelor\'s Degree',
           degree_or_certificate_title: '',
           main_course_of_study: '',
           is_completed: false,
