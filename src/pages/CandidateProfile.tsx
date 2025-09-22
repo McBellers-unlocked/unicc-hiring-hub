@@ -201,14 +201,17 @@ export default function CandidateProfile() {
                    <div className="flex flex-wrap gap-2 mt-2">
                      {profile.location && (
                        <Badge variant="outline" className="flex items-center gap-1">
-                         <img 
-                           src={getCountryFlagUrl(profile.location)} 
-                           alt={`${profile.location} flag`} 
-                           className="w-4 h-3 object-cover rounded-sm"
-                           onError={(e) => {
-                             e.currentTarget.style.display = 'none';
-                           }}
-                         />
+                         {getCountryFlagUrl(profile.location) && (
+                           <img 
+                             src={getCountryFlagUrl(profile.location)} 
+                             alt={`${profile.location} flag`} 
+                             className="w-4 h-3 object-cover rounded-sm"
+                             onError={(e) => {
+                               console.log('Flag failed to load for:', profile.location);
+                               e.currentTarget.style.display = 'none';
+                             }}
+                           />
+                         )}
                          {profile.location}
                        </Badge>
                      )}
@@ -220,12 +223,19 @@ export default function CandidateProfile() {
                        <div className={`h-2 w-2 rounded-full ${getAvailabilityInfo(profile.availability_status).color}`}></div>
                        {getAvailabilityInfo(profile.availability_status).label}
                      </Badge>
-                     {profile.work_experience.length > 0 && (
-                       <Badge variant="outline" className="flex items-center gap-1">
-                         <Calendar className="h-3 w-3" />
-                         {formatExperienceYears(calculateYearsOfExperience(profile.work_experience))} exp.
-                       </Badge>
-                     )}
+                     {(() => {
+                       const experienceMonths = calculateYearsOfExperience(profile.work_experience);
+                       console.log('Work experience array:', profile.work_experience);
+                       console.log('Calculated experience months:', experienceMonths);
+                       const formattedExp = formatExperienceYears(experienceMonths);
+                       console.log('Formatted experience:', formattedExp);
+                       return experienceMonths > 0 ? (
+                         <Badge variant="outline" className="flex items-center gap-1">
+                           <Calendar className="h-3 w-3" />
+                           {formattedExp} exp.
+                         </Badge>
+                       ) : null;
+                     })()}
                    </div>
                 </div>
                 
