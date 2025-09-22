@@ -176,6 +176,18 @@ export default function CandidateProfileEdit() {
     fetchProfile();
   }, [user, toast]);
 
+  // Debug: Track profile state changes
+  useEffect(() => {
+    if (profile) {
+      console.log('Profile state changed:', {
+        work_experience_count: profile.work_experience?.length || 0,
+        education_count: profile.education?.length || 0,
+        work_experience: profile.work_experience,
+        education: profile.education
+      });
+    }
+  }, [profile]);
+
   // Calculate years of experience from work history
   const calculateYearsOfExperience = () => {
     if (!profile?.work_experience || profile.work_experience.length === 0) return 0;
@@ -611,13 +623,19 @@ export default function CandidateProfileEdit() {
           {/* Work Experience */}
           <WorkExperienceSection
             workExperience={profile.work_experience}
-            onChange={(workExperience) => setProfile({ ...profile, work_experience: workExperience })}
+            onChange={(workExperience) => {
+              console.log('Work experience changed to:', workExperience);
+              setProfile({ ...profile, work_experience: workExperience });
+            }}
           />
 
           {/* Education */}
           <EducationSection
             education={profile.education}
-            onChange={(education) => setProfile({ ...profile, education: education })}
+            onChange={(education) => {
+              console.log('Education changed to:', education);
+              setProfile({ ...profile, education: education });
+            }}
           />
 
           {/* Languages */}
