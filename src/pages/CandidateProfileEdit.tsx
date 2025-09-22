@@ -77,6 +77,9 @@ interface CandidateProfile {
   permanent_country?: string;
   us_green_card?: boolean;
   us_green_card_details?: string;
+  // Privacy settings
+  email_public?: boolean;
+  phone_public?: boolean;
 }
 
 export default function CandidateProfileEdit() {
@@ -210,13 +213,13 @@ export default function CandidateProfileEdit() {
     const sections = {
       basicInfo: !!(profile.name && profile.location),
       personalDetails: !!(profile.first_name && profile.email && profile.phone && profile.date_of_birth),
-      professionalSummary: !!(profile.professional_summary && profile.professional_summary.length > 50),
-      workExperience: profile.work_experience.length > 0,
-      education: profile.education.length > 0,
-      skills: profile.skills.length >= 3,
-      languages: Object.keys(profile.languages?.un_languages || {}).length > 0 || profile.languages?.other_languages?.length > 0,
+      professionalSummary: !!(profile.professional_summary && profile.professional_summary.trim().length > 50),
+      workExperience: Array.isArray(profile.work_experience) && profile.work_experience.length > 0,
+      education: Array.isArray(profile.education) && profile.education.length > 0,
+      skills: Array.isArray(profile.skills) && profile.skills.length >= 3,
+      languages: Object.keys(profile.languages?.un_languages || {}).length > 0 || (Array.isArray(profile.languages?.other_languages) && profile.languages.other_languages.length > 0),
       profilePhoto: !!profile.profile_photo_url,
-      availability: !!(profile.availability_status && profile.preferred_locations.length > 0),
+      availability: !!(profile.availability_status && Array.isArray(profile.preferred_locations) && profile.preferred_locations.length > 0),
     };
 
     const weights = {
@@ -257,13 +260,13 @@ export default function CandidateProfileEdit() {
     return {
       basicInfo: !!(profile.name && profile.location),
       personalDetails: !!(profile.first_name && profile.email && profile.phone && profile.date_of_birth),
-      professionalSummary: !!(profile.professional_summary && profile.professional_summary.length > 50),
-      workExperience: profile.work_experience.length > 0,
-      education: profile.education.length > 0,
-      skills: profile.skills.length >= 3,
-      languages: Object.keys(profile.languages?.un_languages || {}).length > 0 || profile.languages?.other_languages?.length > 0,
+      professionalSummary: !!(profile.professional_summary && profile.professional_summary.trim().length > 50),
+      workExperience: Array.isArray(profile.work_experience) && profile.work_experience.length > 0,
+      education: Array.isArray(profile.education) && profile.education.length > 0,
+      skills: Array.isArray(profile.skills) && profile.skills.length >= 3,
+      languages: Object.keys(profile.languages?.un_languages || {}).length > 0 || (Array.isArray(profile.languages?.other_languages) && profile.languages.other_languages.length > 0),
       profilePhoto: !!profile.profile_photo_url,
-      availability: !!(profile.availability_status && profile.preferred_locations.length > 0),
+      availability: !!(profile.availability_status && Array.isArray(profile.preferred_locations) && profile.preferred_locations.length > 0),
     };
   };
 
