@@ -33,9 +33,15 @@ const personalDetailsSchema = z.object({
   nationality_changed: z.boolean(),
   nationality_change_details: z.string().optional(),
   marital_status: z.enum(['Single', 'Married', 'Divorced', 'Widowed', 'Separated']),
-  present_address: z.string().optional(),
+  present_address_line1: z.string().optional(),
+  present_address_line2: z.string().optional(),
+  present_city: z.string().optional(),
+  present_country: z.string().optional(),
   present_address_same_as_permanent: z.boolean(),
-  permanent_address: z.string().optional(),
+  permanent_address_line1: z.string().optional(),
+  permanent_address_line2: z.string().optional(),
+  permanent_city: z.string().optional(),
+  permanent_country: z.string().optional(),
   us_green_card: z.boolean(),
   us_green_card_details: z.string().optional(),
 });
@@ -49,8 +55,15 @@ interface PersonalDetailsSectionProps {
     middle_names?: string;
     email?: string;
     phone?: string;
-    present_address?: string;
+    present_address_line1?: string;
+    present_address_line2?: string;
+    present_city?: string;
+    present_country?: string;
     present_address_same_as_permanent?: boolean;
+    permanent_address_line1?: string;
+    permanent_address_line2?: string;
+    permanent_city?: string;
+    permanent_country?: string;
   }>;
   onUpdate?: (data: PersonalDetailsFormData) => void;
 }
@@ -77,9 +90,15 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
       nationality_changed: initialData?.nationality_changed || false,
       nationality_change_details: initialData?.nationality_change_details || '',
       marital_status: initialData?.marital_status || 'Single',
-      present_address: initialData?.present_address || '',
+      present_address_line1: initialData?.present_address_line1 || '',
+      present_address_line2: initialData?.present_address_line2 || '',
+      present_city: initialData?.present_city || '',
+      present_country: initialData?.present_country || '',
       present_address_same_as_permanent: initialData?.present_address_same_as_permanent || false,
-      permanent_address: initialData?.permanent_address || '',
+      permanent_address_line1: initialData?.permanent_address_line1 || '',
+      permanent_address_line2: initialData?.permanent_address_line2 || '',
+      permanent_city: initialData?.permanent_city || '',
+      permanent_country: initialData?.permanent_country || '',
       us_green_card: initialData?.us_green_card || false,
       us_green_card_details: initialData?.us_green_card_details || '',
     },
@@ -107,9 +126,15 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
           nationality_changed: data.nationality_changed,
           nationality_change_details: data.nationality_change_details || null,
           marital_status: data.marital_status,
-          present_address: data.present_address || null,
+          present_address_line1: data.present_address_line1 || null,
+          present_address_line2: data.present_address_line2 || null,
+          present_city: data.present_city || null,
+          present_country: data.present_country || null,
           present_address_same_as_permanent: data.present_address_same_as_permanent,
-          permanent_address: data.permanent_address || null,
+          permanent_address_line1: data.permanent_address_line1 || null,
+          permanent_address_line2: data.permanent_address_line2 || null,
+          permanent_city: data.permanent_city || null,
+          permanent_country: data.permanent_country || null,
           us_green_card: data.us_green_card,
           us_green_card_details: data.us_green_card_details || null,
         })
@@ -466,26 +491,103 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
               )}
             />
 
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="present_address"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Present Address</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Your present address"
-                        {...field}
+            <div className="space-y-6">
+              <h3 className="text-lg font-medium">Present Address</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="present_address_line1"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First line of address</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Street address"
+                          {...field}
+                          disabled={form.watch("present_address_same_as_permanent")}
+                          value={form.watch("present_address_same_as_permanent") ? 
+                            form.watch("permanent_address_line1") || '' : field.value}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="present_address_line2"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Second line of address (optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Apt, suite, building, floor, etc."
+                          {...field}
+                          disabled={form.watch("present_address_same_as_permanent")}
+                          value={form.watch("present_address_same_as_permanent") ? 
+                            form.watch("permanent_address_line2") || '' : field.value}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="present_city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="City"
+                          {...field}
+                          disabled={form.watch("present_address_same_as_permanent")}
+                          value={form.watch("present_address_same_as_permanent") ? 
+                            form.watch("permanent_city") || '' : field.value}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="present_country"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Country</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
                         disabled={form.watch("present_address_same_as_permanent")}
                         value={form.watch("present_address_same_as_permanent") ? 
-                          form.watch("permanent_address") : field.value}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                          form.watch("permanent_country") || '' : field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select country" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {countries.map((country) => (
+                            <SelectItem key={country} value={country}>
+                              {country}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}
@@ -498,7 +600,10 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                         onCheckedChange={(checked) => {
                           field.onChange(checked);
                           if (checked) {
-                            form.setValue("present_address", form.getValues("permanent_address"));
+                            form.setValue("present_address_line1", form.getValues("permanent_address_line1"));
+                            form.setValue("present_address_line2", form.getValues("permanent_address_line2"));
+                            form.setValue("present_city", form.getValues("permanent_city"));
+                            form.setValue("present_country", form.getValues("permanent_country"));
                           }
                         }}
                       />
@@ -513,28 +618,115 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="permanent_address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Permanent Address</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Your permanent address"
-                      {...field}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        if (form.watch("present_address_same_as_permanent")) {
-                          form.setValue("present_address", e.target.value);
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-6">
+              <h3 className="text-lg font-medium">Permanent Address</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="permanent_address_line1"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First line of address</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Street address"
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            if (form.watch("present_address_same_as_permanent")) {
+                              form.setValue("present_address_line1", e.target.value);
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="permanent_address_line2"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Second line of address (optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Apt, suite, building, floor, etc."
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            if (form.watch("present_address_same_as_permanent")) {
+                              form.setValue("present_address_line2", e.target.value);
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="permanent_city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="City"
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            if (form.watch("present_address_same_as_permanent")) {
+                              form.setValue("present_city", e.target.value);
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="permanent_country"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Country</FormLabel>
+                      <Select 
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          if (form.watch("present_address_same_as_permanent")) {
+                            form.setValue("present_country", value);
+                          }
+                        }} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select country" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {countries.map((country) => (
+                            <SelectItem key={country} value={country}>
+                              {country}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
 
             <FormField
               control={form.control}

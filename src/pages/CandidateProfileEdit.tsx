@@ -65,9 +65,15 @@ interface CandidateProfile {
   nationality_changed?: boolean;
   nationality_change_details?: string;
   marital_status?: string;
-  present_address?: string;
+  present_address_line1?: string;
+  present_address_line2?: string;
+  present_city?: string;
+  present_country?: string;
   present_address_same_as_permanent?: boolean;
-  permanent_address?: string;
+  permanent_address_line1?: string;
+  permanent_address_line2?: string;
+  permanent_city?: string;
+  permanent_country?: string;
   us_green_card?: boolean;
   us_green_card_details?: string;
 }
@@ -438,9 +444,15 @@ export default function CandidateProfileEdit() {
               nationality_changed: profile.nationality_changed || false,
               nationality_change_details: profile.nationality_change_details,
               marital_status: profile.marital_status as 'Single' | 'Married' | 'Divorced' | 'Widowed' | 'Separated' | undefined,
-              present_address: profile.present_address,
+              present_address_line1: profile.present_address_line1,
+              present_address_line2: profile.present_address_line2,
+              present_city: profile.present_city,
+              present_country: profile.present_country,
               present_address_same_as_permanent: profile.present_address_same_as_permanent || false,
-              permanent_address: profile.permanent_address,
+              permanent_address_line1: profile.permanent_address_line1,
+              permanent_address_line2: profile.permanent_address_line2,
+              permanent_city: profile.permanent_city,
+              permanent_country: profile.permanent_country,
               us_green_card: profile.us_green_card || false,
               us_green_card_details: profile.us_green_card_details,
             }}

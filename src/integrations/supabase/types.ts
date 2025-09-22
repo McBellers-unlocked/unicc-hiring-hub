@@ -168,13 +168,21 @@ export type Database = {
           notice_period_days: number | null
           objection_to_contact_present_employer: boolean | null
           permanent_address: string | null
+          permanent_address_line1: string | null
+          permanent_address_line2: string | null
+          permanent_city: string | null
+          permanent_country: string | null
           personal_references: Json | null
           phone: string | null
           place_of_birth: string | null
           portfolio_attachments: Json | null
           preferred_locations: Json | null
           present_address: string | null
+          present_address_line1: string | null
+          present_address_line2: string | null
           present_address_same_as_permanent: boolean | null
+          present_city: string | null
+          present_country: string | null
           present_nationality: string | null
           presently_in_government_employ: boolean | null
           privacy_setting: string | null
@@ -231,13 +239,21 @@ export type Database = {
           notice_period_days?: number | null
           objection_to_contact_present_employer?: boolean | null
           permanent_address?: string | null
+          permanent_address_line1?: string | null
+          permanent_address_line2?: string | null
+          permanent_city?: string | null
+          permanent_country?: string | null
           personal_references?: Json | null
           phone?: string | null
           place_of_birth?: string | null
           portfolio_attachments?: Json | null
           preferred_locations?: Json | null
           present_address?: string | null
+          present_address_line1?: string | null
+          present_address_line2?: string | null
           present_address_same_as_permanent?: boolean | null
+          present_city?: string | null
+          present_country?: string | null
           present_nationality?: string | null
           presently_in_government_employ?: boolean | null
           privacy_setting?: string | null
@@ -294,13 +310,21 @@ export type Database = {
           notice_period_days?: number | null
           objection_to_contact_present_employer?: boolean | null
           permanent_address?: string | null
+          permanent_address_line1?: string | null
+          permanent_address_line2?: string | null
+          permanent_city?: string | null
+          permanent_country?: string | null
           personal_references?: Json | null
           phone?: string | null
           place_of_birth?: string | null
           portfolio_attachments?: Json | null
           preferred_locations?: Json | null
           present_address?: string | null
+          present_address_line1?: string | null
+          present_address_line2?: string | null
           present_address_same_as_permanent?: boolean | null
+          present_city?: string | null
+          present_country?: string | null
           present_nationality?: string | null
           presently_in_government_employ?: boolean | null
           privacy_setting?: string | null
