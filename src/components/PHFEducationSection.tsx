@@ -26,7 +26,7 @@ export default function PHFEducationSection({ profileEducation }: PHFEducationSe
       // Handle YYYY-MM format
       if (date.includes('-') && date.length <= 7) {
         const [year, month] = date.split('-');
-        return `${year}-${month.padStart(2, '0')}`;
+        return `${month.padStart(2, '0')}/${year}`;
       }
       
       // Try to parse as a full date
@@ -34,7 +34,7 @@ export default function PHFEducationSection({ profileEducation }: PHFEducationSe
       if (isNaN(d.getTime())) return date; // Return original if invalid date
       const month = String(d.getMonth() + 1).padStart(2, '0');
       const year = d.getFullYear();
-      return `${year}-${month}`;
+      return `${month}/${year}`;
     };
 
     const start = formatDate(startDate);
