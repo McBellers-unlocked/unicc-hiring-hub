@@ -210,6 +210,17 @@ export default function CandidateProfileEdit() {
   const calculateCompletionPercentage = () => {
     if (!profile) return 0;
     
+    // Debug logging to check profile data
+    console.log('Profile data for completion check:', {
+      professional_summary: profile.professional_summary,
+      professional_summary_length: profile.professional_summary?.trim().length,
+      skills: profile.skills,
+      skills_length: Array.isArray(profile.skills) ? profile.skills.length : 'not array',
+      availability_status: profile.availability_status,
+      preferred_locations: profile.preferred_locations,
+      preferred_locations_length: Array.isArray(profile.preferred_locations) ? profile.preferred_locations.length : 'not array'
+    });
+    
     const sections = {
       basicInfo: !!(profile.name && profile.location),
       personalDetails: !!(profile.first_name && profile.email && profile.phone && profile.date_of_birth),
@@ -221,6 +232,8 @@ export default function CandidateProfileEdit() {
       profilePhoto: !!profile.profile_photo_url,
       availability: !!(profile.availability_status && Array.isArray(profile.preferred_locations) && profile.preferred_locations.length > 0),
     };
+
+    console.log('Section completion status:', sections);
 
     const weights = {
       basicInfo: 15,
