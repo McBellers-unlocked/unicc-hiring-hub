@@ -201,15 +201,14 @@ export default function CandidateProfile() {
                    <div className="flex flex-wrap gap-2 mt-2">
                      {profile.location && (
                        <Badge variant="outline" className="flex items-center gap-1">
-                         {getCountryFlagUrl(profile.location) ? (
-                           <img 
-                             src={getCountryFlagUrl(profile.location)} 
-                             alt={`${profile.location} flag`} 
-                             className="w-4 h-3 object-cover rounded-sm"
-                           />
-                         ) : (
-                           <span className="text-xs">🌍</span>
-                         )}
+                         <img 
+                           src={getCountryFlagUrl(profile.location)} 
+                           alt={`${profile.location} flag`} 
+                           className="w-4 h-3 object-cover rounded-sm"
+                           onError={(e) => {
+                             e.currentTarget.style.display = 'none';
+                           }}
+                         />
                          {profile.location}
                        </Badge>
                      )}
@@ -221,10 +220,10 @@ export default function CandidateProfile() {
                        <div className={`h-2 w-2 rounded-full ${getAvailabilityInfo(profile.availability_status).color}`}></div>
                        {getAvailabilityInfo(profile.availability_status).label}
                      </Badge>
-                     {(profile as any).years_of_experience_months > 0 && (
+                     {profile.work_experience.length > 0 && (
                        <Badge variant="outline" className="flex items-center gap-1">
                          <Calendar className="h-3 w-3" />
-                         {formatExperienceYears((profile as any).years_of_experience_months)} exp.
+                         {formatExperienceYears(calculateYearsOfExperience(profile.work_experience))} exp.
                        </Badge>
                      )}
                    </div>
