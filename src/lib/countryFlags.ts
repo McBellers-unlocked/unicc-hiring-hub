@@ -92,10 +92,18 @@ const countryToCode: { [key: string]: string } = {
 };
 
 export const getCountryFlagUrl = (countryName: string): string => {
-  const countryCode = countryToCode[countryName];
+  if (!countryName) return "";
+  
+  // Normalize country name (remove extra spaces, handle common variations)
+  const normalizedName = countryName.trim();
+  const countryCode = countryToCode[normalizedName];
+  
   if (countryCode) {
     return `https://flagcdn.com/24x18/${countryCode}.png`;
   }
+  
+  // Log for debugging
+  console.log('Country code not found for:', normalizedName, 'Available countries:', Object.keys(countryToCode).slice(0, 10));
   return ""; // Return empty string if country not found
 };
 

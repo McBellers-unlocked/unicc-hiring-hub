@@ -223,19 +223,12 @@ export default function CandidateProfile() {
                        <div className={`h-2 w-2 rounded-full ${getAvailabilityInfo(profile.availability_status).color}`}></div>
                        {getAvailabilityInfo(profile.availability_status).label}
                      </Badge>
-                     {(() => {
-                       const experienceMonths = calculateYearsOfExperience(profile.work_experience);
-                       console.log('Work experience array:', profile.work_experience);
-                       console.log('Calculated experience months:', experienceMonths);
-                       const formattedExp = formatExperienceYears(experienceMonths);
-                       console.log('Formatted experience:', formattedExp);
-                       return experienceMonths > 0 ? (
-                         <Badge variant="outline" className="flex items-center gap-1">
-                           <Calendar className="h-3 w-3" />
-                           {formattedExp} exp.
-                         </Badge>
-                       ) : null;
-                     })()}
+                     {profile.years_of_experience_months && profile.years_of_experience_months > 0 && (
+                       <Badge variant="outline" className="flex items-center gap-1">
+                         <Calendar className="h-3 w-3" />
+                         {formatExperienceYears(profile.years_of_experience_months)} exp.
+                       </Badge>
+                     )}
                    </div>
                 </div>
                 
