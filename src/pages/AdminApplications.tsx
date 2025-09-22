@@ -201,18 +201,24 @@ export default function AdminApplications() {
   };
 
   // Helper functions for data extraction
-  const getHighestEducation = (education: any) => {
-    if (!education) return 'Not specified';
+  const getEducationDetails = (education: any) => {
+    if (!education) return { degree: 'Not specified', university: '', year: '' };
     const educationArray = Array.isArray(education) ? education : (education.length ? education : []);
-    if (educationArray.length === 0) return 'Not specified';
-    const degrees = educationArray.map((edu: any) => edu.degree || edu.degree_type || '');
-    const degreeHierarchy = ['PhD', 'Doctorate', 'Master', 'Bachelor', 'Associate', 'High School'];
-    for (const degree of degreeHierarchy) {
-      if (degrees.some((d: string) => d.toLowerCase().includes(degree.toLowerCase()))) {
-        return degree;
-      }
-    }
-    return degrees[0] || 'Not specified';
+    if (educationArray.length === 0) return { degree: 'Not specified', university: '', year: '' };
+    
+    // Get the most recent or highest degree
+    const mostRecent = educationArray[0] || {};
+    return {
+      degree: mostRecent.degree || mostRecent.degree_type || 'Not specified',
+      university: mostRecent.institution || mostRecent.institution_name || '',
+      year: mostRecent.end_date ? new Date(mostRecent.end_date).getFullYear().toString() : 
+            (mostRecent.to_year || mostRecent.year_awarded || '')
+    };
+  };
+
+  const getHighestEducation = (education: any) => {
+    const details = getEducationDetails(education);
+    return details.degree;
   };
 
   const getLanguageSummary = (languages: any) => {
@@ -223,13 +229,45 @@ export default function AdminApplications() {
     return allLangs.slice(0, 3).map(lang => lang.charAt(0).toUpperCase() + lang.slice(1)).join(', ') + (allLangs.length > 3 ? '...' : '');
   };
 
-  const getExperienceSummary = (workExp: any, yearsExp: number | null) => {
+  const getCurrentJobDetails = (workExp: any) => {
+    const workExpArray = Array.isArray(workExp) ? workExp : (workExp?.length ? workExp : []);
+    if (workExpArray.length === 0) return { title: 'Not specified', organization: '', length: '' };
+    
+    const currentJob = workExpArray[0] || {};
+    const title = currentJob.position || currentJob.exact_title_of_post || currentJob.title || 'Not specified';
+    const organization = currentJob.company || currentJob.employer_name || currentJob.employer || '';
+    
+    // Calculate length in current position
+    const startDate = currentJob.startDate || currentJob.start_date || currentJob.period_from_year;
+    let length = '';
+    if (startDate) {
+      const start = new Date(startDate);
+      const end = currentJob.isCurrent || currentJob.is_present ? new Date() : 
+                  (currentJob.endDate || currentJob.end_date ? new Date(currentJob.endDate || currentJob.end_date) : new Date());
+      const years = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+      const months = Math.floor(((end.getTime() - start.getTime()) % (1000 * 60 * 60 * 24 * 365.25)) / (1000 * 60 * 60 * 24 * 30.44));
+      
+      if (years > 0) {
+        length = months > 0 ? `${years}y ${months}m` : `${years}y`;
+      } else if (months > 0) {
+        length = `${months}m`;
+      } else {
+        length = 'New';
+      }
+    }
+    
+    return { title, organization, length };
+  };
+
+  const getTotalExperience = (workExp: any, yearsExp: number | null) => {
     const workExpArray = Array.isArray(workExp) ? workExp : (workExp?.length ? workExp : []);
     
-    // Calculate years of experience if not provided
-    let years = yearsExp;
-    if (!years && workExpArray.length > 0) {
-      years = workExpArray.reduce((total: number, exp: any) => {
+    // Use provided years_of_experience if available
+    if (yearsExp) return `${yearsExp} years`;
+    
+    // Calculate from work history
+    if (workExpArray.length > 0) {
+      const totalYears = workExpArray.reduce((total: number, exp: any) => {
         const startDate = exp.startDate || exp.start_date;
         const endDate = exp.endDate || exp.end_date || (exp.isCurrent || exp.is_present ? new Date() : null);
         
@@ -241,12 +279,15 @@ export default function AdminApplications() {
         }
         return total;
       }, 0);
-      years = Math.round(years || 0);
+      return `${Math.round(totalYears || 0)} years`;
     }
     
-    years = years || 0;
-    const currentRole = workExpArray?.[0]?.position || workExpArray?.[0]?.exact_title_of_post || workExpArray?.[0]?.title || '';
-    return `${years} years${currentRole ? ` • ${currentRole}` : ''}`;
+    return '0 years';
+  };
+
+  const getExperienceSummary = (workExp: any, yearsExp: number | null) => {
+    const currentJob = getCurrentJobDetails(workExp);
+    return currentJob.title;
   };
 
   // Enhanced filter and sort applications
@@ -666,29 +707,30 @@ export default function AdminApplications() {
                           onCheckedChange={toggleAllApplications}
                         />
                       </TableHead>
-                      <TableHead>Candidate</TableHead>
-                      <TableHead>Education</TableHead>
-                      <TableHead>Experience</TableHead>
-                      <TableHead>Languages</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Longlist</TableHead>
-                      <TableHead>Match Score</TableHead>
-                      <TableHead>Actions</TableHead>
+                       <TableHead>Candidate</TableHead>
+                       <TableHead>Education</TableHead>
+                       <TableHead>Current Role</TableHead>
+                       <TableHead>Total Experience</TableHead>
+                       <TableHead>Languages</TableHead>
+                       <TableHead>Status</TableHead>
+                       <TableHead>Longlist</TableHead>
+                       <TableHead>Match Score</TableHead>
+                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {loading ? (
-                      <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8">
-                          Loading applications...
-                        </TableCell>
-                      </TableRow>
-                    ) : filteredApplications.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                          No applications found
-                        </TableCell>
-                      </TableRow>
+                     {loading ? (
+                       <TableRow>
+                         <TableCell colSpan={10} className="text-center py-8">
+                           Loading applications...
+                         </TableCell>
+                       </TableRow>
+                     ) : filteredApplications.length === 0 ? (
+                       <TableRow>
+                         <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                           No applications found
+                         </TableCell>
+                       </TableRow>
                     ) : (
                       filteredApplications.map((application) => (
                         <>
@@ -723,23 +765,59 @@ export default function AdminApplications() {
                                 </Button>
                               </div>
                             </TableCell>
-                            <TableCell>
-                              <div className="flex items-center space-x-2">
-                                <GraduationCap className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm">{getHighestEducation(application.candidate.education)}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center space-x-2">
-                                <Briefcase className="w-4 h-4 text-muted-foreground" />
-                                <div className="text-sm">
-                                  {getExperienceSummary(application.candidate.work_experience, application.candidate.years_of_experience)}
-                                  {application.candidate.un_experience && (
-                                    <Badge variant="outline" className="ml-2 text-xs">UN</Badge>
-                                  )}
-                                </div>
-                              </div>
-                            </TableCell>
+                             <TableCell>
+                               <div className="flex items-center space-x-2">
+                                 <GraduationCap className="w-4 h-4 text-muted-foreground" />
+                                 <div className="text-sm">
+                                   {(() => {
+                                     const education = getEducationDetails(application.candidate.education);
+                                     return (
+                                       <div>
+                                         <div className="font-medium">{education.degree}</div>
+                                         {education.university && (
+                                           <div className="text-xs text-muted-foreground">{education.university}</div>
+                                         )}
+                                         {education.year && (
+                                           <div className="text-xs text-muted-foreground">{education.year}</div>
+                                         )}
+                                       </div>
+                                     );
+                                   })()}
+                                 </div>
+                               </div>
+                             </TableCell>
+                             <TableCell>
+                               <div className="flex items-center space-x-2">
+                                 <Briefcase className="w-4 h-4 text-muted-foreground" />
+                                 <div className="text-sm">
+                                   {(() => {
+                                     const currentJob = getCurrentJobDetails(application.candidate.work_experience);
+                                     return (
+                                       <div>
+                                         <div className="font-medium">{currentJob.title}</div>
+                                         {currentJob.organization && (
+                                           <div className="text-xs text-muted-foreground">{currentJob.organization}</div>
+                                         )}
+                                         {currentJob.length && (
+                                           <div className="text-xs text-muted-foreground">{currentJob.length}</div>
+                                         )}
+                                         {application.candidate.un_experience && (
+                                           <Badge variant="outline" className="ml-1 text-xs">UN</Badge>
+                                         )}
+                                       </div>
+                                     );
+                                   })()}
+                                 </div>
+                               </div>
+                             </TableCell>
+                             <TableCell>
+                               <div className="flex items-center space-x-2">
+                                 <Briefcase className="w-4 h-4 text-muted-foreground" />
+                                 <span className="text-sm font-medium">
+                                   {getTotalExperience(application.candidate.work_experience, application.candidate.years_of_experience)}
+                                 </span>
+                               </div>
+                             </TableCell>
                             <TableCell>
                               <div className="flex items-center space-x-2">
                                 <Languages className="w-4 h-4 text-muted-foreground" />
@@ -797,10 +875,10 @@ export default function AdminApplications() {
                             </TableCell>
                           </TableRow>
                           
-                          {/* Expanded Row Details */}
-                          {expandedRows.has(application.id) && (
-                            <TableRow key={`${application.id}-details`}>
-                              <TableCell colSpan={9} className="bg-muted/20 p-6">
+                           {/* Expanded Row Details */}
+                           {expandedRows.has(application.id) && (
+                             <TableRow key={`${application.id}-details`}>
+                               <TableCell colSpan={10} className="bg-muted/20 p-6">
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                   {/* Education Details */}
                                   <Card>
