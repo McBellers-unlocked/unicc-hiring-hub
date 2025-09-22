@@ -11,7 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Shield } from "lucide-react";
+import EducationSection from "@/components/profile/EducationSection";
+import WorkExperienceSection from "@/components/profile/WorkExperienceSection";
+import CertificationSection from "@/components/profile/CertificationSection";
+import LanguageSection from "@/components/profile/LanguageSection";
+import ProfilePhotoSection from "@/components/profile/ProfilePhotoSection";
+import ProfileCompletionWidget from "@/components/profile/ProfileCompletionWidget";
 
 interface CandidateProfile {
   id: string;
@@ -37,6 +43,10 @@ interface CandidateProfile {
   salary_expectation_range?: string;
   notice_period?: string;
   security_clearance_level?: string;
+  languages: any;
+  has_security_clearance: boolean;
+  portfolio_attachments: any;
+  profile_completion_percentage?: number;
 }
 
 export default function CandidateProfileEdit() {
@@ -72,6 +82,9 @@ export default function CandidateProfileEdit() {
             work_experience: Array.isArray(data.work_experience) ? data.work_experience : [],
             preferred_locations: Array.isArray(data.preferred_locations) ? data.preferred_locations : [],
             un_organizations_worked: Array.isArray(data.un_organizations_worked) ? data.un_organizations_worked : [],
+            portfolio_attachments: Array.isArray(data.portfolio_attachments) ? data.portfolio_attachments : [],
+            languages: data.languages || { un_languages: {}, other_languages: [] },
+            has_security_clearance: data.has_security_clearance || false,
           });
         } else {
           // Create new profile for user
@@ -86,9 +99,12 @@ export default function CandidateProfileEdit() {
             work_experience: [],
             preferred_locations: [],
             un_organizations_worked: [],
+            portfolio_attachments: [],
             availability_status: 'available',
             willing_to_relocate: false,
             un_experience: false,
+            languages: { un_languages: {}, other_languages: [] },
+            has_security_clearance: false,
           };
           setProfile(newProfile as CandidateProfile);
         }
@@ -107,16 +123,54 @@ export default function CandidateProfileEdit() {
     fetchProfile();
   }, [user, toast]);
 
+  const calculateCompletionPercentage = () => {
+    if (!profile) return 0;
+    
+    const sections = {
+      basicInfo: !!(profile.name && profile.email && profile.phone && profile.location),
+      professionalSummary: !!(profile.professional_summary && profile.professional_summary.length > 50),
+      workExperience: profile.work_experience.length > 0,
+      education: profile.education.length > 0,
+      skills: profile.skills.length >= 3,
+      languages: Object.keys(profile.languages?.un_languages || {}).length > 0 || profile.languages?.other_languages?.length > 0,
+      profilePhoto: !!profile.profile_photo_url,
+      availability: !!(profile.availability_status && profile.preferred_locations.length > 0),
+    };
+
+    const weights = {
+      basicInfo: 20,
+      professionalSummary: 10,
+      workExperience: 25,
+      education: 15,
+      skills: 10,
+      languages: 10,
+      profilePhoto: 5,
+      availability: 5,
+    };
+
+    let totalScore = 0;
+    Object.entries(sections).forEach(([key, completed]) => {
+      if (completed) {
+        totalScore += weights[key as keyof typeof weights];
+      }
+    });
+
+    return Math.round(totalScore);
+  };
+
   const handleSave = async () => {
     if (!profile || !user) return;
 
     setSaving(true);
     try {
+      const completionPercentage = calculateCompletionPercentage();
+      
       const { error } = await supabase
         .from("candidates")
         .upsert({
           ...profile,
           email: user.email,
+          profile_completion_percentage: completionPercentage,
         });
 
       if (error) throw error;
@@ -216,67 +270,85 @@ export default function CandidateProfileEdit() {
         </div>
       </div>
 
-      <div className="space-y-6">
-        {/* Basic Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  value={profile.name}
-                  onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                />
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Left Column - Profile Completion */}
+        <div className="lg:col-span-1 space-y-6">
+          <ProfileCompletionWidget 
+            completionData={getCompletionData()}
+            overallPercentage={calculateCompletionPercentage()}
+          />
+        </div>
+
+        {/* Main Content */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* Profile Photo */}
+          <ProfilePhotoSection
+            photoUrl={profile.profile_photo_url}
+            name={profile.name}
+            email={profile.email}
+            onChange={(photoUrl) => setProfile({ ...profile, profile_photo_url: photoUrl || undefined })}
+          />
+
+          {/* Basic Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Basic Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input
+                    id="name"
+                    value={profile.name}
+                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    value={profile.email}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    value={profile.phone || ""}
+                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="location">Current Location</Label>
+                  <Input
+                    id="location"
+                    value={profile.location || ""}
+                    onChange={(e) => setProfile({ ...profile, location: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="linkedin">LinkedIn URL</Label>
+                  <Input
+                    id="linkedin"
+                    value={profile.linkedin_url || ""}
+                    onChange={(e) => setProfile({ ...profile, linkedin_url: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="years_experience">Years of Experience</Label>
+                  <Input
+                    id="years_experience"
+                    type="number"
+                    value={profile.years_of_experience || ""}
+                    onChange={(e) => setProfile({ ...profile, years_of_experience: parseInt(e.target.value) || undefined })}
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  value={profile.email}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  value={profile.phone || ""}
-                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="location">Current Location</Label>
-                <Input
-                  id="location"
-                  value={profile.location || ""}
-                  onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="linkedin">LinkedIn URL</Label>
-                <Input
-                  id="linkedin"
-                  value={profile.linkedin_url || ""}
-                  onChange={(e) => setProfile({ ...profile, linkedin_url: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="years_experience">Years of Experience</Label>
-                <Input
-                  id="years_experience"
-                  type="number"
-                  value={profile.years_of_experience || ""}
-                  onChange={(e) => setProfile({ ...profile, years_of_experience: parseInt(e.target.value) || undefined })}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
         {/* Professional Summary */}
         <Card>
@@ -350,84 +422,152 @@ export default function CandidateProfileEdit() {
           </CardContent>
         </Card>
 
-        {/* Availability & Preferences */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Availability & Preferences</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="availability">Availability Status</Label>
-                <Select
-                  value={profile.availability_status}
-                  onValueChange={(value) => setProfile({ ...profile, availability_status: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="available">Available</SelectItem>
-                    <SelectItem value="employed_open">Employed but open</SelectItem>
-                    <SelectItem value="not_available">Not available</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="notice_period">Notice Period</Label>
-                <Input
-                  id="notice_period"
-                  value={profile.notice_period || ""}
-                  onChange={(e) => setProfile({ ...profile, notice_period: e.target.value })}
-                  placeholder="e.g., 2 weeks, 1 month"
+          {/* Work Experience */}
+          <WorkExperienceSection
+            workExperience={profile.work_experience}
+            onChange={(workExperience) => setProfile({ ...profile, work_experience: workExperience })}
+          />
+
+          {/* Education */}
+          <EducationSection
+            education={profile.education}
+            onChange={(education) => setProfile({ ...profile, education: education })}
+          />
+
+          {/* Certifications */}
+          <CertificationSection
+            certifications={profile.certifications}
+            onChange={(certifications) => setProfile({ ...profile, certifications: certifications })}
+          />
+
+          {/* Languages */}
+          <LanguageSection
+            languages={profile.languages}
+            onChange={(languages) => setProfile({ ...profile, languages: languages })}
+          />
+
+          {/* Security Clearance */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Security Clearance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="has_security_clearance"
+                  checked={profile.has_security_clearance}
+                  onCheckedChange={(checked) => setProfile({ ...profile, has_security_clearance: !!checked })}
                 />
+                <Label htmlFor="has_security_clearance">I have national-level security clearance</Label>
               </div>
-            </div>
+              {profile.has_security_clearance && (
+                <div>
+                  <Label htmlFor="clearance_details">Clearance Details (optional)</Label>
+                  <Input
+                    id="clearance_details"
+                    value={profile.security_clearance_level || ""}
+                    onChange={(e) => setProfile({ ...profile, security_clearance_level: e.target.value })}
+                    placeholder="e.g., Secret, Top Secret, Country of clearance"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    This information is confidential and will only be shared with authorized personnel when required.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-            <div className="space-y-2">
-              <Label>Preferred Locations</Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Add a location..."
-                  value={newLocation}
-                  onChange={(e) => setNewLocation(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addPreferredLocation()}
+          {/* Availability & Preferences */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Availability & Preferences</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="availability">Availability Status</Label>
+                  <Select
+                    value={profile.availability_status}
+                    onValueChange={(value) => setProfile({ ...profile, availability_status: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="available">Available</SelectItem>
+                      <SelectItem value="employed_open">Employed but open</SelectItem>
+                      <SelectItem value="not_available">Not available</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="notice_period">Notice Period</Label>
+                  <Input
+                    id="notice_period"
+                    value={profile.notice_period || ""}
+                    onChange={(e) => setProfile({ ...profile, notice_period: e.target.value })}
+                    placeholder="e.g., 2 weeks, 1 month"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="salary_expectation">Salary Expectation</Label>
+                  <Input
+                    id="salary_expectation"
+                    value={profile.salary_expectation_range || ""}
+                    onChange={(e) => setProfile({ ...profile, salary_expectation_range: e.target.value })}
+                    placeholder="e.g., $80,000 - $100,000"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Preferred Locations</Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Add a location..."
+                    value={newLocation}
+                    onChange={(e) => setNewLocation(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && addPreferredLocation()}
+                  />
+                  <Button onClick={addPreferredLocation} size="sm">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {profile.preferred_locations.map((location, index) => (
+                    <Badge key={index} variant="outline" className="flex items-center gap-1">
+                      {location}
+                      <button onClick={() => removePreferredLocation(index)}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="willing_to_relocate"
+                  checked={profile.willing_to_relocate}
+                  onCheckedChange={(checked) => setProfile({ ...profile, willing_to_relocate: !!checked })}
                 />
-                <Button onClick={addPreferredLocation} size="sm">
-                  <Plus className="h-4 w-4" />
-                </Button>
+                <Label htmlFor="willing_to_relocate">Willing to relocate</Label>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {profile.preferred_locations.map((location, index) => (
-                  <Badge key={index} variant="outline" className="flex items-center gap-1">
-                    {location}
-                    <button onClick={() => removePreferredLocation(index)}>
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="un_experience"
+                  checked={profile.un_experience}
+                  onCheckedChange={(checked) => setProfile({ ...profile, un_experience: !!checked })}
+                />
+                <Label htmlFor="un_experience">I have UN system experience</Label>
               </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="willing_to_relocate"
-                checked={profile.willing_to_relocate}
-                onCheckedChange={(checked) => setProfile({ ...profile, willing_to_relocate: !!checked })}
-              />
-              <Label htmlFor="willing_to_relocate">Willing to relocate</Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="un_experience"
-                checked={profile.un_experience}
-                onCheckedChange={(checked) => setProfile({ ...profile, un_experience: !!checked })}
-              />
-              <Label htmlFor="un_experience">I have UN system experience</Label>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
