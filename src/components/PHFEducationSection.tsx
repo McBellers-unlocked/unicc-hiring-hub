@@ -5,13 +5,18 @@ import { GraduationCap, Info, Plus } from 'lucide-react';
 
 interface EducationEntry {
   institution: string;
-  degree: string;
-  field_of_study: string;
+  degree?: string;
+  degree_type?: string;
+  field_of_study?: string;
+  field?: string;
   grade?: string;
-  start_date: string;
+  start_date?: string;
+  startDate?: string;
   end_date?: string;
+  endDate?: string;
   description?: string;
   is_current?: boolean;
+  isCurrent?: boolean;
 }
 
 interface PHFEducationSectionProps {
@@ -85,11 +90,11 @@ export default function PHFEducationSection({ profileEducation }: PHFEducationSe
                   <div className="flex justify-between items-start">
                 <div className="space-y-1">
                   <h4 className="font-medium text-lg">
-                    {formatDegreeTitle(education.degree, education.field_of_study)}
+                    {formatDegreeTitle(education.degree || education.degree_type, education.field_of_study || education.field)}
                   </h4>
                   <p className="text-muted-foreground">{education.institution}</p>
                   <div className="text-sm text-muted-foreground">
-                    {formatDateRange(education.start_date, education.end_date, education.is_current)}
+                    {formatDateRange(education.start_date || education.startDate, education.end_date || education.endDate, education.is_current || education.isCurrent)}
                     {education.grade && (
                       <>
                         <span className="mx-2">•</span>

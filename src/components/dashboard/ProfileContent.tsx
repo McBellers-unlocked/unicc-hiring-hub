@@ -27,7 +27,20 @@ export default function ProfileContent({ profile }: ProfileContentProps) {
   const navigate = useNavigate();
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    if (!dateString) return '';
+    
+    // Handle YYYY-MM format
+    if (dateString.includes('-') && dateString.length <= 7) {
+      const [year, month] = dateString.split('-');
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${monthNames[parseInt(month) - 1]} ${year}`;
+    }
+    
+    // Try to parse as a full date
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString; // Return original if invalid
+    
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short'
     });
@@ -65,11 +78,11 @@ export default function ProfileContent({ profile }: ProfileContentProps) {
                 {profile.work_experience.map((exp: any, index: number) => (
                   <div key={index} className="border-l-2 border-muted pl-4">
                     <h3 className="font-semibold">{exp.position}</h3>
-                    <p className="text-primary font-medium">{exp.organization}</p>
+                    <p className="text-primary font-medium">{exp.company || exp.organization}</p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {formatDate(exp.start_date)} - {exp.end_date ? formatDate(exp.end_date) : 'Present'}
+                        {formatDate(exp.start_date || exp.startDate)} - {(exp.end_date || exp.endDate) ? formatDate(exp.end_date || exp.endDate) : 'Present'}
                       </div>
                       {exp.location && (
                         <div className="flex items-center gap-1">
@@ -101,12 +114,16 @@ export default function ProfileContent({ profile }: ProfileContentProps) {
               <div className="space-y-4">
                 {profile.education.map((edu: any, index: number) => (
                   <div key={index} className="border-l-2 border-muted pl-4">
-                    <h3 className="font-semibold">{edu.degree} {edu.field_of_study && `in ${edu.field_of_study}`}</h3>
+                    <h3 className="font-semibold">
+                      {edu.degree || edu.degree_type} 
+                      {(edu.field_of_study || edu.field) && ` in ${edu.field_of_study || edu.field}`}
+                    </h3>
                     <p className="text-primary font-medium">{edu.institution}</p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {edu.start_year} - {edu.end_year || 'Present'}
+                        {edu.start_date ? formatDate(edu.start_date) : (edu.start_year || 'Unknown')} - 
+                        {edu.end_date ? formatDate(edu.end_date) : (edu.is_current ? 'Present' : (edu.end_year || 'Present'))}
                       </div>
                       {edu.location && (
                         <div className="flex items-center gap-1">
