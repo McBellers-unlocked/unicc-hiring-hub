@@ -432,20 +432,6 @@ export default function CandidateProfileEdit() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label htmlFor="years_experience">Years of Experience</Label>
-                  <Input
-                    id="years_experience"
-                    type="number"
-                    value={profile.years_of_experience || ""}
-                    disabled
-                    className="bg-muted"
-                    placeholder="Auto-calculated from work history"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Automatically calculated from your work experience entries
-                  </p>
-                </div>
               </div>
             </CardContent>
           </Card>
