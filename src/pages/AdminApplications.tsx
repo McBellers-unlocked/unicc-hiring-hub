@@ -769,14 +769,15 @@ export default function AdminApplications() {
                                        </div>
                                        {application.candidate.gender && (
                                          <span 
-                                           className={`text-sm flex-shrink-0 font-medium ${
-                                             application.candidate.gender.toLowerCase() === 'male' ? 'text-blue-600' : 
-                                             application.candidate.gender.toLowerCase() === 'female' ? 'text-pink-600' : 'text-gray-600'
+                                           className={`text-base flex-shrink-0 font-bold ${
+                                             application.candidate.gender.toLowerCase().includes('male') && !application.candidate.gender.toLowerCase().includes('female') ? 'text-blue-600' : 
+                                             application.candidate.gender.toLowerCase().includes('female') ? 'text-pink-600' : 'text-gray-600'
                                            }`} 
                                            title={`Gender: ${application.candidate.gender}`}
+                                           onClick={() => console.log('Gender data:', application.candidate.gender, 'Type:', typeof application.candidate.gender)}
                                          >
-                                           {application.candidate.gender.toLowerCase() === 'male' ? '♂️' : 
-                                            application.candidate.gender.toLowerCase() === 'female' ? '♀️' : '⚲'}
+                                           {application.candidate.gender.toLowerCase().includes('male') && !application.candidate.gender.toLowerCase().includes('female') ? '♂' : 
+                                            application.candidate.gender.toLowerCase().includes('female') ? '♀' : '?'}
                                          </span>
                                        )}
                                      </div>
