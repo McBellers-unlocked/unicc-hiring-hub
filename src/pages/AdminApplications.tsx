@@ -220,13 +220,32 @@ export default function AdminApplications() {
     const unLangs = languages.un_languages || {};
     const otherLangs = languages.other_languages || [];
     const allLangs = [...Object.keys(unLangs), ...otherLangs.map((l: any) => l.language || '')];
-    return allLangs.slice(0, 3).join(', ') + (allLangs.length > 3 ? '...' : '');
+    return allLangs.slice(0, 3).map(lang => lang.charAt(0).toUpperCase() + lang.slice(1)).join(', ') + (allLangs.length > 3 ? '...' : '');
   };
 
   const getExperienceSummary = (workExp: any, yearsExp: number | null) => {
-    const years = yearsExp || 0;
     const workExpArray = Array.isArray(workExp) ? workExp : (workExp?.length ? workExp : []);
-    const currentRole = workExpArray?.[0]?.position || workExpArray?.[0]?.exact_title_of_post || '';
+    
+    // Calculate years of experience if not provided
+    let years = yearsExp;
+    if (!years && workExpArray.length > 0) {
+      years = workExpArray.reduce((total: number, exp: any) => {
+        const startDate = exp.startDate || exp.start_date;
+        const endDate = exp.endDate || exp.end_date || (exp.isCurrent || exp.is_present ? new Date() : null);
+        
+        if (startDate) {
+          const start = new Date(startDate);
+          const end = endDate ? new Date(endDate) : new Date();
+          const monthsDiff = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+          return total + Math.max(0, monthsDiff / 12);
+        }
+        return total;
+      }, 0);
+      years = Math.round(years || 0);
+    }
+    
+    years = years || 0;
+    const currentRole = workExpArray?.[0]?.position || workExpArray?.[0]?.exact_title_of_post || workExpArray?.[0]?.title || '';
     return `${years} years${currentRole ? ` • ${currentRole}` : ''}`;
   };
 
@@ -310,7 +329,13 @@ export default function AdminApplications() {
 
   const getScoreBadge = (application: Application) => {
     const score = application.screening_scores?.[0]?.ai_score;
-    if (score === null || score === undefined) return null;
+    if (score === null || score === undefined) {
+      return (
+        <Badge className="bg-gray-100 text-gray-800 text-xs">
+          Match: N/A
+        </Badge>
+      );
+    }
     
     const color = score >= 80 ? 'bg-green-100 text-green-800' : 
                   score >= 60 ? 'bg-yellow-100 text-yellow-800' : 
@@ -318,7 +343,7 @@ export default function AdminApplications() {
     
     return (
       <Badge className={`${color} text-xs`}>
-        AI: {score}%
+        Match: {score}%
       </Badge>
     );
   };
@@ -647,7 +672,7 @@ export default function AdminApplications() {
                       <TableHead>Languages</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Longlist</TableHead>
-                      <TableHead>AI Score</TableHead>
+                      <TableHead>Match Score</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
