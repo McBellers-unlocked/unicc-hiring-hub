@@ -42,7 +42,7 @@ export default function LanguageSection({ languages, onChange }: LanguageSection
       un_languages: languages?.un_languages || {},
       other_languages: languages?.other_languages || []
     };
-    if (proficiency === "") {
+    if (proficiency === "" || proficiency === "not_applicable") {
       delete updated.un_languages[langCode];
     } else {
       updated.un_languages[langCode] = proficiency;
@@ -88,14 +88,14 @@ export default function LanguageSection({ languages, onChange }: LanguageSection
               <div key={lang.code} className="space-y-2">
                 <Label>{lang.name}</Label>
                 <Select
-                  value={languages?.un_languages?.[lang.code] || ""}
+                  value={languages?.un_languages?.[lang.code] || "not_applicable"}
                   onValueChange={(value) => updateUNLanguage(lang.code, value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select proficiency" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Not applicable</SelectItem>
+                    <SelectItem value="not_applicable">Not applicable</SelectItem>
                     {PROFICIENCY_LEVELS.map((level) => (
                       <SelectItem key={level.value} value={level.value}>
                         {level.label}
