@@ -148,6 +148,7 @@ export type Database = {
           dependants: Json | null
           education: Json | null
           email: string
+          first_name: string | null
           gender: string | null
           has_security_clearance: boolean | null
           id: string
@@ -158,6 +159,7 @@ export type Database = {
           location: string | null
           maiden_name: string | null
           marital_status: string | null
+          middle_names: string | null
           mobility_medical_reservations: string | null
           name: string
           nationality_change_details: string | null
@@ -171,6 +173,8 @@ export type Database = {
           place_of_birth: string | null
           portfolio_attachments: Json | null
           preferred_locations: Json | null
+          present_address: string | null
+          present_address_same_as_permanent: boolean | null
           present_nationality: string | null
           presently_in_government_employ: boolean | null
           privacy_setting: string | null
@@ -207,6 +211,7 @@ export type Database = {
           dependants?: Json | null
           education?: Json | null
           email: string
+          first_name?: string | null
           gender?: string | null
           has_security_clearance?: boolean | null
           id?: string
@@ -217,6 +222,7 @@ export type Database = {
           location?: string | null
           maiden_name?: string | null
           marital_status?: string | null
+          middle_names?: string | null
           mobility_medical_reservations?: string | null
           name: string
           nationality_change_details?: string | null
@@ -230,6 +236,8 @@ export type Database = {
           place_of_birth?: string | null
           portfolio_attachments?: Json | null
           preferred_locations?: Json | null
+          present_address?: string | null
+          present_address_same_as_permanent?: boolean | null
           present_nationality?: string | null
           presently_in_government_employ?: boolean | null
           privacy_setting?: string | null
@@ -266,6 +274,7 @@ export type Database = {
           dependants?: Json | null
           education?: Json | null
           email?: string
+          first_name?: string | null
           gender?: string | null
           has_security_clearance?: boolean | null
           id?: string
@@ -276,6 +285,7 @@ export type Database = {
           location?: string | null
           maiden_name?: string | null
           marital_status?: string | null
+          middle_names?: string | null
           mobility_medical_reservations?: string | null
           name?: string
           nationality_change_details?: string | null
@@ -289,6 +299,8 @@ export type Database = {
           place_of_birth?: string | null
           portfolio_attachments?: Json | null
           preferred_locations?: Json | null
+          present_address?: string | null
+          present_address_same_as_permanent?: boolean | null
           present_nationality?: string | null
           presently_in_government_employ?: boolean | null
           privacy_setting?: string | null

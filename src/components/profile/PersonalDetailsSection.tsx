@@ -17,8 +17,13 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { countries } from '@/lib/countries';
 
 const personalDetailsSchema = z.object({
+  first_name: z.string().min(1, 'First name is required'),
+  middle_names: z.string().optional(),
+  email: z.string().email('Invalid email address'),
+  phone: z.string().optional(),
   title: z.enum(['Mr', 'Mrs', 'Ms', 'Miss']),
   maiden_name: z.string().optional(),
   date_of_birth: z.union([z.date(), z.string()]).optional(),
@@ -28,6 +33,8 @@ const personalDetailsSchema = z.object({
   nationality_changed: z.boolean(),
   nationality_change_details: z.string().optional(),
   marital_status: z.enum(['Single', 'Married', 'Divorced', 'Widowed', 'Separated']),
+  present_address: z.string().optional(),
+  present_address_same_as_permanent: z.boolean(),
   permanent_address: z.string().optional(),
   us_green_card: z.boolean(),
   us_green_card_details: z.string().optional(),
@@ -37,7 +44,14 @@ type PersonalDetailsFormData = z.infer<typeof personalDetailsSchema>;
 
 interface PersonalDetailsSectionProps {
   candidateId: string;
-  initialData?: Partial<PersonalDetailsFormData>;
+  initialData?: Partial<PersonalDetailsFormData & { 
+    first_name?: string;
+    middle_names?: string;
+    email?: string;
+    phone?: string;
+    present_address?: string;
+    present_address_same_as_permanent?: boolean;
+  }>;
   onUpdate?: (data: PersonalDetailsFormData) => void;
 }
 
@@ -48,6 +62,10 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
   const form = useForm<PersonalDetailsFormData>({
     resolver: zodResolver(personalDetailsSchema),
     defaultValues: {
+      first_name: initialData?.first_name || '',
+      middle_names: initialData?.middle_names || '',
+      email: initialData?.email || '',
+      phone: initialData?.phone || '',
       title: initialData?.title || 'Mr',
       maiden_name: initialData?.maiden_name || '',
       date_of_birth: initialData?.date_of_birth ? 
@@ -59,6 +77,8 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
       nationality_changed: initialData?.nationality_changed || false,
       nationality_change_details: initialData?.nationality_change_details || '',
       marital_status: initialData?.marital_status || 'Single',
+      present_address: initialData?.present_address || '',
+      present_address_same_as_permanent: initialData?.present_address_same_as_permanent || false,
       permanent_address: initialData?.permanent_address || '',
       us_green_card: initialData?.us_green_card || false,
       us_green_card_details: initialData?.us_green_card_details || '',
@@ -72,6 +92,10 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
       const { error } = await supabase
         .from('candidates')
         .update({
+          first_name: data.first_name,
+          middle_names: data.middle_names || null,
+          email: data.email,
+          phone: data.phone || null,
           title: data.title,
           maiden_name: data.maiden_name || null,
           date_of_birth: data.date_of_birth ? 
@@ -83,6 +107,8 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
           nationality_changed: data.nationality_changed,
           nationality_change_details: data.nationality_change_details || null,
           marital_status: data.marital_status,
+          present_address: data.present_address || null,
+          present_address_same_as_permanent: data.present_address_same_as_permanent,
           permanent_address: data.permanent_address || null,
           us_green_card: data.us_green_card,
           us_green_card_details: data.us_green_card_details || null,
@@ -117,6 +143,66 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="first_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>First Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="First name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="middle_names"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Middle Names (if any)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Middle names" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email Address</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="Email address" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Phone number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -231,9 +317,20 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Country of Birth</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Country" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select country" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {countries.map((country) => (
+                          <SelectItem key={country} value={country}>
+                            {country}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -245,9 +342,20 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Present Nationality</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nationality" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select nationality" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {countries.map((country) => (
+                          <SelectItem key={country} value={country}>
+                            {country}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -318,6 +426,53 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
               )}
             />
 
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="present_address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Present Address</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Your present address"
+                        {...field}
+                        disabled={form.watch("present_address_same_as_permanent")}
+                        value={form.watch("present_address_same_as_permanent") ? 
+                          form.watch("permanent_address") : field.value}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="present_address_same_as_permanent"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={(checked) => {
+                          field.onChange(checked);
+                          if (checked) {
+                            form.setValue("present_address", form.getValues("permanent_address"));
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        Present address is same as permanent address
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <FormField
               control={form.control}
               name="permanent_address"
@@ -328,6 +483,12 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                     <Textarea
                       placeholder="Your permanent address"
                       {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        if (form.watch("present_address_same_as_permanent")) {
+                          form.setValue("present_address", e.target.value);
+                        }
+                      }}
                     />
                   </FormControl>
                   <FormMessage />

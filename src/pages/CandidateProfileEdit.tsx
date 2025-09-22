@@ -54,6 +54,8 @@ interface CandidateProfile {
   portfolio_attachments: any;
   profile_completion_percentage?: number;
   // New personal detail fields
+  first_name?: string;
+  middle_names?: string;
   title?: string;
   maiden_name?: string;
   date_of_birth?: string | Date;
@@ -63,6 +65,8 @@ interface CandidateProfile {
   nationality_changed?: boolean;
   nationality_change_details?: string;
   marital_status?: string;
+  present_address?: string;
+  present_address_same_as_permanent?: boolean;
   permanent_address?: string;
   us_green_card?: boolean;
   us_green_card_details?: string;
@@ -197,7 +201,8 @@ export default function CandidateProfileEdit() {
     if (!profile) return 0;
     
     const sections = {
-      basicInfo: !!(profile.name && profile.email && profile.phone && profile.location),
+      basicInfo: !!(profile.name && profile.location),
+      personalDetails: !!(profile.first_name && profile.email && profile.phone && profile.date_of_birth),
       professionalSummary: !!(profile.professional_summary && profile.professional_summary.length > 50),
       workExperience: profile.work_experience.length > 0,
       education: profile.education.length > 0,
@@ -208,7 +213,8 @@ export default function CandidateProfileEdit() {
     };
 
     const weights = {
-      basicInfo: 20,
+      basicInfo: 15,
+      personalDetails: 15,
       professionalSummary: 10,
       workExperience: 25,
       education: 15,
@@ -231,6 +237,7 @@ export default function CandidateProfileEdit() {
   const getCompletionData = () => {
     if (!profile) return {
       basicInfo: false,
+      personalDetails: false,
       professionalSummary: false,
       workExperience: false,
       education: false,
@@ -241,7 +248,8 @@ export default function CandidateProfileEdit() {
     };
 
     return {
-      basicInfo: !!(profile.name && profile.email && profile.phone && profile.location),
+      basicInfo: !!(profile.name && profile.location),
+      personalDetails: !!(profile.first_name && profile.email && profile.phone && profile.date_of_birth),
       professionalSummary: !!(profile.professional_summary && profile.professional_summary.length > 50),
       workExperience: profile.work_experience.length > 0,
       education: profile.education.length > 0,
@@ -289,6 +297,13 @@ export default function CandidateProfileEdit() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSectionUpdate = (data: any) => {
+    setProfile({
+      ...profile,
+      ...data,
+    });
   };
 
   const addSkill = () => {
@@ -410,6 +425,10 @@ export default function CandidateProfileEdit() {
           <PersonalDetailsSection
             candidateId={profile.id}
             initialData={{
+              first_name: profile.first_name,
+              middle_names: profile.middle_names,
+              email: profile.email,
+              phone: profile.phone,
               title: profile.title as 'Mr' | 'Mrs' | 'Ms' | 'Miss' | undefined,
               maiden_name: profile.maiden_name,
               date_of_birth: profile.date_of_birth ? new Date(profile.date_of_birth) : undefined,
@@ -419,6 +438,8 @@ export default function CandidateProfileEdit() {
               nationality_changed: profile.nationality_changed || false,
               nationality_change_details: profile.nationality_change_details,
               marital_status: profile.marital_status as 'Single' | 'Married' | 'Divorced' | 'Widowed' | 'Separated' | undefined,
+              present_address: profile.present_address,
+              present_address_same_as_permanent: profile.present_address_same_as_permanent || false,
               permanent_address: profile.permanent_address,
               us_green_card: profile.us_green_card || false,
               us_green_card_details: profile.us_green_card_details,
@@ -444,23 +465,6 @@ export default function CandidateProfileEdit() {
                     id="name"
                     value={profile.name}
                     onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    value={profile.email}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    value={profile.phone || ""}
-                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                   />
                 </div>
                 <div>
