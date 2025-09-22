@@ -366,31 +366,63 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         return 'valid'; // Optional section
         
       case 5: // Education
-        const hasEducation = formValues.education && formValues.education.length > 0;
-        if (!hasEducation) return 'warning';
-        const educationIncomplete = formValues.education.some(edu => {
-          // Handle both profile format (institution, degree) and PHF format (institution_name, degree_type)
-          const eduAny = edu as any;
-          const hasInstitution = edu.institution_name || eduAny.institution;
-          const hasDegree = edu.degree_type || eduAny.degree;
-          const hasDate = (edu.from_month && edu.from_year) || eduAny.startDate;
-          return !hasInstitution || !hasDegree || !hasDate;
-        });
-        return educationIncomplete || formErrors.education ? 'warning' : 'valid';
+        // Check if we have education data either in form or from candidate profile
+        const hasEducationInForm = formValues.education && formValues.education.length > 0;
+        const hasEducationInProfile = candidateProfile?.education && candidateProfile.education.length > 0;
+        
+        if (!hasEducationInForm && !hasEducationInProfile) return 'warning';
+        
+        // If we have form data, validate it; otherwise check profile data
+        if (hasEducationInForm) {
+          const educationIncomplete = formValues.education.some(edu => {
+            const eduAny = edu as any;
+            const hasInstitution = edu.institution_name || eduAny.institution;
+            const hasDegree = edu.degree_type || eduAny.degree;
+            const hasDate = (edu.from_month && edu.from_year) || eduAny.startDate;
+            return !hasInstitution || !hasDegree || !hasDate;
+          });
+          return educationIncomplete || formErrors.education ? 'warning' : 'valid';
+        }
+        
+        // If only profile data exists, validate that
+        if (hasEducationInProfile) {
+          const profileEducationIncomplete = candidateProfile.education.some((edu: any) => 
+            !edu.institution || !edu.degree || !edu.startDate
+          );
+          return profileEducationIncomplete ? 'warning' : 'valid';
+        }
+        
+        return 'valid';
         
       case 6: // Employment Record
-        const hasEmployment = formValues.employment && formValues.employment.length > 0;
-        if (!hasEmployment) return 'warning';
-        const employmentIncomplete = formValues.employment.some(emp => {
-          // Handle both profile format and PHF format
-          const empAny = emp as any;
-          const hasEmployer = emp.employer_name || empAny.company;
-          const hasTitle = emp.exact_title_of_post || empAny.position;
-          const hasDate = (emp.period_from_month && emp.period_from_year) || empAny.startDate;
-          const hasDuties = emp.duties_and_responsibilities || empAny.description;
-          return !hasEmployer || !hasTitle || !hasDate || !hasDuties;
-        });
-        return employmentIncomplete || formErrors.employment ? 'warning' : 'valid';
+        // Check if we have employment data either in form or from candidate profile
+        const hasEmploymentInForm = formValues.employment && formValues.employment.length > 0;
+        const hasEmploymentInProfile = candidateProfile?.work_experience && candidateProfile.work_experience.length > 0;
+        
+        if (!hasEmploymentInForm && !hasEmploymentInProfile) return 'warning';
+        
+        // If we have form data, validate it; otherwise check profile data
+        if (hasEmploymentInForm) {
+          const employmentIncomplete = formValues.employment.some(emp => {
+            const empAny = emp as any;
+            const hasEmployer = emp.employer_name || empAny.company;
+            const hasTitle = emp.exact_title_of_post || empAny.position;
+            const hasDate = (emp.period_from_month && emp.period_from_year) || empAny.startDate;
+            const hasDuties = emp.duties_and_responsibilities || empAny.description;
+            return !hasEmployer || !hasTitle || !hasDate || !hasDuties;
+          });
+          return employmentIncomplete || formErrors.employment ? 'warning' : 'valid';
+        }
+        
+        // If only profile data exists, validate that
+        if (hasEmploymentInProfile) {
+          const profileEmploymentIncomplete = candidateProfile.work_experience.some((emp: any) => 
+            !emp.company || !emp.position || !emp.startDate || !emp.description
+          );
+          return profileEmploymentIncomplete ? 'warning' : 'valid';
+        }
+        
+        return 'valid';
         
       case 7: // Additional Information
         return 'valid'; // Optional section
