@@ -175,7 +175,7 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                             )}
                           >
                             {field.value ? (
-                              format(field.value, "PPP")
+                              format(field.value, "dd/MM/yyyy")
                             ) : (
                               <span>Pick a date</span>
                             )}
@@ -192,10 +192,15 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                             date > new Date() || date < new Date("1900-01-01")
                           }
                           initialFocus
-                          captionLayout="dropdown"
+                          captionLayout="dropdown-buttons"
                           fromYear={1900}
                           toYear={new Date().getFullYear()}
                           className="pointer-events-auto"
+                          classNames={{
+                            dropdown_month: "flex items-center space-x-2",
+                            dropdown_year: "flex items-center space-x-2",
+                            caption_dropdowns: "flex justify-center gap-2 mb-4",
+                          }}
                         />
                       </PopoverContent>
                     </Popover>
