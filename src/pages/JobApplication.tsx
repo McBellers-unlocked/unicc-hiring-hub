@@ -48,6 +48,7 @@ export default function JobApplication() {
   const [killerAnswers, setKillerAnswers] = useState<Record<string, any>>({});
   const [phfData, setPHFData] = useState<any>({});
   const [completedTabs, setCompletedTabs] = useState<Set<number>>(new Set([0])); // Tab 0 starts accessible
+  const [candidateProfile, setCandidateProfile] = useState<any>(null);
   
   // Validation states
   const [disqualified, setDisqualified] = useState(false);
@@ -177,6 +178,9 @@ export default function JobApplication() {
         .maybeSingle();
 
       if (!candidate) return;
+      
+      // Store candidate profile in state
+      setCandidateProfile(candidate);
 
       // Check if application exists for this job and candidate
       const { data: existingApplication } = await supabase
@@ -495,6 +499,7 @@ export default function JobApplication() {
                   completedTabs={completedTabs}
                   onTabCompleted={markTabCompleted}
                   initialTab={getNextIncompleteTab()}
+                  candidateProfile={candidateProfile}
                 />
               </CardContent>
             </Card>
