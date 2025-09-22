@@ -440,6 +440,8 @@ export default function CandidateProfileEdit() {
               phone: profile.phone,
               maiden_name: profile.maiden_name,
               date_of_birth: profile.date_of_birth ? new Date(profile.date_of_birth) : undefined,
+              birth_month: profile.date_of_birth ? new Date(profile.date_of_birth).getMonth() + 1 + '' : '',
+              birth_year: profile.date_of_birth ? new Date(profile.date_of_birth).getFullYear() + '' : '',
               place_of_birth: profile.place_of_birth,
               country_of_birth: profile.country_of_birth,
               present_nationality: profile.present_nationality,

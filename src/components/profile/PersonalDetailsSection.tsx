@@ -9,13 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { CalendarIcon, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { countries } from '@/lib/countries';
 
@@ -27,7 +23,8 @@ const personalDetailsSchema = z.object({
   email: z.string().email('Invalid email address'),
   phone: z.string().optional(),
   maiden_name: z.string().optional(),
-  date_of_birth: z.union([z.date(), z.string()]).optional(),
+  birth_month: z.string().optional(),
+  birth_year: z.string().optional(),
   place_of_birth: z.string().optional(),
   country_of_birth: z.string().optional(),
   present_nationality: z.string().optional(),
@@ -59,6 +56,9 @@ interface PersonalDetailsSectionProps {
     email?: string;
     phone?: string;
     maiden_name?: string;
+    date_of_birth?: string | Date;
+    birth_month?: string;
+    birth_year?: string;
     present_address_line1?: string;
     present_address_line2?: string;
     present_city?: string;
@@ -86,9 +86,14 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
       email: initialData?.email || '',
       phone: initialData?.phone || '',
       maiden_name: initialData?.maiden_name || '',
-      date_of_birth: initialData?.date_of_birth ? 
-        (typeof initialData.date_of_birth === 'string' ? new Date(initialData.date_of_birth) : initialData.date_of_birth) : 
-        undefined,
+      birth_month: initialData?.date_of_birth ? 
+        (initialData.date_of_birth instanceof Date ? 
+          (initialData.date_of_birth.getMonth() + 1).toString() : 
+          new Date(initialData.date_of_birth).getMonth() + 1).toString() : '',
+      birth_year: initialData?.date_of_birth ? 
+        (initialData.date_of_birth instanceof Date ? 
+          initialData.date_of_birth.getFullYear().toString() : 
+          new Date(initialData.date_of_birth).getFullYear().toString()) : '',
       place_of_birth: initialData?.place_of_birth || '',
       country_of_birth: initialData?.country_of_birth || '',
       present_nationality: initialData?.present_nationality || '',
@@ -123,8 +128,8 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
           email: data.email,
           phone: data.phone || null,
           maiden_name: data.maiden_name || null,
-          date_of_birth: data.date_of_birth ? 
-            (data.date_of_birth instanceof Date ? data.date_of_birth.toISOString().split('T')[0] : data.date_of_birth) : 
+          date_of_birth: data.birth_month && data.birth_year ? 
+            `${data.birth_year}-${data.birth_month.padStart(2, '0')}-01` : 
             null,
           place_of_birth: data.place_of_birth || null,
           country_of_birth: data.country_of_birth || null,
@@ -291,50 +296,59 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="date_of_birth"
+                name="birth_month"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Date of Birth</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "dd/MM/yyyy")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value instanceof Date ? field.value : undefined}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
-                          }
-                          initialFocus
-                          captionLayout="dropdown-buttons"
-                          fromYear={1900}
-                          toYear={new Date().getFullYear()}
-                          className="pointer-events-auto"
-                          classNames={{
-                            dropdown_month: "flex items-center space-x-2",
-                            dropdown_year: "flex items-center space-x-2",
-                            caption_dropdowns: "flex justify-center gap-2 mb-4",
-                          }}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                  <FormItem>
+                    <FormLabel>Birth Month</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select month" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="1">January</SelectItem>
+                        <SelectItem value="2">February</SelectItem>
+                        <SelectItem value="3">March</SelectItem>
+                        <SelectItem value="4">April</SelectItem>
+                        <SelectItem value="5">May</SelectItem>
+                        <SelectItem value="6">June</SelectItem>
+                        <SelectItem value="7">July</SelectItem>
+                        <SelectItem value="8">August</SelectItem>
+                        <SelectItem value="9">September</SelectItem>
+                        <SelectItem value="10">October</SelectItem>
+                        <SelectItem value="11">November</SelectItem>
+                        <SelectItem value="12">December</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="birth_year"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Birth Year</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select year" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Array.from({ length: new Date().getFullYear() - 1900 + 1 }, (_, i) => {
+                          const year = new Date().getFullYear() - i;
+                          return (
+                            <SelectItem key={year} value={year.toString()}>
+                              {year}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
