@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { X, Plus, Shield } from "lucide-react";
+import { X, Plus, Shield, Info } from "lucide-react";
 import EducationSection from "@/components/profile/EducationSection";
 import WorkExperienceSection from "@/components/profile/WorkExperienceSection";
 import CertificationSection from "@/components/profile/CertificationSection";
@@ -296,6 +297,18 @@ export default function CandidateProfileEdit() {
           </Button>
         </div>
       </div>
+
+      {/* Profile Setup Onboarding Banner */}
+      {calculateCompletionPercentage() < 30 && (
+        <Alert className="mb-6 border-primary bg-primary/5">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Welcome to UNiConnect!</strong> Complete your profile to be considered for future job openings across the organization. 
+            Your profile information will be used to match you with relevant opportunities at UNICC and partner organizations. 
+            A complete profile significantly increases your chances of being discovered by hiring managers.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left Column - Profile Completion & Analytics */}

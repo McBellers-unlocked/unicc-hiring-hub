@@ -7,6 +7,7 @@ interface AuthContextType {
   session: Session | null;
   userRoles: string[];
   loading: boolean;
+  needsProfileSetup: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -31,6 +32,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [session, setSession] = useState<Session | null>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [needsProfileSetup, setNeedsProfileSetup] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener
@@ -50,13 +52,34 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 .single();
               
               setUserRoles(userProfile?.role ? [userProfile.role] : []);
+              
+              // Check if candidate needs profile setup
+              if (userProfile?.role === 'Candidate') {
+                const { data: candidateProfile } = await supabase
+                  .from('candidates')
+                  .select('name, email, professional_summary, profile_completion_percentage')
+                  .eq('email', session.user.email)
+                  .single();
+                
+                // Consider profile incomplete if basic info is missing or completion is very low
+                const isIncomplete = !candidateProfile || 
+                  !candidateProfile.name || 
+                  !candidateProfile.professional_summary ||
+                  (candidateProfile.profile_completion_percentage || 0) < 20;
+                
+                setNeedsProfileSetup(isIncomplete);
+              } else {
+                setNeedsProfileSetup(false);
+              }
             } catch (error) {
               console.error('Error fetching user role:', error);
               setUserRoles([]);
+              setNeedsProfileSetup(false);
             }
           }, 0);
         } else {
           setUserRoles([]);
+          setNeedsProfileSetup(false);
         }
         
         setLoading(false);
@@ -78,9 +101,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               .single();
             
             setUserRoles(userProfile?.role ? [userProfile.role] : []);
+            
+            // Check if candidate needs profile setup
+            if (userProfile?.role === 'Candidate') {
+              const { data: candidateProfile } = await supabase
+                .from('candidates')
+                .select('name, email, professional_summary, profile_completion_percentage')
+                .eq('email', session.user.email)
+                .single();
+              
+              // Consider profile incomplete if basic info is missing or completion is very low
+              const isIncomplete = !candidateProfile || 
+                !candidateProfile.name || 
+                !candidateProfile.professional_summary ||
+                (candidateProfile.profile_completion_percentage || 0) < 20;
+              
+              setNeedsProfileSetup(isIncomplete);
+            } else {
+              setNeedsProfileSetup(false);
+            }
           } catch (error) {
             console.error('Error fetching user role:', error);
             setUserRoles([]);
+            setNeedsProfileSetup(false);
           }
         }, 0);
       }
@@ -126,6 +169,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     session,
     userRoles,
     loading,
+    needsProfileSetup,
     signIn,
     signUp,
     signOut,

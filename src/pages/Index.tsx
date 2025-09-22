@@ -2,12 +2,38 @@ import { useAuth } from '@/hooks/useAuth';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Briefcase, Users, UserCheck, Settings, FileText, Calendar } from 'lucide-react';
 import { UNICCLogo } from '@/components/UNICCLogo';
+import { useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
-  const { user, userRoles, loading } = useAuth();
+  const { user, userRoles, loading, needsProfileSetup } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect candidates who need profile setup
+  useEffect(() => {
+    if (!loading && user && needsProfileSetup && userRoles.includes('Candidate')) {
+      // Get the candidate's ID and redirect to profile edit
+      const getCandidateProfile = async () => {
+        try {
+          const { data } = await supabase
+            .from('candidates')
+            .select('id')
+            .eq('email', user.email)
+            .single();
+          
+          if (data?.id) {
+            navigate(`/candidate-profile/${data.id}/edit`);
+          }
+        } catch (error) {
+          console.error('Error finding candidate profile:', error);
+        }
+      };
+      getCandidateProfile();
+    }
+  }, [user, userRoles, loading, needsProfileSetup, navigate]);
 
   if (loading) {
     return (
