@@ -14,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Search, Filter, User, FileText, Calendar, AlertCircle, Trash2, Eye, ChevronDown, ChevronRight, GraduationCap, Briefcase, Languages, Plus, Check, X } from 'lucide-react';
 import { format } from 'date-fns';
+import { getCountryFlagUrl } from '@/lib/countryFlags';
 
 interface Application {
   id: string;
@@ -290,6 +291,18 @@ export default function AdminApplications() {
     return currentJob.title;
   };
 
+  // Helper function to extract country from location
+  const getCountryFromLocation = (location: string | null) => {
+    if (!location) return null;
+    
+    // If location contains comma, assume it's "City, Country" format
+    if (location.includes(',')) {
+      const parts = location.split(',');
+      return parts[parts.length - 1].trim(); // Get the last part as country
+    }
+    
+    // Otherwise, assume the whole string is the country
+    return location.trim();
   // Enhanced filter and sort applications
   const filteredApplications = applications.filter(app => {
     const matchesSearch = app.candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -753,9 +766,15 @@ export default function AdminApplications() {
                                          {application.candidate.name}
                                        </div>
                                        {application.candidate.gender && (
-                                         <span className="text-sm flex-shrink-0" title={`Gender: ${application.candidate.gender}`}>
+                                         <span 
+                                           className={`text-sm flex-shrink-0 ${
+                                             application.candidate.gender === 'Male' ? 'text-blue-600' : 
+                                             application.candidate.gender === 'Female' ? 'text-pink-600' : 'text-gray-600'
+                                           }`} 
+                                           title={`Gender: ${application.candidate.gender}`}
+                                         >
                                            {application.candidate.gender === 'Male' ? '♂' : 
-                                            application.candidate.gender === 'Female' ? '♀' : ''}
+                                            application.candidate.gender === 'Female' ? '♀' : '⚲'}
                                          </span>
                                        )}
                                      </div>
@@ -763,8 +782,28 @@ export default function AdminApplications() {
                                        {application.candidate.email}
                                      </div>
                                      {application.candidate.location && (
-                                       <div className="text-xs text-muted-foreground leading-tight truncate" title={application.candidate.location}>
-                                         📍 {application.candidate.location}
+                                       <div className="flex items-center gap-1 mt-1">
+                                         {(() => {
+                                           const country = getCountryFromLocation(application.candidate.location);
+                                           const flagUrl = country ? getCountryFlagUrl(country) : '';
+                                           return (
+                                             <>
+                                               {flagUrl && (
+                                                 <img 
+                                                   src={flagUrl} 
+                                                   alt={`${country} flag`} 
+                                                   className="w-4 h-3 object-cover rounded-sm flex-shrink-0"
+                                                   onError={(e) => {
+                                                     e.currentTarget.style.display = 'none';
+                                                   }}
+                                                 />
+                                               )}
+                                               <span className="text-xs text-muted-foreground leading-tight truncate" title={country || application.candidate.location}>
+                                                 {country || application.candidate.location}
+                                               </span>
+                                             </>
+                                           );
+                                         })()}
                                        </div>
                                      )}
                                    </div>
@@ -1060,3 +1099,5 @@ export default function AdminApplications() {
     </Layout>
   );
 }
+
+export default AdminApplications;
