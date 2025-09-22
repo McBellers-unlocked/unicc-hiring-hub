@@ -62,28 +62,28 @@ export default function PHFWorkExperienceSection({ profileWorkExperience }: PHFW
               <div key={index} className="border rounded-lg p-4 bg-card">
                 <div className="space-y-2">
                   <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-lg">
-                          {experience.position}
-                        </h4>
-                        {experience.is_un_experience && (
-                          <Badge variant="secondary" className="text-xs">
-                            UN Experience
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-muted-foreground">{experience.company}</p>
-                      <div className="text-sm text-muted-foreground">
-                        {formatDateRange(experience.start_date, experience.end_date, experience.is_current)}
-                        {experience.location && (
-                          <>
-                            <span className="mx-2">•</span>
-                            <span>{experience.location}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-medium text-lg">
+                      {experience.position}
+                    </h4>
+                    {experience.is_un_experience && (
+                      <Badge variant="default" className="text-xs bg-blue-100 text-blue-700 hover:bg-blue-100">
+                        UN Experience
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground font-medium">{experience.company}</p>
+                  <div className="text-sm text-muted-foreground">
+                    {formatDateRange(experience.start_date, experience.end_date, experience.is_current)}
+                    {experience.location && (
+                      <>
+                        <span className="mx-2">•</span>
+                        <span>{experience.location}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
                   </div>
                   {experience.description && (
                     <p className="text-sm text-muted-foreground mt-2">
