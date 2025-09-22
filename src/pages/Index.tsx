@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Link, useNavigate } from 'react-router-dom';
 import { Briefcase, Users, UserCheck, Settings, FileText, Calendar } from 'lucide-react';
 import { UNICCLogo } from '@/components/UNICCLogo';
+import CandidateDashboard from '@/components/CandidateDashboard';
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -92,45 +93,11 @@ const Index = () => {
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Candidate Dashboard */}
-          {isCandidate && (
-            <>
-              <Card className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Briefcase className="w-5 h-5 mr-2 text-primary" />
-                    Browse Jobs
-                  </CardTitle>
-                  <CardDescription>
-                    Explore available positions and apply
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Link to="/jobs">
-                    <Button className="w-full">View Open Positions</Button>
-                  </Link>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <UserCheck className="w-5 h-5 mr-2 text-primary" />
-                    My Applications
-                  </CardTitle>
-                  <CardDescription>
-                    Track your application status
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Link to="/my-applications">
-                    <Button className="w-full">View Applications</Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            </>
-          )}
+        {/* Candidate Dashboard */}
+        {isCandidate ? (
+          <CandidateDashboard />
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 
           {/* Staff Dashboard */}
           {(isAdmin || isHR || isHiringManager) && (
@@ -249,7 +216,8 @@ const Index = () => {
               </CardContent>
             </Card>
           )}
-        </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
