@@ -25,6 +25,11 @@ interface PHFEducationSectionProps {
 
 export default function PHFEducationSection({ profileEducation }: PHFEducationSectionProps) {
   console.log('PHFEducationSection - profileEducation:', profileEducation);
+  if (profileEducation) {
+    profileEducation.forEach((edu, index) => {
+      console.log(`PHF Education ${index}:`, edu);
+    });
+  }
   const formatDateRange = (startDate: string, endDate?: string, isCurrent?: boolean) => {
     const formatDate = (date: string) => {
       if (!date) return '';

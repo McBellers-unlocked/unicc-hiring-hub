@@ -112,7 +112,9 @@ export default function ProfileContent({ profile }: ProfileContentProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {profile.education.map((edu: any, index: number) => (
+                {profile.education.map((edu: any, index: number) => {
+                  console.log('Dashboard Education entry:', edu);
+                  return (
                   <div key={index} className="border-l-2 border-muted pl-4">
                     <h3 className="font-semibold">
                       {edu.degree || edu.degree_type} 
@@ -122,8 +124,8 @@ export default function ProfileContent({ profile }: ProfileContentProps) {
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {edu.start_date ? formatDate(edu.start_date) : (edu.start_year || 'Unknown')} - 
-                        {edu.end_date ? formatDate(edu.end_date) : (edu.is_current ? 'Present' : (edu.end_year || 'Present'))}
+                        {(edu.start_date || edu.startDate) ? formatDate(edu.start_date || edu.startDate) : (edu.start_year || 'Unknown')} - 
+                        {(edu.end_date || edu.endDate) ? formatDate(edu.end_date || edu.endDate) : ((edu.is_current || edu.isCurrent) ? 'Present' : (edu.end_year || 'Present'))}
                       </div>
                       {edu.location && (
                         <div className="flex items-center gap-1">
@@ -136,7 +138,8 @@ export default function ProfileContent({ profile }: ProfileContentProps) {
                       <p className="text-muted-foreground mt-2">{edu.description}</p>
                     )}
                   </div>
-                ))}
+                );
+                })}
               </div>
             </CardContent>
           </Card>
