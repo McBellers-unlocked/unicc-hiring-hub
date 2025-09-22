@@ -26,7 +26,7 @@ export default function PHFEducationSection({ profileEducation }: PHFEducationSe
       if (isNaN(d.getTime())) return date; // Return original if invalid date
       const month = String(d.getMonth() + 1).padStart(2, '0');
       const year = d.getFullYear();
-      return `${month}/${year}`;
+      return `${year}-${month}`;
     };
 
     const start = formatDate(startDate);
@@ -36,7 +36,13 @@ export default function PHFEducationSection({ profileEducation }: PHFEducationSe
   };
 
   const formatDegreeTitle = (degree: string, fieldOfStudy: string) => {
-    if (fieldOfStudy && !degree.toLowerCase().includes(fieldOfStudy.toLowerCase())) {
+    // If field of study exists and is different from degree, combine them appropriately
+    if (fieldOfStudy && fieldOfStudy.trim() !== '') {
+      // Check if the degree already contains the field of study
+      if (degree.toLowerCase().includes(fieldOfStudy.toLowerCase())) {
+        return degree;
+      }
+      // Otherwise, format as "Degree in Field of Study"
       return `${degree} in ${fieldOfStudy}`;
     }
     return degree;
@@ -68,21 +74,21 @@ export default function PHFEducationSection({ profileEducation }: PHFEducationSe
               <div key={index} className="border rounded-lg p-4 bg-card">
                 <div className="space-y-2">
                   <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-lg">
-                        {formatDegreeTitle(education.degree, education.field_of_study)}
-                      </h4>
-                      <p className="text-muted-foreground">{education.institution}</p>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                        <span>{formatDateRange(education.start_date, education.end_date, education.is_current)}</span>
-                        {education.grade && (
-                          <>
-                            <span>•</span>
-                            <span>Grade: {education.grade}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
+                <div className="space-y-1">
+                  <h4 className="font-medium text-lg">
+                    {formatDegreeTitle(education.degree, education.field_of_study)}
+                  </h4>
+                  <p className="text-muted-foreground">{education.institution}</p>
+                  <div className="text-sm text-muted-foreground">
+                    {formatDateRange(education.start_date, education.end_date, education.is_current)}
+                    {education.grade && (
+                      <>
+                        <span className="mx-2">•</span>
+                        <span>Grade: {education.grade}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
                   </div>
                   {education.description && (
                     <p className="text-sm text-muted-foreground mt-2">
