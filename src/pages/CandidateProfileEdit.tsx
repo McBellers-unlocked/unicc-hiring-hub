@@ -22,6 +22,7 @@ import ProfileCompletionWidget from "@/components/profile/ProfileCompletionWidge
 import PortfolioSection from "@/components/profile/PortfolioSection";
 import ProfileAnalyticsSection from "@/components/profile/ProfileAnalyticsSection";
 import JobRecommendationsSection from "@/components/profile/JobRecommendationsSection";
+import { PersonalDetailsSection } from "@/components/profile/PersonalDetailsSection";
 import { countries } from "@/lib/countries";
 
 interface CandidateProfile {
@@ -52,6 +53,19 @@ interface CandidateProfile {
   has_security_clearance: boolean;
   portfolio_attachments: any;
   profile_completion_percentage?: number;
+  // New personal detail fields
+  title?: string;
+  maiden_name?: string;
+  date_of_birth?: string | Date;
+  place_of_birth?: string;
+  country_of_birth?: string;
+  present_nationality?: string;
+  nationality_changed?: boolean;
+  nationality_change_details?: string;
+  marital_status?: string;
+  permanent_address?: string;
+  us_green_card?: boolean;
+  us_green_card_details?: string;
 }
 
 export default function CandidateProfileEdit() {
@@ -251,6 +265,10 @@ export default function CandidateProfileEdit() {
           ...profile,
           email: user.email,
           profile_completion_percentage: completionPercentage,
+          // Convert date_of_birth to string format for database
+          date_of_birth: profile.date_of_birth instanceof Date 
+            ? profile.date_of_birth.toISOString().split('T')[0] 
+            : profile.date_of_birth,
         });
 
       if (error) throw error;
@@ -386,6 +404,31 @@ export default function CandidateProfileEdit() {
             name={profile.name}
             email={profile.email}
             onChange={(photoUrl) => setProfile({ ...profile, profile_photo_url: photoUrl || undefined })}
+          />
+
+          {/* Personal Details */}
+          <PersonalDetailsSection
+            candidateId={profile.id}
+            initialData={{
+              title: profile.title as 'Mr' | 'Mrs' | 'Ms' | 'Miss' | undefined,
+              maiden_name: profile.maiden_name,
+              date_of_birth: profile.date_of_birth ? new Date(profile.date_of_birth) : undefined,
+              place_of_birth: profile.place_of_birth,
+              country_of_birth: profile.country_of_birth,
+              present_nationality: profile.present_nationality,
+              nationality_changed: profile.nationality_changed || false,
+              nationality_change_details: profile.nationality_change_details,
+              marital_status: profile.marital_status as 'Single' | 'Married' | 'Divorced' | 'Widowed' | 'Separated' | undefined,
+              permanent_address: profile.permanent_address,
+              us_green_card: profile.us_green_card || false,
+              us_green_card_details: profile.us_green_card_details,
+            }}
+            onUpdate={(data) => {
+              setProfile({
+                ...profile,
+                ...data,
+              });
+            }}
           />
 
           {/* Basic Information */}

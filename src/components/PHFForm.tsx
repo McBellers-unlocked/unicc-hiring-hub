@@ -434,6 +434,29 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
   const handleSubmit = async (data: PHFFormData) => {
     setIsSubmitting(true);
     try {
+      // Validate mandatory fields before submission
+      const mandatoryErrors = [];
+      
+      if (!data.personalDetails.familyName) mandatoryErrors.push("Family Name");
+      if (!data.personalDetails.firstNames) mandatoryErrors.push("First Names");
+      if (!data.personalDetails.email) mandatoryErrors.push("Email");
+      if (!data.personalDetails.telephone) mandatoryErrors.push("Phone");
+      if (!data.personalDetails.presentAddress) mandatoryErrors.push("Present Address");
+      if (data.education.length === 0) mandatoryErrors.push("At least one Education entry");
+      if (data.employment.length === 0) mandatoryErrors.push("At least one Employment entry");
+      if (!data.motivationLetter.motivation_letter_content) mandatoryErrors.push("Motivation Letter");
+      if (!data.certification.certify_true_complete_correct) mandatoryErrors.push("Certification checkbox");
+      
+      if (mandatoryErrors.length > 0) {
+        toast({
+          title: 'Missing Required Fields',
+          description: `Please complete: ${mandatoryErrors.join(', ')}`,
+          variant: 'destructive',
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
       await onSave(data, true);
       toast({
         title: 'PHF Submitted',
@@ -2814,12 +2837,13 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
           <Tabs value={currentSection.toString()} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-5 gap-1 h-auto p-1">
                {SECTIONS.slice(0, 5).map((section, index) => {
-                 const isAccessible = completedTabs.has(index);
-                 return (
-                   <TabsTrigger 
-                     key={index} 
-                     value={index.toString()}
-                     disabled={!isAccessible}
+                  // Allow free navigation to all tabs
+                  const isAccessible = true;
+                  return (
+                    <TabsTrigger 
+                      key={index} 
+                      value={index.toString()}
+                      disabled={false}
                      className={cn(
                        "text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
                        !isAccessible && "opacity-50 cursor-not-allowed bg-muted text-muted-foreground",
@@ -2838,12 +2862,13 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
             <TabsList className="grid w-full grid-cols-5 gap-1 h-auto p-1 mt-1">
                {SECTIONS.slice(5, 10).map((section, index) => {
                  const tabIndex = index + 5;
-                 const isAccessible = completedTabs.has(tabIndex);
-                 return (
-                   <TabsTrigger 
-                     key={tabIndex} 
-                     value={tabIndex.toString()}
-                     disabled={!isAccessible}
+                  // Allow free navigation to all tabs
+                  const isAccessible = true;
+                  return (
+                    <TabsTrigger 
+                      key={tabIndex} 
+                      value={tabIndex.toString()}
+                      disabled={false}
                      className={cn(
                        "text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
                        !isAccessible && "opacity-50 cursor-not-allowed bg-muted text-muted-foreground",
@@ -2862,12 +2887,13 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
             <TabsList className="grid w-full grid-cols-5 gap-1 h-auto p-1 mt-1">
                {SECTIONS.slice(10, 15).map((section, index) => {
                  const tabIndex = index + 10;
-                 const isAccessible = completedTabs.has(tabIndex);
-                 return (
-                   <TabsTrigger 
-                     key={tabIndex} 
-                     value={tabIndex.toString()}
-                     disabled={!isAccessible}
+                  // Allow free navigation to all tabs
+                  const isAccessible = true;
+                  return (
+                    <TabsTrigger 
+                      key={tabIndex} 
+                      value={tabIndex.toString()}
+                      disabled={false}
                      className={cn(
                        "text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
                        !isAccessible && "opacity-50 cursor-not-allowed bg-muted text-muted-foreground",
