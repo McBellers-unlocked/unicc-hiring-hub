@@ -24,6 +24,7 @@ import ProfileAnalyticsSection from "@/components/profile/ProfileAnalyticsSectio
 import JobRecommendationsSection from "@/components/profile/JobRecommendationsSection";
 import { PersonalDetailsSection } from "@/components/profile/PersonalDetailsSection";
 import { countries } from "@/lib/countries";
+import { convertPHFToWorkExperience, convertWorkExperienceToPHF } from "@/lib/phfDataMapping";
 
 interface CandidateProfile {
   id: string;
@@ -114,12 +115,17 @@ export default function CandidateProfileEdit() {
         if (error && error.code !== 'PGRST116') throw error;
 
         if (data) {
+          // Convert PHF work experience to simple format for the UI
+          const workExperience = data.phf_work_experience && Array.isArray(data.phf_work_experience) && data.phf_work_experience.length > 0
+            ? convertPHFToWorkExperience(data.phf_work_experience)
+            : Array.isArray(data.work_experience) ? data.work_experience : [];
+
           setProfile({
             ...data,
             skills: Array.isArray(data.skills) ? data.skills : [],
             certifications: Array.isArray(data.certifications) ? data.certifications : [],
             education: Array.isArray(data.education) ? data.education : [],
-            work_experience: Array.isArray(data.work_experience) ? data.work_experience : [],
+            work_experience: workExperience,
             preferred_locations: Array.isArray(data.preferred_locations) ? data.preferred_locations : [],
             un_organizations_worked: Array.isArray(data.un_organizations_worked) ? data.un_organizations_worked : [],
             portfolio_attachments: Array.isArray(data.portfolio_attachments) ? data.portfolio_attachments : [],
@@ -297,12 +303,20 @@ export default function CandidateProfileEdit() {
     try {
       const completionPercentage = calculateCompletionPercentage();
       
+      // Convert work experience to PHF format for storage
+      const phfWorkExperience = profile.work_experience && Array.isArray(profile.work_experience) 
+        ? convertWorkExperienceToPHF(profile.work_experience)
+        : [];
+      
       const { error } = await supabase
         .from("candidates")
         .upsert({
           ...profile,
           email: user.email,
           profile_completion_percentage: completionPercentage,
+          // Store both formats - simple for UI and PHF for form compatibility
+          work_experience: profile.work_experience,
+          phf_work_experience: phfWorkExperience,
           // Convert date_of_birth to string format for database
           date_of_birth: profile.date_of_birth instanceof Date 
             ? profile.date_of_birth.toISOString().split('T')[0] 
