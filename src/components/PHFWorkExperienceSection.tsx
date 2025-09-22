@@ -7,11 +7,11 @@ import { Briefcase, Info, Plus } from 'lucide-react';
 interface WorkExperienceEntry {
   position: string;
   company: string;
-  start_date: string;
-  end_date?: string;
+  startDate: string;
+  endDate?: string;
   location?: string;
-  is_current?: boolean;
-  is_un_experience?: boolean;
+  isCurrent?: boolean;
+  isUNExperience?: boolean;
   description?: string;
 }
 
@@ -62,33 +62,35 @@ export default function PHFWorkExperienceSection({ profileWorkExperience }: PHFW
           <div className="space-y-3">
             {profileWorkExperience.map((experience, index) => (
               <div key={index} className="border rounded-lg p-4 bg-card">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-medium text-lg">
-                      {experience.position}
-                    </h4>
-                    {experience.is_un_experience && (
-                      <Badge variant="default" className="text-xs bg-blue-100 text-blue-700 hover:bg-blue-100">
-                        UN Experience
-                      </Badge>
-                    )}
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium text-lg">
+                        {experience.position}
+                      </h4>
+                      {experience.isUNExperience && (
+                        <Badge variant="default" className="text-xs bg-blue-100 text-blue-700 hover:bg-blue-100">
+                          UN Experience
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-muted-foreground font-medium">{experience.company}</p>
+                    <div className="text-sm text-muted-foreground">
+                      {formatDateRange(experience.startDate, experience.endDate, experience.isCurrent)}
+                      {experience.location && (
+                        <>
+                          <span className="mx-2">•</span>
+                          <span>{experience.location}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-muted-foreground font-medium">{experience.company}</p>
-                  <div className="text-sm text-muted-foreground">
-                    {formatDateRange(experience.start_date, experience.end_date, experience.is_current)}
-                    {experience.location && (
-                      <>
-                        <span className="mx-2">•</span>
-                        <span>{experience.location}</span>
-                      </>
-                    )}
-                  </div>
-                  {experience.description && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {experience.description}
-                    </p>
-                  )}
                 </div>
+                {experience.description && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {experience.description}
+                  </p>
+                )}
               </div>
             ))}
           </div>
