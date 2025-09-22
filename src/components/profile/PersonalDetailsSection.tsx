@@ -192,6 +192,10 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                             date > new Date() || date < new Date("1900-01-01")
                           }
                           initialFocus
+                          captionLayout="dropdown"
+                          fromYear={1900}
+                          toYear={new Date().getFullYear()}
+                          className="pointer-events-auto"
                         />
                       </PopoverContent>
                     </Popover>
