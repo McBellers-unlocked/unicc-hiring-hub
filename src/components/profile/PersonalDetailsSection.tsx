@@ -146,6 +146,30 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select title" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Mr">Mr</SelectItem>
+                        <SelectItem value="Mrs">Mrs</SelectItem>
+                        <SelectItem value="Ms">Ms</SelectItem>
+                        <SelectItem value="Miss">Miss</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="first_name"
                 render={({ field }) => (
                   <FormItem>
@@ -157,7 +181,9 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                   </FormItem>
                 )}
               />
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="middle_names"
@@ -171,9 +197,7 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                   </FormItem>
                 )}
               />
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="email"
@@ -187,7 +211,9 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                   </FormItem>
                 )}
               />
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="phone"
@@ -196,6 +222,20 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                     <FormLabel>Phone Number</FormLabel>
                     <FormControl>
                       <Input placeholder="Phone number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="maiden_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Maiden Name (if applicable)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Maiden name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
