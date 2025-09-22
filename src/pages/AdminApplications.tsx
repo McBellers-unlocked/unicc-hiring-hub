@@ -147,13 +147,6 @@ export default function AdminApplications() {
 
       if (error) throw error;
       setApplications(data || []);
-      
-      // Debug: Log all gender values to see what we have
-      console.log('All applications gender data:', data?.map(app => ({
-        name: app.candidate?.name,
-        gender: app.candidate?.gender,
-        genderType: typeof app.candidate?.gender
-      })));
     } catch (error) {
       console.error('Error fetching applications:', error);
       toast({
@@ -775,31 +768,16 @@ export default function AdminApplications() {
                                          {application.candidate.name}
                                        </div>
                                        {application.candidate.gender && (
-                                         (() => {
-                                           const gender = application.candidate.gender;
-                                           const genderLower = gender?.toLowerCase() || '';
-                                           const isMale = genderLower === 'male' || genderLower === 'm';
-                                           const isFemale = genderLower === 'female' || genderLower === 'f';
-                                           
-                                           console.log(`Gender debug for ${application.candidate.name}:`, {
-                                             original: gender,
-                                             lower: genderLower,
-                                             isMale,
-                                             isFemale
-                                           });
-                                           
-                                           return (
-                                             <span 
-                                               className={`text-base flex-shrink-0 font-bold ${
-                                                 isMale ? 'text-blue-600' : 
-                                                 isFemale ? 'text-pink-600' : 'text-gray-600'
-                                               }`} 
-                                               title={`Gender: ${gender}`}
-                                             >
-                                               {isMale ? '♂' : isFemale ? '♀' : '?'}
-                                             </span>
-                                           );
-                                         })()
+                                         <span 
+                                           className={`text-base flex-shrink-0 font-bold ${
+                                             application.candidate.gender.toLowerCase() === 'male' ? 'text-blue-600' : 
+                                             application.candidate.gender.toLowerCase() === 'female' ? 'text-pink-600' : 'text-gray-600'
+                                           }`} 
+                                           title={`Gender: ${application.candidate.gender}`}
+                                         >
+                                           {application.candidate.gender.toLowerCase() === 'male' ? '♂' : 
+                                            application.candidate.gender.toLowerCase() === 'female' ? '♀' : '?'}
+                                         </span>
                                        )}
                                      </div>
                                      <div className="text-xs text-muted-foreground leading-tight truncate" title={application.candidate.email}>

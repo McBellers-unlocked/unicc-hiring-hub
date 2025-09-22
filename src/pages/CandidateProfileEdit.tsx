@@ -53,6 +53,7 @@ interface CandidateProfile {
   has_security_clearance: boolean;
   portfolio_attachments: any;
   profile_completion_percentage?: number;
+  gender?: string;
   // Enhanced PHF-compatible fields
   phf_work_experience?: any;
   phf_education?: any;
@@ -228,7 +229,7 @@ export default function CandidateProfileEdit() {
     });
     
     const sections = {
-      basicInfo: !!(profile.name && profile.location),
+      basicInfo: !!(profile.name && profile.location && profile.gender),
       personalDetails: !!(profile.first_name && profile.email && profile.phone && profile.date_of_birth),
       professionalSummary: !!(profile.professional_summary && profile.professional_summary.trim().length > 50),
       workExperience: Array.isArray(profile.work_experience) && profile.work_experience.length > 0,
@@ -277,7 +278,7 @@ export default function CandidateProfileEdit() {
     };
 
     return {
-      basicInfo: !!(profile.name && profile.location),
+      basicInfo: !!(profile.name && profile.location && profile.gender),
       personalDetails: !!(profile.first_name && profile.email && profile.phone && profile.date_of_birth),
       professionalSummary: !!(profile.professional_summary && profile.professional_summary.trim().length > 50),
       workExperience: Array.isArray(profile.work_experience) && profile.work_experience.length > 0,
@@ -488,8 +489,58 @@ export default function CandidateProfileEdit() {
             }}
           />
 
+          {/* Basic Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Basic Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input
+                    id="name"
+                    value={profile.name || ""}
+                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="gender">Gender</Label>
+                  <Select 
+                    value={profile.gender || ""} 
+                    onValueChange={(value) => setProfile({ ...profile, gender: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="location">Location</Label>
+                  <Select 
+                    value={profile.location || ""} 
+                    onValueChange={(value) => setProfile({ ...profile, location: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countries.map((country) => (
+                        <SelectItem key={country} value={country}>
+                          {country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Professional Summary */}
           <Card>
             <CardHeader>
               <CardTitle>Professional Summary</CardTitle>
