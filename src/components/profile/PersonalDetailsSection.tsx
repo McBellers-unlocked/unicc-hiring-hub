@@ -581,6 +581,34 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
               </div>
             </div>
 
+            <FormField
+              control={form.control}
+              name="present_address_same_as_permanent"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={(checked) => {
+                        field.onChange(checked);
+                        if (checked) {
+                          form.setValue("present_address_line1", form.getValues("permanent_address_line1"));
+                          form.setValue("present_address_line2", form.getValues("permanent_address_line2"));
+                          form.setValue("present_city", form.getValues("permanent_city"));
+                          form.setValue("present_country", form.getValues("permanent_country"));
+                        }
+                      }}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Present address is same as permanent address
+                    </FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+
             <div className="space-y-6">
               <h3 className="text-lg font-medium">Present Address</h3>
               
@@ -679,33 +707,6 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="present_address_same_as_permanent"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={(checked) => {
-                          field.onChange(checked);
-                          if (checked) {
-                            form.setValue("present_address_line1", form.getValues("permanent_address_line1"));
-                            form.setValue("present_address_line2", form.getValues("permanent_address_line2"));
-                            form.setValue("present_city", form.getValues("permanent_city"));
-                            form.setValue("present_country", form.getValues("permanent_country"));
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        Present address is same as permanent address
-                      </FormLabel>
-                    </div>
-                  </FormItem>
-                )}
-              />
             </div>
 
             <FormField
