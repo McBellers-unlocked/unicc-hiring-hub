@@ -769,14 +769,14 @@ export default function AdminApplications() {
                                        </div>
                                        {application.candidate.gender && (
                                          <span 
-                                           className={`text-sm flex-shrink-0 ${
-                                             application.candidate.gender === 'Male' ? 'text-blue-600' : 
-                                             application.candidate.gender === 'Female' ? 'text-pink-600' : 'text-gray-600'
+                                           className={`text-sm flex-shrink-0 font-medium ${
+                                             application.candidate.gender.toLowerCase() === 'male' ? 'text-blue-600' : 
+                                             application.candidate.gender.toLowerCase() === 'female' ? 'text-pink-600' : 'text-gray-600'
                                            }`} 
                                            title={`Gender: ${application.candidate.gender}`}
                                          >
-                                           {application.candidate.gender === 'Male' ? '♂' : 
-                                            application.candidate.gender === 'Female' ? '♀' : '⚲'}
+                                           {application.candidate.gender.toLowerCase() === 'male' ? '♂️' : 
+                                            application.candidate.gender.toLowerCase() === 'female' ? '♀️' : '⚲'}
                                          </span>
                                        )}
                                      </div>
