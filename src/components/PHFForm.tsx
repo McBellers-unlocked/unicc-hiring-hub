@@ -368,17 +368,28 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
       case 5: // Education
         const hasEducation = formValues.education && formValues.education.length > 0;
         if (!hasEducation) return 'warning';
-        const educationIncomplete = formValues.education.some(edu => 
-          !edu.institution_name || !edu.degree_type || !edu.from_month || !edu.from_year
-        );
+        const educationIncomplete = formValues.education.some(edu => {
+          // Handle both profile format (institution, degree) and PHF format (institution_name, degree_type)
+          const eduAny = edu as any;
+          const hasInstitution = edu.institution_name || eduAny.institution;
+          const hasDegree = edu.degree_type || eduAny.degree;
+          const hasDate = (edu.from_month && edu.from_year) || eduAny.startDate;
+          return !hasInstitution || !hasDegree || !hasDate;
+        });
         return educationIncomplete || formErrors.education ? 'warning' : 'valid';
         
       case 6: // Employment Record
         const hasEmployment = formValues.employment && formValues.employment.length > 0;
         if (!hasEmployment) return 'warning';
-        const employmentIncomplete = formValues.employment.some(emp => 
-          !emp.employer_name || !emp.exact_title_of_post || !emp.period_from_month || !emp.period_from_year || !emp.duties_and_responsibilities
-        );
+        const employmentIncomplete = formValues.employment.some(emp => {
+          // Handle both profile format and PHF format
+          const empAny = emp as any;
+          const hasEmployer = emp.employer_name || empAny.company;
+          const hasTitle = emp.exact_title_of_post || empAny.position;
+          const hasDate = (emp.period_from_month && emp.period_from_year) || empAny.startDate;
+          const hasDuties = emp.duties_and_responsibilities || empAny.description;
+          return !hasEmployer || !hasTitle || !hasDate || !hasDuties;
+        });
         return employmentIncomplete || formErrors.employment ? 'warning' : 'valid';
         
       case 7: // Additional Information
