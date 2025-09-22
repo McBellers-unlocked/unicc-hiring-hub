@@ -42,6 +42,9 @@ const personalDetailsSchema = z.object({
   permanent_country: z.string().optional(),
   us_green_card: z.boolean(),
   us_green_card_details: z.string().optional(),
+  // Privacy settings
+  email_public: z.boolean(),
+  phone_public: z.boolean(),
 });
 
 type PersonalDetailsFormData = z.infer<typeof personalDetailsSchema>;
@@ -106,6 +109,8 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
       permanent_country: initialData?.permanent_country || '',
       us_green_card: initialData?.us_green_card || false,
       us_green_card_details: initialData?.us_green_card_details || '',
+      email_public: false,
+      phone_public: false,
     },
   });
 
@@ -168,6 +173,9 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
     <Card>
       <CardHeader>
         <CardTitle>Personal Details</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Only your name and current location will be shared on your public profile by default. Use the checkboxes below to make additional information visible.
+        </p>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -266,6 +274,25 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                     <FormControl>
                       <Input type="email" placeholder="Email address" {...field} />
                     </FormControl>
+                    <div className="flex items-center space-x-2 mt-2">
+                      <FormField
+                        control={form.control}
+                        name="email_public"
+                        render={({ field: checkboxField }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={checkboxField.value}
+                                onCheckedChange={checkboxField.onChange}
+                              />
+                            </FormControl>
+                            <FormLabel className="text-sm font-normal">
+                              It's okay to display this on my public profile
+                            </FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -280,6 +307,25 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                     <FormControl>
                       <Input placeholder="Phone number" {...field} />
                     </FormControl>
+                    <div className="flex items-center space-x-2 mt-2">
+                      <FormField
+                        control={form.control}
+                        name="phone_public"
+                        render={({ field: checkboxField }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={checkboxField.value}
+                                onCheckedChange={checkboxField.onChange}
+                              />
+                            </FormControl>
+                            <FormLabel className="text-sm font-normal">
+                              It's okay to display this on my public profile
+                            </FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

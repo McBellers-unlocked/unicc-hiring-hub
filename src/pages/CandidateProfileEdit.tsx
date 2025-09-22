@@ -466,42 +466,6 @@ export default function CandidateProfileEdit() {
             }}
           />
 
-          {/* Basic Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    value={profile.name}
-                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="location">Current Location</Label>
-                  <Select
-                    value={profile.location || ""}
-                    onValueChange={(value) => setProfile({ ...profile, location: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {countries.map((country) => (
-                        <SelectItem key={country} value={country}>
-                          {country}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Professional Summary */}
           <Card>
@@ -545,6 +509,24 @@ export default function CandidateProfileEdit() {
             </CardContent>
           </Card>
 
+          {/* Work Experience */}
+          <WorkExperienceSection
+            workExperience={profile.work_experience}
+            onChange={(workExperience) => setProfile({ ...profile, work_experience: workExperience })}
+          />
+
+          {/* Languages */}
+          <LanguageSection
+            languages={profile.languages}
+            onChange={(languages) => setProfile({ ...profile, languages: languages })}
+          />
+
+          {/* Education */}
+          <EducationSection
+            education={profile.education}
+            onChange={(education) => setProfile({ ...profile, education: education })}
+          />
+
           {/* Skills */}
           <Card>
             <CardHeader>
@@ -575,18 +557,6 @@ export default function CandidateProfileEdit() {
             </CardContent>
           </Card>
 
-          {/* Work Experience */}
-          <WorkExperienceSection
-            workExperience={profile.work_experience}
-            onChange={(workExperience) => setProfile({ ...profile, work_experience: workExperience })}
-          />
-
-          {/* Education */}
-          <EducationSection
-            education={profile.education}
-            onChange={(education) => setProfile({ ...profile, education: education })}
-          />
-
           {/* Certifications */}
           <CertificationSection
             certifications={profile.certifications}
@@ -598,12 +568,6 @@ export default function CandidateProfileEdit() {
             portfolioFiles={profile.portfolio_attachments}
             email={profile.email}
             onChange={(files) => setProfile({ ...profile, portfolio_attachments: files })}
-          />
-
-          {/* Languages */}
-          <LanguageSection
-            languages={profile.languages}
-            onChange={(languages) => setProfile({ ...profile, languages: languages })}
           />
 
           {/* Security Clearance */}
