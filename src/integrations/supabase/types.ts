@@ -143,6 +143,7 @@ export type Database = {
           education: Json | null
           email: string
           gender: string | null
+          has_security_clearance: boolean | null
           id: string
           languages: Json | null
           linkedin_url: string | null
@@ -176,6 +177,7 @@ export type Database = {
           education?: Json | null
           email: string
           gender?: string | null
+          has_security_clearance?: boolean | null
           id?: string
           languages?: Json | null
           linkedin_url?: string | null
@@ -209,6 +211,7 @@ export type Database = {
           education?: Json | null
           email?: string
           gender?: string | null
+          has_security_clearance?: boolean | null
           id?: string
           languages?: Json | null
           linkedin_url?: string | null
