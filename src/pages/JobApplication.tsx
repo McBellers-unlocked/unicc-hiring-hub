@@ -168,10 +168,10 @@ export default function JobApplication() {
       if (!user?.email) return;
 
       // For authenticated users, load from database
-      // First get the candidate record
+      // First get the candidate record with all profile data
       const { data: candidate } = await supabase
         .from('candidates')
-        .select('id')
+        .select('*')
         .eq('email', user.email)
         .maybeSingle();
 
@@ -201,6 +201,91 @@ export default function JobApplication() {
         if (existingApplication.phf_completed) {
           setCurrentStep('success');
         }
+      } else if (!savedProgress && candidate) {
+        // No saved progress or existing application - pre-populate from candidate profile
+        const prefilledData = {
+          personalDetails: {
+            familyName: candidate.name?.split(' ').pop() || '',
+            firstNames: candidate.name?.split(' ').slice(0, -1).join(' ') || '',
+            title: 'Mr',
+            maidenName: '',
+            sex: candidate.gender === 'Female' ? 'Female' : 'Male',
+            dateOfBirth: new Date(),
+            placeOfBirth: '',
+            countryOfBirth: '',
+            presentNationality: '',
+            nationalityChanged: false,
+            nationalityChangeDetails: '',
+            maritalStatus: 'Single',
+            permanentAddress: '',
+            presentAddress: candidate.location || '',
+            telephone: candidate.phone || '',
+            email: candidate.email || user.email,
+            usGreenCard: false,
+            usGreenCardDetails: '',
+            photoUrl: '',
+          },
+          workPreferences: {
+            preferred_locations: '',
+            remote_work_preference: '',
+            travel_availability: '',
+            contract_type_preference: '',
+            notice_period: '',
+          },
+          languages: Array.isArray(candidate.languages) ? candidate.languages : [],
+          education: Array.isArray(candidate.education) ? candidate.education.map((edu: any) => ({
+            from_month: edu.from_month || '',
+            from_year: edu.from_year || '',
+            to_month: edu.to_month || '',
+            to_year: edu.to_year || '',
+            is_present: edu.is_present || false,
+            institution_name: edu.institution_name || '',
+            institution_place: edu.institution_place || '',
+            institution_country: edu.institution_country || '',
+            degree_type: edu.degree_type || 'Bachelor\'s Degree',
+            degree_or_certificate_title: edu.degree_or_certificate_title || '',
+            main_course_of_study: edu.main_course_of_study || '',
+            is_completed: edu.is_completed !== false,
+            certificate_url: edu.certificate_url || '',
+          })) : [],
+          employment: Array.isArray(candidate.work_experience) ? candidate.work_experience.map((work: any) => ({
+            period_from_month: work.from_month || '',
+            period_from_year: work.from_year || '',
+            period_to_month: work.to_month || '',
+            period_to_year: work.to_year || '',
+            is_present: work.is_present || false,
+            exact_title_of_post: work.position || '',
+            type_of_business: work.company_type || '',
+            is_un_system_post: false,
+            un_grade: '',
+            annual_income_starting: 0,
+            annual_income_most_recent: 0,
+            allowances_or_benefits: '',
+            employees_supervised_number: 0,
+            employees_supervised_type: '',
+            employer_name: work.company || '',
+            employer_address: work.company_location || '',
+            supervisor_name: work.supervisor_name || '',
+            supervisor_title: work.supervisor_title || '',
+            supervisor_phone: work.supervisor_phone || '',
+            supervisor_email: work.supervisor_email || '',
+            reason_for_change: work.reason_for_leaving || '',
+            duties_and_responsibilities: work.description || '',
+            attestations: [],
+          })) : [],
+          additionalInformation: {
+            additional_skills: Array.isArray(candidate.skills) ? candidate.skills.join(', ') : '',
+            fellowships: [],
+            law_violations_disclosed: false,
+            law_violations_details: '',
+          },
+          motivationLetter: {
+            motivation_letter_content: candidate.professional_summary || '',
+          },
+        };
+        
+        setPHFData(prefilledData);
+        console.log('Pre-filled form with candidate profile data');
       }
     } catch (error) {
       console.error('Error loading existing application:', error);
