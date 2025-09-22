@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { PHFPreview } from '@/components/PHFPreview';
+import { PHFTabViewer } from '@/components/PHFTabViewer';
 import { 
   ArrowLeft, 
   User, 
@@ -200,7 +200,7 @@ export default function CandidateApplicationView() {
 
   if (showPHFPreview && application.phf_data) {
     return (
-      <PHFPreview
+      <PHFTabViewer
         phfData={application.phf_data}
         photoUrl={application.photo_url}
         onClose={() => setShowPHFPreview(false)}
@@ -277,7 +277,7 @@ export default function CandidateApplicationView() {
                   className="flex items-center gap-2"
                 >
                   <Eye className="h-4 w-4" />
-                  View PHF
+                  View Submitted PHF
                 </Button>
               )}
             </div>
@@ -435,121 +435,51 @@ export default function CandidateApplicationView() {
 
           {application.phf_completed && (
             <TabsContent value="phf-details">
-              <div className="space-y-6">
-                {/* Education Section */}
-                {application.phf_data?.education && application.phf_data.education.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <GraduationCap className="h-5 w-5" />
-                        Education
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {application.phf_data.education.map((edu: any, index: number) => (
-                          <div key={index} className="border-l-4 border-primary pl-4">
-                            <h4 className="font-semibold text-lg">
-                              {edu.degree_or_certificate_title || edu.degree_type || 'Degree/Certificate'}
-                            </h4>
-                            <p className="text-primary font-medium">{edu.institution_name}</p>
-                            {edu.institution_place && edu.institution_country && (
-                              <p className="text-gray-600">{edu.institution_place}, {edu.institution_country}</p>
-                            )}
-                            <p className="text-gray-600">
-                              {edu.from_month}/{edu.from_year} - {edu.is_present ? 'Present' : `${edu.to_month}/${edu.to_year}`}
-                            </p>
-                            {edu.main_course_of_study && (
-                              <p className="text-gray-700 mt-2">Field of Study: {edu.main_course_of_study}</p>
-                            )}
-                            {edu.is_completed && (
-                              <span className="inline-block mt-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                                Completed
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    PHF Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="text-center">
+                    <p className="text-muted-foreground mb-4">
+                      Your Personal History Form has been completed and submitted.
+                      Click below to view your submitted PHF in the same format you filled it out.
+                    </p>
+                    <Button
+                      onClick={() => setShowPHFPreview(true)}
+                      className="flex items-center gap-2"
+                      size="lg"
+                    >
+                      <Eye className="h-4 w-4" />
+                      View My Submitted PHF
+                    </Button>
+                  </div>
 
-                {/* Employment Section */}
-                {application.phf_data?.employment && application.phf_data.employment.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Briefcase className="h-5 w-5" />
-                        Employment History
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-6">
-                        {application.phf_data.employment.map((emp: any, index: number) => (
-                          <div key={index} className="border-l-4 border-blue-500 pl-4">
-                            <h4 className="font-semibold text-lg">{emp.exact_title_of_post}</h4>
-                            <p className="text-blue-600 font-medium">{emp.employer_name}</p>
-                            <p className="text-gray-600">
-                              {emp.period_from_month}/{emp.period_from_year} - {emp.is_present ? 'Present' : `${emp.period_to_month}/${emp.period_to_year}`}
-                            </p>
-                            {emp.duties_and_responsibilities && (
-                              <div className="mt-3">
-                                <h5 className="font-medium text-gray-900 mb-2">Duties & Responsibilities:</h5>
-                                <div className="whitespace-pre-wrap bg-gray-50 p-3 rounded text-sm">
-                                  {emp.duties_and_responsibilities}
-                                </div>
-                              </div>
-                            )}
-                            {emp.is_un_system_post && (
-                              <span className="inline-block mt-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                                UN System Position
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Languages Section */}
-                {application.phf_data?.languages && application.phf_data.languages.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Language Skills</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {application.phf_data.languages.map((lang: any, index: number) => (
-                          <div key={index} className="border rounded-lg p-3">
-                            <h4 className="font-medium">{lang.language}</h4>
-                            <div className="text-sm text-gray-600 mt-1">
-                              <p>Speaking: {lang.speaking}</p>
-                              <p>Reading: {lang.reading}</p>
-                              <p>Writing: {lang.writing}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* View Complete PHF Button */}
-                <Card>
-                  <CardContent className="pt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t">
                     <div className="text-center">
-                      <Button
-                        onClick={() => setShowPHFPreview(true)}
-                        className="flex items-center gap-2"
-                      >
-                        <Eye className="h-4 w-4" />
-                        View Complete PHF Document
-                      </Button>
+                      <div className="text-2xl font-bold text-primary mb-1">
+                        {application.phf_data?.education?.length || 0}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Education Entries</div>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary mb-1">
+                        {application.phf_data?.employment?.length || 0}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Employment Entries</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary mb-1">
+                        {application.phf_data?.languages ? Object.keys(application.phf_data.languages).length : 0}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Languages</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           )}
 

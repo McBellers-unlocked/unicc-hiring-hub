@@ -331,7 +331,17 @@ export default function JobApplication() {
         .select('*')
         .eq('email', userEmail)
         .maybeSingle();
-
+      // Merge education and employment data from candidate profile if form data is empty
+      const mergedPHFData = {
+        ...phfData,
+        education: phfData.education && phfData.education.length > 0 
+          ? phfData.education 
+          : (candidateProfile?.phf_education || candidateProfile?.education || []),
+        employment: phfData.employment && phfData.employment.length > 0 
+          ? phfData.employment 
+          : (candidateProfile?.phf_work_experience || candidateProfile?.work_experience || [])
+      };
+        
       if (existingCandidate) {
         // Update existing candidate
         const { error: updateError } = await supabase
@@ -357,7 +367,7 @@ export default function JobApplication() {
         const { error: updateError } = await supabase
           .from('applications')
           .update({
-            phf_data: phfData,
+            phf_data: mergedPHFData,
             phf_completed: true,
             answers: killerAnswers,
             updated_at: new Date().toISOString()
@@ -374,7 +384,7 @@ export default function JobApplication() {
           job_id: jobId,
           candidate_id: candidate.id,
           status: 'Application' as const,
-          phf_data: phfData,
+          phf_data: mergedPHFData,
           phf_completed: true,
           answers: killerAnswers
         };
