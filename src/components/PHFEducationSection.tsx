@@ -37,15 +37,17 @@ export default function PHFEducationSection({ profileEducation }: PHFEducationSe
       // Handle YYYY-MM format
       if (date.includes('-') && date.length <= 7) {
         const [year, month] = date.split('-');
-        return `${month.padStart(2, '0')}/${year}`;
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${monthNames[parseInt(month) - 1]} ${year}`;
       }
       
       // Try to parse as a full date
       const d = new Date(date);
       if (isNaN(d.getTime())) return date; // Return original if invalid date
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const year = d.getFullYear();
-      return `${month}/${year}`;
+      return d.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short'
+      });
     };
 
     const start = formatDate(startDate);
