@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { AlertCircle, CalendarIcon, Plus, Trash2, Save, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -300,6 +301,18 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
   const [currentSection, setCurrentSection] = useState(initialTab);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editedWorkExperiences, setEditedWorkExperiences] = useState<any[]>([]);
+  const [applicationSkills, setApplicationSkills] = useState<string[]>([]);
+  const [applicationCertifications, setApplicationCertifications] = useState<any[]>([]);
+  const [newSkill, setNewSkill] = useState('');
+  const [isAddCertDialogOpen, setIsAddCertDialogOpen] = useState(false);
+  const [newCertification, setNewCertification] = useState({
+    name: '',
+    issuing_organization: '',
+    issue_date: null as Date | null,
+    expiry_date: null as Date | null,
+    credential_id: '',
+    description: ''
+  });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const { toast } = useToast();
@@ -1422,6 +1435,47 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     </div>
   );
 
+  const handleAddSkill = () => {
+    if (newSkill.trim() && !getAllSkills().includes(newSkill.trim())) {
+      setApplicationSkills([...applicationSkills, newSkill.trim()]);
+      setNewSkill('');
+    }
+  };
+
+  const handleRemoveSkill = (skillToRemove: string, isFromProfile: boolean) => {
+    if (isFromProfile) {
+      // Don't allow removing profile skills, but we could handle this differently if needed
+      return;
+    } else {
+      setApplicationSkills(applicationSkills.filter(skill => skill !== skillToRemove));
+    }
+  };
+
+  const getAllSkills = () => {
+    const profileSkills = candidateProfile?.skills || [];
+    return [...profileSkills, ...applicationSkills];
+  };
+
+  const handleAddCertification = () => {
+    if (newCertification.name && newCertification.issuing_organization) {
+      setApplicationCertifications([...applicationCertifications, { ...newCertification }]);
+      setNewCertification({
+        name: '',
+        issuing_organization: '',
+        issue_date: null,
+        expiry_date: null,
+        credential_id: '',
+        description: ''
+      });
+      setIsAddCertDialogOpen(false);
+    }
+  };
+
+  const getAllCertifications = () => {
+    const profileCertifications = candidateProfile?.certifications || [];
+    return [...profileCertifications, ...applicationCertifications];
+  };
+
   const renderAdditionalInformation = () => (
     <div className="space-y-6">
       {/* Skills Section */}
@@ -1437,11 +1491,45 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {candidateProfile?.skills && candidateProfile.skills.length > 0 ? (
+          {/* Add Skill Input */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="Add a skill..."
+              value={newSkill}
+              onChange={(e) => setNewSkill(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              onClick={handleAddSkill}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3"
+              disabled={!newSkill.trim()}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Skills Display */}
+          {getAllSkills().length > 0 ? (
             <div className="flex flex-wrap gap-2">
-              {candidateProfile.skills.map((skill: string, index: number) => (
-                <Badge key={index} variant="secondary" className="text-sm">
+              {/* Profile Skills */}
+              {(candidateProfile?.skills || []).map((skill: string, index: number) => (
+                <Badge key={`profile-${index}`} variant="secondary" className="text-sm">
                   {skill}
+                </Badge>
+              ))}
+              {/* Application-specific Skills */}
+              {applicationSkills.map((skill: string, index: number) => (
+                <Badge key={`app-${index}`} variant="secondary" className="text-sm group">
+                  {skill}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveSkill(skill, false)}
+                    className="ml-1 text-muted-foreground hover:text-destructive"
+                  >
+                    ×
+                  </button>
                 </Badge>
               ))}
             </div>
@@ -1464,9 +1552,10 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {candidateProfile?.certifications && candidateProfile.certifications.length > 0 ? (
+          {/* Existing Certifications */}
+          {getAllCertifications().length > 0 && (
             <div className="space-y-3">
-              {candidateProfile.certifications.map((cert: any, index: number) => (
+              {getAllCertifications().map((cert: any, index: number) => (
                 <div key={index} className="border rounded-lg p-4 bg-card">
                   <div className="flex items-start justify-between">
                     <div className="space-y-1 flex-1">
@@ -1474,12 +1563,22 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                       <p className="text-muted-foreground font-medium">{cert.issuing_organization}</p>
                       <div className="text-sm text-muted-foreground">
                         {cert.issue_date && (
-                          <span>Issued: {new Date(cert.issue_date).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' })}</span>
+                          <span>
+                            Issued: {cert.issue_date instanceof Date 
+                              ? cert.issue_date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' })
+                              : new Date(cert.issue_date).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' })
+                            }
+                          </span>
                         )}
                         {cert.expiry_date && (
                           <>
                             <span className="mx-2">•</span>
-                            <span>Expires: {new Date(cert.expiry_date).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' })}</span>
+                            <span>
+                              Expires: {cert.expiry_date instanceof Date 
+                                ? cert.expiry_date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' })
+                                : new Date(cert.expiry_date).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' })
+                              }
+                            </span>
                           </>
                         )}
                       </div>
@@ -1498,34 +1597,143 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                 </div>
               ))}
             </div>
-          ) : (
-            <p className="text-muted-foreground text-sm">No certifications added yet</p>
           )}
+
+          {/* Add Certification Button */}
+          <div className="border-2 border-dashed border-muted rounded-lg p-8">
+            <div className="text-center">
+              <Dialog open={isAddCertDialogOpen} onOpenChange={setIsAddCertDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Certification
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Add Certification</DialogTitle>
+                  </DialogHeader>
+                  
+                  <div className="space-y-6 py-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="cert-name">Certification Name *</Label>
+                        <Input
+                          id="cert-name"
+                          placeholder="PMP, AWS Solutions Architect, etc."
+                          value={newCertification.name}
+                          onChange={(e) => setNewCertification(prev => ({ ...prev, name: e.target.value }))}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="cert-org">Issuing Organization *</Label>
+                        <Input
+                          id="cert-org"
+                          placeholder="PMI, Amazon, Microsoft, etc."
+                          value={newCertification.issuing_organization}
+                          onChange={(e) => setNewCertification(prev => ({ ...prev, issuing_organization: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Issue Date</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !newCertification.issue_date && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {newCertification.issue_date ? format(newCertification.issue_date, "PPP") : <span>Pick a date</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={newCertification.issue_date}
+                              onSelect={(date) => setNewCertification(prev => ({ ...prev, issue_date: date }))}
+                              initialFocus
+                              className="p-3 pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Expiry Date (optional)</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !newCertification.expiry_date && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {newCertification.expiry_date ? format(newCertification.expiry_date, "PPP") : <span>Pick a date</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={newCertification.expiry_date}
+                              onSelect={(date) => setNewCertification(prev => ({ ...prev, expiry_date: date }))}
+                              initialFocus
+                              className="p-3 pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="cert-credential">Credential ID/URL</Label>
+                      <Input
+                        id="cert-credential"
+                        placeholder="Certificate number or verification URL"
+                        value={newCertification.credential_id}
+                        onChange={(e) => setNewCertification(prev => ({ ...prev, credential_id: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="cert-description">Description</Label>
+                      <Textarea
+                        id="cert-description"
+                        placeholder="Brief description of the certification..."
+                        rows={4}
+                        value={newCertification.description}
+                        onChange={(e) => setNewCertification(prev => ({ ...prev, description: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4">
+                      <Button variant="outline" onClick={() => setIsAddCertDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={handleAddCertification} 
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        disabled={!newCertification.name || !newCertification.issuing_organization}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Certification
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
         </CardContent>
       </Card>
-
-      {/* Additional Skills Text Field - Separate from profile skills */}
-      <FormField
-        control={form.control}
-        name="additionalInformation.additional_skills"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Additional Skills & Competencies</FormLabel>
-            <FormDescription>
-              Describe any additional skills, competencies, or relevant qualifications not covered above
-            </FormDescription>
-            <FormControl>
-              <Textarea 
-                {...field} 
-                rows={4} 
-                placeholder="Teamwork, Communication, Leadership, Linux..."
-                className="min-h-[100px]"
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
 
       {/* Law Violations */}
       <div className="space-y-4">
