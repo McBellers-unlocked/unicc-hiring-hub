@@ -601,22 +601,10 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
   });
 
   const handleSubmit = async (data: PHFFormData) => {
-    console.log('handleSubmit called with data:', data);
     setIsSubmitting(true);
     try {
       // Validate mandatory fields before submission
       const mandatoryErrors = [];
-      
-      console.log('Checking mandatory fields...');
-      console.log('Family Name:', data.personalDetails.familyName);
-      console.log('First Names:', data.personalDetails.firstNames);
-      console.log('Email:', data.personalDetails.email);
-      console.log('Phone:', data.personalDetails.telephone);
-      console.log('Present Address:', data.personalDetails.presentAddress);
-      console.log('Education length:', data.education.length);
-      console.log('Employment length:', data.employment.length);
-      console.log('Motivation letter:', data.motivationLetter.motivation_letter_content);
-      console.log('Certification checkbox:', data.certification.certify_true_complete_correct);
       
       if (!data.personalDetails.familyName) mandatoryErrors.push("Family Name");
       if (!data.personalDetails.firstNames) mandatoryErrors.push("First Names");
@@ -628,10 +616,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
       if (!data.motivationLetter.motivation_letter_content) mandatoryErrors.push("Motivation Letter");
       if (!data.certification.certify_true_complete_correct) mandatoryErrors.push("Certification checkbox");
       
-      console.log('Mandatory errors:', mandatoryErrors);
-      
       if (mandatoryErrors.length > 0) {
-        console.log('Validation failed, showing error toast');
         toast({
           title: 'Missing Required Fields',
           description: `Please complete: ${mandatoryErrors.join(', ')}`,
@@ -641,14 +626,12 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         return;
       }
       
-      console.log('Validation passed, calling onSave...');
       await onSave(data, true);
       toast({
         title: 'PHF Submitted',
         description: 'Your Personal History Form has been submitted successfully.',
       });
     } catch (error) {
-      console.error('Submission error:', error);
       toast({
         title: 'Submission Failed',
         description: 'There was an error submitting your PHF. Please try again.',
@@ -2917,10 +2900,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
       </div>
 
       <Form {...form}>
-        <form onSubmit={(e) => {
-          console.log('Form onSubmit triggered!', e);
-          form.handleSubmit(handleSubmit)(e);
-        }} className="space-y-8">
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
           <Tabs value={currentSection.toString()} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-5 gap-1 h-auto p-1">
                {SECTIONS.slice(0, 5).map((section, index) => {
@@ -3056,22 +3036,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                   Next
                 </Button>
               ) : (
-                <Button 
-                  type="button"
-                  disabled={isSubmitting}
-                  onClick={(e) => {
-                    console.log('=== BUTTON CLICKED ===');
-                    alert('Button clicked! Check console for details.');
-                    console.log('Submit button clicked!');
-                    console.log('Form values:', form.getValues());
-                    console.log('Form errors:', form.formState.errors);
-                    
-                    // Manually trigger form submission
-                    const formData = form.getValues();
-                    console.log('About to call handleSubmit manually...');
-                    handleSubmit(formData);
-                  }}
-                >
+                <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? 'Submitting...' : 'Submit PHF'}
                 </Button>
               )}
