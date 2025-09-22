@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, AlertCircle, FileText, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PHFForm } from '@/components/PHFForm';
+import { createPHFDataFromProfile } from '@/lib/phfDataMapping';
 
 interface KillerQuestion {
   id: string;
@@ -202,99 +203,8 @@ export default function JobApplication() {
           setCurrentStep('success');
         }
       } else if (candidate) {
-        // No existing application - pre-populate from candidate profile
-        const prefilledData = {
-          personalDetails: {
-            familyName: candidate.name?.split(' ').pop() || '',
-            firstNames: candidate.name?.split(' ').slice(0, -1).join(' ') || '',
-            title: candidate.title || 'Mr',
-            maidenName: candidate.maiden_name || '',
-            sex: candidate.gender === 'Female' ? 'Female' : 'Male',
-            dateOfBirth: candidate.date_of_birth ? new Date(candidate.date_of_birth) : new Date(),
-            placeOfBirth: candidate.place_of_birth || '',
-            countryOfBirth: candidate.country_of_birth || '',
-            presentNationality: candidate.present_nationality || '',
-            nationalityChanged: candidate.nationality_changed || false,
-            nationalityChangeDetails: candidate.nationality_change_details || '',
-            maritalStatus: candidate.marital_status || 'Single',
-            permanentAddress: candidate.permanent_address || '',
-            presentAddress: candidate.location || '',
-            telephone: candidate.phone || '',
-            email: candidate.email || user.email,
-            usGreenCard: candidate.us_green_card || false,
-            usGreenCardDetails: candidate.us_green_card_details || '',
-            photoUrl: candidate.profile_photo_url || '',
-          },
-          workPreferences: {
-            preferred_locations: '',
-            remote_work_preference: '',
-            travel_availability: '',
-            contract_type_preference: '',
-            notice_period: '',
-          },
-          languages: Array.isArray(candidate.languages) ? candidate.languages : [],
-          education: Array.isArray(candidate.education) ? candidate.education.map((edu: any) => {
-            // Parse startDate and endDate if they exist
-            const startDate = edu.startDate ? new Date(edu.startDate) : null;
-            const endDate = edu.endDate ? new Date(edu.endDate) : null;
-            
-            return {
-              from_month: startDate ? String(startDate.getMonth() + 1).padStart(2, '0') : '',
-              from_year: startDate ? String(startDate.getFullYear()) : '',
-              to_month: endDate ? String(endDate.getMonth() + 1).padStart(2, '0') : '',
-              to_year: endDate ? String(endDate.getFullYear()) : '',
-              is_present: !edu.endDate || edu.endDate === '',
-              institution_name: edu.institution || '',
-              institution_place: '',
-              institution_country: '',
-              degree_type: edu.degree || 'Bachelor\'s Degree',
-              degree_or_certificate_title: edu.field || '',
-              main_course_of_study: edu.field || '',
-              is_completed: edu.grade ? true : false,
-              certificate_url: '',
-            };
-          }) : [],
-          employment: Array.isArray(candidate.work_experience) ? candidate.work_experience.map((work: any) => {
-            // Parse startDate and endDate if they exist
-            const startDate = work.startDate ? new Date(work.startDate) : null;
-            const endDate = work.endDate ? new Date(work.endDate) : null;
-            
-            return {
-              period_from_month: startDate ? String(startDate.getMonth() + 1).padStart(2, '0') : '',
-              period_from_year: startDate ? String(startDate.getFullYear()) : '',
-              period_to_month: endDate ? String(endDate.getMonth() + 1).padStart(2, '0') : '',
-              period_to_year: endDate ? String(endDate.getFullYear()) : '',
-              is_present: work.isCurrent || !work.endDate || work.endDate === '',
-              exact_title_of_post: work.position || '',
-              type_of_business: work.type || '',
-              is_un_system_post: work.isUNExperience || false,
-              un_grade: '',
-              annual_income_starting: 0,
-              annual_income_most_recent: 0,
-              allowances_or_benefits: '',
-              employees_supervised_number: 0,
-              employees_supervised_type: '',
-              employer_name: work.company || '',
-              employer_address: work.location || '',
-              supervisor_name: '',
-              supervisor_title: '',
-              supervisor_phone: '',
-              supervisor_email: '',
-              reason_for_change: '',
-              duties_and_responsibilities: work.description || '',
-              attestations: [],
-            };
-          }) : [],
-          additionalInformation: {
-            additional_skills: Array.isArray(candidate.skills) ? candidate.skills.join(', ') : '',
-            fellowships: [],
-            law_violations_disclosed: false,
-            law_violations_details: '',
-          },
-          motivationLetter: {
-            motivation_letter_content: candidate.professional_summary || '',
-          },
-        };
+        // No existing application - pre-populate from candidate profile using mapping function
+        const prefilledData = createPHFDataFromProfile(candidate);
         
         setPHFData(prefilledData);
         console.log('Pre-filled form with candidate profile data:', prefilledData);
