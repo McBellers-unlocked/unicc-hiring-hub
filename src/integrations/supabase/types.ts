@@ -153,6 +153,7 @@ export type Database = {
           has_security_clearance: boolean | null
           id: string
           languages: Json | null
+          last_name: string | null
           law_violations_details: string | null
           law_violations_disclosed: boolean | null
           linkedin_url: string | null
@@ -224,6 +225,7 @@ export type Database = {
           has_security_clearance?: boolean | null
           id?: string
           languages?: Json | null
+          last_name?: string | null
           law_violations_details?: string | null
           law_violations_disclosed?: boolean | null
           linkedin_url?: string | null
@@ -295,6 +297,7 @@ export type Database = {
           has_security_clearance?: boolean | null
           id?: string
           languages?: Json | null
+          last_name?: string | null
           law_violations_details?: string | null
           law_violations_disclosed?: boolean | null
           linkedin_url?: string | null

@@ -54,9 +54,10 @@ interface CandidateProfile {
   portfolio_attachments: any;
   profile_completion_percentage?: number;
   // New personal detail fields
-  first_name?: string;
-  middle_names?: string;
   title?: string;
+  first_name?: string;
+  last_name?: string;
+  middle_names?: string;
   maiden_name?: string;
   date_of_birth?: string | Date;
   place_of_birth?: string;
@@ -431,11 +432,12 @@ export default function CandidateProfileEdit() {
           <PersonalDetailsSection
             candidateId={profile.id}
             initialData={{
+              title: profile.title as 'Mr' | 'Mrs' | 'Ms' | 'Miss' | undefined,
               first_name: profile.first_name,
+              last_name: profile.last_name,
               middle_names: profile.middle_names,
               email: profile.email,
               phone: profile.phone,
-              title: profile.title as 'Mr' | 'Mrs' | 'Ms' | 'Miss' | undefined,
               maiden_name: profile.maiden_name,
               date_of_birth: profile.date_of_birth ? new Date(profile.date_of_birth) : undefined,
               place_of_birth: profile.place_of_birth,

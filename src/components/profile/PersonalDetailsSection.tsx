@@ -20,11 +20,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { countries } from '@/lib/countries';
 
 const personalDetailsSchema = z.object({
+  title: z.enum(['Mr', 'Mrs', 'Ms', 'Miss']),
   first_name: z.string().min(1, 'First name is required'),
+  last_name: z.string().min(1, 'Last name is required'),
   middle_names: z.string().optional(),
   email: z.string().email('Invalid email address'),
   phone: z.string().optional(),
-  title: z.enum(['Mr', 'Mrs', 'Ms', 'Miss']),
   maiden_name: z.string().optional(),
   date_of_birth: z.union([z.date(), z.string()]).optional(),
   place_of_birth: z.string().optional(),
@@ -51,10 +52,13 @@ type PersonalDetailsFormData = z.infer<typeof personalDetailsSchema>;
 interface PersonalDetailsSectionProps {
   candidateId: string;
   initialData?: Partial<PersonalDetailsFormData & { 
+    title?: string;
     first_name?: string;
+    last_name?: string;
     middle_names?: string;
     email?: string;
     phone?: string;
+    maiden_name?: string;
     present_address_line1?: string;
     present_address_line2?: string;
     present_city?: string;
@@ -75,11 +79,12 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
   const form = useForm<PersonalDetailsFormData>({
     resolver: zodResolver(personalDetailsSchema),
     defaultValues: {
+      title: initialData?.title || 'Mr',
       first_name: initialData?.first_name || '',
+      last_name: initialData?.last_name || '',
       middle_names: initialData?.middle_names || '',
       email: initialData?.email || '',
       phone: initialData?.phone || '',
-      title: initialData?.title || 'Mr',
       maiden_name: initialData?.maiden_name || '',
       date_of_birth: initialData?.date_of_birth ? 
         (typeof initialData.date_of_birth === 'string' ? new Date(initialData.date_of_birth) : initialData.date_of_birth) : 
@@ -111,11 +116,12 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
       const { error } = await supabase
         .from('candidates')
         .update({
+          title: data.title,
           first_name: data.first_name,
+          last_name: data.last_name,
           middle_names: data.middle_names || null,
           email: data.email,
           phone: data.phone || null,
-          title: data.title,
           maiden_name: data.maiden_name || null,
           date_of_birth: data.date_of_birth ? 
             (data.date_of_birth instanceof Date ? data.date_of_birth.toISOString().split('T')[0] : data.date_of_birth) : 
@@ -211,6 +217,20 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
+                name="last_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Last name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="middle_names"
                 render={({ field }) => (
                   <FormItem>
@@ -222,7 +242,9 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                   </FormItem>
                 )}
               />
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="email"
@@ -236,9 +258,7 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                   </FormItem>
                 )}
               />
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="phone"
@@ -252,21 +272,21 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                   </FormItem>
                 )}
               />
-
-              <FormField
-                control={form.control}
-                name="maiden_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Maiden Name (if applicable)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Maiden name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
+
+            <FormField
+              control={form.control}
+              name="maiden_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Maiden Name (if applicable)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Maiden name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
