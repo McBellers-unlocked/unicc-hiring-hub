@@ -291,15 +291,17 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                 control={form.control}
                 name="date_of_birth"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="space-y-2">
                     <FormLabel>Date of Birth</FormLabel>
                     <FormControl>
-                      <CustomDatePicker
-                        selected={field.value}
-                        onChange={field.onChange}
-                        placeholderText="Select date of birth"
-                        className="w-full"
-                      />
+                      <div className="w-full">
+                        <CustomDatePicker
+                          selected={field.value}
+                          onChange={field.onChange}
+                          placeholderText="Select date of birth"
+                          className="w-full"
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
