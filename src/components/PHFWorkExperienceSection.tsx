@@ -65,6 +65,14 @@ export default function PHFWorkExperienceSection({
   const formatDateRange = (startDate: string, endDate?: string, isCurrent?: boolean) => {
     const formatDate = (date: string) => {
       if (!date) return '';
+      
+      // Handle YYYY-MM format
+      if (date.includes('-') && date.length <= 7) {
+        const [year, month] = date.split('-');
+        return `${year}-${month.padStart(2, '0')}`;
+      }
+      
+      // Try to parse as a full date
       const d = new Date(date);
       if (isNaN(d.getTime())) return date; // Return original if invalid date
       const month = String(d.getMonth() + 1).padStart(2, '0');
