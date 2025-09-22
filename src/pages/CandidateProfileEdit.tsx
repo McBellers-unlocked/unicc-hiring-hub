@@ -22,6 +22,7 @@ import ProfileCompletionWidget from "@/components/profile/ProfileCompletionWidge
 import PortfolioSection from "@/components/profile/PortfolioSection";
 import ProfileAnalyticsSection from "@/components/profile/ProfileAnalyticsSection";
 import JobRecommendationsSection from "@/components/profile/JobRecommendationsSection";
+import { countries } from "@/lib/countries";
 
 interface CandidateProfile {
   id: string;
@@ -40,7 +41,6 @@ interface CandidateProfile {
   years_of_experience?: number;
   current_position?: string;
   current_organization?: string;
-  linkedin_url?: string;
   willing_to_relocate: boolean;
   un_experience: boolean;
   un_organizations_worked: any;
@@ -126,6 +126,52 @@ export default function CandidateProfileEdit() {
 
     fetchProfile();
   }, [user, toast]);
+
+  // Calculate years of experience from work history
+  const calculateYearsOfExperience = () => {
+    if (!profile?.work_experience || profile.work_experience.length === 0) return 0;
+    
+    let totalMonths = 0;
+    
+    profile.work_experience.forEach((job: any) => {
+      if (job.from_year) {
+        const startYear = parseInt(job.from_year);
+        const startMonth = parseInt(job.from_month) || 1;
+        
+        let endYear, endMonth;
+        if (job.is_present) {
+          const now = new Date();
+          endYear = now.getFullYear();
+          endMonth = now.getMonth() + 1;
+        } else if (job.to_year) {
+          endYear = parseInt(job.to_year);
+          endMonth = parseInt(job.to_month) || 12;
+        } else {
+          return; // Skip invalid entries
+        }
+        
+        const startDate = new Date(startYear, startMonth - 1);
+        const endDate = new Date(endYear, endMonth - 1);
+        const monthDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
+        
+        if (monthDiff > 0) {
+          totalMonths += monthDiff;
+        }
+      }
+    });
+    
+    return Math.round(totalMonths / 12 * 10) / 10; // Round to 1 decimal place
+  };
+
+  // Auto-update years of experience when work experience changes
+  useEffect(() => {
+    if (profile) {
+      const calculatedYears = calculateYearsOfExperience();
+      if (calculatedYears !== profile.years_of_experience) {
+        setProfile({ ...profile, years_of_experience: calculatedYears });
+      }
+    }
+  }, [profile?.work_experience]);
 
   const calculateCompletionPercentage = () => {
     if (!profile) return 0;
@@ -370,19 +416,21 @@ export default function CandidateProfileEdit() {
                 </div>
                 <div>
                   <Label htmlFor="location">Current Location</Label>
-                  <Input
-                    id="location"
+                  <Select
                     value={profile.location || ""}
-                    onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="linkedin">LinkedIn URL</Label>
-                  <Input
-                    id="linkedin"
-                    value={profile.linkedin_url || ""}
-                    onChange={(e) => setProfile({ ...profile, linkedin_url: e.target.value })}
-                  />
+                    onValueChange={(value) => setProfile({ ...profile, location: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countries.map((country) => (
+                        <SelectItem key={country} value={country}>
+                          {country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label htmlFor="years_experience">Years of Experience</Label>
@@ -390,8 +438,13 @@ export default function CandidateProfileEdit() {
                     id="years_experience"
                     type="number"
                     value={profile.years_of_experience || ""}
-                    onChange={(e) => setProfile({ ...profile, years_of_experience: parseInt(e.target.value) || undefined })}
+                    disabled
+                    className="bg-muted"
+                    placeholder="Auto-calculated from work history"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Automatically calculated from your work experience entries
+                  </p>
                 </div>
               </div>
             </CardContent>
