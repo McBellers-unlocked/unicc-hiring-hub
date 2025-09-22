@@ -9,8 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Filter, User, FileText, Calendar, AlertCircle, Trash2, Eye } from 'lucide-react';
+import { Search, Filter, User, FileText, Calendar, AlertCircle, Trash2, Eye, ChevronDown, ChevronRight, GraduationCap, Briefcase, Languages, Plus, Check, X } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Application {
@@ -26,6 +28,12 @@ interface Application {
     email: string;
     location: string | null;
     gender: string | null;
+    education: any;
+    work_experience: any;
+    languages: any;
+    years_of_experience: number | null;
+    un_experience: boolean;
+    skills: any;
   };
   job: {
     id: string;
@@ -52,6 +60,11 @@ export default function AdminApplications() {
   const [selectedJobId, setSelectedJobId] = useState(searchParams.get('job') || '');
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [jobs, setJobs] = useState<any[]>([]);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [selectedApplications, setSelectedApplications] = useState<Set<string>>(new Set());
+  const [educationFilter, setEducationFilter] = useState('all');
+  const [experienceFilter, setExperienceFilter] = useState('all');
+  const [languageFilter, setLanguageFilter] = useState('all');
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
@@ -111,7 +124,7 @@ export default function AdminApplications() {
       if (jobError) throw jobError;
       setSelectedJob(jobData);
 
-      // Then get applications for this job
+      // Then get applications for this job with detailed candidate info
       const { data, error } = await supabase
         .from('applications')
         .select(`
@@ -121,7 +134,10 @@ export default function AdminApplications() {
           updated_at,
           suggested_for_longlist,
           phf_completed,
-          candidate:candidates(id, name, email, location, gender),
+          candidate:candidates(
+            id, name, email, location, gender, education, work_experience, 
+            languages, years_of_experience, un_experience, skills
+          ),
           job:jobs(id, title, org_unit),
           screening_scores(ai_score)
         `)
@@ -184,7 +200,37 @@ export default function AdminApplications() {
     }
   };
 
-  // Filter and sort applications
+  // Helper functions for data extraction
+  const getHighestEducation = (education: any) => {
+    if (!education) return 'Not specified';
+    const educationArray = Array.isArray(education) ? education : (education.length ? education : []);
+    if (educationArray.length === 0) return 'Not specified';
+    const degrees = educationArray.map((edu: any) => edu.degree || edu.degree_type || '');
+    const degreeHierarchy = ['PhD', 'Doctorate', 'Master', 'Bachelor', 'Associate', 'High School'];
+    for (const degree of degreeHierarchy) {
+      if (degrees.some((d: string) => d.toLowerCase().includes(degree.toLowerCase()))) {
+        return degree;
+      }
+    }
+    return degrees[0] || 'Not specified';
+  };
+
+  const getLanguageSummary = (languages: any) => {
+    if (!languages) return 'Not specified';
+    const unLangs = languages.un_languages || {};
+    const otherLangs = languages.other_languages || [];
+    const allLangs = [...Object.keys(unLangs), ...otherLangs.map((l: any) => l.language || '')];
+    return allLangs.slice(0, 3).join(', ') + (allLangs.length > 3 ? '...' : '');
+  };
+
+  const getExperienceSummary = (workExp: any, yearsExp: number | null) => {
+    const years = yearsExp || 0;
+    const workExpArray = Array.isArray(workExp) ? workExp : (workExp?.length ? workExp : []);
+    const currentRole = workExpArray?.[0]?.position || workExpArray?.[0]?.exact_title_of_post || '';
+    return `${years} years${currentRole ? ` • ${currentRole}` : ''}`;
+  };
+
+  // Enhanced filter and sort applications
   const filteredApplications = applications.filter(app => {
     const matchesSearch = app.candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          app.candidate.email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -194,8 +240,26 @@ export default function AdminApplications() {
     const matchesCompletion = completionFilter === 'all' || 
                              (completionFilter === 'completed' && app.phf_completed) ||
                              (completionFilter === 'incomplete' && !app.phf_completed);
+
+    // Education filter
+    const education = getHighestEducation(app.candidate.education);
+    const matchesEducation = educationFilter === 'all' || 
+                            education.toLowerCase().includes(educationFilter.toLowerCase());
+
+    // Experience filter
+    const yearsExp = app.candidate.years_of_experience || 0;
+    const matchesExperience = experienceFilter === 'all' ||
+                             (experienceFilter === '0-2' && yearsExp <= 2) ||
+                             (experienceFilter === '3-5' && yearsExp >= 3 && yearsExp <= 5) ||
+                             (experienceFilter === '6-10' && yearsExp >= 6 && yearsExp <= 10) ||
+                             (experienceFilter === '10+' && yearsExp > 10);
+
+    // Language filter (simplified - checks if specific language exists)
+    const languages = getLanguageSummary(app.candidate.languages);
+    const matchesLanguage = languageFilter === 'all' || 
+                           languages.toLowerCase().includes(languageFilter.toLowerCase());
     
-    return matchesSearch && matchesStatus && matchesCompletion;
+    return matchesSearch && matchesStatus && matchesCompletion && matchesEducation && matchesExperience && matchesLanguage;
   }).sort((a, b) => {
     switch (sortBy) {
       case 'name':
@@ -277,6 +341,86 @@ export default function AdminApplications() {
         {status}
       </Badge>
     );
+  };
+
+  const toggleRowExpansion = (applicationId: string) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(applicationId)) {
+      newExpanded.delete(applicationId);
+    } else {
+      newExpanded.add(applicationId);
+    }
+    setExpandedRows(newExpanded);
+  };
+
+  const toggleApplicationSelection = (applicationId: string) => {
+    const newSelected = new Set(selectedApplications);
+    if (newSelected.has(applicationId)) {
+      newSelected.delete(applicationId);
+    } else {
+      newSelected.add(applicationId);
+    }
+    setSelectedApplications(newSelected);
+  };
+
+  const toggleAllApplications = () => {
+    if (selectedApplications.size === filteredApplications.length) {
+      setSelectedApplications(new Set());
+    } else {
+      setSelectedApplications(new Set(filteredApplications.map(app => app.id)));
+    }
+  };
+
+  const addToLonglist = async (applicationIds: string[]) => {
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({ suggested_for_longlist: true })
+        .in('id', applicationIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${applicationIds.length} application(s) added to longlist`,
+      });
+
+      fetchApplications(selectedJobId);
+      setSelectedApplications(new Set());
+    } catch (error) {
+      console.error('Error adding to longlist:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add to longlist",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const removeFromLonglist = async (applicationIds: string[]) => {
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({ suggested_for_longlist: false })
+        .in('id', applicationIds);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${applicationIds.length} application(s) removed from longlist`,
+      });
+
+      fetchApplications(selectedJobId);
+      setSelectedApplications(new Set());
+    } catch (error) {
+      console.error('Error removing from longlist:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove from longlist",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -361,8 +505,8 @@ export default function AdminApplications() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {/* Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* Enhanced Filters */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4 mb-6">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input
@@ -392,9 +536,48 @@ export default function AdminApplications() {
                   </SelectContent>
                 </Select>
 
+                <Select value={educationFilter} onValueChange={setEducationFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Education" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Education</SelectItem>
+                    <SelectItem value="phd">PhD/Doctorate</SelectItem>
+                    <SelectItem value="master">Master's</SelectItem>
+                    <SelectItem value="bachelor">Bachelor's</SelectItem>
+                    <SelectItem value="associate">Associate</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={experienceFilter} onValueChange={setExperienceFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Experience" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Experience</SelectItem>
+                    <SelectItem value="0-2">0-2 years</SelectItem>
+                    <SelectItem value="3-5">3-5 years</SelectItem>
+                    <SelectItem value="6-10">6-10 years</SelectItem>
+                    <SelectItem value="10+">10+ years</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={languageFilter} onValueChange={setLanguageFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Languages" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Languages</SelectItem>
+                    <SelectItem value="english">English</SelectItem>
+                    <SelectItem value="french">French</SelectItem>
+                    <SelectItem value="spanish">Spanish</SelectItem>
+                    <SelectItem value="arabic">Arabic</SelectItem>
+                  </SelectContent>
+                </Select>
+
                 <Select value={completionFilter} onValueChange={setCompletionFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Completion" />
+                    <SelectValue placeholder="PHF Status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All</SelectItem>
@@ -416,86 +599,298 @@ export default function AdminApplications() {
                 </Select>
               </div>
 
-              {/* Table */}
+              {/* Bulk Actions */}
+              {selectedApplications.size > 0 && (
+                <Card className="mb-4">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        {selectedApplications.size} application(s) selected
+                      </span>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          onClick={() => addToLonglist(Array.from(selectedApplications))}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          Add to Longlist
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => removeFromLonglist(Array.from(selectedApplications))}
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Remove from Longlist
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Enhanced Table */}
               <div className="border rounded-lg">
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={selectedApplications.size === filteredApplications.length && filteredApplications.length > 0}
+                          onCheckedChange={toggleAllApplications}
+                        />
+                      </TableHead>
                       <TableHead>Candidate</TableHead>
+                      <TableHead>Education</TableHead>
+                      <TableHead>Experience</TableHead>
+                      <TableHead>Languages</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>PHF Status</TableHead>
+                      <TableHead>Longlist</TableHead>
                       <TableHead>AI Score</TableHead>
-                      <TableHead>Submitted</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8">
+                        <TableCell colSpan={9} className="text-center py-8">
                           Loading applications...
                         </TableCell>
                       </TableRow>
                     ) : filteredApplications.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                           No applications found
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredApplications.map((application) => (
-                        <TableRow key={application.id}>
-                          <TableCell>
-                            <div className="flex items-center space-x-3">
-                              <User className="w-4 h-4 text-muted-foreground" />
-                              <div>
-                                <div className="font-medium">{application.candidate.name}</div>
-                                <div className="text-sm text-muted-foreground">{application.candidate.email}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {application.candidate.location || 'Location not specified'}
+                        <>
+                          <TableRow key={application.id} className="hover:bg-muted/50">
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedApplications.has(application.id)}
+                                onCheckedChange={() => toggleApplicationSelection(application.id)}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                  <User className="w-4 h-4 text-muted-foreground" />
+                                  <div>
+                                    <div className="font-medium">{application.candidate.name}</div>
+                                    <div className="text-sm text-muted-foreground">{application.candidate.email}</div>
+                                    {application.candidate.location && (
+                                      <div className="text-sm text-muted-foreground">{application.candidate.location}</div>
+                                    )}
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toggleRowExpansion(application.id)}
+                                >
+                                  {expandedRows.has(application.id) ? 
+                                    <ChevronDown className="w-4 h-4" /> : 
+                                    <ChevronRight className="w-4 h-4" />
+                                  }
+                                </Button>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <GraduationCap className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm">{getHighestEducation(application.candidate.education)}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Briefcase className="w-4 h-4 text-muted-foreground" />
+                                <div className="text-sm">
+                                  {getExperienceSummary(application.candidate.work_experience, application.candidate.years_of_experience)}
+                                  {application.candidate.un_experience && (
+                                    <Badge variant="outline" className="ml-2 text-xs">UN</Badge>
+                                  )}
                                 </div>
                               </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {getStatusBadge(application.status)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={application.phf_completed ? "default" : "secondary"}>
-                              {application.phf_completed ? "Completed" : "In Progress"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {getScoreBadge(application)}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <Calendar className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-sm">
-                                {format(new Date(application.submitted_at), 'MMM dd, yyyy')}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Languages className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm">{getLanguageSummary(application.candidate.languages)}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {getStatusBadge(application.status)}
+                            </TableCell>
+                            <TableCell>
                               <Button
-                                variant="ghost"
                                 size="sm"
-                                onClick={() => navigate(`/admin/applications/${application.id}`)}
+                                variant={application.suggested_for_longlist ? "default" : "outline"}
+                                onClick={() => application.suggested_for_longlist ? 
+                                  removeFromLonglist([application.id]) : 
+                                  addToLonglist([application.id])
+                                }
                               >
-                                <Eye className="w-4 h-4" />
+                                {application.suggested_for_longlist ? (
+                                  <>
+                                    <Check className="w-4 h-4 mr-1" />
+                                    In Longlist
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plus className="w-4 h-4 mr-1" />
+                                    Add to Longlist
+                                  </>
+                                )}
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => deleteApplication(application.id, application.candidate.id, e)}
-                                className="hover:bg-destructive hover:text-destructive-foreground"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
+                            </TableCell>
+                            <TableCell>
+                              {getScoreBadge(application)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => navigate(`/application/${application.id}`)}
+                                >
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  View
+                                </Button>
+                                {(userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={(e) => deleteApplication(application.id, application.candidate.id, e)}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                          
+                          {/* Expanded Row Details */}
+                          {expandedRows.has(application.id) && (
+                            <TableRow key={`${application.id}-details`}>
+                              <TableCell colSpan={9} className="bg-muted/20 p-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                  {/* Education Details */}
+                                  <Card>
+                                    <CardHeader className="pb-3">
+                                      <CardTitle className="text-sm flex items-center">
+                                        <GraduationCap className="w-4 h-4 mr-2" />
+                                        Education History
+                                      </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3">
+                                      {(() => {
+                                        const educationArray = Array.isArray(application.candidate.education) ? 
+                                          application.candidate.education : 
+                                          (application.candidate.education?.length ? application.candidate.education : []);
+                                        return educationArray.length > 0 ? (
+                                          educationArray.slice(0, 3).map((edu: any, index: number) => (
+                                            <div key={index} className="border-l-2 border-muted pl-3">
+                                              <div className="font-medium text-sm">{edu.degree || edu.degree_type}</div>
+                                              <div className="text-sm text-muted-foreground">{edu.institution || edu.institution_name}</div>
+                                              <div className="text-xs text-muted-foreground">
+                                                {edu.startDate || `${edu.from_year}`}
+                                              </div>
+                                            </div>
+                                          ))
+                                        ) : (
+                                          <div className="text-sm text-muted-foreground">No education data</div>
+                                        );
+                                      })()}
+                                    </CardContent>
+                                  </Card>
+
+                                  {/* Work Experience Details */}
+                                  <Card>
+                                    <CardHeader className="pb-3">
+                                      <CardTitle className="text-sm flex items-center">
+                                        <Briefcase className="w-4 h-4 mr-2" />
+                                        Work Experience
+                                      </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3">
+                                      {(() => {
+                                        const workExpArray = Array.isArray(application.candidate.work_experience) ? 
+                                          application.candidate.work_experience : 
+                                          (application.candidate.work_experience?.length ? application.candidate.work_experience : []);
+                                        return workExpArray.length > 0 ? (
+                                          workExpArray.slice(0, 3).map((exp: any, index: number) => (
+                                            <div key={index} className="border-l-2 border-muted pl-3">
+                                              <div className="font-medium text-sm">{exp.position || exp.exact_title_of_post}</div>
+                                              <div className="text-sm text-muted-foreground">{exp.company || exp.employer_name}</div>
+                                              <div className="text-xs text-muted-foreground">
+                                                {exp.startDate || `${exp.period_from_year}`}
+                                                {exp.isUNExperience && <Badge variant="outline" className="ml-2 text-xs">UN</Badge>}
+                                              </div>
+                                            </div>
+                                          ))
+                                        ) : (
+                                          <div className="text-sm text-muted-foreground">No work experience data</div>
+                                        );
+                                      })()}
+                                    </CardContent>
+                                  </Card>
+
+                                  {/* Languages & Skills */}
+                                  <Card>
+                                    <CardHeader className="pb-3">
+                                      <CardTitle className="text-sm flex items-center">
+                                        <Languages className="w-4 h-4 mr-2" />
+                                        Languages & Skills
+                                      </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3">
+                                      <div>
+                                        <div className="font-medium text-sm mb-2">Languages</div>
+                                        <div className="flex flex-wrap gap-1">
+                                          {application.candidate.languages?.un_languages && 
+                                            Object.entries(application.candidate.languages.un_languages).map(([lang, level]: [string, any]) => (
+                                              <Badge key={lang} variant="outline" className="text-xs">
+                                                {lang}: {level}
+                                              </Badge>
+                                            ))
+                                          }
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <div className="font-medium text-sm mb-2">Skills</div>
+                                        <div className="flex flex-wrap gap-1">
+                                          {(() => {
+                                            const skillsArray = Array.isArray(application.candidate.skills) ? 
+                                              application.candidate.skills : 
+                                              (application.candidate.skills?.length ? application.candidate.skills : []);
+                                            return skillsArray.slice(0, 5).map((skill: any, index: number) => (
+                                              <Badge key={index} variant="secondary" className="text-xs">
+                                                {typeof skill === 'string' ? skill : skill.name || skill}
+                                              </Badge>
+                                            ));
+                                          })()}
+                                        </div>
+                                      </div>
+                                      <div className="text-sm">
+                                        <span className="font-medium">PHF Status:</span>{' '}
+                                        <span className={application.phf_completed ? "text-green-600" : "text-yellow-600"}>
+                                          {application.phf_completed ? "Complete" : "In Progress"}
+                                        </span>
+                                      </div>
+                                      <div className="text-sm">
+                                        <span className="font-medium">Submitted:</span>{' '}
+                                        {format(new Date(application.submitted_at), 'MMM dd, yyyy HH:mm')}
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </>
                       ))
                     )}
                   </TableBody>
