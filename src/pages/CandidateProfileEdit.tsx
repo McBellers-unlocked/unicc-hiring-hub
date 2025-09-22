@@ -115,10 +115,17 @@ export default function CandidateProfileEdit() {
         if (error && error.code !== 'PGRST116') throw error;
 
         if (data) {
+          console.log('Loaded data from database:', { 
+            work_experience: data.work_experience, 
+            phf_work_experience: data.phf_work_experience 
+          });
+          
           // Convert PHF work experience to simple format for the UI
           const workExperience = data.phf_work_experience && Array.isArray(data.phf_work_experience) && data.phf_work_experience.length > 0
             ? convertPHFToWorkExperience(data.phf_work_experience)
             : Array.isArray(data.work_experience) ? data.work_experience : [];
+
+          console.log('Final work experience for UI:', workExperience);
 
           setProfile({
             ...data,
@@ -301,12 +308,15 @@ export default function CandidateProfileEdit() {
 
     setSaving(true);
     try {
+      console.log('Saving profile with work experience:', profile.work_experience);
       const completionPercentage = calculateCompletionPercentage();
       
       // Convert work experience to PHF format for storage
       const phfWorkExperience = profile.work_experience && Array.isArray(profile.work_experience) 
         ? convertWorkExperienceToPHF(profile.work_experience)
         : [];
+      
+      console.log('Converted to PHF format:', phfWorkExperience);
       
       const { error } = await supabase
         .from("candidates")
@@ -325,11 +335,13 @@ export default function CandidateProfileEdit() {
 
       if (error) throw error;
 
+      console.log("Profile saved successfully, reloading to verify...");
       toast({
         title: "Success",
         description: "Profile updated successfully",
       });
 
+      
       navigate(`/candidate-profile/${profile.id}`);
     } catch (error) {
       console.error("Error saving profile:", error);
