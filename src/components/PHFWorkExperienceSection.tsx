@@ -20,6 +20,8 @@ interface PHFWorkExperienceSectionProps {
 }
 
 export default function PHFWorkExperienceSection({ profileWorkExperience }: PHFWorkExperienceSectionProps) {
+  // Debug: Log the data to check what's being passed
+  console.log('PHFWorkExperienceSection - profileWorkExperience:', profileWorkExperience);
   const formatDateRange = (startDate: string, endDate?: string, isCurrent?: boolean) => {
     const formatDate = (date: string) => {
       if (!date) return '';
@@ -61,8 +63,6 @@ export default function PHFWorkExperienceSection({ profileWorkExperience }: PHFW
             {profileWorkExperience.map((experience, index) => (
               <div key={index} className="border rounded-lg p-4 bg-card">
                 <div className="space-y-2">
-                  <div className="flex justify-between items-start">
-                <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <h4 className="font-medium text-lg">
                       {experience.position}
@@ -82,8 +82,6 @@ export default function PHFWorkExperienceSection({ profileWorkExperience }: PHFW
                         <span>{experience.location}</span>
                       </>
                     )}
-                  </div>
-                </div>
                   </div>
                   {experience.description && (
                     <p className="text-sm text-muted-foreground mt-2">
