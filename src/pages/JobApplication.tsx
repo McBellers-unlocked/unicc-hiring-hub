@@ -201,8 +201,8 @@ export default function JobApplication() {
         if (existingApplication.phf_completed) {
           setCurrentStep('success');
         }
-      } else if (!savedProgress && candidate) {
-        // No saved progress or existing application - pre-populate from candidate profile
+      } else if (candidate) {
+        // No existing application - pre-populate from candidate profile
         const prefilledData = {
           personalDetails: {
             familyName: candidate.name?.split(' ').pop() || '',
@@ -233,46 +233,58 @@ export default function JobApplication() {
             notice_period: '',
           },
           languages: Array.isArray(candidate.languages) ? candidate.languages : [],
-          education: Array.isArray(candidate.education) ? candidate.education.map((edu: any) => ({
-            from_month: edu.from_month || '',
-            from_year: edu.from_year || '',
-            to_month: edu.to_month || '',
-            to_year: edu.to_year || '',
-            is_present: edu.is_present || false,
-            institution_name: edu.institution_name || '',
-            institution_place: edu.institution_place || '',
-            institution_country: edu.institution_country || '',
-            degree_type: edu.degree_type || 'Bachelor\'s Degree',
-            degree_or_certificate_title: edu.degree_or_certificate_title || '',
-            main_course_of_study: edu.main_course_of_study || '',
-            is_completed: edu.is_completed !== false,
-            certificate_url: edu.certificate_url || '',
-          })) : [],
-          employment: Array.isArray(candidate.work_experience) ? candidate.work_experience.map((work: any) => ({
-            period_from_month: work.from_month || '',
-            period_from_year: work.from_year || '',
-            period_to_month: work.to_month || '',
-            period_to_year: work.to_year || '',
-            is_present: work.is_present || false,
-            exact_title_of_post: work.position || '',
-            type_of_business: work.company_type || '',
-            is_un_system_post: false,
-            un_grade: '',
-            annual_income_starting: 0,
-            annual_income_most_recent: 0,
-            allowances_or_benefits: '',
-            employees_supervised_number: 0,
-            employees_supervised_type: '',
-            employer_name: work.company || '',
-            employer_address: work.company_location || '',
-            supervisor_name: work.supervisor_name || '',
-            supervisor_title: work.supervisor_title || '',
-            supervisor_phone: work.supervisor_phone || '',
-            supervisor_email: work.supervisor_email || '',
-            reason_for_change: work.reason_for_leaving || '',
-            duties_and_responsibilities: work.description || '',
-            attestations: [],
-          })) : [],
+          education: Array.isArray(candidate.education) ? candidate.education.map((edu: any) => {
+            // Parse startDate and endDate if they exist
+            const startDate = edu.startDate ? new Date(edu.startDate) : null;
+            const endDate = edu.endDate ? new Date(edu.endDate) : null;
+            
+            return {
+              from_month: startDate ? String(startDate.getMonth() + 1).padStart(2, '0') : '',
+              from_year: startDate ? String(startDate.getFullYear()) : '',
+              to_month: endDate ? String(endDate.getMonth() + 1).padStart(2, '0') : '',
+              to_year: endDate ? String(endDate.getFullYear()) : '',
+              is_present: !edu.endDate || edu.endDate === '',
+              institution_name: edu.institution || '',
+              institution_place: '',
+              institution_country: '',
+              degree_type: edu.degree || 'Bachelor\'s Degree',
+              degree_or_certificate_title: edu.field || '',
+              main_course_of_study: edu.field || '',
+              is_completed: edu.grade ? true : false,
+              certificate_url: '',
+            };
+          }) : [],
+          employment: Array.isArray(candidate.work_experience) ? candidate.work_experience.map((work: any) => {
+            // Parse startDate and endDate if they exist
+            const startDate = work.startDate ? new Date(work.startDate) : null;
+            const endDate = work.endDate ? new Date(work.endDate) : null;
+            
+            return {
+              period_from_month: startDate ? String(startDate.getMonth() + 1).padStart(2, '0') : '',
+              period_from_year: startDate ? String(startDate.getFullYear()) : '',
+              period_to_month: endDate ? String(endDate.getMonth() + 1).padStart(2, '0') : '',
+              period_to_year: endDate ? String(endDate.getFullYear()) : '',
+              is_present: work.isCurrent || !work.endDate || work.endDate === '',
+              exact_title_of_post: work.position || '',
+              type_of_business: work.type || '',
+              is_un_system_post: work.isUNExperience || false,
+              un_grade: '',
+              annual_income_starting: 0,
+              annual_income_most_recent: 0,
+              allowances_or_benefits: '',
+              employees_supervised_number: 0,
+              employees_supervised_type: '',
+              employer_name: work.company || '',
+              employer_address: work.location || '',
+              supervisor_name: '',
+              supervisor_title: '',
+              supervisor_phone: '',
+              supervisor_email: '',
+              reason_for_change: '',
+              duties_and_responsibilities: work.description || '',
+              attestations: [],
+            };
+          }) : [],
           additionalInformation: {
             additional_skills: Array.isArray(candidate.skills) ? candidate.skills.join(', ') : '',
             fellowships: [],
