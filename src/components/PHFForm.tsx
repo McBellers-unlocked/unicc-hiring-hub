@@ -299,6 +299,7 @@ I confirm that I have read and agree to the Privacy Notice for Applicants and un
 export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = [], killerAnswers = {}, onKillerAnswerChange, disqualified = false, completedTabs = new Set([0]), onTabCompleted, initialTab = 0, candidateProfile }: PHFFormProps) {
   const [currentSection, setCurrentSection] = useState(initialTab);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editedWorkExperiences, setEditedWorkExperiences] = useState<any[]>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const { toast } = useToast();
@@ -1399,9 +1400,25 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     </div>
   );
 
+  const handleAddWorkExperience = (experience: any) => {
+    const newExperiences = [...(editedWorkExperiences.length > 0 ? editedWorkExperiences : candidateProfile?.work_experience || []), experience];
+    setEditedWorkExperiences(newExperiences);
+  };
+
+  const handleEditWorkExperience = (index: number, experience: any) => {
+    const experiences = editedWorkExperiences.length > 0 ? [...editedWorkExperiences] : [...(candidateProfile?.work_experience || [])];
+    experiences[index] = experience;
+    setEditedWorkExperiences(experiences);
+  };
+
   const renderEmploymentRecord = () => (
     <div className="space-y-6">
-      <PHFWorkExperienceSection profileWorkExperience={candidateProfile?.work_experience || []} />
+      <PHFWorkExperienceSection 
+        profileWorkExperience={candidateProfile?.work_experience || []} 
+        onAddExperience={handleAddWorkExperience}
+        onEditExperience={handleEditWorkExperience}
+        editedExperiences={editedWorkExperiences.length > 0 ? editedWorkExperiences : undefined}
+      />
     </div>
   );
 

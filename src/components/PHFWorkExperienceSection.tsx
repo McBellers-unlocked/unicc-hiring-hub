@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Briefcase, Info, Plus, Calendar } from 'lucide-react';
+import { Briefcase, Info, Plus, Calendar, Edit2 } from 'lucide-react';
 
 interface WorkExperienceEntry {
   position: string;
@@ -23,14 +23,35 @@ interface WorkExperienceEntry {
 
 interface PHFWorkExperienceSectionProps {
   profileWorkExperience: WorkExperienceEntry[];
+  onAddExperience?: (experience: WorkExperienceEntry) => void;
+  onEditExperience?: (index: number, experience: WorkExperienceEntry) => void;
+  editedExperiences?: WorkExperienceEntry[];
 }
 
-export default function PHFWorkExperienceSection({ profileWorkExperience }: PHFWorkExperienceSectionProps) {
+export default function PHFWorkExperienceSection({ 
+  profileWorkExperience, 
+  onAddExperience, 
+  onEditExperience,
+  editedExperiences 
+}: PHFWorkExperienceSectionProps) {
   // Debug: Log the data to check what's being passed
   console.log('PHFWorkExperienceSection - profileWorkExperience:', profileWorkExperience);
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [newExperience, setNewExperience] = useState({
+    company: '',
+    position: '',
+    employmentType: 'Full-time',
+    location: '',
+    startDate: '',
+    endDate: '',
+    isCurrent: false,
+    isUNExperience: false,
+    description: ''
+  });
+  const [editingExperience, setEditingExperience] = useState({
     company: '',
     position: '',
     employmentType: 'Full-time',
@@ -58,8 +79,18 @@ export default function PHFWorkExperienceSection({ profileWorkExperience }: PHFW
   };
 
   const handleAddExperience = () => {
-    // This would typically call a parent function to add the experience
-    console.log('Adding new experience:', newExperience);
+    if (onAddExperience) {
+      onAddExperience({
+        position: newExperience.position,
+        company: newExperience.company,
+        startDate: newExperience.startDate,
+        endDate: newExperience.endDate,
+        location: newExperience.location,
+        isCurrent: newExperience.isCurrent,
+        isUNExperience: newExperience.isUNExperience,
+        description: newExperience.description
+      });
+    }
     setIsAddDialogOpen(false);
     // Reset form
     setNewExperience({
@@ -74,6 +105,43 @@ export default function PHFWorkExperienceSection({ profileWorkExperience }: PHFW
       description: ''
     });
   };
+
+  const handleEditExperience = (index: number) => {
+    const experienceToEdit = (editedExperiences && editedExperiences[index]) || profileWorkExperience[index];
+    setEditingIndex(index);
+    setEditingExperience({
+      company: experienceToEdit.company,
+      position: experienceToEdit.position,
+      employmentType: 'Full-time', // Default since this isn't stored in the original data
+      location: experienceToEdit.location || '',
+      startDate: experienceToEdit.startDate,
+      endDate: experienceToEdit.endDate || '',
+      isCurrent: experienceToEdit.isCurrent || false,
+      isUNExperience: experienceToEdit.isUNExperience || false,
+      description: experienceToEdit.description || ''
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (onEditExperience && editingIndex !== null) {
+      onEditExperience(editingIndex, {
+        position: editingExperience.position,
+        company: editingExperience.company,
+        startDate: editingExperience.startDate,
+        endDate: editingExperience.endDate,
+        location: editingExperience.location,
+        isCurrent: editingExperience.isCurrent,
+        isUNExperience: editingExperience.isUNExperience,
+        description: editingExperience.description
+      });
+    }
+    setIsEditDialogOpen(false);
+    setEditingIndex(null);
+  };
+
+  // Use edited experiences if available, otherwise use profile work experience
+  const displayExperiences = editedExperiences || profileWorkExperience;
 
   return (
     <Card>
@@ -95,9 +163,9 @@ export default function PHFWorkExperienceSection({ profileWorkExperience }: PHFW
         </div>
 
         {/* Work Experience Entries */}
-        {profileWorkExperience && profileWorkExperience.length > 0 ? (
+        {displayExperiences && displayExperiences.length > 0 ? (
           <div className="space-y-3">
-            {profileWorkExperience.map((experience, index) => (
+            {displayExperiences.map((experience, index) => (
               <div key={index} className="border rounded-lg p-4 bg-card">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1 flex-1">
@@ -122,6 +190,14 @@ export default function PHFWorkExperienceSection({ profileWorkExperience }: PHFW
                       )}
                     </div>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditExperience(index)}
+                    className="ml-2 h-8 w-8 p-0"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
                 </div>
                 {experience.description && (
                   <p className="text-sm text-muted-foreground mt-2">
@@ -272,6 +348,138 @@ export default function PHFWorkExperienceSection({ profileWorkExperience }: PHFW
                     <Button onClick={handleAddExperience} className="bg-blue-600 hover:bg-blue-700 text-white">
                       <Plus className="h-4 w-4 mr-2" />
                       Add Work Experience
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Edit Experience Dialog */}
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Edit Work Experience</DialogTitle>
+                </DialogHeader>
+                
+                <div className="space-y-6 py-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-company">Company/Organization *</Label>
+                      <Input
+                        id="edit-company"
+                        placeholder="Company name"
+                        value={editingExperience.company}
+                        onChange={(e) => setEditingExperience(prev => ({ ...prev, company: e.target.value }))}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-position">Position Title *</Label>
+                      <Input
+                        id="edit-position"
+                        placeholder="Your role"
+                        value={editingExperience.position}
+                        onChange={(e) => setEditingExperience(prev => ({ ...prev, position: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-employmentType">Employment Type</Label>
+                      <Select 
+                        value={editingExperience.employmentType} 
+                        onValueChange={(value) => setEditingExperience(prev => ({ ...prev, employmentType: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Full-time">Full-time</SelectItem>
+                          <SelectItem value="Part-time">Part-time</SelectItem>
+                          <SelectItem value="Contract">Contract</SelectItem>
+                          <SelectItem value="Freelance">Freelance</SelectItem>
+                          <SelectItem value="Internship">Internship</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-location">Location</Label>
+                      <Input
+                        id="edit-location"
+                        placeholder="City, Country"
+                        value={editingExperience.location}
+                        onChange={(e) => setEditingExperience(prev => ({ ...prev, location: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-startDate">Start Date</Label>
+                      <Input
+                        id="edit-startDate"
+                        type="month"
+                        value={editingExperience.startDate}
+                        onChange={(e) => setEditingExperience(prev => ({ ...prev, startDate: e.target.value }))}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-endDate">End Date</Label>
+                      <Input
+                        id="edit-endDate"
+                        type="month"
+                        value={editingExperience.endDate}
+                        onChange={(e) => setEditingExperience(prev => ({ ...prev, endDate: e.target.value }))}
+                        disabled={editingExperience.isCurrent}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-isCurrent"
+                        checked={editingExperience.isCurrent}
+                        onCheckedChange={(checked) => setEditingExperience(prev => ({ 
+                          ...prev, 
+                          isCurrent: checked as boolean,
+                          endDate: checked ? '' : prev.endDate
+                        }))}
+                      />
+                      <Label htmlFor="edit-isCurrent">I currently work here</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-isUNExperience"
+                        checked={editingExperience.isUNExperience}
+                        onCheckedChange={(checked) => setEditingExperience(prev => ({ ...prev, isUNExperience: checked as boolean }))}
+                      />
+                      <Label htmlFor="edit-isUNExperience">This is UN system experience</Label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-description">Description</Label>
+                    <Textarea
+                      id="edit-description"
+                      placeholder="Describe your responsibilities and achievements..."
+                      rows={4}
+                      value={editingExperience.description}
+                      onChange={(e) => setEditingExperience(prev => ({ ...prev, description: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSaveEdit} className="bg-blue-600 hover:bg-blue-700 text-white">
+                      <Edit2 className="h-4 w-4 mr-2" />
+                      Save Changes
                     </Button>
                   </div>
                 </div>
