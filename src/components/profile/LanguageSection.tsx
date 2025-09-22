@@ -37,7 +37,11 @@ export default function LanguageSection({ languages, onChange }: LanguageSection
   const [newLanguage, setNewLanguage] = useState({ language: "", proficiency: "" });
 
   const updateUNLanguage = (langCode: string, proficiency: string) => {
-    const updated = { ...languages };
+    const updated = { 
+      ...languages,
+      un_languages: languages?.un_languages || {},
+      other_languages: languages?.other_languages || []
+    };
     if (proficiency === "") {
       delete updated.un_languages[langCode];
     } else {
@@ -50,7 +54,8 @@ export default function LanguageSection({ languages, onChange }: LanguageSection
     if (newLanguage.language && newLanguage.proficiency) {
       const updated = { 
         ...languages,
-        other_languages: [...languages.other_languages, newLanguage]
+        un_languages: languages?.un_languages || {},
+        other_languages: [...(languages?.other_languages || []), newLanguage]
       };
       onChange(updated);
       setNewLanguage({ language: "", proficiency: "" });
@@ -60,7 +65,8 @@ export default function LanguageSection({ languages, onChange }: LanguageSection
   const removeOtherLanguage = (index: number) => {
     const updated = {
       ...languages,
-      other_languages: languages.other_languages.filter((_, i) => i !== index)
+      un_languages: languages?.un_languages || {},
+      other_languages: (languages?.other_languages || []).filter((_, i) => i !== index)
     };
     onChange(updated);
   };
@@ -82,7 +88,7 @@ export default function LanguageSection({ languages, onChange }: LanguageSection
               <div key={lang.code} className="space-y-2">
                 <Label>{lang.name}</Label>
                 <Select
-                  value={languages.un_languages[lang.code] || ""}
+                  value={languages?.un_languages?.[lang.code] || ""}
                   onValueChange={(value) => updateUNLanguage(lang.code, value)}
                 >
                   <SelectTrigger>
@@ -108,7 +114,7 @@ export default function LanguageSection({ languages, onChange }: LanguageSection
           
           {/* Current Other Languages */}
           <div className="space-y-2 mb-4">
-            {languages.other_languages.map((lang, index) => (
+            {(languages?.other_languages || []).map((lang, index) => (
               <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                 <div>
                   <span className="font-medium">{lang.language}</span>
