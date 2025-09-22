@@ -3057,12 +3057,19 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                 </Button>
               ) : (
                 <Button 
-                  type="submit" 
+                  type="button"
                   disabled={isSubmitting}
                   onClick={(e) => {
+                    console.log('=== BUTTON CLICKED ===');
+                    alert('Button clicked! Check console for details.');
                     console.log('Submit button clicked!');
                     console.log('Form values:', form.getValues());
                     console.log('Form errors:', form.formState.errors);
+                    
+                    // Manually trigger form submission
+                    const formData = form.getValues();
+                    console.log('About to call handleSubmit manually...');
+                    handleSubmit(formData);
                   }}
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit PHF'}
