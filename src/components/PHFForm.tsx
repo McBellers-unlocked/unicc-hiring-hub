@@ -601,10 +601,22 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
   });
 
   const handleSubmit = async (data: PHFFormData) => {
+    console.log('handleSubmit called with data:', data);
     setIsSubmitting(true);
     try {
       // Validate mandatory fields before submission
       const mandatoryErrors = [];
+      
+      console.log('Checking mandatory fields...');
+      console.log('Family Name:', data.personalDetails.familyName);
+      console.log('First Names:', data.personalDetails.firstNames);
+      console.log('Email:', data.personalDetails.email);
+      console.log('Phone:', data.personalDetails.telephone);
+      console.log('Present Address:', data.personalDetails.presentAddress);
+      console.log('Education length:', data.education.length);
+      console.log('Employment length:', data.employment.length);
+      console.log('Motivation letter:', data.motivationLetter.motivation_letter_content);
+      console.log('Certification checkbox:', data.certification.certify_true_complete_correct);
       
       if (!data.personalDetails.familyName) mandatoryErrors.push("Family Name");
       if (!data.personalDetails.firstNames) mandatoryErrors.push("First Names");
@@ -616,7 +628,10 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
       if (!data.motivationLetter.motivation_letter_content) mandatoryErrors.push("Motivation Letter");
       if (!data.certification.certify_true_complete_correct) mandatoryErrors.push("Certification checkbox");
       
+      console.log('Mandatory errors:', mandatoryErrors);
+      
       if (mandatoryErrors.length > 0) {
+        console.log('Validation failed, showing error toast');
         toast({
           title: 'Missing Required Fields',
           description: `Please complete: ${mandatoryErrors.join(', ')}`,
@@ -626,12 +641,14 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         return;
       }
       
+      console.log('Validation passed, calling onSave...');
       await onSave(data, true);
       toast({
         title: 'PHF Submitted',
         description: 'Your Personal History Form has been submitted successfully.',
       });
     } catch (error) {
+      console.error('Submission error:', error);
       toast({
         title: 'Submission Failed',
         description: 'There was an error submitting your PHF. Please try again.',
