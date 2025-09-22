@@ -291,7 +291,7 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                 control={form.control}
                 name="date_of_birth"
                 render={({ field }) => (
-                  <FormItem className="space-y-3">
+                  <FormItem>
                     <FormLabel>Date of Birth</FormLabel>
                     <FormControl>
                       <CustomDatePicker
