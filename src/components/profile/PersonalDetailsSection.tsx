@@ -42,9 +42,9 @@ const personalDetailsSchema = z.object({
   permanent_country: z.string().optional(),
   us_green_card: z.boolean(),
   us_green_card_details: z.string().optional(),
-  // Privacy settings
-  email_public: z.boolean(),
-  phone_public: z.boolean(),
+  // Privacy settings - optional with defaults
+  email_public: z.boolean().optional(),
+  phone_public: z.boolean().optional(),
 });
 
 type PersonalDetailsFormData = z.infer<typeof personalDetailsSchema>;
@@ -69,6 +69,8 @@ interface PersonalDetailsSectionProps {
     permanent_address_line2?: string;
     permanent_city?: string;
     permanent_country?: string;
+    email_public?: boolean;
+    phone_public?: boolean;
   }>;
   onUpdate?: (data: PersonalDetailsFormData) => void;
 }
@@ -109,8 +111,9 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
       permanent_country: initialData?.permanent_country || '',
       us_green_card: initialData?.us_green_card || false,
       us_green_card_details: initialData?.us_green_card_details || '',
-      email_public: false,
-      phone_public: false,
+      // Set default values for privacy settings
+      email_public: initialData?.email_public || false,
+      phone_public: initialData?.phone_public || false,
     },
   });
 
@@ -146,6 +149,9 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
           permanent_country: data.permanent_country || null,
           us_green_card: data.us_green_card,
           us_green_card_details: data.us_green_card_details || null,
+          // Save privacy settings
+          email_public: data.email_public || false,
+          phone_public: data.phone_public || false,
         })
         .eq('id', candidateId);
 
