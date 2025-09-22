@@ -8,8 +8,8 @@ import { Languages, Plus, X } from "lucide-react";
 import { useState } from "react";
 
 interface LanguageData {
-  un_languages: Record<string, string>;
-  other_languages: Array<{ language: string; proficiency: string }>;
+  un_languages?: Record<string, string>;
+  other_languages?: Array<{ language?: string; proficiency?: string }>;
 }
 
 interface PHFLanguageSectionProps {
@@ -55,7 +55,10 @@ export default function PHFLanguageSection({ languages, onChange }: PHFLanguageS
       const updated = { 
         ...languages,
         un_languages: languages?.un_languages || {},
-        other_languages: [...(languages?.other_languages || []), newLanguage]
+        other_languages: [...(languages?.other_languages || []), { 
+          language: newLanguage.language, 
+          proficiency: newLanguage.proficiency 
+        }]
       };
       onChange(updated);
       setNewLanguage({ language: "", proficiency: "" });

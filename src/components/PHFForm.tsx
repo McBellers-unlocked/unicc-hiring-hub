@@ -23,6 +23,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import MDEditor from '@uiw/react-md-editor';
+import PHFLanguageSection from './PHFLanguageSection';
 
 // Complete schema for UNICC PHF requirements
 const phfSchema = z.object({
@@ -73,13 +74,14 @@ const phfSchema = z.object({
     notice_period: z.string().optional(),
   }),
 
-  // Language Knowledge
-  languages: z.array(z.object({
-    language: z.string().min(1, 'Language is required'),
-    speaking: z.string().min(1, 'Speaking level is required'),
-    reading: z.string().min(1, 'Reading level is required'),
-    writing: z.string().min(1, 'Writing level is required'),
-  })),
+  // Language Proficiency
+  languages: z.object({
+    un_languages: z.record(z.string()).optional(),
+    other_languages: z.array(z.object({
+      language: z.string(),
+      proficiency: z.string()
+    })).optional()
+  }),
 
   // Education
   education: z.array(z.object({
@@ -235,7 +237,7 @@ const SECTIONS = [
   'Personal Details',
   'Dependants & Relatives',
   'Work Preferences', 
-  'Language Knowledge',
+  'Language Proficiency',
   'Education',
   'Employment Record', 
   'Additional Information',
@@ -340,7 +342,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         contract_type_preference: initialData?.workPreferences?.contract_type_preference || '',
         notice_period: initialData?.workPreferences?.notice_period || '',
       },
-      languages: initialData?.languages || [],
+      languages: initialData?.languages || { un_languages: {}, other_languages: [] },
       education: initialData?.education || [],
       employment: initialData?.employment || [],
       unemploymentPeriods: initialData?.unemploymentPeriods || [],
@@ -406,10 +408,6 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     name: 'relatives',
   });
 
-  const { fields: languageFields, append: appendLanguage, remove: removeLanguage } = useFieldArray({
-    control: form.control,
-    name: 'languages',
-  });
 
   const { fields: educationFields, append: appendEducation, remove: removeEducation } = useFieldArray({
     control: form.control,
@@ -1369,126 +1367,28 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     </div>
   );
 
-  // Language Knowledge Section
-  const renderLanguageKnowledge = () => (
-    <div className="space-y-4">
-      <FormDescription>
-        Rate your proficiency in each language: Elementary, Intermediate, Advanced, Expert
-      </FormDescription>
-      
-      {languageFields.map((field, index) => (
-        <Card key={field.id} className="mb-4">
-          <CardContent className="pt-6">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="font-medium">Language {index + 1}</h4>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => removeLanguage(index)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <FormField
-                control={form.control}
-                name={`languages.${index}.language`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Language *</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="e.g., English, French" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name={`languages.${index}.speaking`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Speaking *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Level" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Elementary">Elementary</SelectItem>
-                        <SelectItem value="Intermediate">Intermediate</SelectItem>
-                        <SelectItem value="Advanced">Advanced</SelectItem>
-                        <SelectItem value="Expert">Expert</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name={`languages.${index}.reading`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Reading *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Level" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Elementary">Elementary</SelectItem>
-                        <SelectItem value="Intermediate">Intermediate</SelectItem>
-                        <SelectItem value="Advanced">Advanced</SelectItem>
-                        <SelectItem value="Expert">Expert</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name={`languages.${index}.writing`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Writing *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Level" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Elementary">Elementary</SelectItem>
-                        <SelectItem value="Intermediate">Intermediate</SelectItem>
-                        <SelectItem value="Advanced">Advanced</SelectItem>
-                        <SelectItem value="Expert">Expert</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-      
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => appendLanguage({ language: '', speaking: 'Elementary', reading: 'Elementary', writing: 'Elementary' })}
-        className="w-full"
-      >
-        <Plus className="h-4 w-4 mr-2" />
-        Add Language
-      </Button>
-    </div>
-  );
+  // Language Proficiency Section
+  const renderLanguageKnowledge = () => {
+    const currentLanguages = form.watch('languages') || { un_languages: {}, other_languages: [] };
+    
+    return (
+      <div className="space-y-4">
+        <FormDescription>
+          Select your proficiency level for UN official languages and add any additional languages you speak.
+        </FormDescription>
+        
+        <PHFLanguageSection 
+          languages={{
+            un_languages: currentLanguages.un_languages || {},
+            other_languages: currentLanguages.other_languages || []
+          }}
+          onChange={(languages) => {
+            form.setValue('languages', languages);
+          }}
+        />
+      </div>
+    );
+  };
 
   const renderEducation = () => (
     <div className="space-y-6">
