@@ -17,7 +17,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { AlertCircle, CalendarIcon, Plus, Trash2, Save, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertCircle, CalendarIcon, Plus, Trash2, Save, FileText, ChevronLeft, ChevronRight, User, Accessibility } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
@@ -177,6 +177,17 @@ const phfSchema = z.object({
   // Mobility/Medical
   mobilityMedical: z.object({
     mobility_medical_reservations: z.string(),
+    assessment_accommodations_needed: z.boolean(),
+    accommodation_extended_time: z.boolean().optional(),
+    accommodation_alternative_format: z.boolean().optional(),
+    accommodation_accessible_location: z.boolean().optional(),
+    accommodation_interpreter: z.boolean().optional(),
+    accommodation_breaks: z.boolean().optional(),
+    accommodation_alternative_interview: z.boolean().optional(),
+    accommodation_assistive_technology: z.boolean().optional(),
+    accommodation_other: z.boolean().optional(),
+    accommodation_details: z.string().optional(),
+    accommodation_contact_preference: z.string().optional(),
   }),
 
   // References
@@ -377,6 +388,17 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
       },
       mobilityMedical: {
         mobility_medical_reservations: initialData?.mobilityMedical?.mobility_medical_reservations || '',
+        assessment_accommodations_needed: initialData?.mobilityMedical?.assessment_accommodations_needed || false,
+        accommodation_extended_time: initialData?.mobilityMedical?.accommodation_extended_time || false,
+        accommodation_alternative_format: initialData?.mobilityMedical?.accommodation_alternative_format || false,
+        accommodation_accessible_location: initialData?.mobilityMedical?.accommodation_accessible_location || false,
+        accommodation_interpreter: initialData?.mobilityMedical?.accommodation_interpreter || false,
+        accommodation_breaks: initialData?.mobilityMedical?.accommodation_breaks || false,
+        accommodation_alternative_interview: initialData?.mobilityMedical?.accommodation_alternative_interview || false,
+        accommodation_assistive_technology: initialData?.mobilityMedical?.accommodation_assistive_technology || false,
+        accommodation_other: initialData?.mobilityMedical?.accommodation_other || false,
+        accommodation_details: initialData?.mobilityMedical?.accommodation_details || '',
+        accommodation_contact_preference: initialData?.mobilityMedical?.accommodation_contact_preference || '',
       },
       references: initialData?.references || [
         { name: '', full_address: '', occupation_title: '' },
@@ -1916,6 +1938,281 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
           </FormItem>
         )}
       />
+
+      {/* Assessment Process Accommodations Section */}
+      <div className="border-t pt-6 space-y-6">
+        <div className="flex items-center gap-2">
+          <Accessibility className="h-5 w-5 text-muted-foreground" />
+          <h3 className="text-lg font-semibold">Assessment Process Accommodations</h3>
+        </div>
+        
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            We are committed to ensuring equal opportunities for all candidates. This information is confidential and will only be shared with relevant staff to facilitate your assessment process.
+          </AlertDescription>
+        </Alert>
+
+        <FormField
+          control={form.control}
+          name="mobilityMedical.assessment_accommodations_needed"
+          render={({ field }) => (
+            <FormItem className="space-y-3">
+              <FormLabel>Would you like to request accommodations for the assessment process?</FormLabel>
+              <FormDescription>
+                This is optional and relates specifically to the interview and assessment process, not general work requirements.
+              </FormDescription>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={(value) => field.onChange(value === 'true')}
+                  value={field.value ? 'true' : 'false'}
+                  className="flex flex-row space-x-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="false" id="no-accommodations" />
+                    <Label htmlFor="no-accommodations">No, I do not require accommodations</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="true" id="yes-accommodations" />
+                    <Label htmlFor="yes-accommodations">Yes, I would like to request accommodations</Label>
+                  </div>
+                </RadioGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {form.watch('mobilityMedical.assessment_accommodations_needed') && (
+          <div className="space-y-4 p-4 bg-muted/30 rounded-lg border-l-4 border-primary">
+            <h4 className="font-medium text-sm text-muted-foreground mb-3">
+              Please select the types of accommodations you would like to request:
+            </h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="mobilityMedical.accommodation_extended_time"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Extended time for written assessments</FormLabel>
+                      <FormDescription className="text-xs">
+                        Additional time for completing written tests or assignments
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="mobilityMedical.accommodation_alternative_format"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Alternative format materials</FormLabel>
+                      <FormDescription className="text-xs">
+                        Large print, digital screen reader compatible, or other formats
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="mobilityMedical.accommodation_accessible_location"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Accessible interview location</FormLabel>
+                      <FormDescription className="text-xs">
+                        Wheelchair accessible, ground floor, or other location needs
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="mobilityMedical.accommodation_interpreter"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Sign language interpreter or communication support</FormLabel>
+                      <FormDescription className="text-xs">
+                        ASL, BSL, or other communication assistance
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="mobilityMedical.accommodation_breaks"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Breaks during long assessment sessions</FormLabel>
+                      <FormDescription className="text-xs">
+                        Regular breaks for medical or accessibility needs
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="mobilityMedical.accommodation_alternative_interview"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Alternative interview format</FormLabel>
+                      <FormDescription className="text-xs">
+                        Phone/video instead of in-person, or vice versa
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="mobilityMedical.accommodation_assistive_technology"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Assistive technology compatibility</FormLabel>
+                      <FormDescription className="text-xs">
+                        Screen readers, voice recognition, or other assistive tools
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="mobilityMedical.accommodation_other"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Other accommodations</FormLabel>
+                      <FormDescription className="text-xs">
+                        Please specify in the details section below
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="mobilityMedical.accommodation_details"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Additional details about your accommodation needs (optional)</FormLabel>
+                  <FormDescription>
+                    Please provide any additional information that would help us better accommodate your needs during the assessment process.
+                  </FormDescription>
+                  <FormControl>
+                    <Textarea 
+                      {...field} 
+                      rows={3}
+                      placeholder="Please describe any specific requirements or additional accommodations needed..."
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="mobilityMedical.accommodation_contact_preference"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>How would you prefer to be contacted to discuss these accommodations?</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="flex flex-col space-y-2"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="email" id="contact-email" />
+                        <Label htmlFor="contact-email">Email</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="phone" id="contact-phone" />
+                        <Label htmlFor="contact-phone">Phone</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="either" id="contact-either" />
+                        <Label htmlFor="contact-either">Either email or phone</Label>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 
