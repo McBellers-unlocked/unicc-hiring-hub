@@ -616,7 +616,23 @@ export default function AdminApplications() {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-9 gap-4">
                 {phaseStats.map((phase) => (
-                  <div key={phase.status} className="text-center p-4 bg-muted/30 rounded-lg border">
+                  <div 
+                    key={phase.status} 
+                    className={`text-center p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:bg-muted/50 hover:border-primary/50 hover:shadow-md ${
+                      statusFilter === phase.status || (statusFilter === 'Longlist' && phase.status === 'Longlist') || (statusFilter === 'all' && phase.status === 'Application')
+                        ? 'bg-primary/10 border-primary/30 shadow-sm' 
+                        : 'bg-muted/30 border-border'
+                    }`}
+                    onClick={() => {
+                      // Handle special case for Applications phase - show all
+                      if (phase.status === 'Application') {
+                        setStatusFilter('all');
+                      } else {
+                        setStatusFilter(phase.status);
+                      }
+                    }}
+                    title={`Click to filter by ${phase.title.replace(` (${applications.length} total)`, '')}`}
+                  >
                     <div className="text-2xl font-bold text-foreground mb-1">{phase.count}</div>
                     <div className="text-sm text-muted-foreground mb-2 font-medium">
                       {phase.title.replace(` (${applications.length} total)`, '')}
