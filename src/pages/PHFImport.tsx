@@ -92,20 +92,20 @@ export default function PHFImport() {
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || []);
-    const wordFiles = selectedFiles.filter(file => 
-      file.name.endsWith('.docx') || file.name.endsWith('.doc')
+    const supportedFiles = selectedFiles.filter(file => 
+      file.name.endsWith('.docx') || file.name.endsWith('.doc') || file.name.endsWith('.pdf')
     );
     
-    if (wordFiles.length !== selectedFiles.length) {
+    if (supportedFiles.length !== selectedFiles.length) {
       toast({
         title: "Invalid Files",
-        description: "Only Word documents (.doc, .docx) are supported",
+        description: "Only Word documents (.doc, .docx) and PDF files (.pdf) are supported",
         variant: "destructive",
       });
     }
     
-    setFiles(wordFiles);
-    setImportStatuses(wordFiles.map(file => ({
+    setFiles(supportedFiles);
+    setImportStatuses(supportedFiles.map(file => ({
       fileName: file.name,
       status: 'pending'
     })));
@@ -246,7 +246,7 @@ export default function PHFImport() {
                 <input
                   type="file"
                   multiple
-                  accept=".doc,.docx"
+                  accept=".doc,.docx,.pdf"
                   onChange={handleFileSelect}
                   className="block w-full text-sm text-muted-foreground
                     file:mr-4 file:py-2 file:px-4
@@ -257,7 +257,7 @@ export default function PHFImport() {
                   disabled={isProcessing}
                 />
                 <p className="text-sm text-muted-foreground mt-2">
-                  Select Word documents (.doc, .docx) containing PHF data. You can select multiple files.
+                  Select Word documents (.doc, .docx) or PDF files (.pdf) containing PHF data. You can select multiple files.
                 </p>
               </div>
 
