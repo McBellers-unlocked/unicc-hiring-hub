@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { CustomDatePicker } from "@/components/ui/date-picker";
 import { Plus, Trash2, Briefcase, ChevronDown, ChevronUp, Edit2 } from "lucide-react";
 
 interface WorkExperience {
@@ -180,18 +181,18 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
                       </div>
                       <div>
                         <Label>Start Date</Label>
-                        <Input
-                          type="month"
-                          value={work.startDate}
-                          onChange={(e) => updateWorkExperience(index, 'startDate', e.target.value)}
+                        <CustomDatePicker
+                          selected={work.startDate ? new Date(work.startDate) : null}
+                          onChange={(date) => updateWorkExperience(index, 'startDate', date ? date.toISOString().split('T')[0] : '')}
+                          placeholderText="Select start date"
                         />
                       </div>
                       <div>
                         <Label>End Date</Label>
-                        <Input
-                          type="month"
-                          value={work.endDate}
-                          onChange={(e) => updateWorkExperience(index, 'endDate', e.target.value)}
+                        <CustomDatePicker
+                          selected={work.endDate ? new Date(work.endDate) : null}
+                          onChange={(date) => updateWorkExperience(index, 'endDate', date ? date.toISOString().split('T')[0] : '')}
+                          placeholderText="Select end date"
                           disabled={work.isCurrent}
                         />
                       </div>
@@ -278,18 +279,18 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
             </div>
             <div>
               <Label>Start Date</Label>
-              <Input
-                type="month"
-                value={newWork.startDate}
-                onChange={(e) => setNewWork({ ...newWork, startDate: e.target.value })}
+              <CustomDatePicker
+                selected={newWork.startDate ? new Date(newWork.startDate) : null}
+                onChange={(date) => setNewWork({ ...newWork, startDate: date ? date.toISOString().split('T')[0] : '' })}
+                placeholderText="Select start date"
               />
             </div>
             <div>
               <Label>End Date</Label>
-              <Input
-                type="month"
-                value={newWork.endDate}
-                onChange={(e) => setNewWork({ ...newWork, endDate: e.target.value })}
+              <CustomDatePicker
+                selected={newWork.endDate ? new Date(newWork.endDate) : null}
+                onChange={(date) => setNewWork({ ...newWork, endDate: date ? date.toISOString().split('T')[0] : '' })}
+                placeholderText="Select end date"
                 disabled={newWork.isCurrent}
               />
             </div>

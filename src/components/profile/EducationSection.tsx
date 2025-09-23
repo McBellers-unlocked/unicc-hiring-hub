@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { CustomDatePicker } from "@/components/ui/date-picker";
 import { Plus, Trash2, GraduationCap, ChevronDown, ChevronUp, Edit2 } from "lucide-react";
 
 interface Education {
@@ -167,18 +168,18 @@ export default function EducationSection({ education, onChange }: EducationSecti
                       </div>
                       <div>
                         <Label>Start Date</Label>
-                        <Input
-                          type="month"
-                          value={edu.startDate}
-                          onChange={(e) => updateEducation(index, 'startDate', e.target.value)}
+                        <CustomDatePicker
+                          selected={edu.startDate ? new Date(edu.startDate) : null}
+                          onChange={(date) => updateEducation(index, 'startDate', date ? date.toISOString().split('T')[0] : '')}
+                          placeholderText="Select start date"
                         />
                       </div>
                       <div>
                         <Label>End Date</Label>
-                        <Input
-                          type="month"
-                          value={edu.endDate}
-                          onChange={(e) => updateEducation(index, 'endDate', e.target.value)}
+                        <CustomDatePicker
+                          selected={edu.endDate ? new Date(edu.endDate) : null}
+                          onChange={(date) => updateEducation(index, 'endDate', date ? date.toISOString().split('T')[0] : '')}
+                          placeholderText="Select end date"
                         />
                       </div>
                     </div>
@@ -247,18 +248,18 @@ export default function EducationSection({ education, onChange }: EducationSecti
             </div>
             <div>
               <Label>Start Date</Label>
-              <Input
-                type="month"
-                value={newEducation.startDate}
-                onChange={(e) => setNewEducation({ ...newEducation, startDate: e.target.value })}
+              <CustomDatePicker
+                selected={newEducation.startDate ? new Date(newEducation.startDate) : null}
+                onChange={(date) => setNewEducation({ ...newEducation, startDate: date ? date.toISOString().split('T')[0] : '' })}
+                placeholderText="Select start date"
               />
             </div>
             <div>
               <Label>End Date</Label>
-              <Input
-                type="month"
-                value={newEducation.endDate}
-                onChange={(e) => setNewEducation({ ...newEducation, endDate: e.target.value })}
+              <CustomDatePicker
+                selected={newEducation.endDate ? new Date(newEducation.endDate) : null}
+                onChange={(date) => setNewEducation({ ...newEducation, endDate: date ? date.toISOString().split('T')[0] : '' })}
+                placeholderText="Select end date"
               />
             </div>
           </div>
