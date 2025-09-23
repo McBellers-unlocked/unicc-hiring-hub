@@ -6,11 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { Plus, Trash2, GraduationCap, ChevronDown, ChevronUp, Edit2, CalendarIcon } from "lucide-react";
+import { CustomDatePicker } from "@/components/ui/date-picker";
+import { Plus, Trash2, GraduationCap, ChevronDown, ChevronUp, Edit2 } from "lucide-react";
 
 interface Education {
   institution: string;
@@ -20,6 +17,7 @@ interface Education {
   endDate: string;
   grade?: string;
   description?: string;
+  isCurrent?: boolean;
 }
 
 interface EducationSectionProps {
@@ -184,55 +182,21 @@ export default function EducationSection({ education, onChange }: EducationSecti
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <Label>Start Date</Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full justify-start text-left font-normal",
-                                  !edu.startDate && "text-muted-foreground"
-                                )}
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {edu.startDate ? format(new Date(edu.startDate), "PPP") : "Select start date"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={edu.startDate ? new Date(edu.startDate) : undefined}
-                                onSelect={(date) => updateEducation(index, 'startDate', date ? date.toISOString().split('T')[0] : '')}
-                                initialFocus
-                                className="p-3 pointer-events-auto"
-                              />
-                            </PopoverContent>
-                          </Popover>
+                          <CustomDatePicker
+                            selected={edu.startDate ? new Date(edu.startDate) : null}
+                            onChange={(date) => updateEducation(index, 'startDate', date ? date.toISOString().split('T')[0] : '')}
+                            placeholderText="Select start date"
+                            className="w-full"
+                          />
                         </div>
                         <div>
                           <Label>End Date</Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full justify-start text-left font-normal",
-                                  !edu.endDate && "text-muted-foreground"
-                                )}
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {edu.endDate ? format(new Date(edu.endDate), "PPP") : "Select end date"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={edu.endDate ? new Date(edu.endDate) : undefined}
-                                onSelect={(date) => updateEducation(index, 'endDate', date ? date.toISOString().split('T')[0] : '')}
-                                initialFocus
-                                className="p-3 pointer-events-auto"
-                              />
-                            </PopoverContent>
-                          </Popover>
+                          <CustomDatePicker
+                            selected={edu.endDate ? new Date(edu.endDate) : null}
+                            onChange={(date) => updateEducation(index, 'endDate', date ? date.toISOString().split('T')[0] : '')}
+                            placeholderText="Select end date"
+                            className="w-full"
+                          />
                         </div>
                       </div>
                     </div>
@@ -319,55 +283,21 @@ export default function EducationSection({ education, onChange }: EducationSecti
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Start Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !newEducation.startDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {newEducation.startDate ? format(new Date(newEducation.startDate), "PPP") : "Select start date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={newEducation.startDate ? new Date(newEducation.startDate) : undefined}
-                      onSelect={(date) => setNewEducation({ ...newEducation, startDate: date ? date.toISOString().split('T')[0] : '' })}
-                      initialFocus
-                      className="p-3 pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <CustomDatePicker
+                  selected={newEducation.startDate ? new Date(newEducation.startDate) : null}
+                  onChange={(date) => setNewEducation({ ...newEducation, startDate: date ? date.toISOString().split('T')[0] : '' })}
+                  placeholderText="Select start date"
+                  className="w-full"
+                />
               </div>
               <div>
                 <Label>End Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !newEducation.endDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {newEducation.endDate ? format(new Date(newEducation.endDate), "PPP") : "Select end date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={newEducation.endDate ? new Date(newEducation.endDate) : undefined}
-                      onSelect={(date) => setNewEducation({ ...newEducation, endDate: date ? date.toISOString().split('T')[0] : '' })}
-                      initialFocus
-                      className="p-3 pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <CustomDatePicker
+                  selected={newEducation.endDate ? new Date(newEducation.endDate) : null}
+                  onChange={(date) => setNewEducation({ ...newEducation, endDate: date ? date.toISOString().split('T')[0] : '' })}
+                  placeholderText="Select end date"
+                  className="w-full"
+                />
               </div>
             </div>
           </div>
