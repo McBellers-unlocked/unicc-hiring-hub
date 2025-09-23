@@ -110,12 +110,16 @@ export default function CandidateProfileEdit() {
           .from("candidates")
           .select("*")
           .eq("email", user.email)
-          .single();
+          .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') throw error;
+        if (error) {
+          console.error("Database error:", error);
+          throw error;
+        }
 
         if (data) {
           console.log('Loaded data from database:', { 
+            id: data.id,
             work_experience: data.work_experience, 
             phf_work_experience: data.phf_work_experience 
           });
@@ -140,12 +144,15 @@ export default function CandidateProfileEdit() {
             has_security_clearance: data.has_security_clearance || false,
           });
         } else {
-          // Create new profile for user
-          const newProfile: Partial<CandidateProfile> = {
+          console.log("No candidate found, creating new record in database...");
+          // Create new profile record in database
+          const newCandidateData = {
             name: user.user_metadata?.first_name && user.user_metadata?.last_name 
               ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
               : user.email,
             email: user.email,
+            first_name: user.user_metadata?.first_name || '',
+            last_name: user.user_metadata?.last_name || '',
             skills: [],
             certifications: [],
             education: [],
@@ -158,8 +165,22 @@ export default function CandidateProfileEdit() {
             un_experience: false,
             languages: { un_languages: {}, other_languages: [] },
             has_security_clearance: false,
+            profile_completion_percentage: 0,
           };
-          setProfile(newProfile as CandidateProfile);
+
+          const { data: createdProfile, error: createError } = await supabase
+            .from("candidates")
+            .insert(newCandidateData)
+            .select()
+            .single();
+
+          if (createError) {
+            console.error("Error creating candidate profile:", createError);
+            throw createError;
+          }
+
+          console.log("Created new candidate profile:", createdProfile);
+          setProfile(createdProfile);
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
