@@ -29,7 +29,13 @@ interface ImportStatus {
 export default function PHFImport() {
   const { userRoles } = useAuth();
   const { toast } = useToast();
-  
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [selectedJobId, setSelectedJobId] = useState<string>('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [importStatuses, setImportStatuses] = useState<ImportStatus[]>([]);
+  const [results, setResults] = useState<ImportResult[]>([]);
+
   const isAdmin = userRoles.includes('Admin');
   const isHR = userRoles.includes('HR Assistant');
 
@@ -48,13 +54,6 @@ export default function PHFImport() {
       </Layout>
     );
   }
-
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [selectedJobId, setSelectedJobId] = useState<string>('');
-  const [files, setFiles] = useState<File[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [importStatuses, setImportStatuses] = useState<ImportStatus[]>([]);
-  const [results, setResults] = useState<ImportResult[]>([]);
 
   useEffect(() => {
     fetchJobs();
