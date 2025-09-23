@@ -121,26 +121,6 @@ export default function CandidateProfileEdit() {
           phf_work_experience: data.phf_work_experience 
         });
 
-        // TEST: Simple database write test
-        console.log('=== TESTING BASIC DATABASE WRITE ===');
-        const testData = [{ company: "TEST_SAVE_COMPANY", position: "TEST_POSITION" }];
-        const { data: updateResult, error: updateError } = await supabase
-          .from("candidates")
-          .update({ work_experience: testData })
-          .eq('email', user.email)
-          .select('work_experience');
-        
-        console.log('Basic save test result:', updateResult);
-        console.log('Basic save test error:', updateError);
-        
-        // Verify what was actually saved
-        const { data: verifyResult } = await supabase
-          .from("candidates") 
-          .select('work_experience')
-          .eq('email', user.email)
-          .single();
-        console.log('Verification after basic test:', verifyResult);
-
         // Prioritize existing work_experience data, then fall back to converted PHF data
         let workExperience = [];
         if (Array.isArray(data.work_experience) && data.work_experience.length > 0) {
