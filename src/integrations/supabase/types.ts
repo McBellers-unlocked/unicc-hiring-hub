@@ -1491,10 +1491,12 @@ export type Database = {
     Enums: {
       application_status:
         | "Application"
+        | "Screening"
         | "Longlist"
         | "Shortlist"
         | "Pre-Recorded Video"
         | "Panel Interview"
+        | "Recommended"
         | "Offer"
         | "Roster"
         | "Rejected"
@@ -1652,10 +1654,12 @@ export const Constants = {
     Enums: {
       application_status: [
         "Application",
+        "Screening",
         "Longlist",
         "Shortlist",
         "Pre-Recorded Video",
         "Panel Interview",
+        "Recommended",
         "Offer",
         "Roster",
         "Rejected",
