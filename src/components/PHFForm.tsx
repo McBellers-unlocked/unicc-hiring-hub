@@ -631,7 +631,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
       if (!data.personalDetails.telephone) mandatoryErrors.push("Phone");
       if (!data.personalDetails.presentAddress) mandatoryErrors.push("Present Address");
       if (data.education.length === 0 && (!candidateProfile?.education || candidateProfile.education.length === 0)) mandatoryErrors.push("At least one Education entry");
-      if (data.employment.length === 0 && (!candidateProfile?.work_experience || candidateProfile.work_experience.length === 0)) mandatoryErrors.push("At least one Employment entry");
+      if (data.employment.length === 0 && (!candidateProfile?.work_experience || candidateProfile.work_experience.length === 0) && (!candidateProfile?.phf_work_experience || candidateProfile.phf_work_experience.length === 0)) mandatoryErrors.push("At least one Employment entry");
       if (!data.motivationLetter.motivation_letter_content) mandatoryErrors.push("Motivation Letter");
       if (!data.certification.certify_true_complete_correct) mandatoryErrors.push("Certification checkbox");
       
