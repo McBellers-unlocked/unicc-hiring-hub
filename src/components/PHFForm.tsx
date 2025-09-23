@@ -418,9 +418,27 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
             const empAny = emp as any;
             const hasEmployer = emp.employer_name || empAny.company;
             const hasTitle = emp.exact_title_of_post || empAny.position;
-            const hasDate = (emp.period_from_month && emp.period_from_year) || empAny.startDate;
+            
+            // For dates, check if it's a current position
+            const isCurrentPosition = emp.is_present === true || empAny.isCurrent === true;
+            const hasStartDate = (emp.period_from_month && emp.period_from_year) || empAny.startDate;
+            const hasEndDate = isCurrentPosition || (emp.period_to_month && emp.period_to_year) || empAny.endDate;
+            const hasValidDate = hasStartDate && hasEndDate;
+            
             const hasDuties = emp.duties_and_responsibilities || empAny.description;
-            return !hasEmployer || !hasTitle || !hasDate || !hasDuties;
+            
+            console.log('Employment validation for:', emp.employer_name || empAny.company, {
+              hasEmployer,
+              hasTitle,
+              hasStartDate,
+              isCurrentPosition,
+              hasEndDate,
+              hasValidDate,
+              hasDuties,
+              incomplete: !hasEmployer || !hasTitle || !hasValidDate || !hasDuties
+            });
+            
+            return !hasEmployer || !hasTitle || !hasValidDate || !hasDuties;
           });
           return employmentIncomplete || formErrors.employment ? 'warning' : 'valid';
         }
