@@ -590,15 +590,14 @@ export async function createCandidateFromPHF(
         .from('candidates')
         .update(candidateData)
         .eq('id', candidateId)
-        .select()
-        .single();
+        .select();
       
       if (updateError) {
         console.error('Database error updating candidate:', updateError);
         throw updateError;
       }
       
-      candidate = updatedCandidate;
+      candidate = updatedCandidate?.[0] || updatedCandidate;
       console.log('✅ Updated candidate:', candidate.name, 'with email:', candidate.email);
     } else {
       // Insert new candidate
