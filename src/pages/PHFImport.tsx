@@ -39,26 +39,6 @@ export default function PHFImport() {
   const isAdmin = userRoles.includes('Admin');
   const isHR = userRoles.includes('HR Assistant');
 
-  useEffect(() => {
-    fetchJobs();
-  }, []);
-
-  // Redirect if not authorized
-  if (!isAdmin && !isHR) {
-    return (
-      <Layout>
-        <div className="container mx-auto py-8">
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              You don't have permission to access this page.
-            </AlertDescription>
-          </Alert>
-        </div>
-      </Layout>
-    );
-  }
-
   const fetchJobs = async () => {
     try {
       const { data, error } = await supabase
@@ -87,6 +67,28 @@ export default function PHFImport() {
       });
     }
   };
+
+  useEffect(() => {
+    if (isAdmin || isHR) {
+      fetchJobs();
+    }
+  }, [isAdmin, isHR]);
+
+  // Redirect if not authorized
+  if (!isAdmin && !isHR) {
+    return (
+      <Layout>
+        <div className="container mx-auto py-8">
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              You don't have permission to access this page.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </Layout>
+    );
+  }
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || []);
