@@ -179,9 +179,9 @@ export default function EducationSection({ education, onChange }: EducationSecti
                     {/* Study Dates */}
                     <div className="space-y-4">
                       <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Study Period</h5>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Start Date</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium">Start Date</Label>
                           <CustomDatePicker
                             selected={edu.startDate ? new Date(edu.startDate) : null}
                             onChange={(date) => updateEducation(index, 'startDate', date ? date.toISOString().split('T')[0] : '')}
@@ -189,8 +189,8 @@ export default function EducationSection({ education, onChange }: EducationSecti
                             className="w-full"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label>End Date</Label>
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium">End Date</Label>
                           <CustomDatePicker
                             selected={edu.endDate ? new Date(edu.endDate) : null}
                             onChange={(date) => updateEducation(index, 'endDate', date ? date.toISOString().split('T')[0] : '')}
@@ -280,9 +280,9 @@ export default function EducationSection({ education, onChange }: EducationSecti
           {/* Study Dates */}
           <div className="space-y-4">
             <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Study Period</h5>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Start Date</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Start Date</Label>
                 <CustomDatePicker
                   selected={newEducation.startDate ? new Date(newEducation.startDate) : null}
                   onChange={(date) => setNewEducation({ ...newEducation, startDate: date ? date.toISOString().split('T')[0] : '' })}
@@ -290,8 +290,8 @@ export default function EducationSection({ education, onChange }: EducationSecti
                   className="w-full"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>End Date</Label>
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">End Date</Label>
                 <CustomDatePicker
                   selected={newEducation.endDate ? new Date(newEducation.endDate) : null}
                   onChange={(date) => setNewEducation({ ...newEducation, endDate: date ? date.toISOString().split('T')[0] : '' })}

@@ -191,9 +191,9 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
                     {/* Employment Dates */}
                     <div className="space-y-4">
                       <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Employment Dates</h5>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Start Date</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium">Start Date</Label>
                           <CustomDatePicker
                             selected={work.startDate ? new Date(work.startDate) : null}
                             onChange={(date) => updateWorkExperience(index, 'startDate', date ? date.toISOString().split('T')[0] : '')}
@@ -201,8 +201,8 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
                             className="w-full"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label>End Date</Label>
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium">End Date</Label>
                           <CustomDatePicker
                             selected={work.endDate ? new Date(work.endDate) : null}
                             onChange={(date) => updateWorkExperience(index, 'endDate', date ? date.toISOString().split('T')[0] : '')}
@@ -310,9 +310,9 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
           {/* Employment Dates */}
           <div className="space-y-4">
             <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Employment Dates</h5>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Start Date</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Start Date</Label>
                 <CustomDatePicker
                   selected={newWork.startDate ? new Date(newWork.startDate) : null}
                   onChange={(date) => setNewWork({ ...newWork, startDate: date ? date.toISOString().split('T')[0] : '' })}
@@ -320,8 +320,8 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
                   className="w-full"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>End Date</Label>
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">End Date</Label>
                 <CustomDatePicker
                   selected={newWork.endDate ? new Date(newWork.endDate) : null}
                   onChange={(date) => setNewWork({ ...newWork, endDate: date ? date.toISOString().split('T')[0] : '' })}
