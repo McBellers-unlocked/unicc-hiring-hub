@@ -39,6 +39,10 @@ export default function PHFImport() {
   const isAdmin = userRoles.includes('Admin');
   const isHR = userRoles.includes('HR Assistant');
 
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
   // Redirect if not authorized
   if (!isAdmin && !isHR) {
     return (
@@ -54,10 +58,6 @@ export default function PHFImport() {
       </Layout>
     );
   }
-
-  useEffect(() => {
-    fetchJobs();
-  }, []);
 
   const fetchJobs = async () => {
     try {
