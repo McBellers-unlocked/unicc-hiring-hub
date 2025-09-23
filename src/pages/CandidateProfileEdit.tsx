@@ -115,18 +115,22 @@ export default function CandidateProfileEdit() {
         }
 
         if (data) {
-          console.log('Loaded data from database:', { 
-            id: data.id,
-            work_experience: data.work_experience, 
-            phf_work_experience: data.phf_work_experience 
-          });
-          
-          // Convert PHF work experience to simple format for the UI
-          const workExperience = data.phf_work_experience && Array.isArray(data.phf_work_experience) && data.phf_work_experience.length > 0
-            ? convertPHFToWorkExperience(data.phf_work_experience)
-            : Array.isArray(data.work_experience) ? data.work_experience : [];
+        console.log('Loaded data from database:', {
+          id: data.id,
+          work_experience: data.work_experience, 
+          phf_work_experience: data.phf_work_experience 
+        });
 
-          console.log('Final work experience for UI:', workExperience);
+        // Prioritize existing work_experience data, then fall back to converted PHF data
+        let workExperience = [];
+        if (Array.isArray(data.work_experience) && data.work_experience.length > 0) {
+          workExperience = data.work_experience;
+        } else if (data.phf_work_experience && Array.isArray(data.phf_work_experience) && data.phf_work_experience.length > 0) {
+          workExperience = convertPHFToWorkExperience(data.phf_work_experience);
+        }
+
+        console.log('Final work experience for UI:', workExperience);
+        console.log('Work experience length:', workExperience.length);
 
           setProfile({
             ...data,
@@ -598,7 +602,12 @@ export default function CandidateProfileEdit() {
             workExperience={profile.work_experience}
             onChange={(workExperience) => {
               console.log('Work experience changed to:', workExperience);
-              setProfile({ ...profile, work_experience: workExperience });
+              console.log('Work experience length:', workExperience.length);
+              setProfile(prev => {
+                const updated = { ...prev, work_experience: workExperience };
+                console.log('Updated profile work experience:', updated.work_experience);
+                return updated;
+              });
             }}
           />
 
