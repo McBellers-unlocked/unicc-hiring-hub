@@ -97,10 +97,25 @@ export default function CandidateProfileEdit() {
   const [saving, setSaving] = useState(false);
   const [newSkill, setNewSkill] = useState("");
   const [newLocation, setNewLocation] = useState("");
+  const [hasLoadedProfile, setHasLoadedProfile] = useState(false);
 
   useEffect(() => {
+    console.log('=== useEffect TRIGGERED ===');
+    console.log('User:', user?.email);
+    console.log('Current profile state before fetch:', profile?.work_experience?.length || 0, 'items');
+    console.log('Has already loaded profile:', hasLoadedProfile);
+    
+    // Prevent unnecessary re-fetches that overwrite user changes
+    if (hasLoadedProfile) {
+      console.log('Profile already loaded, skipping re-fetch to preserve user changes');
+      return;
+    }
+    
     const fetchProfile = async () => {
-      if (!user) return;
+      if (!user) {
+        console.log('No user, skipping fetch');
+        return;
+      }
 
       try {
         const { data, error } = await supabase
@@ -144,6 +159,8 @@ export default function CandidateProfileEdit() {
             languages: data.languages || { un_languages: {}, other_languages: [] },
             has_security_clearance: data.has_security_clearance || false,
           });
+          setHasLoadedProfile(true);
+          console.log('Profile loaded successfully, setting hasLoadedProfile = true');
         } else {
           console.log("No candidate found, creating new record in database...");
           // Create new profile record in database
