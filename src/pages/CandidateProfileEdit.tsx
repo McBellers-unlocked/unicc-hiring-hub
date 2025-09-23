@@ -375,6 +375,7 @@ export default function CandidateProfileEdit() {
     setSaving(true);
     try {
       console.log('Saving profile with work experience:', profile.work_experience);
+      console.log('Profile work experience length:', profile.work_experience?.length);
       const completionPercentage = calculateCompletionPercentage();
       
       // Convert work experience to PHF format for storage
@@ -384,31 +385,38 @@ export default function CandidateProfileEdit() {
       
       console.log('Converted to PHF format:', phfWorkExperience);
       
-      const { error } = await supabase
+      const updateData = {
+        ...profile,
+        email: user.email,
+        profile_completion_percentage: completionPercentage,
+        // Store both formats - simple for UI and PHF for form compatibility
+        work_experience: profile.work_experience || [],
+        phf_work_experience: phfWorkExperience,
+        // Convert date_of_birth to string format for database
+        date_of_birth: profile.date_of_birth instanceof Date 
+          ? profile.date_of_birth.toISOString().split('T')[0] 
+          : profile.date_of_birth,
+      };
+      
+      console.log('About to save data:', { work_experience: updateData.work_experience });
+      
+      const { data, error } = await supabase
         .from("candidates")
-        .upsert({
-          ...profile,
-          email: user.email,
-          profile_completion_percentage: completionPercentage,
-          // Store both formats - simple for UI and PHF for form compatibility
-          work_experience: profile.work_experience,
-          phf_work_experience: phfWorkExperience,
-          // Convert date_of_birth to string format for database
-          date_of_birth: profile.date_of_birth instanceof Date 
-            ? profile.date_of_birth.toISOString().split('T')[0] 
-            : profile.date_of_birth,
-        });
+        .upsert(updateData)
+        .select();
 
       if (error) throw error;
+      
+      console.log('Save response:', data);
 
-      console.log("Profile saved successfully, reloading to verify...");
+      console.log("Profile saved successfully!");
       toast({
         title: "Success",
         description: "Profile updated successfully",
       });
 
-      
-      navigate(`/candidate-profile/${profile.id}`);
+      // Don't navigate away, stay on edit page to see the data persist
+      // navigate(`/candidate-profile/${profile.id}`);
     } catch (error) {
       console.error("Error saving profile:", error);
       toast({
@@ -422,10 +430,14 @@ export default function CandidateProfileEdit() {
   };
 
   const handleSectionUpdate = (data: any) => {
-    setProfile({
+    console.log('Section update called with data:', data);
+    console.log('Current profile work experience before update:', profile?.work_experience);
+    const updatedProfile = {
       ...profile,
       ...data,
-    });
+    };
+    console.log('Updated profile work experience after update:', updatedProfile.work_experience);
+    setProfile(updatedProfile);
   };
 
   const addSkill = () => {
