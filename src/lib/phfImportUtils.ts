@@ -373,10 +373,32 @@ export async function createCandidateFromPHF(
   jobId: string
 ): Promise<ImportResult> {
   try {
-    // Create candidate profile
+    console.log('👤 Creating candidate from PHF data...');
+    
+    // Check if candidate already exists by name
+    const { data: existingCandidate } = await supabase
+      .from('candidates')
+      .select('id, name, email')
+      .eq('name', extractedData.personalInfo.name)
+      .maybeSingle();
+    
+    if (existingCandidate) {
+      console.log('⚠️ Candidate already exists:', existingCandidate.name);
+      return {
+        success: false,
+        error: `Candidate "${extractedData.personalInfo.name}" already exists in the system`,
+        candidateName: extractedData.personalInfo.name,
+        extractedData
+      };
+    }
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2, 8);
+    const baseEmail = extractedData.personalInfo.email || 
+      `${extractedData.personalInfo.name.toLowerCase().replace(/\s+/g, '.')}.${timestamp}.${randomId}@imported.example.com`;
+    
     const candidateData = {
       name: extractedData.personalInfo.name,
-      email: extractedData.personalInfo.email || `${extractedData.personalInfo.name.replace(/\s+/g, '').toLowerCase()}@example.com`,
+      email: baseEmail,
       phone: extractedData.personalInfo.phone || '',
       present_nationality: extractedData.personalInfo.nationality,
       gender: extractedData.personalInfo.gender,
@@ -422,7 +444,20 @@ export async function createCandidateFromPHF(
       .select()
       .single();
 
-    if (candidateError) throw candidateError;
+    if (candidateError) {
+      console.error('Database error creating candidate:', candidateError);
+      
+      // Handle specific database errors
+      if (candidateError.message?.includes('duplicate key value violates unique constraint "candidates_email_key"')) {
+        throw new Error(`Candidate with email ${baseEmail} already exists`);
+      } else if (candidateError.message?.includes('violates unique constraint')) {
+        throw new Error('Candidate with this information already exists');
+      } else {
+        throw candidateError;
+      }
+    }
+
+    console.log('✅ Created candidate:', candidate.name, 'with email:', candidate.email);
 
     // Create PHF data using existing mapping utilities
     const phfData = createPHFDataFromProfile(candidateData);
@@ -441,7 +476,10 @@ export async function createCandidateFromPHF(
       .select()
       .single();
 
-    if (applicationError) throw applicationError;
+    if (applicationError) {
+      console.error('Error creating application:', applicationError);
+      throw applicationError;
+    }
 
     return {
       success: true,
