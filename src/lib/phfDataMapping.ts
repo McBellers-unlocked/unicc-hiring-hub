@@ -218,8 +218,12 @@ export function createPHFDataFromProfile(profile: any): any {
     
     languages: convertLanguagesToPHF(profile.languages || {}),
     
-    education: profile.phf_education || convertEducationToPHF(profile.education || []),
-    employment: profile.phf_work_experience || convertWorkExperienceToPHF(profile.work_experience || []),
+    education: Array.isArray(profile.phf_education) && profile.phf_education.length > 0 
+      ? profile.phf_education 
+      : convertEducationToPHF(profile.education || []),
+    employment: Array.isArray(profile.phf_work_experience) && profile.phf_work_experience.length > 0 
+      ? profile.phf_work_experience 
+      : convertWorkExperienceToPHF(profile.work_experience || []),
     unemploymentPeriods: profile.unemployment_periods || [],
     
     additionalInformation: {
@@ -294,12 +298,16 @@ export function updateProfileFromPHF(phfData: any): Partial<any> {
   }
   
   if (phfData.education) {
+    // Only update if not already set to prevent duplicates
     updates.phf_education = phfData.education;
+    // Clear and replace the simple education format to avoid duplicates
     updates.education = convertPHFToEducation(phfData.education);
   }
   
   if (phfData.employment) {
+    // Only update if not already set to prevent duplicates
     updates.phf_work_experience = phfData.employment;
+    // Clear and replace the simple work experience format to avoid duplicates
     updates.work_experience = convertPHFToWorkExperience(phfData.employment);
   }
   
