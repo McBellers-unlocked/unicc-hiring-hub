@@ -192,22 +192,22 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
                     <div className="space-y-4">
                       <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Employment Dates</h5>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                          <Label className="text-sm font-medium">Start Date</Label>
+                        <div className="space-y-4">
+                          <Label className="text-sm font-medium block mb-2">Start Date</Label>
                           <CustomDatePicker
                             selected={work.startDate ? new Date(work.startDate) : null}
                             onChange={(date) => updateWorkExperience(index, 'startDate', date ? date.toISOString().split('T')[0] : '')}
                             placeholderText="Select start date"
-                            className="w-full"
+                            className="w-full mt-2"
                           />
                         </div>
-                        <div className="space-y-3">
-                          <Label className="text-sm font-medium">End Date</Label>
+                        <div className="space-y-4">
+                          <Label className="text-sm font-medium block mb-2">End Date</Label>
                           <CustomDatePicker
                             selected={work.endDate ? new Date(work.endDate) : null}
                             onChange={(date) => updateWorkExperience(index, 'endDate', date ? date.toISOString().split('T')[0] : '')}
                             placeholderText={work.isCurrent ? "Present" : "Select end date"}
-                            className="w-full"
+                            className="w-full mt-2"
                             disabled={work.isCurrent}
                           />
                         </div>
@@ -311,22 +311,22 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
           <div className="space-y-4">
             <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Employment Dates</h5>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Start Date</Label>
+              <div className="space-y-4">
+                <Label className="text-sm font-medium block mb-2">Start Date</Label>
                 <CustomDatePicker
                   selected={newWork.startDate ? new Date(newWork.startDate) : null}
                   onChange={(date) => setNewWork({ ...newWork, startDate: date ? date.toISOString().split('T')[0] : '' })}
                   placeholderText="Select start date"
-                  className="w-full"
+                  className="w-full mt-2"
                 />
               </div>
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">End Date</Label>
+              <div className="space-y-4">
+                <Label className="text-sm font-medium block mb-2">End Date</Label>
                 <CustomDatePicker
                   selected={newWork.endDate ? new Date(newWork.endDate) : null}
                   onChange={(date) => setNewWork({ ...newWork, endDate: date ? date.toISOString().split('T')[0] : '' })}
                   placeholderText={newWork.isCurrent ? "Present" : "Select end date"}
-                  className="w-full"
+                  className="w-full mt-2"
                   disabled={newWork.isCurrent}
                 />
               </div>
