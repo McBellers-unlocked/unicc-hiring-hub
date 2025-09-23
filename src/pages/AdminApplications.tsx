@@ -141,7 +141,7 @@ export default function AdminApplications() {
             languages, years_of_experience, un_experience, skills
           ),
           job:jobs(id, title, org_unit),
-          screening_scores!inner(ai_score, created_at)
+          screening_scores(ai_score, created_at)
         `)
         .eq('job_id', jobId)
         .order('submitted_at', { ascending: false });
