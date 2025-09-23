@@ -41,8 +41,6 @@ interface CandidateProfile {
   preferred_locations: any;
   years_of_experience?: number;
   years_of_experience_months?: number;
-  current_position?: string;
-  current_organization?: string;
   willing_to_relocate: boolean;
   un_experience: boolean;
   un_organizations_worked: any;
@@ -261,6 +259,39 @@ export default function CandidateProfileEdit() {
       }
     }
   }, [profile?.work_experience]);
+
+  // Helper functions to derive current position from work experience
+  const getCurrentPosition = () => {
+    if (!profile?.work_experience || !Array.isArray(profile.work_experience) || profile.work_experience.length === 0) {
+      return null;
+    }
+    
+    // Sort work experience by start date (most recent first)
+    const sortedExperience = [...profile.work_experience].sort((a, b) => {
+      if (!a.start_date || !b.start_date) return 0;
+      return new Date(b.start_date).getTime() - new Date(a.start_date).getTime();
+    });
+    
+    // Find the most recent position (current or most recent if no current)
+    const currentJob = sortedExperience.find(job => !job.end_date || job.end_date === '') || sortedExperience[0];
+    return currentJob?.position_title || null;
+  };
+
+  const getCurrentOrganization = () => {
+    if (!profile?.work_experience || !Array.isArray(profile.work_experience) || profile.work_experience.length === 0) {
+      return null;
+    }
+    
+    // Sort work experience by start date (most recent first)
+    const sortedExperience = [...profile.work_experience].sort((a, b) => {
+      if (!a.start_date || !b.start_date) return 0;
+      return new Date(b.start_date).getTime() - new Date(a.start_date).getTime();
+    });
+    
+    // Find the most recent position (current or most recent if no current)
+    const currentJob = sortedExperience.find(job => !job.end_date || job.end_date === '') || sortedExperience[0];
+    return currentJob?.organization || null;
+  };
 
   const calculateCompletionPercentage = () => {
     if (!profile) return 0;
@@ -561,32 +592,6 @@ export default function CandidateProfileEdit() {
             </CardContent>
           </Card>
 
-          {/* Current Position */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Current Position</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="current_position">Position Title</Label>
-                  <Input
-                    id="current_position"
-                    value={profile.current_position || ""}
-                    onChange={(e) => setProfile({ ...profile, current_position: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="current_organization">Organization</Label>
-                  <Input
-                    id="current_organization"
-                    value={profile.current_organization || ""}
-                    onChange={(e) => setProfile({ ...profile, current_organization: e.target.value })}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Work Experience */}
           <WorkExperienceSection

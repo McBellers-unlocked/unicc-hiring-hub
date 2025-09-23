@@ -29,8 +29,6 @@ interface CandidateProfile {
   preferred_locations: any;
   years_of_experience_months?: number;
   years_of_experience?: number;
-  current_position?: string;
-  current_organization?: string;
   linkedin_url?: string;
   willing_to_relocate: boolean;
   un_experience: boolean;
@@ -147,6 +145,49 @@ export default function CandidateProfile() {
     return totalMonths; // Return total months instead of years
   };
 
+  // Helper functions to derive current position from work experience
+  const getCurrentPosition = (workExperience: any[]) => {
+    if (!workExperience || !Array.isArray(workExperience) || workExperience.length === 0) {
+      return null;
+    }
+    
+    // Sort work experience by start date (most recent first)
+    const sortedExperience = [...workExperience].sort((a, b) => {
+      const aDate = a.start_date || a.startDate;
+      const bDate = b.start_date || b.startDate;
+      if (!aDate || !bDate) return 0;
+      return new Date(bDate).getTime() - new Date(aDate).getTime();
+    });
+    
+    // Find the most recent position (current or most recent if no current)
+    const currentJob = sortedExperience.find(job => 
+      job.is_present || job.isCurrent || !job.end_date || job.end_date === '' || !job.endDate
+    ) || sortedExperience[0];
+    
+    return currentJob?.position_title || currentJob?.position || currentJob?.title || null;
+  };
+
+  const getCurrentOrganization = (workExperience: any[]) => {
+    if (!workExperience || !Array.isArray(workExperience) || workExperience.length === 0) {
+      return null;
+    }
+    
+    // Sort work experience by start date (most recent first)
+    const sortedExperience = [...workExperience].sort((a, b) => {
+      const aDate = a.start_date || a.startDate;
+      const bDate = b.start_date || b.startDate;
+      if (!aDate || !bDate) return 0;
+      return new Date(bDate).getTime() - new Date(aDate).getTime();
+    });
+    
+    // Find the most recent position (current or most recent if no current)
+    const currentJob = sortedExperience.find(job => 
+      job.is_present || job.isCurrent || !job.end_date || job.end_date === '' || !job.endDate
+    ) || sortedExperience[0];
+    
+    return currentJob?.organization || currentJob?.company || null;
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto py-8">
@@ -189,13 +230,13 @@ export default function CandidateProfile() {
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                 <div>
                   <h1 className="text-2xl font-bold">{profile.name}</h1>
-                  {profile.current_position && (
-                    <p className="text-lg text-muted-foreground">{profile.current_position}</p>
+                  {getCurrentPosition(profile.work_experience) && (
+                    <p className="text-lg text-muted-foreground">{getCurrentPosition(profile.work_experience)}</p>
                   )}
-                  {profile.current_organization && (
+                  {getCurrentOrganization(profile.work_experience) && (
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
                       <Building className="h-4 w-4" />
-                      {profile.current_organization}
+                      {getCurrentOrganization(profile.work_experience)}
                     </p>
                   )}
                    <div className="flex flex-wrap gap-2 mt-2">
