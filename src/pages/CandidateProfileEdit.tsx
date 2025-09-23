@@ -374,16 +374,42 @@ export default function CandidateProfileEdit() {
 
     setSaving(true);
     try {
-      console.log('Saving profile with work experience:', profile.work_experience);
-      console.log('Profile work experience length:', profile.work_experience?.length);
+      // Step 8: ID Verification
+      console.log('=== SAVE OPERATION START ===');
+      console.log('Candidate ID:', profile.id);
+      console.log('User email:', user.email);
+      
+      // Step 1: Current state logging
+      console.log('Current profile work experience:', profile.work_experience);
+      console.log('Work experience length:', profile.work_experience?.length);
+      console.log('Work experience data:', JSON.stringify(profile.work_experience, null, 2));
+      
+      // Step 2: Pre-Save Database Check
+      console.log('=== PRE-SAVE DATABASE CHECK ===');
+      const { data: currentData, error: fetchError } = await supabase
+        .from("candidates")
+        .select('work_experience, phf_work_experience')
+        .eq('email', user.email)
+        .single();
+      
+      if (fetchError) {
+        console.error('Error fetching current data:', fetchError);
+      } else {
+        console.log('Current database state:', currentData);
+      }
+      
       const completionPercentage = calculateCompletionPercentage();
       
-      // Convert work experience to PHF format for storage
-      const phfWorkExperience = profile.work_experience && Array.isArray(profile.work_experience) 
-        ? convertWorkExperienceToPHF(profile.work_experience)
-        : [];
-      
-      console.log('Converted to PHF format:', phfWorkExperience);
+      // Step 4: Simplify Save Data (temporarily skip complex transformations)
+      console.log('=== DATA TRANSFORMATION ===');
+      let phfWorkExperience = [];
+      if (profile.work_experience?.length) {
+        console.log('Converting to PHF format...');
+        phfWorkExperience = convertWorkExperienceToPHF(profile.work_experience);
+        console.log('Converted to PHF format:', phfWorkExperience);
+      } else {
+        console.log('No work experience to convert');
+      }
       
       const updateData = {
         ...profile,
@@ -398,26 +424,63 @@ export default function CandidateProfileEdit() {
           : profile.date_of_birth,
       };
       
-      console.log('About to save data:', { work_experience: updateData.work_experience });
+      console.log('=== FINAL UPDATE DATA ===');
+      console.log('Update data work_experience:', updateData.work_experience);
+      console.log('Update data phf_work_experience:', updateData.phf_work_experience);
+      console.log('Full update data keys:', Object.keys(updateData));
       
-      const { data, error } = await supabase
+      // Step 1: Database Response Logging
+      console.log('=== SAVING TO DATABASE ===');
+      const { data: saveResponse, error } = await supabase
         .from("candidates")
         .upsert(updateData)
-        .select();
+        .select('id, work_experience, phf_work_experience, profile_completion_percentage');
 
-      if (error) throw error;
+      // Step 5: Transaction Logging
+      if (error) {
+        console.error('=== DATABASE ERROR ===');
+        console.error('Error details:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Error hint:', error.hint);
+        throw error;
+      }
       
-      console.log('Save response:', data);
+      console.log('=== SAVE RESPONSE ===');
+      console.log('Save response data:', saveResponse);
+      console.log('Saved work_experience:', saveResponse?.[0]?.work_experience);
+      console.log('Saved phf_work_experience:', saveResponse?.[0]?.phf_work_experience);
 
-      console.log("Profile saved successfully!");
+      // Step 3: Post-Save Verification
+      console.log('=== POST-SAVE VERIFICATION ===');
+      const { data: verificationData, error: verifyError } = await supabase
+        .from("candidates")
+        .select('work_experience, phf_work_experience, profile_completion_percentage')
+        .eq('email', user.email)
+        .single();
+      
+      if (verifyError) {
+        console.error('Verification query failed:', verifyError);
+      } else {
+        console.log('Post-save verification data:', verificationData);
+        console.log('Verified work_experience:', verificationData?.work_experience);
+        console.log('Verified phf_work_experience:', verificationData?.phf_work_experience);
+        
+        // Check if data matches what we tried to save
+        const savedDataMatches = JSON.stringify(verificationData?.work_experience) === JSON.stringify(updateData.work_experience);
+        console.log('Data integrity check - matches saved data:', savedDataMatches);
+      }
+
+      console.log('=== SAVE OPERATION COMPLETE ===');
       toast({
         title: "Success",
         description: "Profile updated successfully",
       });
 
-      // Don't navigate away, stay on edit page to see the data persist
+      // Don't navigate away to observe the data persistence
       // navigate(`/candidate-profile/${profile.id}`);
     } catch (error) {
+      console.error("=== SAVE OPERATION FAILED ===");
       console.error("Error saving profile:", error);
       toast({
         title: "Error",
