@@ -81,6 +81,21 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  // Validate candidateId
+  if (!candidateId) {
+    console.error('PersonalDetailsSection: candidateId is required but not provided');
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Personal Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-destructive">Error: Unable to load personal details. Please refresh the page.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const form = useForm<PersonalDetailsFormData>({
     resolver: zodResolver(personalDetailsSchema),
     defaultValues: {

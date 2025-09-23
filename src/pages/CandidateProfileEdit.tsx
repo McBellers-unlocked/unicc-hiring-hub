@@ -180,11 +180,14 @@ export default function CandidateProfileEdit() {
   useEffect(() => {
     if (profile) {
       console.log('Profile state changed:', {
+        id: profile.id,
         work_experience_count: profile.work_experience?.length || 0,
         education_count: profile.education?.length || 0,
         work_experience: profile.work_experience,
         education: profile.education
       });
+    } else {
+      console.log('Profile is null/undefined');
     }
   }, [profile]);
 
