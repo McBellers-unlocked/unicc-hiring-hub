@@ -81,21 +81,6 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // Validate candidateId
-  if (!candidateId) {
-    console.error('PersonalDetailsSection: candidateId is required but not provided');
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Personal Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-destructive">Error: Unable to load personal details. Please refresh the page.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   const form = useForm<PersonalDetailsFormData>({
     resolver: zodResolver(personalDetailsSchema),
     defaultValues: {
@@ -106,12 +91,8 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
       email: initialData?.email || '',
       phone: initialData?.phone || '',
       maiden_name: initialData?.maiden_name || '',
-      gender: initialData?.gender || 'Male',
-      date_of_birth: initialData?.date_of_birth ? 
-        (initialData.date_of_birth instanceof Date ? 
-          initialData.date_of_birth : 
-          new Date(initialData.date_of_birth)) : 
-        null,
+      gender: initialData?.gender as 'Male' | 'Female' | undefined,
+      date_of_birth: initialData?.date_of_birth ? new Date(initialData.date_of_birth) : null,
       place_of_birth: initialData?.place_of_birth || '',
       country_of_birth: initialData?.country_of_birth || '',
       present_nationality: initialData?.present_nationality || '',
@@ -129,11 +110,26 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
       permanent_country: initialData?.permanent_country || '',
       us_green_card: initialData?.us_green_card || false,
       us_green_card_details: initialData?.us_green_card_details || '',
-      // Set default values for privacy settings
       email_public: initialData?.email_public || false,
       phone_public: initialData?.phone_public || false,
     },
   });
+
+  // Validate candidateId after hooks
+  if (!candidateId) {
+    console.error('PersonalDetailsSection: candidateId is required but not provided');
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Personal Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-destructive">Error: Unable to load personal details. Please refresh the page.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
 
   const onSubmit = async (data: PersonalDetailsFormData) => {
     try {
