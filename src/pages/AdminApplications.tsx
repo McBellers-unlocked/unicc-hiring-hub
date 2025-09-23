@@ -357,7 +357,10 @@ export default function AdminApplications() {
     const matchesSearch = app.candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          app.candidate.email.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
+    // Special handling for Longlist filter - check suggested_for_longlist flag
+    const matchesStatus = statusFilter === 'all' || 
+                         (statusFilter === 'Longlist' && app.suggested_for_longlist) ||
+                         (statusFilter !== 'Longlist' && app.status === statusFilter);
     
     const matchesCompletion = completionFilter === 'all' || 
                              (completionFilter === 'completed' && app.phf_completed) ||
@@ -808,7 +811,11 @@ export default function AdminApplications() {
                     ) : (
                        filteredApplications.map((application) => (
                          <>
-                           <TableRow key={application.id} className="hover:bg-muted/30 transition-colors duration-150 border-b border-border/50">
+                            <TableRow 
+                              key={application.id} 
+                              className="hover:bg-muted/30 transition-colors duration-150 border-b border-border/50 cursor-pointer"
+                              onClick={() => navigate(`/application/${application.id}`)}
+                            >
                             <TableCell>
                               <Checkbox
                                 checked={selectedApplications.has(application.id)}
