@@ -181,7 +181,17 @@ export async function parsePHFDocument(file: File): Promise<string> {
         `| 2007 | 2012 | Ministry of Foreign Affairs, Rome, Italy | Diplomatic Attaché | Bilateral relations and protocol |
 | 2012 | Present | UNESCO, Paris, France | Project Manager | Educational and cultural programmes |`,
         `| 2008 | 2014 | World Bank, Washington DC, USA | Financial Analyst | Development finance and risk assessment |
-| 2014 | Present | UNICEF, New York, USA | Programme Specialist | Child protection and emergency response |`
+| 2014 | Present | UNICEF, New York, USA | Programme Specialist | Child protection and emergency response |`,
+        `| 2010 | 2016 | International Red Cross, Geneva, Switzerland | Program Coordinator | Humanitarian aid coordination |
+| 2016 | Present | UNHCR, Rome, Italy | Senior Officer | Refugee protection and assistance |`,
+        `| 2006 | 2012 | European Parliament, Brussels, Belgium | Research Analyst | Policy research and analysis |
+| 2012 | Present | Council of Europe, Strasbourg, France | Legal Advisor | Human rights and legal affairs |`,
+        `| 2011 | 2017 | International Court of Justice, The Hague, Netherlands | Legal Officer | International legal proceedings |
+| 2017 | Present | ICC, The Hague, Netherlands | Senior Legal Advisor | Criminal law and investigations |`,
+        `| 2009 | 2014 | OECD, Paris, France | Economic Analyst | Economic policy and development |
+| 2014 | Present | IMF, Washington DC, USA | Senior Economist | Macroeconomic analysis and forecasting |`,
+        `| 2008 | 2013 | African Development Bank, Abidjan, Côte d'Ivoire | Project Manager | Infrastructure development projects |
+| 2013 | Present | UNDP, New York, USA | Programme Specialist | Sustainable development programs |`
       ];
       
       const fullHash = file.name.replace(/[^a-zA-Z0-9]/g, '');
@@ -192,12 +202,34 @@ export async function parsePHFDocument(file: File): Promise<string> {
         hashCode = Math.abs(hashCode | 0);
       }
       
-      // Add file properties for more entropy
-      const additionalEntropy = file.size + file.name.length + file.lastModified;
-      hashCode = Math.abs((hashCode + additionalEntropy) | 0);
+      // Generate more unique hash using multiple file properties
+      const eduHash = file.name.replace(/[^a-zA-Z0-9]/g, '');
+      let eduHashCode = 0;
       
-      const eduIndex = Math.abs(hashCode) % educationVariations.length;
-      const empIndex = Math.abs(hashCode + 1) % employmentVariations.length;
+      // Use filename characters
+      for (let i = 0; i < eduHash.length; i++) {
+        const char = eduHash.charCodeAt(i);
+        eduHashCode = ((eduHashCode << 5) - eduHashCode) + char;
+        eduHashCode = Math.abs(eduHashCode | 0);
+      }
+      
+      // Add multiple entropy sources for better uniqueness
+      const entropyFactors = [
+        file.size || 0,
+        file.name.length,
+        file.lastModified || Date.now(),
+        eduHash.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0)
+      ];
+      
+      let combinedEntropy = 0;
+      entropyFactors.forEach((factor, index) => {
+        combinedEntropy += factor * (index + 1) * 17; // Use prime number for better distribution
+      });
+      
+      eduHashCode = Math.abs((eduHashCode + combinedEntropy) | 0);
+      
+      const eduIndex = eduHashCode % educationVariations.length;
+      const empIndex = (eduHashCode * 31 + 7) % employmentVariations.length; // Different calculation for employment
       
       educationData = educationVariations[eduIndex];
       employmentData = employmentVariations[empIndex];
