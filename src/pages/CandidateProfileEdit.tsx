@@ -441,6 +441,9 @@ export default function CandidateProfileEdit() {
           : profile.date_of_birth,
       };
       
+      // Remove fields that don't exist in the database
+      delete updateData.years_of_experience_months;
+      
       console.log('=== FINAL UPDATE DATA ===');
       console.log('Update data work_experience:', updateData.work_experience);
       console.log('Update data phf_work_experience:', updateData.phf_work_experience);
