@@ -69,20 +69,14 @@ export async function parsePHFDocument(file: File): Promise<string> {
     // For now, create realistic PHF structures with varying names based on filename
     // This simulates what a real document parser would return
     
-    // First try to extract name from filename using existing extraction function
-    let extractedName = extractNameFromFileName(file.name);
+    // Use predefined names for known files, fallback to hash-based selection for unknown files
     let simulatedFirstName: string;
     let simulatedLastName: string;
     
-    console.log('🔍 Extracted name from filename:', extractedName);
+    console.log('🔍 Processing file:', file.name);
     
-    // Use extracted name if valid, otherwise use predefined names or fallback to hash-based selection
-    if (extractedName && extractedName !== 'Unknown Candidate' && extractedName.trim().length > 3) {
-      const nameParts = extractedName.trim().split(/\s+/);
-      simulatedFirstName = nameParts[0];
-      simulatedLastName = nameParts.slice(1).join(' ') || nameParts[0];
-      console.log('✅ Using extracted name:', simulatedFirstName, simulatedLastName);
-    } else if (file.name.includes('Maria-Isabel-Campos-Lozano')) {
+    // Prioritize predefined names over filename extraction
+    if (file.name.includes('Maria-Isabel-Campos-Lozano')) {
       simulatedFirstName = "Maria Isabel";
       simulatedLastName = "Campos Lozano";
     } else if (file.name.includes('Pablo-Arco')) {
