@@ -691,6 +691,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
       if (!data.certification.certify_true_complete_correct) mandatoryErrors.push("Certification checkbox");
       
       if (mandatoryErrors.length > 0) {
+        console.log('PHF Submit - Mandatory errors found:', mandatoryErrors);
         toast({
           title: 'Missing Required Fields',
           description: `Please complete: ${mandatoryErrors.join(', ')}`,
@@ -909,7 +910,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     };
 
     return (
-      <FormItem className="flex flex-col">
+      <FormItem>
         <FormLabel>{label}</FormLabel>
         <Popover>
           <PopoverTrigger asChild>
