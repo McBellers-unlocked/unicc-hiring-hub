@@ -29,6 +29,7 @@ import MyApplications from "./pages/MyApplications";
 import CandidateProfile from "./pages/CandidateProfile";
 import CandidateProfileEdit from "./pages/CandidateProfileEdit";
 import CandidateApplicationView from "./pages/CandidateApplicationView";
+import PHFImport from "./pages/PHFImport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -68,6 +69,7 @@ const App = () => (
             <Route path="/requisitions/:id" element={<JobRequisitionDetail />} />
             <Route path="/requisitions/:id/edit" element={<JobRequisitionForm />} />
             <Route path="/requisitions/:id/hr-edit" element={<JobRequisitionHREdit />} />
+            <Route path="/admin/phf-import" element={<PHFImport />} />
             <Route path="/test/chief-view" element={<ChiefOfDivisionView />} />
             <Route path="/test/director-view" element={<DirectorView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

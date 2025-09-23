@@ -48,12 +48,19 @@ export const Layout = ({ children }: LayoutProps) => {
                     </Link>
                   )}
                   
-                  {(isAdmin || isHR) && (
-                    <Link to="/admin/jobs" className="hover:text-accent transition-colors">
-                      <Settings className="w-4 h-4 inline mr-1" />
-                      Manage Jobs
-                    </Link>
-                  )}
+                   {(isAdmin || isHR) && (
+                     <Link to="/admin/jobs" className="hover:text-accent transition-colors">
+                       <Settings className="w-4 h-4 inline mr-1" />
+                       Manage Jobs
+                     </Link>
+                   )}
+                   
+                   {(isAdmin || isHR) && (
+                     <Link to="/admin/phf-import" className="hover:text-accent transition-colors">
+                       <FileText className="w-4 h-4 inline mr-1" />
+                       PHF Import
+                     </Link>
+                   )}
                   
                   {(isAdmin || isHR) && (
                     <Link to="/admin/requisitions" className="hover:text-accent transition-colors">
