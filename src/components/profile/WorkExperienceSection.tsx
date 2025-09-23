@@ -7,8 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CustomDatePicker } from "@/components/ui/date-picker";
-import { Plus, Trash2, Briefcase, ChevronDown, ChevronUp, Edit2 } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Plus, Trash2, Briefcase, ChevronDown, ChevronUp, Edit2, CalendarIcon } from "lucide-react";
 
 interface WorkExperience {
   company: string;
@@ -194,20 +197,57 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <Label>Start Date</Label>
-                          <CustomDatePicker
-                            selected={work.startDate ? new Date(work.startDate) : null}
-                            onChange={(date) => updateWorkExperience(index, 'startDate', date ? date.toISOString().split('T')[0] : '')}
-                            placeholderText="Select start date"
-                          />
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !work.startDate && "text-muted-foreground"
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {work.startDate ? format(new Date(work.startDate), "PPP") : "Select start date"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={work.startDate ? new Date(work.startDate) : undefined}
+                                onSelect={(date) => updateWorkExperience(index, 'startDate', date ? date.toISOString().split('T')[0] : '')}
+                                initialFocus
+                                className="p-3 pointer-events-auto"
+                              />
+                            </PopoverContent>
+                          </Popover>
                         </div>
                         <div>
                           <Label>End Date</Label>
-                          <CustomDatePicker
-                            selected={work.endDate ? new Date(work.endDate) : null}
-                            onChange={(date) => updateWorkExperience(index, 'endDate', date ? date.toISOString().split('T')[0] : '')}
-                            placeholderText="Select end date"
-                            disabled={work.isCurrent}
-                          />
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                disabled={work.isCurrent}
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !work.endDate && "text-muted-foreground"
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {work.endDate ? format(new Date(work.endDate), "PPP") : "Select end date"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={work.endDate ? new Date(work.endDate) : undefined}
+                                onSelect={(date) => updateWorkExperience(index, 'endDate', date ? date.toISOString().split('T')[0] : '')}
+                                initialFocus
+                                className="p-3 pointer-events-auto"
+                                disabled={work.isCurrent}
+                              />
+                            </PopoverContent>
+                          </Popover>
                         </div>
                       </div>
                       <div className="space-y-3">
@@ -311,20 +351,57 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Start Date</Label>
-                <CustomDatePicker
-                  selected={newWork.startDate ? new Date(newWork.startDate) : null}
-                  onChange={(date) => setNewWork({ ...newWork, startDate: date ? date.toISOString().split('T')[0] : '' })}
-                  placeholderText="Select start date"
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !newWork.startDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {newWork.startDate ? format(new Date(newWork.startDate), "PPP") : "Select start date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={newWork.startDate ? new Date(newWork.startDate) : undefined}
+                      onSelect={(date) => setNewWork({ ...newWork, startDate: date ? date.toISOString().split('T')[0] : '' })}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <Label>End Date</Label>
-                <CustomDatePicker
-                  selected={newWork.endDate ? new Date(newWork.endDate) : null}
-                  onChange={(date) => setNewWork({ ...newWork, endDate: date ? date.toISOString().split('T')[0] : '' })}
-                  placeholderText="Select end date"
-                  disabled={newWork.isCurrent}
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      disabled={newWork.isCurrent}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !newWork.endDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {newWork.endDate ? format(new Date(newWork.endDate), "PPP") : "Select end date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={newWork.endDate ? new Date(newWork.endDate) : undefined}
+                      onSelect={(date) => setNewWork({ ...newWork, endDate: date ? date.toISOString().split('T')[0] : '' })}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                      disabled={newWork.isCurrent}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
             <div className="space-y-3">
