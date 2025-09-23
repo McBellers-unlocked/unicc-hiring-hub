@@ -210,7 +210,7 @@ export default function AdminApplications() {
     
     return educationArray.map((edu: any) => ({
       degree: edu.degree || edu.degree_type || 'Not specified',
-      fieldOfStudy: edu.field_of_study || edu.major || edu.subject || '',
+      fieldOfStudy: edu.field_of_study || edu.field || edu.main_course_of_study || edu.major || edu.subject || '',
       institution: edu.institution || edu.institution_name || edu.university || '',
       year: edu.end_date ? new Date(edu.end_date).getFullYear().toString() : 
             (edu.to_year || edu.year_awarded || '')
