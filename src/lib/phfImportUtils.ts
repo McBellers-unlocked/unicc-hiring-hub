@@ -147,21 +147,21 @@ I. PERSONAL PARTICULARS
 
 | Permanent Address | Present Address | Telephone | E-Mail |
 |------------------|----------------|-----------|--------|
-| 123 Main St, London | 123 Main St, London | +44-123-456789 | ${simulatedFirstName.toLowerCase()}.${simulatedLastName.toLowerCase()}@email.com |
+| 123 Main St, London | 123 Main St, London | +44-123-456789 | ${simulatedFirstName.toLowerCase().replace(' ', '.')}.${simulatedLastName.toLowerCase().replace(' ', '.')}@email.com |
 
 II. EDUCATION
 
-| From | To   | Institution | Certificates, Degrees obtained | Main course of study |
-|------|------|-------------|------------------------------|-------------------|
-| 2003 | 2007 | Oxford University | Bachelor of Arts | Political Science |
-| 2007 | 2009 | Cambridge University | Master of Arts | International Relations |
+| From | To   | Institution (name, place, country) | Certificates, Degrees obtained | Main course of study |
+|------|------|-------------------------------------|------------------------------|-------------------|
+| 2003 | 2007 | Oxford University, Oxford, UK       | Bachelor of Arts             | Political Science |
+| 2007 | 2009 | Cambridge University, Cambridge, UK | Master of Arts               | International Relations |
 
 III. EMPLOYMENT RECORD
 
 | From | To      | Name and address of employer | Position held | Description of duties |
-|------|---------|---------------------------|--------------|-------------------|
-| 2009 | 2015    | Foreign Office, London    | Policy Analyst | International policy analysis |
-| 2015 | Present | United Nations, New York  | Senior Officer | Programme management |
+|------|---------|----------------------------|--------------|-------------------|
+| 2009 | 2015    | Foreign Office, London, UK | Policy Analyst | International policy analysis and research |
+| 2015 | Present | United Nations, New York, USA | Senior Officer | Programme management and coordination |
 
 IV. LANGUAGE KNOWLEDGE
 
@@ -313,61 +313,68 @@ export function extractPHFData(text: string, fileName: string): PHFExtractedData
 }
 
 function extractEducation(text: string, data: PHFExtractedData) {
-  // Look for education sections
+  // Look for education table sections in PHF format
   const educationSections = text.split(/(?:EDUCATION|Educational background|Academic qualifications)/i);
   
   if (educationSections.length > 1) {
     const educationText = educationSections[1].split(/(?:EMPLOYMENT|WORK EXPERIENCE|PROFESSIONAL EXPERIENCE)/i)[0];
     
-    // Split into individual education entries
-    const educationEntries = educationText.split(/\d{4}|\n\n/).filter(entry => entry.trim().length > 10);
+    // Parse education table rows - PHF format:
+    // | From | To | Institution | Certificates, Degrees obtained | Main course of study |
+    const tableRows = educationText.match(/\|\s*(\d{4})\s*\|\s*(\d{4})\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|/g);
     
-    educationEntries.forEach(entry => {
-      const institution = extractInstitution(entry);
-      const degree = extractDegree(entry);
-      const dates = extractDates(entry);
-      
-      if (institution || degree) {
-        data.education.push({
-          institution: institution || 'Unknown Institution',
-          degree: degree || 'Unknown Degree',
-          start_date: dates.start,
-          end_date: dates.end,
-          ongoing: dates.ongoing
-        });
-      }
-    });
+    if (tableRows) {
+      tableRows.forEach(row => {
+        const matches = row.match(/\|\s*(\d{4})\s*\|\s*(\d{4})\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|/);
+        if (matches) {
+          const [, fromYear, toYear, institution, degreesObtained, mainCourse] = matches;
+          
+          data.education.push({
+            institution: institution.trim(),
+            degree: degreesObtained.trim(), // "Certificates, Degrees obtained" field
+            field_of_study: mainCourse.trim(), // "Main course of study" field
+            start_date: fromYear,
+            end_date: toYear,
+            ongoing: false
+          });
+        }
+      });
+    }
   }
 }
 
 function extractWorkExperience(text: string, data: PHFExtractedData) {
-  // Look for work experience sections
+  // Look for employment/work experience sections
   const workSections = text.split(/(?:EMPLOYMENT|WORK EXPERIENCE|PROFESSIONAL EXPERIENCE|Employment record)/i);
   
   if (workSections.length > 1) {
     const workText = workSections[1].split(/(?:EDUCATION|LANGUAGES|SKILLS)/i)[0];
     
-    // Split into individual work entries
-    const workEntries = workText.split(/\d{4}|\n\n/).filter(entry => entry.trim().length > 10);
+    // Parse employment table rows - PHF format:
+    // | From | To | Name and address of employer | Position held | Description of duties |
+    const tableRows = workText.match(/\|\s*(\d{4})\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|/g);
     
-    workEntries.forEach(entry => {
-      const company = extractCompany(entry);
-      const position = extractPosition(entry);
-      const dates = extractDates(entry);
-      const isUNExperience = /UN|United Nations|UNICEF|WHO|UNESCO|UNDP|UNHCR/i.test(entry);
-      
-      if (company || position) {
-        data.workExperience.push({
-          company: company || 'Unknown Company',
-          position: position || 'Unknown Position',
-          start_date: dates.start,
-          end_date: dates.end,
-          ongoing: dates.ongoing,
-          un_experience: isUNExperience,
-          description: entry.trim().substring(0, 500)
-        });
-      }
-    });
+    if (tableRows) {
+      tableRows.forEach(row => {
+        const matches = row.match(/\|\s*(\d{4})\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|/);
+        if (matches) {
+          const [, fromYear, toYear, employer, position, duties] = matches;
+          
+          const isOngoing = toYear.toLowerCase().includes('present') || toYear.toLowerCase().includes('current');
+          const isUNExperience = /UN|United Nations|UNICEF|WHO|UNESCO|UNDP|UNHCR/i.test(employer);
+          
+          data.workExperience.push({
+            company: employer.trim(),
+            position: position.trim(), // "Exact title of your post"
+            start_date: fromYear,
+            end_date: isOngoing ? undefined : toYear.trim(),
+            ongoing: isOngoing,
+            un_experience: isUNExperience,
+            description: duties.trim()
+          });
+        }
+      });
+    }
   }
 }
 
