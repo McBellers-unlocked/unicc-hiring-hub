@@ -180,22 +180,22 @@ export default function EducationSection({ education, onChange }: EducationSecti
                     <div className="space-y-4">
                       <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Study Period</h5>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                          <Label className="text-sm font-medium block mb-2">Start Date</Label>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium block">Start Date</Label>
                           <CustomDatePicker
                             selected={edu.startDate ? new Date(edu.startDate) : null}
                             onChange={(date) => updateEducation(index, 'startDate', date ? date.toISOString().split('T')[0] : '')}
                             placeholderText="Select start date"
-                            className="w-full mt-2"
+                            className="w-full"
                           />
                         </div>
-                        <div className="space-y-4">
-                          <Label className="text-sm font-medium block mb-2">End Date</Label>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium block">End Date</Label>
                           <CustomDatePicker
                             selected={edu.endDate ? new Date(edu.endDate) : null}
                             onChange={(date) => updateEducation(index, 'endDate', date ? date.toISOString().split('T')[0] : '')}
                             placeholderText="Select end date"
-                            className="w-full mt-2"
+                            className="w-full"
                           />
                         </div>
                       </div>
@@ -281,22 +281,22 @@ export default function EducationSection({ education, onChange }: EducationSecti
           <div className="space-y-4">
             <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Study Period</h5>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <Label className="text-sm font-medium block mb-2">Start Date</Label>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium block">Start Date</Label>
                 <CustomDatePicker
                   selected={newEducation.startDate ? new Date(newEducation.startDate) : null}
                   onChange={(date) => setNewEducation({ ...newEducation, startDate: date ? date.toISOString().split('T')[0] : '' })}
                   placeholderText="Select start date"
-                  className="w-full mt-2"
+                  className="w-full"
                 />
               </div>
-              <div className="space-y-4">
-                <Label className="text-sm font-medium block mb-2">End Date</Label>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium block">End Date</Label>
                 <CustomDatePicker
                   selected={newEducation.endDate ? new Date(newEducation.endDate) : null}
                   onChange={(date) => setNewEducation({ ...newEducation, endDate: date ? date.toISOString().split('T')[0] : '' })}
                   placeholderText="Select end date"
-                  className="w-full mt-2"
+                  className="w-full"
                 />
               </div>
             </div>
