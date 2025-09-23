@@ -495,39 +495,54 @@ serve(async (req) => {
       }
     };
 
+    console.log('Saving screening score with breakdown:', {
+      application_id: applicationId,
+      ai_score: overallScore,
+      version: '2.0',
+      breakdown_keys: Object.keys(breakdown)
+    });
+
     // Create screening score record
-    const { error: scoreError } = await supabase
+    const { data: scoreData, error: scoreError } = await supabase
       .from('screening_scores')
       .insert({
         application_id: applicationId,
         ai_score: overallScore,
         rubric_breakdown: breakdown,
         version: '2.0'
-      });
+      })
+      .select();
 
     if (scoreError) {
       console.error('Error creating screening score:', scoreError);
       return new Response(
-        JSON.stringify({ error: 'Failed to save screening score' }),
+        JSON.stringify({ error: 'Failed to save screening score', details: scoreError }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log('Screening score saved successfully:', scoreData);
+
     // Update application with longlist recommendation
-    const { error: updateError } = await supabase
+    console.log('Updating application with longlist recommendation:', recommendForLonglist);
+    const { data: updateData, error: updateError } = await supabase
       .from('applications')
       .update({
         suggested_for_longlist: recommendForLonglist
       })
-      .eq('id', applicationId);
+      .eq('id', applicationId)
+      .select();
 
     if (updateError) {
       console.error('Error updating application:', updateError);
+      console.error('Update error details:', JSON.stringify(updateError, null, 2));
       return new Response(
-        JSON.stringify({ error: 'Failed to update application' }),
+        JSON.stringify({ error: 'Failed to update application', details: updateError }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Application updated successfully:', updateData);
 
     console.log(`Application scoring completed successfully`);
 
