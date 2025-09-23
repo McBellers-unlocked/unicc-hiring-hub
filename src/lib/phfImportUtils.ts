@@ -536,14 +536,12 @@ export async function createCandidateFromPHF(
       candidateId = existingCandidate.id;
       console.log('🔄 Update mode enabled, will update existing candidate data');
     }
-    const timestamp = Date.now();
-    const randomId = Math.random().toString(36).substring(2, 8);
     const baseEmail = extractedData.personalInfo.email || 
-      `${extractedData.personalInfo.name.toLowerCase().replace(/\s+/g, '.')}.${timestamp}.${randomId}@imported.example.com`;
+      `${extractedData.personalInfo.name.toLowerCase().replace(/\s+/g, '.')}.imported@email.com`;
     
     const candidateData = {
       name: extractedData.personalInfo.name,
-      email: baseEmail,
+      email: candidateId ? existingCandidate.email : baseEmail, // Keep existing email for updates
       phone: extractedData.personalInfo.phone || '',
       present_nationality: extractedData.personalInfo.nationality,
       gender: extractedData.personalInfo.gender,
@@ -586,18 +584,29 @@ export async function createCandidateFromPHF(
     let candidate;
     if (candidateId) {
       // Update existing candidate
-      const { data: updatedCandidate, error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('candidates')
         .update(candidateData)
-        .eq('id', candidateId)
-        .select();
-      
+        .eq('id', candidateId);
+
       if (updateError) {
         console.error('Database error updating candidate:', updateError);
         throw updateError;
       }
-      
-      candidate = updatedCandidate?.[0] || updatedCandidate;
+
+      // Fetch the updated candidate data
+      const { data: updatedCandidate, error: fetchError } = await supabase
+        .from('candidates')
+        .select('*')
+        .eq('id', candidateId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching updated candidate:', fetchError);
+        throw fetchError;
+      }
+
+      candidate = updatedCandidate;
       console.log('✅ Updated candidate:', candidate.name, 'with email:', candidate.email);
     } else {
       // Insert new candidate
