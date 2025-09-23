@@ -620,6 +620,13 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
   });
 
   const handleSubmit = async (data: PHFFormData) => {
+    console.log("PHF Submit - Submitting PHF data:", data);
+    console.log("PHF Submit - Candidate Profile:", candidateProfile);
+    console.log("PHF Submit - Employment data checks:");
+    console.log("- data.employment.length:", data.employment.length);
+    console.log("- candidateProfile?.work_experience?.length:", candidateProfile?.work_experience?.length);
+    console.log("- candidateProfile?.phf_work_experience?.length:", candidateProfile?.phf_work_experience?.length);
+    
     setIsSubmitting(true);
     try {
       // Validate mandatory fields before submission
@@ -631,7 +638,20 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
       if (!data.personalDetails.telephone) mandatoryErrors.push("Phone");
       if (!data.personalDetails.presentAddress) mandatoryErrors.push("Present Address");
       if (data.education.length === 0 && (!candidateProfile?.education || candidateProfile.education.length === 0)) mandatoryErrors.push("At least one Education entry");
-      if (data.employment.length === 0 && (!candidateProfile?.work_experience || candidateProfile.work_experience.length === 0) && (!candidateProfile?.phf_work_experience || candidateProfile.phf_work_experience.length === 0)) mandatoryErrors.push("At least one Employment entry");
+      
+      // Check if employment data exists in any location
+      const hasFormEmployment = data.employment.length > 0;
+      const hasProfileWorkExperience = candidateProfile?.work_experience && candidateProfile.work_experience.length > 0;
+      const hasPHFWorkExperience = candidateProfile?.phf_work_experience && candidateProfile.phf_work_experience.length > 0;
+      const hasAnyEmployment = hasFormEmployment || hasProfileWorkExperience || hasPHFWorkExperience;
+      
+      console.log("PHF Submit - Employment validation:");
+      console.log("- hasFormEmployment:", hasFormEmployment);
+      console.log("- hasProfileWorkExperience:", hasProfileWorkExperience);
+      console.log("- hasPHFWorkExperience:", hasPHFWorkExperience);
+      console.log("- hasAnyEmployment:", hasAnyEmployment);
+      
+      if (!hasAnyEmployment) mandatoryErrors.push("At least one Employment entry");
       if (!data.motivationLetter.motivation_letter_content) mandatoryErrors.push("Motivation Letter");
       if (!data.certification.certify_true_complete_correct) mandatoryErrors.push("Certification checkbox");
       
