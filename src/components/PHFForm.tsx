@@ -398,8 +398,19 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         // Check if we have employment data either in form or from candidate profile
         const hasEmploymentInForm = formValues.employment && formValues.employment.length > 0;
         const hasEmploymentInProfile = candidateProfile?.work_experience && candidateProfile.work_experience.length > 0;
+        const hasPHFEmploymentInProfile = candidateProfile?.phf_work_experience && candidateProfile.phf_work_experience.length > 0;
         
-        if (!hasEmploymentInForm && !hasEmploymentInProfile) return 'warning';
+        // Debug logging to see what employment data we have
+        console.log('PHF Employment Validation Debug:', {
+          hasEmploymentInForm,
+          hasEmploymentInProfile,
+          hasPHFEmploymentInProfile,
+          formEmployment: formValues.employment,
+          profileWorkExp: candidateProfile?.work_experience,
+          profilePHFWorkExp: candidateProfile?.phf_work_experience
+        });
+        
+        if (!hasEmploymentInForm && !hasEmploymentInProfile && !hasPHFEmploymentInProfile) return 'warning';
         
         // If we have form data, validate it; otherwise check profile data
         if (hasEmploymentInForm) {
@@ -420,6 +431,14 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
             !emp.company || !emp.position || !emp.startDate || !emp.description
           );
           return profileEmploymentIncomplete ? 'warning' : 'valid';
+        }
+        
+        // If only PHF employment data exists, validate that
+        if (hasPHFEmploymentInProfile) {
+          const phfEmploymentIncomplete = candidateProfile.phf_work_experience.some((emp: any) => 
+            !emp.employer_name || !emp.exact_title_of_post || !emp.period_from_year || !emp.duties_and_responsibilities
+          );
+          return phfEmploymentIncomplete ? 'warning' : 'valid';
         }
         
         return 'valid';
