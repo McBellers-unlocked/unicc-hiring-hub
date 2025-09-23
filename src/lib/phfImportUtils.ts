@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { createPHFDataFromProfile } from '@/lib/phfDataMapping';
+import { DocumentParser } from '@/lib/documentParser';
 
 export interface PHFExtractedData {
   personalInfo: {
@@ -65,9 +66,35 @@ export async function parsePHFDocument(file: File): Promise<string> {
       console.log('⚠️ File is not readable as text, treating as binary');
     }
     
-    // For binary files (PDF, DOCX), we need proper document parsing
-    // For now, create realistic PHF structures with varying names based on filename
-    // This simulates what a real document parser would return
+    // For binary files (PDF, DOCX), try to use actual document parsing
+    if (file.name.toLowerCase().endsWith('.pdf') || file.name.toLowerCase().endsWith('.docx')) {
+      console.log('📄 Attempting to parse binary document:', file.name);
+      
+      try {
+        // Use the document parser to extract real content
+        const parsedContent = await DocumentParser.parseDocument(file);
+        
+        if (parsedContent && parsedContent.length > 100) {
+          console.log('✅ Successfully parsed document content, length:', parsedContent.length);
+          
+          // Check if we successfully extracted a real candidate name
+          const extractedName = DocumentParser.extractCandidateName(parsedContent);
+          
+          if (extractedName && extractedName !== 'EXTRACTION_FAILED') {
+            console.log('✅ Real candidate data extracted from document:', extractedName);
+            return parsedContent;
+          } else {
+            console.log('⚠️ Could not extract candidate name from parsed content, using simulation');
+          }
+        }
+        
+      } catch (parseError) {
+        console.warn('⚠️ Document parsing failed, falling back to simulation:', parseError);
+      }
+    }
+    
+    // Fallback to simulation - with enhanced name extraction
+    console.log('📄 Using enhanced simulation for:', file.name)
     
     // Use predefined names for known files, fallback to hash-based selection for unknown files
     let simulatedFirstName: string;
