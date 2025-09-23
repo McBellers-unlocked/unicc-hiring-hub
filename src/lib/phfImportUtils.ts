@@ -116,9 +116,12 @@ export async function parsePHFDocument(file: File): Promise<string> {
       for (let i = 0; i < fullHash.length; i++) {
         const char = fullHash.charCodeAt(i);
         hashCode = ((hashCode << 5) - hashCode) + char;
-        hashCode = hashCode & hashCode; // Convert to 32bit integer
+        hashCode = Math.abs(hashCode | 0); // Convert to 32bit integer and ensure positive
       }
-      hashCode = Math.abs(hashCode);
+      
+      // Add file size and additional entropy to make hash more unique
+      const additionalEntropy = file.size + file.name.length + file.lastModified;
+      hashCode = Math.abs((hashCode + additionalEntropy) | 0);
       
       const nameVariations = [
         { first: "Andrea", last: "Romano" },
@@ -182,10 +185,16 @@ export async function parsePHFDocument(file: File): Promise<string> {
       ];
       
       const fullHash = file.name.replace(/[^a-zA-Z0-9]/g, '');
-      const hashCode = fullHash.split('').reduce((a, b) => {
-        a = ((a << 5) - a) + b.charCodeAt(0);
-        return Math.abs(a);
-      }, 0);
+      let hashCode = 0;
+      for (let i = 0; i < fullHash.length; i++) {
+        const char = fullHash.charCodeAt(i);
+        hashCode = ((hashCode << 5) - hashCode) + char;
+        hashCode = Math.abs(hashCode | 0);
+      }
+      
+      // Add file properties for more entropy
+      const additionalEntropy = file.size + file.name.length + file.lastModified;
+      hashCode = Math.abs((hashCode + additionalEntropy) | 0);
       
       const eduIndex = Math.abs(hashCode) % educationVariations.length;
       const empIndex = Math.abs(hashCode + 1) % employmentVariations.length;
