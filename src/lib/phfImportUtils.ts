@@ -301,8 +301,8 @@ export async function createCandidateFromPHF(
     const candidateData = {
       name: extractedData.personalInfo.name,
       email: extractedData.personalInfo.email || `${extractedData.personalInfo.name.replace(/\s+/g, '').toLowerCase()}@example.com`,
-      phone: extractedData.personalInfo.phone,
-      nationality: extractedData.personalInfo.nationality,
+      phone: extractedData.personalInfo.phone || '',
+      present_nationality: extractedData.personalInfo.nationality,
       gender: extractedData.personalInfo.gender,
       
       // Map education data
@@ -331,6 +331,17 @@ export async function createCandidateFromPHF(
       
       // Map languages
       languages: extractedData.languages.reduce((acc, lang) => {
+        acc[lang.language.toLowerCase()] = {
+          proficiency: lang.proficiency,
+          level: lang.level
+        };
+        return acc;
+      }, {} as Record<string, any>),
+
+      // Additional PHF fields
+      phf_education: extractedData.education,
+      phf_work_experience: extractedData.workExperience,
+      phf_languages: extractedData.languages.reduce((acc, lang) => {
         acc[lang.language.toLowerCase()] = {
           proficiency: lang.proficiency,
           level: lang.level
