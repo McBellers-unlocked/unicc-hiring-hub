@@ -506,26 +506,35 @@ function extractDates(text: string): { start?: string; end?: string; ongoing: bo
 // Create candidate and application from extracted PHF data
 export async function createCandidateFromPHF(
   extractedData: PHFExtractedData, 
-  jobId: string
+  jobId: string,
+  allowUpdate: boolean = false
 ): Promise<ImportResult> {
   try {
     console.log('👤 Creating candidate from PHF data...');
     
-    // Check if candidate already exists by name
+    // Check if candidate already exists by name or email
     const { data: existingCandidate } = await supabase
       .from('candidates')
       .select('id, name, email')
-      .eq('name', extractedData.personalInfo.name)
+      .or(`name.eq.${extractedData.personalInfo.name},email.eq.${extractedData.personalInfo.email || 'no-email'}`)
       .maybeSingle();
+    
+    let candidateId = null;
     
     if (existingCandidate) {
       console.log('⚠️ Candidate already exists:', existingCandidate.name);
-      return {
-        success: false,
-        error: `Candidate "${extractedData.personalInfo.name}" already exists in the system`,
-        candidateName: extractedData.personalInfo.name,
-        extractedData
-      };
+      
+      if (!allowUpdate) {
+        return {
+          success: false,
+          error: `Candidate "${extractedData.personalInfo.name}" already exists. Enable update mode to update existing applications.`,
+          candidateName: extractedData.personalInfo.name,
+          extractedData
+        };
+      }
+      
+      candidateId = existingCandidate.id;
+      console.log('🔄 Update mode enabled, will update existing candidate data');
     }
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substring(2, 8);
@@ -573,48 +582,112 @@ export async function createCandidateFromPHF(
       }, {} as Record<string, any>)
     };
 
-    // Insert candidate
-    const { data: candidate, error: candidateError } = await supabase
-      .from('candidates')
-      .insert([candidateData])
-      .select()
-      .single();
-
-    if (candidateError) {
-      console.error('Database error creating candidate:', candidateError);
+    // Insert or update candidate
+    let candidate;
+    if (candidateId) {
+      // Update existing candidate
+      const { data: updatedCandidate, error: updateError } = await supabase
+        .from('candidates')
+        .update(candidateData)
+        .eq('id', candidateId)
+        .select()
+        .single();
       
-      // Handle specific database errors
-      if (candidateError.message?.includes('duplicate key value violates unique constraint "candidates_email_key"')) {
-        throw new Error(`Candidate with email ${baseEmail} already exists`);
-      } else if (candidateError.message?.includes('violates unique constraint')) {
-        throw new Error('Candidate with this information already exists');
-      } else {
-        throw candidateError;
+      if (updateError) {
+        console.error('Database error updating candidate:', updateError);
+        throw updateError;
       }
-    }
+      
+      candidate = updatedCandidate;
+      console.log('✅ Updated candidate:', candidate.name, 'with email:', candidate.email);
+    } else {
+      // Insert new candidate
+      const { data: newCandidate, error: candidateError } = await supabase
+        .from('candidates')
+        .insert([candidateData])
+        .select()
+        .single();
 
-    console.log('✅ Created candidate:', candidate.name, 'with email:', candidate.email);
+      if (candidateError) {
+        console.error('Database error creating candidate:', candidateError);
+        
+        // Handle specific database errors
+        if (candidateError.message?.includes('duplicate key value violates unique constraint "candidates_email_key"')) {
+          throw new Error(`Candidate with email ${baseEmail} already exists`);
+        } else if (candidateError.message?.includes('violates unique constraint')) {
+          throw new Error('Candidate with this information already exists');
+        } else {
+          throw candidateError;
+        }
+      }
+      
+      candidate = newCandidate;
+      console.log('✅ Created candidate:', candidate.name, 'with email:', candidate.email);
+    }
 
     // Create PHF data using existing mapping utilities
     const phfData = createPHFDataFromProfile(candidateData);
 
-    // Create application
-    const { data: application, error: applicationError } = await supabase
+    // Check if application already exists for this job and candidate
+    const { data: existingApplication } = await supabase
       .from('applications')
-      .insert([{
-        job_id: jobId,
-        candidate_id: candidate.id,
-        status: 'Application',
-        phf_data: phfData,
-        phf_completed: true,
-        source: 'PHF Import'
-      }])
-      .select()
-      .single();
+      .select('id')
+      .eq('job_id', jobId)
+      .eq('candidate_id', candidate.id)
+      .maybeSingle();
 
-    if (applicationError) {
-      console.error('Error creating application:', applicationError);
-      throw applicationError;
+    let application;
+    if (existingApplication && allowUpdate) {
+      // Update existing application
+      const { data: updatedApplication, error: updateAppError } = await supabase
+        .from('applications')
+        .update({
+          phf_data: phfData,
+          phf_completed: true,
+          source: 'PHF Import (Updated)',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingApplication.id)
+        .select()
+        .single();
+
+      if (updateAppError) {
+        console.error('Error updating application:', updateAppError);
+        throw updateAppError;
+      }
+      
+      application = updatedApplication;
+      console.log('✅ Updated existing application for job:', jobId);
+    } else if (existingApplication) {
+      // Application exists but update not allowed
+      return {
+        success: false,
+        error: `Application already exists for this candidate and job. Enable update mode to update existing applications.`,
+        candidateName: extractedData.personalInfo.name,
+        extractedData
+      };
+    } else {
+      // Create new application
+      const { data: newApplication, error: applicationError } = await supabase
+        .from('applications')
+        .insert([{
+          job_id: jobId,
+          candidate_id: candidate.id,
+          status: 'Application',
+          phf_data: phfData,
+          phf_completed: true,
+          source: 'PHF Import'
+        }])
+        .select()
+        .single();
+
+      if (applicationError) {
+        console.error('Error creating application:', applicationError);
+        throw applicationError;
+      }
+      
+      application = newApplication;
+      console.log('✅ Created new application for job:', jobId);
     }
 
     return {
@@ -635,8 +708,7 @@ export async function createCandidateFromPHF(
   }
 }
 
-// Main processing function
-export async function processPHFDocument(file: File, jobId: string): Promise<ImportResult> {
+export async function processPHFDocument(file: File, jobId: string, allowUpdate: boolean = false): Promise<ImportResult> {
   try {
     console.log('🚀 Processing PHF document:', file.name);
     
@@ -661,7 +733,7 @@ export async function processPHFDocument(file: File, jobId: string): Promise<Imp
     
     // Create candidate and application
     console.log('💾 Creating candidate and application...');
-    const result = await createCandidateFromPHF(extractedData, jobId);
+    const result = await createCandidateFromPHF(extractedData, jobId, allowUpdate);
     
     if (result.success) {
       console.log('✅ Successfully processed:', file.name, 'for candidate:', result.candidateName);

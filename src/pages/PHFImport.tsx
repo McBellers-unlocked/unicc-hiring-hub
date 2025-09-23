@@ -7,10 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, FileText, CheckCircle, XCircle, Users, AlertTriangle } from 'lucide-react';
+import { Upload, FileText, CheckCircle, XCircle, Users, AlertTriangle, AlertCircle } from 'lucide-react';
 import { processPHFDocument, createCandidateFromPHF, type PHFExtractedData, type ImportResult } from '@/lib/phfImportUtils';
 
 interface Job {
@@ -35,6 +36,7 @@ export default function PHFImport() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [importStatuses, setImportStatuses] = useState<ImportStatus[]>([]);
   const [results, setResults] = useState<ImportResult[]>([]);
+  const [allowUpdate, setAllowUpdate] = useState(false);
 
   const isAdmin = userRoles.includes('Admin');
   const isHR = userRoles.includes('HR Assistant');
@@ -142,7 +144,7 @@ export default function PHFImport() {
       ));
 
       try {
-        const result = await processPHFDocument(file, selectedJobId);
+        const result = await processPHFDocument(file, selectedJobId, allowUpdate);
         processedResults.push(result);
         
         // Update status to completed
@@ -278,6 +280,31 @@ export default function PHFImport() {
                     ))}
                   </div>
                 </div>
+              )}
+
+              {/* Update Mode Toggle */}
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="allow-update"
+                  checked={allowUpdate}
+                  onCheckedChange={setAllowUpdate}
+                  disabled={isProcessing}
+                />
+                <label
+                  htmlFor="allow-update"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Update existing applications
+                </label>
+              </div>
+              
+              {allowUpdate && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Update Mode:</strong> Existing candidates and applications will be updated with new PHF data instead of being rejected.
+                  </AlertDescription>
+                </Alert>
               )}
 
               <div className="flex gap-2">
