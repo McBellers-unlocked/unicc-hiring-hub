@@ -655,6 +655,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
   });
 
   const handleSubmit = async (data: PHFFormData) => {
+    console.log("🚀 PHF handleSubmit function called!");
     console.log("PHF Submit - Submitting PHF data:", data);
     console.log("PHF Submit - Candidate Profile:", candidateProfile);
     console.log("PHF Submit - Employment data checks:");
@@ -2975,7 +2976,10 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+        <form onSubmit={(e) => {
+          console.log('Form submit event triggered!', e);
+          form.handleSubmit(handleSubmit)(e);
+        }} className="space-y-8">
           <Tabs value={currentSection.toString()} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-5 gap-1 h-auto p-1">
                {SECTIONS.slice(0, 5).map((section, index) => {
@@ -3111,7 +3115,17 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                   Next
                 </Button>
               ) : (
-                <Button type="submit" disabled={isSubmitting}>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    console.log('PHF Submit Button Clicked!');
+                    console.log('Current section:', currentSection);
+                    console.log('Total sections:', SECTIONS.length);
+                    console.log('Form valid?', form.formState.isValid);
+                    console.log('Form errors:', form.formState.errors);
+                  }}
+                >
                   {isSubmitting ? 'Submitting...' : 'Submit PHF'}
                 </Button>
               )}
