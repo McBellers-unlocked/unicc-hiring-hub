@@ -43,6 +43,7 @@ interface Application {
   };
   screening_scores?: {
     ai_score: number | null;
+    created_at: string;
   }[];
 }
 
@@ -140,7 +141,7 @@ export default function AdminApplications() {
             languages, years_of_experience, un_experience, skills
           ),
           job:jobs(id, title, org_unit),
-          screening_scores(ai_score)
+          screening_scores!inner(ai_score, created_at)
         `)
         .eq('job_id', jobId)
         .order('submitted_at', { ascending: false });
@@ -384,7 +385,11 @@ export default function AdminApplications() {
   };
 
   const getScoreBadge = (application: Application) => {
-    const score = application.screening_scores?.[0]?.ai_score;
+    // Get the latest score by sorting by created_at descending
+    const latestScore = application.screening_scores
+      ?.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+    
+    const score = latestScore?.ai_score;
     if (score === null || score === undefined) {
       return (
         <Badge className="bg-gray-100 text-gray-800 text-xs">
