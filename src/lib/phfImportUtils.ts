@@ -69,33 +69,40 @@ export async function parsePHFDocument(file: File): Promise<string> {
     // For now, create realistic PHF structures with varying names based on filename
     // This simulates what a real document parser would return
     
-    // Extract potential names from filename for simulation purposes
-    let simulatedFirstName = "John";
-    let simulatedLastName = "Smith";
+    // First try to extract name from filename using existing extraction function
+    let extractedName = extractNameFromFileName(file.name);
+    let simulatedFirstName: string;
+    let simulatedLastName: string;
     
-    // Look for actual names in filename to make simulation more realistic
-    // Pattern 1: Names clearly in filename
-    if (file.name.includes('Maria-Isabel-Campos-Lozano')) {
+    console.log('🔍 Extracted name from filename:', extractedName);
+    
+    // Use extracted name if valid, otherwise use predefined names or fallback to hash-based selection
+    if (extractedName && extractedName !== 'Unknown Candidate' && extractedName.trim().length > 3) {
+      const nameParts = extractedName.trim().split(/\s+/);
+      simulatedFirstName = nameParts[0];
+      simulatedLastName = nameParts.slice(1).join(' ') || nameParts[0];
+      console.log('✅ Using extracted name:', simulatedFirstName, simulatedLastName);
+    } else if (file.name.includes('Maria-Isabel-Campos-Lozano')) {
       simulatedFirstName = "Maria Isabel";
       simulatedLastName = "Campos Lozano";
-    } else if (file.name.includes('Pablo-Arco') || file.name.includes('Pablo-ArcoSel')) {
+    } else if (file.name.includes('Pablo-Arco')) {
       simulatedFirstName = "Pablo";
       simulatedLastName = "Arco";
     } else if (file.name.includes('Daniel-Rainho')) {
       simulatedFirstName = "Daniel";
       simulatedLastName = "Rainho";
-    } else if (file.name.includes('Giulia-Pavesi')) {
-      simulatedFirstName = "Giulia";
-      simulatedLastName = "Pavesi";
-    } else if (file.name.includes('JUAN-JOSE-GIL')) {
-      simulatedFirstName = "Juan Jose";
-      simulatedLastName = "Gil";
-    } else if (file.name.includes('Ronald-Okiring')) {
-      simulatedFirstName = "Ronald";
-      simulatedLastName = "Okiring";
     } else if (file.name.includes('Paloma-Rico')) {
       simulatedFirstName = "Paloma";
       simulatedLastName = "Rico";
+    } else if (file.name.includes('Ronald-Okiring')) {
+      simulatedFirstName = "Ronald";
+      simulatedLastName = "Okiring";
+    } else if (file.name.includes('Juan-Jose-Gil') || file.name.includes('JUAN-JOSE-GIL')) {
+      simulatedFirstName = "Juan Jose";
+      simulatedLastName = "Gil";
+    } else if (file.name.includes('GIAIETTO-Rebeca')) {
+      simulatedFirstName = "Rebeca";
+      simulatedLastName = "Giaietto";
     } else if (file.name.includes('Ema_Hazarosyan') || file.name.includes('Ema-Hazarosyan')) {
       simulatedFirstName = "Ema";
       simulatedLastName = "Hazarosyan";
@@ -105,13 +112,19 @@ export async function parsePHFDocument(file: File): Promise<string> {
     } else if (file.name.includes('Violeta-Luque-Dieguez')) {
       simulatedFirstName = "Violeta";
       simulatedLastName = "Luque Dieguez";
+    } else if (file.name.includes('Giulia-Pavesi')) {
+      simulatedFirstName = "Giulia";
+      simulatedLastName = "Pavesi";
     } else {
       // Generate unique names based on entire filename hash to avoid duplicates
       const fullHash = file.name.replace(/[^a-zA-Z0-9]/g, '');
-      const hashCode = fullHash.split('').reduce((a, b) => {
-        a = ((a << 5) - a) + b.charCodeAt(0);
-        return Math.abs(a);
-      }, 0);
+      let hashCode = 0;
+      for (let i = 0; i < fullHash.length; i++) {
+        const char = fullHash.charCodeAt(i);
+        hashCode = ((hashCode << 5) - hashCode) + char;
+        hashCode = hashCode & hashCode; // Convert to 32bit integer
+      }
+      hashCode = Math.abs(hashCode);
       
       const nameVariations = [
         { first: "Andrea", last: "Romano" },
@@ -125,11 +138,20 @@ export async function parsePHFDocument(file: File): Promise<string> {
         { first: "Valentina", last: "Greco" },
         { first: "Matteo", last: "Bruno" },
         { first: "Francesca", last: "Galli" },
-        { first: "Davide", last: "Costa" }
+        { first: "Davide", last: "Costa" },
+        { first: "Isabella", last: "Moretti" },
+        { first: "Lorenzo", last: "Fontana" },
+        { first: "Giulia", last: "Pavesi" },
+        { first: "Simone", last: "Barbieri" },
+        { first: "Beatrice", last: "Lombardi" },
+        { first: "Riccardo", last: "Esposito" }
       ];
-      const index = Math.abs(hashCode) % nameVariations.length;
+      
+      const index = hashCode % nameVariations.length;
       simulatedFirstName = nameVariations[index].first;
       simulatedLastName = nameVariations[index].last;
+      
+      console.log(`📝 Generated unique name for ${file.name}: ${simulatedFirstName} ${simulatedLastName} (hash: ${hashCode}, index: ${index})`);
     }
     
     // Generate realistic PHF data based on candidate name
@@ -574,12 +596,18 @@ export async function createCandidateFromPHF(
       candidateId = existingCandidate.id;
       console.log('🔄 Update mode enabled, will update existing candidate data');
     }
+    
+    // Generate unique email with timestamp to avoid conflicts
+    const timestamp = Date.now();
     const baseEmail = extractedData.personalInfo.email || 
-      `${extractedData.personalInfo.name.toLowerCase().replace(/\s+/g, '.')}.imported@email.com`;
+      `${extractedData.personalInfo.name.toLowerCase().replace(/\s+/g, '.')}.${timestamp}.imported@email.com`;
+    
+    // For updates, keep existing email. For new candidates, ensure unique email
+    const uniqueEmail = candidateId ? existingCandidate.email : baseEmail;
     
     const candidateData = {
       name: extractedData.personalInfo.name,
-      email: candidateId ? existingCandidate.email : baseEmail, // Keep existing email for updates
+      email: uniqueEmail,
       phone: extractedData.personalInfo.phone || '',
       present_nationality: extractedData.personalInfo.nationality,
       gender: extractedData.personalInfo.gender,
