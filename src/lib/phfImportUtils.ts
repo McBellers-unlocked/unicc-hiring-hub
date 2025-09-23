@@ -99,38 +99,54 @@ export async function parsePHFDocument(file: File): Promise<string> {
 }
 
 function extractNameFromFileName(fileName: string): string {
-  // Handle specific patterns from the uploaded files:
-  // "70258_514675-Ronald-Okiring-_-Sel-A-XV-Personal-History-Form-for-Applications-at-ICC.docx"
-  // "70260_eade8e-Sel-A-XV-Personal-History-Form-for-Applications-at-ICC.pdf"
+  console.log('🔍 Extracting name from filename:', fileName);
   
-  // Pattern for Ronald-Okiring: after numbers and before "Sel"
+  // Pattern 1: "70258_514675-Ronald-Okiring-_-Sel-A-XV..." 
   const ronaldPattern = fileName.match(/\d+[_-]\d*[_-]?([A-Za-z]+(?:[-][A-Za-z]+)+)[_-].*Sel/i);
   if (ronaldPattern && ronaldPattern[1]) {
-    return ronaldPattern[1].replace(/[-_]/g, ' ').trim();
+    const name = ronaldPattern[1].replace(/[-_]/g, ' ').trim();
+    console.log('✅ Pattern 1 (Ronald type) found:', name);
+    return name;
   }
   
-  // Pattern 1: Extract name between number prefix and "Sel-A-XV" or similar
-  const nameBeforeSelPattern = fileName.match(/\d+[_-](?:\w+[_-])?([A-Za-z]+(?:[-][A-Za-z]+)*)[_-](?:Sel|Personal)/i);
-  if (nameBeforeSelPattern && nameBeforeSelPattern[1]) {
-    const extractedName = nameBeforeSelPattern[1].replace(/[-_]/g, ' ').trim();
-    // If it looks like a real name (multiple parts), return it
-    if (extractedName.includes(' ') || extractedName.length > 3) {
-      return extractedName;
-    }
+  // Pattern 2: Look for name patterns before common PHF keywords
+  const beforeKeywords = fileName.match(/([A-Za-z]+(?:[-\s][A-Za-z]+)*)[_-](?:Sel|Personal|History|Form|PHF|Application)/i);
+  if (beforeKeywords && beforeKeywords[1] && beforeKeywords[1].length > 3) {
+    const name = beforeKeywords[1].replace(/[-_]/g, ' ').trim();
+    console.log('✅ Pattern 2 (before keywords) found:', name);
+    return name;
   }
   
-  // Pattern 2: Look for multiple capitalized words that could be names
+  // Pattern 3: Extract from middle sections between numbers and keywords
+  const middlePattern = fileName.match(/\d+[_-]([A-Za-z]+(?:[_-][A-Za-z]+)*)[_-](?:Sel|Personal|History|PHF)/i);
+  if (middlePattern && middlePattern[1]) {
+    const name = middlePattern[1].replace(/[-_]/g, ' ').trim();
+    console.log('✅ Pattern 3 (middle section) found:', name);
+    return name;
+  }
+  
+  // Pattern 4: Look for multiple capitalized words that could be names
   const nameWords = fileName.match(/[A-Z][a-z]+/g);
   if (nameWords && nameWords.length >= 2) {
-    // Filter out common non-name words
     const filteredWords = nameWords.filter(word => 
-      !['Sel', 'Personal', 'History', 'Form', 'Applications', 'ICC', 'XV'].includes(word)
+      !['Sel', 'Personal', 'History', 'Form', 'Applications', 'ICC', 'XV', 'PHF'].includes(word)
     );
     if (filteredWords.length >= 2) {
-      return filteredWords.slice(0, 3).join(' '); // Take first 3 words as name
+      const name = filteredWords.slice(0, 3).join(' ');
+      console.log('✅ Pattern 4 (capitalized words) found:', name);
+      return name;
     }
   }
   
+  // Pattern 5: Last resort - any letter sequence that looks like a name
+  const anyName = fileName.match(/([A-Za-z]{3,}(?:[_-][A-Za-z]{3,})*)/);
+  if (anyName && anyName[1]) {
+    const name = anyName[1].replace(/[-_]/g, ' ').trim();
+    console.log('✅ Pattern 5 (any name) found:', name);
+    return name;
+  }
+  
+  console.log('❌ No name pattern found');
   return 'Unknown Candidate';
 }
 
@@ -435,24 +451,38 @@ export async function createCandidateFromPHF(
 // Main processing function
 export async function processPHFDocument(file: File, jobId: string): Promise<ImportResult> {
   try {
+    console.log('🚀 Processing PHF document:', file.name);
+    
     // Parse the document
     const documentText = await parsePHFDocument(file);
     
     // Extract structured data
     const extractedData = extractPHFData(documentText, file.name);
+    console.log('📊 Extracted data:', { 
+      name: extractedData.personalInfo.name,
+      email: extractedData.personalInfo.email 
+    });
     
     // Validate extracted data
-    if (!extractedData.personalInfo.name || extractedData.personalInfo.name === 'Unknown') {
+    if (!extractedData.personalInfo.name || extractedData.personalInfo.name === 'Unknown Candidate') {
+      console.log('❌ Could not extract candidate name for:', file.name);
       throw new Error('Could not extract candidate name from document');
     }
     
     // Create candidate and application
+    console.log('💾 Creating candidate and application...');
     const result = await createCandidateFromPHF(extractedData, jobId);
+    
+    if (result.success) {
+      console.log('✅ Successfully processed:', file.name, 'for candidate:', result.candidateName);
+    } else {
+      console.log('❌ Failed to process:', file.name, 'Error:', result.error);
+    }
     
     return result;
     
   } catch (error) {
-    console.error('Error processing PHF document:', error);
+    console.error('❌ Error processing PHF document:', file.name, error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
