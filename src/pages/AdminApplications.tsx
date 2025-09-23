@@ -203,6 +203,20 @@ export default function AdminApplications() {
   };
 
   // Helper functions for data extraction
+  const getAllEducationDetails = (education: any) => {
+    if (!education) return [];
+    const educationArray = Array.isArray(education) ? education : (education.length ? education : []);
+    if (educationArray.length === 0) return [];
+    
+    return educationArray.map((edu: any) => ({
+      degree: edu.degree || edu.degree_type || 'Not specified',
+      fieldOfStudy: edu.field_of_study || edu.major || edu.subject || '',
+      institution: edu.institution || edu.institution_name || edu.university || '',
+      year: edu.end_date ? new Date(edu.end_date).getFullYear().toString() : 
+            (edu.to_year || edu.year_awarded || '')
+    }));
+  };
+
   const getEducationDetails = (education: any) => {
     if (!education) return { degree: 'Not specified', university: '', year: '' };
     const educationArray = Array.isArray(education) ? education : (education.length ? education : []);
@@ -828,35 +842,46 @@ export default function AdminApplications() {
                                  </Button>
                                </div>
                              </TableCell>
-                             <TableCell className="min-w-[200px]">
-                               <div className="flex items-start space-x-3">
-                                 <div className="flex-shrink-0 mt-0.5">
-                                   <GraduationCap className="w-4 h-4 text-muted-foreground" />
-                                 </div>
-                                 <div className="flex-1 min-w-0">
-                                   {(() => {
-                                     const education = getEducationDetails(application.candidate.education);
-                                     return (
-                                       <div className="space-y-1">
-                                         <div className="font-medium text-sm leading-tight truncate" title={education.degree}>
-                                           {education.degree}
-                                         </div>
-                                         {education.university && (
-                                           <div className="text-xs text-muted-foreground leading-tight truncate" title={education.university}>
-                                             {education.university}
-                                           </div>
-                                         )}
-                                         {education.year && (
-                                           <div className="text-xs text-muted-foreground font-medium">
-                                             {education.year}
-                                           </div>
-                                         )}
-                                       </div>
-                                     );
-                                   })()}
-                                 </div>
-                               </div>
-                             </TableCell>
+              <TableCell className="min-w-[250px]">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <GraduationCap className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {(() => {
+                      const allEducation = getAllEducationDetails(application.candidate.education);
+                      return (
+                        <div className="space-y-2">
+                          {allEducation.length > 0 ? allEducation.map((edu, index) => (
+                            <div key={index} className="space-y-0.5 pb-1 border-b border-border/30 last:border-b-0 last:pb-0">
+                              <div className="font-medium text-sm leading-tight" title={edu.degree}>
+                                {edu.degree}
+                              </div>
+                              {edu.fieldOfStudy && (
+                                <div className="text-xs text-muted-foreground leading-tight font-medium" title={edu.fieldOfStudy}>
+                                  {edu.fieldOfStudy}
+                                </div>
+                              )}
+                              {edu.institution && (
+                                <div className="text-xs text-muted-foreground leading-tight truncate" title={edu.institution}>
+                                  {edu.institution}
+                                </div>
+                              )}
+                              {edu.year && (
+                                <div className="text-xs text-muted-foreground font-medium">
+                                  {edu.year}
+                                </div>
+                              )}
+                            </div>
+                          )) : (
+                            <div className="text-sm text-muted-foreground">No education specified</div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </TableCell>
                              <TableCell className="min-w-[220px]">
                                <div className="flex items-start space-x-3">
                                  <div className="flex-shrink-0 mt-0.5">
