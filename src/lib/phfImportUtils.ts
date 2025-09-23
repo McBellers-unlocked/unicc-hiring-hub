@@ -383,17 +383,6 @@ export async function createCandidateFromPHF(
           level: lang.level
         };
         return acc;
-      }, {} as Record<string, any>),
-
-      // Additional PHF fields
-      phf_education: extractedData.education,
-      phf_work_experience: extractedData.workExperience,
-      phf_languages: extractedData.languages.reduce((acc, lang) => {
-        acc[lang.language.toLowerCase()] = {
-          proficiency: lang.proficiency,
-          level: lang.level
-        };
-        return acc;
       }, {} as Record<string, any>)
     };
 
