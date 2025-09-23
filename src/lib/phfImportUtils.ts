@@ -110,7 +110,7 @@ export async function parsePHFDocument(file: File): Promise<string> {
       const fullHash = file.name.replace(/[^a-zA-Z0-9]/g, '');
       const hashCode = fullHash.split('').reduce((a, b) => {
         a = ((a << 5) - a) + b.charCodeAt(0);
-        return a & a;
+        return Math.abs(a);
       }, 0);
       
       const nameVariations = [
@@ -168,7 +168,7 @@ export async function parsePHFDocument(file: File): Promise<string> {
       const fullHash = file.name.replace(/[^a-zA-Z0-9]/g, '');
       const hashCode = fullHash.split('').reduce((a, b) => {
         a = ((a << 5) - a) + b.charCodeAt(0);
-        return a & a;
+        return Math.abs(a);
       }, 0);
       
       const eduIndex = Math.abs(hashCode) % educationVariations.length;
