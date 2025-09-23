@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Circle, Target } from "lucide-react";
 
 interface ProfileCompletionData {
-  basicInfo: boolean;
+  personalDetails: boolean;
   professionalSummary: boolean;
   workExperience: boolean;
   education: boolean;
@@ -21,8 +21,8 @@ interface ProfileCompletionWidgetProps {
 
 export default function ProfileCompletionWidget({ completionData, overallPercentage }: ProfileCompletionWidgetProps) {
   const sections = [
-    { key: 'basicInfo', label: 'Basic Information', weight: 20 },
-    { key: 'professionalSummary', label: 'Professional Summary', weight: 10 },
+    { key: 'personalDetails', label: 'Personal Details', weight: 20 },
+    { key: 'professionalSummary', label: 'Professional Summary', weight: 15 },
     { key: 'workExperience', label: 'Work Experience', weight: 25 },
     { key: 'education', label: 'Education', weight: 15 },
     { key: 'skills', label: 'Skills', weight: 10 },

@@ -23,7 +23,6 @@ import PortfolioSection from "@/components/profile/PortfolioSection";
 import ProfileAnalyticsSection from "@/components/profile/ProfileAnalyticsSection";
 import JobRecommendationsSection from "@/components/profile/JobRecommendationsSection";
 import { PersonalDetailsSection } from "@/components/profile/PersonalDetailsSection";
-import { countries } from "@/lib/countries";
 import { convertPHFToWorkExperience, convertWorkExperienceToPHF } from "@/lib/phfDataMapping";
 
 interface CandidateProfile {
@@ -278,7 +277,6 @@ export default function CandidateProfileEdit() {
     });
     
     const sections = {
-      basicInfo: !!(profile.name && profile.location),
       personalDetails: !!(profile.first_name && profile.email && profile.phone && profile.date_of_birth && profile.gender),
       professionalSummary: !!(profile.professional_summary && profile.professional_summary.trim().length > 50),
       workExperience: Array.isArray(profile.work_experience) && profile.work_experience.length > 0,
@@ -292,9 +290,8 @@ export default function CandidateProfileEdit() {
     console.log('Section completion status:', sections);
 
     const weights = {
-      basicInfo: 15,
-      personalDetails: 15,
-      professionalSummary: 10,
+      personalDetails: 20,
+      professionalSummary: 15,
       workExperience: 25,
       education: 15,
       skills: 10,
@@ -315,7 +312,6 @@ export default function CandidateProfileEdit() {
 
   const getCompletionData = () => {
     if (!profile) return {
-      basicInfo: false,
       personalDetails: false,
       professionalSummary: false,
       workExperience: false,
@@ -327,7 +323,6 @@ export default function CandidateProfileEdit() {
     };
 
     return {
-      basicInfo: !!(profile.name && profile.location),
       personalDetails: !!(profile.first_name && profile.email && profile.phone && profile.date_of_birth && profile.gender),
       professionalSummary: !!(profile.professional_summary && profile.professional_summary.trim().length > 50),
       workExperience: Array.isArray(profile.work_experience) && profile.work_experience.length > 0,
@@ -551,57 +546,6 @@ export default function CandidateProfileEdit() {
             }}
           />
 
-          {/* Basic Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    value={profile.name || ""}
-                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="gender">Gender</Label>
-                  <Select 
-                    value={profile.gender || ""} 
-                    onValueChange={(value) => setProfile({ ...profile, gender: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Male">Male</SelectItem>
-                      <SelectItem value="Female">Female</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="location">Location</Label>
-                  <Select 
-                    value={profile.location || ""} 
-                    onValueChange={(value) => setProfile({ ...profile, location: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your location" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {countries.map((country) => (
-                        <SelectItem key={country} value={country}>
-                          {country}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           <Card>
             <CardHeader>
