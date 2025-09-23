@@ -357,22 +357,35 @@ export function extractPHFData(text: string, fileName: string): PHFExtractedData
 }
 
 function extractEducation(text: string, data: PHFExtractedData) {
+  console.log('🎓 Extracting education from text...');
   // Look for education table sections in PHF format
   const educationSections = text.split(/(?:II\.\s*EDUCATION|EDUCATION|Educational background|Academic qualifications)/i);
   
   if (educationSections.length > 1) {
     const educationText = educationSections[1].split(/(?:III\.\s*EMPLOYMENT|EMPLOYMENT|WORK EXPERIENCE|PROFESSIONAL EXPERIENCE)/i)[0];
+    console.log('📚 Education section text:', educationText.substring(0, 500));
     
     // Parse education table rows - PHF format with more flexible date matching:
     // | From | To | Institution | Certificates, Degrees obtained | Main course of study |
-    // Handle various date formats: "April 1996", "2003", "January 2010", etc.
+    // Handle various date formats: "April 1996", "2003", "January 2010", "Mayo 2002", etc.
     const tableRows = educationText.match(/\|\s*([A-Za-z]*\s*\d{4})\s*\|\s*([A-Za-z]*\s*\d{4})\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|/g);
+    
+    console.log('📋 Found education table rows:', tableRows);
     
     if (tableRows) {
       tableRows.forEach(row => {
+        console.log('🔍 Processing education row:', row);
         const matches = row.match(/\|\s*([A-Za-z]*\s*\d{4})\s*\|\s*([A-Za-z]*\s*\d{4})\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|/);
         if (matches) {
           const [, fromDate, toDate, institution, degreesObtained, mainCourse] = matches;
+          
+          console.log('✅ Parsed education:', {
+            fromDate: fromDate.trim(),
+            toDate: toDate.trim(),
+            institution: institution.trim(),
+            degree: degreesObtained.trim(),
+            field: mainCourse.trim()
+          });
           
           // Clean and format dates
           const startDate = fromDate.trim();
@@ -386,31 +399,50 @@ function extractEducation(text: string, data: PHFExtractedData) {
             end_date: endDate,
             ongoing: false
           });
+        } else {
+          console.log('❌ Failed to match education row:', row);
         }
       });
+    } else {
+      console.log('❌ No education table rows found');
     }
+  } else {
+    console.log('❌ No education section found');
   }
 }
 
 function extractWorkExperience(text: string, data: PHFExtractedData) {
+  console.log('💼 Extracting work experience from text...');
   // Look for employment/work experience sections
   const workSections = text.split(/(?:III\.\s*EMPLOYMENT|EMPLOYMENT|WORK EXPERIENCE|PROFESSIONAL EXPERIENCE|Employment record)/i);
   
   if (workSections.length > 1) {
     const workText = workSections[1].split(/(?:IV\.\s*LANGUAGE|EDUCATION|LANGUAGES|SKILLS)/i)[0];
+    console.log('💼 Work section text:', workText.substring(0, 500));
     
     // Parse employment table rows - PHF format:
     // | From | To | Name and address of employer | Position held | Description of duties |
     const tableRows = workText.match(/\|\s*(\d{4})\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|/g);
     
+    console.log('📋 Found work table rows:', tableRows);
+    
     if (tableRows) {
       tableRows.forEach(row => {
+        console.log('🔍 Processing work row:', row);
         const matches = row.match(/\|\s*(\d{4})\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|/);
         if (matches) {
           const [, fromYear, toYear, employer, position, duties] = matches;
           
           const isOngoing = toYear.toLowerCase().includes('present') || toYear.toLowerCase().includes('current');
           const isUNExperience = /UN|United Nations|UNICEF|WHO|UNESCO|UNDP|UNHCR|Permanent Mission|Embassy|Mission/i.test(employer);
+          
+          console.log('✅ Parsed work experience:', {
+            fromYear,
+            toYear: toYear.trim(),
+            employer: employer.trim(),
+            position: position.trim(),
+            isUNExperience
+          });
           
           data.workExperience.push({
             company: employer.trim(),
@@ -421,9 +453,15 @@ function extractWorkExperience(text: string, data: PHFExtractedData) {
             un_experience: isUNExperience,
             description: duties.trim()
           });
+        } else {
+          console.log('❌ Failed to match work row:', row);
         }
       });
+    } else {
+      console.log('❌ No work table rows found');
     }
+  } else {
+    console.log('❌ No work section found');
   }
 }
 
