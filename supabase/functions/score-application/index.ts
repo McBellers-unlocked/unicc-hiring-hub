@@ -438,7 +438,16 @@ serve(async (req) => {
       skills
     );
 
-    console.log('Enhanced AI analysis completed:', candidateAnalysis);
+    console.log('AI analysis completed:', {
+      adminExperience: candidateAnalysis.experience_match,
+      internationalContext: candidateAnalysis.technical_match,
+      officeTools: candidateAnalysis.technical_match,
+      draftingSkills: candidateAnalysis.language_match,
+      reportingSkills: candidateAnalysis.experience_match,
+      englishProficiency: candidateAnalysis.language_match,
+      localEligibility: candidateAnalysis.overall_fit,
+      financeExperience: candidateAnalysis.overall_fit
+    });
 
     // Map analysis to criterion scores
     const criteriaScores = mapAnalysisToScores(
@@ -446,12 +455,23 @@ serve(async (req) => {
       application.jobs.essential_criteria || []
     );
 
+    console.log('Mapped criteria scores:', criteriaScores);
+
     // Calculate overall score and check requirements
     const overallScore = calculateOverallScore(criteriaScores);
     const passedMustHaves = checkMustHaveRequirements(criteriaScores);
     const recommendForLonglist = overallScore >= 70 && passedMustHaves;
 
     console.log(`Overall score: ${overallScore}, Passed must-haves: ${passedMustHaves}, Recommend: ${recommendForLonglist}`);
+    console.log('Score calculation details:', {
+      totalCriteria: Object.keys(criteriaScores).length,
+      criteriaScores: Object.entries(criteriaScores).map(([key, value]) => ({
+        criterion: key,
+        score: value.score,
+        weight: value.weight,
+        mustHave: value.mustHave
+      }))
+    });
 
     const breakdown = {
       criteria: criteriaScores,
