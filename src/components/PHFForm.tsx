@@ -121,8 +121,8 @@ const phfSchema = z.object({
   employment: z.array(z.object({
     period_from_month: z.string().min(1, 'From month is required'),
     period_from_year: z.string().min(4, 'From year is required'),
-    period_to_month: z.string().optional(),
-    period_to_year: z.string().optional(),
+    period_to_month: z.string(),
+    period_to_year: z.string(),
     is_present: z.boolean(),
     exact_title_of_post: z.string().min(1, 'Post title is required'),
     type_of_business: z.string(),
@@ -135,13 +135,23 @@ const phfSchema = z.object({
     employees_supervised_type: z.string(),
     employer_name: z.string().min(1, 'Employer name is required'),
     employer_address: z.string(),
-    supervisor_name: z.string().min(1, 'Supervisor name is required'),
+    supervisor_name: z.string(),
     supervisor_title: z.string(),
     supervisor_phone: z.string(),
     supervisor_email: z.string().email().optional().or(z.literal('')),
     reason_for_change: z.string(),
     duties_and_responsibilities: z.string().min(1, 'Duties are required'),
     attestations: z.array(z.string()).optional(),
+  }).refine((data) => {
+    // For current positions, period_to fields are not required
+    if (data.is_present) {
+      return true;
+    }
+    // For past positions, both period_to fields are required
+    return data.period_to_month.length > 0 && data.period_to_year.length >= 4;
+  }, {
+    message: "End date is required for past positions",
+    path: ["period_to_year"],
   })).min(1, 'At least one employment entry is required'),
 
   unemploymentPeriods: z.array(z.object({
@@ -440,6 +450,13 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
             
             return !hasEmployer || !hasTitle || !hasValidDate || !hasDuties;
           });
+          
+          console.log('Final employment validation result:', {
+            employmentIncomplete,
+            formErrors: formErrors.employment,
+            finalResult: employmentIncomplete || formErrors.employment ? 'warning' : 'valid'
+          });
+          
           return employmentIncomplete || formErrors.employment ? 'warning' : 'valid';
         }
         
