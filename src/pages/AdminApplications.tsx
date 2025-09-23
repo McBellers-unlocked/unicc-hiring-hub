@@ -275,6 +275,38 @@ export default function AdminApplications() {
     return { title, organization, length };
   };
 
+  const getRecentWorkExperience = (workExp: any) => {
+    const workExpArray = Array.isArray(workExp) ? workExp : (workExp?.length ? workExp : []);
+    if (workExpArray.length === 0) return [{ title: 'Not specified', organization: '', length: '' }];
+    
+    // Get up to 3 most recent positions (current + past 2)
+    return workExpArray.slice(0, 3).map((exp: any) => {
+      const title = exp.position || exp.exact_title_of_post || exp.title || 'Not specified';
+      const organization = exp.company || exp.employer_name || exp.employer || '';
+      
+      // Calculate length in position
+      const startDate = exp.startDate || exp.start_date || exp.period_from_year;
+      let length = '';
+      if (startDate) {
+        const start = new Date(startDate);
+        const end = exp.isCurrent || exp.is_present ? new Date() : 
+                    (exp.endDate || exp.end_date ? new Date(exp.endDate || exp.end_date) : new Date());
+        const years = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+        const months = Math.floor(((end.getTime() - start.getTime()) % (1000 * 60 * 60 * 24 * 365.25)) / (1000 * 60 * 60 * 24 * 30.44));
+        
+        if (years > 0) {
+          length = months > 0 ? `${years}y ${months}m` : `${years}y`;
+        } else if (months > 0) {
+          length = `${months}m`;
+        } else {
+          length = 'New';
+        }
+      }
+      
+      return { title, organization, length };
+    });
+  };
+
   const getTotalExperience = (workExp: any, yearsExp: number | null) => {
     const workExpArray = Array.isArray(workExp) ? workExp : (workExp?.length ? workExp : []);
     
@@ -743,8 +775,8 @@ export default function AdminApplications() {
                       </TableHead>
                        <TableHead className="text-left font-semibold">Candidate</TableHead>
                        <TableHead className="text-left font-semibold">Education</TableHead>
-                       <TableHead className="text-left font-semibold">Current Role</TableHead>
-                       <TableHead className="text-center font-semibold">Experience</TableHead>
+                        <TableHead className="text-left font-semibold">Recent Experience</TableHead>
+                        <TableHead className="text-center font-semibold">Total Experience</TableHead>
                        <TableHead className="text-left font-semibold">Languages</TableHead>
                        <TableHead className="text-center font-semibold">Status</TableHead>
                        <TableHead className="text-center font-semibold">Longlist</TableHead>
@@ -882,40 +914,47 @@ export default function AdminApplications() {
                   </div>
                 </div>
               </TableCell>
-                             <TableCell className="min-w-[220px]">
-                               <div className="flex items-start space-x-3">
-                                 <div className="flex-shrink-0 mt-0.5">
-                                   <Briefcase className="w-4 h-4 text-muted-foreground" />
-                                 </div>
-                                 <div className="flex-1 min-w-0">
-                                   {(() => {
-                                     const currentJob = getCurrentJobDetails(application.candidate.work_experience);
-                                     return (
-                                       <div className="space-y-1">
-                                         <div className="font-medium text-sm leading-tight truncate" title={currentJob.title}>
-                                           {currentJob.title}
-                                         </div>
-                                         {currentJob.organization && (
-                                           <div className="text-xs text-muted-foreground leading-tight truncate" title={currentJob.organization}>
-                                             {currentJob.organization}
-                                           </div>
-                                         )}
-                                         <div className="flex items-center gap-2">
-                                           {currentJob.length && (
-                                             <span className="text-xs text-muted-foreground font-medium">
-                                               {currentJob.length}
-                                             </span>
-                                           )}
-                                           {application.candidate.un_experience && (
-                                             <Badge variant="outline" className="text-xs px-1.5 py-0.5">UN</Badge>
-                                           )}
-                                         </div>
-                                       </div>
-                                     );
-                                   })()}
-                                 </div>
-                               </div>
-                             </TableCell>
+                              <TableCell className="min-w-[280px]">
+                                <div className="flex items-start space-x-3">
+                                  <div className="flex-shrink-0 mt-0.5">
+                                    <Briefcase className="w-4 h-4 text-muted-foreground" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    {(() => {
+                                      const recentJobs = getRecentWorkExperience(application.candidate.work_experience);
+                                      return (
+                                        <div className="space-y-2">
+                                          {recentJobs.map((job, index) => (
+                                            <div key={index} className="space-y-0.5 pb-1 border-b border-border/30 last:border-b-0 last:pb-0">
+                                              <div className="font-medium text-sm leading-tight" title={job.title}>
+                                                {job.title}
+                                                {index === 0 && (
+                                                  <span className="ml-2 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Current</span>
+                                                )}
+                                              </div>
+                                              {job.organization && (
+                                                <div className="text-xs text-muted-foreground leading-tight truncate" title={job.organization}>
+                                                  {job.organization}
+                                                </div>
+                                              )}
+                                              <div className="flex items-center gap-2">
+                                                {job.length && (
+                                                  <span className="text-xs text-muted-foreground font-medium">
+                                                    {job.length}
+                                                  </span>
+                                                )}
+                                                {index === 0 && application.candidate.un_experience && (
+                                                  <Badge variant="outline" className="text-xs px-1.5 py-0.5">UN</Badge>
+                                                )}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
+                              </TableCell>
                              <TableCell className="min-w-[120px]">
                                <div className="flex items-center justify-center">
                                  <div className="text-center">
