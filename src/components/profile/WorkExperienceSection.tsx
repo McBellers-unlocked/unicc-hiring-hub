@@ -192,7 +192,7 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
                     <div className="space-y-4">
                       <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Employment Dates</h5>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
+                        <div className="space-y-2">
                           <Label>Start Date</Label>
                           <CustomDatePicker
                             selected={work.startDate ? new Date(work.startDate) : null}
@@ -201,7 +201,7 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
                             className="w-full"
                           />
                         </div>
-                        <div>
+                        <div className="space-y-2">
                           <Label>End Date</Label>
                           <CustomDatePicker
                             selected={work.endDate ? new Date(work.endDate) : null}
@@ -311,7 +311,7 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
           <div className="space-y-4">
             <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Employment Dates</h5>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label>Start Date</Label>
                 <CustomDatePicker
                   selected={newWork.startDate ? new Date(newWork.startDate) : null}
@@ -320,7 +320,7 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
                   className="w-full"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label>End Date</Label>
                 <CustomDatePicker
                   selected={newWork.endDate ? new Date(newWork.endDate) : null}

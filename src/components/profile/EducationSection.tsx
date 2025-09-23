@@ -180,7 +180,7 @@ export default function EducationSection({ education, onChange }: EducationSecti
                     <div className="space-y-4">
                       <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Study Period</h5>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
+                        <div className="space-y-2">
                           <Label>Start Date</Label>
                           <CustomDatePicker
                             selected={edu.startDate ? new Date(edu.startDate) : null}
@@ -189,7 +189,7 @@ export default function EducationSection({ education, onChange }: EducationSecti
                             className="w-full"
                           />
                         </div>
-                        <div>
+                        <div className="space-y-2">
                           <Label>End Date</Label>
                           <CustomDatePicker
                             selected={edu.endDate ? new Date(edu.endDate) : null}
@@ -281,7 +281,7 @@ export default function EducationSection({ education, onChange }: EducationSecti
           <div className="space-y-4">
             <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Study Period</h5>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label>Start Date</Label>
                 <CustomDatePicker
                   selected={newEducation.startDate ? new Date(newEducation.startDate) : null}
@@ -290,7 +290,7 @@ export default function EducationSection({ education, onChange }: EducationSecti
                   className="w-full"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label>End Date</Label>
                 <CustomDatePicker
                   selected={newEducation.endDate ? new Date(newEducation.endDate) : null}
