@@ -3116,14 +3116,21 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                 </Button>
               ) : (
                 <Button 
-                  type="submit" 
+                  type="button" 
                   disabled={isSubmitting}
-                  onClick={() => {
+                  onClick={async () => {
                     console.log('PHF Submit Button Clicked!');
                     console.log('Current section:', currentSection);
                     console.log('Total sections:', SECTIONS.length);
                     console.log('Form valid?', form.formState.isValid);
                     console.log('Form errors:', form.formState.errors);
+                    
+                    // Get current form data and submit directly
+                    const formData = form.getValues();
+                    console.log('Form data:', formData);
+                    
+                    // Call handleSubmit directly, bypassing form validation
+                    await handleSubmit(formData);
                   }}
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit PHF'}
