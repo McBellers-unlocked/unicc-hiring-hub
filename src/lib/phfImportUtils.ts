@@ -185,16 +185,9 @@ export function extractPHFData(text: string, fileName: string): PHFExtractedData
         extractedData.personalInfo.name = `${firstName} ${familyName}`;
         console.log('✅ Extracted name from table row pattern:', extractedData.personalInfo.name);
       } else {
-        // Last resort: Use filename only if document parsing completely fails
-        console.log('⚠️ Could not extract name from document content, trying filename...');
-        const nameFromFile = extractNameFromFileName(fileName);
-        if (nameFromFile && nameFromFile !== 'Unknown Candidate') {
-          extractedData.personalInfo.name = nameFromFile;
-          console.log('⚠️ Using filename extraction:', extractedData.personalInfo.name);
-        } else {
-          extractedData.personalInfo.name = 'Unknown Candidate';
-          console.log('❌ No name found in document or filename');
-        }
+        // Document parsing failed - this means we need actual document parsing
+        console.log('❌ Could not extract name from PHF document content');
+        extractedData.personalInfo.name = 'EXTRACTION_FAILED';
       }
     }
 
@@ -517,9 +510,10 @@ export async function processPHFDocument(file: File, jobId: string): Promise<Imp
     // Validate extracted data
     if (!extractedData.personalInfo.name || 
         extractedData.personalInfo.name === 'Unknown Candidate' ||
+        extractedData.personalInfo.name === 'EXTRACTION_FAILED' ||
         extractedData.personalInfo.name.includes('NEEDS_EXTRACTION')) {
-      console.log('❌ Could not extract candidate name for:', file.name);
-      throw new Error('Could not extract candidate name from document');
+      console.log('❌ Could not extract candidate name from PHF document for:', file.name);
+      throw new Error('Could not extract candidate name from PHF document content. This document may need manual processing.');
     }
     
     // Create candidate and application
