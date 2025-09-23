@@ -138,91 +138,110 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
 
                 {/* Expanded Edit View */}
                 <CollapsibleContent>
-                  <div className="p-4 space-y-4 border-t">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label>Company/Organization</Label>
-                        <Input
-                          value={work.company}
-                          onChange={(e) => updateWorkExperience(index, 'company', e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <Label>Position Title</Label>
-                        <Input
-                          value={work.position}
-                          onChange={(e) => updateWorkExperience(index, 'position', e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <Label>Employment Type</Label>
-                        <Select
-                          value={work.type}
-                          onValueChange={(value) => updateWorkExperience(index, 'type', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Full-time">Full-time</SelectItem>
-                            <SelectItem value="Part-time">Part-time</SelectItem>
-                            <SelectItem value="Contract">Contract</SelectItem>
-                            <SelectItem value="Internship">Internship</SelectItem>
-                            <SelectItem value="Consultant">Consultant</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Location</Label>
-                        <Input
-                          value={work.location}
-                          onChange={(e) => updateWorkExperience(index, 'location', e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <Label>Start Date</Label>
-                        <CustomDatePicker
-                          selected={work.startDate ? new Date(work.startDate) : null}
-                          onChange={(date) => updateWorkExperience(index, 'startDate', date ? date.toISOString().split('T')[0] : '')}
-                          placeholderText="Select start date"
-                        />
-                      </div>
-                      <div>
-                        <Label>End Date</Label>
-                        <CustomDatePicker
-                          selected={work.endDate ? new Date(work.endDate) : null}
-                          onChange={(date) => updateWorkExperience(index, 'endDate', date ? date.toISOString().split('T')[0] : '')}
-                          placeholderText="Select end date"
-                          disabled={work.isCurrent}
-                        />
+                  <div className="p-4 space-y-6 border-t">
+                    {/* Basic Information */}
+                    <div className="space-y-4">
+                      <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Basic Information</h5>
+                      <div className="grid grid-cols-1 gap-4">
+                        <div>
+                          <Label>Company/Organization</Label>
+                          <Input
+                            value={work.company}
+                            onChange={(e) => updateWorkExperience(index, 'company', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label>Position Title</Label>
+                          <Input
+                            value={work.position}
+                            onChange={(e) => updateWorkExperience(index, 'position', e.target.value)}
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label>Employment Type</Label>
+                            <Select
+                              value={work.type}
+                              onValueChange={(value) => updateWorkExperience(index, 'type', value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Full-time">Full-time</SelectItem>
+                                <SelectItem value="Part-time">Part-time</SelectItem>
+                                <SelectItem value="Contract">Contract</SelectItem>
+                                <SelectItem value="Internship">Internship</SelectItem>
+                                <SelectItem value="Consultant">Consultant</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>Location</Label>
+                            <Input
+                              value={work.location}
+                              onChange={(e) => updateWorkExperience(index, 'location', e.target.value)}
+                              placeholder="City, Country"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`current-${index}`}
-                          checked={work.isCurrent}
-                          onCheckedChange={(checked) => updateWorkExperience(index, 'isCurrent', !!checked)}
-                        />
-                        <Label htmlFor={`current-${index}`}>I currently work here</Label>
+
+                    {/* Employment Dates */}
+                    <div className="space-y-4">
+                      <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Employment Dates</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label>Start Date</Label>
+                          <CustomDatePicker
+                            selected={work.startDate ? new Date(work.startDate) : null}
+                            onChange={(date) => updateWorkExperience(index, 'startDate', date ? date.toISOString().split('T')[0] : '')}
+                            placeholderText="Select start date"
+                          />
+                        </div>
+                        <div>
+                          <Label>End Date</Label>
+                          <CustomDatePicker
+                            selected={work.endDate ? new Date(work.endDate) : null}
+                            onChange={(date) => updateWorkExperience(index, 'endDate', date ? date.toISOString().split('T')[0] : '')}
+                            placeholderText="Select end date"
+                            disabled={work.isCurrent}
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`un-exp-${index}`}
-                          checked={work.isUNExperience}
-                          onCheckedChange={(checked) => updateWorkExperience(index, 'isUNExperience', !!checked)}
-                        />
-                        <Label htmlFor={`un-exp-${index}`}>This is UN system experience</Label>
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`current-${index}`}
+                            checked={work.isCurrent}
+                            onCheckedChange={(checked) => updateWorkExperience(index, 'isCurrent', !!checked)}
+                          />
+                          <Label htmlFor={`current-${index}`}>I currently work here</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`un-exp-${index}`}
+                            checked={work.isUNExperience}
+                            onCheckedChange={(checked) => updateWorkExperience(index, 'isUNExperience', !!checked)}
+                          />
+                          <Label htmlFor={`un-exp-${index}`}>This is UN system experience</Label>
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <Label>Description</Label>
-                      <Textarea
-                        value={work.description}
-                        onChange={(e) => updateWorkExperience(index, 'description', e.target.value)}
-                        placeholder="Describe your responsibilities and achievements..."
-                        rows={4}
-                      />
+
+                    {/* Description */}
+                    <div className="space-y-4">
+                      <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Job Description</h5>
+                      <div>
+                        <Label>Description</Label>
+                        <Textarea
+                          value={work.description}
+                          onChange={(e) => updateWorkExperience(index, 'description', e.target.value)}
+                          placeholder="Describe your responsibilities and achievements..."
+                          rows={4}
+                        />
+                      </div>
                     </div>
                   </div>
                 </CollapsibleContent>
@@ -232,96 +251,116 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
         })}
 
         {/* Add New Work Experience */}
-        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 space-y-4">
+        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 space-y-6">
           <h4 className="font-medium text-muted-foreground">Add Work Experience</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Company/Organization *</Label>
-              <Input
-                value={newWork.company}
-                onChange={(e) => setNewWork({ ...newWork, company: e.target.value })}
-                placeholder="Company name"
-              />
+          
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Basic Information</h5>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <Label>Company/Organization *</Label>
+                <Input
+                  value={newWork.company}
+                  onChange={(e) => setNewWork({ ...newWork, company: e.target.value })}
+                  placeholder="Company name"
+                />
+              </div>
+              <div>
+                <Label>Position Title *</Label>
+                <Input
+                  value={newWork.position}
+                  onChange={(e) => setNewWork({ ...newWork, position: e.target.value })}
+                  placeholder="Your role"
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Employment Type</Label>
+                  <Select
+                    value={newWork.type}
+                    onValueChange={(value) => setNewWork({ ...newWork, type: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Full-time">Full-time</SelectItem>
+                      <SelectItem value="Part-time">Part-time</SelectItem>
+                      <SelectItem value="Contract">Contract</SelectItem>
+                      <SelectItem value="Internship">Internship</SelectItem>
+                      <SelectItem value="Consultant">Consultant</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Location</Label>
+                  <Input
+                    value={newWork.location}
+                    onChange={(e) => setNewWork({ ...newWork, location: e.target.value })}
+                    placeholder="City, Country"
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <Label>Position Title *</Label>
-              <Input
-                value={newWork.position}
-                onChange={(e) => setNewWork({ ...newWork, position: e.target.value })}
-                placeholder="Your role"
-              />
+          </div>
+
+          {/* Employment Dates */}
+          <div className="space-y-4">
+            <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Employment Dates</h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Start Date</Label>
+                <CustomDatePicker
+                  selected={newWork.startDate ? new Date(newWork.startDate) : null}
+                  onChange={(date) => setNewWork({ ...newWork, startDate: date ? date.toISOString().split('T')[0] : '' })}
+                  placeholderText="Select start date"
+                />
+              </div>
+              <div>
+                <Label>End Date</Label>
+                <CustomDatePicker
+                  selected={newWork.endDate ? new Date(newWork.endDate) : null}
+                  onChange={(date) => setNewWork({ ...newWork, endDate: date ? date.toISOString().split('T')[0] : '' })}
+                  placeholderText="Select end date"
+                  disabled={newWork.isCurrent}
+                />
+              </div>
             </div>
-            <div>
-              <Label>Employment Type</Label>
-              <Select
-                value={newWork.type}
-                onValueChange={(value) => setNewWork({ ...newWork, type: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Full-time">Full-time</SelectItem>
-                  <SelectItem value="Part-time">Part-time</SelectItem>
-                  <SelectItem value="Contract">Contract</SelectItem>
-                  <SelectItem value="Internship">Internship</SelectItem>
-                  <SelectItem value="Consultant">Consultant</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="new-current"
+                  checked={newWork.isCurrent}
+                  onCheckedChange={(checked) => setNewWork({ ...newWork, isCurrent: !!checked })}
+                />
+                <Label htmlFor="new-current">I currently work here</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="new-un-exp"
+                  checked={newWork.isUNExperience}
+                  onCheckedChange={(checked) => setNewWork({ ...newWork, isUNExperience: !!checked })}
+                />
+                <Label htmlFor="new-un-exp">This is UN system experience</Label>
+              </div>
             </div>
+          </div>
+
+          {/* Description */}
+          <div className="space-y-4">
+            <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Job Description</h5>
             <div>
-              <Label>Location</Label>
-              <Input
-                value={newWork.location}
-                onChange={(e) => setNewWork({ ...newWork, location: e.target.value })}
-                placeholder="City, Country"
-              />
-            </div>
-            <div>
-              <Label>Start Date</Label>
-              <CustomDatePicker
-                selected={newWork.startDate ? new Date(newWork.startDate) : null}
-                onChange={(date) => setNewWork({ ...newWork, startDate: date ? date.toISOString().split('T')[0] : '' })}
-                placeholderText="Select start date"
-              />
-            </div>
-            <div>
-              <Label>End Date</Label>
-              <CustomDatePicker
-                selected={newWork.endDate ? new Date(newWork.endDate) : null}
-                onChange={(date) => setNewWork({ ...newWork, endDate: date ? date.toISOString().split('T')[0] : '' })}
-                placeholderText="Select end date"
-                disabled={newWork.isCurrent}
+              <Label>Description</Label>
+              <Textarea
+                value={newWork.description}
+                onChange={(e) => setNewWork({ ...newWork, description: e.target.value })}
+                placeholder="Describe your responsibilities and achievements..."
+                rows={4}
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="new-current"
-                checked={newWork.isCurrent}
-                onCheckedChange={(checked) => setNewWork({ ...newWork, isCurrent: !!checked })}
-              />
-              <Label htmlFor="new-current">I currently work here</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="new-un-exp"
-                checked={newWork.isUNExperience}
-                onCheckedChange={(checked) => setNewWork({ ...newWork, isUNExperience: !!checked })}
-              />
-              <Label htmlFor="new-un-exp">This is UN system experience</Label>
-            </div>
-          </div>
-          <div>
-            <Label>Description</Label>
-            <Textarea
-              value={newWork.description}
-              onChange={(e) => setNewWork({ ...newWork, description: e.target.value })}
-              placeholder="Describe your responsibilities and achievements..."
-              rows={4}
-            />
-          </div>
+
           <Button onClick={addWorkExperience} className="w-full">
             <Plus className="h-4 w-4 mr-2" />
             Add Work Experience

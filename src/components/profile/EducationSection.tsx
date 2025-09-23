@@ -124,73 +124,92 @@ export default function EducationSection({ education, onChange }: EducationSecti
 
                 {/* Expanded Edit View */}
                 <CollapsibleContent>
-                  <div className="p-4 space-y-4 border-t">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label>Institution</Label>
-                        <Input
-                          value={edu.institution}
-                          onChange={(e) => updateEducation(index, 'institution', e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <Label>Degree</Label>
-                        <Select
-                          value={edu.degree}
-                          onValueChange={(value) => updateEducation(index, 'degree', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select degree" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Bachelor's">Bachelor's</SelectItem>
-                            <SelectItem value="Master's">Master's</SelectItem>
-                            <SelectItem value="PhD">PhD</SelectItem>
-                            <SelectItem value="Associate">Associate</SelectItem>
-                            <SelectItem value="Certificate">Certificate</SelectItem>
-                            <SelectItem value="Diploma">Diploma</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Field of Study</Label>
-                        <Input
-                          value={edu.field}
-                          onChange={(e) => updateEducation(index, 'field', e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <Label>Grade/GPA (optional)</Label>
-                        <Input
-                          value={edu.grade || ""}
-                          onChange={(e) => updateEducation(index, 'grade', e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <Label>Start Date</Label>
-                        <CustomDatePicker
-                          selected={edu.startDate ? new Date(edu.startDate) : null}
-                          onChange={(date) => updateEducation(index, 'startDate', date ? date.toISOString().split('T')[0] : '')}
-                          placeholderText="Select start date"
-                        />
-                      </div>
-                      <div>
-                        <Label>End Date</Label>
-                        <CustomDatePicker
-                          selected={edu.endDate ? new Date(edu.endDate) : null}
-                          onChange={(date) => updateEducation(index, 'endDate', date ? date.toISOString().split('T')[0] : '')}
-                          placeholderText="Select end date"
-                        />
+                  <div className="p-4 space-y-6 border-t">
+                    {/* Basic Information */}
+                    <div className="space-y-4">
+                      <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Basic Information</h5>
+                      <div className="grid grid-cols-1 gap-4">
+                        <div>
+                          <Label>Institution</Label>
+                          <Input
+                            value={edu.institution}
+                            onChange={(e) => updateEducation(index, 'institution', e.target.value)}
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label>Degree</Label>
+                            <Select
+                              value={edu.degree}
+                              onValueChange={(value) => updateEducation(index, 'degree', value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select degree" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Bachelor's">Bachelor's</SelectItem>
+                                <SelectItem value="Master's">Master's</SelectItem>
+                                <SelectItem value="PhD">PhD</SelectItem>
+                                <SelectItem value="Associate">Associate</SelectItem>
+                                <SelectItem value="Certificate">Certificate</SelectItem>
+                                <SelectItem value="Diploma">Diploma</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>Field of Study</Label>
+                            <Input
+                              value={edu.field}
+                              onChange={(e) => updateEducation(index, 'field', e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Grade/GPA (optional)</Label>
+                          <Input
+                            value={edu.grade || ""}
+                            onChange={(e) => updateEducation(index, 'grade', e.target.value)}
+                            placeholder="3.8, First Class, etc."
+                          />
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <Label>Description (optional)</Label>
-                      <Textarea
-                        value={edu.description || ""}
-                        onChange={(e) => updateEducation(index, 'description', e.target.value)}
-                        placeholder="Describe achievements, thesis, notable projects..."
-                        rows={3}
-                      />
+
+                    {/* Study Dates */}
+                    <div className="space-y-4">
+                      <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Study Period</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label>Start Date</Label>
+                          <CustomDatePicker
+                            selected={edu.startDate ? new Date(edu.startDate) : null}
+                            onChange={(date) => updateEducation(index, 'startDate', date ? date.toISOString().split('T')[0] : '')}
+                            placeholderText="Select start date"
+                          />
+                        </div>
+                        <div>
+                          <Label>End Date</Label>
+                          <CustomDatePicker
+                            selected={edu.endDate ? new Date(edu.endDate) : null}
+                            onChange={(date) => updateEducation(index, 'endDate', date ? date.toISOString().split('T')[0] : '')}
+                            placeholderText="Select end date"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Additional Details */}
+                    <div className="space-y-4">
+                      <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Additional Details</h5>
+                      <div>
+                        <Label>Description (optional)</Label>
+                        <Textarea
+                          value={edu.description || ""}
+                          onChange={(e) => updateEducation(index, 'description', e.target.value)}
+                          placeholder="Describe achievements, thesis, notable projects..."
+                          rows={3}
+                        />
+                      </div>
                     </div>
                   </div>
                 </CollapsibleContent>
@@ -200,78 +219,98 @@ export default function EducationSection({ education, onChange }: EducationSecti
         })}
 
         {/* Add New Education */}
-        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 space-y-4">
+        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 space-y-6">
           <h4 className="font-medium text-muted-foreground">Add Education</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Institution *</Label>
-              <Input
-                value={newEducation.institution}
-                onChange={(e) => setNewEducation({ ...newEducation, institution: e.target.value })}
-                placeholder="University name"
-              />
+          
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Basic Information</h5>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <Label>Institution *</Label>
+                <Input
+                  value={newEducation.institution}
+                  onChange={(e) => setNewEducation({ ...newEducation, institution: e.target.value })}
+                  placeholder="University name"
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Degree *</Label>
+                  <Select
+                    value={newEducation.degree}
+                    onValueChange={(value) => setNewEducation({ ...newEducation, degree: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select degree" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Bachelor's">Bachelor's</SelectItem>
+                      <SelectItem value="Master's">Master's</SelectItem>
+                      <SelectItem value="PhD">PhD</SelectItem>
+                      <SelectItem value="Associate">Associate</SelectItem>
+                      <SelectItem value="Certificate">Certificate</SelectItem>
+                      <SelectItem value="Diploma">Diploma</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Field of Study *</Label>
+                  <Input
+                    value={newEducation.field}
+                    onChange={(e) => setNewEducation({ ...newEducation, field: e.target.value })}
+                    placeholder="Computer Science, Business, etc."
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>Grade/GPA</Label>
+                <Input
+                  value={newEducation.grade}
+                  onChange={(e) => setNewEducation({ ...newEducation, grade: e.target.value })}
+                  placeholder="3.8, First Class, etc."
+                />
+              </div>
             </div>
-            <div>
-              <Label>Degree *</Label>
-              <Select
-                value={newEducation.degree}
-                onValueChange={(value) => setNewEducation({ ...newEducation, degree: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select degree" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Bachelor's">Bachelor's</SelectItem>
-                  <SelectItem value="Master's">Master's</SelectItem>
-                  <SelectItem value="PhD">PhD</SelectItem>
-                  <SelectItem value="Associate">Associate</SelectItem>
-                  <SelectItem value="Certificate">Certificate</SelectItem>
-                  <SelectItem value="Diploma">Diploma</SelectItem>
-                </SelectContent>
-              </Select>
+          </div>
+
+          {/* Study Dates */}
+          <div className="space-y-4">
+            <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Study Period</h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Start Date</Label>
+                <CustomDatePicker
+                  selected={newEducation.startDate ? new Date(newEducation.startDate) : null}
+                  onChange={(date) => setNewEducation({ ...newEducation, startDate: date ? date.toISOString().split('T')[0] : '' })}
+                  placeholderText="Select start date"
+                />
+              </div>
+              <div>
+                <Label>End Date</Label>
+                <CustomDatePicker
+                  selected={newEducation.endDate ? new Date(newEducation.endDate) : null}
+                  onChange={(date) => setNewEducation({ ...newEducation, endDate: date ? date.toISOString().split('T')[0] : '' })}
+                  placeholderText="Select end date"
+                />
+              </div>
             </div>
+          </div>
+
+          {/* Additional Details */}
+          <div className="space-y-4">
+            <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Additional Details</h5>
             <div>
-              <Label>Field of Study *</Label>
-              <Input
-                value={newEducation.field}
-                onChange={(e) => setNewEducation({ ...newEducation, field: e.target.value })}
-                placeholder="Computer Science, Business, etc."
-              />
-            </div>
-            <div>
-              <Label>Grade/GPA</Label>
-              <Input
-                value={newEducation.grade}
-                onChange={(e) => setNewEducation({ ...newEducation, grade: e.target.value })}
-                placeholder="3.8, First Class, etc."
-              />
-            </div>
-            <div>
-              <Label>Start Date</Label>
-              <CustomDatePicker
-                selected={newEducation.startDate ? new Date(newEducation.startDate) : null}
-                onChange={(date) => setNewEducation({ ...newEducation, startDate: date ? date.toISOString().split('T')[0] : '' })}
-                placeholderText="Select start date"
-              />
-            </div>
-            <div>
-              <Label>End Date</Label>
-              <CustomDatePicker
-                selected={newEducation.endDate ? new Date(newEducation.endDate) : null}
-                onChange={(date) => setNewEducation({ ...newEducation, endDate: date ? date.toISOString().split('T')[0] : '' })}
-                placeholderText="Select end date"
+              <Label>Description</Label>
+              <Textarea
+                value={newEducation.description}
+                onChange={(e) => setNewEducation({ ...newEducation, description: e.target.value })}
+                placeholder="Describe achievements, thesis, notable projects..."
+                rows={3}
               />
             </div>
           </div>
-          <div>
-            <Label>Description</Label>
-            <Textarea
-              value={newEducation.description}
-              onChange={(e) => setNewEducation({ ...newEducation, description: e.target.value })}
-              placeholder="Describe achievements, thesis, notable projects..."
-              rows={3}
-            />
-          </div>
+
           <Button onClick={addEducation} className="w-full">
             <Plus className="h-4 w-4 mr-2" />
             Add Education
