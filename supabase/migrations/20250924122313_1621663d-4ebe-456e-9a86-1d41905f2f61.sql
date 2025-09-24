@@ -1,0 +1,1 @@
+DELETE FROM applications WHERE job_id = 'aacafec6-4d2b-4a3b-826a-5608ec28418e';
