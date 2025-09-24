@@ -264,7 +264,7 @@ export default function ManualApplicationForm() {
       // Create candidate record
       const candidateData = {
         name: validatedData.name,
-        email: validatedData.email,
+        email: validatedData.email || null,
         phone: validatedData.phone || null,
         
         // Education data (multiple entries)
