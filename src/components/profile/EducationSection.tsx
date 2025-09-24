@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CustomDatePicker } from "@/components/ui/date-picker";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2, GraduationCap, ChevronDown, ChevronUp, Edit2 } from "lucide-react";
 
 interface Education {
@@ -56,7 +56,7 @@ export default function EducationSection({ education, onChange }: EducationSecti
     onChange(education.filter((_, i) => i !== index));
   };
 
-  const updateEducation = (index: number, field: keyof Education, value: string) => {
+  const updateEducation = (index: number, field: keyof Education, value: string | boolean) => {
     const updated = education.map((edu, i) => 
       i === index ? { ...edu, [field]: value } : edu
     );
@@ -174,6 +174,19 @@ export default function EducationSection({ education, onChange }: EducationSecti
                           />
                         </div>
                       </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`current-study-${index}`}
+                          checked={edu.isCurrent}
+                          onCheckedChange={(checked) => {
+                            updateEducation(index, 'isCurrent', !!checked);
+                            if (checked) {
+                              updateEducation(index, 'endDate', '');
+                            }
+                          }}
+                        />
+                        <Label htmlFor={`current-study-${index}`}>Currently studying here</Label>
+                      </div>
                     </div>
 
                     {/* Study Dates */}
@@ -181,21 +194,25 @@ export default function EducationSection({ education, onChange }: EducationSecti
                       <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Study Period</h5>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium block">Start Date</Label>
-                          <CustomDatePicker
-                            selected={edu.startDate ? new Date(edu.startDate) : null}
-                            onChange={(date) => updateEducation(index, 'startDate', date ? date.toISOString().split('T')[0] : '')}
-                            placeholderText="Select start date"
+                          <Label htmlFor={`start-date-${index}`}>Start Date (Month/Year)</Label>
+                          <Input
+                            id={`start-date-${index}`}
+                            type="month"
+                            value={edu.startDate}
+                            onChange={(e) => updateEducation(index, 'startDate', e.target.value)}
                             className="w-full"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium block">End Date</Label>
-                          <CustomDatePicker
-                            selected={edu.endDate ? new Date(edu.endDate) : null}
-                            onChange={(date) => updateEducation(index, 'endDate', date ? date.toISOString().split('T')[0] : '')}
-                            placeholderText="Select end date"
+                          <Label htmlFor={`end-date-${index}`}>End Date (Month/Year)</Label>
+                          <Input
+                            id={`end-date-${index}`}
+                            type="month"
+                            value={edu.endDate}
+                            onChange={(e) => updateEducation(index, 'endDate', e.target.value)}
                             className="w-full"
+                            disabled={edu.isCurrent}
+                            placeholder={edu.isCurrent ? "Present" : ""}
                           />
                         </div>
                       </div>
@@ -282,24 +299,39 @@ export default function EducationSection({ education, onChange }: EducationSecti
             <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Study Period</h5>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label className="text-sm font-medium block">Start Date</Label>
-                <CustomDatePicker
-                  selected={newEducation.startDate ? new Date(newEducation.startDate) : null}
-                  onChange={(date) => setNewEducation({ ...newEducation, startDate: date ? date.toISOString().split('T')[0] : '' })}
-                  placeholderText="Select start date"
+                <Label htmlFor="new-start-date">Start Date (Month/Year)</Label>
+                <Input
+                  id="new-start-date"
+                  type="month"
+                  value={newEducation.startDate}
+                  onChange={(e) => setNewEducation({ ...newEducation, startDate: e.target.value })}
                   className="w-full"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium block">End Date</Label>
-                <CustomDatePicker
-                  selected={newEducation.endDate ? new Date(newEducation.endDate) : null}
-                  onChange={(date) => setNewEducation({ ...newEducation, endDate: date ? date.toISOString().split('T')[0] : '' })}
-                  placeholderText="Select end date"
+                <Label htmlFor="new-end-date">End Date (Month/Year)</Label>
+                <Input
+                  id="new-end-date"
+                  type="month"
+                  value={newEducation.endDate}
+                  onChange={(e) => setNewEducation({ ...newEducation, endDate: e.target.value })}
                   className="w-full"
                 />
-              </div>
             </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="new-current-study"
+                checked={newEducation.isCurrent}
+                onCheckedChange={(checked) => {
+                  setNewEducation({ ...newEducation, isCurrent: !!checked });
+                  if (checked) {
+                    setNewEducation(prev => ({ ...prev, endDate: '' }));
+                  }
+                }}
+              />
+              <Label htmlFor="new-current-study">Currently studying here</Label>
+            </div>
+          </div>
           </div>
 
           {/* Additional Details */}

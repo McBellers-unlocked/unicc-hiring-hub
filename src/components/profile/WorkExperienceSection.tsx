@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CustomDatePicker } from "@/components/ui/date-picker";
 import { Plus, Trash2, Briefcase, ChevronDown, ChevronUp, Edit2 } from "lucide-react";
 
 interface WorkExperience {
@@ -193,22 +192,25 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
                       <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Employment Dates</h5>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium block">Start Date</Label>
-                          <CustomDatePicker
-                            selected={work.startDate ? new Date(work.startDate) : null}
-                            onChange={(date) => updateWorkExperience(index, 'startDate', date ? date.toISOString().split('T')[0] : '')}
-                            placeholderText="Select start date"
+                          <Label htmlFor={`work-start-date-${index}`}>Start Date (Month/Year)</Label>
+                          <Input
+                            id={`work-start-date-${index}`}
+                            type="month"
+                            value={work.startDate}
+                            onChange={(e) => updateWorkExperience(index, 'startDate', e.target.value)}
                             className="w-full"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium block">End Date</Label>
-                          <CustomDatePicker
-                            selected={work.endDate ? new Date(work.endDate) : null}
-                            onChange={(date) => updateWorkExperience(index, 'endDate', date ? date.toISOString().split('T')[0] : '')}
-                            placeholderText={work.isCurrent ? "Present" : "Select end date"}
+                          <Label htmlFor={`work-end-date-${index}`}>End Date (Month/Year)</Label>
+                          <Input
+                            id={`work-end-date-${index}`}
+                            type="month"
+                            value={work.endDate}
+                            onChange={(e) => updateWorkExperience(index, 'endDate', e.target.value)}
                             className="w-full"
                             disabled={work.isCurrent}
+                            placeholder={work.isCurrent ? "Present" : ""}
                           />
                         </div>
                       </div>
@@ -217,7 +219,12 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
                           <Checkbox
                             id={`current-${index}`}
                             checked={work.isCurrent}
-                            onCheckedChange={(checked) => updateWorkExperience(index, 'isCurrent', !!checked)}
+                            onCheckedChange={(checked) => {
+                              updateWorkExperience(index, 'isCurrent', !!checked);
+                              if (checked) {
+                                updateWorkExperience(index, 'endDate', '');
+                              }
+                            }}
                           />
                           <Label htmlFor={`current-${index}`}>I currently work here</Label>
                         </div>
@@ -312,22 +319,25 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
             <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Employment Dates</h5>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label className="text-sm font-medium block">Start Date</Label>
-                <CustomDatePicker
-                  selected={newWork.startDate ? new Date(newWork.startDate) : null}
-                  onChange={(date) => setNewWork({ ...newWork, startDate: date ? date.toISOString().split('T')[0] : '' })}
-                  placeholderText="Select start date"
+                <Label htmlFor="new-work-start-date">Start Date (Month/Year)</Label>
+                <Input
+                  id="new-work-start-date"
+                  type="month"
+                  value={newWork.startDate}
+                  onChange={(e) => setNewWork({ ...newWork, startDate: e.target.value })}
                   className="w-full"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium block">End Date</Label>
-                <CustomDatePicker
-                  selected={newWork.endDate ? new Date(newWork.endDate) : null}
-                  onChange={(date) => setNewWork({ ...newWork, endDate: date ? date.toISOString().split('T')[0] : '' })}
-                  placeholderText={newWork.isCurrent ? "Present" : "Select end date"}
+                <Label htmlFor="new-work-end-date">End Date (Month/Year)</Label>
+                <Input
+                  id="new-work-end-date"
+                  type="month"
+                  value={newWork.endDate}
+                  onChange={(e) => setNewWork({ ...newWork, endDate: e.target.value })}
                   className="w-full"
                   disabled={newWork.isCurrent}
+                  placeholder={newWork.isCurrent ? "Present" : ""}
                 />
               </div>
             </div>
@@ -336,7 +346,12 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
                 <Checkbox
                   id="new-current"
                   checked={newWork.isCurrent}
-                  onCheckedChange={(checked) => setNewWork({ ...newWork, isCurrent: !!checked })}
+                  onCheckedChange={(checked) => {
+                    setNewWork({ ...newWork, isCurrent: !!checked });
+                    if (checked) {
+                      setNewWork(prev => ({ ...prev, endDate: '' }));
+                    }
+                  }}
                 />
                 <Label htmlFor="new-current">I currently work here</Label>
               </div>
