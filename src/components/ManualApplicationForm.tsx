@@ -19,6 +19,14 @@ const educationSchema = z.object({
   dateAwarded: z.string().min(1, "Date awarded is required"),
 });
 
+const workExperienceSchema = z.object({
+  jobTitle: z.string().min(1, "Job title is required"),
+  organization: z.string().min(1, "Organization is required"),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().optional(),
+  isCurrent: z.boolean().default(false),
+});
+
 const manualApplicationSchema = z.object({
   // Personal Information
   name: z.string().min(1, "Name is required"),
@@ -28,21 +36,12 @@ const manualApplicationSchema = z.object({
   // Education (array)
   education: z.array(educationSchema).min(1, "At least one education entry is required"),
   
-  // Most Recent Job
-  mostRecentJobTitle: z.string().min(1, "Most recent job title is required"),
-  mostRecentOrganization: z.string().min(1, "Most recent organization is required"),
-  mostRecentStartDate: z.string().min(1, "Start date is required"),
-  mostRecentEndDate: z.string().optional(),
-  mostRecentIsCurrent: z.boolean().default(false),
-  
-  // Previous Job (optional)
-  previousJobTitle: z.string().optional(),
-  previousOrganization: z.string().optional(),
-  previousStartDate: z.string().optional(),
-  previousEndDate: z.string().optional(),
+  // Work Experience (array)
+  workExperience: z.array(workExperienceSchema).min(1, "At least one work experience entry is required"),
 });
 
 type EducationEntry = z.infer<typeof educationSchema>;
+type WorkExperienceEntry = z.infer<typeof workExperienceSchema>;
 
 type ManualApplicationData = z.infer<typeof manualApplicationSchema>;
 
@@ -62,15 +61,13 @@ export default function ManualApplicationForm() {
       institution: '',
       dateAwarded: '',
     }],
-    mostRecentJobTitle: '',
-    mostRecentOrganization: '',
-    mostRecentStartDate: '',
-    mostRecentEndDate: '',
-    mostRecentIsCurrent: false,
-    previousJobTitle: '',
-    previousOrganization: '',
-    previousStartDate: '',
-    previousEndDate: '',
+    workExperience: [{
+      jobTitle: '',
+      organization: '',
+      startDate: '',
+      endDate: '',
+      isCurrent: false,
+    }],
   });
   
   const [loading, setLoading] = useState(false);
@@ -141,7 +138,7 @@ export default function ManualApplicationForm() {
     );
   }
 
-  const handleInputChange = (field: keyof ManualApplicationData, value: string | boolean | EducationEntry[]) => {
+  const handleInputChange = (field: keyof ManualApplicationData, value: string | boolean | EducationEntry[] | WorkExperienceEntry[]) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -174,6 +171,37 @@ export default function ManualApplicationForm() {
       ...prev,
       education: prev.education.map((edu, i) => 
         i === index ? { ...edu, [field]: value } : edu
+      )
+    }));
+  };
+
+  const addWorkExperienceEntry = () => {
+    setFormData(prev => ({
+      ...prev,
+      workExperience: [...prev.workExperience, {
+        jobTitle: '',
+        organization: '',
+        startDate: '',
+        endDate: '',
+        isCurrent: false,
+      }]
+    }));
+  };
+
+  const removeWorkExperienceEntry = (index: number) => {
+    if (formData.workExperience.length > 1) {
+      setFormData(prev => ({
+        ...prev,
+        workExperience: prev.workExperience.filter((_, i) => i !== index)
+      }));
+    }
+  };
+
+  const updateWorkExperienceEntry = (index: number, field: keyof WorkExperienceEntry, value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      workExperience: prev.workExperience.map((work, i) => 
+        i === index ? { ...work, [field]: value } : work
       )
     }));
   };
@@ -246,23 +274,13 @@ export default function ManualApplicationForm() {
         })),
         
         // Work experience data
-        work_experience: [
-          // Most recent job
-          {
-            title: validatedData.mostRecentJobTitle,
-            company: validatedData.mostRecentOrganization,
-            start_date: validatedData.mostRecentStartDate,
-            end_date: validatedData.mostRecentIsCurrent ? null : validatedData.mostRecentEndDate,
-            is_present: validatedData.mostRecentIsCurrent
-          },
-          // Previous job (if provided)
-          ...(validatedData.previousJobTitle ? [{
-            title: validatedData.previousJobTitle,
-            company: validatedData.previousOrganization,
-            start_date: validatedData.previousStartDate,
-            end_date: validatedData.previousEndDate
-          }] : [])
-        ].filter(job => job.title), // Remove empty jobs
+        work_experience: validatedData.workExperience.map(work => ({
+          title: work.jobTitle,
+          company: work.organization,
+          start_date: work.startDate,
+          end_date: work.isCurrent ? null : work.endDate,
+          is_present: work.isCurrent
+        })),
         
         // Additional fields
         professional_summary: 'Manually entered application',
@@ -295,21 +313,7 @@ export default function ManualApplicationForm() {
             phone: validatedData.phone
           },
           education: validatedData.education,
-          work_experience: {
-            most_recent: {
-              job_title: validatedData.mostRecentJobTitle,
-              organization: validatedData.mostRecentOrganization,
-              start_date: validatedData.mostRecentStartDate,
-              end_date: validatedData.mostRecentIsCurrent ? 'Present' : validatedData.mostRecentEndDate,
-              is_current: validatedData.mostRecentIsCurrent
-            },
-            previous: validatedData.previousJobTitle ? {
-              job_title: validatedData.previousJobTitle,
-              organization: validatedData.previousOrganization,
-              start_date: validatedData.previousStartDate,
-              end_date: validatedData.previousEndDate
-            } : null
-          }
+          work_experience: validatedData.workExperience
         }
       };
 
@@ -504,128 +508,104 @@ export default function ManualApplicationForm() {
             </CardContent>
           </Card>
 
-          {/* Most Recent Job */}
+          {/* Work Experience */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Briefcase className="w-5 h-5" />
-                Most Recent Job Experience
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Briefcase className="w-5 h-5" />
+                  Work Experience
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addWorkExperienceEntry}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Work Experience
+                </Button>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="mostRecentJobTitle">Job Title *</Label>
-                  <Input
-                    id="mostRecentJobTitle"
-                    value={formData.mostRecentJobTitle}
-                    onChange={(e) => handleInputChange('mostRecentJobTitle', e.target.value)}
-                    placeholder="Current/most recent position"
-                    required
-                  />
+            <CardContent className="space-y-6">
+              {formData.workExperience.map((work, index) => (
+                <div key={index} className="space-y-4 p-4 border rounded-lg relative">
+                  {formData.workExperience.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeWorkExperienceEntry(index)}
+                      className="absolute top-2 right-2 text-destructive hover:text-destructive"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </Button>
+                  )}
+                  <h4 className="font-medium text-foreground">Work Experience {index + 1}</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor={`jobTitle-${index}`}>Job Title *</Label>
+                      <Input
+                        id={`jobTitle-${index}`}
+                        value={work.jobTitle}
+                        onChange={(e) => updateWorkExperienceEntry(index, 'jobTitle', e.target.value)}
+                        placeholder="Position title"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`organization-${index}`}>Organization *</Label>
+                      <Input
+                        id={`organization-${index}`}
+                        value={work.organization}
+                        onChange={(e) => updateWorkExperienceEntry(index, 'organization', e.target.value)}
+                        placeholder="Company/Organization name"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor={`startDate-${index}`}>Start Date *</Label>
+                      <Input
+                        id={`startDate-${index}`}
+                        type="month"
+                        value={work.startDate}
+                        onChange={(e) => updateWorkExperienceEntry(index, 'startDate', e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`endDate-${index}`}>End Date</Label>
+                      <Input
+                        id={`endDate-${index}`}
+                        type="month"
+                        value={work.endDate}
+                        onChange={(e) => updateWorkExperienceEntry(index, 'endDate', e.target.value)}
+                        disabled={work.isCurrent}
+                        placeholder={work.isCurrent ? "Present" : ""}
+                      />
+                    </div>
+                    <div className="space-y-2 flex items-end">
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={work.isCurrent}
+                          onChange={(e) => {
+                            updateWorkExperienceEntry(index, 'isCurrent', e.target.checked);
+                            if (e.target.checked) {
+                              updateWorkExperienceEntry(index, 'endDate', '');
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <span className="text-sm">Current position</span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="mostRecentOrganization">Organization *</Label>
-                  <Input
-                    id="mostRecentOrganization"
-                    value={formData.mostRecentOrganization}
-                    onChange={(e) => handleInputChange('mostRecentOrganization', e.target.value)}
-                    placeholder="Company/Organization name"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="mostRecentStartDate">Start Date *</Label>
-                  <Input
-                    id="mostRecentStartDate"
-                    type="month"
-                    value={formData.mostRecentStartDate}
-                    onChange={(e) => handleInputChange('mostRecentStartDate', e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="mostRecentEndDate">End Date</Label>
-                  <Input
-                    id="mostRecentEndDate"
-                    type="month"
-                    value={formData.mostRecentEndDate}
-                    onChange={(e) => handleInputChange('mostRecentEndDate', e.target.value)}
-                    disabled={formData.mostRecentIsCurrent}
-                    placeholder={formData.mostRecentIsCurrent ? "Present" : ""}
-                  />
-                </div>
-                <div className="space-y-2 flex items-end">
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={formData.mostRecentIsCurrent}
-                      onChange={(e) => {
-                        handleInputChange('mostRecentIsCurrent', e.target.checked);
-                        if (e.target.checked) {
-                          handleInputChange('mostRecentEndDate', '');
-                        }
-                      }}
-                      className="rounded"
-                    />
-                    <span className="text-sm">Current position</span>
-                  </label>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Previous Job (Optional) */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Briefcase className="w-5 h-5" />
-                Previous Job Experience (Optional)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="previousJobTitle">Job Title</Label>
-                  <Input
-                    id="previousJobTitle"
-                    value={formData.previousJobTitle}
-                    onChange={(e) => handleInputChange('previousJobTitle', e.target.value)}
-                    placeholder="Previous position title"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="previousOrganization">Organization</Label>
-                  <Input
-                    id="previousOrganization"
-                    value={formData.previousOrganization}
-                    onChange={(e) => handleInputChange('previousOrganization', e.target.value)}
-                    placeholder="Previous company/organization"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="previousStartDate">Start Date</Label>
-                  <Input
-                    id="previousStartDate"
-                    type="month"
-                    value={formData.previousStartDate}
-                    onChange={(e) => handleInputChange('previousStartDate', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="previousEndDate">End Date</Label>
-                  <Input
-                    id="previousEndDate"
-                    type="month"
-                    value={formData.previousEndDate}
-                    onChange={(e) => handleInputChange('previousEndDate', e.target.value)}
-                  />
-                </div>
-              </div>
+              ))}
             </CardContent>
           </Card>
 
