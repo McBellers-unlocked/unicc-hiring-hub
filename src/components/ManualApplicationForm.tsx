@@ -264,7 +264,7 @@ export default function ManualApplicationForm() {
       // Create candidate record
       const candidateData = {
         name: validatedData.name,
-        email: validatedData.email || null,
+        email: validatedData.email || `no-email-${Date.now()}@manual-entry.local`,
         phone: validatedData.phone || null,
         
         // Education data (multiple entries)
