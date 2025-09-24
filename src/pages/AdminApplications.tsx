@@ -656,6 +656,17 @@ export default function AdminApplications() {
               <CardTitle className="flex items-center justify-between">
                 <span>Applications</span>
                 <div className="flex items-center space-x-2">
+                  {selectedJobId === 'aacafec6-4d2b-4a3b-826a-5608ec28418e' && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => navigate(`/admin/applications/manual/${selectedJobId}`)}
+                      className="mr-4"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Manual Application
+                    </Button>
+                  )}
                   <Filter className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
                     {filteredApplications.length} of {applications.length} applications
