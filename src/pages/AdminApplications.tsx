@@ -279,8 +279,8 @@ export default function AdminApplications() {
     const workExpArray = Array.isArray(workExp) ? workExp : (workExp?.length ? workExp : []);
     if (workExpArray.length === 0) return [{ title: 'Not specified', organization: '', length: '' }];
     
-    // Get up to 3 most recent positions (current + past 2)
-    return workExpArray.slice(0, 3).map((exp: any) => {
+    // Get all work experience positions
+    return workExpArray.map((exp: any) => {
       const title = exp.position || exp.exact_title_of_post || exp.title || 'Not specified';
       const organization = exp.company || exp.employer_name || exp.employer || '';
       
