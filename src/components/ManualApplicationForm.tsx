@@ -30,7 +30,10 @@ const workExperienceSchema = z.object({
 const manualApplicationSchema = z.object({
   // Personal Information
   name: z.string().min(1, "Name is required"),
-  email: z.string().email("Valid email is required").optional(),
+  email: z.string().optional().refine(
+    (val) => !val || val === "" || z.string().email().safeParse(val).success,
+    { message: "Please enter a valid email address" }
+  ),
   phone: z.string().optional(),
   
   // Education (array)
