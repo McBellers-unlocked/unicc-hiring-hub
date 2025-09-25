@@ -595,24 +595,33 @@ export default function AdminApplications() {
 
   const directShortlist = async (applicationId: string) => {
     try {
+      // Find the current application to check its status
+      const currentApp = applications.find(app => app.id === applicationId);
+      const isCurrentlyShortlisted = currentApp?.status === 'Shortlist';
+      
       const { error } = await supabase
         .from('applications')
-        .update({ status: 'Shortlist' })
+        .update({ 
+          status: isCurrentlyShortlisted ? 'Longlist' : 'Shortlist',
+          suggested_for_longlist: isCurrentlyShortlisted ? true : false
+        })
         .eq('id', applicationId);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Application moved to shortlist",
+        description: isCurrentlyShortlisted 
+          ? "Application moved back to longlist" 
+          : "Application moved to shortlist",
       });
 
       fetchApplications(selectedJobId);
     } catch (error) {
-      console.error('Error shortlisting application:', error);
+      console.error('Error updating shortlist:', error);
       toast({
         title: "Error",
-        description: "Failed to shortlist application",
+        description: "Failed to update shortlist",
         variant: "destructive",
       });
     }

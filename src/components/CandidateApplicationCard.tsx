@@ -306,12 +306,25 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
             {(userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Hiring Manager')) && onDirectShortlist && (
               <Button
                 size="sm"
-                variant="default"
+                variant={application.status === 'Shortlist' ? "default" : "default"}
                 onClick={() => onDirectShortlist(application.id)}
-                className="whitespace-nowrap bg-green-600 hover:bg-green-700 text-white"
+                className={`whitespace-nowrap ${
+                  application.status === 'Shortlist' 
+                    ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                    : 'bg-green-600 hover:bg-green-700 text-white'
+                }`}
               >
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Direct Shortlist
+                {application.status === 'Shortlist' ? (
+                  <>
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Shortlisted
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Direct Shortlist
+                  </>
+                )}
               </Button>
             )}
 
