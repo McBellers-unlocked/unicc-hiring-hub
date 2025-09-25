@@ -52,10 +52,11 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
       // Use a very short friendly name to minimize QR code size
       const friendlyName = "Auth";
 
-      // Enroll in MFA with unique name
+      // Enroll in MFA with very short issuer name to minimize QR code size
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
-        friendlyName
+        friendlyName,
+        issuer: 'UNiConnect' // Override default issuer to keep it short
       });
 
       if (error) throw error;
@@ -66,16 +67,27 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
       console.log('TOTP URI:', qrCodeUri.substring(0, 100) + '...');
       
       try {
+        // Try with most aggressive settings first
         const qrCode = await QRCode.toDataURL(qrCodeUri, {
-          errorCorrectionLevel: 'L', // Lowest error correction for maximum data capacity
-          margin: 1, // Minimal margin
-          scale: 2, // Small scale
-          width: 200, // Compact size
+          errorCorrectionLevel: 'L', // Lowest error correction
+          margin: 0, // No margin
+          scale: 1, // Smallest scale
+          width: 150, // Very compact size
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+          }
         });
         setQrCodeUrl(qrCode);
       } catch (qrError) {
         console.error('QR Code generation error:', qrError);
-        throw new Error(`QR code generation failed: ${qrError.message}`);
+        // If QR code fails, show manual entry only
+        setStep('verify');
+        toast({
+          title: "QR Code Too Large",
+          description: "Please enter the setup key manually in your authenticator app.",
+          variant: "destructive",
+        });
       }
 
       setFactorId(data.id);
@@ -195,16 +207,37 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex justify-center">
-            <img src={qrCodeUrl} alt="QR Code for MFA setup" className="w-48 h-48 border rounded" />
-          </div>
-          
-          <div className="text-center text-sm text-muted-foreground">
-            <p>Scan this QR code with your authenticator app</p>
-            <p className="text-xs mt-1">
-              Compatible with Google Authenticator, Microsoft Authenticator, Authy, and 1Password
-            </p>
-          </div>
+          {qrCodeUrl ? (
+            <>
+              <div className="flex justify-center">
+                <img src={qrCodeUrl} alt="QR Code for MFA setup" className="w-48 h-48 border rounded" />
+              </div>
+              
+              <div className="text-center text-sm text-muted-foreground">
+                <p>Scan this QR code with your authenticator app</p>
+                <p className="text-xs mt-1">
+                  Compatible with Google Authenticator, Microsoft Authenticator, Authy, and 1Password
+                </p>
+              </div>
+            </>
+          ) : (
+            <div className="text-center">
+              <div className="bg-muted p-4 rounded-lg border">
+                <p className="text-sm text-muted-foreground">
+                  QR code too large - use manual setup below
+                </p>
+              </div>
+              <div className="mt-4 text-center">
+                <p className="text-sm font-medium mb-2">Manual Setup Key:</p>
+                <div className="bg-muted p-3 rounded border break-all text-sm font-mono">
+                  {factorId}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Enter this key manually in your authenticator app
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="totp-code">Authentication Code</Label>
