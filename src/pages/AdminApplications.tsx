@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Filter, User, FileText, Calendar, AlertCircle, Trash2, Eye, ChevronDown, ChevronRight, GraduationCap, Briefcase, Languages, Plus, Check, X } from 'lucide-react';
+import { Search, Filter, User, FileText, Calendar, AlertCircle, Trash2, Eye, ChevronDown, ChevronRight, GraduationCap, Briefcase, Languages, Plus, Check, X, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
 
@@ -23,6 +23,7 @@ interface Application {
   updated_at: string;
   suggested_for_longlist: boolean;
   phf_completed: boolean;
+  source?: string;
   candidate: {
     id: string;
     name: string;
@@ -136,6 +137,7 @@ export default function AdminApplications() {
           updated_at,
           suggested_for_longlist,
           phf_completed,
+          source,
           candidate:candidates(
             id, name, email, location, gender, education, work_experience, 
             languages, years_of_experience, un_experience, skills
@@ -1067,16 +1069,33 @@ export default function AdminApplications() {
                                    <Eye className="w-3 h-3 mr-1" />
                                    View
                                  </Button>
-                                 {(userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
-                                   <Button
-                                     size="sm"
-                                     variant="destructive"
-                                     onClick={(e) => deleteApplication(application.id, application.candidate.id, e)}
-                                     className="px-2"
-                                   >
-                                     <Trash2 className="w-3 h-3" />
-                                   </Button>
-                                 )}
+                                  {(userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
+                                    <>
+                                      {/* Show edit button for manually added candidates */}
+                                      {application.source === 'manual_entry' && (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            navigate(`/admin/applications/edit-manual/${application.id}`);
+                                          }}
+                                          className="px-2"
+                                        >
+                                          <Edit className="w-3 h-3" />
+                                        </Button>
+                                      )}
+                                      <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        onClick={(e) => deleteApplication(application.id, application.candidate.id, e)}
+                                        className="px-2"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </>
+                                  )}
                                </div>
                              </TableCell>
                           </TableRow>
