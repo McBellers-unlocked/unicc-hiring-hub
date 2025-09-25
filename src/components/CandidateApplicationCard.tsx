@@ -306,7 +306,7 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
             {(userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Hiring Manager')) && onDirectShortlist && (
               <Button
                 size="sm"
-                variant={application.status === 'Shortlist' ? "default" : "default"}
+                variant="default"
                 onClick={() => onDirectShortlist(application.id)}
                 className={`whitespace-nowrap ${
                   application.status === 'Shortlist' 
