@@ -37,20 +37,22 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
       
       if (listError) throw listError;
 
-      // Unenroll any existing incomplete factors
+      // Unenroll any existing factors to prevent conflicts
       if (existingFactors?.totp && existingFactors.totp.length > 0) {
         for (const factor of existingFactors.totp) {
           try {
             await supabase.auth.mfa.unenroll({ factorId: factor.id });
+            console.log('Unenrolled existing factor:', factor.id);
           } catch (unenrollError) {
-            console.warn('Could not unenroll existing factor:', unenrollError);
-            // Continue anyway - the factor might already be unenrolled
+            console.warn('Could not unenroll existing factor:', factor.id, unenrollError);
           }
         }
+        // Wait a moment for the unenrollment to complete
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
-      // Use a very short friendly name to minimize QR code size
-      const friendlyName = "Auth";
+      // Use a unique friendly name to avoid conflicts
+      const friendlyName = `Auth-${Date.now()}`;
 
       // Enroll in MFA with very short issuer name to minimize QR code size
       const { data, error } = await supabase.auth.mfa.enroll({
