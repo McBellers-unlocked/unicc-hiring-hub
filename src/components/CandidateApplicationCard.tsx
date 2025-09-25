@@ -119,15 +119,15 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
         </div>
 
         {/* Main content grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-4">
-          {/* Education */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
+          {/* Education - Show ALL entries */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 mb-2">
               <GraduationCap className="w-4 h-4 text-muted-foreground" />
-              <h4 className="font-medium text-sm">Education</h4>
+              <h4 className="font-medium text-sm">Education ({allEducation.length})</h4>
             </div>
-            <div className="space-y-2">
-              {allEducation.length > 0 ? allEducation.slice(0, 2).map((edu, index) => (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {allEducation.length > 0 ? allEducation.map((edu, index) => (
                 <div key={index} className="text-sm border-l-2 border-muted pl-3 py-1">
                   <div className="font-medium" title={edu.degree}>
                     {edu.degree}
@@ -151,22 +151,17 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
               )) : (
                 <div className="text-sm text-muted-foreground">No education specified</div>
               )}
-              {allEducation.length > 2 && (
-                <div className="text-xs text-muted-foreground">
-                  +{allEducation.length - 2} more
-                </div>
-              )}
             </div>
           </div>
 
-          {/* Work Experience */}
+          {/* Work Experience - Show ALL entries */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 mb-2">
               <Briefcase className="w-4 h-4 text-muted-foreground" />
-              <h4 className="font-medium text-sm">Recent Experience</h4>
+              <h4 className="font-medium text-sm">Work Experience ({recentJobs.length})</h4>
             </div>
-            <div className="space-y-2">
-              {recentJobs.slice(0, 2).map((job, index) => (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {recentJobs.map((job, index) => (
                 <div key={index} className="text-sm border-l-2 border-muted pl-3 py-1">
                   <div className="font-medium" title={job.title}>
                     {job.title}
@@ -193,51 +188,46 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                   </div>
                 </div>
               ))}
-              {recentJobs.length > 2 && (
-                <div className="text-xs text-muted-foreground">
-                  +{recentJobs.length - 2} more positions
-                </div>
-              )}
             </div>
           </div>
+        </div>
 
-          {/* Languages & Total Experience */}
-          <div className="space-y-3">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Languages className="w-4 h-4 text-muted-foreground" />
-                <h4 className="font-medium text-sm">Languages</h4>
-              </div>
-              <div className="text-sm" title={getLanguageSummary(application.candidate.languages)}>
-                {getLanguageSummary(application.candidate.languages)}
-              </div>
+        {/* Secondary info row - Languages and Total Experience */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-3 bg-muted/30 rounded-lg">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Languages className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium text-sm">Languages:</span>
             </div>
-            
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <h4 className="font-medium text-sm">Total Experience</h4>
-              </div>
-              <div className="text-lg font-semibold text-primary">
-                {getTotalExperience(application.candidate.work_experience, application.candidate.years_of_experience)}
-              </div>
+            <div className="text-sm" title={getLanguageSummary(application.candidate.languages)}>
+              {getLanguageSummary(application.candidate.languages)}
+            </div>
+          </div>
+          
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium text-sm">Total Experience:</span>
+            </div>
+            <div className="text-lg font-semibold text-primary">
+              {getTotalExperience(application.candidate.work_experience, application.candidate.years_of_experience)}
             </div>
           </div>
         </div>
 
         {/* Action row - This replaces the table columns that were causing horizontal scroll */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-border">
-          {/* Left side - Status and Match info */}
+          {/* Left side - Status */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Status:</span>
               {getStatusBadge(application.status)}
             </div>
-            
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Match:</span>
-              {getScoreBadge(application)}
-            </div>
+          </div>
+
+          {/* Center - Match info */}
+          <div className="flex items-center gap-2">
+            {getScoreBadge(application)}
           </div>
 
           {/* Right side - Action buttons */}
