@@ -30,10 +30,31 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
     setError('');
 
     try {
-      // Enroll in MFA
+      // First, check for existing factors and clean them up
+      const { data: existingFactors, error: listError } = await supabase.auth.mfa.listFactors();
+      
+      if (listError) throw listError;
+
+      // Unenroll any existing incomplete factors
+      if (existingFactors?.totp && existingFactors.totp.length > 0) {
+        for (const factor of existingFactors.totp) {
+          try {
+            await supabase.auth.mfa.unenroll({ factorId: factor.id });
+          } catch (unenrollError) {
+            console.warn('Could not unenroll existing factor:', unenrollError);
+            // Continue anyway - the factor might already be unenrolled
+          }
+        }
+      }
+
+      // Generate a unique friendly name with timestamp
+      const timestamp = Date.now();
+      const friendlyName = `Authenticator App ${timestamp}`;
+
+      // Enroll in MFA with unique name
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
-        friendlyName: 'Authenticator App'
+        friendlyName
       });
 
       if (error) throw error;
