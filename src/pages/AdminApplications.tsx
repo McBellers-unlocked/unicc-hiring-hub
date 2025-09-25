@@ -519,25 +519,49 @@ export default function AdminApplications() {
 
   const addToLonglist = async (applicationIds: string[]) => {
     try {
-      const { error } = await supabase
-        .from('applications')
-        .update({ suggested_for_longlist: true })
-        .in('id', applicationIds);
+      // For single application, toggle the status
+      if (applicationIds.length === 1) {
+        const currentApp = applications.find(app => app.id === applicationIds[0]);
+        const isCurrentlyLonglisted = currentApp?.suggested_for_longlist;
+        
+        const { error } = await supabase
+          .from('applications')
+          .update({ 
+            suggested_for_longlist: !isCurrentlyLonglisted,
+            status: isCurrentlyLonglisted ? 'Application' : 'Longlist'
+          })
+          .eq('id', applicationIds[0]);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${applicationIds.length} application(s) added to longlist`,
-      });
+        toast({
+          title: "Success",
+          description: isCurrentlyLonglisted 
+            ? "Application removed from longlist" 
+            : "Application added to longlist",
+        });
+      } else {
+        // For multiple applications, just add them to longlist
+        const { error } = await supabase
+          .from('applications')
+          .update({ suggested_for_longlist: true })
+          .in('id', applicationIds);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: `${applicationIds.length} application(s) added to longlist`,
+        });
+      }
 
       fetchApplications(selectedJobId);
       setSelectedApplications(new Set());
     } catch (error) {
-      console.error('Error adding to longlist:', error);
+      console.error('Error updating longlist:', error);
       toast({
         title: "Error",
-        description: "Failed to add to longlist",
+        description: "Failed to update longlist",
         variant: "destructive",
       });
     }
