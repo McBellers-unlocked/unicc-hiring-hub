@@ -49,9 +49,8 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
         }
       }
 
-      // Generate a unique friendly name with timestamp
-      const timestamp = Date.now();
-      const friendlyName = `Authenticator App ${timestamp}`;
+      // Use a very short friendly name to minimize QR code size
+      const friendlyName = "Auth";
 
       // Enroll in MFA with unique name
       const { data, error } = await supabase.auth.mfa.enroll({
@@ -61,30 +60,22 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
 
       if (error) throw error;
 
-      // Generate QR code with very aggressive compression to handle large data
+      // Debug the URI length and content
       const qrCodeUri = data.totp.qr_code;
+      console.log('TOTP URI length:', qrCodeUri.length);
+      console.log('TOTP URI:', qrCodeUri.substring(0, 100) + '...');
       
       try {
         const qrCode = await QRCode.toDataURL(qrCodeUri, {
           errorCorrectionLevel: 'L', // Lowest error correction for maximum data capacity
-          margin: 0, // No margin to save space
-          scale: 1, // Smallest scale
-          width: 256, // Reasonable size for scanning
+          margin: 1, // Minimal margin
+          scale: 2, // Small scale
+          width: 200, // Compact size
         });
         setQrCodeUrl(qrCode);
       } catch (qrError) {
-        // If still fails, try with even more aggressive settings
-        try {
-          const qrCode = await QRCode.toDataURL(qrCodeUri, {
-            errorCorrectionLevel: 'L',
-            margin: 0,
-            scale: 1,
-            width: 200,
-          });
-          setQrCodeUrl(qrCode);
-        } catch (finalError) {
-          throw new Error('QR code too large for display. Please contact support.');
-        }
+        console.error('QR Code generation error:', qrError);
+        throw new Error(`QR code generation failed: ${qrError.message}`);
       }
 
       setFactorId(data.id);
