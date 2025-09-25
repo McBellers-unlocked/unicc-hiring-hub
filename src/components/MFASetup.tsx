@@ -38,8 +38,16 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
 
       if (error) throw error;
 
-      // Generate QR code
-      const qrCode = await QRCode.toDataURL(data.totp.qr_code);
+      // Generate QR code with optimized settings for large data
+      const qrCode = await QRCode.toDataURL(data.totp.qr_code, {
+        errorCorrectionLevel: 'L', // Low error correction for smaller size
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF',
+        },
+        width: 256, // Fixed width to ensure readability
+      });
       setQrCodeUrl(qrCode);
       setFactorId(data.id);
       setStep('setup');
