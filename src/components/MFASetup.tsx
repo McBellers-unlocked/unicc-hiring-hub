@@ -25,8 +25,6 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
   const [error, setError] = useState<string>('');
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [copiedCodes, setCopiedCodes] = useState(false);
-  const [manualSecret, setManualSecret] = useState<string>('');
-  const [showManualEntry, setShowManualEntry] = useState(false);
   const { toast } = useToast();
 
   const startMFASetup = async () => {
@@ -63,52 +61,30 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
 
       if (error) throw error;
 
-      // Extract the secret from the QR code for manual entry
+      // Generate QR code with very aggressive compression to handle large data
       const qrCodeUri = data.totp.qr_code;
-      console.log('TOTP URI:', qrCodeUri); // Debug log
       
-      // Try multiple patterns to extract the secret
-      let secret = '';
-      const secretPatterns = [
-        /secret=([^&?]+)/i,
-        /secret%3D([^&?]+)/i, // URL encoded
-        /secret:([^&?]+)/i,
-      ];
-      
-      for (const pattern of secretPatterns) {
-        const match = qrCodeUri.match(pattern);
-        if (match && match[1]) {
-          secret = decodeURIComponent(match[1]);
-          break;
-        }
-      }
-      
-      // If no secret found, try to extract from the end of the URI
-      if (!secret) {
-        const uriParts = qrCodeUri.split('/');
-        const lastPart = uriParts[uriParts.length - 1];
-        if (lastPart && lastPart.length > 10) {
-          secret = lastPart.split('?')[0]; // Remove query params
-        }
-      }
-      
-      console.log('Extracted secret:', secret); // Debug log
-      setManualSecret(secret || 'Unable to extract secret - use QR code');
-
-      // Try to generate QR code with very aggressive compression
       try {
         const qrCode = await QRCode.toDataURL(qrCodeUri, {
-          errorCorrectionLevel: 'L', // Lowest error correction
-          margin: 0, // No margin
+          errorCorrectionLevel: 'L', // Lowest error correction for maximum data capacity
+          margin: 0, // No margin to save space
           scale: 1, // Smallest scale
-          width: 200, // Smaller width
+          width: 256, // Reasonable size for scanning
         });
         setQrCodeUrl(qrCode);
-        setShowManualEntry(false);
       } catch (qrError) {
-        console.warn('QR code generation failed, using manual entry:', qrError);
-        setShowManualEntry(true);
-        setQrCodeUrl('');
+        // If still fails, try with even more aggressive settings
+        try {
+          const qrCode = await QRCode.toDataURL(qrCodeUri, {
+            errorCorrectionLevel: 'L',
+            margin: 0,
+            scale: 1,
+            width: 200,
+          });
+          setQrCodeUrl(qrCode);
+        } catch (finalError) {
+          throw new Error('QR code too large for display. Please contact support.');
+        }
       }
 
       setFactorId(data.id);
@@ -228,57 +204,16 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!showManualEntry && qrCodeUrl ? (
-            <div className="space-y-4">
-              <div className="flex justify-center">
-                <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
-              </div>
-              <div className="text-center">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setShowManualEntry(true)}
-                >
-                  Can't scan? Enter code manually
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm font-medium mb-2">Manual Setup</p>
-                <p className="text-xs text-muted-foreground mb-3">
-                  In your authenticator app, select "Enter a setup key" or "Manual entry" and use:
-                </p>
-                <div className="bg-background p-3 rounded border">
-                  <p className="text-xs text-muted-foreground">Account:</p>
-                  <p className="font-mono text-sm break-all">{user?.email}</p>
-                  <p className="text-xs text-muted-foreground mt-2">Secret Key:</p>
-                  {manualSecret && !manualSecret.includes('Unable to extract') ? (
-                    <p className="font-mono text-sm break-all bg-green-50 p-2 rounded">{manualSecret}</p>
-                  ) : (
-                    <div className="space-y-2">
-                      <p className="text-red-600 text-xs">Could not extract secret key automatically</p>
-                      <p className="text-xs text-muted-foreground">
-                        Please use the QR code instead, or contact support if you need manual entry.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {qrCodeUrl && (
-                <div className="text-center">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => setShowManualEntry(false)}
-                  >
-                    Show QR Code instead
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
+          <div className="flex justify-center">
+            <img src={qrCodeUrl} alt="QR Code for MFA setup" className="w-48 h-48 border rounded" />
+          </div>
+          
+          <div className="text-center text-sm text-muted-foreground">
+            <p>Scan this QR code with your authenticator app</p>
+            <p className="text-xs mt-1">
+              Compatible with Google Authenticator, Microsoft Authenticator, Authy, and 1Password
+            </p>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="totp-code">Authentication Code</Label>
