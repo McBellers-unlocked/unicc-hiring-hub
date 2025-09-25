@@ -58,7 +58,7 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
         friendlyName,
-        issuer: 'UNiConnect' // Override default issuer to keep it short
+        issuer: 'UNICConnect' // Override default issuer to keep it short
       });
 
       if (error) throw error;
