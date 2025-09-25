@@ -8,9 +8,11 @@ interface AuthContextType {
   userRoles: string[];
   loading: boolean;
   needsProfileSetup: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  mfaRequired: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: any; mfaRequired?: boolean }>;
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  clearMfaRequired: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,6 +35,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [needsProfileSetup, setNeedsProfileSetup] = useState(false);
+  const [mfaRequired, setMfaRequired] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener
@@ -135,11 +138,36 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        // Check if MFA is required
+        if (error.message?.includes('MFA') || error.message?.includes('factor')) {
+          setMfaRequired(true);
+          return { error: null, mfaRequired: true };
+        }
+        return { error };
+      }
+
+      // Check if user has MFA enabled but wasn't challenged
+      if (data.user && data.session) {
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        if (factors?.totp?.length > 0) {
+          // User has MFA but wasn't challenged, which means they need to verify
+          setMfaRequired(true);
+          return { error: null, mfaRequired: true };
+        }
+      }
+
+      setMfaRequired(false);
+      return { error: null };
+    } catch (err: any) {
+      return { error: err };
+    }
   };
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
@@ -160,6 +188,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return { error };
   };
 
+  const clearMfaRequired = () => {
+    setMfaRequired(false);
+  };
+
   const signOut = async () => {
     try {
       // Clear local state first
@@ -167,6 +199,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setSession(null);
       setUserRoles([]);
       setNeedsProfileSetup(false);
+      setMfaRequired(false);
       
       // Then sign out from Supabase
       const { error } = await supabase.auth.signOut({ scope: 'local' });
@@ -184,9 +217,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     userRoles,
     loading,
     needsProfileSetup,
+    mfaRequired,
     signIn,
     signUp,
     signOut,
+    clearMfaRequired,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -8,9 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { UNICCLogo } from '@/components/UNICCLogo';
+import { MFAVerification } from '@/components/MFAVerification';
 
 export default function Auth() {
-  const { user, signIn, signUp, loading } = useAuth();
+  const { user, signIn, signUp, loading, mfaRequired, clearMfaRequired } = useAuth();
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isSigningUp, setIsSigningUp] = useState(false);
 
@@ -27,7 +28,7 @@ export default function Auth() {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
-    const { error } = await signIn(email, password);
+    const { error, mfaRequired: needsMfa } = await signIn(email, password);
     
     if (error) {
       toast({
@@ -35,12 +36,13 @@ export default function Auth() {
         description: error.message,
         variant: "destructive",
       });
-    } else {
+    } else if (!needsMfa) {
       toast({
         title: "Welcome back!",
         description: "You have been signed in successfully.",
       });
     }
+    // If MFA is required, the component will show the MFA verification UI
     
     setIsSigningIn(false);
   };
@@ -73,12 +75,44 @@ export default function Auth() {
     setIsSigningUp(false);
   };
 
+  const handleMfaSuccess = () => {
+    clearMfaRequired();
+    toast({
+      title: "Welcome back!",
+      description: "You have been signed in successfully.",
+    });
+  };
+
+  const handleMfaCancel = () => {
+    clearMfaRequired();
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <UNICCLogo size="md" className="text-primary mx-auto mb-4" />
           <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show MFA verification if required
+  if (mfaRequired) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/50 px-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <UNICCLogo size="lg" className="text-primary mx-auto mb-4" />
+            <h1 className="text-3xl font-bold">UNiConnect</h1>
+            <p className="text-muted-foreground mt-2">Complete your sign in</p>
+          </div>
+          
+          <MFAVerification 
+            onSuccess={handleMfaSuccess}
+            onCancel={handleMfaCancel}
+          />
         </div>
       </div>
     );

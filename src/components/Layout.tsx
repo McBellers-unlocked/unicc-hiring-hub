@@ -118,6 +118,10 @@ export const Layout = ({ children }: LayoutProps) => {
                       </span>
                     )}
                   </span>
+                  <Link to="/account/security" className="text-sm hover:text-accent transition-colors">
+                    <Settings className="w-4 h-4 inline mr-1" />
+                    Security
+                  </Link>
                   <Button variant="ghost" size="sm" onClick={handleSignOut}>
                     <LogOut className="w-4 h-4 mr-1" />
                     Sign Out
