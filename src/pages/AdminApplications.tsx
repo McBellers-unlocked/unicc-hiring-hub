@@ -599,11 +599,18 @@ export default function AdminApplications() {
       const currentApp = applications.find(app => app.id === applicationId);
       const isCurrentlyShortlisted = currentApp?.status === 'Shortlist';
       
+      // Check if this is the Associate Policy (Legal) Officer job
+      const isAssociatePolicyJob = currentApp?.job?.title?.includes('Associate Policy (Legal) Officer');
+      
       const { error } = await supabase
         .from('applications')
         .update({ 
-          status: isCurrentlyShortlisted ? 'Longlist' : 'Shortlist',
-          suggested_for_longlist: isCurrentlyShortlisted ? true : false
+          status: isCurrentlyShortlisted 
+            ? (isAssociatePolicyJob ? 'Application' : 'Longlist')  // Move to Application pool for Associate Policy job, otherwise Longlist
+            : 'Shortlist',
+          suggested_for_longlist: isCurrentlyShortlisted 
+            ? false  // Remove from longlist when moving back
+            : false  // Don't add to longlist when moving to shortlist
         })
         .eq('id', applicationId);
 
@@ -612,7 +619,10 @@ export default function AdminApplications() {
       toast({
         title: "Success",
         description: isCurrentlyShortlisted 
-          ? "Application moved back to longlist" 
+          ? (isAssociatePolicyJob 
+              ? "Application moved back to applicant pool" 
+              : "Application moved back to longlist"
+            )
           : "Application moved to shortlist",
       });
 
