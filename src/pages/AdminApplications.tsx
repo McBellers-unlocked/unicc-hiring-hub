@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Search, Filter, User, FileText, Calendar, AlertCircle, Trash2, Eye, ChevronDown, ChevronRight, GraduationCap, Briefcase, Languages, Plus, Check, X, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
+import { CandidateApplicationCard } from '@/components/CandidateApplicationCard';
 
 interface Application {
   id: string;
@@ -771,458 +772,75 @@ export default function AdminApplications() {
                 </Select>
               </div>
 
-              {/* Bulk Actions */}
-              {selectedApplications.size > 0 && (
-                <Card className="mb-4">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        {selectedApplications.size} application(s) selected
-                      </span>
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          onClick={() => addToLonglist(Array.from(selectedApplications))}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          <Plus className="w-4 h-4 mr-1" />
-                          Add to Longlist
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => removeFromLonglist(Array.from(selectedApplications))}
-                        >
-                          <X className="w-4 h-4 mr-1" />
-                          Remove from Longlist
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Enhanced Table */}
-              <div className="border rounded-lg overflow-hidden shadow-sm">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">
-                        <Checkbox
-                          checked={selectedApplications.size === filteredApplications.length && filteredApplications.length > 0}
-                          onCheckedChange={toggleAllApplications}
-                        />
-                      </TableHead>
-                       <TableHead className="text-left font-semibold">Candidate</TableHead>
-                       <TableHead className="text-left font-semibold">Education</TableHead>
-                        <TableHead className="text-left font-semibold">Recent Experience</TableHead>
-                        <TableHead className="text-center font-semibold">Total Experience</TableHead>
-                       <TableHead className="text-left font-semibold">Languages</TableHead>
-                       <TableHead className="text-center font-semibold">Status</TableHead>
-                       <TableHead className="text-center font-semibold">Longlist</TableHead>
-                       <TableHead className="text-center font-semibold">Match</TableHead>
-                       <TableHead className="text-center font-semibold">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                     {loading ? (
-                       <TableRow>
-                         <TableCell colSpan={10} className="text-center py-8">
-                           Loading applications...
-                         </TableCell>
-                       </TableRow>
-                     ) : filteredApplications.length === 0 ? (
-                       <TableRow>
-                         <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                           No applications found
-                         </TableCell>
-                       </TableRow>
+              {/* Bulk Actions and Select All */}
+              <div className="flex items-center justify-between mb-4 p-4 border rounded-lg bg-muted/20">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={selectedApplications.size === filteredApplications.length && filteredApplications.length > 0}
+                    onCheckedChange={toggleAllApplications}
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {selectedApplications.size > 0 ? (
+                      `${selectedApplications.size} of ${filteredApplications.length} selected`
                     ) : (
-                       filteredApplications.map((application) => (
-                         <>
-                            <TableRow 
-                              key={application.id} 
-                              className="hover:bg-muted/30 transition-colors duration-150 border-b border-border/50 cursor-pointer"
-                              onClick={() => navigate(`/application/${application.id}`)}
-                            >
-                            <TableCell>
-                              <Checkbox
-                                checked={selectedApplications.has(application.id)}
-                                onCheckedChange={() => toggleApplicationSelection(application.id)}
-                              />
-                            </TableCell>
-                             <TableCell className="min-w-[250px]">
-                               <div className="flex items-center justify-between">
-                                 <div className="flex items-start space-x-3 flex-1 min-w-0">
-                                   <div className="flex-shrink-0 mt-0.5">
-                                     <User className="w-4 h-4 text-muted-foreground" />
-                                   </div>
-                                   <div className="flex-1 min-w-0">
-                                     <div className="flex items-center gap-2">
-                                       <div className="font-medium text-sm leading-tight truncate" title={application.candidate.name}>
-                                         {application.candidate.name}
-                                       </div>
-                                       {application.candidate.gender && (
-                                         <span 
-                                           className={`text-base flex-shrink-0 font-bold ${
-                                             application.candidate.gender.toLowerCase() === 'male' ? 'text-blue-600' : 
-                                             application.candidate.gender.toLowerCase() === 'female' ? 'text-pink-600' : 'text-gray-600'
-                                           }`} 
-                                           title={`Gender: ${application.candidate.gender}`}
-                                         >
-                                           {application.candidate.gender.toLowerCase() === 'male' ? '♂' : 
-                                            application.candidate.gender.toLowerCase() === 'female' ? '♀' : '?'}
-                                         </span>
-                                       )}
-                                     </div>
-                                     <div className="text-xs text-muted-foreground leading-tight truncate" title={application.candidate.email}>
-                                       {application.candidate.email}
-                                     </div>
-                                     {application.candidate.location && (
-                                       <div className="flex items-center gap-1 mt-1">
-                                         {(() => {
-                                           const country = getCountryFromLocation(application.candidate.location);
-                                           const flagUrl = country ? getCountryFlagUrl(country) : '';
-                                           return (
-                                             <>
-                                               {flagUrl && (
-                                                 <img 
-                                                   src={flagUrl} 
-                                                   alt={`${country} flag`} 
-                                                   className="w-4 h-3 object-cover rounded-sm flex-shrink-0"
-                                                   onError={(e) => {
-                                                     e.currentTarget.style.display = 'none';
-                                                   }}
-                                                 />
-                                               )}
-                                               <span className="text-xs text-muted-foreground leading-tight truncate" title={country || application.candidate.location}>
-                                                 {country || application.candidate.location}
-                                               </span>
-                                             </>
-                                           );
-                                         })()}
-                                       </div>
-                                     )}
-                                   </div>
-                                 </div>
-                                 <Button
-                                   variant="ghost"
-                                   size="sm"
-                                   onClick={() => toggleRowExpansion(application.id)}
-                                   className="flex-shrink-0 ml-2"
-                                 >
-                                   {expandedRows.has(application.id) ? 
-                                     <ChevronDown className="w-4 h-4" /> : 
-                                     <ChevronRight className="w-4 h-4" />
-                                   }
-                                 </Button>
-                               </div>
-                             </TableCell>
-              <TableCell className="min-w-[250px]">
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 mt-0.5">
-                    <GraduationCap className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    {(() => {
-                      const allEducation = getAllEducationDetails(application.candidate.education);
-                      return (
-                        <div className="space-y-2">
-                          {allEducation.length > 0 ? allEducation.map((edu, index) => (
-                            <div key={index} className="space-y-0.5 pb-1 border-b border-border/30 last:border-b-0 last:pb-0">
-                              <div className="font-medium text-sm leading-tight" title={edu.degree}>
-                                {edu.degree}
-                              </div>
-                              {edu.fieldOfStudy && (
-                                <div className="text-xs text-muted-foreground leading-tight font-medium" title={edu.fieldOfStudy}>
-                                  {edu.fieldOfStudy}
-                                </div>
-                              )}
-                              {edu.institution && (
-                                <div className="text-xs text-muted-foreground leading-tight truncate" title={edu.institution}>
-                                  {edu.institution}
-                                </div>
-                              )}
-                              {edu.year && (
-                                <div className="text-xs text-muted-foreground font-medium">
-                                  {edu.year}
-                                </div>
-                              )}
-                            </div>
-                          )) : (
-                            <div className="text-sm text-muted-foreground">No education specified</div>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-              </TableCell>
-                              <TableCell className="min-w-[280px]">
-                                <div className="flex items-start space-x-3">
-                                  <div className="flex-shrink-0 mt-0.5">
-                                    <Briefcase className="w-4 h-4 text-muted-foreground" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    {(() => {
-                                      const recentJobs = getRecentWorkExperience(application.candidate.work_experience);
-                                      return (
-                                        <div className="space-y-2">
-                                          {recentJobs.map((job, index) => (
-                                            <div key={index} className="space-y-0.5 pb-1 border-b border-border/30 last:border-b-0 last:pb-0">
-                                              <div className="font-medium text-sm leading-tight" title={job.title}>
-                                                {job.title}
-                                                {index === 0 && (
-                                                  <span className="ml-2 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Current</span>
-                                                )}
-                                              </div>
-                                              {job.organization && (
-                                                <div className="text-xs text-muted-foreground leading-tight truncate" title={job.organization}>
-                                                  {job.organization}
-                                                </div>
-                                              )}
-                                              <div className="flex items-center gap-2">
-                                                {job.length && (
-                                                  <span className="text-xs text-muted-foreground font-medium">
-                                                    {job.length}
-                                                  </span>
-                                                )}
-                                                {index === 0 && application.candidate.un_experience && (
-                                                  <Badge variant="outline" className="text-xs px-1.5 py-0.5">UN</Badge>
-                                                )}
-                                              </div>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      );
-                                    })()}
-                                  </div>
-                                </div>
-                              </TableCell>
-                             <TableCell className="min-w-[120px]">
-                               <div className="flex items-center justify-center">
-                                 <div className="text-center">
-                                   <div className="font-semibold text-sm text-foreground">
-                                     {getTotalExperience(application.candidate.work_experience, application.candidate.years_of_experience)}
-                                   </div>
-                                   <div className="text-xs text-muted-foreground">
-                                     total
-                                   </div>
-                                 </div>
-                               </div>
-                             </TableCell>
-                             <TableCell className="min-w-[150px]">
-                               <div className="flex items-start space-x-3">
-                                 <div className="flex-shrink-0 mt-0.5">
-                                   <Languages className="w-4 h-4 text-muted-foreground" />
-                                 </div>
-                                 <div className="flex-1 min-w-0">
-                                   <span className="text-sm leading-tight truncate block" title={getLanguageSummary(application.candidate.languages)}>
-                                     {getLanguageSummary(application.candidate.languages)}
-                                   </span>
-                                 </div>
-                               </div>
-                             </TableCell>
-                             <TableCell className="min-w-[120px]">
-                               <div className="flex justify-center">
-                                 {getStatusBadge(application.status)}
-                               </div>
-                             </TableCell>
-                             <TableCell className="min-w-[140px]">
-                               <div className="flex justify-center">
-                                 <Button
-                                   size="sm"
-                                   variant={application.suggested_for_longlist ? "default" : "outline"}
-                                   onClick={() => application.suggested_for_longlist ? 
-                                     removeFromLonglist([application.id]) : 
-                                     addToLonglist([application.id])
-                                   }
-                                   className="whitespace-nowrap"
-                                 >
-                                   {application.suggested_for_longlist ? (
-                                     <>
-                                       <Check className="w-3 h-3 mr-1.5" />
-                                       Listed
-                                     </>
-                                   ) : (
-                                     <>
-                                       <Plus className="w-3 h-3 mr-1.5" />
-                                       Add
-                                     </>
-                                   )}
-                                 </Button>
-                               </div>
-                             </TableCell>
-                             <TableCell className="min-w-[100px]">
-                               <div className="flex justify-center">
-                                 {getScoreBadge(application)}
-                               </div>
-                             </TableCell>
-                             <TableCell className="min-w-[120px]">
-                               <div className="flex items-center justify-center space-x-1">
-                                 <Button
-                                   size="sm"
-                                   variant="outline"
-                                   onClick={() => navigate(`/application/${application.id}`)}
-                                   className="whitespace-nowrap"
-                                 >
-                                   <Eye className="w-3 h-3 mr-1" />
-                                   View
-                                 </Button>
-                                  {(userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
-                                    <>
-                                      {/* Show edit button for manually added candidates */}
-                                      {application.source === 'manual_entry' && (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            navigate(`/admin/applications/edit-manual/${application.id}`);
-                                          }}
-                                          className="px-2"
-                                        >
-                                          <Edit className="w-3 h-3" />
-                                        </Button>
-                                      )}
-                                      <Button
-                                        size="sm"
-                                        variant="destructive"
-                                        onClick={(e) => deleteApplication(application.id, application.candidate.id, e)}
-                                        className="px-2"
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </Button>
-                                    </>
-                                  )}
-                               </div>
-                             </TableCell>
-                          </TableRow>
-                          
-                           {/* Expanded Row Details */}
-                           {expandedRows.has(application.id) && (
-                             <TableRow key={`${application.id}-details`}>
-                               <TableCell colSpan={10} className="bg-muted/20 p-6">
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                  {/* Education Details */}
-                                  <Card>
-                                    <CardHeader className="pb-3">
-                                      <CardTitle className="text-sm flex items-center">
-                                        <GraduationCap className="w-4 h-4 mr-2" />
-                                        Education History
-                                      </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-3">
-                                      {(() => {
-                                        const educationArray = Array.isArray(application.candidate.education) ? 
-                                          application.candidate.education : 
-                                          (application.candidate.education?.length ? application.candidate.education : []);
-                                        return educationArray.length > 0 ? (
-                                          educationArray.slice(0, 3).map((edu: any, index: number) => (
-                                            <div key={index} className="border-l-2 border-muted pl-3">
-                                              <div className="font-medium text-sm">{edu.degree || edu.degree_type}</div>
-                                              <div className="text-sm text-muted-foreground">{edu.institution || edu.institution_name}</div>
-                                              <div className="text-xs text-muted-foreground">
-                                                {edu.startDate || `${edu.from_year}`}
-                                              </div>
-                                            </div>
-                                          ))
-                                        ) : (
-                                          <div className="text-sm text-muted-foreground">No education data</div>
-                                        );
-                                      })()}
-                                    </CardContent>
-                                  </Card>
-
-                                  {/* Work Experience Details */}
-                                  <Card>
-                                    <CardHeader className="pb-3">
-                                      <CardTitle className="text-sm flex items-center">
-                                        <Briefcase className="w-4 h-4 mr-2" />
-                                        Work Experience
-                                      </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-3">
-                                      {(() => {
-                                        const workExpArray = Array.isArray(application.candidate.work_experience) ? 
-                                          application.candidate.work_experience : 
-                                          (application.candidate.work_experience?.length ? application.candidate.work_experience : []);
-                                        return workExpArray.length > 0 ? (
-                                          workExpArray.slice(0, 3).map((exp: any, index: number) => (
-                                            <div key={index} className="border-l-2 border-muted pl-3">
-                                              <div className="font-medium text-sm">{exp.position || exp.exact_title_of_post}</div>
-                                              <div className="text-sm text-muted-foreground">{exp.company || exp.employer_name}</div>
-                                              <div className="text-xs text-muted-foreground">
-                                                {exp.startDate || `${exp.period_from_year}`}
-                                                {exp.isUNExperience && <Badge variant="outline" className="ml-2 text-xs">UN</Badge>}
-                                              </div>
-                                            </div>
-                                          ))
-                                        ) : (
-                                          <div className="text-sm text-muted-foreground">No work experience data</div>
-                                        );
-                                      })()}
-                                    </CardContent>
-                                  </Card>
-
-                                  {/* Languages & Skills */}
-                                  <Card>
-                                    <CardHeader className="pb-3">
-                                      <CardTitle className="text-sm flex items-center">
-                                        <Languages className="w-4 h-4 mr-2" />
-                                        Languages & Skills
-                                      </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-3">
-                                      <div>
-                                        <div className="font-medium text-sm mb-2">Languages</div>
-                                        <div className="flex flex-wrap gap-1">
-                                          {application.candidate.languages?.un_languages && 
-                                            Object.entries(application.candidate.languages.un_languages).map(([lang, level]: [string, any]) => (
-                                              <Badge key={lang} variant="outline" className="text-xs">
-                                                {lang}: {level}
-                                              </Badge>
-                                            ))
-                                          }
-                                        </div>
-                                      </div>
-                                      <div>
-                                        <div className="font-medium text-sm mb-2">Skills</div>
-                                        <div className="flex flex-wrap gap-1">
-                                          {(() => {
-                                            const skillsArray = Array.isArray(application.candidate.skills) ? 
-                                              application.candidate.skills : 
-                                              (application.candidate.skills?.length ? application.candidate.skills : []);
-                                            return skillsArray.slice(0, 5).map((skill: any, index: number) => (
-                                              <Badge key={index} variant="secondary" className="text-xs">
-                                                {typeof skill === 'string' ? skill : skill.name || skill}
-                                              </Badge>
-                                            ));
-                                          })()}
-                                        </div>
-                                      </div>
-                                      <div className="text-sm">
-                                        <span className="font-medium">PHF Status:</span>{' '}
-                                        <span className={application.phf_completed ? "text-green-600" : "text-yellow-600"}>
-                                          {application.phf_completed ? "Complete" : "In Progress"}
-                                        </span>
-                                      </div>
-                                      <div className="text-sm">
-                                        <span className="font-medium">Submitted:</span>{' '}
-                                        {format(new Date(application.submitted_at), 'MMM dd, yyyy HH:mm')}
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </>
-                      ))
+                      `Select all ${filteredApplications.length} applications`
                     )}
-                  </TableBody>
-                </Table>
+                  </span>
+                </div>
+                
+                {selectedApplications.size > 0 && (
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      onClick={() => addToLonglist(Array.from(selectedApplications))}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add to Longlist
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => removeFromLonglist(Array.from(selectedApplications))}
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Remove from Longlist
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Card-based Layout - No more horizontal scrolling */}
+              <div className="space-y-4">
+                {loading ? (
+                  <div className="text-center py-8">
+                    Loading applications...
+                  </div>
+                ) : filteredApplications.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No applications found
+                  </div>
+                ) : (
+                  filteredApplications.map((application) => (
+                    <CandidateApplicationCard
+                      key={application.id}
+                      application={application}
+                      userRoles={userRoles}
+                      isSelected={selectedApplications.has(application.id)}
+                      onSelectionChange={toggleApplicationSelection}
+                      onDelete={deleteApplication}
+                      onAddToLonglist={addToLonglist}
+                      onRemoveFromLonglist={removeFromLonglist}
+                      getTotalExperience={getTotalExperience}
+                      getLanguageSummary={getLanguageSummary}
+                      getStatusBadge={getStatusBadge}
+                      getScoreBadge={getScoreBadge}
+                      getCountryFromLocation={getCountryFromLocation}
+                      getAllEducationDetails={getAllEducationDetails}
+                      getRecentWorkExperience={getRecentWorkExperience}
+                    />
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
