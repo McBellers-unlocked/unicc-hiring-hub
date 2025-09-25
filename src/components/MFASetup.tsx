@@ -65,9 +65,35 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
 
       // Extract the secret from the QR code for manual entry
       const qrCodeUri = data.totp.qr_code;
-      const secretMatch = qrCodeUri.match(/secret=([^&]+)/);
-      const secret = secretMatch ? secretMatch[1] : '';
-      setManualSecret(secret);
+      console.log('TOTP URI:', qrCodeUri); // Debug log
+      
+      // Try multiple patterns to extract the secret
+      let secret = '';
+      const secretPatterns = [
+        /secret=([^&?]+)/i,
+        /secret%3D([^&?]+)/i, // URL encoded
+        /secret:([^&?]+)/i,
+      ];
+      
+      for (const pattern of secretPatterns) {
+        const match = qrCodeUri.match(pattern);
+        if (match && match[1]) {
+          secret = decodeURIComponent(match[1]);
+          break;
+        }
+      }
+      
+      // If no secret found, try to extract from the end of the URI
+      if (!secret) {
+        const uriParts = qrCodeUri.split('/');
+        const lastPart = uriParts[uriParts.length - 1];
+        if (lastPart && lastPart.length > 10) {
+          secret = lastPart.split('?')[0]; // Remove query params
+        }
+      }
+      
+      console.log('Extracted secret:', secret); // Debug log
+      setManualSecret(secret || 'Unable to extract secret - use QR code');
 
       // Try to generate QR code with very aggressive compression
       try {
@@ -228,7 +254,16 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
                   <p className="text-xs text-muted-foreground">Account:</p>
                   <p className="font-mono text-sm break-all">{user?.email}</p>
                   <p className="text-xs text-muted-foreground mt-2">Secret Key:</p>
-                  <p className="font-mono text-sm break-all">{manualSecret}</p>
+                  {manualSecret && !manualSecret.includes('Unable to extract') ? (
+                    <p className="font-mono text-sm break-all bg-green-50 p-2 rounded">{manualSecret}</p>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-red-600 text-xs">Could not extract secret key automatically</p>
+                      <p className="text-xs text-muted-foreground">
+                        Please use the QR code instead, or contact support if you need manual entry.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
               {qrCodeUrl && (
