@@ -87,11 +87,32 @@ export default function AdminApplications() {
 
   const fetchJobs = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('jobs')
         .select('id, title, status')
         .order('updated_at', { ascending: false });
 
+      // For hiring managers, check if they have job-specific assignments
+      if (userRoles.includes('Hiring Manager') && !userRoles.includes('Admin') && !userRoles.includes('HR Assistant')) {
+        const { data: user } = await supabase.auth.getUser();
+        if (user?.user?.id) {
+          const { data: assignments } = await supabase
+            .from('job_hiring_managers')
+            .select('job_id')
+            .eq('user_id', user.user.id);
+          
+          if (assignments && assignments.length > 0) {
+            const jobIds = assignments.map(a => a.job_id);
+            query = query.in('id', jobIds);
+          } else {
+            // If no assignments, show no jobs
+            setJobs([]);
+            return;
+          }
+        }
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       setJobs(data || []);
     } catch (error) {
