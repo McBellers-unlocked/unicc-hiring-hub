@@ -674,6 +674,30 @@ export type Database = {
         }
         Relationships: []
       }
+      job_hiring_managers: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          job_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       job_requisitions: {
         Row: {
           chief_of_division_approval: boolean | null
