@@ -42,6 +42,29 @@ type EducationEntry = z.infer<typeof educationSchema>;
 type WorkExperienceEntry = z.infer<typeof workExperienceSchema>;
 type ManualApplicationData = z.infer<typeof manualApplicationSchema>;
 
+// Helper function to format dates for HTML date inputs (YYYY-MM-DD)
+const formatDateForInput = (dateValue: any): string => {
+  if (!dateValue) return '';
+  
+  // If it's already in YYYY-MM-DD format, return as is
+  if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    return dateValue;
+  }
+  
+  // If it's just a year (e.g., "2020"), convert to YYYY-01-01
+  if (typeof dateValue === 'string' && /^\d{4}$/.test(dateValue)) {
+    return `${dateValue}-01-01`;
+  }
+  
+  // Try to parse and format various date formats
+  const date = new Date(dateValue);
+  if (!isNaN(date.getTime())) {
+    return date.toISOString().split('T')[0];
+  }
+  
+  return '';
+};
+
 export default function EditManualApplicationForm() {
   const { applicationId } = useParams<{ applicationId: string }>();
   const navigate = useNavigate();
@@ -123,7 +146,7 @@ export default function EditManualApplicationForm() {
         degreeType: edu.degreeType || edu.degree_type || '',
         fieldOfStudy: edu.fieldOfStudy || edu.field_of_study || '',
         institution: edu.institution || '',
-        dateAwarded: edu.dateAwarded || edu.year_awarded || edu.end_date || '',
+        dateAwarded: formatDateForInput(edu.dateAwarded || edu.year_awarded || edu.end_date || edu.date_awarded || ''),
       })) : [];
 
       // Extract work experience data
@@ -131,8 +154,8 @@ export default function EditManualApplicationForm() {
       const mappedWorkExp = Array.isArray(workExp) ? workExp.map((work: any) => ({
         jobTitle: work.jobTitle || work.title || work.position || '',
         organization: work.organization || work.company || work.employer || '',
-        startDate: work.startDate || work.start_date || '',
-        endDate: work.endDate || work.end_date || '',
+        startDate: formatDateForInput(work.startDate || work.start_date || ''),
+        endDate: formatDateForInput(work.endDate || work.end_date || ''),
         isCurrent: work.isCurrent || work.is_present || false,
       })) : [];
 
