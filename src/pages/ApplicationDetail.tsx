@@ -18,7 +18,8 @@ import { PanelInterviewScheduler } from '@/components/PanelInterviewScheduler';
 import { PanelInterviewList } from '@/components/PanelInterviewList';
 import { PHFManager } from '@/components/PHFManager';
 import { VideoInterviewManager } from '@/components/VideoInterviewManager';
-import { 
+import { CompactCandidateView } from '@/components/CompactCandidateView';
+import {
   ArrowLeft, 
   User, 
   Mail, 
@@ -501,8 +502,9 @@ export default function ApplicationDetail() {
         </Card>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className="grid w-full grid-cols-9">
             <TabsTrigger value="summary">Summary</TabsTrigger>
+            <TabsTrigger value="compact">Compact</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="files">Files</TabsTrigger>
             <TabsTrigger value="ai-score">AI Score</TabsTrigger>
@@ -579,6 +581,14 @@ export default function ApplicationDetail() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="compact" className="space-y-6">
+            <CompactCandidateView 
+              application={application}
+              phfData={application.phf_data}
+              photoUrl={application.photo_url}
+            />
           </TabsContent>
 
           <TabsContent value="profile">
