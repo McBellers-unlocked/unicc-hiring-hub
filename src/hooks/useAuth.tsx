@@ -161,7 +161,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      // Clear local state first
+      setUser(null);
+      setSession(null);
+      setUserRoles([]);
+      setNeedsProfileSetup(false);
+      
+      // Then sign out from Supabase
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      if (error) {
+        console.error('Sign out error:', error);
+      }
+    } catch (error) {
+      console.error('Sign out failed:', error);
+    }
   };
 
   const value = {
