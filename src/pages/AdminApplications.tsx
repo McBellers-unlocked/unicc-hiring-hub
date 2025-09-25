@@ -658,6 +658,53 @@ export default function AdminApplications() {
     }
   };
 
+  const rejectApplication = async (applicationId: string) => {
+    try {
+      // Get current application status for logging
+      const currentApp = applications.find(app => app.id === applicationId);
+      const currentStatus = currentApp?.status;
+
+      // Update application status
+      const { error } = await supabase
+        .from('applications')
+        .update({ 
+          status: 'Rejected',
+          suggested_for_longlist: false
+        })
+        .eq('id', applicationId);
+
+      if (error) throw error;
+
+      // Log the stage change
+      const { error: stageError } = await supabase
+        .from('stage_events')
+        .insert({
+          application_id: applicationId,
+          from_stage: currentStatus as any,
+          to_stage: 'Rejected' as any,
+          reason: 'Rejected by hiring manager'
+        });
+
+      if (stageError) {
+        console.error('Error logging stage change:', stageError);
+      }
+
+      toast({
+        title: "Success",
+        description: "Application rejected successfully",
+      });
+
+      fetchApplications(selectedJobId);
+    } catch (error) {
+      console.error('Error rejecting application:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject application",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -920,6 +967,7 @@ export default function AdminApplications() {
                        onDelete={deleteApplication}
                        onAddToLonglist={(id) => addToLonglist([id])}
                        onDirectShortlist={directShortlist}
+                       onReject={rejectApplication}
                        getFlagEmoji={getCountryFromLocation}
                        getEducationSummary={getAllEducationDetails}
                        getWorkExperienceSummary={getRecentWorkExperience}

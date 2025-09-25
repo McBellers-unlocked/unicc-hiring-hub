@@ -15,7 +15,8 @@ import {
   Plus, 
   Check,
   Clock,
-  CheckCircle
+  CheckCircle,
+  X
 } from 'lucide-react';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
 
@@ -27,6 +28,7 @@ interface CandidateApplicationCardProps {
   onDelete: (applicationId: string, candidateId: string, e: React.MouseEvent) => void;
   onAddToLonglist: (applicationId: string) => void;
   onDirectShortlist?: (applicationId: string) => void;
+  onReject?: (applicationId: string) => void;
   getFlagEmoji: (location: string | null) => string | null;
   getEducationSummary: (education: any) => any[];
   getWorkExperienceSummary: (workExp: any) => any[];
@@ -42,6 +44,7 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
   onDelete,
   onAddToLonglist,
   onDirectShortlist,
+  onReject,
   getFlagEmoji,
   getEducationSummary,
   getWorkExperienceSummary,
@@ -325,6 +328,22 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                     Direct Shortlist
                   </>
                 )}
+              </Button>
+            )}
+
+            {/* Reject button - only for Associate Policy (Legal) Officer and hiring managers */}
+            {application.job?.title?.includes('Associate Policy (Legal) Officer') && 
+             userRoles.includes('Hiring Manager') && 
+             onReject && 
+             application.status !== 'Rejected' && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => onReject(application.id)}
+                className="whitespace-nowrap"
+              >
+                <X className="w-3 h-3 mr-1" />
+                Reject
               </Button>
             )}
 
