@@ -569,6 +569,31 @@ export default function AdminApplications() {
     }
   };
 
+  const directShortlist = async (applicationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({ status: 'Shortlist' })
+        .eq('id', applicationId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Application moved to shortlist",
+      });
+
+      fetchApplications(selectedJobId);
+    } catch (error) {
+      console.error('Error shortlisting application:', error);
+      toast({
+        title: "Error",
+        description: "Failed to shortlist application",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -822,23 +847,21 @@ export default function AdminApplications() {
                   </div>
                 ) : (
                   filteredApplications.map((application) => (
-                    <CandidateApplicationCard
-                      key={application.id}
-                      application={application}
-                      userRoles={userRoles}
-                      isSelected={selectedApplications.has(application.id)}
-                      onSelectionChange={toggleApplicationSelection}
-                      onDelete={deleteApplication}
-                      onAddToLonglist={addToLonglist}
-                      onRemoveFromLonglist={removeFromLonglist}
-                      getTotalExperience={getTotalExperience}
-                      getLanguageSummary={getLanguageSummary}
-                      getStatusBadge={getStatusBadge}
-                      getScoreBadge={getScoreBadge}
-                      getCountryFromLocation={getCountryFromLocation}
-                      getAllEducationDetails={getAllEducationDetails}
-                      getRecentWorkExperience={getRecentWorkExperience}
-                    />
+                     <CandidateApplicationCard
+                       key={application.id}
+                       application={application}
+                       userRoles={userRoles}
+                       isSelected={selectedApplications.has(application.id)}
+                       onToggleSelection={toggleApplicationSelection}
+                       onDelete={deleteApplication}
+                       onAddToLonglist={(id) => addToLonglist([id])}
+                       onDirectShortlist={directShortlist}
+                       getFlagEmoji={getCountryFromLocation}
+                       getEducationSummary={getAllEducationDetails}
+                       getWorkExperienceSummary={getRecentWorkExperience}
+                       getTotalExperience={getTotalExperience}
+                       getLanguageSummary={getLanguageSummary}
+                     />
                   ))
                 )}
               </div>
