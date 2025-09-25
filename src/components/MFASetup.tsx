@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,7 @@ interface MFASetupProps {
 }
 
 export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
+  const { user } = useAuth();
   const [step, setStep] = useState<'start' | 'setup' | 'verify' | 'complete'>('start');
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [totpCode, setTotpCode] = useState('');
@@ -23,6 +25,8 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
   const [error, setError] = useState<string>('');
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [copiedCodes, setCopiedCodes] = useState(false);
+  const [manualSecret, setManualSecret] = useState<string>('');
+  const [showManualEntry, setShowManualEntry] = useState(false);
   const { toast } = useToast();
 
   const startMFASetup = async () => {
@@ -59,17 +63,28 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
 
       if (error) throw error;
 
-      // Generate QR code with optimized settings for large data
-      const qrCode = await QRCode.toDataURL(data.totp.qr_code, {
-        errorCorrectionLevel: 'L', // Low error correction for smaller size
-        margin: 1,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF',
-        },
-        width: 256, // Fixed width to ensure readability
-      });
-      setQrCodeUrl(qrCode);
+      // Extract the secret from the QR code for manual entry
+      const qrCodeUri = data.totp.qr_code;
+      const secretMatch = qrCodeUri.match(/secret=([^&]+)/);
+      const secret = secretMatch ? secretMatch[1] : '';
+      setManualSecret(secret);
+
+      // Try to generate QR code with very aggressive compression
+      try {
+        const qrCode = await QRCode.toDataURL(qrCodeUri, {
+          errorCorrectionLevel: 'L', // Lowest error correction
+          margin: 0, // No margin
+          scale: 1, // Smallest scale
+          width: 200, // Smaller width
+        });
+        setQrCodeUrl(qrCode);
+        setShowManualEntry(false);
+      } catch (qrError) {
+        console.warn('QR code generation failed, using manual entry:', qrError);
+        setShowManualEntry(true);
+        setQrCodeUrl('');
+      }
+
       setFactorId(data.id);
       setStep('setup');
     } catch (err: any) {
@@ -187,9 +202,48 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex justify-center">
-            <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
-          </div>
+          {!showManualEntry && qrCodeUrl ? (
+            <div className="space-y-4">
+              <div className="flex justify-center">
+                <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
+              </div>
+              <div className="text-center">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowManualEntry(true)}
+                >
+                  Can't scan? Enter code manually
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-sm font-medium mb-2">Manual Setup</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  In your authenticator app, select "Enter a setup key" or "Manual entry" and use:
+                </p>
+                <div className="bg-background p-3 rounded border">
+                  <p className="text-xs text-muted-foreground">Account:</p>
+                  <p className="font-mono text-sm break-all">{user?.email}</p>
+                  <p className="text-xs text-muted-foreground mt-2">Secret Key:</p>
+                  <p className="font-mono text-sm break-all">{manualSecret}</p>
+                </div>
+              </div>
+              {qrCodeUrl && (
+                <div className="text-center">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setShowManualEntry(false)}
+                  >
+                    Show QR Code instead
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="totp-code">Authentication Code</Label>
