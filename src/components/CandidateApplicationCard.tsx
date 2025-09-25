@@ -302,8 +302,8 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
               View
             </Button>
 
-            {/* Direct Shortlist button for Associate Policy Legal Officer role */}
-            {userRoles.includes('Associate Policy Legal Officer') && onDirectShortlist && (
+            {/* Direct Shortlist button - temporarily enabled for all authorized users */}
+            {(userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Hiring Manager')) && onDirectShortlist && (
               <Button
                 size="sm"
                 variant="default"
