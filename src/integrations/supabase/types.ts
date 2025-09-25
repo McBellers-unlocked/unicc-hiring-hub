@@ -1482,6 +1482,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_job_hiring_manager: {
+        Args: { job_id: string; user_id: string }
+        Returns: boolean
+      }
       log_email_sent: {
         Args: {
           p_actor_id: string
