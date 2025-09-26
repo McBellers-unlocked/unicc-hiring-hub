@@ -447,12 +447,7 @@ export default function AdminApplications() {
     }
     
     const womenApps = phaseApps.filter(app => app.candidate.gender === 'Female');
-    let womenPercentage = phaseApps.length > 0 ? (womenApps.length / phaseApps.length) * 100 : 0;
-    
-    // Special handling for Associate Policy (Legal) Officer role - all applicants are women
-    if (selectedJob?.title?.includes('Associate Policy (Legal) Officer') && phaseApps.length > 0) {
-      womenPercentage = 100;
-    }
+    const womenPercentage = phaseApps.length > 0 ? (womenApps.length / phaseApps.length) * 100 : 0;
     
     return {
       ...phase,
@@ -463,12 +458,7 @@ export default function AdminApplications() {
   });
 
   // Update Applications phase to show total count
-  let totalWomenPercentage = applications.length > 0 ? Math.round((applications.filter(app => app.candidate.gender === 'Female').length / applications.length) * 100) : 0;
-  
-  // Special handling for Associate Policy (Legal) Officer role - all applicants are women
-  if (selectedJob?.title?.includes('Associate Policy (Legal) Officer') && applications.length > 0) {
-    totalWomenPercentage = 100;
-  }
+  const totalWomenPercentage = applications.length > 0 ? Math.round((applications.filter(app => app.candidate.gender === 'Female').length / applications.length) * 100) : 0;
   
   phaseStats[0] = {
     ...phaseStats[0],
