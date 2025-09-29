@@ -8,19 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { FileText, Download, ExternalLink, ZoomIn, ZoomOut, Loader2, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-// Use the local worker from the package instead of external CDN
-// This should work with Vite bundling
-try {
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.js',
-    import.meta.url
-  ).toString();
-  console.log('Using local PDF worker:', pdfjs.GlobalWorkerOptions.workerSrc);
-} catch (error) {
-  console.error('Failed to set local worker, trying fallback:', error);
-  // Fallback: Try to disable worker entirely (will be slower but might work)
-  pdfjs.GlobalWorkerOptions.workerSrc = '';
-}
+// Disable worker entirely - this will be slower but should work when CDNs fail
+// This makes PDF.js run on the main thread instead of a web worker
+pdfjs.GlobalWorkerOptions.workerSrc = '';
+
+console.log('PDF.js worker disabled - rendering will happen on main thread');
 
 interface ReactPDFViewerProps {
   pdfData: ArrayBuffer | null;
