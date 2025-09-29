@@ -59,9 +59,19 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
   const flagUrl = country ? getCountryFlagUrl(country) : '';
 
   // For manually entered applications, prioritize phf_data over candidates table
-  const workExperienceData = application.source === 'manual_entry' && application.phf_data?.work_experience
+  console.log('=== WORK EXPERIENCE MAPPING DEBUG ===');
+  console.log('Application source:', application.source);
+  console.log('Has phf_data:', !!application.phf_data);
+  console.log('Has phf_data.work_experience:', !!application.phf_data?.work_experience);
+  console.log('PHF work experience length:', application.phf_data?.work_experience?.length);
+  console.log('Candidate work experience length:', application.candidate.work_experience?.length);
+  
+  const shouldUsePHF = application.source === 'manual_entry' && application.phf_data?.work_experience;
+  console.log('Should use PHF data:', shouldUsePHF);
+  
+  const workExperienceData = shouldUsePHF
     ? application.phf_data.work_experience.map((work: any, index: number) => {
-        console.log(`=== MAPPING WORK EXPERIENCE ${index + 1} ===`);
+        console.log(`=== MAPPING PHF WORK EXPERIENCE ${index + 1} ===`);
         console.log('Raw work data:', work);
         console.log('Original startDate:', work.startDate);
         console.log('Original endDate:', work.endDate);
@@ -79,7 +89,11 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
         console.log('========================');
         return mapped;
       })
-    : application.candidate.work_experience;
+    : (() => {
+        console.log('=== USING CANDIDATE WORK EXPERIENCE (FALLBACK) ===');
+        console.log('Candidate work experience:', application.candidate.work_experience);
+        return application.candidate.work_experience;
+      })();
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
