@@ -18,6 +18,7 @@ import { PanelInterviewScheduler } from '@/components/PanelInterviewScheduler';
 import { PanelInterviewList } from '@/components/PanelInterviewList';
 import { PHFManager } from '@/components/PHFManager';
 import { DocumentViewer } from '@/components/DocumentViewer';
+import { LonglistDocumentUploader } from '@/components/LonglistDocumentUploader';
 import { VideoInterviewManager } from '@/components/VideoInterviewManager';
 import { CompactCandidateView } from '@/components/CompactCandidateView';
 import {
@@ -737,6 +738,43 @@ export default function ApplicationDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                {/* Upload interface for longlisted candidates */}
+                {application.status === 'Longlist' && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
+                  <div className="mb-6">
+                    <LonglistDocumentUploader
+                      applicationId={application.id}
+                      currentFiles={application.files || {}}
+                      onUploadComplete={fetchApplication}
+                    />
+                  </div>
+                )}
+                
+                {/* Display uploaded documents with inline viewing */}
+                <div className="space-y-6">
+                  {application.files?.phf_document && (
+                    <div>
+                      <h4 className="font-medium mb-3">Personal History Form (PHF)</h4>
+                      <DocumentViewer 
+                        fileUrl={application.files.phf_document}
+                        fileName="Personal History Form"
+                        fileType="pdf"
+                      />
+                    </div>
+                  )}
+                  
+                  {application.files?.motivation_letter && (
+                    <div>
+                      <h4 className="font-medium mb-3">Motivation Letter</h4>
+                      <DocumentViewer 
+                        fileUrl={application.files.motivation_letter}
+                        fileName="Motivation Letter"
+                        fileType="pdf"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Existing files section */}
                 {renderFiles()}
               </CardContent>
             </Card>
