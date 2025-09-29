@@ -8,28 +8,19 @@ import { Badge } from '@/components/ui/badge';
 import { FileText, Download, ExternalLink, ZoomIn, ZoomOut, Loader2, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-// Set up PDF.js worker using jsdelivr CDN (more reliable than unpkg/cdnjs)
-let currentWorkerIndex = 0;
-const workerSources = [
-  'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.worker.min.js',
-  'https://unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.js', 
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.js'
-];
-
-const setupPdfWorker = () => {
-  const workerUrl = workerSources[currentWorkerIndex % workerSources.length];
-  console.log(`Setting PDF worker to: ${workerUrl}`);
-  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
-  return workerUrl;
-};
-
-const tryNextWorker = () => {
-  currentWorkerIndex++;
-  return setupPdfWorker();
-};
-
-// Initialize with first worker
-setupPdfWorker();
+// Use the local worker from the package instead of external CDN
+// This should work with Vite bundling
+try {
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.js',
+    import.meta.url
+  ).toString();
+  console.log('Using local PDF worker:', pdfjs.GlobalWorkerOptions.workerSrc);
+} catch (error) {
+  console.error('Failed to set local worker, trying fallback:', error);
+  // Fallback: Try to disable worker entirely (will be slower but might work)
+  pdfjs.GlobalWorkerOptions.workerSrc = '';
+}
 
 interface ReactPDFViewerProps {
   pdfData: ArrayBuffer | null;
@@ -202,9 +193,7 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
   }, [fileUrl, currentFileType, retryCount]);
 
   const retryPdfLoad = () => {
-    console.log('Retrying PDF load with next worker...');
-    const newWorker = tryNextWorker();
-    console.log('Switched to worker:', newWorker);
+    console.log('Retrying PDF load...');
     setHasError(false);
     setRetryCount(prev => prev + 1);
   };
