@@ -293,7 +293,8 @@ export default function ApplicationDetail() {
             <h3 className="text-lg font-medium mb-4">Motivation Statement</h3>
             <ReliableDocumentViewer
               fileUrl={application.files.motivation_statement}
-              fileName="Motivation Statement"
+              fileName="Motivation Statement.pdf"
+              fileType="pdf"
               className="w-full"
             />
           </div>

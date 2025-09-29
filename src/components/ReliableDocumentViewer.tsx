@@ -6,39 +6,20 @@ import { FileText, Download, ExternalLink, ZoomIn, ZoomOut, Loader2 } from 'luci
 import { supabase } from '@/integrations/supabase/client';
 
 interface PDFIframeProps {
-  src: string;
+  blobUrl: string;
   fileName: string;
   scale: number;
   onLoad: () => void;
 }
 
-const PDFIframe: React.FC<PDFIframeProps> = ({ src, fileName, scale, onLoad }) => {
-  const [authUrl, setAuthUrl] = useState<string>('');
-
-  useEffect(() => {
-    const setupAuthenticatedUrl = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          // Create a data URL that contains the PDF request with auth headers
-          const authUrlWithToken = `${src}&auth=${encodeURIComponent(session.access_token)}`;
-          setAuthUrl(authUrlWithToken);
-        }
-      } catch (error) {
-        console.error('Failed to setup authenticated URL:', error);
-      }
-    };
-
-    setupAuthenticatedUrl();
-  }, [src]);
-
-  if (!authUrl) {
+const PDFIframe: React.FC<PDFIframeProps> = ({ blobUrl, fileName, scale, onLoad }) => {
+  if (!blobUrl) {
     return <div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin" /></div>;
   }
 
   return (
     <iframe
-      src={authUrl}
+      src={blobUrl}
       className="w-full h-full border-0"
       title={fileName}
       style={{ 
@@ -71,6 +52,7 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [scale, setScale] = useState(1.0);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string>('');
   
   const detectFileType = (): 'pdf' | 'docx' | 'doc' | 'txt' => {
     if (fileType) return fileType;
@@ -81,6 +63,8 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
     return 'txt';
   };
 
+  const currentFileType = detectFileType();
+
   const getProxyUrl = (originalUrl: string) => {
     // Extract the file path from the Supabase storage URL
     const urlParts = originalUrl.split('/');
@@ -90,6 +74,57 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
     const filePath = urlParts.slice(bucketIndex + 1).join('/');
     return `https://cxpnvbphjpntrvvgjhli.supabase.co/functions/v1/file-proxy?path=${encodeURIComponent(filePath)}`;
   };
+
+  // Load PDF blob when component mounts or fileUrl changes
+  useEffect(() => {
+    if (currentFileType === 'pdf') {
+      loadPdfBlob();
+    }
+  }, [fileUrl, currentFileType]);
+
+  const loadPdfBlob = async () => {
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('No session found');
+        return;
+      }
+
+      const proxyUrl = getProxyUrl(fileUrl);
+      console.log('Loading PDF from:', proxyUrl);
+      
+      const response = await fetch(proxyUrl, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.error('Failed to load PDF:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Error details:', errorText);
+        throw new Error(`Failed to load PDF: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      setPdfBlobUrl(blobUrl);
+    } catch (error) {
+      console.error('Failed to load PDF blob:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cleanup blob URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (pdfBlobUrl) {
+        window.URL.revokeObjectURL(pdfBlobUrl);
+      }
+    };
+  }, [pdfBlobUrl]);
 
   const handleDownload = async () => {
     setLoading(true);
@@ -166,11 +201,7 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
     }
   };
 
-  const currentFileType = detectFileType();
-
   const renderPDFViewer = () => {
-    const proxyUrl = getProxyUrl(fileUrl);
-    
     return (
       <div className="border border-border rounded-lg overflow-hidden">
         <div className="flex items-center justify-between p-3 bg-muted border-b">
@@ -202,7 +233,7 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
         
         <div className="relative bg-background" style={{ height: '600px' }}>
           <PDFIframe 
-            src={proxyUrl} 
+            blobUrl={pdfBlobUrl}
             fileName={fileName}
             scale={scale}
             onLoad={() => setLoading(false)}
