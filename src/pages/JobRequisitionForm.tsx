@@ -17,7 +17,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Save, Send, FileText, Briefcase, ChevronDown, CheckCircle2, CalendarIcon } from "lucide-react";
+import { ArrowLeft, Save, Send, FileText, Briefcase, ChevronDown, CheckCircle2, CalendarIcon, Plus } from "lucide-react";
 import MDEditor from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';
 import { MainDutiesTemplateModal } from '@/components/MainDutiesTemplateModal';
@@ -122,10 +122,11 @@ const requisitionSchema = z.object({
   leadership_competencies: z.array(z.string()).optional(),
   un_language_advantage: z.boolean().optional(),
   local_language_advantage: z.boolean().optional(),
+  additional_languages: z.array(z.object({
+    name: z.string(),
+    level: z.string()
+  })).optional(),
   is_supervisor_role: z.boolean().optional(),
-  french_level: z.string().optional(),
-  spanish_level: z.string().optional(),
-  italian_level: z.string().optional(),
   confirmChiefApproval: z.boolean().refine(val => val === true, {
     message: "You must confirm Chief of Division approval"
   }),
@@ -150,6 +151,7 @@ export default function JobRequisitionForm() {
   const [selectedCoreCompetencies, setSelectedCoreCompetencies] = useState<string[]>([]);
   const [selectedManagementCompetencies, setSelectedManagementCompetencies] = useState<string[]>([]);
   const [selectedLeadershipCompetencies, setSelectedLeadershipCompetencies] = useState<string[]>([]);
+  const [additionalLanguages, setAdditionalLanguages] = useState<Array<{ name: string; level: string }>>([]);
   const [isSupervisorRole, setIsSupervisorRole] = useState<boolean>(false);
 
   const form = useForm<RequisitionFormData>({
@@ -176,10 +178,8 @@ export default function JobRequisitionForm() {
       leadership_competencies: [],
       un_language_advantage: false,
       local_language_advantage: false,
+      additional_languages: [],
       is_supervisor_role: false,
-      french_level: "",
-      spanish_level: "",
-      italian_level: "",
       confirmChiefApproval: false,
     },
   });
@@ -201,6 +201,26 @@ export default function JobRequisitionForm() {
       }
     }
   }, [form.watch('grade')]);
+
+  const addLanguage = () => {
+    const newLanguage = { name: '', level: '' };
+    const updatedLanguages = [...additionalLanguages, newLanguage];
+    setAdditionalLanguages(updatedLanguages);
+    form.setValue('additional_languages', updatedLanguages);
+  };
+
+  const updateLanguage = (index: number, field: 'name' | 'level', value: string) => {
+    const updatedLanguages = [...additionalLanguages];
+    updatedLanguages[index] = { ...updatedLanguages[index], [field]: value };
+    setAdditionalLanguages(updatedLanguages);
+    form.setValue('additional_languages', updatedLanguages);
+  };
+
+  const removeLanguage = (index: number) => {
+    const updatedLanguages = additionalLanguages.filter((_, i) => i !== index);
+    setAdditionalLanguages(updatedLanguages);
+    form.setValue('additional_languages', updatedLanguages);
+  };
 
   const fetchRequisition = async () => {
     try {
@@ -266,10 +286,17 @@ export default function JobRequisitionForm() {
           core_competencies: Array.isArray(data.core_competencies) ? data.core_competencies as string[] : [],
           management_competencies: Array.isArray(data.management_competencies) ? data.management_competencies as string[] : [],
           leadership_competencies: Array.isArray(data.leadership_competencies) ? data.leadership_competencies as string[] : [],
-          un_language_advantage: (data.language_requirements as any)?.un_language_advantage || false,
-          local_language_advantage: (data.language_requirements as any)?.local_language_advantage || false,
           confirmChiefApproval: true,
         });
+        
+        // Set language requirements separately
+        form.setValue("un_language_advantage", (data.language_requirements as any)?.un_language_advantage || false);
+        form.setValue("local_language_advantage", (data.language_requirements as any)?.local_language_advantage || false);
+        
+        // Set additional languages
+        const languages = (data.language_requirements as any)?.additional_languages || [];
+        setAdditionalLanguages(languages);
+        form.setValue("additional_languages", languages);
       }
     } catch (error) {
       console.error('Error fetching requisition:', error);
@@ -316,11 +343,12 @@ export default function JobRequisitionForm() {
         }
 
         // Update existing requisition
-        const { un_language_advantage, local_language_advantage, french_level, spanish_level, italian_level, is_supervisor_role, ...cleanFormData } = formData as any;
+        const { un_language_advantage, local_language_advantage, additional_languages, is_supervisor_role, ...cleanFormData } = formData as any;
         const updatedLanguageRequirements = {
           english: "Expert knowledge is required",
           un_language_advantage: un_language_advantage || false,
-          local_language_advantage: local_language_advantage || false
+          local_language_advantage: local_language_advantage || false,
+          additional_languages: additional_languages || []
         };
         
         const { error } = await supabase
@@ -336,11 +364,12 @@ export default function JobRequisitionForm() {
         if (error) throw error;
       } else {
         // Create new requisition
-        const { un_language_advantage, local_language_advantage, french_level, spanish_level, italian_level, is_supervisor_role, ...cleanFormData } = formData as any;
+        const { un_language_advantage, local_language_advantage, additional_languages, is_supervisor_role, ...cleanFormData } = formData as any;
         const updatedLanguageRequirements = {
           english: "Expert knowledge is required",
           un_language_advantage: un_language_advantage || false,
-          local_language_advantage: local_language_advantage || false
+          local_language_advantage: local_language_advantage || false,
+          additional_languages: additional_languages || []
         };
         
         const { data: newRequisition, error } = await supabase
@@ -1098,127 +1127,77 @@ export default function JobRequisitionForm() {
                 )}
                 
                 <div>
-                  <h4 className="font-medium mb-3">Additional Language Skills</h4>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium">Additional Language Skills</h4>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addLanguage}
+                      className="text-xs"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add Language
+                    </Button>
+                  </div>
+                  
                   <div className="space-y-4">
-                    {/* French */}
-                    <div>
-                      <FormField
-                        control={form.control}
-                        name="french_level"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>French</FormLabel>
-                            <div className="flex items-center space-x-4">
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                  id="french_beginner"
-                                  checked={field.value === "beginner"}
-                                  onCheckedChange={(checked) => field.onChange(checked ? "beginner" : "")}
-                                />
-                                <label htmlFor="french_beginner" className="text-sm">Beginner</label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                  id="french_intermediate"
-                                  checked={field.value === "intermediate"}
-                                  onCheckedChange={(checked) => field.onChange(checked ? "intermediate" : "")}
-                                />
-                                <label htmlFor="french_intermediate" className="text-sm">Intermediate</label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                  id="french_expert"
-                                  checked={field.value === "expert"}
-                                  onCheckedChange={(checked) => field.onChange(checked ? "expert" : "")}
-                                />
-                                <label htmlFor="french_expert" className="text-sm">Expert</label>
-                              </div>
+                    {additionalLanguages.length === 0 && (
+                      <div className="text-sm text-muted-foreground text-center py-4 border border-dashed border-muted rounded-lg">
+                        Click "Add Language" to specify additional language requirements
+                      </div>
+                    )}
+                    
+                    {additionalLanguages.map((language, index) => (
+                      <div key={index} className="space-y-2 p-3 border rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <Input
+                            placeholder="Language name (e.g., French, Spanish, Arabic)"
+                            value={language.name}
+                            onChange={(e) => updateLanguage(index, 'name', e.target.value)}
+                            className="flex-1 mr-2"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeLanguage(index)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                        
+                        {language.name.trim() && (
+                          <div className="flex items-center space-x-4 mt-2">
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`${index}_beginner`}
+                                checked={language.level === "beginner"}
+                                onCheckedChange={(checked) => updateLanguage(index, 'level', checked ? "beginner" : "")}
+                              />
+                              <label htmlFor={`${index}_beginner`} className="text-sm">Beginner</label>
                             </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    {/* Spanish */}
-                    <div>
-                      <FormField
-                        control={form.control}
-                        name="spanish_level"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Spanish</FormLabel>
-                            <div className="flex items-center space-x-4">
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                  id="spanish_beginner"
-                                  checked={field.value === "beginner"}
-                                  onCheckedChange={(checked) => field.onChange(checked ? "beginner" : "")}
-                                />
-                                <label htmlFor="spanish_beginner" className="text-sm">Beginner</label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                  id="spanish_intermediate"
-                                  checked={field.value === "intermediate"}
-                                  onCheckedChange={(checked) => field.onChange(checked ? "intermediate" : "")}
-                                />
-                                <label htmlFor="spanish_intermediate" className="text-sm">Intermediate</label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                  id="spanish_expert"
-                                  checked={field.value === "expert"}
-                                  onCheckedChange={(checked) => field.onChange(checked ? "expert" : "")}
-                                />
-                                <label htmlFor="spanish_expert" className="text-sm">Expert</label>
-                              </div>
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`${index}_intermediate`}
+                                checked={language.level === "intermediate"}
+                                onCheckedChange={(checked) => updateLanguage(index, 'level', checked ? "intermediate" : "")}
+                              />
+                              <label htmlFor={`${index}_intermediate`} className="text-sm">Intermediate</label>
                             </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    {/* Italian */}
-                    <div>
-                      <FormField
-                        control={form.control}
-                        name="italian_level"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Italian</FormLabel>
-                            <div className="flex items-center space-x-4">
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                  id="italian_beginner"
-                                  checked={field.value === "beginner"}
-                                  onCheckedChange={(checked) => field.onChange(checked ? "beginner" : "")}
-                                />
-                                <label htmlFor="italian_beginner" className="text-sm">Beginner</label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                  id="italian_intermediate"
-                                  checked={field.value === "intermediate"}
-                                  onCheckedChange={(checked) => field.onChange(checked ? "intermediate" : "")}
-                                />
-                                <label htmlFor="italian_intermediate" className="text-sm">Intermediate</label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Checkbox
-                                  id="italian_expert"
-                                  checked={field.value === "expert"}
-                                  onCheckedChange={(checked) => field.onChange(checked ? "expert" : "")}
-                                />
-                                <label htmlFor="italian_expert" className="text-sm">Expert</label>
-                              </div>
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`${index}_expert`}
+                                checked={language.level === "expert"}
+                                onCheckedChange={(checked) => updateLanguage(index, 'level', checked ? "expert" : "")}
+                              />
+                              <label htmlFor={`${index}_expert`} className="text-sm">Expert</label>
                             </div>
-                            <FormMessage />
-                          </FormItem>
+                          </div>
                         )}
-                      />
-                    </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
