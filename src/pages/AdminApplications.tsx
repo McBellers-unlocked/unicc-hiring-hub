@@ -332,19 +332,29 @@ export default function AdminApplications() {
   };
 
   const getTotalExperience = (workExp: any, yearsExp: number | null) => {
+    console.log('=== TOTAL EXPERIENCE FUNCTION CALLED ===');
+    console.log('Raw workExp input:', workExp);
+    console.log('Raw yearsExp input:', yearsExp);
+    
     const workExpArray = Array.isArray(workExp) ? workExp : (workExp?.length ? workExp : []);
+    console.log('Processed workExpArray:', workExpArray);
     
     // Use provided years_of_experience if available
-    if (yearsExp) return `${yearsExp} years`;
+    if (yearsExp) {
+      console.log('Using provided yearsExp:', yearsExp);
+      return `${yearsExp} years`;
+    }
     
     // Calculate from work history
     if (workExpArray.length > 0) {
-      const totalYears = workExpArray.reduce((total: number, exp: any) => {
+      console.log('Calculating from work history, array length:', workExpArray.length);
+      const totalYears = workExpArray.reduce((total: number, exp: any, index: number) => {
+        console.log(`=== PROCESSING EXPERIENCE ${index + 1} ===`);
         const startDate = exp.startDate || exp.start_date;
         const endDate = exp.endDate || exp.end_date || (exp.isCurrent || exp.is_present ? new Date() : null);
         
-        console.log('=== EXPERIENCE CALCULATION DEBUG ===');
         console.log('Experience:', exp);
+        console.log('Job title:', exp.jobTitle || exp.title || 'Unknown');
         console.log('StartDate raw:', startDate);
         console.log('EndDate raw:', endDate);
         console.log('IsCurrent:', exp.isCurrent || exp.is_present);
@@ -363,15 +373,21 @@ export default function AdminApplications() {
           
           console.log('Months diff:', monthsDiff);
           console.log('Years diff:', yearsDiff);
+          console.log('Running total before adding:', total);
           console.log('=======================');
           
           return total + yearsDiff;
         }
+        console.log('No start date, skipping this experience');
         return total;
       }, 0);
+      
+      console.log('FINAL total years:', totalYears);
+      console.log('FINAL rounded result:', Math.round(totalYears || 0));
       return `${Math.round(totalYears || 0)} years`;
     }
     
+    console.log('No work experience array, returning 0 years');
     return '0 years';
   };
 
