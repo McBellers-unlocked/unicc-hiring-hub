@@ -8,11 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { FileText, Download, ExternalLink, ZoomIn, ZoomOut, Loader2, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-// Disable worker entirely - this will be slower but should work when CDNs fail
-// This makes PDF.js run on the main thread instead of a web worker
-pdfjs.GlobalWorkerOptions.workerSrc = '';
+// Properly disable PDF.js worker by setting workerPort to null
+// This forces PDF.js to run on the main thread instead of trying to create a worker
+pdfjs.GlobalWorkerOptions.workerPort = null;
 
-console.log('PDF.js worker disabled - rendering will happen on main thread');
+console.log('PDF.js worker properly disabled - will use main thread rendering');
 
 interface ReactPDFViewerProps {
   pdfData: ArrayBuffer | null;
