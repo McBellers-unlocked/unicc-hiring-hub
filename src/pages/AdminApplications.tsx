@@ -159,6 +159,7 @@ export default function AdminApplications() {
           updated_at,
           suggested_for_longlist,
           phf_completed,
+          phf_data,
           source,
           candidate:candidates(
             id, name, email, location, gender, education, work_experience, 
@@ -332,62 +333,34 @@ export default function AdminApplications() {
   };
 
   const getTotalExperience = (workExp: any, yearsExp: number | null) => {
-    console.log('=== TOTAL EXPERIENCE FUNCTION CALLED ===');
-    console.log('Raw workExp input:', workExp);
-    console.log('Raw yearsExp input:', yearsExp);
-    
     const workExpArray = Array.isArray(workExp) ? workExp : (workExp?.length ? workExp : []);
-    console.log('Processed workExpArray:', workExpArray);
     
     // Use provided years_of_experience if available
     if (yearsExp) {
-      console.log('Using provided yearsExp:', yearsExp);
       return `${yearsExp} years`;
     }
     
     // Calculate from work history
     if (workExpArray.length > 0) {
-      console.log('Calculating from work history, array length:', workExpArray.length);
-      const totalYears = workExpArray.reduce((total: number, exp: any, index: number) => {
-        console.log(`=== PROCESSING EXPERIENCE ${index + 1} ===`);
+      const totalYears = workExpArray.reduce((total: number, exp: any) => {
         const startDate = exp.startDate || exp.start_date;
         const endDate = exp.endDate || exp.end_date || (exp.isCurrent || exp.is_present ? new Date() : null);
-        
-        console.log('Experience:', exp);
-        console.log('Job title:', exp.jobTitle || exp.title || 'Unknown');
-        console.log('StartDate raw:', startDate);
-        console.log('EndDate raw:', endDate);
-        console.log('IsCurrent:', exp.isCurrent || exp.is_present);
         
         if (startDate) {
           const start = new Date(startDate);
           const end = endDate && !exp.isCurrent && !exp.is_present ? new Date(endDate) : new Date();
           
-          console.log('Start parsed:', start);
-          console.log('End parsed:', end);
-          console.log('Start year/month:', start.getFullYear(), start.getMonth());
-          console.log('End year/month:', end.getFullYear(), end.getMonth());
-          
           const monthsDiff = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
           const yearsDiff = Math.max(0, monthsDiff / 12);
           
-          console.log('Months diff:', monthsDiff);
-          console.log('Years diff:', yearsDiff);
-          console.log('Running total before adding:', total);
-          console.log('=======================');
-          
           return total + yearsDiff;
         }
-        console.log('No start date, skipping this experience');
         return total;
       }, 0);
       
-      console.log('FINAL total years:', totalYears);
-      console.log('FINAL rounded result:', Math.round(totalYears || 0));
       return `${Math.round(totalYears || 0)} years`;
     }
     
-    console.log('No work experience array, returning 0 years');
     return '0 years';
   };
 
