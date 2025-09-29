@@ -190,11 +190,15 @@ export default function JobRequisitionForm() {
     }
   }, [id]);
 
-  // Auto-check UN language advantage for P and D positions
+  // Auto-check language advantages based on grade
   useEffect(() => {
     const currentGrade = form.watch('grade');
-    if (currentGrade && (currentGrade.startsWith('P') || currentGrade.startsWith('D'))) {
-      form.setValue('un_language_advantage', true);
+    if (currentGrade) {
+      if (currentGrade.startsWith('P') || currentGrade.startsWith('D')) {
+        form.setValue('un_language_advantage', true);
+      } else if (currentGrade.startsWith('G')) {
+        form.setValue('local_language_advantage', true);
+      }
     }
   }, [form.watch('grade')]);
 
@@ -1062,6 +1066,37 @@ export default function JobRequisitionForm() {
                   </div>
                 </div>
                 
+                {/* Conditional Language Advantages */}
+                {form.watch('grade') && (form.watch('grade')?.startsWith('P') || form.watch('grade')?.startsWith('D')) && (
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="un_language_advantage"
+                        checked={form.watch('un_language_advantage') || false}
+                        onCheckedChange={(checked) => form.setValue('un_language_advantage', !!checked)}
+                      />
+                      <label htmlFor="un_language_advantage" className="text-sm">
+                        Knowledge of another UN language would be an advantage
+                      </label>
+                    </div>
+                  </div>
+                )}
+                
+                {form.watch('grade') && form.watch('grade')?.startsWith('G') && (
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="local_language_advantage"
+                        checked={form.watch('local_language_advantage') || false}
+                        onCheckedChange={(checked) => form.setValue('local_language_advantage', !!checked)}
+                      />
+                      <label htmlFor="local_language_advantage" className="text-sm">
+                        Knowledge of the local language of the Duty Station would be an advantage
+                      </label>
+                    </div>
+                  </div>
+                )}
+                
                 <div>
                   <h4 className="font-medium mb-3">Additional Language Skills</h4>
                   <div className="space-y-4">
@@ -1184,32 +1219,6 @@ export default function JobRequisitionForm() {
                         )}
                       />
                     </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="un_language_advantage"
-                      checked={form.watch('un_language_advantage') || false}
-                      onCheckedChange={(checked) => form.setValue('un_language_advantage', !!checked)}
-                    />
-                    <label htmlFor="un_language_advantage" className="text-sm">
-                      Knowledge of another UN language would be an advantage for P1-P6 and D1-D2 positions
-                    </label>
-                  </div>
-                </div>
-                
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="local_language_advantage"
-                      checked={form.watch('local_language_advantage') || false}
-                      onCheckedChange={(checked) => form.setValue('local_language_advantage', !!checked)}
-                    />
-                    <label htmlFor="local_language_advantage" className="text-sm">
-                      Knowledge of the local language of the Duty Station would be an advantage for G positions
-                    </label>
                   </div>
                 </div>
               </div>
