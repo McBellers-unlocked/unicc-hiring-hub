@@ -24,6 +24,7 @@ import { InlineDocumentViewer } from '@/components/InlineDocumentViewer';
 import { ReliableDocumentViewer } from '@/components/ReliableDocumentViewer';
 import { LonglistDocumentUploader } from '@/components/LonglistDocumentUploader';
 import { VideoInterviewManager } from '@/components/VideoInterviewManager';
+import { ApplicationAuditViewer } from '@/components/ApplicationAuditViewer';
 import { CompactCandidateView } from '@/components/CompactCandidateView';
 import {
   ArrowLeft, 
@@ -566,7 +567,7 @@ export default function ApplicationDetail() {
         </Card>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-10">
+          <TabsList className="grid w-full grid-cols-11">
             <TabsTrigger value="summary">Summary</TabsTrigger>
             <TabsTrigger value="compact">Compact</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
@@ -577,6 +578,7 @@ export default function ApplicationDetail() {
             <TabsTrigger value="video">Video</TabsTrigger>
             <TabsTrigger value="interviews">Interviews</TabsTrigger>
             <TabsTrigger value="feedback">Feedback</TabsTrigger>
+            <TabsTrigger value="audit">Audit Trail</TabsTrigger>
           </TabsList>
 
           <TabsContent value="summary" className="space-y-6">
@@ -922,6 +924,14 @@ export default function ApplicationDetail() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="audit">
+            <ApplicationAuditViewer
+              applicationId={application.id}
+              candidateName={application.candidate.name}
+              submittedAt={application.submitted_at}
+            />
           </TabsContent>
         </Tabs>
 
