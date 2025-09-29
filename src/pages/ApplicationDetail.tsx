@@ -751,7 +751,7 @@ export default function ApplicationDetail() {
               </CardHeader>
               <CardContent>
                 {/* Upload interface for longlisted candidates */}
-                {application.status === 'Longlist' && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
+                {application.status === 'Longlist' && userRoles && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
                   <div className="mb-6">
                     <LonglistDocumentUploader
                       applicationId={application.id}
@@ -762,11 +762,14 @@ export default function ApplicationDetail() {
                 )}
                 
                 {/* Debug info - remove after testing */}
-                {process.env.NODE_ENV === 'development' && (
-                  <div className="p-2 bg-yellow-50 rounded text-xs">
-                    Debug: Status={application.status}, UserRoles={userRoles.join(',')}, Files={JSON.stringify(application.files)}
-                  </div>
-                )}
+                <div className="p-2 bg-yellow-50 rounded text-xs mb-4">
+                  <strong>Debug Info:</strong><br/>
+                  Status: {application.status}<br/>
+                  UserRoles: {userRoles ? userRoles.join(',') : 'null/undefined'}<br/>
+                  Has Admin: {userRoles?.includes('Admin') ? 'Yes' : 'No'}<br/>
+                  Has HR Assistant: {userRoles?.includes('HR Assistant') ? 'Yes' : 'No'}<br/>
+                  Should Show Upload: {application.status === 'Longlist' && userRoles && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) ? 'Yes' : 'No'}
+                </div>
                 
                 {/* Display uploaded documents with inline viewing */}
                 <div className="space-y-6">

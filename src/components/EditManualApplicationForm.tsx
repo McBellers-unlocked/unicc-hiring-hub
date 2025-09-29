@@ -51,6 +51,11 @@ const formatDateForInput = (dateValue: any): string => {
     return dateValue;
   }
   
+  // Handle YYYY-MM format (like "2020-07")
+  if (typeof dateValue === 'string' && /^\d{4}-\d{2}$/.test(dateValue)) {
+    return `${dateValue}-01`; // Add day as 01
+  }
+  
   // If it's just a year (e.g., "2020"), convert to YYYY-01-01
   if (typeof dateValue === 'string' && /^\d{4}$/.test(dateValue)) {
     return `${dateValue}-01-01`;
