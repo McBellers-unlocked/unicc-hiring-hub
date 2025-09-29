@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, Save, Send, FileText, Briefcase, ChevronDown, CheckCircle2, CalendarIcon } from "lucide-react";
 import MDEditor from '@uiw/react-md-editor';
+import { MainDutiesTemplateModal } from '@/components/MainDutiesTemplateModal';
 
 // Organizational structure
 const DIVISIONS = {
@@ -139,6 +140,7 @@ export default function JobRequisitionForm() {
   const [saving, setSaving] = useState(false);
   const [selectedDivision, setSelectedDivision] = useState<string>("");
   const [selectedUnit, setSelectedUnit] = useState<string>("");
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [currentRequisition, setCurrentRequisition] = useState<any>(null);
   const [showTemporaryDuration, setShowTemporaryDuration] = useState<boolean>(false);
   const [showGrade, setShowGrade] = useState<boolean>(false);
@@ -162,7 +164,7 @@ export default function JobRequisitionForm() {
       positions_available: 1,
       purpose_of_position: "",
       objectives_of_programme: "UNICC provides the digital foundations that support the digital transformation and future of the UN system and other international organizations.",
-      main_duties_responsibilities: "The incumbent will work under the direct supervision and guidance of the 1. _________________________ within the 2. _________________________ and in close collaboration with the 3. _______________________ team members. The incumbent will perform the following duties:\n\n",
+      main_duties_responsibilities: "The incumbent will work under the direct supervision and guidance of the [SUPERVISOR TITLE] within the [DIVISION NAME] and in close collaboration with the [SECTION NAME] team members. The incumbent will perform the following duties:\n\n",
       essential_experience: "",
       desirable_experience: "",
       essential_education: "",
@@ -241,7 +243,7 @@ export default function JobRequisitionForm() {
           positions_available: data.positions_available || 1,
           purpose_of_position: data.purpose_of_position || "",
           objectives_of_programme: data.objectives_of_programme || "UNICC provides the digital foundations that support the digital transformation and future of the UN system and other international organizations.",
-          main_duties_responsibilities: data.main_duties_responsibilities || "The incumbent will work under the direct supervision and guidance of the 1. _________________________ within the 2. _________________________ and in close collaboration with the 3. _______________________ team members. The incumbent will perform the following duties:\n\n",
+          main_duties_responsibilities: data.main_duties_responsibilities || "The incumbent will work under the direct supervision and guidance of the [SUPERVISOR TITLE] within the [DIVISION NAME] and in close collaboration with the [SECTION NAME] team members. The incumbent will perform the following duties:\n\n",
           essential_experience: data.essential_experience || "",
           desirable_experience: data.desirable_experience || "",
           essential_education: data.essential_education || "",
@@ -894,17 +896,41 @@ export default function JobRequisitionForm() {
                 name="main_duties_responsibilities"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Main Duties and Responsibilities *</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Main Duties and Responsibilities *</FormLabel>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowTemplateModal(true)}
+                        className="text-xs"
+                      >
+                        Fill Template
+                      </Button>
+                    </div>
                     <FormControl>
-                      <MDEditor
-                        value={field.value}
-                        onChange={(val) => field.onChange(val || "")}
-                        preview="edit"
-                        hideToolbar={false}
-                        data-color-mode="light"
-                      />
+                      <div className="relative">
+                        <MDEditor
+                          value={field.value}
+                          onChange={(val) => field.onChange(val || "")}
+                          preview="edit"
+                          hideToolbar={false}
+                          data-color-mode="light"
+                          className="[&_.w-md-editor-text]:placeholder-shown:bg-muted/20"
+                        />
+                        {field.value.includes('[SUPERVISOR TITLE]') && (
+                          <div className="absolute top-2 right-2 z-10">
+                            <div className="flex gap-1 text-xs">
+                              <span className="bg-primary/10 text-primary px-2 py-1 rounded text-xs font-medium">
+                                Template blanks detected
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </FormControl>
                     <FormDescription>
+                      Use the "Fill Template" button to easily fill in supervisor, division, and section details. 
                       Structure each duty to answer: WHAT (active verb), WHY (purpose and scope), HOW (process and tasks).
                     </FormDescription>
                     <FormMessage />
@@ -1447,6 +1473,15 @@ export default function JobRequisitionForm() {
           </div>
         </form>
       </Form>
+      
+      <MainDutiesTemplateModal
+        open={showTemplateModal}
+        onClose={() => setShowTemplateModal(false)}
+        onApply={(filledTemplate) => {
+          form.setValue('main_duties_responsibilities', filledTemplate);
+        }}
+        currentContent={form.getValues('main_duties_responsibilities')}
+      />
     </div>
   );
 }
