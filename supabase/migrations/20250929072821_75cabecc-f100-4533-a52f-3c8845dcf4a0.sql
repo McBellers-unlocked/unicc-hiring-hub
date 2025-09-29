@@ -1,0 +1,1 @@
+UPDATE users SET name = 'Szilvia Petkov' WHERE email = 'petkov@unicc.org';
