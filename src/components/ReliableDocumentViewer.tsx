@@ -5,44 +5,30 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, ExternalLink, ZoomIn, ZoomOut, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileText, Download, ExternalLink, ZoomIn, ZoomOut, Loader2, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-// Set up PDF.js worker with multiple fallback options for reliability
+// Set up PDF.js worker using jsdelivr CDN (more reliable than unpkg/cdnjs)
+let currentWorkerIndex = 0;
+const workerSources = [
+  'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.worker.min.js',
+  'https://unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.js', 
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.js'
+];
+
 const setupPdfWorker = () => {
-  // Try reliable unpkg CDN first (matches react-pdf v10.1.0)
-  const primaryWorker = 'https://unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.js';
-  const fallbackWorker = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.js';
-  
-  // Test if primary worker is available
-  const testWorker = async (workerUrl: string): Promise<boolean> => {
-    try {
-      const response = await fetch(workerUrl, { method: 'HEAD' });
-      return response.ok;
-    } catch {
-      return false;
-    }
-  };
-  
-  // Set worker with fallback
-  testWorker(primaryWorker).then(isAvailable => {
-    if (isAvailable) {
-      console.log('Using primary PDF worker:', primaryWorker);
-      pdfjs.GlobalWorkerOptions.workerSrc = primaryWorker;
-    } else {
-      console.log('Primary worker failed, using fallback:', fallbackWorker);
-      pdfjs.GlobalWorkerOptions.workerSrc = fallbackWorker;
-    }
-  }).catch(() => {
-    console.log('Worker test failed, using fallback:', fallbackWorker);
-    pdfjs.GlobalWorkerOptions.workerSrc = fallbackWorker;
-  });
-  
-  // Set initial worker immediately for immediate use
-  pdfjs.GlobalWorkerOptions.workerSrc = primaryWorker;
+  const workerUrl = workerSources[currentWorkerIndex % workerSources.length];
+  console.log(`Setting PDF worker to: ${workerUrl}`);
+  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+  return workerUrl;
 };
 
-// Initialize PDF worker
+const tryNextWorker = () => {
+  currentWorkerIndex++;
+  return setupPdfWorker();
+};
+
+// Initialize with first worker
 setupPdfWorker();
 
 interface ReactPDFViewerProps {
@@ -79,15 +65,15 @@ const ReactPDFViewer: React.FC<ReactPDFViewerProps> = ({
   };
 
   const onDocumentLoadError = (error: Error) => {
-    console.error('PDF load error:', error);
-    console.error('Worker source:', pdfjs.GlobalWorkerOptions.workerSrc);
+    console.error('PDF Document load error:', error);
+    console.error('Current worker source:', pdfjs.GlobalWorkerOptions.workerSrc);
     
-    // Check if it's a worker-related error
-    if (error.message.includes('worker') || error.message.includes('Worker')) {
-      console.error('Worker loading failed. Attempting fallback...');
-      // Try fallback worker
-      pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.js';
-    }
+    // Log detailed error information
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
     
     setIsLoading(false);
     onLoadError(error);
@@ -185,6 +171,7 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
   const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
   const [numPages, setNumPages] = useState<number>(0);
   const [hasError, setHasError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   
   const detectFileType = (): 'pdf' | 'docx' | 'doc' | 'txt' => {
     if (fileType) return fileType;
@@ -212,7 +199,15 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
     if (currentFileType === 'pdf') {
       loadPdfData();
     }
-  }, [fileUrl, currentFileType]);
+  }, [fileUrl, currentFileType, retryCount]);
+
+  const retryPdfLoad = () => {
+    console.log('Retrying PDF load with next worker...');
+    const newWorker = tryNextWorker();
+    console.log('Switched to worker:', newWorker);
+    setHasError(false);
+    setRetryCount(prev => prev + 1);
+  };
 
   const loadPdfData = async () => {
     setLoading(true);
@@ -344,10 +339,23 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
           <div className="relative bg-background" style={{ height: '600px' }}>
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Unable to display PDF</p>
-                <p className="text-xs text-muted-foreground mt-1">PDF worker failed to load - try refreshing the page</p>
-                <p className="text-xs text-muted-foreground">You can still download the file using the buttons above</p>
+                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-sm text-muted-foreground mb-2">Unable to display PDF</p>
+                <p className="text-xs text-muted-foreground mb-4">
+                  PDF worker failed to load. Try using a different CDN.
+                </p>
+                <Button 
+                  onClick={retryPdfLoad} 
+                  variant="outline" 
+                  size="sm"
+                  className="mb-2"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Try Again
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  You can still download the file using the buttons above
+                </p>
               </div>
             </div>
           </div>
