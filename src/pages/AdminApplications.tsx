@@ -343,11 +343,29 @@ export default function AdminApplications() {
         const startDate = exp.startDate || exp.start_date;
         const endDate = exp.endDate || exp.end_date || (exp.isCurrent || exp.is_present ? new Date() : null);
         
+        console.log('=== EXPERIENCE CALCULATION DEBUG ===');
+        console.log('Experience:', exp);
+        console.log('StartDate raw:', startDate);
+        console.log('EndDate raw:', endDate);
+        console.log('IsCurrent:', exp.isCurrent || exp.is_present);
+        
         if (startDate) {
           const start = new Date(startDate);
-          const end = endDate ? new Date(endDate) : new Date();
+          const end = endDate && !exp.isCurrent && !exp.is_present ? new Date(endDate) : new Date();
+          
+          console.log('Start parsed:', start);
+          console.log('End parsed:', end);
+          console.log('Start year/month:', start.getFullYear(), start.getMonth());
+          console.log('End year/month:', end.getFullYear(), end.getMonth());
+          
           const monthsDiff = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-          return total + Math.max(0, monthsDiff / 12);
+          const yearsDiff = Math.max(0, monthsDiff / 12);
+          
+          console.log('Months diff:', monthsDiff);
+          console.log('Years diff:', yearsDiff);
+          console.log('=======================');
+          
+          return total + yearsDiff;
         }
         return total;
       }, 0);
