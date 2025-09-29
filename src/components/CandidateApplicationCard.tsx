@@ -63,9 +63,9 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
     ? application.phf_data.work_experience.map((work: any) => ({
         title: work.jobTitle || work.title,
         company: work.organization || work.company,
-        start_date: work.startDate || work.start_date,
-        end_date: work.isCurrent ? null : (work.endDate || work.end_date),
-        is_present: work.isCurrent || work.is_present
+        startDate: work.startDate,
+        endDate: work.isCurrent ? null : work.endDate,
+        isCurrent: work.isCurrent
       }))
     : application.candidate.work_experience;
 
