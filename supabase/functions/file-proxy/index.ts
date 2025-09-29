@@ -15,6 +15,7 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const filePath = url.searchParams.get('path');
+    const authToken = url.searchParams.get('auth');
     
     if (!filePath) {
       return new Response('Missing file path parameter', { 
@@ -25,19 +26,21 @@ serve(async (req) => {
 
     console.log(`📄 File proxy request for: ${filePath}`);
 
-    // Get auth token from header or form data
-    let authToken = '';
+    // Get auth token from header, query param, or form data
+    let token = '';
     const authHeader = req.headers.get('Authorization');
     
     if (authHeader) {
-      authToken = authHeader.replace('Bearer ', '');
+      token = authHeader.replace('Bearer ', '');
+    } else if (authToken) {
+      token = authToken;
     } else if (req.method === 'POST') {
       // Handle form submission with token
       const formData = await req.formData();
-      authToken = formData.get('token') as string;
+      token = formData.get('token') as string;
     }
 
-    if (!authToken) {
+    if (!token) {
       console.log('❌ No authorization token provided');
       return new Response('Unauthorized - No token provided', { 
         status: 401,
@@ -45,7 +48,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`🔐 Authenticating request with token: ${authToken.substring(0, 20)}...`);
+    console.log(`🔐 Authenticating request with token: ${token.substring(0, 20)}...`);
 
     // Verify the user token is valid
     const userSupabase = createClient(
@@ -53,7 +56,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
     
-    const { data: { user }, error: authError } = await userSupabase.auth.getUser(authToken);
+    const { data: { user }, error: authError } = await userSupabase.auth.getUser(token);
 
     if (authError || !user) {
       console.log('❌ Invalid authorization:', authError?.message);

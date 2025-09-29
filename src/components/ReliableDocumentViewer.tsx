@@ -1,9 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Download, ExternalLink, ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+
+interface PDFIframeProps {
+  src: string;
+  fileName: string;
+  scale: number;
+  onLoad: () => void;
+}
+
+const PDFIframe: React.FC<PDFIframeProps> = ({ src, fileName, scale, onLoad }) => {
+  const [authUrl, setAuthUrl] = useState<string>('');
+
+  useEffect(() => {
+    const setupAuthenticatedUrl = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          // Create a data URL that contains the PDF request with auth headers
+          const authUrlWithToken = `${src}&auth=${encodeURIComponent(session.access_token)}`;
+          setAuthUrl(authUrlWithToken);
+        }
+      } catch (error) {
+        console.error('Failed to setup authenticated URL:', error);
+      }
+    };
+
+    setupAuthenticatedUrl();
+  }, [src]);
+
+  if (!authUrl) {
+    return <div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin" /></div>;
+  }
+
+  return (
+    <iframe
+      src={authUrl}
+      className="w-full h-full border-0"
+      title={fileName}
+      style={{ 
+        transform: `scale(${scale})`, 
+        transformOrigin: 'top left',
+        width: `${100 / scale}%`,
+        height: `${100 / scale}%`
+      }}
+      onLoad={onLoad}
+      onError={() => {
+        console.error('PDF iframe failed to load');
+      }}
+    />
+  );
+};
 
 interface ReliableDocumentViewerProps {
   fileUrl: string;
@@ -119,6 +169,8 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
   const currentFileType = detectFileType();
 
   const renderPDFViewer = () => {
+    const proxyUrl = getProxyUrl(fileUrl);
+    
     return (
       <div className="border border-border rounded-lg overflow-hidden">
         <div className="flex items-center justify-between p-3 bg-muted border-b">
@@ -149,36 +201,17 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
         </div>
         
         <div className="relative bg-background" style={{ height: '600px' }}>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-20 h-24 mx-auto mb-6 bg-primary/10 rounded-lg flex items-center justify-center">
-                <FileText className="w-12 h-12 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">PDF Document</h3>
-              <p className="text-muted-foreground mb-4 max-w-md">
-                Click below to view this PDF document. The document will open in a new tab for the best viewing experience.
-              </p>
-              <div className="flex justify-center gap-3">
-                <Button 
-                  onClick={handleViewInNewTab} 
-                  className="flex items-center gap-2"
-                  disabled={loading}
-                >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
-                  View PDF
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={handleDownload} 
-                  className="flex items-center gap-2"
-                  disabled={loading}
-                >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  Download
-                </Button>
-              </div>
+          <PDFIframe 
+            src={proxyUrl} 
+            fileName={fileName}
+            scale={scale}
+            onLoad={() => setLoading(false)}
+          />
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+              <Loader2 className="w-8 h-8 animate-spin" />
             </div>
-          </div>
+          )}
         </div>
       </div>
     );
