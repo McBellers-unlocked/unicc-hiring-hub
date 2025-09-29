@@ -739,34 +739,42 @@ export default function JobRequisitionForm() {
               <FormField
                 control={form.control}
                 name="duty_station"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Duty Station *</FormLabel>
-                    <FormDescription>
-                      Select all applicable duty stations (multiple selection allowed)
-                    </FormDescription>
-                    <div className="grid grid-cols-3 gap-2 mt-2">
-                      {['Brindisi', 'Geneva', 'New York', 'Rome', 'Valencia'].map((station) => (
-                        <div key={station} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={station}
-                            checked={field.value?.includes(station) || false}
-                            onCheckedChange={(checked) => {
-                              const current = field.value || [];
-                              if (checked) {
-                                field.onChange([...current, station]);
-                              } else {
-                                field.onChange(current.filter(s => s !== station));
-                              }
-                            }}
-                          />
-                          <label htmlFor={station} className="text-sm">{station}</label>
-                        </div>
-                      ))}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const natureOfPosition = form.watch("nature_of_position");
+                  const baseStations = ['Brindisi', 'Geneva', 'New York', 'Rome', 'Valencia'];
+                  const availableStations = (natureOfPosition === 'Intern' || natureOfPosition === 'Individual Consultant') 
+                    ? [...baseStations, 'Remote'] 
+                    : baseStations;
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>Duty Station *</FormLabel>
+                      <FormDescription>
+                        Select all applicable duty stations (multiple selection allowed)
+                      </FormDescription>
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        {availableStations.map((station) => (
+                          <div key={station} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={station}
+                              checked={field.value?.includes(station) || false}
+                              onCheckedChange={(checked) => {
+                                const current = field.value || [];
+                                if (checked) {
+                                  field.onChange([...current, station]);
+                                } else {
+                                  field.onChange(current.filter(s => s !== station));
+                                }
+                              }}
+                            />
+                            <label htmlFor={station} className="text-sm">{station}</label>
+                          </div>
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
 
