@@ -5,11 +5,12 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, ExternalLink, ZoomIn, ZoomOut, Loader2, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle } from 'lucide-react';
+import { FileText, Download, ExternalLink, ZoomIn, ZoomOut, Loader2, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { ImageBasedPDFViewer } from './ImageBasedPDFViewer';
 
 // Configure PDF.js worker for fallback
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 console.log('ReliableDocumentViewer loaded with iframe-first approach');
 
@@ -204,7 +205,7 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
   className 
 }) => {
   const [loading, setLoading] = useState(false);
-  const [viewerMode, setViewerMode] = useState<'iframe' | 'pdfjs' | 'fallback'>('iframe');
+  const [viewerMode, setViewerMode] = useState<'enhanced' | 'iframe' | 'pdfjs' | 'fallback'>('enhanced');
   const [currentPage, setCurrentPage] = useState(1);
   const [scale, setScale] = useState(1.0);
   const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
@@ -285,6 +286,11 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
     }
   };
 
+  const handleEnhancedError = () => {
+    console.log('Enhanced PDF viewer failed, switching to iframe');
+    setViewerMode('iframe');
+  };
+
   const handleIframeError = () => {
     console.log('Iframe viewer failed, switching to PDF.js');
     setViewerMode('pdfjs');
@@ -338,8 +344,17 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
   const renderPDFContent = () => {
     if (currentFileType !== 'pdf') return null;
 
-    // Progressive enhancement: iframe -> PDF.js -> fallback
+    // Progressive enhancement: enhanced -> iframe -> PDF.js -> fallback
     switch (viewerMode) {
+      case 'enhanced':
+        return (
+          <ImageBasedPDFViewer
+            fileUrl={fileUrl}
+            fileName={fileName}
+            className="border-0"
+          />
+        );
+
       case 'iframe':
         return (
           <div className="relative bg-background" style={{ height: '600px' }}>
@@ -447,6 +462,45 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
               </Button>
             </div>
           )}
+        </div>
+
+        {/* Viewer Mode Debug Panel */}
+        <div className="p-3 bg-muted/50 border-b">
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Viewing Mode:</span>
+              <Badge variant="outline" className="capitalize">
+                {viewerMode === 'enhanced' && 'Enhanced Server-Side'}
+                {viewerMode === 'iframe' && 'Browser Native'}
+                {viewerMode === 'pdfjs' && 'PDF.js Renderer'}
+                {viewerMode === 'fallback' && 'External/Download Only'}
+              </Badge>
+            </div>
+            <div className="flex gap-1">
+              <Button 
+                variant={viewerMode === 'enhanced' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewerMode('enhanced')}
+              >
+                Enhanced
+              </Button>
+              <Button 
+                variant={viewerMode === 'iframe' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewerMode('iframe')}
+              >
+                Browser
+              </Button>
+              <Button 
+                variant={viewerMode === 'pdfjs' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewerMode('pdfjs')}
+              >
+                PDF.js
+              </Button>
+            </div>
+          </div>
         </div>
         
         {renderPDFContent()}
