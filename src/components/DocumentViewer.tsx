@@ -180,12 +180,21 @@ export const DocumentViewer = ({ fileUrl, fileName, fileType, className }: Docum
 
           <TabsContent value="original">
             {canShowPDF() ? (
-              <div className="border border-border rounded-lg overflow-hidden">
-                <iframe
-                  src={`${fileUrl}#toolbar=1&navpanes=0&scrollbar=1`}
-                  className="w-full h-[600px]"
-                  title={fileName}
-                />
+              <div className="text-center py-8 space-y-4">
+                <div className="border border-border rounded-lg p-8 bg-card">
+                  <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">View Original Document</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Click the button below to open the PDF in a new tab for full viewing experience.
+                  </p>
+                  <Button
+                    onClick={() => window.open(fileUrl, '_blank', 'noopener,noreferrer')}
+                    className="flex items-center space-x-2"
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span>Open PDF in New Tab</span>
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
