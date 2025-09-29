@@ -131,7 +131,7 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                 <div className="flex items-center gap-2 mb-1">
                   <h3 
                     className="font-semibold text-lg cursor-pointer hover:text-primary truncate"
-                    onClick={() => navigate(`/application/${application.id}`)}
+                    onClick={() => navigate(`/admin/applications/${application.id}`)}
                     title={application.candidate.name}
                   >
                     {application.candidate.name}
@@ -312,7 +312,7 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
             <Button
               size="sm"
               variant="outline"
-              onClick={() => navigate(`/application/${application.id}`)}
+              onClick={() => navigate(`/admin/applications/${application.id}`)}
               className="whitespace-nowrap"
             >
               <Eye className="w-3 h-3 mr-1" />
