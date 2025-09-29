@@ -787,7 +787,7 @@ export default function JobRequisitionForm() {
                   control={form.control}
                   name="start_date"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                    <FormItem>
                       <FormLabel>Start Date</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
