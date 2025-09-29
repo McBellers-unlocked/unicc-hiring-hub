@@ -17,7 +17,7 @@ interface LayoutProps {
 }
 
 export const Layout = ({ children }: LayoutProps) => {
-  const { user, userRoles, signOut } = useAuth();
+  const { user, userRoles, userName, signOut } = useAuth();
 
   const handleSignOut = async () => {
     await signOut();
@@ -143,7 +143,7 @@ export const Layout = ({ children }: LayoutProps) => {
               {user ? (
                 <div className="flex items-center space-x-4">
                   <span className="text-sm">
-                    {user.email}
+                    {userName || user.email}
                     {userRoles.length > 0 && (
                       <span className="ml-2 text-xs bg-accent text-accent-foreground px-2 py-1 rounded">
                         {userRoles.join(', ')}

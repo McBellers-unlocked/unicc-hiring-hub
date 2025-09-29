@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   userRoles: string[];
+  userName: string | null;
   loading: boolean;
   needsProfileSetup: boolean;
   mfaRequired: boolean;
@@ -33,6 +34,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [userName, setUserName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsProfileSetup, setNeedsProfileSetup] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
@@ -50,11 +52,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             try {
               const { data: userProfile } = await supabase
                 .from('users')
-                .select('role')
+                .select('role, name')
                 .eq('id', session.user.id)
                 .single();
               
               setUserRoles(userProfile?.role ? [userProfile.role] : []);
+              setUserName(userProfile?.name || null);
               
               // Check if candidate needs profile setup
               if (userProfile?.role === 'Candidate') {
@@ -77,11 +80,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             } catch (error) {
               console.error('Error fetching user role:', error);
               setUserRoles([]);
+              setUserName(null);
               setNeedsProfileSetup(false);
             }
           }, 0);
         } else {
           setUserRoles([]);
+          setUserName(null);
           setNeedsProfileSetup(false);
         }
         
@@ -99,11 +104,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           try {
             const { data: userProfile } = await supabase
               .from('users')
-              .select('role')
+              .select('role, name')
               .eq('id', session.user.id)
               .single();
             
             setUserRoles(userProfile?.role ? [userProfile.role] : []);
+            setUserName(userProfile?.name || null);
             
             // Check if candidate needs profile setup
             if (userProfile?.role === 'Candidate') {
@@ -126,6 +132,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           } catch (error) {
             console.error('Error fetching user role:', error);
             setUserRoles([]);
+            setUserName(null);
             setNeedsProfileSetup(false);
           }
         }, 0);
@@ -198,6 +205,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setUser(null);
       setSession(null);
       setUserRoles([]);
+      setUserName(null);
       setNeedsProfileSetup(false);
       setMfaRequired(false);
       
@@ -215,6 +223,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     user,
     session,
     userRoles,
+    userName,
     loading,
     needsProfileSetup,
     mfaRequired,
