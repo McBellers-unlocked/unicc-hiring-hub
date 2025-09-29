@@ -53,6 +53,7 @@ interface ApplicationData {
   photo_url: string | null;
   phf_pdf_url: string | null;
   candidate_phf_url: string | null;
+  source: string | null;
   candidate: {
     id: string;
     name: string;
@@ -367,6 +368,17 @@ export default function ApplicationDetail() {
                 <CheckCircle className="w-3 h-3 mr-1" />
                 AI Suggested
               </Badge>
+            )}
+            {application.source === 'manual_entry' && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate(`/admin/applications/${application.id}/edit`)}
+                className="flex items-center gap-2"
+              >
+                <User className="w-4 h-4" />
+                Edit Application
+              </Button>
             )}
           </div>
         </div>
@@ -746,6 +758,13 @@ export default function ApplicationDetail() {
                       currentFiles={application.files || {}}
                       onUploadComplete={fetchApplication}
                     />
+                  </div>
+                )}
+                
+                {/* Debug info - remove after testing */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="p-2 bg-yellow-50 rounded text-xs">
+                    Debug: Status={application.status}, UserRoles={userRoles.join(',')}, Files={JSON.stringify(application.files)}
                   </div>
                 )}
                 
