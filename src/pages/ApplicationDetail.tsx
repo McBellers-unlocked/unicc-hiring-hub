@@ -287,14 +287,27 @@ export default function ApplicationDetail() {
           </div>
         )}
         
-        {/* Motivation Letter Viewer */}
-        {application?.files?.motivation_statement && (
+        {/* Motivation Letter Viewer - Show PDF version if available */}
+        {application?.files?.motivation_letter && (
+          <div>
+            <h3 className="text-lg font-medium mb-4">Motivation Letter</h3>
+            <ReliableDocumentViewer
+              fileUrl={application.files.motivation_letter}
+              fileName="Motivation Letter.pdf"
+              fileType="pdf"
+              className="w-full"
+            />
+          </div>
+        )}
+        
+        {/* Motivation Statement Viewer - Show DOCX version if no PDF available */}
+        {application?.files?.motivation_statement && !application?.files?.motivation_letter && (
           <div>
             <h3 className="text-lg font-medium mb-4">Motivation Statement</h3>
             <ReliableDocumentViewer
               fileUrl={application.files.motivation_statement}
-              fileName="Motivation Statement.pdf"
-              fileType="pdf"
+              fileName="Motivation Statement.docx"
+              fileType="docx"
               className="w-full"
             />
           </div>
