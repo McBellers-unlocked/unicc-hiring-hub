@@ -150,8 +150,8 @@ export default function EditManualApplicationForm() {
       const candidate = data.candidate;
       const phfData = data.phf_data || {};
       
-      // Extract education data
-      const education = candidate.education || (phfData as any)?.education || [];
+      // Extract education data - prioritize phf_data for manual entries
+      const education = (phfData as any)?.education || candidate.education || [];
       const mappedEducation = Array.isArray(education) ? education.map((edu: any) => ({
         degreeType: edu.degreeType || edu.degree_type || '',
         fieldOfStudy: edu.fieldOfStudy || edu.field_of_study || '',
@@ -159,8 +159,8 @@ export default function EditManualApplicationForm() {
         dateAwarded: formatDateForInput(edu.dateAwarded || edu.year_awarded || edu.end_date || edu.date_awarded || ''),
       })) : [];
 
-      // Extract work experience data
-      const workExp = candidate.work_experience || (phfData as any)?.work_experience || [];
+      // Extract work experience data - prioritize phf_data for manual entries
+      const workExp = (phfData as any)?.work_experience || candidate.work_experience || [];
       const mappedWorkExp = Array.isArray(workExp) ? workExp.map((work: any) => ({
         jobTitle: work.jobTitle || work.title || work.position || '',
         organization: work.organization || work.company || work.employer || '',
@@ -170,9 +170,9 @@ export default function EditManualApplicationForm() {
       })) : [];
 
       setFormData({
-        name: candidate.name || '',
-        email: candidate.email || '',
-        phone: candidate.phone || '',
+        name: ((phfData as any)?.personal_info?.name || candidate.name || ''),
+        email: ((phfData as any)?.personal_info?.email || candidate.email || ''),
+        phone: ((phfData as any)?.personal_info?.phone || candidate.phone || ''),
         education: mappedEducation.length > 0 ? mappedEducation : [{
           degreeType: '',
           fieldOfStudy: '',
@@ -413,6 +413,8 @@ export default function EditManualApplicationForm() {
         description: "Application updated successfully",
       });
 
+      // Refresh the application data to show the latest changes
+      await fetchApplication();
       navigate(`/admin/applications/${applicationId}`);
     } catch (error) {
       console.error('Error updating application:', error);
