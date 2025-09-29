@@ -20,6 +20,7 @@ import { PHFManager } from '@/components/PHFManager';
 import { PHFInlineViewer } from '@/components/PHFInlineViewer';
 import { MotivationLetterViewer } from '@/components/MotivationLetterViewer';
 import { DocumentViewer } from '@/components/DocumentViewer';
+import { InlineDocumentViewer } from '@/components/InlineDocumentViewer';
 import { LonglistDocumentUploader } from '@/components/LonglistDocumentUploader';
 import { VideoInterviewManager } from '@/components/VideoInterviewManager';
 import { CompactCandidateView } from '@/components/CompactCandidateView';
@@ -272,21 +273,40 @@ export default function ApplicationDetail() {
   const renderFiles = () => {
     return (
       <div className="space-y-6">
-        {/* PHF Data Inline Viewer */}
-        {application.phf_data && (
-          <PHFInlineViewer 
-            phfData={application.phf_data}
-            className="w-full"
-          />
+        {/* PHF Document Inline Viewer */}
+        {application?.files?.phf_document && (
+          <div>
+            <h3 className="text-lg font-medium mb-4">Personal History Form (PHF)</h3>
+            <InlineDocumentViewer 
+              fileUrl={application.files.phf_document}
+              fileName="Personal History Form.pdf"
+              fileType="pdf"
+              className="w-full"
+            />
+          </div>
         )}
         
-        {/* Motivation Letter Viewer */}
+        {/* Motivation Letter Inline Viewer */}
         {application?.files?.motivation_statement && (
-          <MotivationLetterViewer
-            fileUrl={application.files.motivation_statement}
-            fileName="Motivation Statement"
-            className="w-full"
-          />
+          <div>
+            <h3 className="text-lg font-medium mb-4">Motivation Statement</h3>
+            <InlineDocumentViewer
+              fileUrl={application.files.motivation_statement}
+              fileName="Motivation Statement"
+              className="w-full"
+            />
+          </div>
+        )}
+        
+        {/* PHF Data Summary (if available) */}
+        {application.phf_data && (
+          <div>
+            <h3 className="text-lg font-medium mb-4">PHF Data Summary</h3>
+            <PHFInlineViewer 
+              phfData={application.phf_data}
+              className="w-full"
+            />
+          </div>
         )}
         
         <PHFManager
@@ -302,22 +322,16 @@ export default function ApplicationDetail() {
         {application?.files && Object.keys(application.files).length > 0 && (
           <div>
             <h3 className="text-lg font-medium mb-4">Other Application Files</h3>
-            <div className="space-y-2">
+            <div className="space-y-4">
               {Object.entries(application.files)
-                .filter(([key]) => key !== 'motivation_statement') // Already shown above
+                .filter(([key]) => !['phf_document', 'motivation_statement'].includes(key)) // Already shown above
                 .map(([key, filePath]) => (
-                <div key={key} className="flex items-center justify-between p-2 border rounded">
-                  <div className="flex items-center space-x-2">
-                    <FileText className="w-4 h-4" />
-                    <span className="capitalize">{key.replace('_', ' ')}</span>
-                  </div>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={filePath as string} target="_blank" rel="noopener noreferrer">
-                      <Download className="w-3 h-3 mr-1" />
-                      Download
-                    </a>
-                  </Button>
-                </div>
+                <InlineDocumentViewer
+                  key={key}
+                  fileUrl={filePath as string}
+                  fileName={key.replace('_', ' ')}
+                  className="w-full"
+                />
               ))}
             </div>
           </div>
