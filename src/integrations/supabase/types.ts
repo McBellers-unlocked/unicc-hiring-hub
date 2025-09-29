@@ -649,6 +649,8 @@ export type Database = {
           search_term: string | null
           types: Json | null
           updated_at: string
+          verification_token: string | null
+          verified: boolean | null
         }
         Insert: {
           categories?: Json | null
@@ -660,6 +662,8 @@ export type Database = {
           search_term?: string | null
           types?: Json | null
           updated_at?: string
+          verification_token?: string | null
+          verified?: boolean | null
         }
         Update: {
           categories?: Json | null
@@ -671,6 +675,8 @@ export type Database = {
           search_term?: string | null
           types?: Json | null
           updated_at?: string
+          verification_token?: string | null
+          verified?: boolean | null
         }
         Relationships: []
       }
