@@ -60,7 +60,13 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
 
   // For manually entered applications, prioritize phf_data over candidates table
   const workExperienceData = application.source === 'manual_entry' && application.phf_data?.work_experience
-    ? application.phf_data.work_experience
+    ? application.phf_data.work_experience.map((work: any) => ({
+        title: work.jobTitle || work.title,
+        company: work.organization || work.company,
+        start_date: work.startDate || work.start_date,
+        end_date: work.isCurrent ? null : (work.endDate || work.end_date),
+        is_present: work.isCurrent || work.is_present
+      }))
     : application.candidate.work_experience;
 
   const getStatusBadge = (status: string) => {
@@ -257,19 +263,7 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
               <span className="font-medium text-sm">Total Experience:</span>
             </div>
             <div className="text-lg font-semibold text-primary">
-              {(() => {
-                console.log('=== TOTAL EXPERIENCE DEBUG ===');
-                console.log('Application ID:', application.id);
-                console.log('Candidate Name:', application.candidate.name);
-                console.log('Source:', application.source);
-                console.log('WorkExperienceData:', workExperienceData);
-                console.log('Candidate work_experience:', application.candidate.work_experience);
-                console.log('PHF work_experience:', application.phf_data?.work_experience);
-                const result = getTotalExperience(workExperienceData, application.candidate.years_of_experience);
-                console.log('Total Experience Result:', result);
-                console.log('===========================');
-                return result;
-              })()}
+              {getTotalExperience(workExperienceData, application.candidate.years_of_experience)}
             </div>
           </div>
         </div>
