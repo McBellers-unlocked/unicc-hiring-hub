@@ -914,10 +914,11 @@ export default function JobRequisitionForm() {
                         <MDEditor
                           value={field.value}
                           onChange={(val) => field.onChange(val || "")}
-                          preview="edit"
+                          preview="live"
                           hideToolbar={false}
                           data-color-mode="light"
                           className="[&_.w-md-editor-text]:placeholder-shown:bg-muted/20"
+                          visibleDragbar={false}
                         />
                         {field.value.includes('[SUPERVISOR TITLE]') && (
                           <div className="absolute top-2 right-2 z-10">
