@@ -914,7 +914,7 @@ export default function JobRequisitionForm() {
                         <MDEditor
                           value={field.value}
                           onChange={(val) => field.onChange(val || "")}
-                          preview="live"
+                          preview="preview"
                           hideToolbar={false}
                           data-color-mode="light"
                           className="[&_.w-md-editor-text]:placeholder-shown:bg-muted/20"
