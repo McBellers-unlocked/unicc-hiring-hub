@@ -162,3 +162,38 @@ All colors MUST be HSL.
 .react-datepicker__year-option--selected {
   @apply bg-primary text-primary-foreground !important;
 }
+
+/* MDEditor markdown list styling */
+.w-md-editor-text ul {
+  list-style-type: disc !important;
+  padding-left: 1.5rem !important;
+  margin: 0.5rem 0 !important;
+}
+
+.w-md-editor-text ol {
+  list-style-type: decimal !important;
+  padding-left: 1.5rem !important;
+  margin: 0.5rem 0 !important;
+}
+
+.w-md-editor-text li {
+  margin: 0.25rem 0 !important;
+  display: list-item !important;
+}
+
+.w-md-editor-preview ul {
+  list-style-type: disc !important;
+  padding-left: 1.5rem !important;
+  margin: 0.5rem 0 !important;
+}
+
+.w-md-editor-preview ol {
+  list-style-type: decimal !important;
+  padding-left: 1.5rem !important;
+  margin: 0.5rem 0 !important;
+}
+
+.w-md-editor-preview li {
+  margin: 0.25rem 0 !important;
+  display: list-item !important;
+}
