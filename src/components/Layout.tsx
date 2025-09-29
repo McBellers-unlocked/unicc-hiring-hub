@@ -2,7 +2,14 @@ import { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText, ChevronDown, Building, FileCheck } from 'lucide-react';
 import { UNICCLogo } from '@/components/UNICCLogo';
 
 interface LayoutProps {
@@ -35,79 +42,104 @@ export const Layout = ({ children }: LayoutProps) => {
               </Link>
               
               {user && (
-                <nav className="hidden md:flex space-x-4 ml-8">
-                  <Link to="/jobs" className="hover:text-accent transition-colors">
-                    <Briefcase className="w-4 h-4 inline mr-1" />
+                <nav className="hidden md:flex items-center space-x-6 ml-8">
+                  <Link to="/jobs" className="flex items-center hover:text-accent transition-colors py-2">
+                    <Briefcase className="w-4 h-4 mr-1" />
                     Jobs
                   </Link>
                   
                   {(isAdmin || isHR || isHiringManager) && (
-                    <Link to="/requisitions" className="hover:text-accent transition-colors">
-                      <FileText className="w-4 h-4 inline mr-1" />
-                      PD Pipeline
-                    </Link>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="flex items-center hover:text-accent transition-colors py-2 focus:outline-none">
+                        <Building className="w-4 h-4 mr-1" />
+                        Pipeline
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="bg-popover border border-border shadow-lg">
+                        <DropdownMenuItem asChild>
+                          <Link to="/requisitions" className="flex items-center w-full">
+                            <FileText className="w-4 h-4 mr-2" />
+                            PD Pipeline
+                          </Link>
+                        </DropdownMenuItem>
+                        {(isAdmin || isHR) && (
+                          <DropdownMenuItem asChild>
+                            <Link to="/admin/requisitions" className="flex items-center w-full">
+                              <FileCheck className="w-4 h-4 mr-2" />
+                              Manage PD Pipeline
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
                   
-                   {(isAdmin || isHR) && (
-                     <Link to="/admin/jobs" className="hover:text-accent transition-colors">
-                       <Settings className="w-4 h-4 inline mr-1" />
-                       Manage Jobs
-                     </Link>
-                   )}
-                   
-                   {(isAdmin || isHR) && (
-                     <Link to="/admin/phf-import" className="hover:text-accent transition-colors">
-                       <FileText className="w-4 h-4 inline mr-1" />
-                       PHF Import
-                     </Link>
-                   )}
-                  
                   {(isAdmin || isHR) && (
-                    <Link to="/admin/requisitions" className="hover:text-accent transition-colors">
-                      <FileText className="w-4 h-4 inline mr-1" />
-                      Manage PD Pipeline
-                    </Link>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="flex items-center hover:text-accent transition-colors py-2 focus:outline-none">
+                        <Settings className="w-4 h-4 mr-1" />
+                        Manage
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="bg-popover border border-border shadow-lg">
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/jobs" className="flex items-center w-full">
+                            <Briefcase className="w-4 h-4 mr-2" />
+                            Manage Jobs
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/phf-import" className="flex items-center w-full">
+                            <FileText className="w-4 h-4 mr-2" />
+                            PHF Import
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link to="/users" className="flex items-center w-full">
+                            <Users className="w-4 h-4 mr-2" />
+                            Users
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/analytics" className="flex items-center w-full">
+                            <BarChart3 className="w-4 h-4 mr-2" />
+                            Analytics
+                          </Link>
+                        </DropdownMenuItem>
+                        {isAdmin && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                              <Link to="/settings" className="flex items-center w-full">
+                                <Settings className="w-4 h-4 mr-2" />
+                                Settings
+                              </Link>
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
                   
                   {(isAdmin || isHR || isHiringManager || isPanelMember) && (
-                    <Link to="/applications" className="hover:text-accent transition-colors">
-                      <UserCheck className="w-4 h-4 inline mr-1" />
+                    <Link to="/applications" className="flex items-center hover:text-accent transition-colors py-2">
+                      <UserCheck className="w-4 h-4 mr-1" />
                       Applications
                     </Link>
                   )}
                   
                   {isCandidate && (
-                    <Link to="/my-applications" className="hover:text-accent transition-colors">
-                      <UserCheck className="w-4 h-4 inline mr-1" />
+                    <Link to="/my-applications" className="flex items-center hover:text-accent transition-colors py-2">
+                      <UserCheck className="w-4 h-4 mr-1" />
                       My Applications
                     </Link>
                   )}
-                  
-                  {(isAdmin || isHR) && (
-                    <Link to="/users" className="hover:text-accent transition-colors">
-                      <Users className="w-4 h-4 inline mr-1" />
-                      Users
-                    </Link>
-                   )}
-                   
-                   {(isAdmin || isHR) && (
-                     <Link to="/analytics" className="hover:text-accent transition-colors">
-                       <BarChart3 className="w-4 h-4 inline mr-1" />
-                       Analytics
-                     </Link>
-                   )}
-                   
-                   {isAdmin && (
-                     <Link to="/settings" className="hover:text-accent transition-colors">
-                       <Settings className="w-4 h-4 inline mr-1" />
-                       Settings
-                     </Link>
-                   )}
                 </nav>
               )}
             </div>
             
-            <div className="flex items-center space-x-4">{/* rest of header content */}
+            <div className="flex items-center space-x-4 ml-auto">{/* rest of header content */}
               {user ? (
                 <div className="flex items-center space-x-4">
                   <span className="text-sm">
