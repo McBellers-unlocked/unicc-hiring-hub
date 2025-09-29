@@ -1492,6 +1492,10 @@ export type Database = {
         Args: { job_id: string; user_id: string }
         Returns: boolean
       }
+      is_panelist_for_interview: {
+        Args: { _interview_id: string; _user_id: string }
+        Returns: boolean
+      }
       log_email_sent: {
         Args: {
           p_actor_id: string

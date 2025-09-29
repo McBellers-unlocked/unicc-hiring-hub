@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FileText, Download, Eye, Search, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import DOMPurify from 'dompurify';
 
 interface DocumentViewerProps {
   fileUrl: string;
@@ -79,7 +80,12 @@ export const DocumentViewer = ({ fileUrl, fileName, fileType, className }: Docum
   const highlightSearchTerm = (text: string, term: string) => {
     if (!term) return text;
     const regex = new RegExp(`(${term})`, 'gi');
-    return text.replace(regex, '<mark class="bg-yellow-200">$1</mark>');
+    const highlighted = text.replace(regex, '<mark class="bg-yellow-200">$1</mark>');
+    // Sanitize the HTML to prevent XSS attacks
+    return DOMPurify.sanitize(highlighted, { 
+      ALLOWED_TAGS: ['mark'], 
+      ALLOWED_ATTR: ['class'] 
+    });
   };
 
   const getFilteredContent = () => {

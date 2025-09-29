@@ -10,6 +10,7 @@ import { ArrowLeft, MapPin, Calendar, Briefcase, Users, ExternalLink, Share2 } f
 import { formatDistanceToNow, format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import ReactMarkdown from 'react-markdown';
 
 interface Job {
   id: string;
@@ -405,17 +406,21 @@ export default function JobDetail() {
                     <CardTitle>Job Description</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div 
-                      className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ 
-                        __html: job.description_md
-                          .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline; display: block; margin: 12px 0 4px 0;">$1</strong>')
-                          .replace(/^-\s*/gm, '• ')
-                          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                          .replace(/\n\n/g, '<br>')
-                          .replace(/\n/g, '<br>') 
-                      }}
-                    />
+                    <div className="prose prose-sm max-w-none">
+                      <ReactMarkdown 
+                        components={{
+                          h1: ({ children }) => <h1 className="text-lg font-semibold mb-2 border-b pb-1">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-base font-semibold mb-2 border-b pb-1">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-sm font-semibold mb-1">{children}</h3>,
+                          ul: ({ children }) => <ul className="list-disc ml-4 space-y-1">{children}</ul>,
+                          li: ({ children }) => <li className="text-sm">{children}</li>,
+                          p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                        }}
+                      >
+                        {job.description_md}
+                      </ReactMarkdown>
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -426,17 +431,21 @@ export default function JobDetail() {
                     <CardTitle>Requirements</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div 
-                      className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ 
-                        __html: job.requirements_md
-                          .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline; display: block; margin: 12px 0 4px 0;">$1</strong>')
-                          .replace(/^-\s*/gm, '• ')
-                          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                          .replace(/\n\n/g, '<br>')
-                          .replace(/\n/g, '<br>') 
-                      }}
-                    />
+                    <div className="prose prose-sm max-w-none">
+                      <ReactMarkdown 
+                        components={{
+                          h1: ({ children }) => <h1 className="text-lg font-semibold mb-2 border-b pb-1">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-base font-semibold mb-2 border-b pb-1">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-sm font-semibold mb-1">{children}</h3>,
+                          ul: ({ children }) => <ul className="list-disc ml-4 space-y-1">{children}</ul>,
+                          li: ({ children }) => <li className="text-sm">{children}</li>,
+                          p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                        }}
+                      >
+                        {job.requirements_md}
+                      </ReactMarkdown>
+                    </div>
                   </CardContent>
                 </Card>
               )}

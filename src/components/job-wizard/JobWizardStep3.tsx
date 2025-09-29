@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { JobFormData } from '@/pages/JobWizard';
 import { useToast } from '@/hooks/use-toast';
 import MDEditor from '@uiw/react-md-editor';
+import ReactMarkdown from 'react-markdown';
 import '@uiw/react-md-editor/markdown-editor.css';
 
 interface Props {
@@ -139,16 +140,18 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
           <Label className="text-base font-medium">Language Requirements</Label>
           {languageContent ? (
             <div className="p-4 bg-muted/20 rounded-lg">
-              <div 
-                className="prose prose-sm max-w-none text-foreground"
-                dangerouslySetInnerHTML={{ 
-                  __html: languageContent
-                    .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline;">$1</strong>')
-                    .replace(/^-\s*/gm, '• ')
-                    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\n/g, '<br>') 
+              <ReactMarkdown 
+                components={{
+                  h1: ({ children }) => <h1 className="text-base font-semibold mb-2 underline">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-sm font-semibold mb-1 underline">{children}</h2>,
+                  ul: ({ children }) => <ul className="list-disc ml-4 space-y-1">{children}</ul>,
+                  li: ({ children }) => <li className="text-sm">{children}</li>,
+                  p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>
                 }}
-              />
+              >
+                {languageContent}
+              </ReactMarkdown>
             </div>
           ) : (
             <p className="text-muted-foreground text-sm italic p-4 border rounded-lg">
@@ -162,16 +165,18 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
           <Label className="text-base font-medium">Competencies</Label>
           {competenciesContent ? (
             <div className="p-4 bg-muted/20 rounded-lg">
-              <div 
-                className="prose prose-sm max-w-none text-foreground"
-                dangerouslySetInnerHTML={{ 
-                  __html: competenciesContent
-                    .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline;">$1</strong>')
-                    .replace(/^-\s*/gm, '• ')
-                    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\n/g, '<br>') 
+              <ReactMarkdown 
+                components={{
+                  h1: ({ children }) => <h1 className="text-base font-semibold mb-2 underline">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-sm font-semibold mb-1 underline">{children}</h2>,
+                  ul: ({ children }) => <ul className="list-disc ml-4 space-y-1">{children}</ul>,
+                  li: ({ children }) => <li className="text-sm">{children}</li>,
+                  p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>
                 }}
-              />
+              >
+                {competenciesContent}
+              </ReactMarkdown>
             </div>
           ) : (
             <p className="text-muted-foreground text-sm italic p-4 border rounded-lg">
