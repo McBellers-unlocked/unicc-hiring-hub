@@ -5,14 +5,69 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, ExternalLink, ZoomIn, ZoomOut, Loader2, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { FileText, Download, ExternalLink, ZoomIn, ZoomOut, Loader2, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-// Properly disable PDF.js worker by setting workerPort to null
-// This forces PDF.js to run on the main thread instead of trying to create a worker
-pdfjs.GlobalWorkerOptions.workerPort = null;
+// Configure PDF.js worker for fallback
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
-console.log('PDF.js worker properly disabled - will use main thread rendering');
+console.log('ReliableDocumentViewer loaded with iframe-first approach');
+
+interface IframePDFViewerProps {
+  fileUrl: string;
+  fileName: string;
+  onLoadError: () => void;
+}
+
+const IframePDFViewer: React.FC<IframePDFViewerProps> = ({ fileUrl, fileName, onLoadError }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  const getProxyUrl = (originalUrl: string) => {
+    const urlParts = originalUrl.split('/');
+    const bucketIndex = urlParts.findIndex(part => part === 'application-files');
+    if (bucketIndex === -1) return originalUrl;
+    
+    const filePath = urlParts.slice(bucketIndex + 1).join('/');
+    return `https://cxpnvbphjpntrvvgjhli.supabase.co/functions/v1/file-proxy?path=${encodeURIComponent(filePath)}`;
+  };
+
+  const handleIframeLoad = () => {
+    setIsLoading(false);
+  };
+
+  const handleIframeError = () => {
+    console.log('Iframe PDF viewer failed, falling back to PDF.js');
+    setHasError(true);
+    setIsLoading(false);
+    onLoadError();
+  };
+
+  if (hasError) {
+    return null; // Let parent handle fallback
+  }
+
+  return (
+    <div className="relative w-full h-full">
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Loading PDF...
+          </div>
+        </div>
+      )}
+      <iframe
+        src={getProxyUrl(fileUrl)}
+        title={fileName}
+        className="w-full h-full border-0"
+        onLoad={handleIframeLoad}
+        onError={handleIframeError}
+        style={{ minHeight: '600px' }}
+      />
+    </div>
+  );
+};
 
 interface ReactPDFViewerProps {
   pdfData: ArrayBuffer | null;
@@ -149,12 +204,12 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
   className 
 }) => {
   const [loading, setLoading] = useState(false);
+  const [viewerMode, setViewerMode] = useState<'iframe' | 'pdfjs' | 'fallback'>('iframe');
   const [currentPage, setCurrentPage] = useState(1);
   const [scale, setScale] = useState(1.0);
   const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
   const [numPages, setNumPages] = useState<number>(0);
-  const [hasError, setHasError] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
+  const [browserSupportsIframe, setBrowserSupportsIframe] = useState(true);
   
   const detectFileType = (): 'pdf' | 'docx' | 'doc' | 'txt' => {
     if (fileType) return fileType;
@@ -167,8 +222,21 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
 
   const currentFileType = detectFileType();
 
+  // Detect browser capabilities
+  useEffect(() => {
+    // Simple check for browser PDF support
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isModernBrowser = !userAgent.includes('ie') && 
+                           !userAgent.includes('edge/') && 
+                           (userAgent.includes('chrome') || userAgent.includes('firefox') || userAgent.includes('safari'));
+    setBrowserSupportsIframe(isModernBrowser);
+    
+    if (!isModernBrowser) {
+      setViewerMode('pdfjs'); // Skip iframe for older browsers
+    }
+  }, []);
+
   const getProxyUrl = (originalUrl: string) => {
-    // Extract the file path from the Supabase storage URL
     const urlParts = originalUrl.split('/');
     const bucketIndex = urlParts.findIndex(part => part === 'application-files');
     if (bucketIndex === -1) return originalUrl;
@@ -177,23 +245,16 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
     return `https://cxpnvbphjpntrvvgjhli.supabase.co/functions/v1/file-proxy?path=${encodeURIComponent(filePath)}`;
   };
 
-  // Load PDF data when component mounts or fileUrl changes
+  // Load PDF data for PDF.js fallback
   useEffect(() => {
-    if (currentFileType === 'pdf') {
+    if (currentFileType === 'pdf' && viewerMode === 'pdfjs') {
       loadPdfData();
     }
-  }, [fileUrl, currentFileType, retryCount]);
-
-  const retryPdfLoad = () => {
-    console.log('Retrying PDF load...');
-    setHasError(false);
-    setRetryCount(prev => prev + 1);
-  };
+  }, [fileUrl, currentFileType, viewerMode]);
 
   const loadPdfData = async () => {
     setLoading(true);
-    setHasError(false);
-    console.log('Starting PDF data load for:', fileUrl);
+    console.log('Loading PDF data for PDF.js fallback');
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -202,8 +263,6 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
       }
 
       const proxyUrl = getProxyUrl(fileUrl);
-      console.log('Loading PDF from:', proxyUrl);
-      
       const response = await fetch(proxyUrl, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -211,22 +270,29 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
       });
 
       if (!response.ok) {
-        console.error('Failed to load PDF:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('Error details:', errorText);
         throw new Error(`Failed to load PDF: ${response.statusText}`);
       }
 
       const arrayBuffer = await response.arrayBuffer();
-      console.log('PDF ArrayBuffer loaded successfully, size:', arrayBuffer.byteLength);
+      console.log('PDF ArrayBuffer loaded for PDF.js, size:', arrayBuffer.byteLength);
       setPdfData(arrayBuffer);
       
     } catch (error) {
-      console.error('Failed to load PDF data:', error);
-      setHasError(true);
+      console.error('Failed to load PDF data for PDF.js:', error);
+      setViewerMode('fallback');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleIframeError = () => {
+    console.log('Iframe viewer failed, switching to PDF.js');
+    setViewerMode('pdfjs');
+  };
+
+  const handlePDFJSError = () => {
+    console.log('PDF.js viewer failed, switching to fallback mode');
+    setViewerMode('fallback');
   };
 
   const handleDownload = async () => {
@@ -239,8 +305,6 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
       }
 
       const proxyUrl = getProxyUrl(fileUrl);
-      console.log('Downloading file from:', proxyUrl);
-      
       const response = await fetch(proxyUrl, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -248,9 +312,6 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
       });
 
       if (!response.ok) {
-        console.error('Download failed:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('Error details:', errorText);
         throw new Error(`Failed to download file: ${response.statusText}`);
       }
 
@@ -271,81 +332,92 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
   };
 
   const handleViewInNewTab = async () => {
-    setLoading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.error('No session found');
-        return;
-      }
+    window.open(getProxyUrl(fileUrl), '_blank');
+  };
 
-      const proxyUrl = getProxyUrl(fileUrl);
-      console.log('Opening file from:', proxyUrl);
-      
-      // Create a form to POST the authorization data for viewing
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = proxyUrl;
-      form.target = '_blank';
-      
-      const tokenInput = document.createElement('input');
-      tokenInput.type = 'hidden';
-      tokenInput.name = 'token';
-      tokenInput.value = session.access_token;
-      form.appendChild(tokenInput);
-      
-      document.body.appendChild(form);
-      form.submit();
-      document.body.removeChild(form);
-    } catch (error) {
-      console.error('View failed:', error);
-    } finally {
-      setLoading(false);
+  const renderPDFContent = () => {
+    if (currentFileType !== 'pdf') return null;
+
+    // Progressive enhancement: iframe -> PDF.js -> fallback
+    switch (viewerMode) {
+      case 'iframe':
+        return (
+          <div className="relative bg-background" style={{ height: '600px' }}>
+            <IframePDFViewer
+              fileUrl={fileUrl}
+              fileName={fileName}
+              onLoadError={handleIframeError}
+            />
+          </div>
+        );
+
+      case 'pdfjs':
+        return (
+          <div className="relative bg-background" style={{ height: '600px' }}>
+            <ReactPDFViewer
+              pdfData={pdfData}
+              fileName={fileName}
+              scale={scale}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+              onLoadSuccess={(pdf) => {
+                setNumPages(pdf.numPages);
+              }}
+              onLoadError={handlePDFJSError}
+            />
+            {loading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+                <Loader2 className="w-8 h-8 animate-spin" />
+              </div>
+            )}
+          </div>
+        );
+
+      case 'fallback':
+      default:
+        return (
+          <div className="relative bg-muted/20" style={{ height: '600px' }}>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center max-w-md">
+                <div className="w-20 h-24 mx-auto mb-6 bg-destructive/10 rounded-lg flex items-center justify-center">
+                  <AlertTriangle className="w-12 h-12 text-destructive" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">PDF Viewer Unavailable</h3>
+                <p className="text-muted-foreground mb-4">
+                  This PDF cannot be displayed in your browser. Please download the file or open it in a new tab to view it.
+                </p>
+                <div className="flex justify-center gap-3">
+                  <Button 
+                    onClick={handleViewInNewTab} 
+                    className="flex items-center gap-2"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Open in New Tab
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleDownload} 
+                    className="flex items-center gap-2"
+                    disabled={loading}
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                    Download
+                  </Button>
+                </div>
+                <div className="mt-4 p-3 bg-muted rounded-lg text-xs text-muted-foreground">
+                  <p className="mb-1"><strong>Troubleshooting:</strong></p>
+                  <p>• Try using Chrome, Firefox, or Safari</p>
+                  <p>• Check if your browser allows PDF viewing</p>
+                  <p>• Disable browser extensions that might block PDFs</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
     }
   };
 
   const renderPDFViewer = () => {
-    console.log('Rendering PDF viewer - hasError:', hasError, 'pdfData:', pdfData ? 'loaded' : 'null', 'loading:', loading);
-    
-    if (hasError) {
-      return (
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className="flex items-center justify-between p-3 bg-muted border-b">
-            <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              <span className="text-sm font-medium">{fileName}</span>
-              <Badge variant="outline">PDF</Badge>
-            </div>
-          </div>
-          <div className="relative bg-background" style={{ height: '600px' }}>
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-sm text-muted-foreground mb-2">Unable to display PDF</p>
-                <p className="text-xs text-muted-foreground mb-4">
-                  PDF worker failed to load. Try using a different CDN.
-                </p>
-                <Button 
-                  onClick={retryPdfLoad} 
-                  variant="outline" 
-                  size="sm"
-                  className="mb-2"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Try Again
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  You can still download the file using the buttons above
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    console.log('About to render ReactPDFViewer with pdfData:', pdfData ? `ArrayBuffer(${pdfData.byteLength})` : 'null');
-    
     return (
       <div className="border border-border rounded-lg overflow-hidden">
         <div className="flex items-center justify-between p-3 bg-muted border-b">
@@ -354,51 +426,30 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
             <span className="text-sm font-medium">{fileName}</span>
             <Badge variant="outline">PDF</Badge>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setScale(Math.max(0.5, scale - 0.1))}
-              disabled={scale <= 0.5}
-            >
-              <ZoomOut className="w-4 h-4" />
-            </Button>
-            <span className="text-sm">{Math.round(scale * 100)}%</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setScale(Math.min(2.0, scale + 0.1))}
-              disabled={scale >= 2.0}
-            >
-              <ZoomIn className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-        
-        <div className="relative bg-background" style={{ height: '600px' }}>
-          <ReactPDFViewer
-            pdfData={pdfData}
-            fileName={fileName}
-            scale={scale}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            onLoadSuccess={(pdf) => {
-              console.log('PDF loaded successfully in parent component:', pdf);
-              setNumPages(pdf.numPages);
-              setLoading(false);
-            }}
-            onLoadError={(error) => {
-              console.error('React-PDF error:', error);
-              setHasError(true);
-              setLoading(false);
-            }}
-          />
-          {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
-              <Loader2 className="w-8 h-8 animate-spin" />
+          {viewerMode === 'pdfjs' && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setScale(Math.max(0.5, scale - 0.1))}
+                disabled={scale <= 0.5}
+              >
+                <ZoomOut className="w-4 h-4" />
+              </Button>
+              <span className="text-sm">{Math.round(scale * 100)}%</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setScale(Math.min(2.0, scale + 0.1))}
+                disabled={scale >= 2.0}
+              >
+                <ZoomIn className="w-4 h-4" />
+              </Button>
             </div>
           )}
         </div>
+        
+        {renderPDFContent()}
       </div>
     );
   };
