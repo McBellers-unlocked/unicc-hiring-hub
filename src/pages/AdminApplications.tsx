@@ -567,30 +567,37 @@ export default function AdminApplications() {
 
   const addToLonglist = async (applicationIds: string[], reason?: string) => {
     try {
+      // Get current user
+      const { data: user } = await supabase.auth.getUser();
+      const currentUserId = user?.user?.id;
+
       // For single application, toggle the status
       if (applicationIds.length === 1) {
         const currentApp = applications.find(app => app.id === applicationIds[0]);
         const isCurrentlyLonglisted = currentApp?.suggested_for_longlist;
         
+        const newStatus = isCurrentlyLonglisted ? 'Application' : 'Longlist';
+        
         const { error } = await supabase
           .from('applications')
           .update({ 
             suggested_for_longlist: !isCurrentlyLonglisted,
-            status: isCurrentlyLonglisted ? 'Application' : 'Longlist'
+            status: newStatus
           })
           .eq('id', applicationIds[0]);
 
         if (error) throw error;
 
-        // Log stage change with reason if provided
-        if (reason) {
+        // Log stage change with reason and proper user attribution
+        if (currentUserId) {
           await supabase
             .from('stage_events')
             .insert({
               application_id: applicationIds[0],
               from_stage: currentApp?.status as any,
-              to_stage: (isCurrentlyLonglisted ? 'Application' : 'Longlist') as any,
-              reason
+              to_stage: newStatus as any,
+              by_user: currentUserId,
+              reason: reason || null
             });
         }
 
@@ -604,10 +611,28 @@ export default function AdminApplications() {
         // For multiple applications, just add them to longlist
         const { error } = await supabase
           .from('applications')
-          .update({ suggested_for_longlist: true })
+          .update({ suggested_for_longlist: true, status: 'Longlist' })
           .in('id', applicationIds);
 
         if (error) throw error;
+
+        // Log stage changes for bulk operations
+        if (currentUserId) {
+          const stageEvents = applicationIds.map(appId => {
+            const currentApp = applications.find(app => app.id === appId);
+            return {
+              application_id: appId,
+              from_stage: currentApp?.status as any,
+              to_stage: 'Longlist' as any,
+              by_user: currentUserId,
+              reason: reason || 'Bulk longlist operation'
+            };
+          });
+
+          await supabase
+            .from('stage_events')
+            .insert(stageEvents);
+        }
 
         toast({
           title: "Success",
@@ -629,12 +654,34 @@ export default function AdminApplications() {
 
   const removeFromLonglist = async (applicationIds: string[]) => {
     try {
+      // Get current user
+      const { data: user } = await supabase.auth.getUser();
+      const currentUserId = user?.user?.id;
+
       const { error } = await supabase
         .from('applications')
-        .update({ suggested_for_longlist: false })
+        .update({ suggested_for_longlist: false, status: 'Application' })
         .in('id', applicationIds);
 
       if (error) throw error;
+
+      // Log stage changes for bulk operations with proper user attribution
+      if (currentUserId) {
+        const stageEvents = applicationIds.map(appId => {
+          const currentApp = applications.find(app => app.id === appId);
+          return {
+            application_id: appId,
+            from_stage: currentApp?.status as any,
+            to_stage: 'Application' as any,
+            by_user: currentUserId,
+            reason: 'Bulk removal from longlist'
+          };
+        });
+
+        await supabase
+          .from('stage_events')
+          .insert(stageEvents);
+      }
 
       toast({
         title: "Success",
@@ -655,6 +702,10 @@ export default function AdminApplications() {
 
   const directShortlist = async (applicationId: string, reason?: string) => {
     try {
+      // Get current user
+      const { data: user } = await supabase.auth.getUser();
+      const currentUserId = user?.user?.id;
+
       // Find the current application to check its status
       const currentApp = applications.find(app => app.id === applicationId);
       const isCurrentlyShortlisted = currentApp?.status === 'Shortlist';
@@ -678,15 +729,16 @@ export default function AdminApplications() {
 
       if (error) throw error;
 
-      // Log stage change with reason
-      if (reason) {
+      // Log stage change with reason and proper user attribution
+      if (currentUserId) {
         await supabase
           .from('stage_events')
           .insert({
             application_id: applicationId,
             from_stage: currentApp?.status as any,
             to_stage: newStatus as any,
-            reason
+            by_user: currentUserId,
+            reason: reason || null
           });
       }
 
@@ -713,6 +765,10 @@ export default function AdminApplications() {
 
   const rejectApplication = async (applicationId: string, reason: string) => {
     try {
+      // Get current user
+      const { data: user } = await supabase.auth.getUser();
+      const currentUserId = user?.user?.id;
+
       // Get current application status for logging
       const currentApp = applications.find(app => app.id === applicationId);
       const currentStatus = currentApp?.status;
@@ -728,18 +784,21 @@ export default function AdminApplications() {
 
       if (error) throw error;
 
-      // Log the stage change with provided reason
-      const { error: stageError } = await supabase
-        .from('stage_events')
-        .insert({
-          application_id: applicationId,
-          from_stage: currentStatus as any,
-          to_stage: 'Rejected' as any,
-          reason: reason || 'Rejected by hiring manager'
-        });
+      // Log the stage change with provided reason and proper user attribution
+      if (currentUserId) {
+        const { error: stageError } = await supabase
+          .from('stage_events')
+          .insert({
+            application_id: applicationId,
+            from_stage: currentStatus as any,
+            to_stage: 'Rejected' as any,
+            by_user: currentUserId,
+            reason: reason || 'Rejected by hiring manager'
+          });
 
-      if (stageError) {
-        console.error('Error logging stage change:', stageError);
+        if (stageError) {
+          console.error('Error logging stage change:', stageError);
+        }
       }
 
       toast({
