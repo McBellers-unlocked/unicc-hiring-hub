@@ -45,16 +45,26 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      if (!session) {
+        console.error('No session found');
+        return;
+      }
 
       const proxyUrl = getProxyUrl(fileUrl);
+      console.log('Downloading file from:', proxyUrl);
+      
       const response = await fetch(proxyUrl, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
         },
       });
 
-      if (!response.ok) throw new Error('Failed to download file');
+      if (!response.ok) {
+        console.error('Download failed:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Error details:', errorText);
+        throw new Error(`Failed to download file: ${response.statusText}`);
+      }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -76,12 +86,29 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      if (!session) {
+        console.error('No session found');
+        return;
+      }
 
       const proxyUrl = getProxyUrl(fileUrl);
-      // For viewing, we can pass the auth token as a query parameter
-      const viewUrl = `${proxyUrl}&token=${encodeURIComponent(session.access_token)}`;
-      window.open(viewUrl, '_blank', 'noopener,noreferrer');
+      console.log('Opening file from:', proxyUrl);
+      
+      // Create a form to POST the authorization data for viewing
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = proxyUrl;
+      form.target = '_blank';
+      
+      const tokenInput = document.createElement('input');
+      tokenInput.type = 'hidden';
+      tokenInput.name = 'token';
+      tokenInput.value = session.access_token;
+      form.appendChild(tokenInput);
+      
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
     } catch (error) {
       console.error('View failed:', error);
     } finally {
@@ -92,8 +119,6 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
   const currentFileType = detectFileType();
 
   const renderPDFViewer = () => {
-    const proxyUrl = getProxyUrl(fileUrl);
-    
     return (
       <div className="border border-border rounded-lg overflow-hidden">
         <div className="flex items-center justify-between p-3 bg-muted border-b">
@@ -124,21 +149,36 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
         </div>
         
         <div className="relative bg-background" style={{ height: '600px' }}>
-          <iframe
-            src={proxyUrl}
-            className="w-full h-full border-0"
-            title={fileName}
-            style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}
-            onLoad={() => setLoading(false)}
-            onError={() => {
-              console.error('PDF iframe failed to load, falling back to external view');
-            }}
-          />
-          {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/50">
-              <Loader2 className="w-8 h-8 animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-20 h-24 mx-auto mb-6 bg-primary/10 rounded-lg flex items-center justify-center">
+                <FileText className="w-12 h-12 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">PDF Document</h3>
+              <p className="text-muted-foreground mb-4 max-w-md">
+                Click below to view this PDF document. The document will open in a new tab for the best viewing experience.
+              </p>
+              <div className="flex justify-center gap-3">
+                <Button 
+                  onClick={handleViewInNewTab} 
+                  className="flex items-center gap-2"
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
+                  View PDF
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handleDownload} 
+                  className="flex items-center gap-2"
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  Download
+                </Button>
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     );

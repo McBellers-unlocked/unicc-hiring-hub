@@ -23,20 +23,29 @@ serve(async (req) => {
       });
     }
 
-    // Verify user has access (check authorization header)
+    console.log(`📄 File proxy request for: ${filePath}`);
+
+    // Get auth token from header or form data
+    let authToken = '';
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response('Unauthorized', { 
+    
+    if (authHeader) {
+      authToken = authHeader.replace('Bearer ', '');
+    } else if (req.method === 'POST') {
+      // Handle form submission with token
+      const formData = await req.formData();
+      authToken = formData.get('token') as string;
+    }
+
+    if (!authToken) {
+      console.log('❌ No authorization token provided');
+      return new Response('Unauthorized - No token provided', { 
         status: 401,
         headers: corsHeaders 
       });
     }
 
-    // Create Supabase client with service role key for storage access
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    console.log(`🔐 Authenticating request with token: ${authToken.substring(0, 20)}...`);
 
     // Verify the user token is valid
     const userSupabase = createClient(
@@ -44,18 +53,23 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
     
-    const { data: { user }, error: authError } = await userSupabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const { data: { user }, error: authError } = await userSupabase.auth.getUser(authToken);
 
     if (authError || !user) {
+      console.log('❌ Invalid authorization:', authError?.message);
       return new Response('Invalid authorization', { 
         status: 401,
         headers: corsHeaders 
       });
     }
 
-    console.log(`🔐 Authenticated user ${user.email} requesting file: ${filePath}`);
+    console.log(`✅ Authenticated user: ${user.email}`);
+
+    // Create Supabase client with service role key for storage access
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
     // Download the file from storage using service role
     const { data: fileData, error: downloadError } = await supabase.storage
@@ -71,6 +85,7 @@ serve(async (req) => {
     }
 
     if (!fileData) {
+      console.log('❌ File data is null');
       return new Response('File not found', { 
         status: 404,
         headers: corsHeaders 
