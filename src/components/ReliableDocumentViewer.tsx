@@ -13,26 +13,63 @@ interface PDFIframeProps {
 }
 
 const PDFIframe: React.FC<PDFIframeProps> = ({ blobUrl, fileName, scale, onLoad }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
   if (!blobUrl) {
     return <div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin" /></div>;
   }
 
+  const handleLoad = () => {
+    console.log('PDF iframe loaded successfully');
+    setIsLoading(false);
+    onLoad();
+  };
+
+  const handleError = () => {
+    console.error('PDF iframe failed to load');
+    setIsLoading(false);
+    setHasError(true);
+  };
+
+  if (hasError) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">Unable to display PDF inline</p>
+          <p className="text-xs text-muted-foreground mt-1">Try opening in a new tab or downloading</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <iframe
-      src={blobUrl}
-      className="w-full h-full border-0"
-      title={fileName}
-      style={{ 
-        transform: `scale(${scale})`, 
-        transformOrigin: 'top left',
-        width: `${100 / scale}%`,
-        height: `${100 / scale}%`
-      }}
-      onLoad={onLoad}
-      onError={() => {
-        console.error('PDF iframe failed to load');
-      }}
-    />
+    <div className="relative w-full h-full">
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Loading PDF...
+          </div>
+        </div>
+      )}
+      <iframe
+        src={blobUrl}
+        className="w-full h-full border-0"
+        title={fileName}
+        style={{ 
+          transform: `scale(${scale})`, 
+          transformOrigin: 'top left',
+          width: `${100 / scale}%`,
+          height: `${100 / scale}%`
+        }}
+        onLoad={handleLoad}
+        onError={handleError}
+        allow="same-origin"
+        sandbox="allow-same-origin allow-scripts allow-popups"
+      />
+    </div>
   );
 };
 
@@ -53,6 +90,7 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [scale, setScale] = useState(1.0);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string>('');
+  const [hasError, setHasError] = useState(false);
   
   const detectFileType = (): 'pdf' | 'docx' | 'doc' | 'txt' => {
     if (fileType) return fileType;
@@ -108,8 +146,17 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
       }
 
       const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      setPdfBlobUrl(blobUrl);
+      console.log('Blob type:', blob.type, 'Size:', blob.size);
+      
+      // Ensure blob is treated as PDF with correct MIME type
+      const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+      const blobUrl = window.URL.createObjectURL(pdfBlob);
+      
+      // Add PDF viewer parameters for better Chrome compatibility
+      const pdfUrl = `${blobUrl}#view=FitH&toolbar=1&navpanes=0`;
+      setPdfBlobUrl(pdfUrl);
+      
+      console.log('PDF blob URL created:', pdfUrl);
     } catch (error) {
       console.error('Failed to load PDF blob:', error);
     } finally {
