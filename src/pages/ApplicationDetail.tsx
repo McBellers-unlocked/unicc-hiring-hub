@@ -17,6 +17,7 @@ import { VideoRatingInterface } from '@/components/VideoRatingInterface';
 import { PanelInterviewScheduler } from '@/components/PanelInterviewScheduler';
 import { PanelInterviewList } from '@/components/PanelInterviewList';
 import { PHFManager } from '@/components/PHFManager';
+import { DocumentViewer } from '@/components/DocumentViewer';
 import { VideoInterviewManager } from '@/components/VideoInterviewManager';
 import { CompactCandidateView } from '@/components/CompactCandidateView';
 import {
@@ -694,7 +695,14 @@ export default function ApplicationDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {application.phf_data?.motivationLetter?.motivation_letter_content ? (
+                {/* Check for uploaded motivation letter files first */}
+                {application.files?.motivation_letter ? (
+                  <DocumentViewer 
+                    fileUrl={application.files.motivation_letter}
+                    fileName="Motivation Letter"
+                    className="mb-6"
+                  />
+                ) : application.phf_data?.motivationLetter?.motivation_letter_content ? (
                   <div className="space-y-4">
                     <div className="prose max-w-none">
                       <div className="bg-gray-50 p-6 rounded-lg border">
