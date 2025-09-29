@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +38,7 @@ const ReactPDFViewer: React.FC<ReactPDFViewerProps> = ({
   }
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    console.log('PDF loaded successfully! Pages:', numPages);
     setNumPages(numPages);
     setIsLoading(false);
     onLoadSuccess({ numPages });
@@ -170,6 +173,7 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
   const loadPdfData = async () => {
     setLoading(true);
     setHasError(false);
+    console.log('Starting PDF data load for:', fileUrl);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -194,7 +198,7 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
       }
 
       const arrayBuffer = await response.arrayBuffer();
-      console.log('PDF ArrayBuffer size:', arrayBuffer.byteLength);
+      console.log('PDF ArrayBuffer loaded successfully, size:', arrayBuffer.byteLength);
       setPdfData(arrayBuffer);
       
     } catch (error) {
@@ -281,6 +285,8 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
   };
 
   const renderPDFViewer = () => {
+    console.log('Rendering PDF viewer - hasError:', hasError, 'pdfData:', pdfData ? 'loaded' : 'null', 'loading:', loading);
+    
     if (hasError) {
       return (
         <div className="border border-border rounded-lg overflow-hidden">
@@ -304,6 +310,8 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
       );
     }
 
+    console.log('About to render ReactPDFViewer with pdfData:', pdfData ? `ArrayBuffer(${pdfData.byteLength})` : 'null');
+    
     return (
       <div className="border border-border rounded-lg overflow-hidden">
         <div className="flex items-center justify-between p-3 bg-muted border-b">
@@ -341,6 +349,7 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
             currentPage={currentPage}
             onPageChange={setCurrentPage}
             onLoadSuccess={(pdf) => {
+              console.log('PDF loaded successfully in parent component:', pdf);
               setNumPages(pdf.numPages);
               setLoading(false);
             }}
