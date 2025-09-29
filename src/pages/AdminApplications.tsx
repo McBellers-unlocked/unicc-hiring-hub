@@ -16,6 +16,7 @@ import { Search, Filter, User, FileText, Calendar, AlertCircle, Trash2, Eye, Che
 import { format } from 'date-fns';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
 import { CandidateApplicationCard } from '@/components/CandidateApplicationCard';
+import { ActionConfirmationDialog } from '@/components/ActionConfirmationDialog';
 
 interface Application {
   id: string;
@@ -69,6 +70,23 @@ export default function AdminApplications() {
   const [educationFilter, setEducationFilter] = useState('all');
   const [experienceFilter, setExperienceFilter] = useState('all');
   const [languageFilter, setLanguageFilter] = useState('all');
+  
+  // Dialog state
+  const [dialogState, setDialogState] = useState<{
+    open: boolean;
+    action: 'longlist' | 'shortlist' | 'reject';
+    applicationId: string;
+    candidateName: string;
+    currentStatus: string;
+    isToggleAction?: boolean;
+  }>({
+    open: false,
+    action: 'longlist',
+    applicationId: '',
+    candidateName: '',
+    currentStatus: '',
+    isToggleAction: false
+  });
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
@@ -547,7 +565,7 @@ export default function AdminApplications() {
     }
   };
 
-  const addToLonglist = async (applicationIds: string[]) => {
+  const addToLonglist = async (applicationIds: string[], reason?: string) => {
     try {
       // For single application, toggle the status
       if (applicationIds.length === 1) {
@@ -563,6 +581,18 @@ export default function AdminApplications() {
           .eq('id', applicationIds[0]);
 
         if (error) throw error;
+
+        // Log stage change with reason if provided
+        if (reason) {
+          await supabase
+            .from('stage_events')
+            .insert({
+              application_id: applicationIds[0],
+              from_stage: currentApp?.status as any,
+              to_stage: (isCurrentlyLonglisted ? 'Application' : 'Longlist') as any,
+              reason
+            });
+        }
 
         toast({
           title: "Success",
@@ -623,7 +653,7 @@ export default function AdminApplications() {
     }
   };
 
-  const directShortlist = async (applicationId: string) => {
+  const directShortlist = async (applicationId: string, reason?: string) => {
     try {
       // Find the current application to check its status
       const currentApp = applications.find(app => app.id === applicationId);
@@ -632,12 +662,14 @@ export default function AdminApplications() {
       // Check if this is the Associate Policy (Legal) Officer job
       const isAssociatePolicyJob = currentApp?.job?.title?.includes('Associate Policy (Legal) Officer');
       
+      const newStatus = isCurrentlyShortlisted 
+        ? (isAssociatePolicyJob ? 'Application' : 'Longlist')  // Move to Application pool for Associate Policy job, otherwise Longlist
+        : 'Shortlist';
+      
       const { error } = await supabase
         .from('applications')
         .update({ 
-          status: isCurrentlyShortlisted 
-            ? (isAssociatePolicyJob ? 'Application' : 'Longlist')  // Move to Application pool for Associate Policy job, otherwise Longlist
-            : 'Shortlist',
+          status: newStatus,
           suggested_for_longlist: isCurrentlyShortlisted 
             ? false  // Remove from longlist when moving back
             : false  // Don't add to longlist when moving to shortlist
@@ -645,6 +677,18 @@ export default function AdminApplications() {
         .eq('id', applicationId);
 
       if (error) throw error;
+
+      // Log stage change with reason
+      if (reason) {
+        await supabase
+          .from('stage_events')
+          .insert({
+            application_id: applicationId,
+            from_stage: currentApp?.status as any,
+            to_stage: newStatus as any,
+            reason
+          });
+      }
 
       toast({
         title: "Success",
@@ -667,7 +711,7 @@ export default function AdminApplications() {
     }
   };
 
-  const rejectApplication = async (applicationId: string) => {
+  const rejectApplication = async (applicationId: string, reason: string) => {
     try {
       // Get current application status for logging
       const currentApp = applications.find(app => app.id === applicationId);
@@ -684,14 +728,14 @@ export default function AdminApplications() {
 
       if (error) throw error;
 
-      // Log the stage change
+      // Log the stage change with provided reason
       const { error: stageError } = await supabase
         .from('stage_events')
         .insert({
           application_id: applicationId,
           from_stage: currentStatus as any,
           to_stage: 'Rejected' as any,
-          reason: 'Rejected by hiring manager'
+          reason: reason || 'Rejected by hiring manager'
         });
 
       if (stageError) {
@@ -711,6 +755,63 @@ export default function AdminApplications() {
         description: "Failed to reject application",
         variant: "destructive",
       });
+    }
+  };
+
+  // Dialog action handlers
+  const handleLonglistAction = (applicationId: string) => {
+    const app = applications.find(a => a.id === applicationId);
+    if (!app) return;
+    
+    setDialogState({
+      open: true,
+      action: 'longlist',
+      applicationId,
+      candidateName: app.candidate.name,
+      currentStatus: app.status,
+      isToggleAction: app.suggested_for_longlist
+    });
+  };
+
+  const handleShortlistAction = (applicationId: string) => {
+    const app = applications.find(a => a.id === applicationId);
+    if (!app) return;
+    
+    setDialogState({
+      open: true,
+      action: 'shortlist',
+      applicationId,
+      candidateName: app.candidate.name,
+      currentStatus: app.status
+    });
+  };
+
+  const handleRejectAction = (applicationId: string) => {
+    const app = applications.find(a => a.id === applicationId);
+    if (!app) return;
+    
+    setDialogState({
+      open: true,
+      action: 'reject',
+      applicationId,
+      candidateName: app.candidate.name,
+      currentStatus: app.status
+    });
+  };
+
+  const handleDialogConfirm = async (reason: string) => {
+    const { action, applicationId } = dialogState;
+    
+    switch (action) {
+      case 'longlist':
+        await addToLonglist([applicationId], reason);
+        break;
+      case 'shortlist':
+        await directShortlist(applicationId, reason);
+        break;
+      case 'reject':
+        await rejectApplication(applicationId, reason);
+        break;
     }
   };
 
@@ -974,9 +1075,9 @@ export default function AdminApplications() {
                        isSelected={selectedApplications.has(application.id)}
                        onToggleSelection={toggleApplicationSelection}
                        onDelete={deleteApplication}
-                       onAddToLonglist={(id) => addToLonglist([id])}
-                       onDirectShortlist={directShortlist}
-                       onReject={rejectApplication}
+                        onAddToLonglist={handleLonglistAction}
+                        onDirectShortlist={handleShortlistAction}
+                        onReject={handleRejectAction}
                        getFlagEmoji={getCountryFromLocation}
                        getEducationSummary={getAllEducationDetails}
                        getWorkExperienceSummary={getRecentWorkExperience}
@@ -990,6 +1091,16 @@ export default function AdminApplications() {
           </Card>
         )}
       </div>
+      
+      <ActionConfirmationDialog
+        open={dialogState.open}
+        onOpenChange={(open) => setDialogState(prev => ({ ...prev, open }))}
+        action={dialogState.action}
+        candidateName={dialogState.candidateName}
+        currentStatus={dialogState.currentStatus}
+        isToggleAction={dialogState.isToggleAction}
+        onConfirm={handleDialogConfirm}
+      />
     </Layout>
   );
 }
