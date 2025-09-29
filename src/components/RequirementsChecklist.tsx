@@ -55,28 +55,33 @@ export function RequirementsChecklist({ applicationId, jobId, phfData, candidate
   const analyzeRequirements = () => {
     const reqs: Requirement[] = [];
 
-    // Education Analysis
+    // Education Analysis - use both PHF data and candidate info
     const educationReqs = extractEducationRequirements(jobRequirements);
-    const candidateEducation = phfData?.education || [];
+    const phfEducation = phfData?.education || [];
+    const candidateEducation = candidateInfo?.education || [];
+    
+    // Combine both education sources
+    const allEducation = [...phfEducation, ...candidateEducation];
     
     educationReqs.forEach(req => {
-      const met = checkEducationRequirement(req, candidateEducation);
+      const met = checkEducationRequirement(req, allEducation);
       reqs.push({
         id: `edu-${req.level}`,
         category: 'education',
         description: `${req.level} degree required`,
         met,
-        evidence: met ? getEducationEvidence(req, candidateEducation) : 'No matching education found',
+        evidence: met ? getEducationEvidence(req, allEducation) : 'No matching education found',
         severity: req.required ? 'must-have' : 'preferred'
       });
     });
 
-    // Experience Analysis
+    // Experience Analysis - use both PHF and candidate work experience
     const experienceReqs = extractExperienceRequirements(jobRequirements);
-    const candidateExperience = phfData?.employment || [];
+    const phfEmployment = phfData?.employment || [];
+    const candidateWorkExperience = candidateInfo?.work_experience || [];
     
     experienceReqs.forEach(req => {
-      const { met, evidence } = checkExperienceRequirement(req, candidateExperience);
+      const { met, evidence } = checkExperienceRequirement(req, phfEmployment, candidateWorkExperience);
       reqs.push({
         id: `exp-${req.type}`,
         category: 'experience',
@@ -88,10 +93,11 @@ export function RequirementsChecklist({ applicationId, jobId, phfData, candidate
     });
 
     // Language Requirements
-    if (phfData?.languages && phfData.languages.length > 0) {
+    const candidateLanguages = candidateInfo?.languages || phfData?.languages || [];
+    if (candidateLanguages && Object.keys(candidateLanguages).length > 0) {
       const langReqs = extractLanguageRequirements(jobRequirements);
       langReqs.forEach(req => {
-        const met = checkLanguageRequirement(req, phfData.languages);
+        const met = checkLanguageRequirement(req, candidateLanguages);
         reqs.push({
           id: `lang-${req.language}`,
           category: 'skills',
@@ -170,46 +176,85 @@ export function RequirementsChecklist({ applicationId, jobId, phfData, candidate
   const checkEducationRequirement = (req: any, education: any[]) => {
     if (!education || education.length === 0) return false;
     
+    // Check both PHF format and candidate profile format
     return education.some(edu => {
-      const degree = (edu.degree_or_certificate_title || '').toLowerCase();
-      const study = (edu.main_course_of_study || '').toLowerCase();
+      const degreeTitle = (edu.degree_or_certificate_title || edu.degree_type || edu.degreeType || '').toLowerCase();
+      const study = (edu.main_course_of_study || edu.field_of_study || edu.fieldOfStudy || '').toLowerCase();
+      
+      // Check for the specific requirement
+      let hasRequiredLevel = false;
       
       switch (req.level) {
         case 'Masters':
-          return degree.includes('master') || degree.includes('msc') || degree.includes('ma ') || degree.includes('mba');
+          hasRequiredLevel = degreeTitle.includes('master') || degreeTitle.includes('msc') || 
+                            degreeTitle.includes('ma ') || degreeTitle.includes('mba') ||
+                            degreeTitle.includes('llm') || degreeTitle.includes('phd') || 
+                            degreeTitle.includes('doctorate');
+          break;
         case 'Bachelors':
-          return degree.includes('bachelor') || degree.includes('bsc') || degree.includes('ba ') || 
-                 degree.includes('degree') || degree.includes('diploma');
+          // If candidate has Master's, LLM, or PhD, they also satisfy Bachelor's requirement
+          hasRequiredLevel = degreeTitle.includes('bachelor') || degreeTitle.includes('bsc') || 
+                            degreeTitle.includes('ba ') || degreeTitle.includes('degree') || 
+                            degreeTitle.includes('diploma') || degreeTitle.includes('master') ||
+                            degreeTitle.includes('msc') || degreeTitle.includes('ma ') || 
+                            degreeTitle.includes('mba') || degreeTitle.includes('llm') ||
+                            degreeTitle.includes('phd') || degreeTitle.includes('doctorate');
+          break;
         case 'PhD':
-          return degree.includes('phd') || degree.includes('doctorate');
+          hasRequiredLevel = degreeTitle.includes('phd') || degreeTitle.includes('doctorate');
+          break;
         default:
           return false;
       }
+      
+      return hasRequiredLevel;
     });
   };
 
   const getEducationEvidence = (req: any, education: any[]) => {
+    // Find the best matching degree for this requirement
     const matching = education.find(edu => {
-      const degree = (edu.degree_or_certificate_title || '').toLowerCase();
+      const degreeTitle = (edu.degree_or_certificate_title || edu.degree_type || edu.degreeType || '').toLowerCase();
       
       switch (req.level) {
         case 'Masters':
-          return degree.includes('master') || degree.includes('msc') || degree.includes('ma ') || degree.includes('mba');
+          // Look for Masters, LLM, or PhD (any of these satisfy Masters requirement)
+          return degreeTitle.includes('master') || degreeTitle.includes('msc') || 
+                 degreeTitle.includes('ma ') || degreeTitle.includes('mba') ||
+                 degreeTitle.includes('llm') || degreeTitle.includes('phd') || 
+                 degreeTitle.includes('doctorate');
         case 'Bachelors':
-          return degree.includes('bachelor') || degree.includes('bsc') || degree.includes('ba ') || 
-                 degree.includes('degree') || degree.includes('diploma');
+          // Any degree level satisfies Bachelor's requirement
+          return degreeTitle.includes('bachelor') || degreeTitle.includes('bsc') || 
+                 degreeTitle.includes('ba ') || degreeTitle.includes('degree') || 
+                 degreeTitle.includes('diploma') || degreeTitle.includes('master') ||
+                 degreeTitle.includes('msc') || degreeTitle.includes('ma ') || 
+                 degreeTitle.includes('mba') || degreeTitle.includes('llm') ||
+                 degreeTitle.includes('phd') || degreeTitle.includes('doctorate');
         case 'PhD':
-          return degree.includes('phd') || degree.includes('doctorate');
+          return degreeTitle.includes('phd') || degreeTitle.includes('doctorate');
         default:
           return false;
       }
     });
 
-    return matching ? `${matching.degree_or_certificate_title} from ${matching.institution_name}` : '';
+    if (!matching) return '';
+    
+    const degreeTitle = matching.degree_or_certificate_title || matching.degree_type || matching.degreeType || '';
+    const institution = matching.institution_name || matching.institution || '';
+    const fieldOfStudy = matching.main_course_of_study || matching.field_of_study || matching.fieldOfStudy || '';
+    
+    let evidence = `${degreeTitle}`;
+    if (fieldOfStudy) evidence += ` in ${fieldOfStudy}`;
+    if (institution) evidence += ` from ${institution}`;
+    
+    return evidence;
   };
 
-  const checkExperienceRequirement = (req: any, employment: any[]) => {
-    if (!employment || employment.length === 0) {
+  const checkExperienceRequirement = (req: any, phfEmployment: any[], candidateWorkExperience: any[] = []) => {
+    const allEmployment = [...(phfEmployment || []), ...(candidateWorkExperience || [])];
+    
+    if (allEmployment.length === 0) {
       return { met: false, evidence: 'No employment history provided' };
     }
 
@@ -217,18 +262,34 @@ export function RequirementsChecklist({ applicationId, jobId, phfData, candidate
     let totalYears = 0;
     const relevantJobs = [];
 
-    employment.forEach(job => {
-      const duties = (job.duties_and_responsibilities || '').toLowerCase();
-      const jobTitle = (job.exact_title_of_post || '').toLowerCase();
+    allEmployment.forEach(job => {
+      // Handle both PHF format and candidate profile format
+      const duties = (job.duties_and_responsibilities || job.description || '').toLowerCase();
+      const jobTitle = (job.exact_title_of_post || job.title || '').toLowerCase();
+      const company = (job.name_of_employer || job.company || '').toLowerCase();
       
       // Simple keyword matching for relevant experience
-      if (duties.includes(req.type.toLowerCase()) || jobTitle.includes(req.type.toLowerCase())) {
-        const years = calculateYearsOfService(
-          parseInt(job.period_from_year), 
-          parseInt(job.period_from_month), 
-          job.period_to_year ? parseInt(job.period_to_year) : undefined, 
-          job.period_to_month ? parseInt(job.period_to_month) : undefined
-        );
+      const searchTerm = req.type.toLowerCase();
+      if (duties.includes(searchTerm) || jobTitle.includes(searchTerm) || company.includes(searchTerm)) {
+        let years = 0;
+        
+        // Handle PHF format dates
+        if (job.period_from_year) {
+          years = calculateYearsOfService(
+            parseInt(job.period_from_year), 
+            parseInt(job.period_from_month), 
+            job.period_to_year ? parseInt(job.period_to_year) : undefined, 
+            job.period_to_month ? parseInt(job.period_to_month) : undefined
+          );
+        }
+        // Handle candidate profile format dates
+        else if (job.start_date) {
+          const startDate = new Date(job.start_date);
+          const endDate = job.end_date ? new Date(job.end_date) : new Date();
+          const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+          years = diffTime / (1000 * 60 * 60 * 24 * 365.25);
+        }
+        
         totalYears += years;
         relevantJobs.push(job);
       }
