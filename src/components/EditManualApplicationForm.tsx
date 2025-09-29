@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, User, GraduationCap, Briefcase, Save, Plus, Minus } from 'lucide-react';
+import { ArrowLeft, User, GraduationCap, Briefcase, Save, Plus, Minus, FileUp } from 'lucide-react';
 import { z } from 'zod';
 
 const educationSchema = z.object({
@@ -42,29 +42,31 @@ type EducationEntry = z.infer<typeof educationSchema>;
 type WorkExperienceEntry = z.infer<typeof workExperienceSchema>;
 type ManualApplicationData = z.infer<typeof manualApplicationSchema>;
 
-// Helper function to format dates for HTML date inputs (YYYY-MM-DD)
+// Helper function to format dates for HTML month inputs (YYYY-MM)
 const formatDateForInput = (dateValue: any): string => {
   if (!dateValue) return '';
   
-  // If it's already in YYYY-MM-DD format, return as is
-  if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+  // If it's already in YYYY-MM format, return as is
+  if (typeof dateValue === 'string' && /^\d{4}-\d{2}$/.test(dateValue)) {
     return dateValue;
   }
   
-  // Handle YYYY-MM format (like "2020-07")
-  if (typeof dateValue === 'string' && /^\d{4}-\d{2}$/.test(dateValue)) {
-    return `${dateValue}-01`; // Add day as 01
+  // If it's in YYYY-MM-DD format, extract YYYY-MM
+  if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    return dateValue.substring(0, 7);
   }
   
-  // If it's just a year (e.g., "2020"), convert to YYYY-01-01
+  // If it's just a year (e.g., "2020"), convert to YYYY-01
   if (typeof dateValue === 'string' && /^\d{4}$/.test(dateValue)) {
-    return `${dateValue}-01-01`;
+    return `${dateValue}-01`;
   }
   
   // Try to parse and format various date formats
   const date = new Date(dateValue);
   if (!isNaN(date.getTime())) {
-    return date.toISOString().split('T')[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
   }
   
   return '';
@@ -98,6 +100,9 @@ export default function EditManualApplicationForm() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [application, setApplication] = useState<any>(null);
+  const [phfFile, setPhfFile] = useState<File | null>(null);
+  const [motivationFile, setMotivationFile] = useState<File | null>(null);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant');
@@ -289,6 +294,24 @@ export default function EditManualApplicationForm() {
     }));
   };
 
+  const uploadFile = async (file: File, folder: string): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `${folder}/${fileName}`;
+
+    const { error } = await supabase.storage
+      .from('application-files')
+      .upload(filePath, file);
+
+    if (error) throw error;
+
+    const { data } = supabase.storage
+      .from('application-files')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -296,6 +319,32 @@ export default function EditManualApplicationForm() {
       // Validate form data
       const validatedData = manualApplicationSchema.parse(formData);
       setLoading(true);
+
+      // Upload files if provided
+      let phfUrl = null;
+      let motivationUrl = null;
+      
+      if (phfFile || motivationFile) {
+        setUploadingFiles(true);
+        try {
+          if (phfFile) {
+            phfUrl = await uploadFile(phfFile, 'phf-documents');
+          }
+          if (motivationFile) {
+            motivationUrl = await uploadFile(motivationFile, 'motivation-statements');
+          }
+        } catch (uploadError) {
+          console.error('File upload error:', uploadError);
+          toast({
+            title: "Upload Error",
+            description: "Failed to upload documents. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        } finally {
+          setUploadingFiles(false);
+        }
+      }
 
       // Update candidate record
       const candidateData = {
@@ -329,20 +378,32 @@ export default function EditManualApplicationForm() {
 
       if (candidateError) throw candidateError;
 
-      // Update application PHF data
+      // Update application PHF data and files
+      const updateData: any = {
+        phf_data: {
+          personal_info: {
+            name: validatedData.name,
+            email: validatedData.email,
+            phone: validatedData.phone
+          },
+          education: validatedData.education,
+          work_experience: validatedData.workExperience
+        }
+      };
+
+      // Update files if new ones were uploaded
+      if (phfUrl || motivationUrl) {
+        const currentFiles = application.files || {};
+        updateData.files = {
+          ...currentFiles,
+          ...(phfUrl && { phf_document: phfUrl }),
+          ...(motivationUrl && { motivation_statement: motivationUrl })
+        };
+      }
+
       const { error: applicationError } = await supabase
         .from('applications')
-        .update({
-          phf_data: {
-            personal_info: {
-              name: validatedData.name,
-              email: validatedData.email,
-              phone: validatedData.phone
-            },
-            education: validatedData.education,
-            work_experience: validatedData.workExperience
-          }
-        })
+        .update(updateData)
         .eq('id', applicationId);
 
       if (applicationError) throw applicationError;
@@ -517,7 +578,7 @@ export default function EditManualApplicationForm() {
                       <Label htmlFor={`dateAwarded-${index}`}>Date Awarded *</Label>
                       <Input
                         id={`dateAwarded-${index}`}
-                        type="date"
+                        type="month"
                         value={edu.dateAwarded}
                         onChange={(e) => updateEducationEntry(index, 'dateAwarded', e.target.value)}
                         required
@@ -586,12 +647,12 @@ export default function EditManualApplicationForm() {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor={`startDate-${index}`}>Start Date *</Label>
                       <Input
                         id={`startDate-${index}`}
-                        type="date"
+                        type="month"
                         value={work.startDate}
                         onChange={(e) => updateWorkExperienceEntry(index, 'startDate', e.target.value)}
                         required
@@ -601,30 +662,79 @@ export default function EditManualApplicationForm() {
                       <Label htmlFor={`endDate-${index}`}>End Date</Label>
                       <Input
                         id={`endDate-${index}`}
-                        type="date"
+                        type="month"
                         value={work.endDate}
                         onChange={(e) => updateWorkExperienceEntry(index, 'endDate', e.target.value)}
                         disabled={work.isCurrent}
+                        placeholder={work.isCurrent ? "Present" : ""}
                       />
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id={`isCurrent-${index}`}
-                      checked={work.isCurrent}
-                      onChange={(e) => {
-                        updateWorkExperienceEntry(index, 'isCurrent', e.target.checked);
-                        if (e.target.checked) {
-                          updateWorkExperienceEntry(index, 'endDate', '');
-                        }
-                      }}
-                      className="rounded border-input"
-                    />
-                    <Label htmlFor={`isCurrent-${index}`}>Currently working here</Label>
+                    <div className="space-y-2 flex items-end">
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={work.isCurrent}
+                          onChange={(e) => {
+                            updateWorkExperienceEntry(index, 'isCurrent', e.target.checked);
+                            if (e.target.checked) {
+                              updateWorkExperienceEntry(index, 'endDate', '');
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <span className="text-sm">Current position</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+
+          {/* Document Upload */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileUp className="w-5 h-5" />
+                Document Upload
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phf-upload">PHF Document</Label>
+                  <Input
+                    id="phf-upload"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={(e) => setPhfFile(e.target.files?.[0] || null)}
+                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/80"
+                  />
+                  {phfFile && (
+                    <p className="text-sm text-muted-foreground">
+                      Selected: {phfFile.name}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="motivation-upload">Motivation Statement</Label>
+                  <Input
+                    id="motivation-upload"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={(e) => setMotivationFile(e.target.files?.[0] || null)}
+                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/80"
+                  />
+                  {motivationFile && (
+                    <p className="text-sm text-muted-foreground">
+                      Selected: {motivationFile.name}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Accepted formats: PDF, DOC, DOCX (max 10MB per file)
+              </p>
             </CardContent>
           </Card>
 
@@ -637,13 +747,18 @@ export default function EditManualApplicationForm() {
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              {loading ? 'Updating...' : 'Update Application'}
+            <Button type="submit" disabled={loading || uploadingFiles}>
+              {loading || uploadingFiles ? (
+                <>
+                  <Save className="w-4 h-4 mr-2 animate-spin" />
+                  {uploadingFiles ? 'Uploading...' : 'Updating...'}
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Update Application
+                </>
+              )}
             </Button>
           </div>
         </form>
