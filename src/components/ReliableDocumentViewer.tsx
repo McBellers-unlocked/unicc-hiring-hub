@@ -1,48 +1,51 @@
 import React, { useState, useEffect } from 'react';
+import { Document, Page, pdfjs } from 'react-pdf';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, ExternalLink, ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
+import { FileText, Download, ExternalLink, ZoomIn, ZoomOut, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-interface PDFIframeProps {
-  blobUrl: string;
+// Set up PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+
+interface ReactPDFViewerProps {
+  pdfData: ArrayBuffer | null;
   fileName: string;
   scale: number;
-  onLoad: () => void;
+  onLoadSuccess: (pdf: any) => void;
+  onLoadError: (error: Error) => void;
+  currentPage: number;
+  onPageChange: (page: number) => void;
 }
 
-const PDFIframe: React.FC<PDFIframeProps> = ({ blobUrl, fileName, scale, onLoad }) => {
+const ReactPDFViewer: React.FC<ReactPDFViewerProps> = ({ 
+  pdfData, 
+  fileName, 
+  scale, 
+  onLoadSuccess, 
+  onLoadError,
+  currentPage,
+  onPageChange
+}) => {
+  const [numPages, setNumPages] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
 
-  if (!blobUrl) {
+  if (!pdfData) {
     return <div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin" /></div>;
   }
 
-  const handleLoad = () => {
-    console.log('PDF iframe loaded successfully');
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    setNumPages(numPages);
     setIsLoading(false);
-    onLoad();
+    onLoadSuccess({ numPages });
   };
 
-  const handleError = () => {
-    console.error('PDF iframe failed to load');
+  const onDocumentLoadError = (error: Error) => {
+    console.error('PDF load error:', error);
     setIsLoading(false);
-    setHasError(true);
+    onLoadError(error);
   };
-
-  if (hasError) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">Unable to display PDF inline</p>
-          <p className="text-xs text-muted-foreground mt-1">Try opening in a new tab or downloading</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="relative w-full h-full">
@@ -54,21 +57,64 @@ const PDFIframe: React.FC<PDFIframeProps> = ({ blobUrl, fileName, scale, onLoad 
           </div>
         </div>
       )}
-      <iframe
-        src={blobUrl}
-        className="w-full h-full border-0"
-        title={fileName}
-        style={{ 
-          transform: `scale(${scale})`, 
-          transformOrigin: 'top left',
-          width: `${100 / scale}%`,
-          height: `${100 / scale}%`
-        }}
-        onLoad={handleLoad}
-        onError={handleError}
-        allow="same-origin"
-        sandbox="allow-same-origin allow-scripts allow-popups"
-      />
+      
+      <div className="flex flex-col h-full">
+        {/* Page Navigation */}
+        {numPages > 1 && (
+          <div className="flex items-center justify-between p-2 bg-muted/50 border-b">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+              disabled={currentPage <= 1}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Page {currentPage} of {numPages}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onPageChange(Math.min(numPages, currentPage + 1))}
+              disabled={currentPage >= numPages}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+
+        {/* PDF Document */}
+        <div className="flex-1 overflow-auto bg-gray-100 flex justify-center p-4">
+          <Document
+            file={pdfData}
+            onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={onDocumentLoadError}
+            loading={<div />} // We handle loading ourselves
+            error={
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Unable to display PDF</p>
+                  <p className="text-xs text-muted-foreground mt-1">Try downloading the file</p>
+                </div>
+              </div>
+            }
+          >
+            <Page
+              pageNumber={currentPage}
+              scale={scale}
+              loading={<div />} // We handle loading ourselves
+              error={
+                <div className="flex items-center justify-center p-8">
+                  <p className="text-sm text-muted-foreground">Failed to load page {currentPage}</p>
+                </div>
+              }
+              className="shadow-lg"
+            />
+          </Document>
+        </div>
+      </div>
     </div>
   );
 };
@@ -89,7 +135,8 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [scale, setScale] = useState(1.0);
-  const [pdfBlobUrl, setPdfBlobUrl] = useState<string>('');
+  const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
+  const [numPages, setNumPages] = useState<number>(0);
   const [hasError, setHasError] = useState(false);
   
   const detectFileType = (): 'pdf' | 'docx' | 'doc' | 'txt' => {
@@ -113,15 +160,16 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
     return `https://cxpnvbphjpntrvvgjhli.supabase.co/functions/v1/file-proxy?path=${encodeURIComponent(filePath)}`;
   };
 
-  // Load PDF blob when component mounts or fileUrl changes
+  // Load PDF data when component mounts or fileUrl changes
   useEffect(() => {
     if (currentFileType === 'pdf') {
-      loadPdfBlob();
+      loadPdfData();
     }
   }, [fileUrl, currentFileType]);
 
-  const loadPdfBlob = async () => {
+  const loadPdfData = async () => {
     setLoading(true);
+    setHasError(false);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -145,33 +193,17 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
         throw new Error(`Failed to load PDF: ${response.statusText}`);
       }
 
-      const blob = await response.blob();
-      console.log('Blob type:', blob.type, 'Size:', blob.size);
+      const arrayBuffer = await response.arrayBuffer();
+      console.log('PDF ArrayBuffer size:', arrayBuffer.byteLength);
+      setPdfData(arrayBuffer);
       
-      // Ensure blob is treated as PDF with correct MIME type
-      const pdfBlob = new Blob([blob], { type: 'application/pdf' });
-      const blobUrl = window.URL.createObjectURL(pdfBlob);
-      
-      // Add PDF viewer parameters for better Chrome compatibility
-      const pdfUrl = `${blobUrl}#view=FitH&toolbar=1&navpanes=0`;
-      setPdfBlobUrl(pdfUrl);
-      
-      console.log('PDF blob URL created:', pdfUrl);
     } catch (error) {
-      console.error('Failed to load PDF blob:', error);
+      console.error('Failed to load PDF data:', error);
+      setHasError(true);
     } finally {
       setLoading(false);
     }
   };
-
-  // Cleanup blob URL when component unmounts
-  useEffect(() => {
-    return () => {
-      if (pdfBlobUrl) {
-        window.URL.revokeObjectURL(pdfBlobUrl);
-      }
-    };
-  }, [pdfBlobUrl]);
 
   const handleDownload = async () => {
     setLoading(true);
@@ -249,6 +281,29 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
   };
 
   const renderPDFViewer = () => {
+    if (hasError) {
+      return (
+        <div className="border border-border rounded-lg overflow-hidden">
+          <div className="flex items-center justify-between p-3 bg-muted border-b">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              <span className="text-sm font-medium">{fileName}</span>
+              <Badge variant="outline">PDF</Badge>
+            </div>
+          </div>
+          <div className="relative bg-background" style={{ height: '600px' }}>
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Unable to display PDF</p>
+                <p className="text-xs text-muted-foreground mt-1">Try downloading the file</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="border border-border rounded-lg overflow-hidden">
         <div className="flex items-center justify-between p-3 bg-muted border-b">
@@ -279,14 +334,24 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
         </div>
         
         <div className="relative bg-background" style={{ height: '600px' }}>
-          <PDFIframe 
-            blobUrl={pdfBlobUrl}
+          <ReactPDFViewer
+            pdfData={pdfData}
             fileName={fileName}
             scale={scale}
-            onLoad={() => setLoading(false)}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            onLoadSuccess={(pdf) => {
+              setNumPages(pdf.numPages);
+              setLoading(false);
+            }}
+            onLoadError={(error) => {
+              console.error('React-PDF error:', error);
+              setHasError(true);
+              setLoading(false);
+            }}
           />
           {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+            <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
               <Loader2 className="w-8 h-8 animate-spin" />
             </div>
           )}
