@@ -121,6 +121,7 @@ const requisitionSchema = z.object({
   management_competencies: z.array(z.string()).optional(),
   leadership_competencies: z.array(z.string()).optional(),
   un_language_advantage: z.boolean().optional(),
+  local_language_advantage: z.boolean().optional(),
   is_supervisor_role: z.boolean().optional(),
   french_level: z.string().optional(),
   spanish_level: z.string().optional(),
@@ -174,6 +175,7 @@ export default function JobRequisitionForm() {
       management_competencies: [],
       leadership_competencies: [],
       un_language_advantage: false,
+      local_language_advantage: false,
       is_supervisor_role: false,
       french_level: "",
       spanish_level: "",
@@ -187,6 +189,14 @@ export default function JobRequisitionForm() {
       fetchRequisition();
     }
   }, [id]);
+
+  // Auto-check UN language advantage for P and D positions
+  useEffect(() => {
+    const currentGrade = form.watch('grade');
+    if (currentGrade && (currentGrade.startsWith('P') || currentGrade.startsWith('D'))) {
+      form.setValue('un_language_advantage', true);
+    }
+  }, [form.watch('grade')]);
 
   const fetchRequisition = async () => {
     try {
@@ -253,6 +263,7 @@ export default function JobRequisitionForm() {
           management_competencies: Array.isArray(data.management_competencies) ? data.management_competencies as string[] : [],
           leadership_competencies: Array.isArray(data.leadership_competencies) ? data.leadership_competencies as string[] : [],
           un_language_advantage: (data.language_requirements as any)?.un_language_advantage || false,
+          local_language_advantage: (data.language_requirements as any)?.local_language_advantage || false,
           confirmChiefApproval: true,
         });
       }
@@ -301,10 +312,11 @@ export default function JobRequisitionForm() {
         }
 
         // Update existing requisition
-        const { un_language_advantage, french_level, spanish_level, italian_level, is_supervisor_role, ...cleanFormData } = formData as any;
+        const { un_language_advantage, local_language_advantage, french_level, spanish_level, italian_level, is_supervisor_role, ...cleanFormData } = formData as any;
         const updatedLanguageRequirements = {
           english: "Expert knowledge is required",
-          un_language_advantage: un_language_advantage || false
+          un_language_advantage: un_language_advantage || false,
+          local_language_advantage: local_language_advantage || false
         };
         
         const { error } = await supabase
@@ -320,10 +332,11 @@ export default function JobRequisitionForm() {
         if (error) throw error;
       } else {
         // Create new requisition
-        const { un_language_advantage, french_level, spanish_level, italian_level, is_supervisor_role, ...cleanFormData } = formData as any;
+        const { un_language_advantage, local_language_advantage, french_level, spanish_level, italian_level, is_supervisor_role, ...cleanFormData } = formData as any;
         const updatedLanguageRequirements = {
           english: "Expert knowledge is required",
-          un_language_advantage: un_language_advantage || false
+          un_language_advantage: un_language_advantage || false,
+          local_language_advantage: local_language_advantage || false
         };
         
         const { data: newRequisition, error } = await supabase
@@ -1182,7 +1195,20 @@ export default function JobRequisitionForm() {
                       onCheckedChange={(checked) => form.setValue('un_language_advantage', !!checked)}
                     />
                     <label htmlFor="un_language_advantage" className="text-sm">
-                      Knowledge of another UN language would be an advantage
+                      Knowledge of another UN language would be an advantage for P1-P6 and D1-D2 positions
+                    </label>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="local_language_advantage"
+                      checked={form.watch('local_language_advantage') || false}
+                      onCheckedChange={(checked) => form.setValue('local_language_advantage', !!checked)}
+                    />
+                    <label htmlFor="local_language_advantage" className="text-sm">
+                      Knowledge of the local language of the Duty Station would be an advantage for G positions
                     </label>
                   </div>
                 </div>
