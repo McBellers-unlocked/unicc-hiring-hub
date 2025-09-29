@@ -502,10 +502,11 @@ export default function ApplicationDetail() {
         </Card>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-9">
+          <TabsList className="grid w-full grid-cols-10">
             <TabsTrigger value="summary">Summary</TabsTrigger>
             <TabsTrigger value="compact">Compact</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="motivation">Motivation</TabsTrigger>
             <TabsTrigger value="files">Files</TabsTrigger>
             <TabsTrigger value="ai-score">AI Score</TabsTrigger>
             <TabsTrigger value="emails">Emails</TabsTrigger>
@@ -680,6 +681,41 @@ export default function ApplicationDetail() {
                     </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="motivation">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <FileText className="w-5 h-5" />
+                  <span>Motivation Letter</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {application.phf_data?.motivationLetter?.motivation_letter_content ? (
+                  <div className="space-y-4">
+                    <div className="prose max-w-none">
+                      <div className="bg-gray-50 p-6 rounded-lg border">
+                        <h4 className="font-medium text-gray-900 mb-3 text-lg">
+                          Personal Statement / Motivation Letter
+                        </h4>
+                        <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
+                          {application.phf_data.motivationLetter.motivation_letter_content}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Character count: {application.phf_data.motivationLetter.motivation_letter_content.length.toLocaleString()}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p>No motivation letter provided</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
