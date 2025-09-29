@@ -362,13 +362,16 @@ export default function EditManualApplicationForm() {
         })),
         
         // Work experience data
-        work_experience: validatedData.workExperience.map(work => ({
-          title: work.jobTitle,
-          company: work.organization,
-          start_date: work.startDate,
-          end_date: work.isCurrent ? null : work.endDate,
-          is_present: work.isCurrent
-        })),
+        work_experience: validatedData.workExperience.map(work => {
+          console.log('Updating work experience:', work);
+          return {
+            title: work.jobTitle,
+            company: work.organization,
+            start_date: work.startDate,
+            end_date: work.isCurrent ? null : work.endDate,
+            is_present: work.isCurrent
+          };
+        }),
       };
 
       const { error: candidateError } = await supabase
@@ -390,6 +393,8 @@ export default function EditManualApplicationForm() {
           work_experience: validatedData.workExperience
         }
       };
+
+      console.log('Updating phf_data with:', updateData.phf_data);
 
       // Update files if new ones were uploaded
       if (phfUrl || motivationUrl) {
