@@ -58,6 +58,11 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
   const country = getFlagEmoji(application.candidate.location);
   const flagUrl = country ? getCountryFlagUrl(country) : '';
 
+  // For manually entered applications, prioritize phf_data over candidates table
+  const workExperienceData = application.source === 'manual_entry' && application.phf_data?.work_experience
+    ? application.phf_data.work_experience
+    : application.candidate.work_experience;
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       'Application': { color: 'bg-blue-100 text-blue-700', label: 'Application' },
@@ -252,7 +257,7 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
               <span className="font-medium text-sm">Total Experience:</span>
             </div>
             <div className="text-lg font-semibold text-primary">
-              {getTotalExperience(application.candidate.work_experience, application.candidate.years_of_experience)}
+              {getTotalExperience(workExperienceData, application.candidate.years_of_experience)}
             </div>
           </div>
         </div>
