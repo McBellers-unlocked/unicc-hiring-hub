@@ -52,49 +52,31 @@ export const InlineDocumentViewer: React.FC<InlineDocumentViewerProps> = ({
         </div>
         <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            onClick={() => setZoom(Math.max(50, zoom - 25))}
-            disabled={zoom <= 50}
+            onClick={handleViewInNewTab}
           >
-            <ZoomOut className="w-4 h-4" />
-          </Button>
-          <span className="text-sm">{zoom}%</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setZoom(Math.min(200, zoom + 25))}
-            disabled={zoom >= 200}
-          >
-            <ZoomIn className="w-4 h-4" />
+            <ExternalLink className="w-4 h-4 mr-1" />
+            Full Screen
           </Button>
         </div>
       </div>
       <div className="relative" style={{ height: '600px' }}>
-        <object
-          data={`${fileUrl}#toolbar=1&navpanes=1&scrollbar=1&page=1&zoom=${zoom}`}
-          type="application/pdf"
+        <iframe
+          src={`${fileUrl}#toolbar=1&navpanes=1&scrollbar=1&page=1&view=FitH`}
           width="100%"
           height="100%"
           className="border-0"
-        >
-          <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <FileText className="w-16 h-16 text-muted-foreground mb-4" />
-            <p className="text-lg font-medium mb-2">PDF Viewer Not Available</p>
-            <p className="text-muted-foreground mb-4">
-              Your browser doesn't support embedded PDF viewing.
-            </p>
-            <Button onClick={handleViewInNewTab} className="mb-2">
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Open in New Tab
-            </Button>
-          </div>
-        </object>
+          title={fileName}
+          style={{ backgroundColor: '#f5f5f5' }}
+        />
       </div>
     </div>
   );
 
-  const renderGoogleDocsViewer = () => {
+  const renderOfficeDocViewer = () => {
+    // Try Microsoft Office Online viewer first, then Google Docs viewer as fallback
+    const microsoftViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
     const googleViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`;
     
     return (
@@ -104,19 +86,46 @@ export const InlineDocumentViewer: React.FC<InlineDocumentViewerProps> = ({
             <FileText className="w-4 h-4" />
             <span className="text-sm font-medium">{fileName}</span>
           </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleViewInNewTab}
+            >
+              <ExternalLink className="w-4 h-4 mr-1" />
+              Full Screen
+            </Button>
+          </div>
         </div>
         <div className="relative" style={{ height: '600px' }}>
-          <iframe
-            src={googleViewerUrl}
-            width="100%"
-            height="100%"
-            className="border-0"
-            title={fileName}
-            onError={() => {
-              // Fallback if Google Viewer fails
-              console.log('Google Viewer failed, showing fallback');
-            }}
-          />
+          <Tabs defaultValue="microsoft" className="h-full">
+            <TabsList className="absolute top-2 left-2 z-10 bg-white/90 backdrop-blur-sm">
+              <TabsTrigger value="microsoft" className="text-xs">Office Online</TabsTrigger>
+              <TabsTrigger value="google" className="text-xs">Google Viewer</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="microsoft" className="h-full mt-0">
+              <iframe
+                src={microsoftViewerUrl}
+                width="100%"
+                height="100%"
+                className="border-0"
+                title={`${fileName} - Microsoft Office Online`}
+                style={{ backgroundColor: '#f5f5f5' }}
+              />
+            </TabsContent>
+            
+            <TabsContent value="google" className="h-full mt-0">
+              <iframe
+                src={googleViewerUrl}
+                width="100%"
+                height="100%"
+                className="border-0"
+                title={`${fileName} - Google Docs Viewer`}
+                style={{ backgroundColor: '#f5f5f5' }}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     );
@@ -183,7 +192,7 @@ export const InlineDocumentViewer: React.FC<InlineDocumentViewerProps> = ({
           
           <TabsContent value="viewer" className="mt-4">
             {currentFileType === 'pdf' && renderPDFViewer()}
-            {(currentFileType === 'docx' || currentFileType === 'doc') && renderGoogleDocsViewer()}
+            {(currentFileType === 'docx' || currentFileType === 'doc') && renderOfficeDocViewer()}
             {currentFileType === 'txt' && renderFallbackViewer()}
           </TabsContent>
           
