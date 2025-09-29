@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.fix-phf-completion]
 verify_jwt = false
+
+[functions.file-proxy]
+verify_jwt = false
