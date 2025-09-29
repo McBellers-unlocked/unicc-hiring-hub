@@ -3,8 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 
 interface Props {
   open: boolean;
@@ -18,14 +16,6 @@ export function MainDutiesTemplateModal({ open, onClose, onApply, currentContent
   const [divisionName, setDivisionName] = useState('');
   const [sectionName, setSectionName] = useState('');
 
-  const commonSupervisors = [
-    'Hiring Manager',
-    'Chief',
-    'Director',
-    'Team Lead',
-    'Section Chief',
-    'Unit Head'
-  ];
 
   const handleApply = () => {
     const filledTemplate = `The incumbent will work under the direct supervision and guidance of the ${supervisorTitle} within the ${divisionName} and in close collaboration with the ${sectionName} team members. The incumbent will perform the following duties:
@@ -46,39 +36,13 @@ export function MainDutiesTemplateModal({ open, onClose, onApply, currentContent
         
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="supervisor">Supervisor Title *</Label>
-            <div className="space-y-2">
-              <Select value={supervisorTitle} onValueChange={setSupervisorTitle}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select or type custom..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {commonSupervisors.map((title) => (
-                    <SelectItem key={title} value={title}>
-                      {title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                id="supervisor"
-                placeholder="Or type custom supervisor title..."
-                value={supervisorTitle}
-                onChange={(e) => setSupervisorTitle(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {commonSupervisors.map((title) => (
-                <Badge
-                  key={title}
-                  variant="outline"
-                  className="cursor-pointer hover:bg-muted"
-                  onClick={() => setSupervisorTitle(title)}
-                >
-                  {title}
-                </Badge>
-              ))}
-            </div>
+            <Label htmlFor="supervisor">Supervisor Job Title *</Label>
+            <Input
+              id="supervisor"
+              placeholder="e.g., Chief of Digital Solutions, Hiring Manager, Team Lead"
+              value={supervisorTitle}
+              onChange={(e) => setSupervisorTitle(e.target.value)}
+            />
           </div>
 
           <div className="space-y-2">
