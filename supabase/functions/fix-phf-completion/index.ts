@@ -69,10 +69,11 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in fix-phf-completion function:', error)
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: message 
       }),
       { 
         status: 500,

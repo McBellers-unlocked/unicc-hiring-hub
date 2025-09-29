@@ -117,10 +117,11 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in upload-video-answer:', error);
+    const message = error instanceof Error ? error.message : 'Failed to upload video';
     
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Failed to upload video',
+        error: message,
         success: false 
       }),
       { 

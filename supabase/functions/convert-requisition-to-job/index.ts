@@ -159,12 +159,12 @@ ${requisition.desirable_education || ''}
         competencyGroups.push('# Mandatory Competencies\n\n' + mandatoryCompetencies.map(comp => `- ${comp}`).join('\n'));
         
         if (requisition.global_competencies?.length) {
-          competencyGroups.push('# Global Competencies\n\n' + requisition.global_competencies.map(comp => `- ${comp}`).join('\n'));
+          competencyGroups.push('# Global Competencies\n\n' + requisition.global_competencies.map((comp: any) => `- ${comp}`).join('\n'));
         }
         
         // Helper function to get full competency definitions
         const getCompetencyDefinition = (compName: string, type: string) => {
-          const definitions = {
+          const definitions: { [key: string]: string[] } = {
             core: [
               'Knowing and managing yourself: Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.',
               'Producing results: Produces and delivers quality results. Is action oriented and committed to achieving outcomes.',
@@ -183,30 +183,30 @@ ${requisition.desirable_education || ''}
           };
           
           const typeDefinitions = definitions[type] || [];
-          return typeDefinitions.find(def => def.startsWith(compName)) || compName;
+          return typeDefinitions.find((def: string) => def.startsWith(compName)) || compName;
         };
         
         if (requisition.core_competencies?.length) {
-          const coreWithDefinitions = requisition.core_competencies.map(comp => 
+          const coreWithDefinitions = requisition.core_competencies.map((comp: any) => 
             getCompetencyDefinition(comp, 'core')
           );
-          competencyGroups.push('# Core Competencies\n\n' + coreWithDefinitions.map(comp => `- ${comp}`).join('\n'));
+          competencyGroups.push('# Core Competencies\n\n' + coreWithDefinitions.map((comp: string) => `- ${comp}`).join('\n'));
         }
         
         
         if (requisition.management_competencies?.length) {
-          const managementWithDefinitions = requisition.management_competencies.map(comp => 
+          const managementWithDefinitions = requisition.management_competencies.map((comp: any) => 
             getCompetencyDefinition(comp, 'management')
           );
-          competencyGroups.push('# Management Competencies\n\n' + managementWithDefinitions.map(comp => `- ${comp}`).join('\n'));
+          competencyGroups.push('# Management Competencies\n\n' + managementWithDefinitions.map((comp: string) => `- ${comp}`).join('\n'));
         }
         
         
         if (requisition.leadership_competencies?.length) {
-          const leadershipWithDefinitions = requisition.leadership_competencies.map(comp => 
+          const leadershipWithDefinitions = requisition.leadership_competencies.map((comp: any) => 
             getCompetencyDefinition(comp, 'leadership')
           );
-          competencyGroups.push('# Leadership Competencies\n\n' + leadershipWithDefinitions.map(comp => `- ${comp}`).join('\n'));
+          competencyGroups.push('# Leadership Competencies\n\n' + leadershipWithDefinitions.map((comp: string) => `- ${comp}`).join('\n'));
         }
         
         return competencyGroups.join('\n\n') || '';
