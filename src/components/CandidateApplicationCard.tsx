@@ -54,10 +54,7 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
   const navigate = useNavigate();
 
   const allEducation = getEducationSummary(application.candidate.education);
-  const recentJobs = getWorkExperienceSummary(application.candidate.work_experience);
-  const country = getFlagEmoji(application.candidate.location);
-  const flagUrl = country ? getCountryFlagUrl(country) : '';
-
+  
   // For manually entered applications, prioritize phf_data over candidates table
   const workExperienceData = application.source === 'manual_entry' && 
                              application.phf_data?.work_experience && 
@@ -70,6 +67,10 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
         isCurrent: work.isCurrent
       }))
     : application.candidate.work_experience;
+
+  const recentJobs = getWorkExperienceSummary(workExperienceData);
+  const country = getFlagEmoji(application.candidate.location);
+  const flagUrl = country ? getCountryFlagUrl(country) : '';
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
