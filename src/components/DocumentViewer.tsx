@@ -41,9 +41,16 @@ export const DocumentViewer = ({ fileUrl, fileName, fileType, className }: Docum
     
     setLoading(true);
     try {
-      // Call the parse-phf-document edge function
+      // Extract storage path from the full URL
+      // URL format: https://project.supabase.co/storage/v1/object/public/bucket/path
+      const urlParts = fileUrl.split('/storage/v1/object/public/application-files/');
+      const storagePath = urlParts.length > 1 ? urlParts[1] : fileName;
+      
+      console.log('Parsing document with storage path:', storagePath);
+      
+      // Call the parse-phf-document edge function with storage path
       const { data, error } = await supabase.functions.invoke('parse-phf-document', {
-        body: { fileName: fileName }
+        body: { fileName: storagePath }
       });
 
       if (error) {
