@@ -113,7 +113,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('❌ File proxy error:', error);
-    return new Response(`Server error: ${error.message}`, { 
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(`Server error: ${message}`, { 
       status: 500,
       headers: corsHeaders 
     });
