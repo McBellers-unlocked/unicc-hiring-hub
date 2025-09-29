@@ -8,8 +8,42 @@ import { Badge } from '@/components/ui/badge';
 import { FileText, Download, ExternalLink, ZoomIn, ZoomOut, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-// Set up PDF.js worker using fixed version for reliability
-pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.js';
+// Set up PDF.js worker with multiple fallback options for reliability
+const setupPdfWorker = () => {
+  // Try reliable unpkg CDN first (matches react-pdf v10.1.0)
+  const primaryWorker = 'https://unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.js';
+  const fallbackWorker = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.js';
+  
+  // Test if primary worker is available
+  const testWorker = async (workerUrl: string): Promise<boolean> => {
+    try {
+      const response = await fetch(workerUrl, { method: 'HEAD' });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  };
+  
+  // Set worker with fallback
+  testWorker(primaryWorker).then(isAvailable => {
+    if (isAvailable) {
+      console.log('Using primary PDF worker:', primaryWorker);
+      pdfjs.GlobalWorkerOptions.workerSrc = primaryWorker;
+    } else {
+      console.log('Primary worker failed, using fallback:', fallbackWorker);
+      pdfjs.GlobalWorkerOptions.workerSrc = fallbackWorker;
+    }
+  }).catch(() => {
+    console.log('Worker test failed, using fallback:', fallbackWorker);
+    pdfjs.GlobalWorkerOptions.workerSrc = fallbackWorker;
+  });
+  
+  // Set initial worker immediately for immediate use
+  pdfjs.GlobalWorkerOptions.workerSrc = primaryWorker;
+};
+
+// Initialize PDF worker
+setupPdfWorker();
 
 interface ReactPDFViewerProps {
   pdfData: ArrayBuffer | null;
@@ -46,6 +80,15 @@ const ReactPDFViewer: React.FC<ReactPDFViewerProps> = ({
 
   const onDocumentLoadError = (error: Error) => {
     console.error('PDF load error:', error);
+    console.error('Worker source:', pdfjs.GlobalWorkerOptions.workerSrc);
+    
+    // Check if it's a worker-related error
+    if (error.message.includes('worker') || error.message.includes('Worker')) {
+      console.error('Worker loading failed. Attempting fallback...');
+      // Try fallback worker
+      pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.js';
+    }
+    
     setIsLoading(false);
     onLoadError(error);
   };
@@ -99,7 +142,8 @@ const ReactPDFViewer: React.FC<ReactPDFViewerProps> = ({
                 <div className="text-center">
                   <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">Unable to display PDF</p>
-                  <p className="text-xs text-muted-foreground mt-1">Try downloading the file</p>
+                  <p className="text-xs text-muted-foreground mt-1">PDF worker failed to load - try refreshing the page</p>
+                  <p className="text-xs text-muted-foreground">You can still download the file below</p>
                 </div>
               </div>
             }
@@ -302,7 +346,8 @@ export const ReliableDocumentViewer: React.FC<ReliableDocumentViewerProps> = ({
               <div className="text-center">
                 <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">Unable to display PDF</p>
-                <p className="text-xs text-muted-foreground mt-1">Try downloading the file</p>
+                <p className="text-xs text-muted-foreground mt-1">PDF worker failed to load - try refreshing the page</p>
+                <p className="text-xs text-muted-foreground">You can still download the file using the buttons above</p>
               </div>
             </div>
           </div>
