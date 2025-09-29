@@ -1111,20 +1111,20 @@ export default function JobRequisitionForm() {
                   </div>
                 )}
                 
-                {form.watch('grade') && form.watch('grade')?.startsWith('G') && (
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="local_language_advantage"
-                        checked={form.watch('local_language_advantage') || false}
-                        onCheckedChange={(checked) => form.setValue('local_language_advantage', !!checked)}
-                      />
-                      <label htmlFor="local_language_advantage" className="text-sm">
-                        Knowledge of the local language of the Duty Station would be an advantage
-                      </label>
-                    </div>
-                  </div>
-                )}
+                 {form.watch('grade') && form.watch('grade')?.startsWith('G') && (
+                   <div>
+                     <div className="flex items-center space-x-2">
+                       <Checkbox
+                         id="local_language_advantage"
+                         checked={form.watch('local_language_advantage') || false}
+                         onCheckedChange={(checked) => form.setValue('local_language_advantage', !!checked)}
+                       />
+                       <label htmlFor="local_language_advantage" className="text-sm">
+                         Knowledge of the local language of the Duty Station would be an advantage
+                       </label>
+                     </div>
+                   </div>
+                 )}
                 
                 <div>
                   <div className="flex items-center justify-between mb-3">
