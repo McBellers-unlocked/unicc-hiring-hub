@@ -21,6 +21,7 @@ import { PHFInlineViewer } from '@/components/PHFInlineViewer';
 import { MotivationLetterViewer } from '@/components/MotivationLetterViewer';
 import { DocumentViewer } from '@/components/DocumentViewer';
 import { InlineDocumentViewer } from '@/components/InlineDocumentViewer';
+import { ReliableDocumentViewer } from '@/components/ReliableDocumentViewer';
 import { LonglistDocumentUploader } from '@/components/LonglistDocumentUploader';
 import { VideoInterviewManager } from '@/components/VideoInterviewManager';
 import { CompactCandidateView } from '@/components/CompactCandidateView';
@@ -273,11 +274,11 @@ export default function ApplicationDetail() {
   const renderFiles = () => {
     return (
       <div className="space-y-6">
-        {/* PHF Document Inline Viewer */}
+        {/* PHF Document Viewer */}
         {application?.files?.phf_document && (
           <div>
             <h3 className="text-lg font-medium mb-4">Personal History Form (PHF)</h3>
-            <InlineDocumentViewer 
+            <ReliableDocumentViewer 
               fileUrl={application.files.phf_document}
               fileName="Personal History Form.pdf"
               fileType="pdf"
@@ -286,11 +287,11 @@ export default function ApplicationDetail() {
           </div>
         )}
         
-        {/* Motivation Letter Inline Viewer */}
+        {/* Motivation Letter Viewer */}
         {application?.files?.motivation_statement && (
           <div>
             <h3 className="text-lg font-medium mb-4">Motivation Statement</h3>
-            <InlineDocumentViewer
+            <ReliableDocumentViewer
               fileUrl={application.files.motivation_statement}
               fileName="Motivation Statement"
               className="w-full"
@@ -326,7 +327,7 @@ export default function ApplicationDetail() {
               {Object.entries(application.files)
                 .filter(([key]) => !['phf_document', 'motivation_statement'].includes(key)) // Already shown above
                 .map(([key, filePath]) => (
-                <InlineDocumentViewer
+                <ReliableDocumentViewer
                   key={key}
                   fileUrl={filePath as string}
                   fileName={key.replace('_', ' ')}
