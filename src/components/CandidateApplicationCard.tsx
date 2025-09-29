@@ -59,7 +59,9 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
   const flagUrl = country ? getCountryFlagUrl(country) : '';
 
   // For manually entered applications, prioritize phf_data over candidates table
-  const workExperienceData = application.source === 'manual_entry' && application.phf_data?.work_experience
+  const workExperienceData = application.source === 'manual_entry' && 
+                             application.phf_data?.work_experience && 
+                             Array.isArray(application.phf_data.work_experience)
     ? application.phf_data.work_experience.map((work: any) => ({
         title: work.jobTitle || work.title,
         company: work.organization || work.company,
