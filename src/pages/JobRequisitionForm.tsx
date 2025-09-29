@@ -1208,7 +1208,7 @@ export default function JobRequisitionForm() {
             <CardHeader>
               <CardTitle>Competencies</CardTitle>
               <CardDescription>
-                Select a total of 6 competencies maximum. Mandatory competencies ({isSupervisorRole ? '4' : '3'}) plus your selection ({isSupervisorRole ? '2' : '3'}) = 6 total.
+                Select competencies for this position. Mandatory competencies ({isSupervisorRole ? '4' : '3'}) plus your selection (3) = {isSupervisorRole ? '7' : '6'} total.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -1261,7 +1261,7 @@ export default function JobRequisitionForm() {
                   <FormItem>
                     <FormLabel>Core Competencies</FormLabel>
                     <FormDescription>
-                      Select core competencies (remaining slots: {Math.max(0, (isSupervisorRole ? 2 : 3) - (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length))})
+                      Select core competencies (remaining slots: {Math.max(0, 3 - (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length))})
                     </FormDescription>
                     <div className="space-y-2">
                       {[
@@ -1272,7 +1272,7 @@ export default function JobRequisitionForm() {
                       ].map((competency) => {
                         const key = competency.split(':')[0];
                         const totalSelected = (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
-                        const maxSelectable = isSupervisorRole ? 2 : 3;
+                        const maxSelectable = 3;
                         const isDisabled = !field.value?.includes(key) && totalSelected >= maxSelectable;
                         return (
                           <div key={key} className="flex items-start space-x-2">
@@ -1320,7 +1320,7 @@ export default function JobRequisitionForm() {
                       ].map((competency) => {
                         const key = competency.split(':')[0];
                         const totalSelected = (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
-                        const maxSelectable = isSupervisorRole ? 2 : 3;
+                        const maxSelectable = 3;
                         const isDisabled = !field.value?.includes(key) && totalSelected >= maxSelectable;
                         return (
                           <div key={key} className="flex items-start space-x-2">
@@ -1369,7 +1369,7 @@ export default function JobRequisitionForm() {
                       ].map((competency) => {
                         const key = competency.split(':')[0];
                         const totalSelected = (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
-                        const maxSelectable = isSupervisorRole ? 2 : 3;
+                        const maxSelectable = 3;
                         const isDisabled = !field.value?.includes(key) && totalSelected >= maxSelectable;
                         return (
                           <div key={key} className="flex items-start space-x-2">
