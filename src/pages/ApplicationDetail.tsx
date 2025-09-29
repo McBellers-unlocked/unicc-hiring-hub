@@ -17,6 +17,8 @@ import { VideoRatingInterface } from '@/components/VideoRatingInterface';
 import { PanelInterviewScheduler } from '@/components/PanelInterviewScheduler';
 import { PanelInterviewList } from '@/components/PanelInterviewList';
 import { PHFManager } from '@/components/PHFManager';
+import { PHFInlineViewer } from '@/components/PHFInlineViewer';
+import { MotivationLetterViewer } from '@/components/MotivationLetterViewer';
 import { DocumentViewer } from '@/components/DocumentViewer';
 import { LonglistDocumentUploader } from '@/components/LonglistDocumentUploader';
 import { VideoInterviewManager } from '@/components/VideoInterviewManager';
@@ -270,6 +272,23 @@ export default function ApplicationDetail() {
   const renderFiles = () => {
     return (
       <div className="space-y-6">
+        {/* PHF Data Inline Viewer */}
+        {application.phf_data && (
+          <PHFInlineViewer 
+            phfData={application.phf_data}
+            className="w-full"
+          />
+        )}
+        
+        {/* Motivation Letter Viewer */}
+        {application?.files?.motivation_statement && (
+          <MotivationLetterViewer
+            fileUrl={application.files.motivation_statement}
+            fileName="Motivation Statement"
+            className="w-full"
+          />
+        )}
+        
         <PHFManager
           applicationId={id!}
           phfData={application.phf_data}
@@ -284,7 +303,9 @@ export default function ApplicationDetail() {
           <div>
             <h3 className="text-lg font-medium mb-4">Other Application Files</h3>
             <div className="space-y-2">
-              {Object.entries(application.files).map(([key, filePath]) => (
+              {Object.entries(application.files)
+                .filter(([key]) => key !== 'motivation_statement') // Already shown above
+                .map(([key, filePath]) => (
                 <div key={key} className="flex items-center justify-between p-2 border rounded">
                   <div className="flex items-center space-x-2">
                     <FileText className="w-4 h-4" />
@@ -302,8 +323,8 @@ export default function ApplicationDetail() {
           </div>
         )}
         
-        {(!application?.files || Object.keys(application.files).length === 0) && (
-          <p className="text-muted-foreground">No additional files uploaded</p>
+        {(!application?.files || Object.keys(application.files).length === 0) && !application.phf_data && (
+          <p className="text-muted-foreground">No application data or files available</p>
         )}
       </div>
     );
