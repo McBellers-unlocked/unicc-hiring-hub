@@ -257,7 +257,19 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
               <span className="font-medium text-sm">Total Experience:</span>
             </div>
             <div className="text-lg font-semibold text-primary">
-              {getTotalExperience(workExperienceData, application.candidate.years_of_experience)}
+              {(() => {
+                console.log('=== TOTAL EXPERIENCE DEBUG ===');
+                console.log('Application ID:', application.id);
+                console.log('Candidate Name:', application.candidate.name);
+                console.log('Source:', application.source);
+                console.log('WorkExperienceData:', workExperienceData);
+                console.log('Candidate work_experience:', application.candidate.work_experience);
+                console.log('PHF work_experience:', application.phf_data?.work_experience);
+                const result = getTotalExperience(workExperienceData, application.candidate.years_of_experience);
+                console.log('Total Experience Result:', result);
+                console.log('===========================');
+                return result;
+              })()}
             </div>
           </div>
         </div>
