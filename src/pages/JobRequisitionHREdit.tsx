@@ -169,7 +169,7 @@ export default function JobRequisitionHREdit() {
         hr_reviewed: true,
         hr_reviewed_at: new Date().toISOString(),
         hr_reviewed_by: user?.id,
-        status: 'hiring_manager_review'
+        hr_internal_status: 'pending_chief_review'
       };
 
       const { error } = await supabase
@@ -181,7 +181,7 @@ export default function JobRequisitionHREdit() {
 
       toast({
         title: "Success",
-        description: "Changes saved and sent back to hiring manager for review",
+        description: "Changes saved and sent to Chief HR for review",
       });
 
       navigate('/admin/requisitions');
@@ -248,7 +248,7 @@ export default function JobRequisitionHREdit() {
           </Button>
           <Button onClick={handleSaveChanges} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
-            {saving ? 'Saving...' : 'Save & Send to Manager'}
+            {saving ? 'Saving...' : 'Save & Send to Chief HR'}
           </Button>
         </div>
       </div>

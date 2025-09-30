@@ -20,6 +20,7 @@ import {
   Building,
   Edit2
 } from "lucide-react";
+import { ChiefHRReviewDialog } from "@/components/ChiefHRReviewDialog";
 
 interface JobRequisition {
   id: string;
@@ -33,6 +34,11 @@ interface JobRequisition {
   hr_reviewed: boolean;
   hr_reviewed_at: string | null;
   hr_reviewed_by: string | null;
+  chief_hr_reviewed: boolean;
+  chief_hr_reviewed_at: string | null;
+  chief_hr_reviewed_by: string | null;
+  chief_hr_comments: string | null;
+  hr_internal_status: string;
   hiring_manager_confirmed_hr_changes: boolean;
   hiring_manager_confirmed_at: string | null;
   chief_of_division_approval: boolean;
@@ -102,6 +108,67 @@ export default function AdminRequisitions() {
       toast({
         title: "Success",
         description: `Position description ${approved ? 'approved' : 'sent back for amendments'}`,
+      });
+
+      fetchRequisitions();
+    } catch (error) {
+      console.error('Error updating requisition:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update requisition",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleChiefHRReview = async (requisitionId: string, approved: boolean, comments?: string) => {
+    try {
+      const updateData = {
+        chief_hr_reviewed: true,
+        chief_hr_reviewed_at: new Date().toISOString(),
+        chief_hr_reviewed_by: user?.id,
+        hr_internal_status: approved ? 'ready_for_manager' : 'pending_initial_review',
+        chief_hr_comments: comments || null
+      };
+
+      const { error } = await supabase
+        .from('job_requisitions')
+        .update(updateData)
+        .eq('id', requisitionId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: approved ? "Position description approved by Chief HR" : "Position description returned to HR with comments",
+      });
+
+      fetchRequisitions();
+    } catch (error) {
+      console.error('Error updating requisition:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update requisition",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSendToManager = async (requisitionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('job_requisitions')
+        .update({
+          status: 'hiring_manager_review',
+          hr_internal_status: 'pending_initial_review' // Reset for potential future changes
+        })
+        .eq('id', requisitionId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Position description sent to hiring manager for review",
       });
 
       fetchRequisitions();
@@ -262,7 +329,17 @@ export default function AdminRequisitions() {
   const filterRequisitions = (status: string) => {
     switch (status) {
       case 'pending-hr':
-        return requisitions.filter(r => r.status === 'hr_review');
+        return requisitions.filter(r => 
+          r.status === 'hr_review' && r.hr_internal_status === 'pending_initial_review'
+        );
+      case 'chief-hr-review':
+        return requisitions.filter(r => 
+          r.status === 'hr_review' && r.hr_internal_status === 'pending_chief_review'
+        );
+      case 'hr-ready':
+        return requisitions.filter(r => 
+          r.status === 'hr_review' && r.hr_internal_status === 'ready_for_manager'
+        );
       case 'amendments':
         return requisitions.filter(r => r.status === 'hr_amendments');
       case 'manager-confirmation':
@@ -309,6 +386,18 @@ export default function AdminRequisitions() {
                 {filterRequisitions('pending-hr').length}
               </Badge>
             </TabsTrigger>
+            <TabsTrigger value="chief-hr-review">
+              Chief HR Review
+              <Badge variant="secondary" className="ml-2">
+                {filterRequisitions('chief-hr-review').length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="hr-ready">
+              Ready for Manager
+              <Badge variant="secondary" className="ml-2">
+                {filterRequisitions('hr-ready').length}
+              </Badge>
+            </TabsTrigger>
             <TabsTrigger value="amendments">
               Amendments Required
               <Badge variant="destructive" className="ml-2">
@@ -325,7 +414,7 @@ export default function AdminRequisitions() {
             <TabsTrigger value="completed">Completed</TabsTrigger>
           </TabsList>
 
-          {(['all', 'pending-hr', 'amendments', 'manager-confirmation', 'in-progress', 'completed'] as const).map(tabValue => (
+          {(['all', 'pending-hr', 'chief-hr-review', 'hr-ready', 'amendments', 'manager-confirmation', 'in-progress', 'completed'] as const).map(tabValue => (
             <TabsContent key={tabValue} value={tabValue} className="space-y-4">
               {filterRequisitions(tabValue).length === 0 ? (
                 <Card>
@@ -383,36 +472,49 @@ export default function AdminRequisitions() {
                               View
                             </Button>
                             
-                            {requisition.status === 'hr_review' && (isAdmin || isHR) && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => navigate(`/requisitions/${requisition.id}/hr-edit`)}
-                                className="text-blue-600 border-blue-600 hover:bg-blue-50"
-                              >
-                                <Edit2 className="h-4 w-4 mr-1" />
-                                Edit & Review
-                              </Button>
+                            {/* HR Initial Review Actions */}
+                            {requisition.status === 'hr_review' && requisition.hr_internal_status === 'pending_initial_review' && (isAdmin || isHR) && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => navigate(`/requisitions/${requisition.id}/hr-edit`)}
+                                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                >
+                                  <Edit2 className="h-4 w-4 mr-1" />
+                                  Edit & Review
+                                </Button>
+                              </>
                             )}
                             
-                            {requisition.status === 'hr_review' && (isAdmin || isHR) && (
+                            {/* Chief HR Review Actions */}
+                            {requisition.status === 'hr_review' && requisition.hr_internal_status === 'pending_chief_review' && isAdmin && (
                               <div className="flex gap-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleHRReview(requisition.id, false)}
+                                  onClick={() => navigate(`/requisitions/${requisition.id}`)}
                                 >
-                                  <XCircle className="h-4 w-4 mr-1" />
-                                  Request Changes
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View Details
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleHRReview(requisition.id, true)}
-                                >
-                                  <CheckCircle2 className="h-4 w-4 mr-1" />
-                                  Approve
-                                </Button>
+                                <ChiefHRReviewDialog 
+                                  requisitionId={requisition.id} 
+                                  onComplete={fetchRequisitions} 
+                                />
                               </div>
+                            )}
+
+                            {/* Ready for Manager - HR can send */}
+                            {requisition.status === 'hr_review' && requisition.hr_internal_status === 'ready_for_manager' && (isAdmin || isHR) && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleSendToManager(requisition.id)}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                <CheckCircle2 className="h-4 w-4 mr-1" />
+                                Send to Manager
+                              </Button>
                             )}
 
                             {requisition.status === 'hiring_manager_review' && (isAdmin || isHR) && (
@@ -455,6 +557,25 @@ export default function AdminRequisitions() {
                                 <CheckCircle2 className="h-3 w-3 text-green-600" />
                                 {requisition.hr_reviewed_at && new Date(requisition.hr_reviewed_at).toLocaleDateString()}
                               </span>
+                            </div>
+                          )}
+
+                          {requisition.chief_hr_reviewed && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">Chief HR Reviewed:</span>
+                              <span className="flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                {requisition.chief_hr_reviewed_at && new Date(requisition.chief_hr_reviewed_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                          )}
+
+                          {requisition.chief_hr_comments && (
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Chief HR Comments:</span>
+                              <p className="mt-1 text-sm bg-muted/50 p-2 rounded border-l-2 border-blue-500">
+                                {requisition.chief_hr_comments}
+                              </p>
                             </div>
                           )}
                           

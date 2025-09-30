@@ -706,6 +706,10 @@ export type Database = {
       }
       job_requisitions: {
         Row: {
+          chief_hr_comments: string | null
+          chief_hr_reviewed: boolean | null
+          chief_hr_reviewed_at: string | null
+          chief_hr_reviewed_by: string | null
           chief_of_division_approval: boolean | null
           chief_of_division_approved_at: string | null
           chief_of_division_approved_by: string | null
@@ -740,6 +744,7 @@ export type Database = {
           hr_change_summary: string | null
           hr_changes: Json | null
           hr_comments: string | null
+          hr_internal_status: string | null
           hr_original_data: Json | null
           hr_reviewed: boolean | null
           hr_reviewed_at: string | null
@@ -764,6 +769,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          chief_hr_comments?: string | null
+          chief_hr_reviewed?: boolean | null
+          chief_hr_reviewed_at?: string | null
+          chief_hr_reviewed_by?: string | null
           chief_of_division_approval?: boolean | null
           chief_of_division_approved_at?: string | null
           chief_of_division_approved_by?: string | null
@@ -798,6 +807,7 @@ export type Database = {
           hr_change_summary?: string | null
           hr_changes?: Json | null
           hr_comments?: string | null
+          hr_internal_status?: string | null
           hr_original_data?: Json | null
           hr_reviewed?: boolean | null
           hr_reviewed_at?: string | null
@@ -822,6 +832,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          chief_hr_comments?: string | null
+          chief_hr_reviewed?: boolean | null
+          chief_hr_reviewed_at?: string | null
+          chief_hr_reviewed_by?: string | null
           chief_of_division_approval?: boolean | null
           chief_of_division_approved_at?: string | null
           chief_of_division_approved_by?: string | null
@@ -856,6 +870,7 @@ export type Database = {
           hr_change_summary?: string | null
           hr_changes?: Json | null
           hr_comments?: string | null
+          hr_internal_status?: string | null
           hr_original_data?: Json | null
           hr_reviewed?: boolean | null
           hr_reviewed_at?: string | null
