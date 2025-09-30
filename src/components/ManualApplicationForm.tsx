@@ -97,9 +97,22 @@ export default function ManualApplicationForm() {
         .from('jobs')
         .select('id, title, org_unit')
         .eq('id', jobId)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Job fetch error:', error);
+        throw error;
+      }
+      if (!data) {
+        console.error('No job found with ID:', jobId);
+        toast({
+          title: "Error",
+          description: "Job not found",
+          variant: "destructive",
+        });
+        return;
+      }
+      console.log('Job loaded successfully:', data);
       setJob(data);
     } catch (error) {
       console.error('Error fetching job:', error);
@@ -344,10 +357,16 @@ export default function ManualApplicationForm() {
           description: firstError.message,
           variant: "destructive",
         });
+      } else if (error?.message) {
+        toast({
+          title: "Database Error",
+          description: error.message,
+          variant: "destructive",
+        });
       } else {
         toast({
           title: "Error",
-          description: "Failed to create application",
+          description: "Failed to create application. Please check the console for details.",
           variant: "destructive",
         });
       }
