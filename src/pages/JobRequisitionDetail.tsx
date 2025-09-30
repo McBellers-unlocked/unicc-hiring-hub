@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, FileText, Briefcase, CheckCircle, Clock, MessageSquare, Download } from "lucide-react";
+import { ArrowLeft, FileText, Briefcase, CheckCircle, Clock, MessageSquare, Download, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { DiffSummary } from "@/components/DiffViewer";
 
@@ -163,6 +163,28 @@ export default function JobRequisitionDetail() {
     }
   };
 
+  const testEmailNotification = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('test-email-notification', {
+        body: {}
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Test Email Sent",
+        description: "Check valente@unicc.org for the test email!",
+      });
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send test email",
+        variant: "destructive",
+      });
+    }
+  };
+
   const convertToJob = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('convert-requisition-to-job', {
@@ -305,6 +327,14 @@ export default function JobRequisitionDetail() {
             (requisition.status === 'draft' || requisition.status === 'hr_amendments'))) && (
             <Button variant="outline" onClick={() => navigate(`/requisitions/${requisition.id}/edit`)}>
               Edit
+            </Button>
+          )}
+          
+          {/* Test Email - only for Admin */}
+          {userRoles.includes('Admin') && (
+            <Button variant="outline" onClick={testEmailNotification}>
+              <Mail className="h-4 w-4 mr-2" />
+              Test Email
             </Button>
           )}
           
