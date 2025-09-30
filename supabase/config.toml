@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.file-proxy]
 verify_jwt = false
+
+[functions.send-requisition-notification]
+verify_jwt = false

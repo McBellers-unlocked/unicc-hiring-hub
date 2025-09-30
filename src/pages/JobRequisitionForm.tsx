@@ -317,6 +317,8 @@ export default function JobRequisitionForm() {
       // Remove confirmation fields before saving
       delete formData.confirmChiefApproval;
 
+      let currentRequisitionId = id;
+
       if (id && id !== 'new') {
         // Get current requisition to check status
         const { data: currentReq, error: fetchError } = await supabase
@@ -386,6 +388,8 @@ export default function JobRequisitionForm() {
 
         if (error) throw error;
 
+        currentRequisitionId = newRequisition.id;
+
         // Generate reference number
         const { data: refData, error: refError } = await supabase
           .rpc('generate_position_description_reference', {
@@ -401,6 +405,25 @@ export default function JobRequisitionForm() {
         }
 
         navigate(`/requisitions/${newRequisition.id}`);
+      }
+
+      // Send email notification if submitting for approval
+      if (submit) {
+        try {
+          await supabase.functions.invoke('send-requisition-notification', {
+            body: {
+              requisitionId: currentRequisitionId,
+              title: formData.position_title,
+              requestedBy: user?.email || 'Unknown',
+              referenceNumber: '', // Will be generated after submission
+              natureOfPosition: formData.nature_of_position,
+              unitSection: formData.unit_section_division
+            }
+          });
+        } catch (emailError) {
+          console.error('Error sending notification email:', emailError);
+          // Don't fail the submission if email fails
+        }
       }
 
       toast({
