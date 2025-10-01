@@ -17,7 +17,8 @@ import {
   Clock,
   CheckCircle,
   X,
-  Video
+  Video,
+  FileText
 } from 'lucide-react';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
 
@@ -32,6 +33,9 @@ interface CandidateApplicationCardProps {
   onReject?: (applicationId: string) => void;
   onAddToShortlist?: (applicationId: string) => void;
   onAddToVideoInterview?: (applicationId: string) => void;
+  onVideoAssignment?: (applicationId: string) => void;
+  onReviewVideos?: (applicationId: string) => void;
+  onMoveToPanelInterview?: (applicationId: string) => void;
   getFlagEmoji: (location: string | null) => string | null;
   getEducationSummary: (education: any) => any[];
   getWorkExperienceSummary: (workExp: any) => any[];
@@ -48,6 +52,9 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
   onDelete,
   onAddToLonglist,
   onDirectShortlist,
+  onVideoAssignment,
+  onReviewVideos,
+  onMoveToPanelInterview,
   onReject,
   onAddToShortlist,
   onAddToVideoInterview,
@@ -363,6 +370,71 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                 {(userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Hiring Manager')) && 
                  onReject && 
                  application.status !== 'Rejected' && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => onReject(application.id)}
+                    className="whitespace-nowrap"
+                  >
+                    <X className="w-3 h-3 mr-1" />
+                    Reject
+                  </Button>
+                )}
+              </>
+            ) : application.status === 'Pre-Recorded Video' ? (
+              <>
+                {/* Pre-Recorded Video Status Actions */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate(`/applications/${application.id}`)}
+                  className="whitespace-nowrap"
+                >
+                  <Eye className="w-3 h-3 mr-1" />
+                  View
+                </Button>
+
+                {/* HR Admin specific actions */}
+                {(userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && onVideoAssignment && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => onVideoAssignment(application.id)}
+                    className="whitespace-nowrap"
+                  >
+                    <FileText className="w-3 h-3 mr-1" />
+                    Video Assignment
+                  </Button>
+                )}
+
+                {/* Hiring Manager specific actions */}
+                {userRoles.includes('Hiring Manager') && onReviewVideos && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => onReviewVideos(application.id)}
+                    className="whitespace-nowrap"
+                  >
+                    <Eye className="w-3 h-3 mr-1" />
+                    Review Videos
+                  </Button>
+                )}
+
+                {userRoles.includes('Hiring Manager') && onMoveToPanelInterview && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => onMoveToPanelInterview(application.id)}
+                    className="whitespace-nowrap"
+                  >
+                    <Check className="w-3 h-3 mr-1" />
+                    Move to Panel Interview
+                  </Button>
+                )}
+
+                {/* Reject button for all staff */}
+                {(userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Hiring Manager')) && 
+                 onReject && (
                   <Button
                     size="sm"
                     variant="destructive"

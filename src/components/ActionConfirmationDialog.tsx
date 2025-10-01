@@ -10,12 +10,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Plus, X, AlertCircle, Video } from 'lucide-react';
+import { CheckCircle, Plus, X, AlertCircle, Video, Check } from 'lucide-react';
 
 interface ActionConfirmationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  action: 'longlist' | 'shortlist' | 'reject' | 'add-to-shortlist' | 'add-to-video';
+  action: 'longlist' | 'shortlist' | 'reject' | 'add-to-shortlist' | 'add-to-video' | 'move-to-panel-interview';
   candidateName: string;
   currentStatus: string;
   isToggleAction?: boolean; // For longlist toggle
@@ -106,6 +106,15 @@ export function ActionConfirmationDialog({
           buttonText: 'Add to Video',
           buttonVariant: 'default',
           placeholder: 'Reason for moving to video interview...'
+        };
+      case 'move-to-panel-interview':
+        return {
+          title: 'Move to Panel Interview',
+          description: `Move ${candidateName} from Video Interview to Panel Interview stage?`,
+          icon: <Check className="w-5 h-5 text-primary" />,
+          buttonText: 'Move to Panel Interview',
+          buttonVariant: 'default',
+          placeholder: 'Reason for moving to panel interview (optional)...'
         };
       default:
         return {

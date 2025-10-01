@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { VideoRatingInterface } from '@/components/VideoRatingInterface';
+import { VideoAssignmentManager } from '@/components/VideoAssignmentManager';
 import { PanelInterviewScheduler } from '@/components/PanelInterviewScheduler';
 import { PanelInterviewList } from '@/components/PanelInterviewList';
 import { PHFManager } from '@/components/PHFManager';
@@ -942,17 +943,114 @@ export default function ApplicationDetail() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="video">
+          <TabsContent value="video" className="space-y-4">
             {application && (
-              <VideoRatingInterface
-                applicationId={application.id}
-                questions={videoQuestions} 
-                videoAnswers={videoAnswers} 
-                onRatingUpdate={() => {
-                  fetchApplication();
-                  fetchVideoData();
-                }}
-              />
+              <>
+                {/* Video Assignment Manager */}
+                <VideoAssignmentManager applicationId={application.id} />
+                
+                {/* Video Rating Interface */}
+                <VideoRatingInterface
+                  applicationId={application.id}
+                  questions={videoQuestions} 
+                  videoAnswers={videoAnswers} 
+                  onRatingUpdate={() => {
+                    fetchApplication();
+                    fetchVideoData();
+                  }}
+                />
+
+                {/* Action buttons when videos are completed */}
+                {application.status === 'Pre-Recorded Video' && 
+                 videoAnswers.length > 0 &&
+                 videoQuestions.length > 0 &&
+                 videoAnswers.length === videoQuestions.length && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-muted-foreground flex-1">
+                          All video questions completed. Ready to proceed to next stage.
+                        </p>
+                        <Button 
+                          onClick={async () => {
+                            try {
+                              await supabase
+                                .from('applications')
+                                .update({ status: 'Panel Interview' })
+                                .eq('id', application.id);
+
+                              await supabase
+                                .from('stage_events')
+                                .insert({
+                                  application_id: application.id,
+                                  from_stage: 'Pre-Recorded Video',
+                                  to_stage: 'Panel Interview',
+                                  reason: 'Video interview completed, moved to panel interview'
+                                });
+
+                              toast({
+                                title: "Success",
+                                description: "Candidate moved to Panel Interview stage",
+                              });
+                              
+                              fetchApplication();
+                            } catch (error) {
+                              console.error('Error moving to panel interview:', error);
+                              toast({
+                                title: "Error",
+                                description: "Failed to move candidate to panel interview",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Move to Panel Interview
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          onClick={async () => {
+                            if (!confirm('Are you sure you want to reject this candidate?')) return;
+                            
+                            try {
+                              await supabase
+                                .from('applications')
+                                .update({ status: 'Rejected' })
+                                .eq('id', application.id);
+
+                              await supabase
+                                .from('stage_events')
+                                .insert({
+                                  application_id: application.id,
+                                  from_stage: 'Pre-Recorded Video',
+                                  to_stage: 'Rejected',
+                                  reason: 'Rejected after video interview review'
+                                });
+
+                              toast({
+                                title: "Success",
+                                description: "Candidate has been rejected",
+                              });
+                              
+                              navigate('/applications');
+                            } catch (error) {
+                              console.error('Error rejecting candidate:', error);
+                              toast({
+                                title: "Error",
+                                description: "Failed to reject candidate",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          <XCircle className="w-4 h-4 mr-2" />
+                          Reject
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
             )}
           </TabsContent>
 

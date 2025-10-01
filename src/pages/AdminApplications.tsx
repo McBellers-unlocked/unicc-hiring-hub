@@ -17,6 +17,7 @@ import { format } from 'date-fns';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
 import { CandidateApplicationCard } from '@/components/CandidateApplicationCard';
 import { ActionConfirmationDialog } from '@/components/ActionConfirmationDialog';
+import { VideoAssignmentDialog } from '@/components/VideoAssignmentDialog';
 
 interface Application {
   id: string;
@@ -74,7 +75,7 @@ export default function AdminApplications() {
   // Dialog state
   const [dialogState, setDialogState] = useState<{
     open: boolean;
-    action: 'longlist' | 'shortlist' | 'reject' | 'add-to-shortlist' | 'add-to-video';
+    action: 'longlist' | 'shortlist' | 'reject' | 'add-to-shortlist' | 'add-to-video' | 'move-to-panel-interview';
     applicationId: string;
     candidateName: string;
     currentStatus: string;
@@ -86,6 +87,17 @@ export default function AdminApplications() {
     candidateName: '',
     currentStatus: '',
     isToggleAction: false
+  });
+
+  // Video Assignment Dialog state
+  const [videoAssignmentDialog, setVideoAssignmentDialog] = useState<{
+    open: boolean;
+    applicationId: string;
+    candidateName: string;
+  }>({
+    open: false,
+    applicationId: '',
+    candidateName: ''
   });
 
   // Check access permissions
@@ -1002,6 +1014,80 @@ export default function AdminApplications() {
     });
   };
 
+  // New handlers for video stage
+  const handleVideoAssignment = (applicationId: string) => {
+    const app = applications.find(a => a.id === applicationId);
+    if (!app) return;
+    
+    setVideoAssignmentDialog({
+      open: true,
+      applicationId,
+      candidateName: app.candidate.name
+    });
+  };
+
+  const handleReviewVideos = (applicationId: string) => {
+    navigate(`/applications/${applicationId}?tab=video`);
+  };
+
+  const handleMoveToPanelInterview = (applicationId: string) => {
+    const app = applications.find(a => a.id === applicationId);
+    if (!app) return;
+    
+    setDialogState({
+      open: true,
+      action: 'move-to-panel-interview',
+      applicationId,
+      candidateName: app.candidate.name,
+      currentStatus: app.status
+    });
+  };
+
+  const moveToPanelInterview = async (applicationId: string, reason?: string) => {
+    try {
+      // Get current user
+      const { data: user } = await supabase.auth.getUser();
+      const currentUserId = user?.user?.id;
+
+      // Get current application
+      const currentApp = applications.find(app => app.id === applicationId);
+      
+      const { error } = await supabase
+        .from('applications')
+        .update({ status: 'Panel Interview' })
+        .eq('id', applicationId);
+
+      if (error) throw error;
+
+      // Log stage change
+      if (currentUserId) {
+        await supabase
+          .from('stage_events')
+          .insert({
+            application_id: applicationId,
+            from_stage: currentApp?.status as any,
+            to_stage: 'Panel Interview' as any,
+            by_user: currentUserId,
+            reason: reason || 'Moved from Video Interview to Panel Interview'
+          });
+      }
+
+      toast({
+        title: "Success",
+        description: "Candidate moved to Panel Interview stage",
+      });
+
+      fetchApplications(selectedJobId);
+    } catch (error) {
+      console.error('Error moving to panel interview:', error);
+      toast({
+        title: "Error",
+        description: "Failed to move to panel interview",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDialogConfirm = async (reason: string) => {
     const { action, applicationId } = dialogState;
     
@@ -1020,6 +1106,9 @@ export default function AdminApplications() {
         break;
       case 'add-to-video':
         await addToVideoInterview(applicationId, reason);
+        break;
+      case 'move-to-panel-interview':
+        await moveToPanelInterview(applicationId, reason);
         break;
     }
   };
@@ -1293,6 +1382,9 @@ export default function AdminApplications() {
                         onReject={handleRejectAction}
                         onAddToShortlist={handleAddToShortlist}
                         onAddToVideoInterview={handleAddToVideoInterview}
+                        onVideoAssignment={handleVideoAssignment}
+                        onReviewVideos={handleReviewVideos}
+                        onMoveToPanelInterview={handleMoveToPanelInterview}
                        getFlagEmoji={getCountryFromLocation}
                        getEducationSummary={getAllEducationDetails}
                        getWorkExperienceSummary={getRecentWorkExperience}
@@ -1316,6 +1408,13 @@ export default function AdminApplications() {
         currentStatus={dialogState.currentStatus}
         isToggleAction={dialogState.isToggleAction}
         onConfirm={handleDialogConfirm}
+      />
+
+      <VideoAssignmentDialog
+        open={videoAssignmentDialog.open}
+        onOpenChange={(open) => setVideoAssignmentDialog(prev => ({ ...prev, open }))}
+        applicationId={videoAssignmentDialog.applicationId}
+        candidateName={videoAssignmentDialog.candidateName}
       />
     </Layout>
   );
