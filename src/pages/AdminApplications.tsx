@@ -1034,17 +1034,7 @@ export default function AdminApplications() {
     const app = applications.find(a => a.id === applicationId);
     if (!app) return;
 
-    // Check if job has video questions
-    const hasQuestions = jobVideoQuestions[app.job.id];
-    if (hasQuestions === false) {
-      toast({
-        title: "Video Questions Not Configured",
-        description: "This job doesn't have video questions set up yet. Please configure them in the Job Wizard first.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
+    // Always open the dialog - it will show the configure button if needed
     setVideoAssignmentDialog({
       open: true,
       applicationId,
