@@ -408,6 +408,53 @@ export default function ApplicationDetail() {
     return String(value);
   };
 
+  // Helper function to calculate total UN experience
+  const calculateUNExperience = (employment: any[]) => {
+    if (!Array.isArray(employment) || employment.length === 0) {
+      return 0;
+    }
+    
+    const unYears = employment
+      .filter((job: any) => job.is_un_system_post === true)
+      .reduce((total: number, job: any) => {
+        const fromYear = parseInt(job.period_from_year || job.from_year || '0');
+        const fromMonth = parseInt(job.period_from_month || job.from_month || '1');
+        const toYear = job.is_present ? new Date().getFullYear() : parseInt(job.period_to_year || job.to_year || new Date().getFullYear().toString());
+        const toMonth = job.is_present ? new Date().getMonth() + 1 : parseInt(job.period_to_month || job.to_month || '12');
+        
+        if (fromYear > 0) {
+          const monthsDiff = (toYear - fromYear) * 12 + (toMonth - fromMonth);
+          const yearsDiff = Math.max(0, monthsDiff / 12);
+          return total + yearsDiff;
+        }
+        return total;
+      }, 0);
+    
+    return Math.round(unYears);
+  };
+
+  // Helper function to calculate total experience
+  const calculateTotalExperience = (employment: any[]) => {
+    if (!Array.isArray(employment) || employment.length === 0) {
+      return 0;
+    }
+    
+    const totalYears = employment.reduce((total: number, job: any) => {
+      const fromYear = parseInt(job.period_from_year || job.from_year || '0');
+      const fromMonth = parseInt(job.period_from_month || job.from_month || '1');
+      const toYear = job.is_present ? new Date().getFullYear() : parseInt(job.period_to_year || job.to_year || new Date().getFullYear().toString());
+      const toMonth = job.is_present ? new Date().getMonth() + 1 : parseInt(job.period_to_month || job.to_month || '12');
+      
+      if (fromYear > 0) {
+        const monthsDiff = (toYear - fromYear) * 12 + (toMonth - fromMonth);
+        const yearsDiff = Math.max(0, monthsDiff / 12);
+        return total + yearsDiff;
+      }
+      return total;
+    }, 0);
+    
+    return Math.round(totalYears);
+  };
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -750,6 +797,22 @@ export default function ApplicationDetail() {
                     <Briefcase className="w-5 h-5" />
                     <span>Work Experience ({application.phf_data.employment.length} positions)</span>
                   </CardTitle>
+                  {/* Experience Summary */}
+                  <div className="flex items-center gap-6 pt-3 mt-3 border-t">
+                    <div>
+                      <div className="text-2xl font-bold text-primary">
+                        {calculateTotalExperience(application.phf_data.employment)} years
+                      </div>
+                      <div className="text-sm text-muted-foreground">Total Experience</div>
+                    </div>
+                    <div className="h-10 w-px bg-border" />
+                    <div>
+                      <div className="text-2xl font-bold text-blue-600">
+                        {calculateUNExperience(application.phf_data.employment)} years
+                      </div>
+                      <div className="text-sm text-muted-foreground">UN Experience</div>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
@@ -779,6 +842,11 @@ export default function ApplicationDetail() {
                               </p>
                               {job.is_present && (
                                 <Badge variant="secondary" className="mt-1">Current Position</Badge>
+                              )}
+                              {job.is_un_system_post && (
+                                <Badge variant="outline" className="mt-1 bg-blue-50 text-blue-700 border-blue-200">
+                                  UN Position
+                                </Badge>
                               )}
                             </div>
                           </div>
