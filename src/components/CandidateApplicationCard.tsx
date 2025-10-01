@@ -33,6 +33,7 @@ interface CandidateApplicationCardProps {
   getEducationSummary: (education: any) => any[];
   getWorkExperienceSummary: (workExp: any) => any[];
   getTotalExperience: (workExp: any, yearsExp: number | null) => string;
+  getTotalUNExperience: (application: any) => string;
   getLanguageSummary: (languages: any) => string;
 }
 
@@ -49,6 +50,7 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
   getEducationSummary,
   getWorkExperienceSummary,
   getTotalExperience,
+  getTotalUNExperience,
   getLanguageSummary
 }) => {
   const navigate = useNavigate();
@@ -217,33 +219,45 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
               <h4 className="font-medium text-sm">Work Experience ({recentJobs.length})</h4>
             </div>
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {recentJobs.map((job, index) => (
-                <div key={index} className="text-sm border-l-2 border-muted pl-3 py-1">
-                  <div className="font-medium" title={job.title}>
-                    {job.title}
-                    {index === 0 && (
-                      <span className="ml-2 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
-                        Current
-                      </span>
-                    )}
-                  </div>
-                  {job.organization && (
-                    <div className="text-xs text-muted-foreground truncate" title={job.organization}>
-                      {job.organization}
+              {recentJobs.map((job, index) => {
+                // Find matching employment record in phf_data to check UN status
+                const phfEmployment = application.phf_data?.employment || [];
+                const matchingJob = phfEmployment.find((emp: any) => 
+                  (emp.exact_title_of_post === job.title || emp.position_title === job.title) &&
+                  (emp.employer_name === job.organization)
+                );
+                const isUNJob = matchingJob?.is_un_system_post === true;
+                
+                return (
+                  <div key={index} className="text-sm border-l-2 border-muted pl-3 py-1">
+                    <div className="font-medium" title={job.title}>
+                      {job.title}
+                      {index === 0 && (
+                        <span className="ml-2 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
+                          Current
+                        </span>
+                      )}
                     </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    {job.length && (
-                      <span className="text-xs text-muted-foreground font-medium">
-                        {job.length}
-                      </span>
+                    {job.organization && (
+                      <div className="text-xs text-muted-foreground truncate" title={job.organization}>
+                        {job.organization}
+                      </div>
                     )}
-                    {index === 0 && application.candidate.un_experience && (
-                      <Badge variant="outline" className="text-xs px-1.5 py-0.5">UN</Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {job.length && (
+                        <span className="text-xs text-muted-foreground font-medium">
+                          {job.length}
+                        </span>
+                      )}
+                      {isUNJob && (
+                        <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-700 border-blue-200">
+                          UN
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -265,8 +279,20 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
               <Clock className="w-4 h-4 text-muted-foreground" />
               <span className="font-medium text-sm">Total Experience:</span>
             </div>
-            <div className="text-lg font-semibold text-primary">
-              {getTotalExperience(workExperienceData, application.candidate.years_of_experience)}
+            <div className="flex items-center gap-3">
+              <div>
+                <div className="text-lg font-semibold text-primary">
+                  {getTotalExperience(workExperienceData, application.candidate.years_of_experience)}
+                </div>
+                <div className="text-xs text-muted-foreground">Overall</div>
+              </div>
+              <div className="h-8 w-px bg-border" />
+              <div>
+                <div className="text-lg font-semibold text-blue-600">
+                  {getTotalUNExperience(application)}
+                </div>
+                <div className="text-xs text-muted-foreground">UN Experience</div>
+              </div>
             </div>
           </div>
         </div>

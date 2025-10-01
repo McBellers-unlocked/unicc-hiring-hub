@@ -382,6 +382,33 @@ export default function AdminApplications() {
     return '0 years';
   };
 
+  const getTotalUNExperience = (application: any) => {
+    // Check phf_data for UN experience information
+    const employment = application.phf_data?.employment || [];
+    
+    if (!Array.isArray(employment) || employment.length === 0) {
+      return '0 years';
+    }
+    
+    const unExperience = employment
+      .filter((job: any) => job.is_un_system_post === true)
+      .reduce((total: number, job: any) => {
+        const fromYear = parseInt(job.period_from_year || job.from_year || '0');
+        const fromMonth = parseInt(job.period_from_month || job.from_month || '1');
+        const toYear = job.is_present ? new Date().getFullYear() : parseInt(job.period_to_year || job.to_year || new Date().getFullYear().toString());
+        const toMonth = job.is_present ? new Date().getMonth() + 1 : parseInt(job.period_to_month || job.to_month || '12');
+        
+        if (fromYear > 0) {
+          const monthsDiff = (toYear - fromYear) * 12 + (toMonth - fromMonth);
+          const yearsDiff = Math.max(0, monthsDiff / 12);
+          return total + yearsDiff;
+        }
+        return total;
+      }, 0);
+    
+    return `${Math.round(unExperience)} years`;
+  };
+
   const getExperienceSummary = (workExp: any, yearsExp: number | null) => {
     const currentJob = getCurrentJobDetails(workExp);
     return currentJob.title;
@@ -1144,9 +1171,10 @@ export default function AdminApplications() {
                        getFlagEmoji={getCountryFromLocation}
                        getEducationSummary={getAllEducationDetails}
                        getWorkExperienceSummary={getRecentWorkExperience}
-                       getTotalExperience={getTotalExperience}
-                       getLanguageSummary={getLanguageSummary}
-                     />
+                        getTotalExperience={getTotalExperience}
+                        getTotalUNExperience={getTotalUNExperience}
+                        getLanguageSummary={getLanguageSummary}
+                      />
                   ))
                 )}
               </div>
