@@ -41,7 +41,9 @@ import {
   Calendar,
   MessageSquare,
   GraduationCap,
-  Briefcase
+  Briefcase,
+  Languages as LanguagesIcon,
+  Award
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -687,38 +689,54 @@ export default function ApplicationDetail() {
             </Card>
 
             {/* Languages Section */}
-            {application.phf_data?.languages && application.phf_data.languages.length > 0 && (
+            {application.phf_data?.languages && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <MapPin className="w-5 h-5" />
-                    <span>Languages ({application.phf_data.languages.length})</span>
+                    <LanguagesIcon className="w-5 h-5" />
+                    <span>Languages</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {application.phf_data.languages.map((lang: any, index: number) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                        <span className="font-medium">{lang.language}</span>
-                        <div className="flex gap-2">
-                          <div className="text-center">
-                            <Badge variant="outline" className="text-xs">
-                              Speaking: {getLanguageProficiency(lang.speaking)}
-                            </Badge>
-                          </div>
-                          <div className="text-center">
-                            <Badge variant="outline" className="text-xs">
-                              Reading: {getLanguageProficiency(lang.reading)}
-                            </Badge>
-                          </div>
-                          <div className="text-center">
-                            <Badge variant="outline" className="text-xs">
-                              Writing: {getLanguageProficiency(lang.writing)}
-                            </Badge>
-                          </div>
+                    {/* UN Languages */}
+                    {application.phf_data.languages.un_languages && Object.entries(application.phf_data.languages.un_languages).map(([lang, proficiency]: [string, any]) => (
+                      <div key={lang} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                        <div>
+                          <span className="font-medium capitalize">{lang}</span>
+                          <Badge variant="secondary" className="ml-2 text-xs">UN Language</Badge>
                         </div>
+                        <Badge variant="outline" className="capitalize">
+                          {typeof proficiency === 'string' ? proficiency : (proficiency.english || 'N/A')}
+                        </Badge>
                       </div>
                     ))}
+                    
+                    {/* Other Languages */}
+                    {application.phf_data.languages.other_languages && application.phf_data.languages.other_languages.length > 0 && 
+                      application.phf_data.languages.other_languages.map((lang: any, index: number) => (
+                        <div key={`other-${index}`} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="font-medium">{lang.language || lang.name}</span>
+                          <div className="flex gap-2">
+                            {lang.speaking && (
+                              <Badge variant="outline" className="text-xs">
+                                S: {getLanguageProficiency(lang.speaking)}
+                              </Badge>
+                            )}
+                            {lang.reading && (
+                              <Badge variant="outline" className="text-xs">
+                                R: {getLanguageProficiency(lang.reading)}
+                              </Badge>
+                            )}
+                            {lang.writing && (
+                              <Badge variant="outline" className="text-xs">
+                                W: {getLanguageProficiency(lang.writing)}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    }
                   </div>
                 </CardContent>
               </Card>
@@ -735,43 +753,57 @@ export default function ApplicationDetail() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
-                    {application.phf_data.employment.map((job: any, index: number) => (
-                      <div key={index} className="border-l-2 border-primary pl-4 space-y-2">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h4 className="font-semibold text-lg">{job.exact_title_of_post || job.position_title || 'Position'}</h4>
-                            <p className="text-muted-foreground">{job.employer_name || 'Organization'}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {job.place_of_work || 'Location'} • {job.type_of_business || 'Industry'}
-                            </p>
+                    {application.phf_data.employment.map((job: any, index: number) => {
+                      const startDate = job.period_from_month && job.period_from_year 
+                        ? `${job.period_from_month}/${job.period_from_year}`
+                        : job.from_year || 'Start';
+                      const endDate = job.is_present 
+                        ? 'Present' 
+                        : (job.period_to_month && job.period_to_year 
+                          ? `${job.period_to_month}/${job.period_to_year}`
+                          : job.to_year || 'End');
+                      
+                      return (
+                        <div key={index} className="border-l-2 border-primary pl-4 space-y-2">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h4 className="font-semibold text-lg">{job.exact_title_of_post || job.position_title || 'Position'}</h4>
+                              <p className="text-muted-foreground">{job.employer_name || 'Organization'}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {job.employer_address || job.place_of_work || 'Location'} • {job.type_of_business || 'Full-time'}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-medium">
+                                {startDate} - {endDate}
+                              </p>
+                              {job.is_present && (
+                                <Badge variant="secondary" className="mt-1">Current Position</Badge>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium">
-                              {job.from_year || 'Start'} - {job.is_present ? 'Present' : (job.to_year || 'End')}
-                            </p>
-                            {job.is_present && (
-                              <Badge variant="secondary" className="mt-1">Current Position</Badge>
-                            )}
-                          </div>
+                          
+                          {(job.duties_and_responsibilities || job.main_duties_responsibilities) && (
+                            <div className="mt-3 p-3 bg-muted/30 rounded-md">
+                              <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+                                <FileText className="w-4 h-4" />
+                                Duties & Responsibilities:
+                              </h5>
+                              <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+                                {job.duties_and_responsibilities || job.main_duties_responsibilities}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {job.reason_for_leaving && !job.is_present && (
+                            <div className="mt-2">
+                              <h5 className="font-medium text-sm mb-1">Reason for Leaving:</h5>
+                              <p className="text-sm text-muted-foreground">{job.reason_for_leaving}</p>
+                            </div>
+                          )}
                         </div>
-                        
-                        {job.main_duties_responsibilities && (
-                          <div className="mt-2">
-                            <h5 className="font-medium text-sm mb-1">Duties & Responsibilities:</h5>
-                            <p className="text-sm text-muted-foreground whitespace-pre-line">
-                              {job.main_duties_responsibilities}
-                            </p>
-                          </div>
-                        )}
-                        
-                        {job.reason_for_leaving && !job.is_present && (
-                          <div className="mt-2">
-                            <h5 className="font-medium text-sm mb-1">Reason for Leaving:</h5>
-                            <p className="text-sm text-muted-foreground">{job.reason_for_leaving}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -790,11 +822,11 @@ export default function ApplicationDetail() {
                   <div className="space-y-4">
                     {application.phf_data.education.map((edu: any, index: number) => (
                       <div key={index} className="border-l-2 border-secondary pl-4 space-y-1">
-                        <h4 className="font-semibold">{edu.degree_or_certificate_title || 'Degree/Certificate'}</h4>
+                        <h4 className="font-semibold">{edu.degree_type || edu.degree_or_certificate_title || 'Degree/Certificate'}</h4>
                         <p className="text-muted-foreground">{edu.main_course_of_study || 'Field of Study'}</p>
                         <p className="font-medium text-sm">{edu.institution_name || 'Institution'}</p>
                         <p className="text-sm text-muted-foreground">
-                          {edu.place_country || 'Location'} • {edu.from_year || 'Year'} - {edu.to_year || 'Year'}
+                          {edu.institution_country || edu.institution_place || edu.place_country || 'Location'} • {edu.from_month && edu.from_year ? `${edu.from_month}/${edu.from_year}` : edu.from_year || 'Year'} - {edu.to_month && edu.to_year ? `${edu.to_month}/${edu.to_year}` : edu.to_year || 'Year'}
                         </p>
                         {edu.distinguish_honors_obtained && (
                           <p className="text-sm">
@@ -812,7 +844,10 @@ export default function ApplicationDetail() {
             {application.phf_data?.skills && application.phf_data.skills.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Skills</CardTitle>
+                  <CardTitle className="flex items-center space-x-2">
+                    <CheckCircle className="w-5 h-5" />
+                    <span>Skills</span>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
@@ -830,7 +865,10 @@ export default function ApplicationDetail() {
             {application.phf_data?.certifications && application.phf_data.certifications.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Certifications</CardTitle>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Award className="w-5 h-5" />
+                    <span>Certifications</span>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
