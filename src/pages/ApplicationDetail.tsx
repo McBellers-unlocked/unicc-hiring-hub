@@ -736,15 +736,15 @@ export default function ApplicationDetail() {
             </Card>
 
             {/* Languages Section */}
-            {application.phf_data?.languages && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <LanguagesIcon className="w-5 h-5" />
-                    <span>Languages</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <LanguagesIcon className="w-5 h-5" />
+                  <span>Languages</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {application.phf_data?.languages && (Object.keys(application.phf_data.languages.un_languages || {}).length > 0 || (application.phf_data.languages.other_languages && application.phf_data.languages.other_languages.length > 0)) ? (
                   <div className="space-y-3">
                     {/* UN Languages */}
                     {application.phf_data.languages.un_languages && Object.entries(application.phf_data.languages.un_languages).map(([lang, proficiency]: [string, any]) => (
@@ -785,9 +785,14 @@ export default function ApplicationDetail() {
                       ))
                     }
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <LanguagesIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No languages listed</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Work Experience Section */}
             {application.phf_data?.employment && application.phf_data.employment.length > 0 && (
@@ -909,15 +914,15 @@ export default function ApplicationDetail() {
             )}
 
             {/* Skills Section */}
-            {application.phf_data?.skills && application.phf_data.skills.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <CheckCircle className="w-5 h-5" />
-                    <span>Skills</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <CheckCircle className="w-5 h-5" />
+                  <span>Skills</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {application.phf_data?.skills && application.phf_data.skills.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {application.phf_data.skills.map((skill: any, index: number) => (
                       <Badge key={index} variant="secondary">
@@ -925,20 +930,25 @@ export default function ApplicationDetail() {
                       </Badge>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <CheckCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No skills listed</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Certifications Section */}
-            {application.phf_data?.certifications && application.phf_data.certifications.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Award className="w-5 h-5" />
-                    <span>Certifications</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Award className="w-5 h-5" />
+                  <span>Certifications</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {application.phf_data?.certifications && application.phf_data.certifications.length > 0 ? (
                   <div className="space-y-3">
                     {application.phf_data.certifications.map((cert: any, index: number) => (
                       <div key={index} className="p-3 bg-muted/50 rounded-lg">
@@ -952,9 +962,14 @@ export default function ApplicationDetail() {
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <Award className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No certifications listed</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="motivation">
