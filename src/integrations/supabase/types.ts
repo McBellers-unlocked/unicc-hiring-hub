@@ -1344,7 +1344,36 @@ export type Database = {
           token?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_video_assignments_application"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_video_assignments_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_video_assignments_extended_by"
+            columns: ["extended_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_video_assignments_question_set"
+            columns: ["question_set_id"]
+            isOneToOne: false
+            referencedRelation: "video_question_sets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       video_events: {
         Row: {

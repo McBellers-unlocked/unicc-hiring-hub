@@ -18,6 +18,7 @@ import { getCountryFlagUrl } from '@/lib/countryFlags';
 import { CandidateApplicationCard } from '@/components/CandidateApplicationCard';
 import { ActionConfirmationDialog } from '@/components/ActionConfirmationDialog';
 import { VideoAssignmentDialog } from '@/components/VideoAssignmentDialog';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 interface Application {
   id: string;
@@ -99,6 +100,8 @@ export default function AdminApplications() {
     applicationId: '',
     candidateName: ''
   });
+
+  const [jobVideoQuestions, setJobVideoQuestions] = useState<Record<string, boolean>>({});
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
@@ -203,6 +206,18 @@ export default function AdminApplications() {
 
       if (error) throw error;
       setApplications(data || []);
+
+      // Check if this job has video questions
+      const { data: questionSets } = await supabase
+        .from('video_question_sets')
+        .select('id')
+        .eq('job_id', jobId)
+        .limit(1);
+      
+      setJobVideoQuestions(prev => ({
+        ...prev,
+        [jobId]: questionSets && questionSets.length > 0
+      }));
     } catch (error) {
       console.error('Error fetching applications:', error);
       toast({
@@ -1018,6 +1033,17 @@ export default function AdminApplications() {
   const handleVideoAssignment = (applicationId: string) => {
     const app = applications.find(a => a.id === applicationId);
     if (!app) return;
+
+    // Check if job has video questions
+    const hasQuestions = jobVideoQuestions[app.job.id];
+    if (hasQuestions === false) {
+      toast({
+        title: "Video Questions Not Configured",
+        description: "This job doesn't have video questions set up yet. Please configure them in the Job Wizard first.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setVideoAssignmentDialog({
       open: true,
@@ -1359,42 +1385,44 @@ export default function AdminApplications() {
               </div>
 
               {/* Card-based Layout - No more horizontal scrolling */}
-              <div className="space-y-4">
-                {loading ? (
-                  <div className="text-center py-8">
-                    Loading applications...
-                  </div>
-                ) : filteredApplications.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No applications found
-                  </div>
-                ) : (
-                  filteredApplications.map((application) => (
-                     <CandidateApplicationCard
-                       key={application.id}
-                       application={application}
-                       userRoles={userRoles}
-                       isSelected={selectedApplications.has(application.id)}
-                       onToggleSelection={toggleApplicationSelection}
-                       onDelete={deleteApplication}
-                        onAddToLonglist={handleLonglistAction}
-                        onDirectShortlist={handleShortlistAction}
-                        onReject={handleRejectAction}
-                        onAddToShortlist={handleAddToShortlist}
-                        onAddToVideoInterview={handleAddToVideoInterview}
-                        onVideoAssignment={handleVideoAssignment}
-                        onReviewVideos={handleReviewVideos}
-                        onMoveToPanelInterview={handleMoveToPanelInterview}
-                       getFlagEmoji={getCountryFromLocation}
-                       getEducationSummary={getAllEducationDetails}
-                       getWorkExperienceSummary={getRecentWorkExperience}
-                        getTotalExperience={getTotalExperience}
-                        getTotalUNExperience={getTotalUNExperience}
-                        getLanguageSummary={getLanguageSummary}
-                      />
-                  ))
-                )}
-              </div>
+              <TooltipProvider>
+                <div className="space-y-4">
+                  {loading ? (
+                    <div className="text-center py-8">
+                      Loading applications...
+                    </div>
+                  ) : filteredApplications.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No applications found
+                    </div>
+                  ) : (
+                    filteredApplications.map((application) => (
+                       <CandidateApplicationCard
+                         key={application.id}
+                         application={application}
+                         userRoles={userRoles}
+                         isSelected={selectedApplications.has(application.id)}
+                         onToggleSelection={toggleApplicationSelection}
+                         onDelete={deleteApplication}
+                          onAddToLonglist={handleLonglistAction}
+                          onDirectShortlist={handleShortlistAction}
+                          onReject={handleRejectAction}
+                          onAddToShortlist={handleAddToShortlist}
+                          onAddToVideoInterview={handleAddToVideoInterview}
+                          onVideoAssignment={handleVideoAssignment}
+                          onReviewVideos={handleReviewVideos}
+                          onMoveToPanelInterview={handleMoveToPanelInterview}
+                         getFlagEmoji={getCountryFromLocation}
+                         getEducationSummary={getAllEducationDetails}
+                         getWorkExperienceSummary={getRecentWorkExperience}
+                          getTotalExperience={getTotalExperience}
+                          getTotalUNExperience={getTotalUNExperience}
+                          getLanguageSummary={getLanguageSummary}
+                        />
+                    ))
+                  )}
+                </div>
+              </TooltipProvider>
             </CardContent>
           </Card>
         )}

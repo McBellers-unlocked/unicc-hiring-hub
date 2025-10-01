@@ -49,10 +49,48 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
   const [extendDialogOpen, setExtendDialogOpen] = useState(false);
   const [extensionDays, setExtensionDays] = useState(2);
   const [extensionReason, setExtensionReason] = useState('');
+  const [jobHasQuestions, setJobHasQuestions] = useState<boolean | null>(null);
+  const [jobTitle, setJobTitle] = useState<string>('');
 
   useEffect(() => {
+    checkVideoQuestionsExist();
     loadAssignment();
   }, [applicationId]);
+
+  const checkVideoQuestionsExist = async () => {
+    try {
+      // Get the job_id from the application
+      const { data: appData } = await supabase
+        .from('applications')
+        .select('job_id, jobs(title)')
+        .eq('id', applicationId)
+        .single();
+      
+      if (!appData) return;
+      
+      setJobTitle(appData.jobs?.title || '');
+      
+      // Check if video question set exists for this job
+      const { data: questionSets } = await supabase
+        .from('video_question_sets')
+        .select('id')
+        .eq('job_id', appData.job_id)
+        .limit(1);
+      
+      const hasQuestions = questionSets && questionSets.length > 0;
+      setJobHasQuestions(hasQuestions);
+      
+      if (!hasQuestions) {
+        toast({
+          title: "No Video Questions Configured",
+          description: `The job "${appData.jobs?.title}" doesn't have video interview questions set up yet. Please configure them first.`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error checking video questions:', error);
+    }
+  };
 
   const loadAssignment = async () => {
     try {
@@ -73,10 +111,24 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
           )
         `)
         .eq('application_id', applicationId)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
+      if (error) {
+        console.error('Error loading video assignment:', error);
+        if (error.message?.includes('Could not find a relationship')) {
+          toast({
+            title: "Configuration Error",
+            description: "Database relationships need to be set up. Please contact support.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to load video assignment details",
+            variant: "destructive",
+          });
+        }
+        return;
       }
 
       setAssignment(data as VideoAssignment);
@@ -93,6 +145,15 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
   };
 
   const createAssignment = async () => {
+    if (jobHasQuestions === false) {
+      toast({
+        title: "Cannot Create Assignment",
+        description: "Video questions must be configured for this job first",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       // Create a manual stage event to trigger assignment creation
       const { error } = await supabase
@@ -105,6 +166,25 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
         });
 
       if (error) throw error;
+
+      // Wait a moment for the trigger to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Check if the assignment was actually created
+      const { data: checkData } = await supabase
+        .from('video_assignments')
+        .select('id')
+        .eq('application_id', applicationId)
+        .maybeSingle();
+
+      if (!checkData) {
+        toast({
+          title: "Assignment Failed",
+          description: "Video assignment could not be created. Please ensure video questions are configured for this job.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       await loadAssignment();
       
@@ -280,16 +360,30 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-6">
-            <Video className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground mb-4">
-              No video interview assignment found for this application.
-            </p>
-            <Button onClick={createAssignment}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Video Assignment
-            </Button>
-          </div>
+          {jobHasQuestions === false ? (
+            <div className="text-center py-6">
+              <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+              <h3 className="font-semibold text-lg mb-2">No Video Questions Configured</h3>
+              <p className="text-muted-foreground mb-4">
+                The job "{jobTitle}" doesn't have video interview questions set up yet. Please configure video questions for this job before creating assignments.
+              </p>
+              <Button variant="outline" disabled>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Video Assignment
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <Video className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground mb-4">
+                No video interview assignment found for this application.
+              </p>
+              <Button onClick={createAssignment} disabled={jobHasQuestions === null}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Video Assignment
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
