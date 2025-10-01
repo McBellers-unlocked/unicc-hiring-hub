@@ -1,9 +1,11 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { VideoAssignmentManager } from "./VideoAssignmentManager";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface VideoAssignmentDialogProps {
   open: boolean;
@@ -18,8 +20,10 @@ export function VideoAssignmentDialog({
   applicationId,
   candidateName 
 }: VideoAssignmentDialogProps) {
+  const navigate = useNavigate();
   const [canCreateAssignment, setCanCreateAssignment] = useState<boolean | null>(null);
   const [jobTitle, setJobTitle] = useState<string>('');
+  const [jobId, setJobId] = useState<string>('');
 
   useEffect(() => {
     if (open) {
@@ -37,6 +41,7 @@ export function VideoAssignmentDialog({
       
       if (appData) {
         setJobTitle(appData.jobs?.title || '');
+        setJobId(appData.job_id);
         
         const { data: questionSets } = await supabase
           .from('video_question_sets')
@@ -61,8 +66,21 @@ export function VideoAssignmentDialog({
         {canCreateAssignment === false && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              The job "{jobTitle}" doesn't have video questions configured. Please add video questions to this job before creating assignments.
+            <AlertDescription className="flex items-center justify-between">
+              <span>
+                The job "{jobTitle}" doesn't have video questions configured.
+              </span>
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => {
+                  onOpenChange(false);
+                  navigate(`/admin/jobs/${jobId}/edit?step=5`);
+                }}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Configure Now
+              </Button>
             </AlertDescription>
           </Alert>
         )}

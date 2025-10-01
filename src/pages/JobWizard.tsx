@@ -88,10 +88,20 @@ export default function JobWizard() {
   // Check if converting from requisition
   const urlParams = new URLSearchParams(window.location.search);
   const requisitionId = urlParams.get('from_requisition');
+  const stepParam = urlParams.get('step');
   
   
   
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(() => {
+    // If step parameter is provided, start at that step
+    if (stepParam) {
+      const step = parseInt(stepParam);
+      if (step >= 1 && step <= 6) {
+        return step;
+      }
+    }
+    return 1;
+  });
   const [isEditing] = useState(!!jobId);
   const [loading, setLoading] = useState(!!jobId || !!requisitionId);
   const [isConvertingFromRequisition] = useState(!!requisitionId);

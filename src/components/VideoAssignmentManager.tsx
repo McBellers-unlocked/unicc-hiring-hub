@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import { 
   Clock, 
   Mail, 
@@ -19,7 +20,8 @@ import {
   AlertTriangle,
   CheckCircle,
   PlayCircle,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Settings
 } from 'lucide-react';
 import { format, addDays, addHours } from 'date-fns';
 
@@ -44,6 +46,7 @@ interface VideoAssignmentManagerProps {
 
 export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ applicationId }) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [assignment, setAssignment] = useState<VideoAssignment | null>(null);
   const [loading, setLoading] = useState(true);
   const [extendDialogOpen, setExtendDialogOpen] = useState(false);
@@ -51,6 +54,7 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
   const [extensionReason, setExtensionReason] = useState('');
   const [jobHasQuestions, setJobHasQuestions] = useState<boolean | null>(null);
   const [jobTitle, setJobTitle] = useState<string>('');
+  const [jobId, setJobId] = useState<string>('');
 
   useEffect(() => {
     checkVideoQuestionsExist();
@@ -69,6 +73,7 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
       if (!appData) return;
       
       setJobTitle(appData.jobs?.title || '');
+      setJobId(appData.job_id);
       
       // Check if video question set exists for this job
       const { data: questionSets } = await supabase
@@ -361,16 +366,30 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
         </CardHeader>
         <CardContent>
           {jobHasQuestions === false ? (
-            <div className="text-center py-6">
-              <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-              <h3 className="font-semibold text-lg mb-2">No Video Questions Configured</h3>
-              <p className="text-muted-foreground mb-4">
-                The job "{jobTitle}" doesn't have video interview questions set up yet. Please configure video questions for this job before creating assignments.
-              </p>
-              <Button variant="outline" disabled>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Video Assignment
-              </Button>
+            <div className="text-center py-6 space-y-4">
+              <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto" />
+              <div>
+                <h3 className="font-semibold text-lg mb-2">No Video Questions Configured</h3>
+                <p className="text-muted-foreground mb-1">
+                  The job "{jobTitle}" doesn't have video interview questions set up yet.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Configure video questions to enable video assignments for this job.
+                </p>
+              </div>
+              <div className="flex gap-2 justify-center">
+                <Button 
+                  onClick={() => navigate(`/admin/jobs/${jobId}/edit?step=5`)}
+                  variant="default"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Configure Video Questions
+                </Button>
+                <Button variant="outline" disabled>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Video Assignment
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="text-center py-6">
