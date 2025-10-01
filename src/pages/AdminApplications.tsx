@@ -946,7 +946,11 @@ export default function AdminApplications() {
                       {phase.title.replace(` (${applications.length} total)`, '')}
                     </div>
                     {phase.count > 0 && (
-                      <div className={`text-xs font-medium ${phase.womenPercentage < 50 ? 'text-red-600' : 'text-green-600'}`}>
+                      <div className={`text-xs font-medium ${
+                        phase.status === 'Rejected' 
+                          ? (phase.womenPercentage > 50 ? 'text-red-600' : 'text-green-600')
+                          : (phase.womenPercentage < 50 ? 'text-red-600' : 'text-green-600')
+                      }`}>
                         {phase.womenPercentage}% Women
                       </div>
                     )}
