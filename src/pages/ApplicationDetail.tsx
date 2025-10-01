@@ -92,7 +92,7 @@ export default function ApplicationDetail() {
   const [statusChangeReason, setStatusChangeReason] = useState('');
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState('');
-  const [activeTab, setActiveTab] = useState("summary");
+  const [activeTab, setActiveTab] = useState("overview");
   const [showScheduler, setShowScheduler] = useState(false);
   const [videoQuestions, setVideoQuestions] = useState<any[]>([]);
   const [videoAnswers, setVideoAnswers] = useState<any[]>([]);
@@ -575,13 +575,10 @@ export default function ApplicationDetail() {
         </Card>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-11">
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-            <TabsTrigger value="compact">Compact</TabsTrigger>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-8">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="motivation">Motivation</TabsTrigger>
             <TabsTrigger value="files">Files</TabsTrigger>
-            <TabsTrigger value="ai-score">AI Score</TabsTrigger>
             <TabsTrigger value="emails">Emails</TabsTrigger>
             <TabsTrigger value="video">Video</TabsTrigger>
             <TabsTrigger value="interviews">Interviews</TabsTrigger>
@@ -589,174 +586,269 @@ export default function ApplicationDetail() {
             <TabsTrigger value="audit">Audit Trail</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="summary" className="space-y-6">
+          <TabsContent value="overview" className="space-y-6">
+            {/* Requirements Checklist - Keep at top for visual screening */}
             <RequirementsChecklist 
               applicationId={application.id}
               jobId={application.job.id}
               phfData={application.phf_data}
               candidateInfo={application.candidate}
             />
-            
-            {/* Quick Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <GraduationCap className="w-8 h-8 text-primary" />
-                    <div>
-                      <h3 className="font-medium">Education</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {application.phf_data?.education?.length || 0} entries
-                      </p>
-                      {application.phf_data?.education?.length > 0 && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Latest: {application.phf_data.education[0]?.degree_or_certificate_title}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
 
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <Briefcase className="w-8 h-8 text-primary" />
-                    <div>
-                      <h3 className="font-medium">Experience</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {application.phf_data?.employment?.length || 0} positions
-                      </p>
-                      {application.phf_data?.employment?.length > 0 && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Current: {getCurrentJob(application.phf_data.employment)?.exact_title_of_post || 'Not specified'}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-8 h-8 text-primary" />
-                    <div>
-                      <h3 className="font-medium">Languages</h3>
-                       <p className="text-sm text-muted-foreground">
-                         {application.phf_data?.languages?.length || 0} languages
-                       </p>
-                       {application.phf_data?.languages?.length > 0 && (
-                         <p className="text-xs text-muted-foreground mt-1">
-                           {application.phf_data.languages.slice(0, 2).map((lang: any) => lang.language).join(', ')}
-                         </p>
-                       )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="compact" className="space-y-6">
-            <CompactCandidateView 
-              application={application}
-              phfData={application.phf_data}
-              photoUrl={application.photo_url}
-            />
-          </TabsContent>
-
-          <TabsContent value="profile">
+            {/* Personal Information Card */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <User className="w-5 h-5" />
-                  <span>Candidate Profile</span>
+                  <span>Personal Information</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <Mail className="w-4 h-4 text-muted-foreground" />
-                      <span>{application.candidate.email}</span>
+              <CardContent>
+                <div className="flex items-start gap-6">
+                  {(application.photo_url || application.phf_data?.personalDetails?.photoUrl) && (
+                    <div className="flex-shrink-0">
+                      <img 
+                        src={application.photo_url || application.phf_data?.personalDetails?.photoUrl} 
+                        alt="Candidate Photo" 
+                        className="w-24 h-32 object-cover rounded border"
+                      />
                     </div>
-                    {application.candidate.phone && (
-                      <div className="flex items-center space-x-2">
-                        <Phone className="w-4 h-4 text-muted-foreground" />
-                        <span>{application.candidate.phone}</span>
-                      </div>
-                    )}
-                    {application.candidate.location && (
-                      <div className="flex items-center space-x-2">
-                        <MapPin className="w-4 h-4 text-muted-foreground" />
-                        <span>{application.candidate.location}</span>
-                      </div>
-                    )}
-                    {application.candidate.linkedin_url && (
-                      <div className="flex items-center space-x-2">
-                        <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                        <a 
-                          href={application.candidate.linkedin_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline"
-                        >
-                          LinkedIn Profile
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-4">
-                    {application.candidate.work_auth && (
-                      <div>
-                        <h4 className="font-medium mb-1">Work Authorization</h4>
-                        <p className="text-muted-foreground">{application.candidate.work_auth}</p>
-                      </div>
-                    )}
+                  )}
+                  <div className="flex-1 space-y-4">
+                    <div>
+                      <h3 className="text-xl font-semibold">
+                        {application.phf_data?.personalDetails?.firstNames && application.phf_data?.personalDetails?.familyName 
+                          ? `${application.phf_data.personalDetails.firstNames} ${application.phf_data.personalDetails.familyName}`
+                          : application.candidate.name}
+                      </h3>
+                      <p className="text-muted-foreground">
+                        {application.phf_data?.personalDetails?.title} • {application.phf_data?.personalDetails?.presentNationality || 'Nationality not specified'}
+                      </p>
+                      {application.phf_data?.personalDetails?.dateOfBirth && (
+                        <p className="text-sm text-muted-foreground">
+                          Born: {format(new Date(application.phf_data.personalDetails.dateOfBirth), 'PPP')}
+                        </p>
+                      )}
+                    </div>
                     
-                    {application.phf_data?.languages && application.phf_data.languages.length > 0 && (
-                      <div>
-                        <h4 className="font-medium mb-2">Languages</h4>
-                        <div className="space-y-1">
-                           {application.phf_data.languages.map((lang: any, index: number) => (
-                            <div key={index} className="flex justify-between">
-                              <span>{lang.language}</span>
-                               <div className="flex gap-1">
-                                 <Badge variant="outline" className="text-xs">
-                                   S: {getLanguageProficiency(lang.speaking)}
-                                 </Badge>
-                                 <Badge variant="outline" className="text-xs">
-                                   R: {getLanguageProficiency(lang.reading)}
-                                 </Badge>
-                                 <Badge variant="outline" className="text-xs">
-                                   W: {getLanguageProficiency(lang.writing)}
-                                 </Badge>
-                               </div>
-                            </div>
-                          ))}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Mail className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm">{application.candidate.email}</span>
+                        </div>
+                        {application.candidate.phone && (
+                          <div className="flex items-center space-x-2">
+                            <Phone className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm">{application.candidate.phone}</span>
+                          </div>
+                        )}
+                        {application.candidate.location && (
+                          <div className="flex items-center space-x-2">
+                            <MapPin className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm">{application.candidate.location}</span>
+                          </div>
+                        )}
+                        {application.candidate.linkedin_url && (
+                          <div className="flex items-center space-x-2">
+                            <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                            <a 
+                              href={application.candidate.linkedin_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-primary hover:underline"
+                            >
+                              LinkedIn Profile
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {application.candidate.work_auth && (
+                          <div>
+                            <span className="text-sm font-medium">Work Authorization:</span>
+                            <p className="text-sm text-muted-foreground">{application.candidate.work_auth}</p>
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-sm font-medium">Application Submitted:</span>
+                          <p className="text-sm text-muted-foreground">{format(new Date(application.submitted_at), 'PPP')}</p>
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium">PHF Status:</span>
+                          <p className="text-sm text-muted-foreground">{application.phf_completed ? 'Completed' : 'Not Completed'}</p>
                         </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Application Details</h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Submitted:</span>
-                      <p>{format(new Date(application.submitted_at), 'PPP pp')}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">PHF Completed:</span>
-                      <p>{application.phf_completed ? 'Yes' : 'No'}</p>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Languages Section */}
+            {application.phf_data?.languages && application.phf_data.languages.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <MapPin className="w-5 h-5" />
+                    <span>Languages ({application.phf_data.languages.length})</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {application.phf_data.languages.map((lang: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                        <span className="font-medium">{lang.language}</span>
+                        <div className="flex gap-2">
+                          <div className="text-center">
+                            <Badge variant="outline" className="text-xs">
+                              Speaking: {getLanguageProficiency(lang.speaking)}
+                            </Badge>
+                          </div>
+                          <div className="text-center">
+                            <Badge variant="outline" className="text-xs">
+                              Reading: {getLanguageProficiency(lang.reading)}
+                            </Badge>
+                          </div>
+                          <div className="text-center">
+                            <Badge variant="outline" className="text-xs">
+                              Writing: {getLanguageProficiency(lang.writing)}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Work Experience Section */}
+            {application.phf_data?.employment && application.phf_data.employment.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Briefcase className="w-5 h-5" />
+                    <span>Work Experience ({application.phf_data.employment.length} positions)</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {application.phf_data.employment.map((job: any, index: number) => (
+                      <div key={index} className="border-l-2 border-primary pl-4 space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h4 className="font-semibold text-lg">{job.exact_title_of_post || job.position_title || 'Position'}</h4>
+                            <p className="text-muted-foreground">{job.employer_name || 'Organization'}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {job.place_of_work || 'Location'} • {job.type_of_business || 'Industry'}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium">
+                              {job.from_year || 'Start'} - {job.is_present ? 'Present' : (job.to_year || 'End')}
+                            </p>
+                            {job.is_present && (
+                              <Badge variant="secondary" className="mt-1">Current Position</Badge>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {job.main_duties_responsibilities && (
+                          <div className="mt-2">
+                            <h5 className="font-medium text-sm mb-1">Duties & Responsibilities:</h5>
+                            <p className="text-sm text-muted-foreground whitespace-pre-line">
+                              {job.main_duties_responsibilities}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {job.reason_for_leaving && !job.is_present && (
+                          <div className="mt-2">
+                            <h5 className="font-medium text-sm mb-1">Reason for Leaving:</h5>
+                            <p className="text-sm text-muted-foreground">{job.reason_for_leaving}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Education Section */}
+            {application.phf_data?.education && application.phf_data.education.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <GraduationCap className="w-5 h-5" />
+                    <span>Education ({application.phf_data.education.length})</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {application.phf_data.education.map((edu: any, index: number) => (
+                      <div key={index} className="border-l-2 border-secondary pl-4 space-y-1">
+                        <h4 className="font-semibold">{edu.degree_or_certificate_title || 'Degree/Certificate'}</h4>
+                        <p className="text-muted-foreground">{edu.main_course_of_study || 'Field of Study'}</p>
+                        <p className="font-medium text-sm">{edu.institution_name || 'Institution'}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {edu.place_country || 'Location'} • {edu.from_year || 'Year'} - {edu.to_year || 'Year'}
+                        </p>
+                        {edu.distinguish_honors_obtained && (
+                          <p className="text-sm">
+                            <span className="font-medium">Honors:</span> {edu.distinguish_honors_obtained}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Skills Section */}
+            {application.phf_data?.skills && application.phf_data.skills.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Skills</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {application.phf_data.skills.map((skill: any, index: number) => (
+                      <Badge key={index} variant="secondary">
+                        {typeof skill === 'string' ? skill : skill.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Certifications Section */}
+            {application.phf_data?.certifications && application.phf_data.certifications.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Certifications</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {application.phf_data.certifications.map((cert: any, index: number) => (
+                      <div key={index} className="p-3 bg-muted/50 rounded-lg">
+                        <h5 className="font-medium">{cert.name || cert.title}</h5>
+                        {cert.issuer && <p className="text-sm text-muted-foreground">{cert.issuer}</p>}
+                        {cert.date && (
+                          <p className="text-xs text-muted-foreground">
+                            Issued: {format(new Date(cert.date), 'PPP')}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="motivation">
@@ -860,10 +952,6 @@ export default function ApplicationDetail() {
                 {renderFiles()}
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="ai-score">
-            <ApplicationScoring applicationId={application.id} />
           </TabsContent>
 
           <TabsContent value="emails">
