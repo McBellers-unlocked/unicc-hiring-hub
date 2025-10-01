@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Edit, Save, X } from 'lucide-react';
+import { Plus, Trash2, Edit, Save, X, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -45,12 +45,18 @@ export const VideoQuestionManager: React.FC<VideoQuestionManagerProps> = ({ jobI
   }, [jobId]);
 
   const loadQuestionSet = async () => {
+    // Don't load if jobId is temp or invalid
+    if (!jobId || jobId === 'temp-job-id') {
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const { data, error } = await supabase
+      const { data, error} = await supabase
         .from('video_question_sets')
         .select('*')
         .eq('job_id', jobId)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         throw error;
@@ -128,6 +134,16 @@ export const VideoQuestionManager: React.FC<VideoQuestionManagerProps> = ({ jobI
 
   const saveQuestionSet = async () => {
     if (!questionSet) return;
+
+    // Validate jobId
+    if (!jobId || jobId === 'temp-job-id') {
+      toast({
+        title: "Error",
+        description: "Please save the job first before adding video questions",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       setIsLoading(true);
@@ -209,15 +225,23 @@ export const VideoQuestionManager: React.FC<VideoQuestionManagerProps> = ({ jobI
   }
 
   return (
-    <Card>
+    <Card className={isEditing ? "border-primary" : ""}>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Video Interview Questions</CardTitle>
+        <div>
+          <CardTitle>Video Interview Questions</CardTitle>
+          {isEditing && (
+            <p className="text-sm text-muted-foreground mt-1">
+              <AlertTriangle className="w-4 h-4 inline mr-1 text-yellow-500" />
+              Don't forget to click "Save" before leaving this page
+            </p>
+          )}
+        </div>
         <div className="flex gap-2">
           {isEditing ? (
             <>
-              <Button onClick={saveQuestionSet} size="sm">
+              <Button onClick={saveQuestionSet} size="sm" className="bg-primary">
                 <Save className="w-4 h-4 mr-2" />
-                Save
+                Save Video Questions
               </Button>
               <Button 
                 onClick={() => setIsEditing(false)} 
