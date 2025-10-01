@@ -18,6 +18,7 @@ import { getCountryFlagUrl } from '@/lib/countryFlags';
 import { CandidateApplicationCard } from '@/components/CandidateApplicationCard';
 import { ActionConfirmationDialog } from '@/components/ActionConfirmationDialog';
 import { VideoAssignmentDialog } from '@/components/VideoAssignmentDialog';
+import { BulkVideoAssignmentDialog } from '@/components/BulkVideoAssignmentDialog';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 interface Application {
@@ -102,6 +103,9 @@ export default function AdminApplications() {
   });
 
   const [jobVideoQuestions, setJobVideoQuestions] = useState<Record<string, boolean>>({});
+
+  // Bulk Video Assignment Dialog state
+  const [bulkVideoAssignmentDialog, setBulkVideoAssignmentDialog] = useState(false);
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
@@ -1369,6 +1373,14 @@ export default function AdminApplications() {
                       <X className="w-4 h-4 mr-1" />
                       Remove from Longlist
                     </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => setBulkVideoAssignmentDialog(true)}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      Bulk Video Assignment
+                    </Button>
                   </div>
                 )}
               </div>
@@ -1432,6 +1444,25 @@ export default function AdminApplications() {
         onOpenChange={(open) => setVideoAssignmentDialog(prev => ({ ...prev, open }))}
         applicationId={videoAssignmentDialog.applicationId}
         candidateName={videoAssignmentDialog.candidateName}
+      />
+
+      <BulkVideoAssignmentDialog
+        open={bulkVideoAssignmentDialog}
+        onOpenChange={setBulkVideoAssignmentDialog}
+        applicationIds={Array.from(selectedApplications)}
+        candidates={applications
+          .filter(app => selectedApplications.has(app.id))
+          .map(app => ({
+            id: app.candidate.id,
+            name: app.candidate.name,
+            email: app.candidate.email
+          }))}
+        jobTitle={selectedJob?.title || ''}
+        jobId={selectedJobId}
+        onSuccess={() => {
+          setSelectedApplications(new Set());
+          fetchApplications(selectedJobId);
+        }}
       />
     </Layout>
   );

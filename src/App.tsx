@@ -33,6 +33,7 @@ import PHFImport from "./pages/PHFImport";
 import ManualApplicationForm from "./components/ManualApplicationForm";
 import EditManualApplicationForm from "./components/EditManualApplicationForm";
 import AccountSecurity from "./pages/AccountSecurity";
+import VideoEmailTemplateSettings from "./pages/VideoEmailTemplateSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -76,6 +77,7 @@ const App = () => (
             <Route path="/admin/applications/manual/:jobId" element={<ManualApplicationForm />} />
             <Route path="/admin/applications/edit-manual/:applicationId" element={<EditManualApplicationForm />} />
             <Route path="/account/security" element={<AccountSecurity />} />
+            <Route path="/admin/video-email-template" element={<VideoEmailTemplateSettings />} />
             <Route path="/test/chief-view" element={<ChiefOfDivisionView />} />
             <Route path="/test/director-view" element={<DirectorView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

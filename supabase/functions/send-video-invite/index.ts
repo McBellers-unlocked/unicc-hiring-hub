@@ -121,11 +121,37 @@ serve(async (req) => {
 
     console.log('Sending video invite to:', data.candidateEmail);
 
+    // Load custom email template from system_settings
+    const { data: settingsData } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'video_invite_email_template')
+      .maybeSingle();
+
+    let emailHtml = generateVideoInviteHtml(data);
+    let fromName = 'UNICC HR Team';
+    let fromEmail = 'hr@notifications.unicc.org';
+    let subject = `Your next step for ${data.jobTitle}: Pre-Recorded Video Interview`;
+
+    // Use custom template if available
+    if (settingsData?.value) {
+      try {
+        const template = JSON.parse(settingsData.value);
+        fromName = template.fromName || fromName;
+        fromEmail = template.fromEmail || fromEmail;
+        subject = template.subject?.replace('{{jobTitle}}', data.jobTitle) || subject;
+        // Generate HTML with custom template values if provided
+        // For now, we'll use the default HTML generator
+      } catch (error) {
+        console.error('Error parsing template:', error);
+      }
+    }
+
     const { error } = await resend.emails.send({
-      from: 'UNICC HR Team <hr@notifications.unicc.org>',
+      from: `${fromName} <${fromEmail}>`,
       to: [data.candidateEmail],
-      subject: `Your next step for ${data.jobTitle}: Pre-Recorded Video Interview`,
-      html: generateVideoInviteHtml(data),
+      subject: subject,
+      html: emailHtml,
     });
 
     if (error) {
