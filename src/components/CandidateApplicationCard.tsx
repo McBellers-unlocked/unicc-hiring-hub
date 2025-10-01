@@ -358,6 +358,21 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                     Add to Video
                   </Button>
                 )}
+
+                {/* Reject button for Longlist */}
+                {(userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Hiring Manager')) && 
+                 onReject && 
+                 application.status !== 'Rejected' && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => onReject(application.id)}
+                    className="whitespace-nowrap"
+                  >
+                    <X className="w-3 h-3 mr-1" />
+                    Reject
+                  </Button>
+                )}
               </>
             ) : (
               <>
