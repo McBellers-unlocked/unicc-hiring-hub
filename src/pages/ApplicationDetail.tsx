@@ -460,9 +460,9 @@ export default function ApplicationDetail() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
-            <Button variant="outline" onClick={() => navigate(`/applications?job=${application.job.id}`)}>
+            <Button variant="outline" onClick={() => navigate('/admin/applications')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
+              Back to Applications
             </Button>
             <div>
               <h1 className="text-2xl font-bold text-foreground">{application.candidate.name}</h1>
