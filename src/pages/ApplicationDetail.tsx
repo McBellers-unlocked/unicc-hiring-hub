@@ -274,94 +274,6 @@ export default function ApplicationDetail() {
     );
   };
 
-  const renderFiles = () => {
-    return (
-      <div className="space-y-6">
-        {/* PHF Document Viewer */}
-        {application?.files?.phf_document && (
-          <div>
-            <h3 className="text-lg font-medium mb-4">Personal History Form (PHF)</h3>
-            <ReliableDocumentViewer 
-              fileUrl={application.files.phf_document}
-              fileName="Personal History Form.pdf"
-              fileType="pdf"
-              className="w-full"
-            />
-          </div>
-        )}
-        
-        {/* Motivation Letter Viewer - Show PDF version if available */}
-        {application?.files?.motivation_letter && (
-          <div>
-            <h3 className="text-lg font-medium mb-4">Motivation Letter</h3>
-            <ReliableDocumentViewer
-              fileUrl={application.files.motivation_letter}
-              fileName="Motivation Letter.pdf"
-              fileType="pdf"
-              className="w-full"
-            />
-          </div>
-        )}
-        
-        {/* Motivation Statement Viewer - Show DOCX version if no PDF available */}
-        {application?.files?.motivation_statement && !application?.files?.motivation_letter && (
-          <div>
-            <h3 className="text-lg font-medium mb-4">Motivation Statement</h3>
-            <ReliableDocumentViewer
-              fileUrl={application.files.motivation_statement}
-              fileName="Motivation Statement.docx"
-              fileType="docx"
-              className="w-full"
-            />
-          </div>
-        )}
-        
-        {/* PHF Data Summary (if available) */}
-        {application.phf_data && (
-          <div>
-            <h3 className="text-lg font-medium mb-4">PHF Data Summary</h3>
-            <PHFInlineViewer 
-              phfData={application.phf_data}
-              className="w-full"
-            />
-          </div>
-        )}
-        
-        <PHFManager
-          applicationId={id!}
-          phfData={application.phf_data}
-          phfCompleted={application.phf_completed || false}
-          phfPdfUrl={application.phf_pdf_url}
-          candidatePhfUrl={application.candidate_phf_url}
-          photoUrl={application.photo_url}
-          onUpdate={fetchApplication}
-        />
-        
-        {application?.files && Object.keys(application.files).length > 0 && (
-          <div>
-            <h3 className="text-lg font-medium mb-4">Other Application Files</h3>
-            <div className="space-y-4">
-              {Object.entries(application.files)
-                .filter(([key]) => !['phf_document', 'motivation_statement'].includes(key)) // Already shown above
-                .map(([key, filePath]) => (
-                <ReliableDocumentViewer
-                  key={key}
-                  fileUrl={filePath as string}
-                  fileName={key.replace('_', ' ')}
-                  className="w-full"
-                />
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {(!application?.files || Object.keys(application.files).length === 0) && !application.phf_data && (
-          <p className="text-muted-foreground">No application data or files available</p>
-        )}
-      </div>
-    );
-  };
-
   if (loading) {
     return (
       <Layout>
@@ -624,10 +536,9 @@ export default function ApplicationDetail() {
         </Card>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="motivation">Motivation</TabsTrigger>
-            <TabsTrigger value="files">Files</TabsTrigger>
             <TabsTrigger value="emails">Emails</TabsTrigger>
             <TabsTrigger value="video">Video</TabsTrigger>
             <TabsTrigger value="interviews">Interviews</TabsTrigger>
@@ -1010,67 +921,6 @@ export default function ApplicationDetail() {
                     <p>No motivation letter provided</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="files">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <FileText className="w-5 h-5" />
-                  <span>Application Files</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {/* Upload interface for longlisted candidates */}
-                {application.status === 'Longlist' && userRoles && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
-                  <div className="mb-6">
-                    <LonglistDocumentUploader
-                      applicationId={application.id}
-                      currentFiles={application.files || {}}
-                      onUploadComplete={fetchApplication}
-                    />
-                  </div>
-                )}
-                
-                {/* Debug info - remove after testing */}
-                <div className="p-2 bg-yellow-50 rounded text-xs mb-4">
-                  <strong>Debug Info:</strong><br/>
-                  Status: {application.status}<br/>
-                  UserRoles: {userRoles ? userRoles.join(',') : 'null/undefined'}<br/>
-                  Has Admin: {userRoles?.includes('Admin') ? 'Yes' : 'No'}<br/>
-                  Has HR Assistant: {userRoles?.includes('HR Assistant') ? 'Yes' : 'No'}<br/>
-                  Should Show Upload: {application.status === 'Longlist' && userRoles && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) ? 'Yes' : 'No'}
-                </div>
-                
-                {/* Display uploaded documents with inline viewing */}
-                <div className="space-y-6">
-                  {application.files?.phf_document && (
-                    <div>
-                      <h4 className="font-medium mb-3">Personal History Form (PHF)</h4>
-                      <DocumentViewer 
-                        fileUrl={application.files.phf_document}
-                        fileName="Personal History Form"
-                        fileType="pdf"
-                      />
-                    </div>
-                  )}
-                  
-                  {application.files?.motivation_letter && (
-                    <div>
-                      <h4 className="font-medium mb-3">Motivation Letter</h4>
-                      <DocumentViewer 
-                        fileUrl={application.files.motivation_letter}
-                        fileName="Motivation Letter"
-                        fileType="pdf"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Existing files section */}
-                {renderFiles()}
               </CardContent>
             </Card>
           </TabsContent>
