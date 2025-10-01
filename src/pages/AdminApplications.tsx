@@ -207,12 +207,11 @@ export default function AdminApplications() {
       if (error) throw error;
       setApplications(data || []);
 
-      // Check if this job has video questions
+      // Force fresh check for video questions (bypass cache)
       const { data: questionSets } = await supabase
         .from('video_question_sets')
-        .select('id')
-        .eq('job_id', jobId)
-        .limit(1);
+        .select('id, job_id')
+        .eq('job_id', jobId);
       
       setJobVideoQuestions(prev => ({
         ...prev,

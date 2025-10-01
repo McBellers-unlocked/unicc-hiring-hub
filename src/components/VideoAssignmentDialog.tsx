@@ -26,7 +26,11 @@ export function VideoAssignmentDialog({
   const [jobId, setJobId] = useState<string>('');
 
   useEffect(() => {
-    if (open) {
+    if (open && applicationId) {
+      // Reset state to force fresh check
+      setCanCreateAssignment(null);
+      setJobTitle('');
+      setJobId('');
       checkIfCanCreate();
     }
   }, [open, applicationId]);

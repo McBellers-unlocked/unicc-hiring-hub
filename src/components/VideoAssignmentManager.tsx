@@ -57,6 +57,10 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
   const [jobId, setJobId] = useState<string>('');
 
   useEffect(() => {
+    // Reset state to force fresh check
+    setJobHasQuestions(null);
+    setJobTitle('');
+    setJobId('');
     checkVideoQuestionsExist();
     loadAssignment();
   }, [applicationId]);
