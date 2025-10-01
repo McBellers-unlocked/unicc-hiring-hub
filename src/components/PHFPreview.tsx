@@ -19,6 +19,14 @@ export const PHFPreview: React.FC<PHFPreviewProps> = ({ phfData, photoUrl, onClo
     return new Date(dateString).toLocaleDateString();
   };
 
+  // Helper function to safely render language proficiency (handles both strings and objects)
+  const getLanguageProficiency = (value: any): string => {
+    if (!value) return 'N/A';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object' && value.english) return value.english;
+    return String(value);
+  };
+
   return (
     <div className="fixed inset-0 bg-background z-50 overflow-auto">
       {/* Header with controls - hidden in print */}
@@ -185,13 +193,13 @@ export const PHFPreview: React.FC<PHFPreviewProps> = ({ phfData, photoUrl, onClo
                     <span className="font-medium">Language:</span> {lang.language}
                   </div>
                   <div>
-                    <span className="font-medium">Reading:</span> {lang.reading}
+                    <span className="font-medium">Reading:</span> {getLanguageProficiency(lang.reading)}
                   </div>
                   <div>
-                    <span className="font-medium">Writing:</span> {lang.writing}
+                    <span className="font-medium">Writing:</span> {getLanguageProficiency(lang.writing)}
                   </div>
                   <div>
-                    <span className="font-medium">Speaking:</span> {lang.speaking}
+                    <span className="font-medium">Speaking:</span> {getLanguageProficiency(lang.speaking)}
                   </div>
                 </div>
               ))}

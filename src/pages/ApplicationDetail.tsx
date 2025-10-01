@@ -398,6 +398,14 @@ export default function ApplicationDetail() {
     return employment[0];
   };
 
+  // Helper function to safely render language proficiency (handles both strings and objects)
+  const getLanguageProficiency = (value: any): string => {
+    if (!value) return 'N/A';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object' && value.english) return value.english;
+    return String(value);
+  };
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -712,18 +720,18 @@ export default function ApplicationDetail() {
                       <div>
                         <h4 className="font-medium mb-2">Languages</h4>
                         <div className="space-y-1">
-                          {application.phf_data.languages.map((lang: any, index: number) => (
+                           {application.phf_data.languages.map((lang: any, index: number) => (
                             <div key={index} className="flex justify-between">
                               <span>{lang.language}</span>
                                <div className="flex gap-1">
                                  <Badge variant="outline" className="text-xs">
-                                   S: {lang.speaking}
+                                   S: {getLanguageProficiency(lang.speaking)}
                                  </Badge>
                                  <Badge variant="outline" className="text-xs">
-                                   R: {lang.reading}
+                                   R: {getLanguageProficiency(lang.reading)}
                                  </Badge>
                                  <Badge variant="outline" className="text-xs">
-                                   W: {lang.writing}
+                                   W: {getLanguageProficiency(lang.writing)}
                                  </Badge>
                                </div>
                             </div>
