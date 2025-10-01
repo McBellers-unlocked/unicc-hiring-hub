@@ -150,7 +150,7 @@ export const PHFInlineViewer: React.FC<PHFInlineViewerProps> = ({ phfData, class
             <div className="flex flex-wrap gap-2">
               {Object.entries(phfData.languages).map(([lang, level]: [string, any]) => (
                 <Badge key={lang} variant="outline">
-                  {lang}: {level}
+                  {lang}: {typeof level === 'string' ? level : typeof level === 'object' ? Object.values(level).filter(Boolean).join(', ') : 'N/A'}
                 </Badge>
               ))}
             </div>
