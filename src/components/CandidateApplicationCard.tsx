@@ -16,7 +16,8 @@ import {
   Check,
   Clock,
   CheckCircle,
-  X
+  X,
+  Video
 } from 'lucide-react';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
 
@@ -29,6 +30,8 @@ interface CandidateApplicationCardProps {
   onAddToLonglist: (applicationId: string) => void;
   onDirectShortlist?: (applicationId: string) => void;
   onReject?: (applicationId: string) => void;
+  onAddToShortlist?: (applicationId: string) => void;
+  onAddToVideoInterview?: (applicationId: string) => void;
   getFlagEmoji: (location: string | null) => string | null;
   getEducationSummary: (education: any) => any[];
   getWorkExperienceSummary: (workExp: any) => any[];
@@ -46,6 +49,8 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
   onAddToLonglist,
   onDirectShortlist,
   onReject,
+  onAddToShortlist,
+  onAddToVideoInterview,
   getFlagEmoji,
   getEducationSummary,
   getWorkExperienceSummary,
@@ -314,78 +319,122 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
 
           {/* Right side - Action buttons */}
           <div className="flex items-center gap-2">
-            {/* Longlist toggle */}
-            <Button
-              size="sm"
-              variant={application.suggested_for_longlist ? "default" : "outline"}
-              onClick={() => onAddToLonglist(application.id)}
-              className="whitespace-nowrap"
-            >
-              {application.suggested_for_longlist ? (
-                <>
-                  <Check className="w-3 h-3 mr-1.5" />
-                  Listed
-                </>
-              ) : (
-                <>
-                  <Plus className="w-3 h-3 mr-1.5" />
-                  Add
-                </>
-              )}
-            </Button>
+            {/* Conditional rendering based on status */}
+            {application.status === 'Longlist' ? (
+              <>
+                {/* View button */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate(`/admin/applications/${application.id}`)}
+                  className="whitespace-nowrap"
+                >
+                  <Eye className="w-3 h-3 mr-1" />
+                  View
+                </Button>
 
-            {/* View button */}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => navigate(`/admin/applications/${application.id}`)}
-              className="whitespace-nowrap"
-            >
-              <Eye className="w-3 h-3 mr-1" />
-              View
-            </Button>
-
-            {/* Direct Shortlist button - only for Associate Policy (Legal) Officer */}
-            {application.job?.title?.includes('Associate Policy (Legal) Officer') && 
-             (userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Hiring Manager')) && 
-             onDirectShortlist && (
-              <Button
-                size="sm"
-                variant="default"
-                onClick={() => onDirectShortlist(application.id)}
-                className={`whitespace-nowrap ${
-                  application.status === 'Shortlist' 
-                    ? 'bg-purple-600 hover:bg-purple-700 text-white' 
-                    : 'bg-green-600 hover:bg-green-700 text-white'
-                }`}
-              >
-                {application.status === 'Shortlist' ? (
-                  <>
+                {/* Add to Shortlist button */}
+                {onAddToShortlist && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => onAddToShortlist(application.id)}
+                    className="whitespace-nowrap bg-green-600 hover:bg-green-700 text-white"
+                  >
                     <CheckCircle className="w-3 h-3 mr-1" />
-                    Shortlisted
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    Direct Shortlist
-                  </>
+                    Add to Shortlist
+                  </Button>
                 )}
-              </Button>
-            )}
 
-            {/* Reject button - available for all jobs */}
-            {(userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Hiring Manager')) && 
-             onReject && 
-             application.status !== 'Rejected' && (
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => onReject(application.id)}
-                className="whitespace-nowrap"
-              >
-                <X className="w-3 h-3 mr-1" />
-                Reject
-              </Button>
+                {/* Add to Video Interview button */}
+                {onAddToVideoInterview && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => onAddToVideoInterview(application.id)}
+                    className="whitespace-nowrap bg-indigo-600 hover:bg-indigo-700 text-white"
+                  >
+                    <Video className="w-3 h-3 mr-1" />
+                    Add to Video
+                  </Button>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Longlist toggle */}
+                <Button
+                  size="sm"
+                  variant={application.suggested_for_longlist ? "default" : "outline"}
+                  onClick={() => onAddToLonglist(application.id)}
+                  className="whitespace-nowrap"
+                >
+                  {application.suggested_for_longlist ? (
+                    <>
+                      <Check className="w-3 h-3 mr-1.5" />
+                      Listed
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-3 h-3 mr-1.5" />
+                      Add
+                    </>
+                  )}
+                </Button>
+
+                {/* View button */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate(`/admin/applications/${application.id}`)}
+                  className="whitespace-nowrap"
+                >
+                  <Eye className="w-3 h-3 mr-1" />
+                  View
+                </Button>
+
+                {/* Direct Shortlist button - only for Associate Policy (Legal) Officer */}
+                {application.job?.title?.includes('Associate Policy (Legal) Officer') && 
+                 (userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Hiring Manager')) && 
+                 onDirectShortlist && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => onDirectShortlist(application.id)}
+                    className={`whitespace-nowrap ${
+                      application.status === 'Shortlist' 
+                        ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                        : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                  >
+                    {application.status === 'Shortlist' ? (
+                      <>
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Shortlisted
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Direct Shortlist
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {/* Reject button - available for all jobs */}
+                {(userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Hiring Manager')) && 
+                 onReject && 
+                 application.status !== 'Rejected' && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => onReject(application.id)}
+                    className="whitespace-nowrap"
+                  >
+                    <X className="w-3 h-3 mr-1" />
+                    Reject
+                  </Button>
+                )}
+              </>
             )}
 
             {/* Admin actions */}

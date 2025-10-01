@@ -74,7 +74,7 @@ export default function AdminApplications() {
   // Dialog state
   const [dialogState, setDialogState] = useState<{
     open: boolean;
-    action: 'longlist' | 'shortlist' | 'reject';
+    action: 'longlist' | 'shortlist' | 'reject' | 'add-to-shortlist' | 'add-to-video';
     applicationId: string;
     candidateName: string;
     currentStatus: string;
@@ -790,6 +790,97 @@ export default function AdminApplications() {
     }
   };
 
+  const addToShortlist = async (applicationId: string, reason?: string) => {
+    try {
+      // Get current user
+      const { data: user } = await supabase.auth.getUser();
+      const currentUserId = user?.user?.id;
+
+      // Get current application
+      const currentApp = applications.find(app => app.id === applicationId);
+      
+      const { error } = await supabase
+        .from('applications')
+        .update({ status: 'Shortlist' })
+        .eq('id', applicationId);
+
+      if (error) throw error;
+
+      // Log stage change
+      if (currentUserId) {
+        await supabase
+          .from('stage_events')
+          .insert({
+            application_id: applicationId,
+            from_stage: currentApp?.status as any,
+            to_stage: 'Shortlist' as any,
+            by_user: currentUserId,
+            reason: reason || 'Moved from Longlist to Shortlist'
+          });
+      }
+
+      toast({
+        title: "Success",
+        description: "Application moved to Shortlist",
+      });
+
+      fetchApplications(selectedJobId);
+    } catch (error) {
+      console.error('Error moving to shortlist:', error);
+      toast({
+        title: "Error",
+        description: "Failed to move to shortlist",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const addToVideoInterview = async (applicationId: string, reason?: string) => {
+    try {
+      // Get current user
+      const { data: user } = await supabase.auth.getUser();
+      const currentUserId = user?.user?.id;
+
+      // Get current application
+      const currentApp = applications.find(app => app.id === applicationId);
+      
+      const { error } = await supabase
+        .from('applications')
+        .update({ status: 'Pre-Recorded Video' })
+        .eq('id', applicationId);
+
+      if (error) throw error;
+
+      // Log stage change
+      if (currentUserId) {
+        await supabase
+          .from('stage_events')
+          .insert({
+            application_id: applicationId,
+            from_stage: currentApp?.status as any,
+            to_stage: 'Pre-Recorded Video' as any,
+            by_user: currentUserId,
+            reason: reason || 'Moved from Longlist to Video Interview'
+          });
+      }
+
+      toast({
+        title: "Success",
+        description: "Application moved to Video Interview stage",
+      });
+
+      fetchApplications(selectedJobId);
+    } catch (error) {
+      console.error('Error moving to video interview:', error);
+      toast({
+        title: "Error",
+        description: "Failed to move to video interview",
+        variant: "destructive",
+      });
+    }
+  };
+
+
   const rejectApplication = async (applicationId: string, reason: string) => {
     try {
       // Get current user
@@ -885,6 +976,32 @@ export default function AdminApplications() {
     });
   };
 
+  const handleAddToShortlist = (applicationId: string) => {
+    const app = applications.find(a => a.id === applicationId);
+    if (!app) return;
+    
+    setDialogState({
+      open: true,
+      action: 'add-to-shortlist',
+      applicationId,
+      candidateName: app.candidate.name,
+      currentStatus: app.status
+    });
+  };
+
+  const handleAddToVideoInterview = (applicationId: string) => {
+    const app = applications.find(a => a.id === applicationId);
+    if (!app) return;
+    
+    setDialogState({
+      open: true,
+      action: 'add-to-video',
+      applicationId,
+      candidateName: app.candidate.name,
+      currentStatus: app.status
+    });
+  };
+
   const handleDialogConfirm = async (reason: string) => {
     const { action, applicationId } = dialogState;
     
@@ -897,6 +1014,12 @@ export default function AdminApplications() {
         break;
       case 'reject':
         await rejectApplication(applicationId, reason);
+        break;
+      case 'add-to-shortlist':
+        await addToShortlist(applicationId, reason);
+        break;
+      case 'add-to-video':
+        await addToVideoInterview(applicationId, reason);
         break;
     }
   };
@@ -1168,6 +1291,8 @@ export default function AdminApplications() {
                         onAddToLonglist={handleLonglistAction}
                         onDirectShortlist={handleShortlistAction}
                         onReject={handleRejectAction}
+                        onAddToShortlist={handleAddToShortlist}
+                        onAddToVideoInterview={handleAddToVideoInterview}
                        getFlagEmoji={getCountryFromLocation}
                        getEducationSummary={getAllEducationDetails}
                        getWorkExperienceSummary={getRecentWorkExperience}
