@@ -345,8 +345,10 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
               View
             </Button>
 
-            {/* Direct Shortlist button - temporarily enabled for all authorized users */}
-            {(userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Hiring Manager')) && onDirectShortlist && (
+            {/* Direct Shortlist button - only for Associate Policy (Legal) Officer */}
+            {application.job?.title?.includes('Associate Policy (Legal) Officer') && 
+             (userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Hiring Manager')) && 
+             onDirectShortlist && (
               <Button
                 size="sm"
                 variant="default"
@@ -371,9 +373,8 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
               </Button>
             )}
 
-            {/* Reject button - only for Associate Policy (Legal) Officer and hiring managers */}
-            {application.job?.title?.includes('Associate Policy (Legal) Officer') && 
-             userRoles.includes('Hiring Manager') && 
+            {/* Reject button - available for all jobs */}
+            {(userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Hiring Manager')) && 
              onReject && 
              application.status !== 'Rejected' && (
               <Button
