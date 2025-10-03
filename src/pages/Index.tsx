@@ -6,6 +6,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Briefcase, Users, UserCheck, Settings, FileText, Calendar } from 'lucide-react';
 import { UNICCLogo } from '@/components/UNICCLogo';
 import CandidateDashboard from '@/components/CandidateDashboard';
+import HRAdminDashboard from '@/components/dashboard/HRAdminDashboard';
+import HiringManagerDashboard from '@/components/dashboard/HiringManagerDashboard';
+import ChiefHRDashboard from '@/components/dashboard/ChiefHRDashboard';
+import PanelMemberDashboard from '@/components/dashboard/PanelMemberDashboard';
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -82,9 +86,72 @@ const Index = () => {
   const isHiringManager = userRoles.includes('Hiring Manager');
   const isPanelMember = userRoles.includes('Panel Member');
   const isCandidate = userRoles.includes('Candidate');
+  const isChiefHR = userRoles.includes('Chief of HR');
+  const isChiefOfDivision = userRoles.includes('Chief of Division');
+  const isDirector = userRoles.includes('Director');
 
-  return (
-    <Layout>
+  // Render appropriate dashboard based on primary role
+  const renderDashboard = () => {
+    if (isCandidate) {
+      return <CandidateDashboard />;
+    }
+    
+    if (isAdmin || isHR) {
+      return (
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold">HR Admin Dashboard</h1>
+            <p className="text-muted-foreground mt-2">
+              Manage recruitment pipeline and applications
+            </p>
+          </div>
+          <HRAdminDashboard />
+        </div>
+      );
+    }
+    
+    if (isChiefHR) {
+      return (
+        <div className="container mx-auto px-4 py-8">
+          <ChiefHRDashboard />
+        </div>
+      );
+    }
+    
+    if (isChiefOfDivision) {
+      navigate('/chief-of-division');
+      return null;
+    }
+    
+    if (isDirector) {
+      navigate('/director');
+      return null;
+    }
+    
+    if (isHiringManager) {
+      return (
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold">Hiring Manager Dashboard</h1>
+            <p className="text-muted-foreground mt-2">
+              Manage your jobs and position descriptions
+            </p>
+          </div>
+          <HiringManagerDashboard />
+        </div>
+      );
+    }
+    
+    if (isPanelMember) {
+      return (
+        <div className="container mx-auto px-4 py-8">
+          <PanelMemberDashboard />
+        </div>
+      );
+    }
+    
+    // Fallback: Generic dashboard
+    return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Dashboard</h1>
@@ -92,12 +159,7 @@ const Index = () => {
             Welcome back! Here's what you can do today.
           </p>
         </div>
-
-        {/* Candidate Dashboard */}
-        {isCandidate ? (
-          <CandidateDashboard />
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 
           {/* Staff Dashboard */}
           {(isAdmin || isHR || isHiringManager) && (
@@ -216,9 +278,14 @@ const Index = () => {
               </CardContent>
             </Card>
           )}
-          </div>
-        )}
+        </div>
       </div>
+    );
+  };
+
+  return (
+    <Layout>
+      {renderDashboard()}
     </Layout>
   );
 };
