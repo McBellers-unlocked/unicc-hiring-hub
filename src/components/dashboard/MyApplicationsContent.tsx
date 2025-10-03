@@ -4,9 +4,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/hooks/useAuth';
-import { FileText, Calendar, MapPin, Briefcase } from 'lucide-react';
+import { FileText, Calendar, MapPin, Video, Clock, AlertCircle, CheckCircle2, PlayCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { formatDistanceToNow, differenceInDays } from 'date-fns';
+
+interface VideoAssignment {
+  id: string;
+  status: string;
+  deadline_at: string;
+  token: string;
+  opened_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+}
 
 interface Application {
   id: string;
@@ -21,6 +33,7 @@ interface Application {
     closing_date: string;
     notice_no: string;
   };
+  video_assignment?: VideoAssignment | null;
 }
 
 export default function MyApplicationsContent() {
@@ -52,7 +65,7 @@ export default function MyApplicationsContent() {
           return;
         }
 
-        // Then get applications for this candidate
+        // Then get applications for this candidate with video assignments
         const { data: applicationsData, error: applicationsError } = await supabase
           .from('applications')
           .select(`
@@ -67,6 +80,15 @@ export default function MyApplicationsContent() {
               location,
               closing_date,
               notice_no
+            ),
+            video_assignments (
+              id,
+              status,
+              deadline_at,
+              token,
+              opened_at,
+              started_at,
+              completed_at
             )
           `)
           .eq('candidate_id', candidate.id)
@@ -79,7 +101,8 @@ export default function MyApplicationsContent() {
           job: {
             ...app.jobs,
             id: app.job_id
-          }
+          },
+          video_assignment: app.video_assignments?.[0] || null
         })) || []);
       } else {
         // For non-authenticated users, get from localStorage
@@ -154,6 +177,50 @@ export default function MyApplicationsContent() {
     });
   };
 
+  const getVideoAssignmentStatus = (assignment: VideoAssignment | null) => {
+    if (!assignment) return null;
+
+    const daysUntilDeadline = differenceInDays(new Date(assignment.deadline_at), new Date());
+    const isUrgent = daysUntilDeadline <= 2 && daysUntilDeadline >= 0;
+    const isExpired = daysUntilDeadline < 0;
+
+    let statusText = '';
+    let statusColor = '';
+    let icon = null;
+
+    if (isExpired) {
+      statusText = 'Expired';
+      statusColor = 'bg-red-100 text-red-800';
+      icon = <AlertCircle className="h-4 w-4" />;
+    } else if (assignment.status === 'Completed') {
+      statusText = 'Completed';
+      statusColor = 'bg-green-100 text-green-800';
+      icon = <CheckCircle2 className="h-4 w-4" />;
+    } else if (assignment.status === 'InProgress') {
+      statusText = `In Progress - ${daysUntilDeadline}d left`;
+      statusColor = isUrgent ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800';
+      icon = <PlayCircle className="h-4 w-4" />;
+    } else {
+      statusText = `Not Started - ${daysUntilDeadline}d left`;
+      statusColor = isUrgent ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-800';
+      icon = <Clock className="h-4 w-4" />;
+    }
+
+    return { statusText, statusColor, icon, daysUntilDeadline, isUrgent, isExpired };
+  };
+
+  const getStageProgress = (status: string, hasVideoAssignment: boolean) => {
+    const stages = [
+      { name: 'Application', status: 'completed' },
+      { name: 'Screening', status: status === 'Application' ? 'pending' : 'completed' },
+      { name: 'Video Interview', status: hasVideoAssignment ? 'current' : 'pending' },
+      { name: 'Panel Interview', status: 'pending' },
+      { name: 'Offer', status: 'pending' }
+    ];
+
+    return stages;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -179,36 +246,78 @@ export default function MyApplicationsContent() {
     );
   }
 
+  const urgentAssignments = applications.filter(app => {
+    if (!app.video_assignment) return false;
+    const status = getVideoAssignmentStatus(app.video_assignment);
+    return status && status.isUrgent && !status.isExpired && app.video_assignment.status !== 'Completed';
+  });
+
   return (
-    <div className="space-y-4">
-      {applications.map((application) => (
-        <Card key={application.id} className="hover:shadow-md transition-shadow">
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="text-xl mb-2">{application.job.title}</CardTitle>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    {application.job.location}
+    <div className="space-y-6">
+      {/* Urgent Alerts */}
+      {urgentAssignments.length > 0 && (
+        <Alert className="border-orange-500 bg-orange-50">
+          <AlertCircle className="h-4 w-4 text-orange-600" />
+          <AlertDescription className="text-orange-800">
+            You have {urgentAssignments.length} video interview{urgentAssignments.length > 1 ? 's' : ''} expiring soon. Complete them before the deadline!
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Applications List */}
+      {applications.map((application) => {
+        const videoStatus = getVideoAssignmentStatus(application.video_assignment);
+        const stages = getStageProgress(application.status, !!application.video_assignment);
+        
+        return (
+          <Card key={application.id} className="hover:shadow-md transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-xl mb-2">{application.job.title}</CardTitle>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-4 w-4" />
+                      {application.job.location}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <FileText className="h-4 w-4" />
+                      {application.job.notice_no}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      Applied: {formatDate(application.submitted_at)}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <FileText className="h-4 w-4" />
-                    {application.job.notice_no}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    Applied: {formatDate(application.submitted_at)}
+                  
+                  {/* Progress Timeline */}
+                  <div className="mt-4 flex items-center gap-2">
+                    {stages.map((stage, index) => (
+                      <div key={stage.name} className="flex items-center">
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+                          stage.status === 'completed' 
+                            ? 'bg-green-100 text-green-700' 
+                            : stage.status === 'current'
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          {stage.status === 'completed' && <CheckCircle2 className="h-3 w-3" />}
+                          {stage.name}
+                        </div>
+                        {index < stages.length - 1 && (
+                          <div className={`w-4 h-px ${stage.status === 'completed' ? 'bg-green-300' : 'bg-gray-300'}`} />
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
+                <Badge className={getStatusColor(application.status)}>
+                  {application.status}
+                </Badge>
               </div>
-              <Badge className={getStatusColor(application.status)}>
-                {application.status}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* PHF Status */}
               <div className="flex items-center gap-4 text-sm">
                 <div className={`flex items-center gap-2 ${
                   application.phf_completed ? 'text-green-600' : 'text-yellow-600'
@@ -224,7 +333,64 @@ export default function MyApplicationsContent() {
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+
+              {/* Video Assignment Section */}
+              {application.video_assignment && videoStatus && (
+                <div className={`p-4 rounded-lg border-2 ${
+                  videoStatus.isUrgent && !videoStatus.isExpired && application.video_assignment.status !== 'Completed'
+                    ? 'border-orange-300 bg-orange-50'
+                    : 'border-gray-200 bg-gray-50'
+                }`}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <Video className="h-5 w-5 text-purple-600 mt-0.5" />
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-1">Video Interview Assessment</h4>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge className={videoStatus.statusColor + ' flex items-center gap-1'}>
+                            {videoStatus.icon}
+                            {videoStatus.statusText}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {application.video_assignment.status === 'Completed' 
+                            ? `Submitted ${formatDistanceToNow(new Date(application.video_assignment.completed_at!), { addSuffix: true })}`
+                            : `Deadline: ${formatDate(application.video_assignment.deadline_at)}`
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      {application.video_assignment.status === 'Completed' ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          Submitted
+                        </Button>
+                      ) : !videoStatus.isExpired ? (
+                        <Button
+                          size="sm"
+                          onClick={() => navigate(`/video-interview/${application.video_assignment!.token}`)}
+                          className="bg-purple-600 hover:bg-purple-700"
+                        >
+                          <PlayCircle className="h-4 w-4 mr-1" />
+                          {application.video_assignment.status === 'InProgress' ? 'Continue Interview' : 'Start Interview'}
+                        </Button>
+                      ) : (
+                        <Button variant="outline" size="sm" disabled>
+                          Expired
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t">
                 {application.phf_completed && (
                   <Button
                     variant="ghost"
@@ -233,22 +399,23 @@ export default function MyApplicationsContent() {
                     className="flex items-center gap-2"
                   >
                     <FileText className="h-4 w-4" />
-                    View Application
+                    View Details
                   </Button>
                 )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(`/apply/${application.job_id}`)}
-                  disabled={application.phf_completed}
-                >
-                  {application.phf_completed ? 'Application Complete' : 'Continue Application'}
-                </Button>
+                {!application.phf_completed && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/apply/${application.job_id}`)}
+                  >
+                    Continue Application
+                  </Button>
+                )}
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

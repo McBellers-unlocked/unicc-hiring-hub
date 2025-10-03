@@ -19,9 +19,23 @@ import {
   GraduationCap,
   Briefcase,
   Eye,
-  Download
+  Download,
+  Video,
+  CheckCircle2,
+  Clock,
+  PlayCircle
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow, differenceInDays } from 'date-fns';
+
+interface VideoAssignment {
+  id: string;
+  status: string;
+  deadline_at: string;
+  token: string;
+  opened_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+}
 
 interface ApplicationData {
   id: string;
@@ -52,6 +66,7 @@ interface ApplicationData {
     notice_no: string | null;
     closing_date: string | null;
   };
+  video_assignment?: VideoAssignment | null;
 }
 
 export default function CandidateApplicationView() {
@@ -92,7 +107,7 @@ export default function CandidateApplicationView() {
         return;
       }
 
-      // Then get the application
+      // Then get the application with video assignment
       const { data: applicationData, error: applicationError } = await supabase
         .from('applications')
         .select(`
@@ -128,6 +143,15 @@ export default function CandidateApplicationView() {
             location,
             notice_no,
             closing_date
+          ),
+          video_assignments (
+            id,
+            status,
+            deadline_at,
+            token,
+            opened_at,
+            started_at,
+            completed_at
           )
         `)
         .eq('id', id)
@@ -146,7 +170,10 @@ export default function CandidateApplicationView() {
         return;
       }
 
-      setApplication(applicationData);
+      setApplication({
+        ...applicationData,
+        video_assignment: applicationData.video_assignments?.[0] || null
+      });
     } catch (error) {
       console.error('Error fetching application:', error);
       toast({
@@ -303,6 +330,9 @@ export default function CandidateApplicationView() {
             )}
             {application.answers && Object.keys(application.answers).length > 0 && (
               <TabsTrigger value="responses">Application Responses</TabsTrigger>
+            )}
+            {application.video_assignment && (
+              <TabsTrigger value="assessments">Assessments</TabsTrigger>
             )}
           </TabsList>
 
@@ -484,6 +514,152 @@ export default function CandidateApplicationView() {
                       <div className="text-sm text-muted-foreground">Languages</div>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {application.video_assignment && (
+            <TabsContent value="assessments">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Video className="h-5 w-5" />
+                    Assessment Center
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {(() => {
+                    const assignment = application.video_assignment!;
+                    const daysUntilDeadline = differenceInDays(new Date(assignment.deadline_at), new Date());
+                    const isExpired = daysUntilDeadline < 0;
+                    const isUrgent = daysUntilDeadline <= 2 && !isExpired;
+
+                    return (
+                      <div className={`p-6 rounded-lg border-2 ${
+                        isUrgent ? 'border-orange-300 bg-orange-50' : 
+                        isExpired ? 'border-red-300 bg-red-50' :
+                        assignment.status === 'Completed' ? 'border-green-300 bg-green-50' :
+                        'border-blue-300 bg-blue-50'
+                      }`}>
+                        <div className="flex items-start justify-between mb-6">
+                          <div>
+                            <h3 className="text-xl font-semibold mb-2 flex items-center gap-2">
+                              <Video className="h-5 w-5" />
+                              Video Interview
+                            </h3>
+                            <div className="flex items-center gap-3 mb-4">
+                              <Badge className={
+                                assignment.status === 'Completed' 
+                                  ? 'bg-green-100 text-green-800'
+                                  : isExpired
+                                  ? 'bg-red-100 text-red-800'
+                                  : isUrgent
+                                  ? 'bg-orange-100 text-orange-800'
+                                  : 'bg-blue-100 text-blue-800'
+                              }>
+                                {assignment.status === 'Completed' && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                                {assignment.status === 'InProgress' && <PlayCircle className="h-3 w-3 mr-1" />}
+                                {assignment.status === 'NotStarted' && <Clock className="h-3 w-3 mr-1" />}
+                                {assignment.status === 'Completed' 
+                                  ? 'Completed'
+                                  : isExpired
+                                  ? 'Expired'
+                                  : assignment.status === 'InProgress'
+                                  ? 'In Progress'
+                                  : 'Not Started'
+                                }
+                              </Badge>
+                              {!isExpired && assignment.status !== 'Completed' && (
+                                <span className={`text-sm font-medium ${isUrgent ? 'text-orange-700' : 'text-gray-700'}`}>
+                                  {daysUntilDeadline === 0 
+                                    ? 'Due today!' 
+                                    : `${daysUntilDeadline} day${daysUntilDeadline !== 1 ? 's' : ''} remaining`
+                                  }
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            {assignment.status === 'Completed' ? (
+                              <Button variant="outline" disabled>
+                                <CheckCircle2 className="h-4 w-4 mr-2" />
+                                Submitted
+                              </Button>
+                            ) : !isExpired ? (
+                              <Button
+                                size="lg"
+                                onClick={() => navigate(`/video-interview/${assignment.token}`)}
+                                className="bg-purple-600 hover:bg-purple-700"
+                              >
+                                <PlayCircle className="h-5 w-5 mr-2" />
+                                {assignment.status === 'InProgress' ? 'Continue Interview' : 'Start Interview'}
+                              </Button>
+                            ) : (
+                              <Button variant="outline" disabled>
+                                Expired
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                          <div className="bg-white p-4 rounded-lg">
+                            <div className="text-sm text-gray-600 mb-1">Deadline</div>
+                            <div className="font-semibold">{format(new Date(assignment.deadline_at), 'MMM dd, yyyy HH:mm')}</div>
+                          </div>
+                          {assignment.opened_at && (
+                            <div className="bg-white p-4 rounded-lg">
+                              <div className="text-sm text-gray-600 mb-1">First Opened</div>
+                              <div className="font-semibold">{formatDistanceToNow(new Date(assignment.opened_at), { addSuffix: true })}</div>
+                            </div>
+                          )}
+                          {assignment.completed_at && (
+                            <div className="bg-white p-4 rounded-lg">
+                              <div className="text-sm text-gray-600 mb-1">Submitted</div>
+                              <div className="font-semibold">{formatDistanceToNow(new Date(assignment.completed_at), { addSuffix: true })}</div>
+                            </div>
+                          )}
+                        </div>
+
+                        {assignment.status !== 'Completed' && !isExpired && (
+                          <div className="bg-white p-4 rounded-lg">
+                            <h4 className="font-semibold mb-2">What to expect:</h4>
+                            <ul className="space-y-2 text-sm text-gray-700">
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
+                                <span>Answer a series of pre-recorded video questions</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
+                                <span>You'll have time to prepare before recording each answer</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
+                                <span>Make sure you're in a quiet location with good lighting</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
+                                <span>Test your camera and microphone before starting</span>
+                              </li>
+                            </ul>
+                          </div>
+                        )}
+
+                        {assignment.status === 'Completed' && (
+                          <div className="bg-white p-4 rounded-lg text-center">
+                            <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto mb-3" />
+                            <p className="text-gray-700 font-medium">
+                              Thank you for completing your video interview!
+                            </p>
+                            <p className="text-sm text-gray-600 mt-2">
+                              Your responses have been submitted and are being reviewed by our hiring team.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </TabsContent>
