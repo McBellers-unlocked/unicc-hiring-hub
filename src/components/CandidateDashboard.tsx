@@ -64,17 +64,22 @@ export default function CandidateDashboard() {
       if (data) {
         // Parse languages from JSONB to array format
         let languagesArray: any[] = [];
-        if (data.languages && typeof data.languages === 'object') {
+        if (data.languages && typeof data.languages === 'object' && !Array.isArray(data.languages)) {
           // Convert languages object to array format
           languagesArray = Object.entries(data.languages).map(([language, proficiency]) => ({
             language,
             proficiency
           }));
+        } else if (Array.isArray(data.languages)) {
+          languagesArray = data.languages;
         }
+
+        // Remove the raw languages object and replace with converted array
+        const { languages: _languages, ...restData } = data;
 
         // Ensure arrays are properly handled
         setProfile({
-          ...data,
+          ...restData,
           work_experience: Array.isArray(data.work_experience) ? data.work_experience : [],
           education: Array.isArray(data.education) ? data.education : [],
           skills: Array.isArray(data.skills) ? data.skills.map((s: any) => String(s)) : [],
