@@ -32,6 +32,9 @@ interface CandidateProfile {
   work_experience?: any[];
   education?: any[];
   skills?: string[];
+  languages?: any;
+  certifications?: any[];
+  un_organizations_worked?: string[];
 }
 
 export default function CandidateDashboard() {
@@ -59,12 +62,25 @@ export default function CandidateDashboard() {
       if (error) throw error;
 
       if (data) {
+        // Parse languages from JSONB to array format
+        let languagesArray: any[] = [];
+        if (data.languages && typeof data.languages === 'object') {
+          // Convert languages object to array format
+          languagesArray = Object.entries(data.languages).map(([language, proficiency]) => ({
+            language,
+            proficiency
+          }));
+        }
+
         // Ensure arrays are properly handled
         setProfile({
           ...data,
           work_experience: Array.isArray(data.work_experience) ? data.work_experience : [],
           education: Array.isArray(data.education) ? data.education : [],
-          skills: Array.isArray(data.skills) ? data.skills.map(String) : []
+          skills: Array.isArray(data.skills) ? data.skills.map((s: any) => String(s)) : [],
+          languages: languagesArray,
+          certifications: Array.isArray(data.certifications) ? data.certifications : [],
+          un_organizations_worked: Array.isArray(data.un_organizations_worked) ? data.un_organizations_worked.map((o: any) => String(o)) : []
         });
       }
     } catch (error) {

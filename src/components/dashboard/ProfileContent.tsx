@@ -17,7 +17,7 @@ interface ProfileContentProps {
     skills?: string[];
     languages?: any[];
     certifications?: any[];
-    un_organizations?: string[];
+    un_organizations_worked?: string[];
     years_of_experience?: number;
     availability_status?: string;
   };
@@ -243,14 +243,14 @@ export default function ProfileContent({ profile }: ProfileContentProps) {
         )}
 
         {/* UN Experience */}
-        {profile.un_organizations && profile.un_organizations.length > 0 && (
+        {profile.un_organizations_worked && profile.un_organizations_worked.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>UN System Experience</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {profile.un_organizations.map((org: string, index: number) => (
+                {profile.un_organizations_worked.map((org: string, index: number) => (
                   <Badge key={index} variant="outline">
                     {org}
                   </Badge>
