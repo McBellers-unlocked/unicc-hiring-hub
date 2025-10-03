@@ -5,11 +5,18 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Calendar, Building, Mail, Phone, Globe } from "lucide-react";
-import { getCountryFlagUrl, getAvailabilityInfo, formatExperienceYears } from "@/lib/countryFlags";
+import { Mail, Phone, Globe, MapPin } from "lucide-react";
+import ProfileHero from "@/components/profile/ProfileHero";
+import ProfileStatsCards from "@/components/profile/ProfileStatsCards";
+import EnhancedSkillsSection from "@/components/profile/EnhancedSkillsSection";
+import EnhancedLanguagesSection from "@/components/profile/EnhancedLanguagesSection";
+import WorkExperienceTimeline from "@/components/profile/WorkExperienceTimeline";
+import EducationTimeline from "@/components/profile/EducationTimeline";
+import CertificationsGrid from "@/components/profile/CertificationsGrid";
+import JobRecommendationsSection from "@/components/profile/JobRecommendationsSection";
+import PortfolioSection from "@/components/profile/PortfolioSection";
+import ProfileAnalyticsSection from "@/components/profile/ProfileAnalyticsSection";
 
 interface CandidateProfile {
   id: string;
@@ -33,6 +40,10 @@ interface CandidateProfile {
   willing_to_relocate: boolean;
   un_experience: boolean;
   un_organizations_worked: any;
+  languages?: any;
+  current_position?: string;
+  current_organization?: string;
+  portfolio_attachments?: any;
 }
 
 export default function CandidateProfile() {
@@ -63,6 +74,7 @@ export default function CandidateProfile() {
           work_experience: Array.isArray(data.work_experience) ? data.work_experience : [],
           preferred_locations: Array.isArray(data.preferred_locations) ? data.preferred_locations : [],
           un_organizations_worked: Array.isArray(data.un_organizations_worked) ? data.un_organizations_worked : [],
+          portfolio_attachments: Array.isArray(data.portfolio_attachments) ? data.portfolio_attachments : [],
         };
 
         // Calculate years of experience if not present or if 0
@@ -71,6 +83,10 @@ export default function CandidateProfile() {
           (normalizedProfile as any).years_of_experience_months = experienceMonths;
           normalizedProfile.years_of_experience = Math.round(experienceMonths / 12 * 10) / 10;
         }
+
+        // Extract current position and organization
+        (normalizedProfile as any).current_position = getCurrentPosition(normalizedProfile.work_experience);
+        (normalizedProfile as any).current_organization = getCurrentOrganization(normalizedProfile.work_experience);
 
         setProfile(normalizedProfile);
         
@@ -212,96 +228,36 @@ export default function CandidateProfile() {
 
 
   return (
-    <div className="container mx-auto py-8 max-w-4xl">
-      {/* Header Section */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-6">
-            <div className="flex-shrink-0">
-              <Avatar className="h-24 w-24">
-                <AvatarImage src={profile.profile_photo_url} />
-                <AvatarFallback className="text-lg">
-                  {profile.name.split(' ').map(n => n[0]).join('')}
-                </AvatarFallback>
-              </Avatar>
-            </div>
-            
-            <div className="flex-grow">
-              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-bold">{profile.name}</h1>
-                  {getCurrentPosition(profile.work_experience) && (
-                    <p className="text-lg text-muted-foreground">{getCurrentPosition(profile.work_experience)}</p>
-                  )}
-                  {getCurrentOrganization(profile.work_experience) && (
-                    <p className="text-sm text-muted-foreground flex items-center gap-1">
-                      <Building className="h-4 w-4" />
-                      {getCurrentOrganization(profile.work_experience)}
-                    </p>
-                  )}
-                   <div className="flex flex-wrap gap-2 mt-2">
-                     {profile.location && (
-                       <Badge variant="outline" className="flex items-center gap-1">
-                         {getCountryFlagUrl(profile.location) && (
-                           <img 
-                             src={getCountryFlagUrl(profile.location)} 
-                             alt={`${profile.location} flag`} 
-                             className="w-4 h-3 object-cover rounded-sm"
-                             onError={(e) => {
-                               console.log('Flag failed to load for:', profile.location);
-                               e.currentTarget.style.display = 'none';
-                             }}
-                           />
-                         )}
-                         {profile.location}
-                       </Badge>
-                     )}
-                     <Badge 
-                       variant="outline" 
-                       className={`flex items-center gap-1`}
-                       title={getAvailabilityInfo(profile.availability_status).description}
-                     >
-                       <div className={`h-2 w-2 rounded-full ${getAvailabilityInfo(profile.availability_status).color}`}></div>
-                       {getAvailabilityInfo(profile.availability_status).label}
-                     </Badge>
-                     {profile.years_of_experience_months && profile.years_of_experience_months > 0 && (
-                       <Badge variant="outline" className="flex items-center gap-1">
-                         <Calendar className="h-3 w-3" />
-                         {formatExperienceYears(profile.years_of_experience_months)} exp.
-                       </Badge>
-                     )}
-                   </div>
-                </div>
-                
-                {isOwnProfile && (
-                  <Button 
-                    onClick={() => navigate(`/candidate-profile/${id}/edit`)}
-                    className="flex items-center gap-2"
-                  >
-                    <Edit className="h-4 w-4" />
-                    Edit Profile
-                  </Button>
-                )}
-              </div>
+    <div className="container mx-auto py-8 max-w-7xl space-y-6">
+      {/* Hero Section */}
+      <ProfileHero 
+        profile={profile}
+        isOwnProfile={isOwnProfile}
+        onEdit={() => navigate(`/candidate-profile/${id}/edit`)}
+      />
 
-              {/* Profile Completion */}
-              {isOwnProfile && (
-                <div className="mt-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>Profile Completion</span>
-                    <span>{profile.profile_completion_percentage}%</span>
-                  </div>
-                  <Progress value={profile.profile_completion_percentage} className="mt-1" />
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Stats Cards */}
+      <ProfileStatsCards 
+        profileCompletionPercentage={profile.profile_completion_percentage}
+        yearsOfExperience={profile.years_of_experience || 0}
+        skillsCount={profile.skills.length}
+        certificationsCount={profile.certifications.length}
+      />
+
+      {/* Profile Analytics (only for own profile) */}
+      {isOwnProfile && (
+        <ProfileAnalyticsSection 
+          profileId={profile.id}
+          completionPercentage={profile.profile_completion_percentage}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
+        {/* Main Content - Left 2/3 */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Job Recommendations */}
+          <JobRecommendationsSection candidateProfile={profile} />
+
           {/* Professional Summary */}
           {profile.professional_summary && (
             <Card>
@@ -309,120 +265,90 @@ export default function CandidateProfile() {
                 <CardTitle>Professional Summary</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="whitespace-pre-wrap">{profile.professional_summary}</p>
+                <p className="whitespace-pre-wrap leading-relaxed">{profile.professional_summary}</p>
               </CardContent>
             </Card>
           )}
 
-          {/* Work Experience */}
-          {profile.work_experience.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Work Experience</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {profile.work_experience.map((exp: any, index: number) => (
-                    <div key={index} className="border-l-2 border-primary pl-4">
-                      <h4 className="font-semibold">{exp.position}</h4>
-                      <p className="text-muted-foreground">{exp.organization}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {exp.startDate} - {exp.endDate || 'Present'}
-                      </p>
-                      {exp.description && (
-                        <p className="text-sm mt-2">{exp.description}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Work Experience Timeline */}
+          <WorkExperienceTimeline workExperience={profile.work_experience} />
 
-          {/* Education */}
-          {profile.education.length > 0 && (
+          {/* Education Timeline */}
+          <EducationTimeline education={profile.education} />
+
+          {/* Certifications */}
+          <CertificationsGrid certifications={profile.certifications} />
+
+          {/* Portfolio */}
+          {profile.portfolio_attachments && profile.portfolio_attachments.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Education</CardTitle>
+                <CardTitle>Portfolio & Projects</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {profile.education.map((edu: any, index: number) => (
-                    <div key={index}>
-                      <h4 className="font-semibold">{edu.degree}</h4>
-                      <p className="text-muted-foreground">{edu.institution}</p>
-                      <p className="text-sm text-muted-foreground">{edu.year}</p>
-                    </div>
-                  ))}
-                </div>
+                <PortfolioSection 
+                  portfolioFiles={profile.portfolio_attachments}
+                  email={profile.email}
+                  onChange={() => {}}
+                />
               </CardContent>
             </Card>
           )}
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar - Right 1/3 */}
         <div className="space-y-6">
           {/* Contact Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Contact</CardTitle>
+              <CardTitle>Contact & Links</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-sm">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{profile.email}</span>
+                <a href={`mailto:${profile.email}`} className="hover:underline">
+                  {profile.email}
+                </a>
               </div>
               {profile.phone && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 text-sm">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{profile.phone}</span>
+                  <span>{profile.phone}</span>
                 </div>
               )}
               {profile.linkedin_url && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 text-sm">
                   <Globe className="h-4 w-4 text-muted-foreground" />
                   <a 
                     href={profile.linkedin_url} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline"
+                    className="text-primary hover:underline"
                   >
-                    LinkedIn
+                    LinkedIn Profile
                   </a>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Skills */}
-          {profile.skills.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Skills</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {profile.skills.map((skill: string, index: number) => (
-                    <Badge key={index} variant="secondary">
-                      {skill}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Skills & Expertise */}
+          <EnhancedSkillsSection skills={profile.skills} />
+
+          {/* Languages */}
+          <EnhancedLanguagesSection languages={profile.languages} />
 
           {/* UN Experience */}
           {profile.un_experience && (
             <Card>
               <CardHeader>
-                <CardTitle>UN Experience</CardTitle>
+                <CardTitle>UN System Experience</CardTitle>
               </CardHeader>
               <CardContent>
                 {profile.un_organizations_worked.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
                     {profile.un_organizations_worked.map((org: string, index: number) => (
-                      <Badge key={index} variant="outline">
+                      <Badge key={index} variant="default">
                         {org}
                       </Badge>
                     ))}
@@ -436,16 +362,19 @@ export default function CandidateProfile() {
             </Card>
           )}
 
-          {/* Preferences */}
+          {/* Preferences & Availability */}
           <Card>
             <CardHeader>
-              <CardTitle>Preferences</CardTitle>
+              <CardTitle>Work Preferences</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4">
               {profile.preferred_locations.length > 0 && (
                 <div>
-                  <h5 className="font-medium text-sm">Preferred Locations</h5>
-                  <div className="flex flex-wrap gap-1 mt-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <h5 className="font-medium text-sm">Preferred Locations</h5>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
                     {profile.preferred_locations.map((location: string, index: number) => (
                       <Badge key={index} variant="outline" className="text-xs">
                         {location}
@@ -454,9 +383,19 @@ export default function CandidateProfile() {
                   </div>
                 </div>
               )}
-              <div className="text-sm">
-                <span className="font-medium">Willing to relocate: </span>
-                <span>{profile.willing_to_relocate ? 'Yes' : 'No'}</span>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Willing to relocate</span>
+                  <Badge variant={profile.willing_to_relocate ? "default" : "secondary"}>
+                    {profile.willing_to_relocate ? "Yes" : "No"}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Availability</span>
+                  <Badge variant="outline">
+                    {profile.availability_status}
+                  </Badge>
+                </div>
               </div>
             </CardContent>
           </Card>
