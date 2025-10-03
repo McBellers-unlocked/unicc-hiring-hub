@@ -1131,6 +1131,30 @@ export type Database = {
           },
         ]
       }
+      signup_attempts: {
+        Row: {
+          attempted_at: string
+          email: string
+          id: string
+          ip_address: string
+          success: boolean
+        }
+        Insert: {
+          attempted_at?: string
+          email: string
+          id?: string
+          ip_address: string
+          success?: boolean
+        }
+        Update: {
+          attempted_at?: string
+          email?: string
+          id?: string
+          ip_address?: string
+          success?: boolean
+        }
+        Relationships: []
+      }
       stage_events: {
         Row: {
           application_id: string
@@ -1517,6 +1541,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_signup_rate_limit: {
+        Args: { p_email: string; p_ip_address: string }
+        Returns: boolean
+      }
       generate_position_description_reference: {
         Args: { p_duty_station: string; p_nature_of_position: string }
         Returns: string
