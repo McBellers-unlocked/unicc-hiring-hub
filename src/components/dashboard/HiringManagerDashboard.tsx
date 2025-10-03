@@ -11,7 +11,13 @@ import StatsCard from "./StatsCard";
 export default function HiringManagerDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState({ myJobs: 0, pendingReview: 0 });
+  const [stats, setStats] = useState({ 
+    myJobs: 0, 
+    pendingReview: 0,
+    recentApplications: 0,
+    activeJobs: 0
+  });
+  const [myJobIds, setMyJobIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (user) fetchData();
@@ -20,17 +26,68 @@ export default function HiringManagerDashboard() {
   const fetchData = async () => {
     if (!user) return;
     
-    const jobsResult = await supabase.from('job_hiring_managers').select('job_id', { count: 'exact', head: true }).eq('user_id', user.id);
-    const pdsResult = await supabase.from('job_requisitions').select('*', { count: 'exact', head: true }).eq('created_by', user.id).eq('status', 'hiring_manager_review');
+    // Get jobs where user is hiring manager
+    const { data: jobAssignments } = await supabase
+      .from('job_hiring_managers')
+      .select('job_id')
+      .eq('user_id', user.id);
     
-    setStats({ myJobs: jobsResult.count || 0, pendingReview: pdsResult.count || 0 });
+    const jobIds = jobAssignments?.map(a => a.job_id) || [];
+    setMyJobIds(jobIds);
+    
+    // Get active jobs count
+    const { count: activeJobsCount } = await supabase
+      .from('jobs')
+      .select('id', { count: 'exact', head: true })
+      .in('id', jobIds)
+      .eq('status', 'active');
+    
+    // Get recent applications (last 7 days) for my jobs
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const { count: recentAppsCount } = await supabase
+      .from('applications')
+      .select('id', { count: 'exact', head: true })
+      .in('job_id', jobIds)
+      .gte('submitted_at', sevenDaysAgo.toISOString());
+    
+    // Get pending PDs
+    const { count: pdsCount } = await supabase
+      .from('job_requisitions')
+      .select('*', { count: 'exact', head: true })
+      .eq('created_by', user.id)
+      .eq('status', 'hiring_manager_review');
+    
+    setStats({ 
+      myJobs: jobIds.length,
+      activeJobs: activeJobsCount || 0,
+      pendingReview: pdsCount || 0,
+      recentApplications: recentAppsCount || 0
+    });
   };
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <StatsCard title="My Jobs" value={stats.myJobs} icon={Briefcase} />
-        <StatsCard title="Pending My Review" value={stats.pendingReview} alert={stats.pendingReview > 0} icon={FileText} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatsCard 
+          title="Active Jobs" 
+          value={stats.activeJobs}
+          subtitle={`${stats.myJobs} total jobs`}
+          icon={Briefcase} 
+        />
+        <StatsCard 
+          title="New Applications (7d)" 
+          value={stats.recentApplications}
+          icon={FileText}
+          alert={stats.recentApplications > 10}
+        />
+        <StatsCard 
+          title="PDs Pending Review" 
+          value={stats.pendingReview} 
+          alert={stats.pendingReview > 0} 
+          icon={FileText} 
+        />
       </div>
 
       {stats.pendingReview > 0 && (
@@ -44,7 +101,7 @@ export default function HiringManagerDashboard() {
                 <p className="font-semibold">Review Position Descriptions</p>
                 <p className="text-sm text-muted-foreground">{stats.pendingReview} PDs need your approval</p>
               </div>
-              <Button onClick={() => navigate('/requisitions')}>Review</Button>
+              <Button onClick={() => navigate('/requisitions')}>Review Now</Button>
             </div>
           </CardContent>
         </Card>
@@ -52,16 +109,40 @@ export default function HiringManagerDashboard() {
 
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>My Jobs & Position Descriptions</CardTitle>
-            <Button onClick={() => navigate('/requisitions/new')} variant="outline">Create New PD</Button>
-          </div>
+          <CardTitle>Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <Button onClick={() => navigate('/jobs')} variant="outline" className="w-full">View My Jobs</Button>
-            <Button onClick={() => navigate('/requisitions')} variant="outline" className="w-full">View My PDs</Button>
-            <Button onClick={() => navigate('/applications')} variant="outline" className="w-full">View Applications</Button>
+            <Button 
+              onClick={() => {
+                if (myJobIds.length > 0) {
+                  navigate(`/applications?job=${myJobIds[0]}`);
+                } else {
+                  navigate('/applications');
+                }
+              }} 
+              variant="outline" 
+              className="w-full justify-start"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              View Applications for My Jobs
+            </Button>
+            <Button 
+              onClick={() => navigate('/requisitions')} 
+              variant="outline" 
+              className="w-full justify-start"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Manage Position Descriptions
+            </Button>
+            <Button 
+              onClick={() => navigate('/requisitions/new')} 
+              variant="outline" 
+              className="w-full justify-start"
+            >
+              <Briefcase className="h-4 w-4 mr-2" />
+              Create New Position Description
+            </Button>
           </div>
         </CardContent>
       </Card>
