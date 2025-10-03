@@ -1,22 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { User, MapPin, Briefcase, AlertCircle, Edit3, FileText, Search, Calendar, Building } from 'lucide-react';
-import { getCountryFlagUrl, getAvailabilityInfo, formatExperienceYears } from '@/lib/countryFlags';
-
-// Import existing components for tabs
+import { User, AlertCircle, FileText, Search } from 'lucide-react';
+import ProfileHero from './profile/ProfileHero';
+import ProfileStatsCards from './profile/ProfileStatsCards';
+import ProfileAnalyticsSection from './profile/ProfileAnalyticsSection';
+import JobRecommendationsSection from './profile/JobRecommendationsSection';
+import EnhancedSkillsSection from './profile/EnhancedSkillsSection';
+import EnhancedLanguagesSection from './profile/EnhancedLanguagesSection';
+import WorkExperienceTimeline from './profile/WorkExperienceTimeline';
+import EducationTimeline from './profile/EducationTimeline';
+import CertificationsGrid from './profile/CertificationsGrid';
 import JobsContent from './dashboard/JobsContent';
 import MyApplicationsContent from './dashboard/MyApplicationsContent';
-import ProfileContent from './dashboard/ProfileContent';
 
 interface CandidateProfile {
   id: string;
@@ -27,6 +28,7 @@ interface CandidateProfile {
   professional_summary?: string;
   profile_completion_percentage: number;
   photo_url?: string;
+  profile_photo_url?: string;
   years_of_experience?: number;
   availability_status?: string;
   work_experience?: any[];
@@ -35,6 +37,12 @@ interface CandidateProfile {
   languages?: any;
   certifications?: any[];
   un_organizations_worked?: string[];
+  current_position?: string;
+  current_organization?: string;
+  linkedin_url?: string;
+  willing_to_relocate?: boolean;
+  un_experience?: boolean;
+  preferred_locations?: string[];
 }
 
 export default function CandidateDashboard() {
@@ -77,15 +85,26 @@ export default function CandidateDashboard() {
         // Remove the raw languages object and replace with converted array
         const { languages: _languages, ...restData } = data;
 
+        // Calculate current position and organization
+        const workExp = Array.isArray(data.work_experience) ? data.work_experience : [];
+        const currentPos = getCurrentPosition(workExp);
+        const currentOrg = getCurrentOrganization(workExp);
+        const experienceMonths = calculateYearsOfExperience(workExp);
+        
         // Ensure arrays are properly handled
         setProfile({
           ...restData,
-          work_experience: Array.isArray(data.work_experience) ? data.work_experience : [],
+          work_experience: workExp,
           education: Array.isArray(data.education) ? data.education : [],
           skills: Array.isArray(data.skills) ? data.skills.map((s: any) => String(s)) : [],
-          languages: languagesArray,
+          languages: data.languages,
           certifications: Array.isArray(data.certifications) ? data.certifications : [],
-          un_organizations_worked: Array.isArray(data.un_organizations_worked) ? data.un_organizations_worked.map((o: any) => String(o)) : []
+          un_organizations_worked: Array.isArray(data.un_organizations_worked) ? data.un_organizations_worked.map((o: any) => String(o)) : [],
+          current_position: currentPos,
+          current_organization: currentOrg,
+          profile_photo_url: data.profile_photo_url,
+          years_of_experience: experienceMonths > 0 ? Math.round(experienceMonths / 12 * 10) / 10 : data.years_of_experience,
+          preferred_locations: Array.isArray(data.preferred_locations) ? data.preferred_locations.map((l: any) => String(l)) : []
         });
       }
     } catch (error) {
@@ -256,94 +275,20 @@ export default function CandidateDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Profile Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-start gap-6">
-            <Avatar className="h-24 w-24">
-              <AvatarImage src={profile.photo_url} alt={profile.name} />
-              <AvatarFallback className="text-lg">
-                {getInitials(profile.name)}
-              </AvatarFallback>
-            </Avatar>
-            
-            <div className="flex-1">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h1 className="text-2xl font-bold">{profile.name}</h1>
-                  {getCurrentPosition(profile.work_experience) && (
-                    <p className="text-lg text-muted-foreground">{getCurrentPosition(profile.work_experience)}</p>
-                  )}
-                  {getCurrentOrganization(profile.work_experience) && (
-                    <p className="text-sm text-muted-foreground flex items-center gap-1">
-                      <Building className="h-4 w-4" />
-                      {getCurrentOrganization(profile.work_experience)}
-                    </p>
-                  )}
-                  
-                   <div className="flex flex-wrap gap-2 mt-2">
-                     {profile.location && (
-                       <Badge variant="outline" className="flex items-center gap-1">
-                         {getCountryFlagUrl(profile.location) && (
-                           <img 
-                             src={getCountryFlagUrl(profile.location)} 
-                             alt={`${profile.location} flag`} 
-                             className="w-4 h-3 object-cover rounded-sm"
-                             onError={(e) => {
-                               e.currentTarget.style.display = 'none';
-                             }}
-                           />
-                         )}
-                         {profile.location}
-                       </Badge>
-                     )}
-                     
-                     {profile.availability_status && (
-                       <Badge 
-                         variant="outline" 
-                         className="flex items-center gap-1"
-                         title={getAvailabilityInfo(profile.availability_status).description}
-                       >
-                         <div className={`h-2 w-2 rounded-full ${getAvailabilityInfo(profile.availability_status).color}`}></div>
-                         {getAvailabilityInfo(profile.availability_status).label}
-                       </Badge>
-                     )}
-                     
-                     {profile.work_experience && profile.work_experience.length > 0 && (() => {
-                       const totalMonths = calculateYearsOfExperience(profile.work_experience);
-                       return totalMonths > 0 ? (
-                         <Badge variant="outline" className="flex items-center gap-1">
-                           <Calendar className="h-3 w-3" />
-                           {formatExperienceYears(totalMonths)} exp.
-                         </Badge>
-                       ) : null;
-                     })()}
-                   </div>
-                </div>
-                
-                <Button
-                  onClick={() => navigate(`/candidate-profile/${profile.id}/edit`)}
-                  className="flex items-center gap-2"
-                >
-                  <Edit3 className="h-4 w-4" />
-                  Edit Profile
-                </Button>
-              </div>
-              
-              {/* Profile Completion */}
-              <div className="mt-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Profile Completion</span>
-                  <span className="text-sm text-muted-foreground">
-                    {profile.profile_completion_percentage || 0}%
-                  </span>
-                </div>
-                <Progress value={profile.profile_completion_percentage || 0} className="h-2" />
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+      {/* Enhanced Profile Hero */}
+      <ProfileHero 
+        profile={profile}
+        isOwnProfile={true}
+        onEdit={() => navigate(`/candidate-profile/${profile.id}/edit`)}
+      />
+
+      {/* Stats Cards */}
+      <ProfileStatsCards 
+        profileCompletionPercentage={profile.profile_completion_percentage || 0}
+        yearsOfExperience={profile.years_of_experience || 0}
+        skillsCount={profile.skills?.length || 0}
+        certificationsCount={profile.certifications?.length || 0}
+      />
 
       {/* Profile Completion Alert */}
       {hasIncompleteProfile() && (
@@ -367,6 +312,12 @@ export default function CandidateDashboard() {
         </Alert>
       )}
 
+      {/* Profile Analytics */}
+      <ProfileAnalyticsSection 
+        profileId={profile.id}
+        completionPercentage={profile.profile_completion_percentage || 0}
+      />
+
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
@@ -384,8 +335,24 @@ export default function CandidateDashboard() {
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="profile" className="mt-6">
-          <ProfileContent profile={profile} />
+        <TabsContent value="profile" className="mt-6 space-y-6">
+          {/* Job Recommendations */}
+          <JobRecommendationsSection candidateProfile={profile} />
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-6">
+              <WorkExperienceTimeline workExperience={profile.work_experience || []} />
+              <EducationTimeline education={profile.education || []} />
+              <CertificationsGrid certifications={profile.certifications || []} />
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              <EnhancedSkillsSection skills={profile.skills || []} />
+              <EnhancedLanguagesSection languages={profile.languages} />
+            </div>
+          </div>
         </TabsContent>
         
         <TabsContent value="jobs" className="mt-6">
