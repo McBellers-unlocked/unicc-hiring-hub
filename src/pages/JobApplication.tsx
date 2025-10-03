@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, AlertCircle, FileText, Check } from 'lucide-react';
+import { ArrowLeft, AlertCircle, FileText, Check, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PHFForm } from '@/components/PHFForm';
 import { createPHFDataFromProfile } from '@/lib/phfDataMapping';
@@ -49,6 +49,8 @@ export default function JobApplication() {
   const [phfData, setPHFData] = useState<any>({});
   const [completedTabs, setCompletedTabs] = useState<Set<number>>(new Set([0])); // Tab 0 starts accessible
   const [candidateProfile, setCandidateProfile] = useState<any>(null);
+  const [profileIncomplete, setProfileIncomplete] = useState(false);
+  const [candidateId, setCandidateId] = useState<string | null>(null);
   
   // Validation states
   const [disqualified, setDisqualified] = useState(false);
@@ -177,10 +179,26 @@ export default function JobApplication() {
         .eq('email', user.email)
         .maybeSingle();
 
-      if (!candidate) return;
+      if (!candidate) {
+        // No candidate profile found - user needs to create one
+        setProfileIncomplete(true);
+        return;
+      }
+      
+      // Check if profile is sufficiently complete for application
+      const hasBasicInfo = candidate.name && candidate.email;
+      const hasEducation = candidate.education && Array.isArray(candidate.education) && candidate.education.length > 0;
+      const hasWorkExperience = candidate.work_experience && Array.isArray(candidate.work_experience) && candidate.work_experience.length > 0;
+      
+      if (!hasBasicInfo || !hasEducation || !hasWorkExperience) {
+        setProfileIncomplete(true);
+        setCandidateId(candidate.id);
+        return;
+      }
       
       // Store candidate profile in state
       setCandidateProfile(candidate);
+      setCandidateId(candidate.id);
 
       // Check if application exists for this job and candidate
       const { data: existingApplication } = await supabase
@@ -434,6 +452,64 @@ export default function JobApplication() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading application form...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!job) {
+    return null;
+  }
+
+  // Show profile incomplete warning
+  if (profileIncomplete) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="bg-white border-b">
+          <div className="container mx-auto px-4 py-6">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/jobs')}
+              className="flex items-center gap-2 mb-4"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Jobs
+            </Button>
+            <h1 className="text-2xl font-bold text-foreground">
+              {job.title}
+            </h1>
+          </div>
+        </div>
+        
+        <div className="container mx-auto px-4 py-8 max-w-2xl">
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-5 w-5" />
+            <AlertTitle className="text-lg font-semibold">Profile Incomplete</AlertTitle>
+            <AlertDescription className="mt-2">
+              <p className="mb-4">
+                Before you can apply for this position, you need to complete your candidate profile with the following information:
+              </p>
+              <ul className="list-disc list-inside space-y-1 mb-4">
+                <li>Basic personal information</li>
+                <li>Education history (at least one entry)</li>
+                <li>Work experience (at least one entry)</li>
+              </ul>
+              <p className="text-sm">
+                This information will be used to pre-fill your application form and ensure we have the necessary details to evaluate your candidacy.
+              </p>
+            </AlertDescription>
+          </Alert>
+          
+          <div className="flex gap-3">
+            <Button onClick={() => navigate(candidateId ? `/candidate-profile/${candidateId}/edit` : '/my-profile')} size="lg">
+              <User className="h-4 w-4 mr-2" />
+              Complete My Profile
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/jobs')} size="lg">
+              Back to Jobs
+            </Button>
+          </div>
         </div>
       </div>
     );

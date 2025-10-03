@@ -27,6 +27,7 @@ import ChiefOfDivisionView from "./pages/ChiefOfDivisionView";
 import DirectorView from "./pages/DirectorView";
 import MyApplications from "./pages/MyApplications";
 import CandidateProfile from "./pages/CandidateProfile";
+import MyProfile from "./pages/MyProfile";
 import CandidateProfileEdit from "./pages/CandidateProfileEdit";
 import CandidateApplicationView from "./pages/CandidateApplicationView";
 import PHFImport from "./pages/PHFImport";
@@ -48,6 +49,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/my-profile" element={<MyProfile />} />
             <Route path="/my-applications" element={<MyApplications />} />
             <Route path="/my-applications/:id" element={<CandidateApplicationView />} />
             <Route path="/candidate-profile/:id" element={<CandidateProfile />} />

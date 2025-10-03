@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText, ChevronDown, Building, FileCheck } from 'lucide-react';
+import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText, ChevronDown, Building, FileCheck, User } from 'lucide-react';
 import { UNICCLogo } from '@/components/UNICCLogo';
 
 interface LayoutProps {
@@ -46,6 +46,11 @@ export const Layout = ({ children }: LayoutProps) => {
                   <Link to="/jobs" className="flex items-center hover:text-accent transition-colors py-2">
                     <Briefcase className="w-4 h-4 mr-1" />
                     Jobs
+                  </Link>
+                  
+                  <Link to="/my-profile" className="flex items-center hover:text-accent transition-colors py-2">
+                    <User className="w-4 h-4 mr-1" />
+                    My Profile
                   </Link>
                   
                   {(isAdmin || isHR || isHiringManager) && (
