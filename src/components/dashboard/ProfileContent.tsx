@@ -202,14 +202,23 @@ export default function ProfileContent({ profile }: ProfileContentProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {profile.languages.map((lang: any, index: number) => (
-                  <div key={index} className="flex justify-between items-center">
-                    <span className="text-sm font-medium">{lang.language}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {lang.proficiency}
-                    </Badge>
-                  </div>
-                ))}
+                {profile.languages.map((lang: any, index: number) => {
+                  const languageName = typeof lang.language === 'string' 
+                    ? lang.language.charAt(0).toUpperCase() + lang.language.slice(1)
+                    : String(lang.language || '');
+                  const proficiencyLevel = typeof lang.proficiency === 'string'
+                    ? lang.proficiency
+                    : String(lang.proficiency || '');
+                  
+                  return (
+                    <div key={index} className="flex justify-between items-center">
+                      <span className="text-sm font-medium">{languageName}</span>
+                      <Badge variant="outline" className="text-xs">
+                        {proficiencyLevel}
+                      </Badge>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
