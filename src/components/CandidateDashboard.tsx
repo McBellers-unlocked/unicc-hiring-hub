@@ -4,9 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { User, AlertCircle, FileText, Search } from 'lucide-react';
+import { User, AlertCircle, FileText, Search, Video, Clock, AlertTriangle } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import ProfileHero from './profile/ProfileHero';
 import ProfileStatsCards from './profile/ProfileStatsCards';
 import ProfileAnalyticsSection from './profile/ProfileAnalyticsSection';
@@ -52,10 +55,12 @@ export default function CandidateDashboard() {
   const [profile, setProfile] = useState<CandidateProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('profile');
+  const [outstandingTasks, setOutstandingTasks] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) {
       fetchCandidateProfile();
+      fetchOutstandingTasks();
     }
   }, [user]);
 
@@ -116,6 +121,58 @@ export default function CandidateDashboard() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchOutstandingTasks = async () => {
+    try {
+      const { data: candidateData } = await supabase
+        .from('candidates')
+        .select('id')
+        .eq('email', user?.email)
+        .maybeSingle();
+
+      if (!candidateData) return;
+
+      // Fetch video assignments that are pending or in progress
+      const { data: videoTasks } = await supabase
+        .from('video_assignments')
+        .select(`
+          id,
+          status,
+          deadline_at,
+          application_id,
+          applications!inner(
+            id,
+            job_id,
+            jobs!inner(
+              title,
+              notice_no
+            )
+          )
+        `)
+        .eq('applications.candidate_id', candidateData.id)
+        .in('status', ['NotStarted', 'LinkOpened', 'InProgress'])
+        .order('deadline_at', { ascending: true });
+
+      const tasks = [];
+
+      if (videoTasks && videoTasks.length > 0) {
+        tasks.push(...videoTasks.map((task: any) => ({
+          id: task.id,
+          type: 'video_interview',
+          title: `Video Interview - ${task.applications.jobs.title}`,
+          description: `Complete your video interview for ${task.applications.jobs.notice_no}`,
+          deadline: task.deadline_at,
+          status: task.status,
+          applicationId: task.application_id,
+          priority: new Date(task.deadline_at) < new Date(Date.now() + 24 * 60 * 60 * 1000) ? 'high' : 'medium'
+        })));
+      }
+
+      setOutstandingTasks(tasks);
+    } catch (error) {
+      console.error('Error fetching outstanding tasks:', error);
     }
   };
 
@@ -289,6 +346,57 @@ export default function CandidateDashboard() {
         skillsCount={profile.skills?.length || 0}
         certificationsCount={profile.certifications?.length || 0}
       />
+
+      {/* Outstanding Tasks */}
+      {outstandingTasks.length > 0 && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-900">
+              <AlertTriangle className="h-5 w-5" />
+              Outstanding Tasks
+            </CardTitle>
+            <CardDescription className="text-orange-700">
+              You have {outstandingTasks.length} pending {outstandingTasks.length === 1 ? 'task' : 'tasks'} requiring your attention
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {outstandingTasks.map((task) => (
+              <div
+                key={task.id}
+                className="flex items-center justify-between p-4 bg-white rounded-lg border border-orange-200"
+              >
+                <div className="flex items-start gap-3 flex-1">
+                  <Video className="h-5 w-5 text-orange-600 mt-0.5" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="font-semibold text-gray-900">{task.title}</h4>
+                      {task.priority === 'high' && (
+                        <Badge variant="destructive" className="text-xs">
+                          Urgent
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600">{task.description}</p>
+                    <div className="flex items-center gap-1 mt-2 text-xs text-orange-700">
+                      <Clock className="h-3 w-3" />
+                      <span>
+                        Due {formatDistanceToNow(new Date(task.deadline), { addSuffix: true })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant={task.priority === 'high' ? 'default' : 'outline'}
+                  onClick={() => navigate(`/my-applications`)}
+                >
+                  {task.status === 'NotStarted' ? 'Start' : 'Continue'}
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Profile Completion Alert */}
       {hasIncompleteProfile() && (
