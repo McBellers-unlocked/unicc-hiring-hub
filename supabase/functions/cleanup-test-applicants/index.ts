@@ -50,7 +50,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Found ${testCandidates.length} test candidates to delete`);
 
-    const BATCH_SIZE = 50;
+    const BATCH_SIZE = 10; // Small batch to avoid URL length limits
     let totalDeleted = 0;
 
     // Process in batches to avoid URL length limits
