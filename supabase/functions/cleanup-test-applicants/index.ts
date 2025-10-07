@@ -52,60 +52,76 @@ const handler = async (req: Request): Promise<Response> => {
 
     const candidateIds = testCandidates.map(c => c.id);
 
-    // Delete video assignments first
-    const { error: videoAssignmentError } = await supabase
-      .from('video_assignments')
-      .delete()
-      .in('application_id', supabase
-        .from('applications')
-        .select('id')
-        .in('candidate_id', candidateIds)
-      );
+    // Get all application IDs for these candidates
+    const { data: applications, error: appFetchError } = await supabase
+      .from('applications')
+      .select('id')
+      .in('candidate_id', candidateIds);
 
-    if (videoAssignmentError) {
-      console.log("Video assignment cleanup:", videoAssignmentError);
+    if (appFetchError) {
+      console.error("Error fetching applications:", appFetchError);
+      throw appFetchError;
     }
 
-    // Delete video answers
-    const { error: videoAnswerError } = await supabase
-      .from('video_answers')
-      .delete()
-      .in('application_id', supabase
-        .from('applications')
+    const applicationIds = applications?.map(a => a.id) || [];
+
+    if (applicationIds.length > 0) {
+      // Delete video assignments
+      const { error: videoAssignmentError } = await supabase
+        .from('video_assignments')
+        .delete()
+        .in('application_id', applicationIds);
+
+      if (videoAssignmentError) {
+        console.log("Video assignment cleanup:", videoAssignmentError);
+      }
+
+      // Delete video answers
+      const { error: videoAnswerError } = await supabase
+        .from('video_answers')
+        .delete()
+        .in('application_id', applicationIds);
+
+      if (videoAnswerError) {
+        console.log("Video answer cleanup:", videoAnswerError);
+      }
+
+      // Delete screening scores
+      const { error: scoresError } = await supabase
+        .from('screening_scores')
+        .delete()
+        .in('application_id', applicationIds);
+
+      if (scoresError) {
+        console.log("Screening scores cleanup:", scoresError);
+      }
+
+      // Delete stage events
+      const { error: stageError } = await supabase
+        .from('stage_events')
+        .delete()
+        .in('application_id', applicationIds);
+
+      if (stageError) {
+        console.log("Stage events cleanup:", stageError);
+      }
+
+      // Delete video events
+      const { data: videoAssignmentIds } = await supabase
+        .from('video_assignments')
         .select('id')
-        .in('candidate_id', candidateIds)
-      );
+        .in('application_id', applicationIds);
 
-    if (videoAnswerError) {
-      console.log("Video answer cleanup:", videoAnswerError);
-    }
+      if (videoAssignmentIds && videoAssignmentIds.length > 0) {
+        const { error: videoEventError } = await supabase
+          .from('video_events')
+          .delete()
+          .in('assignment_id', videoAssignmentIds.map(v => v.id));
 
-    // Delete screening scores
-    const { error: scoresError } = await supabase
-      .from('screening_scores')
-      .delete()
-      .in('application_id', supabase
-        .from('applications')
-        .select('id')
-        .in('candidate_id', candidateIds)
-      );
-
-    if (scoresError) {
-      console.log("Screening scores cleanup:", scoresError);
-    }
-
-    // Delete stage events
-    const { error: stageError } = await supabase
-      .from('stage_events')
-      .delete()
-      .in('application_id', supabase
-        .from('applications')
-        .select('id')
-        .in('candidate_id', candidateIds)
-      );
-
-    if (stageError) {
-      console.log("Stage events cleanup:", stageError);
+        if (videoEventError) {
+          console.log("Video events cleanup:", videoEventError);
+        }
+      }
     }
 
     // Delete applications
