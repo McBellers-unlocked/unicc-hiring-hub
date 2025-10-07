@@ -268,14 +268,8 @@ function determineQuality(index: number): string {
 }
 
 function determineStage(index: number): string {
-  if (index < 40) return 'Application';
-  if (index < 90) return 'Screening';
-  if (index < 125) return 'Longlist';
-  if (index < 155) return 'Shortlist';
-  if (index < 175) return 'Pre-Recorded Video';
-  if (index < 190) return 'Panel Interview';
-  if (index < 195) return 'Recommended';
-  return 'Rejected';
+  // Put all applicants in Application stage for testing the full workflow
+  return 'Application';
 }
 
 const handler = async (req: Request): Promise<Response> => {
