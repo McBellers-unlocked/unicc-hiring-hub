@@ -109,6 +109,7 @@ export default function AdminApplications() {
 
   // Test data generation state
   const [generatingTestData, setGeneratingTestData] = useState(false);
+  const [cleaningTestData, setCleaningTestData] = useState(false);
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
@@ -476,6 +477,66 @@ export default function AdminApplications() {
       });
     } finally {
       setGeneratingTestData(false);
+    }
+  };
+
+  const cleanupTestData = async () => {
+    if (!confirm('This will delete ALL test applicants (emails ending with @example.com). Continue?')) {
+      return;
+    }
+
+    setCleaningTestData(true);
+    try {
+      // Get all test candidates
+      const { data: testCandidates, error: fetchError } = await supabase
+        .from('candidates')
+        .select('id, email')
+        .like('email', '%@example.com');
+
+      if (fetchError) throw fetchError;
+
+      if (!testCandidates || testCandidates.length === 0) {
+        toast({
+          title: "Info",
+          description: "No test candidates found to delete",
+        });
+        return;
+      }
+
+      const candidateIds = testCandidates.map(c => c.id);
+
+      // Delete applications first (due to foreign key constraints)
+      const { error: appError } = await supabase
+        .from('applications')
+        .delete()
+        .in('candidate_id', candidateIds);
+
+      if (appError) throw appError;
+
+      // Delete candidates
+      const { error: candidateError } = await supabase
+        .from('candidates')
+        .delete()
+        .in('id', candidateIds);
+
+      if (candidateError) throw candidateError;
+
+      toast({
+        title: "Success",
+        description: `Deleted ${testCandidates.length} test candidates and their applications`,
+      });
+
+      // Refresh applications list
+      fetchApplications(selectedJobId);
+    } catch (error: any) {
+      console.error('Error cleaning test data:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to clean test data",
+        variant: "destructive",
+      });
+    } finally {
+      setCleaningTestData(false);
     }
   };
 
@@ -1183,14 +1244,24 @@ export default function AdminApplications() {
             </p>
           </div>
           {selectedJobId && userRoles.includes('Admin') && (
-            <Button
-              onClick={generateTestData}
-              disabled={generatingTestData}
-              variant="outline"
-            >
-              <Users className="h-4 w-4 mr-2" />
-              {generatingTestData ? 'Generating...' : 'Generate 200 Test Applicants'}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={cleanupTestData}
+                disabled={cleaningTestData}
+                variant="destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {cleaningTestData ? 'Cleaning...' : 'Clean Test Data'}
+              </Button>
+              <Button
+                onClick={generateTestData}
+                disabled={generatingTestData}
+                variant="outline"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                {generatingTestData ? 'Generating...' : 'Generate 200 Test Applicants'}
+              </Button>
+            </div>
           )}
         </div>
 
