@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.generate-test-applicants]
 verify_jwt = false
+
+[functions.cleanup-test-applicants]
+verify_jwt = false

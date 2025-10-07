@@ -487,43 +487,13 @@ export default function AdminApplications() {
 
     setCleaningTestData(true);
     try {
-      // Get all test candidates
-      const { data: testCandidates, error: fetchError } = await supabase
-        .from('candidates')
-        .select('id, email')
-        .like('email', '%@example.com');
+      const { data, error } = await supabase.functions.invoke('cleanup-test-applicants');
 
-      if (fetchError) throw fetchError;
-
-      if (!testCandidates || testCandidates.length === 0) {
-        toast({
-          title: "Info",
-          description: "No test candidates found to delete",
-        });
-        return;
-      }
-
-      const candidateIds = testCandidates.map(c => c.id);
-
-      // Delete applications first (due to foreign key constraints)
-      const { error: appError } = await supabase
-        .from('applications')
-        .delete()
-        .in('candidate_id', candidateIds);
-
-      if (appError) throw appError;
-
-      // Delete candidates
-      const { error: candidateError } = await supabase
-        .from('candidates')
-        .delete()
-        .in('id', candidateIds);
-
-      if (candidateError) throw candidateError;
+      if (error) throw error;
 
       toast({
         title: "Success",
-        description: `Deleted ${testCandidates.length} test candidates and their applications`,
+        description: data.message || "Test data cleaned successfully",
       });
 
       // Refresh applications list
