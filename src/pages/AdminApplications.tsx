@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Filter, User, FileText, Calendar, AlertCircle, Trash2, Eye, ChevronDown, ChevronRight, GraduationCap, Briefcase, Languages, Plus, Check, X, Edit } from 'lucide-react';
+import { Search, Filter, User, FileText, Calendar, AlertCircle, Trash2, Eye, ChevronDown, ChevronRight, GraduationCap, Briefcase, Languages, Plus, Check, X, Edit, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
 import { CandidateApplicationCard } from '@/components/CandidateApplicationCard';
@@ -106,6 +106,9 @@ export default function AdminApplications() {
 
   // Bulk Video Assignment Dialog state
   const [bulkVideoAssignmentDialog, setBulkVideoAssignmentDialog] = useState(false);
+
+  // Test data generation state
+  const [generatingTestData, setGeneratingTestData] = useState(false);
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
@@ -437,6 +440,43 @@ export default function AdminApplications() {
       }, 0);
     
     return `${Math.round(unExperience)} years`;
+  };
+
+  const generateTestData = async () => {
+    if (!selectedJobId) {
+      toast({
+        title: "Error",
+        description: "Please select a job first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGeneratingTestData(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-test-applicants', {
+        body: { jobId: selectedJobId }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Generated ${data.candidates_created} test candidates and ${data.applications_created} applications`,
+      });
+
+      // Refresh applications list
+      fetchApplications(selectedJobId);
+    } catch (error: any) {
+      console.error('Error generating test data:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate test data",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingTestData(false);
+    }
   };
 
   const getExperienceSummary = (workExp: any, yearsExp: number | null) => {
@@ -1142,6 +1182,16 @@ export default function AdminApplications() {
               {selectedJobId ? `Applications for ${selectedJob?.title || 'Selected Job'}` : 'Select a job to view applications'}
             </p>
           </div>
+          {selectedJobId && userRoles.includes('Admin') && (
+            <Button
+              onClick={generateTestData}
+              disabled={generatingTestData}
+              variant="outline"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              {generatingTestData ? 'Generating...' : 'Generate 200 Test Applicants'}
+            </Button>
+          )}
         </div>
 
         {/* Job Selection */}
