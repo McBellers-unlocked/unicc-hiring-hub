@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.test-email-notification]
 verify_jwt = false
+
+[functions.generate-test-applicants]
+verify_jwt = false
