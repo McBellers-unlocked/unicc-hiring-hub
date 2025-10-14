@@ -153,22 +153,32 @@ export function TalentSearchFilters({
               {/* Job Matching */}
               <div className="space-y-2 lg:col-span-3">
                 <Label>Match to Job Opening (Optional)</Label>
-                <Select
-                  value={filters.selectedJobId || ""}
-                  onValueChange={(value) => handleFilterChange("selectedJobId", value || undefined)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a job to see match scores" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">No job selected</SelectItem>
-                    {jobs?.map((job) => (
-                      <SelectItem key={job.id} value={job.id}>
-                        {job.notice_no} - {job.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select
+                    value={filters.selectedJobId || undefined}
+                    onValueChange={(value) => handleFilterChange("selectedJobId", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a job to see match scores" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {jobs?.map((job) => (
+                        <SelectItem key={job.id} value={job.id}>
+                          {job.notice_no} - {job.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {filters.selectedJobId && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleFilterChange("selectedJobId", undefined)}
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* Experience Range */}
