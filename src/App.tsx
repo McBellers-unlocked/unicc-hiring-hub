@@ -35,6 +35,7 @@ import ManualApplicationForm from "./components/ManualApplicationForm";
 import EditManualApplicationForm from "./components/EditManualApplicationForm";
 import AccountSecurity from "./pages/AccountSecurity";
 import VideoEmailTemplateSettings from "./pages/VideoEmailTemplateSettings";
+import TalentPool from "./pages/TalentPool";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -80,6 +81,7 @@ const App = () => (
             <Route path="/admin/applications/edit-manual/:applicationId" element={<EditManualApplicationForm />} />
             <Route path="/account/security" element={<AccountSecurity />} />
             <Route path="/admin/video-email-template" element={<VideoEmailTemplateSettings />} />
+            <Route path="/admin/talent-pool" element={<TalentPool />} />
             <Route path="/test/chief-view" element={<ChiefOfDivisionView />} />
             <Route path="/test/director-view" element={<DirectorView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

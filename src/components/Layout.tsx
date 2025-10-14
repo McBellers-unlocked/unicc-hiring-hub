@@ -99,6 +99,12 @@ export const Layout = ({ children }: LayoutProps) => {
                             PHF Import
                           </Link>
                         </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/talent-pool" className="flex items-center w-full">
+                            <Users className="w-4 h-4 mr-2" />
+                            Talent Pool
+                          </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
                           <Link to="/users" className="flex items-center w-full">

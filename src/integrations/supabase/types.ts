@@ -133,6 +133,93 @@ export type Database = {
           },
         ]
       }
+      candidate_flags: {
+        Row: {
+          candidate_id: string
+          created_at: string | null
+          flag_type: string
+          flagged_by: string
+          id: string
+          notes: string | null
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string | null
+          flag_type: string
+          flagged_by: string
+          id?: string
+          notes?: string | null
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string | null
+          flag_type?: string
+          flagged_by?: string
+          id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_flags_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_flags_flagged_by_fkey"
+            columns: ["flagged_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_notes: {
+        Row: {
+          candidate_id: string
+          created_at: string | null
+          created_by: string
+          id: string
+          is_private: boolean | null
+          note: string
+          updated_at: string | null
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string | null
+          created_by: string
+          id?: string
+          is_private?: boolean | null
+          note: string
+          updated_at?: string | null
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          is_private?: boolean | null
+          note?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_notes_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidates: {
         Row: {
           additional_fellowships: Json | null
@@ -1226,6 +1313,44 @@ export type Database = {
           value?: string
         }
         Relationships: []
+      }
+      talent_pool_searches: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          id: string
+          is_shared: boolean | null
+          name: string
+          search_criteria: Json
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          id?: string
+          is_shared?: boolean | null
+          name: string
+          search_criteria?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          is_shared?: boolean | null
+          name?: string
+          search_criteria?: Json
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_pool_searches_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       users: {
         Row: {
