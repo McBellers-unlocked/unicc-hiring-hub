@@ -594,14 +594,8 @@ export default function AdminApplications() {
 
   // Calculate stats by phase for the selected job
   const phaseStats = statusPhases.map(phase => {
-    let phaseApps;
-    
-    // Special handling for Longlist - count applications marked as suggested_for_longlist
-    if (phase.status === 'Longlist') {
-      phaseApps = applications.filter(app => app.suggested_for_longlist === true);
-    } else {
-      phaseApps = applications.filter(app => app.status === phase.status);
-    }
+    // Each phase only counts candidates currently at that exact status
+    const phaseApps = applications.filter(app => app.status === phase.status);
     
     const womenApps = phaseApps.filter(app => app.candidate.gender === 'Female');
     const womenPercentage = phaseApps.length > 0 ? (womenApps.length / phaseApps.length) * 100 : 0;
