@@ -614,15 +614,10 @@ export default function AdminApplications() {
     };
   });
 
-  // Update Applications phase to show total count
-  const totalWomenPercentage = applications.length > 0 ? Math.round((applications.filter(app => app.candidate.gender === 'Female').length / applications.length) * 100) : 0;
-  
-  phaseStats[0] = {
-    ...phaseStats[0],
-    count: applications.length,
-    title: `Applications (${applications.length} total)`,
-    womenPercentage: totalWomenPercentage
-  };
+  // Calculate total stats for analytics
+  const totalApplications = applications.length;
+  const totalWomenCount = applications.filter(app => app.candidate.gender === 'Female').length;
+  const totalWomenPercentage = totalApplications > 0 ? Math.round((totalWomenCount / totalApplications) * 100) : 0;
 
   const getScoreBadge = (application: Application) => {
     // Get the latest score by sorting by created_at descending
@@ -1265,13 +1260,31 @@ export default function AdminApplications() {
           </Card>
         )}
 
+        {/* Total Analytics Summary */}
+        {selectedJobId && applications.length > 0 && (
+          <Card className="mb-4 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Total Applicants for {selectedJob?.title}</h3>
+                  <p className="text-sm text-muted-foreground">Complete hiring funnel overview</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-primary">{totalApplications}</div>
+                  <div className="text-sm text-muted-foreground">{totalWomenPercentage}% Women</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Application Phase Overview */}
         {selectedJobId && applications.length > 0 && (
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle className="text-lg">Application Overview by Phase</CardTitle>
+              <CardTitle className="text-lg">Current Status Breakdown</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Breakdown of applications for {selectedJob?.title}
+                Live count of candidates at each stage
               </p>
             </CardHeader>
             <CardContent>
@@ -1280,23 +1293,18 @@ export default function AdminApplications() {
                   <div 
                     key={phase.status} 
                     className={`text-center p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:bg-muted/50 hover:border-primary/50 hover:shadow-md ${
-                      statusFilter === phase.status || (statusFilter === 'Longlist' && phase.status === 'Longlist') || (statusFilter === 'all' && phase.status === 'Application')
+                      statusFilter === phase.status || (statusFilter === 'Longlist' && phase.status === 'Longlist')
                         ? 'bg-primary/10 border-primary/30 shadow-sm' 
                         : 'bg-muted/30 border-border'
                     }`}
                     onClick={() => {
-                      // Handle special case for Applications phase - show all
-                      if (phase.status === 'Application') {
-                        setStatusFilter('all');
-                      } else {
-                        setStatusFilter(phase.status);
-                      }
+                      setStatusFilter(phase.status);
                     }}
-                    title={`Click to filter by ${phase.title.replace(` (${applications.length} total)`, '')}`}
+                    title={`Click to filter by ${phase.title}`}
                   >
                     <div className="text-2xl font-bold text-foreground mb-1">{phase.count}</div>
                     <div className="text-sm text-muted-foreground mb-2 font-medium">
-                      {phase.title.replace(` (${applications.length} total)`, '')}
+                      {phase.title}
                     </div>
                     {phase.count > 0 && (
                       <div className={`text-xs font-medium ${
