@@ -142,13 +142,43 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
       let result;
       if (isEditing && jobId) {
         // Update existing job
+        // Check if slug conflicts with another job
+        const { data: existingJob } = await supabase
+          .from('jobs')
+          .select('id')
+          .eq('slug', slug)
+          .neq('id', jobId)
+          .maybeSingle();
+
+        if (existingJob) {
+          // Slug is taken by another job, generate a unique one
+          const uniqueSlug = `${slug}-${Date.now().toString(36)}`;
+          finalJobData.slug = uniqueSlug;
+          setSlug(uniqueSlug);
+          onUpdate({ slug: uniqueSlug });
+        }
+
         const { id, created_at, ...updateData } = finalJobData as any;
         result = await supabase
           .from('jobs')
           .update(updateData)
           .eq('id', jobId);
       } else {
-        // Create new job
+        // Create new job - check for slug conflicts
+        const { data: existingJob } = await supabase
+          .from('jobs')
+          .select('id')
+          .eq('slug', slug)
+          .maybeSingle();
+
+        if (existingJob) {
+          // Slug is taken, generate a unique one
+          const uniqueSlug = `${slug}-${Date.now().toString(36)}`;
+          finalJobData.slug = uniqueSlug;
+          setSlug(uniqueSlug);
+          onUpdate({ slug: uniqueSlug });
+        }
+
         const { id, ...insertData } = finalJobData as any;
         result = await supabase
           .from('jobs')
