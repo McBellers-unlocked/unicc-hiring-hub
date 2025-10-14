@@ -337,45 +337,41 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
 
           {/* Center - Match info with AI Screening badges */}
           <div className="flex items-center gap-2 flex-wrap">
-            {getScoreBadge(application)}
-            
-            {/* AI Score Badge */}
-            {aiScore !== null && aiScore !== undefined && (
+            {/* Main Match Score Badge */}
+            {aiScore !== null && aiScore !== undefined ? (
               <Badge 
                 variant={aiScore >= 80 ? 'default' : aiScore >= 70 ? 'secondary' : 'destructive'}
-                className="whitespace-nowrap"
+                className="whitespace-nowrap font-semibold"
               >
-                AI: {aiScore}
+                Match: {aiScore}%
               </Badge>
+            ) : (
+              getScoreBadge(application)
             )}
             
-            {/* Must-Have Requirements Badge */}
-            {rubricBreakdown?.passedMustHaves !== undefined && (
-              <Badge 
-                variant={rubricBreakdown.passedMustHaves ? 'default' : 'destructive'}
-                className="whitespace-nowrap"
-              >
-                {rubricBreakdown.passedMustHaves ? '✓ Must-haves' : '✗ Must-haves'}
-              </Badge>
-            )}
-            
-            {/* Education & Experience Match Indicators */}
+            {/* Brief feedback indicators */}
             {rubricBreakdown?.candidateAnalysis?.detailedScores && (
               <>
+                {/* Education Match */}
                 <Badge variant="outline" className="whitespace-nowrap text-xs">
-                  📚 Edu: {Math.round(rubricBreakdown.candidateAnalysis.detailedScores.education_match)}%
+                  {rubricBreakdown.candidateAnalysis.detailedScores.education_match >= 70 ? '✓' : '✗'} Education
                 </Badge>
+                
+                {/* Experience Match */}
                 <Badge variant="outline" className="whitespace-nowrap text-xs">
-                  💼 Exp: {Math.round(rubricBreakdown.candidateAnalysis.detailedScores.experience_match)}%
+                  {rubricBreakdown.candidateAnalysis.detailedScores.experience_match >= 70 ? '✓' : '✗'} Experience
                 </Badge>
+                
+                {/* Must-haves */}
+                {rubricBreakdown.passedMustHaves !== undefined && (
+                  <Badge 
+                    variant={rubricBreakdown.passedMustHaves ? 'default' : 'destructive'}
+                    className="whitespace-nowrap text-xs"
+                  >
+                    {rubricBreakdown.passedMustHaves ? '✓' : '✗'} Must-haves
+                  </Badge>
+                )}
               </>
-            )}
-            
-            {/* AI Recommendation Badge */}
-            {rubricBreakdown?.recommendForLonglist && (
-              <Badge variant="default" className="whitespace-nowrap bg-green-600 hover:bg-green-700">
-                ⭐ Recommended
-              </Badge>
             )}
           </div>
 

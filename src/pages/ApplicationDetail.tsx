@@ -548,13 +548,8 @@ export default function ApplicationDetail() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            {/* Requirements Checklist - Keep at top for visual screening */}
-            <RequirementsChecklist 
-              applicationId={application.id}
-              jobId={application.job.id}
-              phfData={application.phf_data}
-              candidateInfo={application.candidate}
-            />
+            {/* AI Scoring - Shows comprehensive breakdown */}
+            <ApplicationScoring applicationId={application.id} />
 
             {/* Personal Information Card */}
             <Card>
