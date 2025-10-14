@@ -188,13 +188,34 @@ export function TalentSearchFilters({
                   min={0}
                   max={30}
                   step={1}
-                  value={[filters.minExperience || 0, filters.maxExperience || 30]}
+                  value={[filters.minExperience ?? 0, filters.maxExperience ?? 30]}
                   onValueChange={([min, max]) => {
-                    handleFilterChange("minExperience", min);
-                    handleFilterChange("maxExperience", max);
+                    onFiltersChange({
+                      ...filters,
+                      minExperience: min,
+                      maxExperience: max,
+                    });
                   }}
                   className="mt-2"
                 />
+              </div>
+
+              {/* Education Level */}
+              <div className="space-y-2">
+                <Label>Education Level</Label>
+                <Select
+                  value={filters.educationLevel}
+                  onValueChange={(value) => handleFilterChange("educationLevel", value === "all" ? undefined : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Any level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any level</SelectItem>
+                    <SelectItem value="first_degree">First Degree (Bachelor's)</SelectItem>
+                    <SelectItem value="advanced_degree">Advanced Degree (Master's/PhD)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Boolean toggles */}

@@ -24,6 +24,7 @@ export interface SearchFilters {
   workPreferences: string[];
   gender?: string;
   selectedJobId?: string;
+  educationLevel?: string;
 }
 
 export default function TalentPool() {

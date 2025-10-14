@@ -27,13 +27,7 @@ export function TalentSearchResults({
         .from("candidates")
         .select("*");
 
-      // Text search
-      if (filters.searchText) {
-        query = query.or(
-          `name.ilike.%${filters.searchText}%,email.ilike.%${filters.searchText}%,current_position.ilike.%${filters.searchText}%,current_organization.ilike.%${filters.searchText}%,professional_summary.ilike.%${filters.searchText}%`
-        );
-      }
-
+      // Apply server-side filters
       // Experience range
       if (filters.minExperience !== undefined) {
         query = query.gte("years_of_experience", filters.minExperience);
@@ -53,9 +47,63 @@ export function TalentSearchResults({
         query = query.eq("has_security_clearance", true);
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data || [];
+      const { data: allData, error: fetchError } = await query;
+      if (fetchError) throw fetchError;
+      
+      let filteredData = allData || [];
+
+      // Apply client-side filters for complex JSONB searches
+      // Text search in JSONB fields
+      if (filters.searchText) {
+        const searchLower = filters.searchText.toLowerCase();
+        filteredData = filteredData.filter((candidate) => {
+          // Basic text fields
+          const textMatch = 
+            candidate.name?.toLowerCase().includes(searchLower) ||
+            candidate.email?.toLowerCase().includes(searchLower) ||
+            candidate.current_position?.toLowerCase().includes(searchLower) ||
+            candidate.current_organization?.toLowerCase().includes(searchLower) ||
+            candidate.professional_summary?.toLowerCase().includes(searchLower);
+          
+          // Search in skills array
+          const skillsMatch = Array.isArray(candidate.skills) && 
+            candidate.skills.some((skill: any) => 
+              typeof skill === 'string' && skill.toLowerCase().includes(searchLower)
+            );
+          
+          // Search in work experience
+          const workExpMatch = Array.isArray(candidate.work_experience) &&
+            candidate.work_experience.some((exp: any) => 
+              exp.position?.toLowerCase().includes(searchLower) ||
+              exp.organization?.toLowerCase().includes(searchLower) ||
+              exp.description?.toLowerCase().includes(searchLower)
+            );
+          
+          return textMatch || skillsMatch || workExpMatch;
+        });
+      }
+
+      // Apply education level filter
+      if (filters.educationLevel) {
+        filteredData = filteredData.filter((candidate) => {
+          const education = candidate.education as any[];
+          if (!Array.isArray(education) || education.length === 0) return false;
+          
+          const highestDegree = education[0]?.degree?.toLowerCase() || '';
+          
+          if (filters.educationLevel === 'first_degree') {
+            return highestDegree.includes('bachelor') || highestDegree.includes('b.a') || 
+                   highestDegree.includes('b.s') || highestDegree.includes('undergraduate');
+          } else if (filters.educationLevel === 'advanced_degree') {
+            return highestDegree.includes('master') || highestDegree.includes('phd') || 
+                   highestDegree.includes('doctorate') || highestDegree.includes('m.a') ||
+                   highestDegree.includes('m.s') || highestDegree.includes('mba');
+          }
+          return true;
+        });
+      }
+
+      return filteredData;
     },
   });
 
