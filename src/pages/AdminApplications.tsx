@@ -538,10 +538,8 @@ export default function AdminApplications() {
     const matchesSearch = app.candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          app.candidate.email.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Special handling for Longlist filter - check suggested_for_longlist flag
-    const matchesStatus = statusFilter === 'all' || 
-                         (statusFilter === 'Longlist' && app.suggested_for_longlist) ||
-                         (statusFilter !== 'Longlist' && app.status === statusFilter);
+    // Filter by actual status only - no special handling needed
+    const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
     
     const matchesCompletion = completionFilter === 'all' || 
                              (completionFilter === 'completed' && app.phf_completed) ||
