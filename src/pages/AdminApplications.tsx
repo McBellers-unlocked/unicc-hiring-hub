@@ -62,7 +62,7 @@ export default function AdminApplications() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all');
   const [completionFilter, setCompletionFilter] = useState('all');
   const [sortBy, setSortBy] = useState('submitted_at');
   const [selectedJobId, setSelectedJobId] = useState(searchParams.get('job') || '');
@@ -119,9 +119,13 @@ export default function AdminApplications() {
     if (hasAccess) {
       fetchJobs();
       const jobId = searchParams.get('job');
+      const status = searchParams.get('status');
       if (jobId) {
         setSelectedJobId(jobId);
         fetchApplications(jobId);
+      }
+      if (status) {
+        setStatusFilter(status);
       }
     }
   }, [hasAccess, searchParams]);
