@@ -50,6 +50,7 @@ interface Application {
   screening_scores?: {
     ai_score: number | null;
     created_at: string;
+    rubric_breakdown?: any;
   }[];
 }
 
@@ -73,6 +74,8 @@ export default function AdminApplications() {
   const [educationFilter, setEducationFilter] = useState('all');
   const [experienceFilter, setExperienceFilter] = useState('all');
   const [languageFilter, setLanguageFilter] = useState('all');
+  const [aiScoreFilter, setAiScoreFilter] = useState('all');
+  const [requirementsFilter, setRequirementsFilter] = useState('all');
   
   // Dialog state
   const [dialogState, setDialogState] = useState<{
@@ -562,8 +565,24 @@ export default function AdminApplications() {
     const languages = getLanguageSummary(app.candidate.languages);
     const matchesLanguage = languageFilter === 'all' || 
                            languages.toLowerCase().includes(languageFilter.toLowerCase());
+
+    // AI Score filter
+    const score = app.screening_scores?.[0]?.ai_score;
+    const matchesAiScore = aiScoreFilter === 'all' || 
+                          (aiScoreFilter === 'high' && score !== null && score !== undefined && score >= 80) ||
+                          (aiScoreFilter === 'medium' && score !== null && score !== undefined && score >= 70 && score < 80) ||
+                          (aiScoreFilter === 'low' && score !== null && score !== undefined && score < 70) ||
+                          (aiScoreFilter === 'not_scored' && (score === null || score === undefined));
+
+    // Requirements filter
+    const breakdown = app.screening_scores?.[0]?.rubric_breakdown;
+    const matchesRequirements = requirementsFilter === 'all' ||
+                               (requirementsFilter === 'recommended' && breakdown?.recommendForLonglist) ||
+                               (requirementsFilter === 'meets_all' && breakdown?.passedMustHaves && breakdown?.overallScore >= 70) ||
+                               (requirementsFilter === 'meets_some' && breakdown && (!breakdown.passedMustHaves || breakdown.overallScore < 70)) ||
+                               (requirementsFilter === 'not_scored' && !breakdown);
     
-    return matchesSearch && matchesStatus && matchesCompletion && matchesEducation && matchesExperience && matchesLanguage;
+    return matchesSearch && matchesStatus && matchesCompletion && matchesEducation && matchesExperience && matchesLanguage && matchesAiScore && matchesRequirements;
   }).sort((a, b) => {
     switch (sortBy) {
       case 'name':
@@ -572,6 +591,10 @@ export default function AdminApplications() {
         return a.status.localeCompare(b.status);
       case 'updated_at':
         return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      case 'ai_score':
+        const scoreA = a.screening_scores?.[0]?.ai_score || 0;
+        const scoreB = b.screening_scores?.[0]?.ai_score || 0;
+        return scoreB - scoreA; // Higher scores first
       default:
         return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
     }
@@ -1478,6 +1501,36 @@ export default function AdminApplications() {
                     <SelectItem value="name">Candidate Name</SelectItem>
                     <SelectItem value="status">Status</SelectItem>
                     <SelectItem value="updated_at">Last Updated</SelectItem>
+                    <SelectItem value="ai_score">AI Score (High to Low)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* New AI Screening Filters Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <Select value={aiScoreFilter} onValueChange={setAiScoreFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="AI Score Range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All AI Scores</SelectItem>
+                    <SelectItem value="high">High Score (80-100)</SelectItem>
+                    <SelectItem value="medium">Medium Score (70-79)</SelectItem>
+                    <SelectItem value="low">Low Score (&lt;70)</SelectItem>
+                    <SelectItem value="not_scored">Not Yet Scored</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={requirementsFilter} onValueChange={setRequirementsFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Requirements Match" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Applications</SelectItem>
+                    <SelectItem value="recommended">⭐ AI Recommended</SelectItem>
+                    <SelectItem value="meets_all">✓ Meets All Requirements</SelectItem>
+                    <SelectItem value="meets_some">~ Some Gaps Found</SelectItem>
+                    <SelectItem value="not_scored">? Not Yet Scored</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

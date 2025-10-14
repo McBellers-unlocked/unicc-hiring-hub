@@ -69,6 +69,19 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
   getLanguageSummary
 }) => {
   const navigate = useNavigate();
+  
+  // Extract AI scoring data
+  const screeningScore = application.screening_scores?.[0];
+  const aiScore = screeningScore?.ai_score;
+  const rubricBreakdown = screeningScore?.rubric_breakdown;
+
+  // Get color-coded border based on AI score
+  const getCardBorderClass = () => {
+    if (!aiScore) return '';
+    if (aiScore >= 80) return 'border-l-4 border-l-green-500';
+    if (aiScore >= 70) return 'border-l-4 border-l-yellow-500';
+    return 'border-l-4 border-l-red-400';
+  };
 
   const allEducation = getEducationSummary(application.candidate.education);
   
@@ -111,7 +124,7 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
     );
   };
 
-  const getScoreBadge = (application: any) => {
+  const getScoreBadge = (app: any) => {
     if (!application.screening_scores || !application.screening_scores[0]?.ai_score) {
       return <Badge variant="outline" className="text-xs">No Score</Badge>;
     }
@@ -322,9 +335,48 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
             </div>
           </div>
 
-          {/* Center - Match info */}
-          <div className="flex items-center gap-2">
+          {/* Center - Match info with AI Screening badges */}
+          <div className="flex items-center gap-2 flex-wrap">
             {getScoreBadge(application)}
+            
+            {/* AI Score Badge */}
+            {aiScore !== null && aiScore !== undefined && (
+              <Badge 
+                variant={aiScore >= 80 ? 'default' : aiScore >= 70 ? 'secondary' : 'destructive'}
+                className="whitespace-nowrap"
+              >
+                AI: {aiScore}
+              </Badge>
+            )}
+            
+            {/* Must-Have Requirements Badge */}
+            {rubricBreakdown?.passedMustHaves !== undefined && (
+              <Badge 
+                variant={rubricBreakdown.passedMustHaves ? 'default' : 'destructive'}
+                className="whitespace-nowrap"
+              >
+                {rubricBreakdown.passedMustHaves ? '✓ Must-haves' : '✗ Must-haves'}
+              </Badge>
+            )}
+            
+            {/* Education & Experience Match Indicators */}
+            {rubricBreakdown?.candidateAnalysis?.detailedScores && (
+              <>
+                <Badge variant="outline" className="whitespace-nowrap text-xs">
+                  📚 Edu: {Math.round(rubricBreakdown.candidateAnalysis.detailedScores.education_match)}%
+                </Badge>
+                <Badge variant="outline" className="whitespace-nowrap text-xs">
+                  💼 Exp: {Math.round(rubricBreakdown.candidateAnalysis.detailedScores.experience_match)}%
+                </Badge>
+              </>
+            )}
+            
+            {/* AI Recommendation Badge */}
+            {rubricBreakdown?.recommendForLonglist && (
+              <Badge variant="default" className="whitespace-nowrap bg-green-600 hover:bg-green-700">
+                ⭐ Recommended
+              </Badge>
+            )}
           </div>
 
           {/* Right side - Action buttons */}
