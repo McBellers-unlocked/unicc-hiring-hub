@@ -149,7 +149,7 @@ const analyzeApplicationWithAI = async (
   skills: string[]
 ): Promise<CandidateAnalysis> => {
   const prompt = `
-Compare this candidate against the job requirements and provide a detailed match analysis:
+Compare this candidate against the job requirements and provide a detailed match analysis.
 
 JOB REQUIREMENTS:
 ${JSON.stringify(jobRequirements, null, 2)}
@@ -160,41 +160,55 @@ Professional Summary: ${candidateData.professional_summary || 'Not provided'}
 Current Position: ${candidateData.current_position || 'Not provided'}
 Years of Experience: ${candidateData.years_of_experience || 0}
 
-WORK EXPERIENCE:
+WORK EXPERIENCE (${workExperience.length} positions):
 ${JSON.stringify(workExperience, null, 2)}
 
-EDUCATION:
+EDUCATION (${education.length} degrees):
 ${JSON.stringify(education, null, 2)}
 
 SKILLS:
 ${JSON.stringify(skills, null, 2)}
 
 MOTIVATION LETTER:
-${motivationLetter}
+${motivationLetter || 'Not provided'}
 
 LANGUAGES:
 ${JSON.stringify(candidateData.languages, null, 2)}
 
+SCORING GUIDELINES:
+- Education Match (0-100):
+  * 100: Exact match in field (e.g., Cybersecurity degree for Cybersecurity role)
+  * 90-95: Closely related field (e.g., Computer Science, Information Technology, Information Security for Cybersecurity role)
+  * 80-85: Related technical field (e.g., Engineering, Mathematics for technical roles)
+  * 70-75: Degree level matches but field is different
+  * Below 70: Missing required education level or field
+  
+- Experience Match (0-100):
+  * 100: Years of experience significantly exceeds requirement AND all experience is directly relevant
+  * 90-95: Meets years requirement with highly relevant experience in the specific area
+  * 80-85: Meets years requirement with related experience
+  * 70-75: Close to meeting years requirement or has relevant experience but fewer years
+  * Below 70: Does not meet minimum years or lacks relevant experience
+
+- For Cybersecurity roles specifically:
+  * Penetration Testing, Security Testing, Offensive Security, Ethical Hacking, SOC, Cloud Security = 100% relevant
+  * General cybersecurity, Information Security, Security Analyst = 95% relevant
+  * IT Security, Network Security = 90% relevant
+
 Analyze the candidate thoroughly and return ONLY a JSON object with this structure:
 {
   "technical_match": <score 0-100 for technical skills alignment>,
-  "experience_match": <score 0-100 for relevant experience match>,
-  "education_match": <score 0-100 for education requirements match>,
+  "experience_match": <score 0-100 based on years AND relevance of experience>,
+  "education_match": <score 0-100 considering related fields as high scores>,
   "language_match": <score 0-100 for language requirements match>,
   "motivation_alignment": <score 0-100 for motivation and cultural fit>,
   "overall_fit": <score 0-100 for overall candidate fit>,
-  "strengths": ["list of 3-5 key candidate strengths relevant to this role"],
-  "gaps": ["list of 2-4 areas where candidate may not fully meet requirements"],
-  "evidence": ["list of 4-6 specific pieces of evidence supporting the scores"]
+  "strengths": ["list of 3-5 key candidate strengths with specific evidence"],
+  "gaps": ["list of 2-4 areas where candidate may not fully meet requirements, or write 'None identified' if candidate is strong"],
+  "evidence": ["list of 4-6 specific pieces of evidence supporting the scores, including degree names, job titles, and years of experience"]
 }
 
-Base scores on concrete evidence from the candidate's background. Consider:
-- Specific matching skills and technologies
-- Relevant work experience duration and responsibilities
-- Education level and field alignment
-- Language proficiency levels
-- Motivation letter quality and job understanding
-- Cultural fit indicators
+Be objective but fair. If a candidate has Computer Science or Information Technology degree for a Cybersecurity role, score education 90-95, not 50.
 `;
 
   try {
@@ -419,6 +433,16 @@ serve(async (req) => {
     const education = candidateData.education || candidateData.phf_education || [];
     const skills = candidateData.skills || [];
     
+    // Log what we're sending to AI for debugging
+    console.log('Candidate data being analyzed:', {
+      name: candidateData.name,
+      yearsOfExperience: candidateData.years_of_experience,
+      educationCount: education.length,
+      workExperienceCount: workExperience.length,
+      education: education.map((e: any) => `${e.degree} in ${e.field} from ${e.institution}`),
+      workExperience: workExperience.map((w: any) => `${w.position} at ${w.company} (${w.description?.substring(0, 100)}...)`)
+    });
+    
     // Extract motivation letter from various possible sources
     const motivationLetter = 
       candidateData.motivation_letter || 
@@ -438,16 +462,7 @@ serve(async (req) => {
       skills
     );
 
-    console.log('AI analysis completed:', {
-      adminExperience: candidateAnalysis.experience_match,
-      internationalContext: candidateAnalysis.technical_match,
-      officeTools: candidateAnalysis.technical_match,
-      draftingSkills: candidateAnalysis.language_match,
-      reportingSkills: candidateAnalysis.experience_match,
-      englishProficiency: candidateAnalysis.language_match,
-      localEligibility: candidateAnalysis.overall_fit,
-      financeExperience: candidateAnalysis.overall_fit
-    });
+    console.log('AI analysis completed:', candidateAnalysis);
 
     // Map analysis to criterion scores
     const criteriaScores = mapAnalysisToScores(
