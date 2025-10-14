@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-import { AlertCircle, Briefcase, Users, FileText, Calendar } from "lucide-react";
+import { AlertCircle, Briefcase, Users, FileText, Calendar, ArrowRight, Search, FileCheck } from "lucide-react";
 import StatsCard from "./StatsCard";
 import ActionItem from "./ActionItem";
 
@@ -123,6 +123,60 @@ export default function HRAdminDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Quick Access Shortcuts */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer group" onClick={() => navigate('/admin/jobs')}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Briefcase className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Manage Jobs</CardTitle>
+                  <p className="text-sm text-muted-foreground">Create and edit job postings</p>
+                </div>
+              </div>
+              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+            </div>
+          </CardHeader>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer group" onClick={() => navigate('/admin/talent-pool')}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Search className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Talent Pool</CardTitle>
+                  <p className="text-sm text-muted-foreground">Search candidate database</p>
+                </div>
+              </div>
+              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+            </div>
+          </CardHeader>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer group" onClick={() => navigate('/admin/requisitions')}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <FileCheck className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">PD Pipeline</CardTitle>
+                  <p className="text-sm text-muted-foreground">Manage position descriptions</p>
+                </div>
+              </div>
+              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+            </div>
+          </CardHeader>
+        </Card>
+      </div>
+
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatsCard 
