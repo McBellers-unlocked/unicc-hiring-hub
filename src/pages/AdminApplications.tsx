@@ -20,6 +20,7 @@ import { ActionConfirmationDialog } from '@/components/ActionConfirmationDialog'
 import { VideoAssignmentDialog } from '@/components/VideoAssignmentDialog';
 import { BulkVideoAssignmentDialog } from '@/components/BulkVideoAssignmentDialog';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { TriggerScoringButton } from '@/components/TriggerScoringButton';
 
 interface Application {
   id: string;
@@ -1392,6 +1393,12 @@ export default function AdminApplications() {
               <CardTitle className="flex items-center justify-between">
                 <span>Applications</span>
                 <div className="flex items-center space-x-2">
+                  {userRoles.includes('Admin') && (
+                    <TriggerScoringButton 
+                      jobId={selectedJobId} 
+                      onComplete={() => fetchApplications(selectedJobId)}
+                    />
+                  )}
                   {selectedJobId === 'aacafec6-4d2b-4a3b-826a-5608ec28418e' && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
                     <Button 
                       variant="outline" 
