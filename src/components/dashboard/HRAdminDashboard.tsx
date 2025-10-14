@@ -19,7 +19,8 @@ export default function HRAdminDashboard() {
     applicationsNeedingLonglisting: 0,
     panelInterviewsToSchedule: 0,
     recentApplications: 0,
-    jobsWithHighVolume: 0
+    jobsWithHighVolume: 0,
+    topJobNeedingLonglisting: null as string | null
   });
 
   useEffect(() => {
@@ -89,6 +90,9 @@ export default function HRAdminDashboard() {
         return acc;
       }, {} as Record<string, number>);
       const applicationsNeedingLonglisting = Object.values(appsByJob).reduce((sum, count) => sum + count, 0);
+      
+      // Find job with most applications needing longlisting
+      const topJobNeedingLonglisting = Object.entries(appsByJob).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 
       // Panel interviews to schedule (applications that need panel but don't have scheduled interview)
       const appsWithPanelInterview = new Set(panelInterviews.map(pi => pi.application_id));
@@ -114,7 +118,8 @@ export default function HRAdminDashboard() {
         applicationsNeedingLonglisting,
         panelInterviewsToSchedule,
         recentApplications,
-        jobsWithHighVolume
+        jobsWithHighVolume,
+        topJobNeedingLonglisting
       });
     } catch (error) {
       console.error('Error:', error);
@@ -279,7 +284,7 @@ export default function HRAdminDashboard() {
               title="Applications Needing Longlisting"
               count={stats.applicationsNeedingLonglisting}
               description="Screen and create longlist"
-              link="/applications?status=Application"
+              link={stats.topJobNeedingLonglisting ? `/applications?job=${stats.topJobNeedingLonglisting}&status=Application` : "/applications?status=Application"}
             />
           )}
           {stats.panelInterviewsToSchedule > 0 && (
