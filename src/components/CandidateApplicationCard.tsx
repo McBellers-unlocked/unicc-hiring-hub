@@ -18,7 +18,8 @@ import {
   CheckCircle,
   X,
   Video,
-  FileText
+  FileText,
+  RotateCcw
 } from 'lucide-react';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
 
@@ -36,6 +37,7 @@ interface CandidateApplicationCardProps {
   onVideoAssignment?: (applicationId: string) => void;
   onReviewVideos?: (applicationId: string) => void;
   onMoveToPanelInterview?: (applicationId: string) => void;
+  onMoveToApplications?: (applicationId: string) => void;
   getFlagEmoji: (location: string | null) => string | null;
   getEducationSummary: (education: any) => any[];
   getWorkExperienceSummary: (workExp: any) => any[];
@@ -55,6 +57,7 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
   onVideoAssignment,
   onReviewVideos,
   onMoveToPanelInterview,
+  onMoveToApplications,
   onReject,
   onAddToShortlist,
   onAddToVideoInterview,
@@ -329,6 +332,19 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
             {/* Conditional rendering based on status */}
             {application.status === 'Longlist' ? (
               <>
+                {/* Move back to Applications */}
+                {onMoveToApplications && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onMoveToApplications(application.id)}
+                    className="whitespace-nowrap"
+                  >
+                    <RotateCcw className="w-3 h-3 mr-1" />
+                    Move to Applications
+                  </Button>
+                )}
+
                 {/* View button */}
                 <Button
                   size="sm"
@@ -383,6 +399,19 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
               </>
             ) : application.status === 'Pre-Recorded Video' ? (
               <>
+                {/* Move back to Applications */}
+                {onMoveToApplications && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onMoveToApplications(application.id)}
+                    className="whitespace-nowrap"
+                  >
+                    <RotateCcw className="w-3 h-3 mr-1" />
+                    Move to Applications
+                  </Button>
+                )}
+
                 {/* Pre-Recorded Video Status Actions */}
                 <Button
                   size="sm"

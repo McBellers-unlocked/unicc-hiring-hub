@@ -1169,6 +1169,54 @@ export default function AdminApplications() {
     }
   };
 
+  const moveToApplications = async (applicationId: string) => {
+    try {
+      // Get current user
+      const { data: user } = await supabase.auth.getUser();
+      const currentUserId = user?.user?.id;
+
+      // Get current application
+      const currentApp = applications.find(app => app.id === applicationId);
+      
+      const { error } = await supabase
+        .from('applications')
+        .update({ 
+          status: 'Application',
+          suggested_for_longlist: false
+        })
+        .eq('id', applicationId);
+
+      if (error) throw error;
+
+      // Log stage change
+      if (currentUserId) {
+        await supabase
+          .from('stage_events')
+          .insert({
+            application_id: applicationId,
+            from_stage: currentApp?.status as any,
+            to_stage: 'Application' as any,
+            by_user: currentUserId,
+            reason: 'Moved back to Applications by HR'
+          });
+      }
+
+      toast({
+        title: "Success",
+        description: "Candidate moved back to Applications",
+      });
+
+      fetchApplications(selectedJobId);
+    } catch (error) {
+      console.error('Error moving to applications:', error);
+      toast({
+        title: "Error",
+        description: "Failed to move to applications",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDialogConfirm = async (reason: string) => {
     const { action, applicationId } = dialogState;
     
@@ -1520,6 +1568,7 @@ export default function AdminApplications() {
                           onVideoAssignment={handleVideoAssignment}
                           onReviewVideos={handleReviewVideos}
                           onMoveToPanelInterview={handleMoveToPanelInterview}
+                          onMoveToApplications={moveToApplications}
                          getFlagEmoji={getCountryFromLocation}
                          getEducationSummary={getAllEducationDetails}
                          getWorkExperienceSummary={getRecentWorkExperience}
