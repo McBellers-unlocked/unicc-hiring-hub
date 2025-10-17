@@ -21,6 +21,7 @@ import { ArrowLeft, Save, Send, FileText, Briefcase, ChevronDown, CheckCircle2, 
 import MDEditor, { commands, ICommand } from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';
 import { MainDutiesTemplateModal } from '@/components/MainDutiesTemplateModal';
+import TurndownService from 'turndown';
 
 // Organizational structure
 const DIVISIONS = {
@@ -134,6 +135,41 @@ const requisitionSchema = z.object({
 
 type RequisitionFormData = z.infer<typeof requisitionSchema>;
 
+
+// Initialize turndown service for HTML to Markdown conversion
+const turndownService = new TurndownService({
+  bulletListMarker: '-',
+  emDelimiter: '*',
+  strongDelimiter: '**',
+});
+
+// Add rule to handle list items with spacing
+turndownService.addRule('listItemSpacing', {
+  filter: 'li',
+  replacement: function (content) {
+    return '- ' + content.trim() + '\n\n';
+  }
+});
+
+// Handle paste events to convert HTML to Markdown
+const handlePaste = (event: React.ClipboardEvent, onChange: (value: string) => void, currentValue: string) => {
+  const clipboardData = event.clipboardData;
+  const htmlData = clipboardData.getData('text/html');
+  
+  if (htmlData) {
+    event.preventDefault();
+    const markdown = turndownService.turndown(htmlData);
+    
+    // Get current selection/cursor position from the textarea
+    const textarea = event.target as HTMLTextAreaElement;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    
+    // Insert markdown at cursor position
+    const newValue = currentValue.substring(0, start) + markdown + currentValue.substring(end);
+    onChange(newValue);
+  }
+};
 
 // Custom bullet list command that removes empty lines and adds spacing
 const customUnorderedListCommand: ICommand = {
@@ -1023,6 +1059,9 @@ export default function JobRequisitionForm() {
                           data-color-mode="light"
                           className="[&_.w-md-editor-text]:placeholder-shown:bg-muted/20"
                           visibleDragbar={false}
+                          textareaProps={{
+                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
+                          }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
                               name: 'title',
@@ -1081,6 +1120,9 @@ export default function JobRequisitionForm() {
                           preview="edit"
                           hideToolbar={false}
                           data-color-mode="light"
+                          textareaProps={{
+                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
+                          }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
                               name: 'title',
@@ -1118,6 +1160,9 @@ export default function JobRequisitionForm() {
                           preview="edit"
                           hideToolbar={false}
                           data-color-mode="light"
+                          textareaProps={{
+                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
+                          }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
                               name: 'title',
@@ -1158,6 +1203,9 @@ export default function JobRequisitionForm() {
                           preview="edit"
                           hideToolbar={false}
                           data-color-mode="light"
+                          textareaProps={{
+                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
+                          }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
                               name: 'title',
@@ -1195,6 +1243,9 @@ export default function JobRequisitionForm() {
                           preview="edit"
                           hideToolbar={false}
                           data-color-mode="light"
+                          textareaProps={{
+                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
+                          }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
                               name: 'title',
