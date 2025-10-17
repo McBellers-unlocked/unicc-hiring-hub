@@ -20,6 +20,7 @@ import {
   Building,
   Edit2
 } from "lucide-react";
+import { format } from "date-fns";
 import { ChiefHRReviewDialog } from "@/components/ChiefHRReviewDialog";
 
 interface JobRequisition {
@@ -555,7 +556,7 @@ export default function AdminRequisitions() {
                               <span className="text-muted-foreground">HR Reviewed:</span>
                               <span className="flex items-center gap-1">
                                 <CheckCircle2 className="h-3 w-3 text-green-600" />
-                                {requisition.hr_reviewed_at && new Date(requisition.hr_reviewed_at).toLocaleDateString()}
+                                {requisition.hr_reviewed_at && format(new Date(requisition.hr_reviewed_at), 'dd MMM yyyy')}
                               </span>
                             </div>
                           )}
@@ -565,7 +566,7 @@ export default function AdminRequisitions() {
                               <span className="text-muted-foreground">Chief HR Reviewed:</span>
                               <span className="flex items-center gap-1">
                                 <CheckCircle2 className="h-3 w-3 text-green-600" />
-                                {requisition.chief_hr_reviewed_at && new Date(requisition.chief_hr_reviewed_at).toLocaleDateString()}
+                                {requisition.chief_hr_reviewed_at && format(new Date(requisition.chief_hr_reviewed_at), 'dd MMM yyyy')}
                               </span>
                             </div>
                           )}
@@ -586,7 +587,7 @@ export default function AdminRequisitions() {
                                 {requisition.hiring_manager_confirmed_hr_changes ? (
                                   <>
                                     <CheckCircle2 className="h-3 w-3 text-green-600" />
-                                    {requisition.hiring_manager_confirmed_at && new Date(requisition.hiring_manager_confirmed_at).toLocaleDateString()}
+                                    {requisition.hiring_manager_confirmed_at && format(new Date(requisition.hiring_manager_confirmed_at), 'dd MMM yyyy')}
                                   </>
                                 ) : (
                                   <>
@@ -603,7 +604,7 @@ export default function AdminRequisitions() {
                               <span className="text-muted-foreground">Manager Confirmed Changes:</span>
                               <span className="flex items-center gap-1">
                                 <CheckCircle2 className="h-3 w-3 text-green-600" />
-                                {requisition.hiring_manager_confirmed_at && new Date(requisition.hiring_manager_confirmed_at).toLocaleDateString()}
+                                {requisition.hiring_manager_confirmed_at && format(new Date(requisition.hiring_manager_confirmed_at), 'dd MMM yyyy')}
                               </span>
                             </div>
                           )}
