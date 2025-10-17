@@ -176,6 +176,7 @@ export default function JobRequisitionForm() {
   const [selectedLeadershipCompetencies, setSelectedLeadershipCompetencies] = useState<string[]>([]);
   const [additionalLanguages, setAdditionalLanguages] = useState<Array<{ name: string; level: string }>>([]);
   const [isSupervisorRole, setIsSupervisorRole] = useState<boolean>(false);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState<boolean>(false);
 
   const form = useForm<RequisitionFormData>({
     resolver: zodResolver(requisitionSchema),
@@ -884,7 +885,7 @@ export default function JobRequisitionForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Start Date</FormLabel>
-                      <Popover>
+                      <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
@@ -907,7 +908,10 @@ export default function JobRequisitionForm() {
                           <Calendar
                             mode="single"
                             selected={field.value ? new Date(field.value) : undefined}
-                            onSelect={(date) => field.onChange(date ? date.toISOString().split('T')[0] : '')}
+                            onSelect={(date) => {
+                              field.onChange(date ? date.toISOString().split('T')[0] : '');
+                              setIsDatePickerOpen(false);
+                            }}
                             initialFocus
                             className={cn("p-3 pointer-events-auto")}
                           />
