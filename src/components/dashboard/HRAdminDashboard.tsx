@@ -188,24 +188,28 @@ export default function HRAdminDashboard() {
           title="Jobs Closing This Week" 
           value={stats.jobsClosingThisWeek} 
           alert={stats.jobsClosingThisWeek > 0}
-          icon={Briefcase} 
+          icon={Briefcase}
+          onClick={() => navigate('/admin/jobs')}
         />
         <StatsCard 
           title="Videos Expiring Today" 
           value={stats.videosExpiringToday} 
           alert={stats.videosExpiringToday > 0}
-          icon={AlertCircle} 
+          icon={AlertCircle}
+          onClick={() => navigate('/admin/applications?filter=video_expiring')}
         />
         <StatsCard 
           title="PDs Stuck in Review" 
           value={stats.pdsStuckInReview} 
           alert={stats.pdsStuckInReview > 0}
-          icon={FileText} 
+          icon={FileText}
+          onClick={() => navigate('/admin/requisitions?filter=stuck')}
         />
         <StatsCard 
           title="New Apps (7 Days)" 
           value={stats.recentApplications} 
-          icon={Users} 
+          icon={Users}
+          onClick={() => navigate('/admin/applications')}
         />
       </div>
 

@@ -11,6 +11,7 @@ interface StatsCardProps {
   icon?: LucideIcon;
   alert?: boolean;
   className?: string;
+  onClick?: () => void;
 }
 
 export default function StatsCard({ 
@@ -20,14 +21,19 @@ export default function StatsCard({
   change, 
   icon: Icon, 
   alert,
-  className 
+  className,
+  onClick
 }: StatsCardProps) {
   return (
-    <Card className={cn(
-      "hover:shadow-md transition-shadow",
-      alert && "border-l-4 border-destructive",
-      className
-    )}>
+    <Card 
+      className={cn(
+        "hover:shadow-md transition-shadow",
+        alert && "border-l-4 border-destructive",
+        onClick && "cursor-pointer hover:scale-[1.02] transition-transform",
+        className
+      )}
+      onClick={onClick}
+    >
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="flex-1">
