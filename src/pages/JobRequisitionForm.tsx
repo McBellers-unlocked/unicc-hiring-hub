@@ -1033,6 +1033,9 @@ export default function JobRequisitionForm() {
                           data-color-mode="light"
                         />
                       </FormControl>
+                      <FormDescription className="text-xs">
+                        Tip: For spaced bullet points, leave a blank line between items (press Enter twice)
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1052,6 +1055,9 @@ export default function JobRequisitionForm() {
                           data-color-mode="light"
                         />
                       </FormControl>
+                      <FormDescription className="text-xs">
+                        Tip: For spaced bullet points, leave a blank line between items (press Enter twice)
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1074,6 +1080,9 @@ export default function JobRequisitionForm() {
                           data-color-mode="light"
                         />
                       </FormControl>
+                      <FormDescription className="text-xs">
+                        Tip: For spaced bullet points, leave a blank line between items (press Enter twice)
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1093,6 +1102,9 @@ export default function JobRequisitionForm() {
                           data-color-mode="light"
                         />
                       </FormControl>
+                      <FormDescription className="text-xs">
+                        Tip: For spaced bullet points, leave a blank line between items (press Enter twice)
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
