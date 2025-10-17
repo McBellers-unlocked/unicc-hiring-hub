@@ -310,7 +310,7 @@ export default function AdminRequisitions() {
               </span>
               {stage.isCompleted && stage.completedAt && (
                 <span className="text-xs text-muted-foreground mt-1">
-                  {new Date(stage.completedAt).toLocaleDateString()}
+                  {new Date(stage.completedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                 </span>
               )}
             </div>
@@ -457,7 +457,7 @@ export default function AdminRequisitions() {
                               </span>
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-4 w-4" />
-                                {new Date(requisition.created_at).toLocaleDateString()}
+                                {new Date(requisition.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                               </span>
                             </CardDescription>
                           </div>
