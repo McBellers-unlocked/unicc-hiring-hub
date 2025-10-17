@@ -135,7 +135,7 @@ const requisitionSchema = z.object({
 type RequisitionFormData = z.infer<typeof requisitionSchema>;
 
 
-// Custom bullet list command that removes empty lines
+// Custom bullet list command that removes empty lines and adds spacing
 const customUnorderedListCommand: ICommand = {
   ...commands.unorderedListCommand,
   execute: (state, api) => {
@@ -152,7 +152,8 @@ const customUnorderedListCommand: ICommand = {
       return line;
     });
     
-    api.replaceSelection(formattedLines.join('\n'));
+    // Add blank line between each bullet point for spacing
+    api.replaceSelection(formattedLines.join('\n\n'));
   }
 };
 
