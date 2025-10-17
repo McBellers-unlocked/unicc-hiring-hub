@@ -23,6 +23,7 @@ import AdminRequisitions from "./pages/AdminRequisitions";
 import JobRequisitionForm from "./pages/JobRequisitionForm";
 import JobRequisitionDetail from "./pages/JobRequisitionDetail";
 import JobRequisitionHREdit from "./pages/JobRequisitionHREdit";
+import JobRequisitionChiefHREdit from "./pages/JobRequisitionChiefHREdit";
 import ChiefHRReview from "./pages/ChiefHRReview";
 import ChiefOfDivisionView from "./pages/ChiefOfDivisionView";
 import DirectorView from "./pages/DirectorView";
@@ -77,7 +78,8 @@ const App = () => (
             <Route path="/requisitions/new" element={<JobRequisitionForm />} />
             <Route path="/requisitions/:id" element={<JobRequisitionDetail />} />
             <Route path="/requisitions/:id/edit" element={<JobRequisitionForm />} />
-            <Route path="/requisitions/:id/hr-edit" element={<JobRequisitionHREdit />} />
+          <Route path="/requisitions/:id/hr-edit" element={<JobRequisitionHREdit />} />
+          <Route path="/requisitions/:id/chief-hr-edit" element={<JobRequisitionChiefHREdit />} />
             <Route path="/admin/phf-import" element={<PHFImport />} />
             <Route path="/admin/applications/manual/:jobId" element={<ManualApplicationForm />} />
             <Route path="/admin/applications/edit-manual/:applicationId" element={<EditManualApplicationForm />} />
