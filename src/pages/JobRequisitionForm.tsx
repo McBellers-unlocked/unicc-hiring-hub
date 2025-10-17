@@ -18,7 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, Save, Send, FileText, Briefcase, ChevronDown, CheckCircle2, CalendarIcon, Plus } from "lucide-react";
-import MDEditor from '@uiw/react-md-editor';
+import MDEditor, { commands, ICommand } from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';
 import { MainDutiesTemplateModal } from '@/components/MainDutiesTemplateModal';
 
@@ -133,6 +133,28 @@ const requisitionSchema = z.object({
 });
 
 type RequisitionFormData = z.infer<typeof requisitionSchema>;
+
+
+// Custom bullet list command that removes empty lines
+const customUnorderedListCommand: ICommand = {
+  ...commands.unorderedListCommand,
+  execute: (state, api) => {
+    const selection = state.selection;
+    const selectedText = state.text.substring(selection.start, selection.end);
+    
+    // Remove empty lines and format with bullets
+    const lines = selectedText.split('\n').filter(line => line.trim() !== '');
+    const formattedLines = lines.map(line => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('-')) {
+        return `- ${trimmed}`;
+      }
+      return line;
+    });
+    
+    api.replaceSelection(formattedLines.join('\n'));
+  }
+};
 
 export default function JobRequisitionForm() {
   const { id } = useParams();
@@ -1031,10 +1053,25 @@ export default function JobRequisitionForm() {
                           preview="edit"
                           hideToolbar={false}
                           data-color-mode="light"
+                          commands={[
+                            commands.group([commands.title1, commands.title2, commands.title3], {
+                              name: 'title',
+                              groupName: 'title',
+                              buttonProps: { 'aria-label': 'Insert title'}
+                            }),
+                            commands.divider,
+                            commands.bold,
+                            commands.italic,
+                            commands.divider,
+                            customUnorderedListCommand,
+                            commands.orderedListCommand,
+                            commands.divider,
+                            commands.link,
+                          ]}
                         />
                       </FormControl>
                       <FormDescription className="text-xs">
-                        Tip: For spaced bullet points, leave a blank line between items (press Enter twice)
+                        Tip: Remove empty lines before clicking the bullet button
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1053,10 +1090,25 @@ export default function JobRequisitionForm() {
                           preview="edit"
                           hideToolbar={false}
                           data-color-mode="light"
+                          commands={[
+                            commands.group([commands.title1, commands.title2, commands.title3], {
+                              name: 'title',
+                              groupName: 'title',
+                              buttonProps: { 'aria-label': 'Insert title'}
+                            }),
+                            commands.divider,
+                            commands.bold,
+                            commands.italic,
+                            commands.divider,
+                            customUnorderedListCommand,
+                            commands.orderedListCommand,
+                            commands.divider,
+                            commands.link,
+                          ]}
                         />
                       </FormControl>
                       <FormDescription className="text-xs">
-                        Tip: For spaced bullet points, leave a blank line between items (press Enter twice)
+                        Tip: Remove empty lines before clicking the bullet button
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1078,10 +1130,25 @@ export default function JobRequisitionForm() {
                           preview="edit"
                           hideToolbar={false}
                           data-color-mode="light"
+                          commands={[
+                            commands.group([commands.title1, commands.title2, commands.title3], {
+                              name: 'title',
+                              groupName: 'title',
+                              buttonProps: { 'aria-label': 'Insert title'}
+                            }),
+                            commands.divider,
+                            commands.bold,
+                            commands.italic,
+                            commands.divider,
+                            customUnorderedListCommand,
+                            commands.orderedListCommand,
+                            commands.divider,
+                            commands.link,
+                          ]}
                         />
                       </FormControl>
                       <FormDescription className="text-xs">
-                        Tip: For spaced bullet points, leave a blank line between items (press Enter twice)
+                        Tip: Remove empty lines before clicking the bullet button
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1100,10 +1167,25 @@ export default function JobRequisitionForm() {
                           preview="edit"
                           hideToolbar={false}
                           data-color-mode="light"
+                          commands={[
+                            commands.group([commands.title1, commands.title2, commands.title3], {
+                              name: 'title',
+                              groupName: 'title',
+                              buttonProps: { 'aria-label': 'Insert title'}
+                            }),
+                            commands.divider,
+                            commands.bold,
+                            commands.italic,
+                            commands.divider,
+                            customUnorderedListCommand,
+                            commands.orderedListCommand,
+                            commands.divider,
+                            commands.link,
+                          ]}
                         />
                       </FormControl>
                       <FormDescription className="text-xs">
-                        Tip: For spaced bullet points, leave a blank line between items (press Enter twice)
+                        Tip: Remove empty lines before clicking the bullet button
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
