@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Layout } from '@/components/Layout';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +7,7 @@ import { VideoRecorder } from '@/components/VideoRecorder';
 import { Clock, Video, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { UNICCLogo } from '@/components/UNICCLogo';
 
 interface VideoQuestion {
   id: string;
@@ -161,22 +161,37 @@ export default function VideoInterview() {
     return `${minutes}m ${remainingSeconds}s`;
   };
 
+  const VideoHeader = () => (
+    <header className="bg-primary text-primary-foreground shadow-lg">
+      <div className="container mx-auto px-4">
+        <div className="flex items-center h-16">
+          <Link to="/" className="flex items-center space-x-3">
+            <UNICCLogo size="md" variant="blue" className="text-primary-foreground" />
+            <span className="text-xl font-bold">UNICConnect</span>
+          </Link>
+        </div>
+      </div>
+    </header>
+  );
+
   if (isLoading) {
     return (
-      <Layout>
+      <div className="min-h-screen bg-background">
+        <VideoHeader />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
             <p className="mt-4 text-muted-foreground">Loading video interview...</p>
           </div>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   if (!isValidLink || !questionSet || !job) {
     return (
-      <Layout>
+      <div className="min-h-screen bg-background">
+        <VideoHeader />
         <div className="container mx-auto px-4 py-8">
           <Card className="max-w-md mx-auto">
             <CardContent className="p-6 text-center">
@@ -188,13 +203,14 @@ export default function VideoInterview() {
             </CardContent>
           </Card>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   if (!hasStarted) {
     return (
-      <Layout>
+      <div className="min-h-screen bg-background">
+        <VideoHeader />
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           <Card>
             <CardHeader className="text-center">
@@ -319,12 +335,13 @@ export default function VideoInterview() {
             </CardContent>
           </Card>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   return (
-    <Layout>
+    <div className="min-h-screen bg-background">
+      <VideoHeader />
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-6">
           <h1 className="text-2xl font-bold">Video Interview</h1>
@@ -337,6 +354,6 @@ export default function VideoInterview() {
           onComplete={handleInterviewComplete}
         />
       </div>
-    </Layout>
+    </div>
   );
 }
