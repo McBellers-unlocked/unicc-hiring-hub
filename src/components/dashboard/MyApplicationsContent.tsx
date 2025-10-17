@@ -375,17 +375,11 @@ export default function MyApplicationsContent() {
                           size="sm"
                           onClick={() => {
                             const targetUrl = `/video-interview/${application.video_assignment!.token}`;
-                            console.log('=== START INTERVIEW BUTTON CLICKED ===');
+                            console.log('=== DIRECT NAVIGATION TEST ===');
                             console.log('Token:', application.video_assignment!.token);
-                            console.log('Target URL:', targetUrl);
-                            console.log('Current location:', window.location.href);
-                            console.log('About to navigate...');
-                            navigate(targetUrl);
-                            console.log('Navigate called');
-                            // Also try direct window location as backup
-                            setTimeout(() => {
-                              console.log('After navigate - current location:', window.location.href);
-                            }, 100);
+                            console.log('Will navigate to:', targetUrl);
+                            // Use direct browser navigation instead of React Router
+                            window.location.href = targetUrl;
                           }}
                           className="bg-purple-600 hover:bg-purple-700"
                         >
