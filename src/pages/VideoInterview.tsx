@@ -42,12 +42,17 @@ export default function VideoInterview() {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log('VideoInterview - useEffect triggered, token:', token);
     if (token) {
+      console.log('VideoInterview - Calling validateAndLoadInterview');
       validateAndLoadInterview();
+    } else {
+      console.error('VideoInterview - No token provided!');
     }
   }, [token]);
 
   const validateAndLoadInterview = async () => {
+    console.log('VideoInterview - START validateAndLoadInterview');
     try {
       console.log('VideoInterview - Validating token:', token);
       
@@ -130,13 +135,18 @@ export default function VideoInterview() {
       });
 
     } catch (error) {
-      console.error('Error loading interview:', error);
+      console.error('VideoInterview - ERROR in validateAndLoadInterview:', error);
       toast({
         title: "Access Error",
         description: error instanceof Error ? error.message : "Unable to access video interview",
         variant: "destructive",
       });
+      console.log('VideoInterview - Redirecting to /my-applications due to error');
+      setTimeout(() => {
+        navigate('/my-applications');
+      }, 2000);
     } finally {
+      console.log('VideoInterview - Setting isLoading to false');
       setIsLoading(false);
     }
   };
