@@ -151,6 +151,13 @@ turndownService.addRule('listItemSpacing', {
   }
 });
 
+// Fix common markdown formatting issues
+const fixMarkdownFormatting = (text: string): string => {
+  // Fix bold formatting with spaces before closing markers
+  // **text ** -> **text**
+  return text.replace(/(\*\*[^*]+?)\s+(\*\*)/g, '$1$2');
+};
+
 // Handle paste events to convert HTML to Markdown
 const handlePaste = (event: React.ClipboardEvent, onChange: (value: string) => void, currentValue: string) => {
   const clipboardData = event.clipboardData;
@@ -167,7 +174,7 @@ const handlePaste = (event: React.ClipboardEvent, onChange: (value: string) => v
     
     // Insert markdown at cursor position
     const newValue = currentValue.substring(0, start) + markdown + currentValue.substring(end);
-    onChange(newValue);
+    onChange(fixMarkdownFormatting(newValue));
   }
 };
 
@@ -1053,7 +1060,7 @@ export default function JobRequisitionForm() {
                       <div className="relative">
                         <MDEditor
                           value={field.value}
-                          onChange={(val) => field.onChange(val || "")}
+                          onChange={(val) => field.onChange(fixMarkdownFormatting(val || ""))}
                           preview="edit"
                           hideToolbar={false}
                           data-color-mode="light"
@@ -1116,7 +1123,7 @@ export default function JobRequisitionForm() {
                       <FormControl>
                         <MDEditor
                           value={field.value}
-                          onChange={(val) => field.onChange(val || "")}
+                          onChange={(val) => field.onChange(fixMarkdownFormatting(val || ""))}
                           preview="edit"
                           hideToolbar={false}
                           data-color-mode="light"
@@ -1156,7 +1163,7 @@ export default function JobRequisitionForm() {
                       <FormControl>
                         <MDEditor
                           value={field.value}
-                          onChange={(val) => field.onChange(val || "")}
+                          onChange={(val) => field.onChange(fixMarkdownFormatting(val || ""))}
                           preview="edit"
                           hideToolbar={false}
                           data-color-mode="light"
@@ -1199,7 +1206,7 @@ export default function JobRequisitionForm() {
                       <FormControl>
                         <MDEditor
                           value={field.value}
-                          onChange={(val) => field.onChange(val || "")}
+                          onChange={(val) => field.onChange(fixMarkdownFormatting(val || ""))}
                           preview="edit"
                           hideToolbar={false}
                           data-color-mode="light"
@@ -1239,7 +1246,7 @@ export default function JobRequisitionForm() {
                       <FormControl>
                         <MDEditor
                           value={field.value}
-                          onChange={(val) => field.onChange(val || "")}
+                          onChange={(val) => field.onChange(fixMarkdownFormatting(val || ""))}
                           preview="edit"
                           hideToolbar={false}
                           data-color-mode="light"
