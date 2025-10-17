@@ -111,9 +111,6 @@ export default function AdminApplications() {
   // Bulk Video Assignment Dialog state
   const [bulkVideoAssignmentDialog, setBulkVideoAssignmentDialog] = useState(false);
 
-  // Test data generation state
-  const [generatingTestData, setGeneratingTestData] = useState(false);
-  const [cleaningTestData, setCleaningTestData] = useState(false);
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
@@ -451,72 +448,6 @@ export default function AdminApplications() {
     return `${Math.round(unExperience)} years`;
   };
 
-  const generateTestData = async () => {
-    if (!selectedJobId) {
-      toast({
-        title: "Error",
-        description: "Please select a job first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setGeneratingTestData(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-test-applicants', {
-        body: { jobId: selectedJobId }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `Generated ${data.candidates_created} test candidates and ${data.applications_created} applications`,
-      });
-
-      // Refresh applications list
-      fetchApplications(selectedJobId);
-    } catch (error: any) {
-      console.error('Error generating test data:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to generate test data",
-        variant: "destructive",
-      });
-    } finally {
-      setGeneratingTestData(false);
-    }
-  };
-
-  const cleanupTestData = async () => {
-    if (!confirm('This will delete ALL test applicants (emails ending with @example.com). Continue?')) {
-      return;
-    }
-
-    setCleaningTestData(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('cleanup-test-applicants');
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: data.message || "Test data cleaned successfully",
-      });
-
-      // Refresh applications list
-      fetchApplications(selectedJobId);
-    } catch (error: any) {
-      console.error('Error cleaning test data:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to clean test data",
-        variant: "destructive",
-      });
-    } finally {
-      setCleaningTestData(false);
-    }
-  };
 
   const getExperienceSummary = (workExp: any, yearsExp: number | null) => {
     const currentJob = getCurrentJobDetails(workExp);
@@ -1276,25 +1207,15 @@ export default function AdminApplications() {
               {selectedJobId ? `Applications for ${selectedJob?.title || 'Selected Job'}` : 'Select a job to view applications'}
             </p>
           </div>
-          {selectedJobId && userRoles.includes('Admin') && (
-            <div className="flex gap-2">
-              <Button
-                onClick={cleanupTestData}
-                disabled={cleaningTestData}
-                variant="destructive"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                {cleaningTestData ? 'Cleaning...' : 'Clean Test Data'}
-              </Button>
-              <Button
-                onClick={generateTestData}
-                disabled={generatingTestData}
-                variant="outline"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                {generatingTestData ? 'Generating...' : 'Generate 200 Test Applicants'}
-              </Button>
-            </div>
+          {selectedJobId && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
+            <Button
+              onClick={() => navigate('/admin/talent-pool')}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Search className="h-4 w-4" />
+              Search Talent Pool
+            </Button>
           )}
         </div>
 
