@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { 
@@ -13,7 +14,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, XCircle, Eye } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, FileText } from "lucide-react";
 
 interface ChiefHRReviewDialogProps {
   requisitionId: string;
@@ -25,6 +26,7 @@ export function ChiefHRReviewDialog({ requisitionId, onComplete }: ChiefHRReview
   const [comments, setComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleReview = async (approved: boolean) => {
     setSubmitting(true);
@@ -87,6 +89,20 @@ export function ChiefHRReviewDialog({ requisitionId, onComplete }: ChiefHRReview
         </DialogHeader>
         
         <div className="space-y-4">
+          <div className="flex justify-center pb-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setOpen(false);
+                navigate(`/requisitions/${requisitionId}`);
+              }}
+              className="w-full"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              View Full Position Description
+            </Button>
+          </div>
+          
           <div>
             <Label htmlFor="comments">Comments (optional)</Label>
             <Textarea
