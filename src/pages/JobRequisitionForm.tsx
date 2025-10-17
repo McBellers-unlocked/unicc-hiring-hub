@@ -1023,6 +1023,21 @@ export default function JobRequisitionForm() {
                           data-color-mode="light"
                           className="[&_.w-md-editor-text]:placeholder-shown:bg-muted/20"
                           visibleDragbar={false}
+                          commands={[
+                            commands.group([commands.title1, commands.title2, commands.title3], {
+                              name: 'title',
+                              groupName: 'title',
+                              buttonProps: { 'aria-label': 'Insert title'}
+                            }),
+                            commands.divider,
+                            commands.bold,
+                            commands.italic,
+                            commands.divider,
+                            customUnorderedListCommand,
+                            commands.orderedListCommand,
+                            commands.divider,
+                            commands.link,
+                          ]}
                         />
                         {field.value.includes('[SUPERVISOR TITLE]') && (
                           <div className="absolute top-2 right-2 z-10">
