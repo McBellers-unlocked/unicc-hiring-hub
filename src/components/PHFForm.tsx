@@ -3120,16 +3120,36 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                   disabled={isSubmitting}
                   onClick={async () => {
                     console.log('PHF Submit Button Clicked!');
-                    console.log('Current section:', currentSection);
-                    console.log('Total sections:', SECTIONS.length);
-                    console.log('Form valid?', form.formState.isValid);
-                    console.log('Form errors:', form.formState.errors);
                     
-                    // Get current form data and submit directly
+                    // Validate all employment entries before submission
                     const formData = form.getValues();
-                    console.log('Form data:', formData);
+                    const hasEmployment = formData.employment && formData.employment.length > 0;
                     
-                    // Call handleSubmit directly, bypassing form validation
+                    if (!hasEmployment) {
+                      toast({
+                        title: 'Employment Record Required',
+                        description: 'Please add at least one employment entry before submitting.',
+                        variant: 'destructive',
+                      });
+                      return;
+                    }
+                    
+                    // Check each employment entry for required duties field
+                    const incompleteDuties = formData.employment.some(emp => {
+                      return !emp.duties_and_responsibilities || emp.duties_and_responsibilities.trim() === '';
+                    });
+                    
+                    if (incompleteDuties) {
+                      toast({
+                        title: 'Incomplete Employment Record',
+                        description: 'Please complete the "Duties and Responsibilities" field for all employment entries.',
+                        variant: 'destructive',
+                      });
+                      setCurrentSection(4); // Navigate to Employment section
+                      return;
+                    }
+                    
+                    // Proceed with submission
                     await handleSubmit(formData);
                   }}
                 >
