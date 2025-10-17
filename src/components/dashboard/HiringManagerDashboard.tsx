@@ -74,19 +74,28 @@ export default function HiringManagerDashboard() {
           title="Active Jobs" 
           value={stats.activeJobs}
           subtitle={`${stats.myJobs} total jobs`}
-          icon={Briefcase} 
+          icon={Briefcase}
+          onClick={() => navigate('/admin/jobs')}
         />
         <StatsCard 
           title="New Applications (7d)" 
           value={stats.recentApplications}
           icon={FileText}
           alert={stats.recentApplications > 10}
+          onClick={() => {
+            if (myJobIds.length > 0) {
+              navigate(`/applications?job=${myJobIds[0]}`);
+            } else {
+              navigate('/applications');
+            }
+          }}
         />
         <StatsCard 
           title="PDs Pending Review" 
           value={stats.pendingReview} 
           alert={stats.pendingReview > 0} 
-          icon={FileText} 
+          icon={FileText}
+          onClick={() => navigate('/requisitions')}
         />
       </div>
 
