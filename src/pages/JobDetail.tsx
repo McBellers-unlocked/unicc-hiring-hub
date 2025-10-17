@@ -11,6 +11,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import ReactMarkdown from 'react-markdown';
+import { fixMarkdownFormatting } from '@/lib/utils';
 
 interface Job {
   id: string;
@@ -418,7 +419,7 @@ export default function JobDetail() {
                           strong: ({ children }) => <strong className="font-semibold">{children}</strong>
                         }}
                       >
-                        {job.description_md}
+                        {fixMarkdownFormatting(job.description_md)}
                       </ReactMarkdown>
                     </div>
                   </CardContent>
@@ -443,7 +444,7 @@ export default function JobDetail() {
                           strong: ({ children }) => <strong className="font-semibold">{children}</strong>
                         }}
                       >
-                        {job.requirements_md}
+                        {fixMarkdownFormatting(job.requirements_md)}
                       </ReactMarkdown>
                     </div>
                   </CardContent>
