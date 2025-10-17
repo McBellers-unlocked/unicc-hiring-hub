@@ -373,7 +373,11 @@ export default function MyApplicationsContent() {
                       ) : !videoStatus.isExpired ? (
                         <Button
                           size="sm"
-                          onClick={() => navigate(`/video-interview/${application.video_assignment!.token}`)}
+                          onClick={() => {
+                            console.log('Start Interview clicked - token:', application.video_assignment!.token);
+                            console.log('Navigating to:', `/video-interview/${application.video_assignment!.token}`);
+                            navigate(`/video-interview/${application.video_assignment!.token}`);
+                          }}
                           className="bg-purple-600 hover:bg-purple-700"
                         >
                           <PlayCircle className="h-4 w-4 mr-1" />

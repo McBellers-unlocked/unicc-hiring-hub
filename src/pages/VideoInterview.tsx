@@ -49,11 +49,21 @@ export default function VideoInterview() {
 
   const validateAndLoadInterview = async () => {
     try {
+      console.log('VideoInterview - Validating token:', token);
+      
       // First, validate the token and get assignment details
       const { data: validationData, error: validationError } = await supabase
         .rpc('validate_video_assignment_token', { assignment_token: token });
 
-      if (validationError || !validationData || validationData.length === 0) {
+      console.log('VideoInterview - Validation result:', { validationData, validationError });
+
+      if (validationError) {
+        console.error('VideoInterview - Validation error:', validationError);
+        throw new Error(`Validation failed: ${validationError.message}`);
+      }
+      
+      if (!validationData || validationData.length === 0) {
+        console.error('VideoInterview - No validation data returned');
         throw new Error('Invalid or expired video interview link');
       }
 
@@ -93,6 +103,9 @@ export default function VideoInterview() {
           description: "You have already completed the video interview for this position.",
           variant: "destructive",
         });
+        setTimeout(() => {
+          navigate('/my-applications');
+        }, 2000);
         return;
       }
 
