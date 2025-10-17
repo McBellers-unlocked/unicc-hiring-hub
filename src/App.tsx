@@ -23,6 +23,7 @@ import AdminRequisitions from "./pages/AdminRequisitions";
 import JobRequisitionForm from "./pages/JobRequisitionForm";
 import JobRequisitionDetail from "./pages/JobRequisitionDetail";
 import JobRequisitionHREdit from "./pages/JobRequisitionHREdit";
+import ChiefHRReview from "./pages/ChiefHRReview";
 import ChiefOfDivisionView from "./pages/ChiefOfDivisionView";
 import DirectorView from "./pages/DirectorView";
 import MyApplications from "./pages/MyApplications";
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/admin/scoring" element={<ApplicationScoringTest />} />
             <Route path="/requisitions" element={<JobRequisitions />} />
             <Route path="/admin/requisitions" element={<AdminRequisitions />} />
+            <Route path="/admin/chief-hr-review" element={<ChiefHRReview />} />
             <Route path="/requisitions/new" element={<JobRequisitionForm />} />
             <Route path="/requisitions/:id" element={<JobRequisitionDetail />} />
             <Route path="/requisitions/:id/edit" element={<JobRequisitionForm />} />
