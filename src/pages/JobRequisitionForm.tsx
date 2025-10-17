@@ -909,7 +909,15 @@ export default function JobRequisitionForm() {
                             mode="single"
                             selected={field.value ? new Date(field.value) : undefined}
                             onSelect={(date) => {
-                              field.onChange(date ? date.toISOString().split('T')[0] : '');
+                              if (date) {
+                                // Format date in local timezone to avoid timezone shifts
+                                const year = date.getFullYear();
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                field.onChange(`${year}-${month}-${day}`);
+                              } else {
+                                field.onChange('');
+                              }
                               setIsDatePickerOpen(false);
                             }}
                             initialFocus
