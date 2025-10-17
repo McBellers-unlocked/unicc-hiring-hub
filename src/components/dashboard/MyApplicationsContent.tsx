@@ -374,11 +374,11 @@ export default function MyApplicationsContent() {
                         <Button
                           size="sm"
                           onClick={() => {
-                            const targetUrl = `/video-interview/${application.video_assignment!.token}`;
-                            console.log('=== DIRECT NAVIGATION TEST ===');
-                            console.log('Token:', application.video_assignment!.token);
-                            console.log('Will navigate to:', targetUrl);
-                            // Use direct browser navigation instead of React Router
+                            const token = application.video_assignment!.token;
+                            const targetUrl = `${window.location.origin}/video-interview/${token}`;
+                            console.log('=== ABSOLUTE NAVIGATION ===');
+                            console.log('Token:', token);
+                            console.log('Full URL:', targetUrl);
                             window.location.href = targetUrl;
                           }}
                           className="bg-purple-600 hover:bg-purple-700"
