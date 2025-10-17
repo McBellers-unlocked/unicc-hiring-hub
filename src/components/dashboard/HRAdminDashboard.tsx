@@ -72,14 +72,14 @@ export default function HRAdminDashboard() {
 
       // PDs stuck in review (>5 days)
       const pdsStuckInReview = pds.filter(pd => {
-        if (!['pending_hr_review', 'chief_hr_review'].includes(pd.status)) return false;
+        if (!['hr_review', 'chief_hr_review'].includes(pd.status)) return false;
         const createdAt = new Date(pd.created_at);
         return createdAt < fiveDaysAgo;
       }).length;
 
       // All pending PDs
       const pendingPDs = pds.filter(pd => 
-        ['pending_hr_review', 'chief_hr_review'].includes(pd.status)
+        ['hr_review', 'chief_hr_review'].includes(pd.status)
       ).length;
 
       // Applications needing longlisting (by job)
