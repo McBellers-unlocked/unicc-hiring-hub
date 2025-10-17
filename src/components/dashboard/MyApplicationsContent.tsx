@@ -374,9 +374,18 @@ export default function MyApplicationsContent() {
                         <Button
                           size="sm"
                           onClick={() => {
-                            console.log('Start Interview clicked - token:', application.video_assignment!.token);
-                            console.log('Navigating to:', `/video-interview/${application.video_assignment!.token}`);
-                            navigate(`/video-interview/${application.video_assignment!.token}`);
+                            const targetUrl = `/video-interview/${application.video_assignment!.token}`;
+                            console.log('=== START INTERVIEW BUTTON CLICKED ===');
+                            console.log('Token:', application.video_assignment!.token);
+                            console.log('Target URL:', targetUrl);
+                            console.log('Current location:', window.location.href);
+                            console.log('About to navigate...');
+                            navigate(targetUrl);
+                            console.log('Navigate called');
+                            // Also try direct window location as backup
+                            setTimeout(() => {
+                              console.log('After navigate - current location:', window.location.href);
+                            }, 100);
                           }}
                           className="bg-purple-600 hover:bg-purple-700"
                         >
