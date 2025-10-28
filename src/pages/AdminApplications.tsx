@@ -111,6 +111,8 @@ export default function AdminApplications() {
   // Bulk Video Assignment Dialog state
   const [bulkVideoAssignmentDialog, setBulkVideoAssignmentDialog] = useState(false);
 
+  // Test data generation state
+  const [generatingTestData, setGeneratingTestData] = useState(false);
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
@@ -448,6 +450,42 @@ export default function AdminApplications() {
     return `${Math.round(unExperience)} years`;
   };
 
+  const generateTestData = async () => {
+    if (!selectedJobId) {
+      toast({
+        title: "Error",
+        description: "Please select a job first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGeneratingTestData(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-test-applicants', {
+        body: { jobId: selectedJobId }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Generated ${data.candidates_created} test candidates and ${data.applications_created} applications`,
+      });
+
+      // Refresh applications list
+      fetchApplications(selectedJobId);
+    } catch (error: any) {
+      console.error('Error generating test data:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate test data",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingTestData(false);
+    }
+  };
 
   const getExperienceSummary = (workExp: any, yearsExp: number | null) => {
     const currentJob = getCurrentJobDetails(workExp);
@@ -1208,14 +1246,24 @@ export default function AdminApplications() {
             </p>
           </div>
           {selectedJobId && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
-            <Button
-              onClick={() => navigate('/admin/talent-pool')}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Search className="h-4 w-4" />
-              Search Talent Pool
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => navigate('/admin/talent-pool')}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Search className="h-4 w-4" />
+                Search Talent Pool
+              </Button>
+              <Button
+                onClick={generateTestData}
+                disabled={generatingTestData}
+                variant="outline"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                {generatingTestData ? 'Generating...' : 'Generate 200 Test Applicants'}
+              </Button>
+            </div>
           )}
         </div>
 
