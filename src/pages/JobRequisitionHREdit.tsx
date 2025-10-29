@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, AlertTriangle, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { InlineTrackChanges } from "@/components/InlineTrackChanges";
+import EditableTrackChangesField from "@/components/EditableTrackChangesField";
 
 interface JobRequisition {
   id: string;
@@ -36,6 +37,9 @@ interface JobRequisition {
   hr_changes: any;
   hr_change_summary: string;
   hr_comments: string;
+  chief_hr_reviewed: boolean;
+  chief_hr_comments: string;
+  hr_internal_status: string;
 }
 
 interface FieldChange {
@@ -61,6 +65,8 @@ export default function JobRequisitionHREdit() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [changeSummary, setChangeSummary] = useState("");
+  const [acceptedChiefHRFields, setAcceptedChiefHRFields] = useState<Set<string>>(new Set());
+  const [hrVersion, setHrVersion] = useState<Partial<JobRequisition>>({});
 
   const isHR = userRoles.includes('HR Assistant') || userRoles.includes('Admin');
 
@@ -86,7 +92,22 @@ export default function JobRequisitionHREdit() {
       
       setRequisition(data);
       setFormData(data);
-      setOriginalData(data);
+      
+      // Determine if this is second review (after Chief HR) or initial review
+      const isSecondReview = data.chief_hr_reviewed;
+      
+      if (isSecondReview) {
+        // Second review: show Chief HR's changes compared to HR's version
+        const hrVersionData = (typeof data.hr_original_data === 'object' && data.hr_original_data !== null) 
+          ? data.hr_original_data as Partial<JobRequisition>
+          : data;
+        setHrVersion(hrVersionData as Partial<JobRequisition>);
+        setOriginalData(hrVersionData as Partial<JobRequisition>); // HR's version is the baseline
+      } else {
+        // Initial review: show manager's original version
+        setOriginalData(data);
+      }
+      
       setChangeSummary(data.hr_change_summary || "");
     } catch (error) {
       console.error('Error fetching requisition:', error);
@@ -98,6 +119,12 @@ export default function JobRequisitionHREdit() {
     } finally {
       setLoading(false);
     }
+  };
+  
+  const isSecondReview = requisition?.chief_hr_reviewed || false;
+  
+  const acceptChiefHRChanges = (fieldKey: string) => {
+    setAcceptedChiefHRFields(prev => new Set([...prev, fieldKey]));
   };
 
   const detectChanges = (): FieldChange[] => {
@@ -162,16 +189,28 @@ export default function JobRequisitionHREdit() {
 
     setSaving(true);
     try {
-      const updateData = {
-        ...formData,
-        hr_original_data: originalData as any,
-        hr_changes: changes as any,
-        hr_change_summary: changeSummary,
-        hr_reviewed: true,
-        hr_reviewed_at: new Date().toISOString(),
-        hr_reviewed_by: user?.id,
-        hr_internal_status: 'pending_chief_review'
-      };
+      let updateData;
+      
+      if (isSecondReview) {
+        // Second review: send to manager for confirmation
+        updateData = {
+          ...formData,
+          hr_change_summary: changeSummary,
+          hr_internal_status: 'pending_manager_confirmation',
+        };
+      } else {
+        // Initial review: send to Chief HR
+        updateData = {
+          ...formData,
+          hr_original_data: originalData as any,
+          hr_changes: changes as any,
+          hr_change_summary: changeSummary,
+          hr_reviewed: true,
+          hr_reviewed_at: new Date().toISOString(),
+          hr_reviewed_by: user?.id,
+          hr_internal_status: 'pending_chief_review'
+        };
+      }
 
       const { error } = await supabase
         .from('job_requisitions')
@@ -182,7 +221,9 @@ export default function JobRequisitionHREdit() {
 
       toast({
         title: "Success",
-        description: "Changes saved and sent to Chief HR for review",
+        description: isSecondReview 
+          ? "Changes saved and sent to Manager for confirmation" 
+          : "Changes saved and sent to Chief HR for review",
       });
 
       navigate('/admin/requisitions');
@@ -236,10 +277,15 @@ export default function JobRequisitionHREdit() {
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold">Edit Position Description</h1>
+            <h1 className="text-3xl font-bold">
+              {isSecondReview ? 'Review Chief HR Changes' : 'Edit Position Description'}
+            </h1>
           </div>
           <p className="text-muted-foreground">
-            Making changes as HR • Ref: {requisition.reference_number} • Created {format(new Date(requisition.created_at), 'MMM dd, yyyy')}
+            {isSecondReview 
+              ? `Reviewing Chief HR changes • Ref: ${requisition.reference_number}`
+              : `Making changes as HR • Ref: ${requisition.reference_number} • Created ${format(new Date(requisition.created_at), 'MMM dd, yyyy')}`
+            }
           </p>
         </div>
         <div className="flex gap-2">
@@ -249,7 +295,7 @@ export default function JobRequisitionHREdit() {
           </Button>
           <Button onClick={handleSaveChanges} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
-            {saving ? 'Saving...' : 'Save & Send to Chief HR'}
+            {saving ? 'Saving...' : isSecondReview ? 'Save & Send to Manager' : 'Save & Send to Chief HR'}
           </Button>
         </div>
       </div>
@@ -351,68 +397,104 @@ export default function JobRequisitionHREdit() {
             <CardTitle>Position Description</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="purpose_of_position">Purpose of the Position</Label>
-              <Textarea
-                id="purpose_of_position"
-                value={formData.purpose_of_position || ''}
-                onChange={(e) => setFormData({ ...formData, purpose_of_position: e.target.value })}
-                className={`min-h-24 ${changes.some(c => c.field === 'purpose_of_position') ? 'border-amber-400 bg-amber-50' : ''}`}
+            {isSecondReview ? (
+              <EditableTrackChangesField
+                label="Purpose of the Position"
+                originalValue={originalData.purpose_of_position || ''}
+                hrValue={hrVersion.purpose_of_position || originalData.purpose_of_position || ''}
+                currentValue={formData.purpose_of_position || ''}
+                onChange={(value) => setFormData({ ...formData, purpose_of_position: value })}
+                hrChangesAccepted={acceptedChiefHRFields.has('purpose_of_position')}
+                onAcceptHRChanges={() => acceptChiefHRChanges('purpose_of_position')}
               />
-              {changes.some(c => c.field === 'purpose_of_position') && (
-                <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
-                  <InlineTrackChanges
-                    fieldLabel=""
-                    originalValue={originalData.purpose_of_position || ''}
-                    newValue={formData.purpose_of_position || ''}
-                    showToggle={false}
-                  />
-                </div>
-              )}
-            </div>
+            ) : (
+              <div>
+                <Label htmlFor="purpose_of_position">Purpose of the Position</Label>
+                <Textarea
+                  id="purpose_of_position"
+                  value={formData.purpose_of_position || ''}
+                  onChange={(e) => setFormData({ ...formData, purpose_of_position: e.target.value })}
+                  className={`min-h-24 ${changes.some(c => c.field === 'purpose_of_position') ? 'border-amber-400 bg-amber-50' : ''}`}
+                />
+                {changes.some(c => c.field === 'purpose_of_position') && (
+                  <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
+                    <InlineTrackChanges
+                      fieldLabel=""
+                      originalValue={originalData.purpose_of_position || ''}
+                      newValue={formData.purpose_of_position || ''}
+                      showToggle={false}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
             
-            <div>
-              <Label htmlFor="objectives_of_programme">Objectives of the Programme</Label>
-              <Textarea
-                id="objectives_of_programme"
-                value={formData.objectives_of_programme || ''}
-                onChange={(e) => setFormData({ ...formData, objectives_of_programme: e.target.value })}
-                className={`min-h-24 ${changes.some(c => c.field === 'objectives_of_programme') ? 'border-amber-400 bg-amber-50' : ''}`}
+            {isSecondReview ? (
+              <EditableTrackChangesField
+                label="Objectives of the Programme"
+                originalValue={originalData.objectives_of_programme || ''}
+                hrValue={hrVersion.objectives_of_programme || originalData.objectives_of_programme || ''}
+                currentValue={formData.objectives_of_programme || ''}
+                onChange={(value) => setFormData({ ...formData, objectives_of_programme: value })}
+                hrChangesAccepted={acceptedChiefHRFields.has('objectives_of_programme')}
+                onAcceptHRChanges={() => acceptChiefHRChanges('objectives_of_programme')}
               />
-              {changes.some(c => c.field === 'objectives_of_programme') && (
-                <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
-                  <InlineTrackChanges
-                    fieldLabel=""
-                    originalValue={originalData.objectives_of_programme || ''}
-                    newValue={formData.objectives_of_programme || ''}
-                    showToggle={false}
-                  />
-                </div>
-              )}
-            </div>
+            ) : (
+              <div>
+                <Label htmlFor="objectives_of_programme">Objectives of the Programme</Label>
+                <Textarea
+                  id="objectives_of_programme"
+                  value={formData.objectives_of_programme || ''}
+                  onChange={(e) => setFormData({ ...formData, objectives_of_programme: e.target.value })}
+                  className={`min-h-24 ${changes.some(c => c.field === 'objectives_of_programme') ? 'border-amber-400 bg-amber-50' : ''}`}
+                />
+                {changes.some(c => c.field === 'objectives_of_programme') && (
+                  <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
+                    <InlineTrackChanges
+                      fieldLabel=""
+                      originalValue={originalData.objectives_of_programme || ''}
+                      newValue={formData.objectives_of_programme || ''}
+                      showToggle={false}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
             
-            <div>
-              <Label htmlFor="main_duties_responsibilities">Main Duties and Responsibilities</Label>
-              <Textarea
-                id="main_duties_responsibilities"
-                value={formData.main_duties_responsibilities || ''}
-                onChange={(e) => setFormData({ ...formData, main_duties_responsibilities: e.target.value })}
-                className={`min-h-32 ${changes.some(c => c.field === 'main_duties_responsibilities') ? 'border-amber-400 bg-amber-50' : ''}`}
+            {isSecondReview ? (
+              <EditableTrackChangesField
+                label="Main Duties and Responsibilities"
+                originalValue={originalData.main_duties_responsibilities || ''}
+                hrValue={hrVersion.main_duties_responsibilities || originalData.main_duties_responsibilities || ''}
+                currentValue={formData.main_duties_responsibilities || ''}
+                onChange={(value) => setFormData({ ...formData, main_duties_responsibilities: value })}
+                hrChangesAccepted={acceptedChiefHRFields.has('main_duties_responsibilities')}
+                onAcceptHRChanges={() => acceptChiefHRChanges('main_duties_responsibilities')}
               />
-              {changes.some(c => c.field === 'main_duties_responsibilities') && (
-                <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
-                  <InlineTrackChanges
-                    fieldLabel=""
-                    originalValue={originalData.main_duties_responsibilities || ''}
-                    newValue={formData.main_duties_responsibilities || ''}
-                    showToggle={false}
-                  />
-                </div>
-              )}
-            </div>
+            ) : (
+              <div>
+                <Label htmlFor="main_duties_responsibilities">Main Duties and Responsibilities</Label>
+                <Textarea
+                  id="main_duties_responsibilities"
+                  value={formData.main_duties_responsibilities || ''}
+                  onChange={(e) => setFormData({ ...formData, main_duties_responsibilities: e.target.value })}
+                  className={`min-h-32 ${changes.some(c => c.field === 'main_duties_responsibilities') ? 'border-amber-400 bg-amber-50' : ''}`}
+                />
+                {changes.some(c => c.field === 'main_duties_responsibilities') && (
+                  <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
+                    <InlineTrackChanges
+                      fieldLabel=""
+                      originalValue={originalData.main_duties_responsibilities || ''}
+                      newValue={formData.main_duties_responsibilities || ''}
+                      showToggle={false}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -423,86 +505,137 @@ export default function JobRequisitionHREdit() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4">
-              <div>
-                <Label htmlFor="essential_experience">Essential Experience</Label>
-                <Textarea
-                  id="essential_experience"
-                  value={formData.essential_experience || ''}
-                  onChange={(e) => setFormData({ ...formData, essential_experience: e.target.value })}
-                  className={`min-h-24 ${changes.some(c => c.field === 'essential_experience') ? 'border-amber-400 bg-amber-50' : ''}`}
+              {isSecondReview ? (
+                <EditableTrackChangesField
+                  label="Essential Experience"
+                  originalValue={originalData.essential_experience || ''}
+                  hrValue={hrVersion.essential_experience || originalData.essential_experience || ''}
+                  currentValue={formData.essential_experience || ''}
+                  onChange={(value) => setFormData({ ...formData, essential_experience: value })}
+                  hrChangesAccepted={acceptedChiefHRFields.has('essential_experience')}
+                  onAcceptHRChanges={() => acceptChiefHRChanges('essential_experience')}
                 />
-                {changes.some(c => c.field === 'essential_experience') && (
-                  <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
-                    <InlineTrackChanges
-                      fieldLabel=""
-                      originalValue={originalData.essential_experience || ''}
-                      newValue={formData.essential_experience || ''}
-                      showToggle={false}
-                    />
-                  </div>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="desirable_experience">Desirable Experience</Label>
-                <Textarea
-                  id="desirable_experience"
-                  value={formData.desirable_experience || ''}
-                  onChange={(e) => setFormData({ ...formData, desirable_experience: e.target.value })}
-                  className={`min-h-24 ${changes.some(c => c.field === 'desirable_experience') ? 'border-amber-400 bg-amber-50' : ''}`}
+              ) : (
+                <div>
+                  <Label htmlFor="essential_experience">Essential Experience</Label>
+                  <Textarea
+                    id="essential_experience"
+                    value={formData.essential_experience || ''}
+                    onChange={(e) => setFormData({ ...formData, essential_experience: e.target.value })}
+                    className={`min-h-24 ${changes.some(c => c.field === 'essential_experience') ? 'border-amber-400 bg-amber-50' : ''}`}
+                  />
+                  {changes.some(c => c.field === 'essential_experience') && (
+                    <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
+                      <InlineTrackChanges
+                        fieldLabel=""
+                        originalValue={originalData.essential_experience || ''}
+                        newValue={formData.essential_experience || ''}
+                        showToggle={false}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {isSecondReview ? (
+                <EditableTrackChangesField
+                  label="Desirable Experience"
+                  originalValue={originalData.desirable_experience || ''}
+                  hrValue={hrVersion.desirable_experience || originalData.desirable_experience || ''}
+                  currentValue={formData.desirable_experience || ''}
+                  onChange={(value) => setFormData({ ...formData, desirable_experience: value })}
+                  hrChangesAccepted={acceptedChiefHRFields.has('desirable_experience')}
+                  onAcceptHRChanges={() => acceptChiefHRChanges('desirable_experience')}
                 />
-                {changes.some(c => c.field === 'desirable_experience') && (
-                  <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
-                    <InlineTrackChanges
-                      fieldLabel=""
-                      originalValue={originalData.desirable_experience || ''}
-                      newValue={formData.desirable_experience || ''}
-                      showToggle={false}
-                    />
-                  </div>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="essential_education">Essential Education</Label>
-                <Textarea
-                  id="essential_education"
-                  value={formData.essential_education || ''}
-                  onChange={(e) => setFormData({ ...formData, essential_education: e.target.value })}
-                  className={`min-h-24 ${changes.some(c => c.field === 'essential_education') ? 'border-amber-400 bg-amber-50' : ''}`}
+              ) : (
+                <div>
+                  <Label htmlFor="desirable_experience">Desirable Experience</Label>
+                  <Textarea
+                    id="desirable_experience"
+                    value={formData.desirable_experience || ''}
+                    onChange={(e) => setFormData({ ...formData, desirable_experience: e.target.value })}
+                    className={`min-h-24 ${changes.some(c => c.field === 'desirable_experience') ? 'border-amber-400 bg-amber-50' : ''}`}
+                  />
+                  {changes.some(c => c.field === 'desirable_experience') && (
+                    <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
+                      <InlineTrackChanges
+                        fieldLabel=""
+                        originalValue={originalData.desirable_experience || ''}
+                        newValue={formData.desirable_experience || ''}
+                        showToggle={false}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {isSecondReview ? (
+                <EditableTrackChangesField
+                  label="Essential Education"
+                  originalValue={originalData.essential_education || ''}
+                  hrValue={hrVersion.essential_education || originalData.essential_education || ''}
+                  currentValue={formData.essential_education || ''}
+                  onChange={(value) => setFormData({ ...formData, essential_education: value })}
+                  hrChangesAccepted={acceptedChiefHRFields.has('essential_education')}
+                  onAcceptHRChanges={() => acceptChiefHRChanges('essential_education')}
                 />
-                {changes.some(c => c.field === 'essential_education') && (
-                  <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
-                    <InlineTrackChanges
-                      fieldLabel=""
-                      originalValue={originalData.essential_education || ''}
-                      newValue={formData.essential_education || ''}
-                      showToggle={false}
-                    />
-                  </div>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="desirable_education">Desirable Education</Label>
-                <Textarea
-                  id="desirable_education"
-                  value={formData.desirable_education || ''}
-                  onChange={(e) => setFormData({ ...formData, desirable_education: e.target.value })}
-                  className={`min-h-24 ${changes.some(c => c.field === 'desirable_education') ? 'border-amber-400 bg-amber-50' : ''}`}
+              ) : (
+                <div>
+                  <Label htmlFor="essential_education">Essential Education</Label>
+                  <Textarea
+                    id="essential_education"
+                    value={formData.essential_education || ''}
+                    onChange={(e) => setFormData({ ...formData, essential_education: e.target.value })}
+                    className={`min-h-24 ${changes.some(c => c.field === 'essential_education') ? 'border-amber-400 bg-amber-50' : ''}`}
+                  />
+                  {changes.some(c => c.field === 'essential_education') && (
+                    <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
+                      <InlineTrackChanges
+                        fieldLabel=""
+                        originalValue={originalData.essential_education || ''}
+                        newValue={formData.essential_education || ''}
+                        showToggle={false}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {isSecondReview ? (
+                <EditableTrackChangesField
+                  label="Desirable Education"
+                  originalValue={originalData.desirable_education || ''}
+                  hrValue={hrVersion.desirable_education || originalData.desirable_education || ''}
+                  currentValue={formData.desirable_education || ''}
+                  onChange={(value) => setFormData({ ...formData, desirable_education: value })}
+                  hrChangesAccepted={acceptedChiefHRFields.has('desirable_education')}
+                  onAcceptHRChanges={() => acceptChiefHRChanges('desirable_education')}
                 />
-                {changes.some(c => c.field === 'desirable_education') && (
-                  <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
-                    <InlineTrackChanges
-                      fieldLabel=""
-                      originalValue={originalData.desirable_education || ''}
-                      newValue={formData.desirable_education || ''}
-                      showToggle={false}
-                    />
-                  </div>
-                )}
-              </div>
+              ) : (
+                <div>
+                  <Label htmlFor="desirable_education">Desirable Education</Label>
+                  <Textarea
+                    id="desirable_education"
+                    value={formData.desirable_education || ''}
+                    onChange={(e) => setFormData({ ...formData, desirable_education: e.target.value })}
+                    className={`min-h-24 ${changes.some(c => c.field === 'desirable_education') ? 'border-amber-400 bg-amber-50' : ''}`}
+                  />
+                  {changes.some(c => c.field === 'desirable_education') && (
+                    <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
+                      <InlineTrackChanges
+                        fieldLabel=""
+                        originalValue={originalData.desirable_education || ''}
+                        newValue={formData.desirable_education || ''}
+                        showToggle={false}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
