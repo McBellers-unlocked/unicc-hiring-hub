@@ -380,6 +380,17 @@ export default function JobRequisitionHREdit() {
                 onChange={(e) => setFormData({ ...formData, objectives_of_programme: e.target.value })}
                 className={`min-h-24 ${changes.some(c => c.field === 'objectives_of_programme') ? 'border-amber-400 bg-amber-50' : ''}`}
               />
+              {changes.some(c => c.field === 'objectives_of_programme') && (
+                <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
+                  <InlineTrackChanges
+                    fieldLabel=""
+                    originalValue={originalData.objectives_of_programme || ''}
+                    newValue={formData.objectives_of_programme || ''}
+                    showToggle={false}
+                  />
+                </div>
+              )}
             </div>
             
             <div>
@@ -420,6 +431,17 @@ export default function JobRequisitionHREdit() {
                   onChange={(e) => setFormData({ ...formData, essential_experience: e.target.value })}
                   className={`min-h-24 ${changes.some(c => c.field === 'essential_experience') ? 'border-amber-400 bg-amber-50' : ''}`}
                 />
+                {changes.some(c => c.field === 'essential_experience') && (
+                  <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
+                    <InlineTrackChanges
+                      fieldLabel=""
+                      originalValue={originalData.essential_experience || ''}
+                      newValue={formData.essential_experience || ''}
+                      showToggle={false}
+                    />
+                  </div>
+                )}
               </div>
               <div>
                 <Label htmlFor="desirable_experience">Desirable Experience</Label>
@@ -429,6 +451,17 @@ export default function JobRequisitionHREdit() {
                   onChange={(e) => setFormData({ ...formData, desirable_experience: e.target.value })}
                   className={`min-h-24 ${changes.some(c => c.field === 'desirable_experience') ? 'border-amber-400 bg-amber-50' : ''}`}
                 />
+                {changes.some(c => c.field === 'desirable_experience') && (
+                  <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
+                    <InlineTrackChanges
+                      fieldLabel=""
+                      originalValue={originalData.desirable_experience || ''}
+                      newValue={formData.desirable_experience || ''}
+                      showToggle={false}
+                    />
+                  </div>
+                )}
               </div>
               <div>
                 <Label htmlFor="essential_education">Essential Education</Label>
@@ -438,6 +471,17 @@ export default function JobRequisitionHREdit() {
                   onChange={(e) => setFormData({ ...formData, essential_education: e.target.value })}
                   className={`min-h-24 ${changes.some(c => c.field === 'essential_education') ? 'border-amber-400 bg-amber-50' : ''}`}
                 />
+                {changes.some(c => c.field === 'essential_education') && (
+                  <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
+                    <InlineTrackChanges
+                      fieldLabel=""
+                      originalValue={originalData.essential_education || ''}
+                      newValue={formData.essential_education || ''}
+                      showToggle={false}
+                    />
+                  </div>
+                )}
               </div>
               <div>
                 <Label htmlFor="desirable_education">Desirable Education</Label>
@@ -447,6 +491,17 @@ export default function JobRequisitionHREdit() {
                   onChange={(e) => setFormData({ ...formData, desirable_education: e.target.value })}
                   className={`min-h-24 ${changes.some(c => c.field === 'desirable_education') ? 'border-amber-400 bg-amber-50' : ''}`}
                 />
+                {changes.some(c => c.field === 'desirable_education') && (
+                  <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
+                    <InlineTrackChanges
+                      fieldLabel=""
+                      originalValue={originalData.desirable_education || ''}
+                      newValue={formData.desirable_education || ''}
+                      showToggle={false}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
