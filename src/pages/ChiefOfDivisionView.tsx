@@ -17,7 +17,8 @@ export default function ChiefOfDivisionView() {
       const { data, error } = await supabase
         .from("job_requisitions")
         .select("*")
-        .eq("hr_reviewed", true)
+        .eq("hr_final_review_completed", true)
+        .eq("status", "chief_of_division_review")
         .or("chief_of_division_approval.is.null,chief_of_division_approval.eq.false")
         .order("created_at", { ascending: false });
 
@@ -117,10 +118,38 @@ export default function ChiefOfDivisionView() {
                       </div>
                     </div>
 
-                    {requisition.hr_change_summary && (
+                     {requisition.hr_change_summary && (
                       <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                        <p className="text-sm font-medium text-blue-900">HR Changes Summary:</p>
+                        <p className="text-sm font-medium text-blue-900">HR Review Note:</p>
                         <p className="text-sm text-blue-800">{requisition.hr_change_summary}</p>
+                      </div>
+                    )}
+
+                    {/* Show clean position description */}
+                    {requisition.final_clean_version && (
+                      <div className="mb-4 space-y-3">
+                        <h3 className="font-semibold">Position Description</h3>
+                        
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Purpose of Position:</p>
+                          <p className="text-sm whitespace-pre-wrap">
+                            {(requisition.final_clean_version as any)?.purpose_of_position || requisition.purpose_of_position}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Main Duties:</p>
+                          <p className="text-sm whitespace-pre-wrap">
+                            {(requisition.final_clean_version as any)?.main_duties_responsibilities || requisition.main_duties_responsibilities}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Essential Experience:</p>
+                          <p className="text-sm whitespace-pre-wrap">
+                            {(requisition.final_clean_version as any)?.essential_experience || requisition.essential_experience}
+                          </p>
+                        </div>
                       </div>
                     )}
 

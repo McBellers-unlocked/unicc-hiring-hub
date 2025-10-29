@@ -820,17 +820,22 @@ export type Database = {
           eligible_grades: string | null
           essential_education: string | null
           essential_experience: string | null
+          final_clean_version: Json | null
           finance_controller_approval: boolean | null
           finance_controller_approved_at: string | null
           finance_controller_approved_by: string | null
           global_competencies: Json | null
           grade: string | null
+          hiring_manager_changes: Json | null
           hiring_manager_confirmed_at: string | null
           hiring_manager_confirmed_hr_changes: boolean | null
           hiring_manager_sent_at: string | null
           hr_change_summary: string | null
           hr_changes: Json | null
           hr_comments: string | null
+          hr_final_review_at: string | null
+          hr_final_review_by: string | null
+          hr_final_review_completed: boolean | null
           hr_internal_status: string | null
           hr_original_data: Json | null
           hr_reviewed: boolean | null
@@ -883,17 +888,22 @@ export type Database = {
           eligible_grades?: string | null
           essential_education?: string | null
           essential_experience?: string | null
+          final_clean_version?: Json | null
           finance_controller_approval?: boolean | null
           finance_controller_approved_at?: string | null
           finance_controller_approved_by?: string | null
           global_competencies?: Json | null
           grade?: string | null
+          hiring_manager_changes?: Json | null
           hiring_manager_confirmed_at?: string | null
           hiring_manager_confirmed_hr_changes?: boolean | null
           hiring_manager_sent_at?: string | null
           hr_change_summary?: string | null
           hr_changes?: Json | null
           hr_comments?: string | null
+          hr_final_review_at?: string | null
+          hr_final_review_by?: string | null
+          hr_final_review_completed?: boolean | null
           hr_internal_status?: string | null
           hr_original_data?: Json | null
           hr_reviewed?: boolean | null
@@ -946,17 +956,22 @@ export type Database = {
           eligible_grades?: string | null
           essential_education?: string | null
           essential_experience?: string | null
+          final_clean_version?: Json | null
           finance_controller_approval?: boolean | null
           finance_controller_approved_at?: string | null
           finance_controller_approved_by?: string | null
           global_competencies?: Json | null
           grade?: string | null
+          hiring_manager_changes?: Json | null
           hiring_manager_confirmed_at?: string | null
           hiring_manager_confirmed_hr_changes?: boolean | null
           hiring_manager_sent_at?: string | null
           hr_change_summary?: string | null
           hr_changes?: Json | null
           hr_comments?: string | null
+          hr_final_review_at?: string | null
+          hr_final_review_by?: string | null
+          hr_final_review_completed?: boolean | null
           hr_internal_status?: string | null
           hr_original_data?: Json | null
           hr_reviewed?: boolean | null

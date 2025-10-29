@@ -40,6 +40,10 @@ interface JobRequisition {
   chief_hr_reviewed: boolean;
   chief_hr_comments: string;
   hr_internal_status: string;
+  hiring_manager_confirmed_hr_changes: boolean;
+  hiring_manager_changes: any;
+  hr_final_review_completed: boolean;
+  final_clean_version: any;
 }
 
 interface FieldChange {
@@ -93,10 +97,15 @@ export default function JobRequisitionHREdit() {
       setRequisition(data);
       setFormData(data);
       
-      // Determine if this is second review (after Chief HR) or initial review
-      const isSecondReview = data.chief_hr_reviewed;
+      // Determine the review stage
+      const isFinalCleanup = data.status === 'hr_final_review' && data.hiring_manager_confirmed_hr_changes;
+      const isSecondReview = data.chief_hr_reviewed && !isFinalCleanup;
       
-      if (isSecondReview) {
+      if (isFinalCleanup) {
+        // Final cleanup stage: start with current (HM modified) version
+        // HR will create a clean version for Division Chief
+        setOriginalData(data);
+      } else if (isSecondReview) {
         // Second review: show Chief HR's changes compared to HR's version
         const hrVersionData = (typeof data.hr_original_data === 'object' && data.hr_original_data !== null) 
           ? data.hr_original_data as Partial<JobRequisition>
@@ -121,7 +130,8 @@ export default function JobRequisitionHREdit() {
     }
   };
   
-  const isSecondReview = requisition?.chief_hr_reviewed || false;
+  const isFinalCleanup = requisition?.status === 'hr_final_review' && requisition?.hiring_manager_confirmed_hr_changes;
+  const isSecondReview = requisition?.chief_hr_reviewed && !isFinalCleanup || false;
   
   const acceptChiefHRChanges = (fieldKey: string) => {
     setAcceptedChiefHRFields(prev => new Set([...prev, fieldKey]));
@@ -178,7 +188,7 @@ export default function JobRequisitionHREdit() {
 
     const changes = detectChanges();
     
-    if (changes.length === 0 && !changeSummary.trim()) {
+    if (changes.length === 0 && !changeSummary.trim() && !isFinalCleanup) {
       toast({
         title: "No Changes",
         description: "No changes detected to save",
@@ -191,7 +201,27 @@ export default function JobRequisitionHREdit() {
     try {
       let updateData;
       
-      if (isSecondReview) {
+      if (isFinalCleanup) {
+        // Final cleanup: create clean version for Division Chief
+        const cleanVersion = {
+          purpose_of_position: formData.purpose_of_position,
+          objectives_of_programme: formData.objectives_of_programme,
+          main_duties_responsibilities: formData.main_duties_responsibilities,
+          essential_experience: formData.essential_experience,
+          desirable_experience: formData.desirable_experience,
+          essential_education: formData.essential_education,
+          desirable_education: formData.desirable_education,
+        };
+        
+        updateData = {
+          ...formData,
+          final_clean_version: cleanVersion,
+          hr_final_review_completed: true,
+          hr_final_review_at: new Date().toISOString(),
+          hr_final_review_by: user?.id,
+          status: 'chief_of_division_review', // Ready for Division Chief
+        };
+      } else if (isSecondReview) {
         // Second review: send to manager for confirmation
         updateData = {
           ...formData,
@@ -221,7 +251,9 @@ export default function JobRequisitionHREdit() {
 
       toast({
         title: "Success",
-        description: isSecondReview 
+        description: isFinalCleanup
+          ? "Clean version created and sent to Division Chief"
+          : isSecondReview 
           ? "Changes saved and sent to Manager for confirmation" 
           : "Changes saved and sent to Chief HR for review",
       });
@@ -278,11 +310,17 @@ export default function JobRequisitionHREdit() {
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold">
-              {isSecondReview ? 'Review Chief HR Changes' : 'Edit Position Description'}
+              {isFinalCleanup 
+                ? 'Create Clean Version for Division Chief'
+                : isSecondReview 
+                ? 'Review Chief HR Changes' 
+                : 'Edit Position Description'}
             </h1>
           </div>
           <p className="text-muted-foreground">
-            {isSecondReview 
+            {isFinalCleanup
+              ? `Review hiring manager changes and finalize • Ref: ${requisition.reference_number}`
+              : isSecondReview 
               ? `Reviewing Chief HR changes • Ref: ${requisition.reference_number}`
               : `Making changes as HR • Ref: ${requisition.reference_number} • Created ${format(new Date(requisition.created_at), 'MMM dd, yyyy')}`
             }
@@ -295,7 +333,13 @@ export default function JobRequisitionHREdit() {
           </Button>
           <Button onClick={handleSaveChanges} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
-            {saving ? 'Saving...' : isSecondReview ? 'Save & Send to Manager' : 'Save & Send to Chief HR'}
+            {saving 
+              ? 'Saving...' 
+              : isFinalCleanup
+              ? 'Finalize & Send to Division Chief'
+              : isSecondReview 
+              ? 'Save & Send to Manager' 
+              : 'Save & Send to Chief HR'}
           </Button>
         </div>
       </div>

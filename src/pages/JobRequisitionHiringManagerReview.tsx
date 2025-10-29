@@ -113,13 +113,37 @@ export default function JobRequisitionHiringManagerReview() {
     try {
       setSaving(true);
 
+      // Detect changes made by hiring manager
+      const hmChanges = [];
+      const fields = [
+        { field: 'purpose_of_position', label: 'Purpose of the Position' },
+        { field: 'objectives_of_programme', label: 'Objectives of the Programme' },
+        { field: 'main_duties_responsibilities', label: 'Main Duties and Responsibilities' },
+        { field: 'essential_experience', label: 'Essential Experience' },
+        { field: 'desirable_experience', label: 'Desirable Experience' },
+        { field: 'essential_education', label: 'Essential Education' },
+        { field: 'desirable_education', label: 'Desirable Education' },
+      ];
+
+      for (const { field, label } of fields) {
+        if (formData[field] !== hrData[field]) {
+          hmChanges.push({
+            field,
+            label,
+            originalValue: hrData[field] || '',
+            newValue: formData[field] || '',
+          });
+        }
+      }
+
       const { error } = await supabase
         .from('job_requisitions')
         .update({
           ...formData,
           hiring_manager_confirmed_hr_changes: true,
           hiring_manager_confirmed_at: new Date().toISOString(),
-          status: 'hiring_manager_review',
+          hiring_manager_changes: hmChanges,
+          status: 'hr_final_review', // New status for HR to do final cleanup
           updated_at: new Date().toISOString(),
         })
         .eq('id', requisition.id);
@@ -128,7 +152,7 @@ export default function JobRequisitionHiringManagerReview() {
 
       toast({
         title: "Success",
-        description: "Your changes have been saved successfully",
+        description: "Your changes have been submitted to HR for final review",
       });
 
       navigate(`/requisitions/${requisition.id}`);
