@@ -211,35 +211,6 @@ export default function JobRequisitionDetail() {
     }
   };
 
-  const acceptHRChanges = async () => {
-    try {
-      const { error } = await supabase
-        .from('job_requisitions')
-        .update({
-          hiring_manager_confirmed_hr_changes: true,
-          hiring_manager_confirmed_at: new Date().toISOString(),
-          status: 'hiring_manager_review'
-        })
-        .eq('id', requisition?.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "HR changes accepted successfully",
-      });
-
-      fetchRequisition(); // Refresh the data
-    } catch (error) {
-      console.error('Error accepting HR changes:', error);
-      toast({
-        title: "Error",
-        description: "Failed to accept HR changes",
-        variant: "destructive",
-      });
-    }
-  };
-
   if (loading) {
     return (
       <div className="container mx-auto p-6">
@@ -315,9 +286,9 @@ export default function JobRequisitionDetail() {
           {((requisition.status === 'hr_amendments') || 
             (requisition.status === 'hiring_manager_review' && requisition.hr_reviewed && !requisition.hiring_manager_confirmed_hr_changes)) && 
            requisition.created_by === user?.id && (
-            <Button onClick={acceptHRChanges} className="bg-green-600 hover:bg-green-700">
+            <Button onClick={() => navigate(`/requisitions/${requisition.id}/hm-review`)} className="bg-blue-600 hover:bg-blue-700">
               <CheckCircle className="h-4 w-4 mr-2" />
-              Accept HR Changes
+              Review & Accept Changes
             </Button>
           )}
           
