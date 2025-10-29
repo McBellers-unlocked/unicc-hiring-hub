@@ -141,7 +141,7 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
 
       <div
         ref={contentRef}
-        contentEditable={!disabled && (hrChangesAccepted || !hasHRChanges)}
+        contentEditable={!disabled}
         onInput={handleInput}
         onFocus={handleFocus}
         onBlur={handleBlur}
@@ -150,7 +150,7 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
           "min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
           "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
           "overflow-auto whitespace-pre-wrap break-words",
-          (disabled || (!hrChangesAccepted && hasHRChanges)) && "cursor-not-allowed opacity-70",
+          disabled && "cursor-not-allowed opacity-70",
           className
         )}
       />
