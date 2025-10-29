@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, AlertTriangle, Eye, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
+import { InlineTrackChanges, InlineTrackChangesSummary } from "@/components/InlineTrackChanges";
 
 interface JobRequisition {
   id: string;
@@ -296,27 +297,13 @@ export default function JobRequisitionChiefHREdit() {
 
       {/* HR's Changes Summary */}
       {hrChanges.length > 0 && (
-        <Card className="mb-6 border-blue-200 bg-blue-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-800">
-              <AlertTriangle className="h-5 w-5" />
-              HR Made {hrChanges.length} Change(s)
-            </CardTitle>
-            <CardDescription className="text-blue-700">
-              {requisition.hr_change_summary || "HR has modified the following fields:"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {hrChanges.map((change: any, index: number) => (
-                <div key={index} className="text-sm">
-                  <span className="font-medium">{change.label}</span>
-                  <span className="text-blue-700"> - Modified by HR</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="mb-6">
+          <InlineTrackChangesSummary
+            changes={hrChanges}
+            title="HR Made Changes"
+            description={requisition.hr_change_summary || "HR has modified the following fields. Click to expand and view detailed changes."}
+          />
+        </div>
       )}
 
       {/* Current Changes by Chief HR */}
@@ -445,6 +432,17 @@ export default function JobRequisitionChiefHREdit() {
                 onChange={(e) => setFormData({ ...formData, main_duties_responsibilities: e.target.value })}
                 className={`min-h-32 ${currentChanges.some(c => c.field === 'main_duties_responsibilities') ? 'border-amber-400 bg-amber-50' : ''}`}
               />
+              {currentChanges.some(c => c.field === 'main_duties_responsibilities') && (
+                <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-xs text-blue-700 font-medium mb-2">Preview of your additional changes:</p>
+                  <InlineTrackChanges
+                    fieldLabel=""
+                    originalValue={originalData.main_duties_responsibilities || ''}
+                    newValue={formData.main_duties_responsibilities || ''}
+                    showToggle={false}
+                  />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

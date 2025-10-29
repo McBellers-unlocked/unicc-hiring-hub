@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, AlertTriangle, Eye } from "lucide-react";
 import { format } from "date-fns";
+import { InlineTrackChanges } from "@/components/InlineTrackChanges";
 
 interface JobRequisition {
   id: string;
@@ -358,6 +359,17 @@ export default function JobRequisitionHREdit() {
                 onChange={(e) => setFormData({ ...formData, purpose_of_position: e.target.value })}
                 className={`min-h-24 ${changes.some(c => c.field === 'purpose_of_position') ? 'border-amber-400 bg-amber-50' : ''}`}
               />
+              {changes.some(c => c.field === 'purpose_of_position') && (
+                <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
+                  <InlineTrackChanges
+                    fieldLabel=""
+                    originalValue={originalData.purpose_of_position || ''}
+                    newValue={formData.purpose_of_position || ''}
+                    showToggle={false}
+                  />
+                </div>
+              )}
             </div>
             
             <div>
@@ -378,6 +390,17 @@ export default function JobRequisitionHREdit() {
                 onChange={(e) => setFormData({ ...formData, main_duties_responsibilities: e.target.value })}
                 className={`min-h-32 ${changes.some(c => c.field === 'main_duties_responsibilities') ? 'border-amber-400 bg-amber-50' : ''}`}
               />
+              {changes.some(c => c.field === 'main_duties_responsibilities') && (
+                <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-xs text-blue-700 font-medium mb-2">Preview of tracked changes:</p>
+                  <InlineTrackChanges
+                    fieldLabel=""
+                    originalValue={originalData.main_duties_responsibilities || ''}
+                    newValue={formData.main_duties_responsibilities || ''}
+                    showToggle={false}
+                  />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
