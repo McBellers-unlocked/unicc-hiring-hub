@@ -416,19 +416,64 @@ export default function JobRequisitionDetail() {
           <CardContent className="space-y-4">
             <div>
               <label className="text-sm font-medium text-muted-foreground">Purpose of the Position</label>
-              <p className="mt-1 whitespace-pre-wrap">{requisition.purpose_of_position}</p>
+              {(() => {
+                const hrChange = Array.isArray(requisition.hr_changes) && 
+                  requisition.hr_changes.find((c: any) => c.field === 'purpose_of_position');
+                return hrChange ? (
+                  <div className="mt-1">
+                    <InlineTrackChanges
+                      fieldLabel=""
+                      originalValue={hrChange.originalValue}
+                      newValue={hrChange.newValue}
+                      showToggle={false}
+                    />
+                  </div>
+                ) : (
+                  <p className="mt-1 whitespace-pre-wrap">{requisition.purpose_of_position}</p>
+                );
+              })()}
             </div>
             
             {requisition.objectives_of_programme && (
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Objectives of the Programme</label>
-                <p className="mt-1 whitespace-pre-wrap">{requisition.objectives_of_programme}</p>
+                {(() => {
+                  const hrChange = Array.isArray(requisition.hr_changes) && 
+                    requisition.hr_changes.find((c: any) => c.field === 'objectives_of_programme');
+                  return hrChange ? (
+                    <div className="mt-1">
+                      <InlineTrackChanges
+                        fieldLabel=""
+                        originalValue={hrChange.originalValue}
+                        newValue={hrChange.newValue}
+                        showToggle={false}
+                      />
+                    </div>
+                  ) : (
+                    <p className="mt-1 whitespace-pre-wrap">{requisition.objectives_of_programme}</p>
+                  );
+                })()}
               </div>
             )}
             
             <div>
               <label className="text-sm font-medium text-muted-foreground">Main Duties and Responsibilities</label>
-              <p className="mt-1 whitespace-pre-wrap">{requisition.main_duties_responsibilities}</p>
+              {(() => {
+                const hrChange = Array.isArray(requisition.hr_changes) && 
+                  requisition.hr_changes.find((c: any) => c.field === 'main_duties_responsibilities');
+                return hrChange ? (
+                  <div className="mt-1">
+                    <InlineTrackChanges
+                      fieldLabel=""
+                      originalValue={hrChange.originalValue}
+                      newValue={hrChange.newValue}
+                      showToggle={false}
+                    />
+                  </div>
+                ) : (
+                  <p className="mt-1 whitespace-pre-wrap">{requisition.main_duties_responsibilities}</p>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>
