@@ -12,6 +12,7 @@ import { ArrowLeft, AlertTriangle, Eye, CheckCircle2, Check } from "lucide-react
 import { format } from "date-fns";
 import { InlineTrackChanges, InlineTrackChangesSummary } from "@/components/InlineTrackChanges";
 import { FinalDocumentReviewDialog } from "@/components/FinalDocumentReviewDialog";
+import EditableTrackChangesField from "@/components/EditableTrackChangesField";
 
 interface JobRequisition {
   id: string;
@@ -430,173 +431,44 @@ export default function JobRequisitionChiefHREdit() {
             <CardTitle>Position Description</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="purpose_of_position">Purpose of the Position</Label>
-              <Textarea
-                id="purpose_of_position"
-                value={formData.purpose_of_position || ''}
-                onChange={(e) => setFormData({ ...formData, purpose_of_position: e.target.value })}
-                className={`min-h-24 ${currentChanges.some(c => c.field === 'purpose_of_position') ? 'border-amber-400 bg-amber-50' : ''}`}
-              />
-              
-              {/* Show HR's changes if not accepted yet */}
-              {getHRChangeForField('purpose_of_position') && !acceptedFields.has('purpose_of_position') && (
-                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <p className="text-xs text-blue-700 font-medium">HR's changes:</p>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => {
-                        acceptHRChanges('purpose_of_position');
-                        setFormData({ ...formData, purpose_of_position: requisition?.purpose_of_position });
-                      }}
-                      className="h-7 text-xs"
-                    >
-                      <Check className="h-3 w-3 mr-1" />
-                      Accept HR Changes
-                    </Button>
-                  </div>
-                  <InlineTrackChanges
-                    fieldLabel=""
-                    originalValue={originalData.purpose_of_position || ''}
-                    newValue={requisition?.purpose_of_position || ''}
-                    showToggle={false}
-                  />
-                </div>
-              )}
-              
-              {/* Show accepted indicator */}
-              {acceptedFields.has('purpose_of_position') && (
-                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <span className="text-xs text-green-700">HR changes accepted</span>
-                </div>
-              )}
-              
-              {/* Show Chief HR's own changes if any */}
-              {currentChanges.some(c => c.field === 'purpose_of_position') && (
-                <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <p className="text-xs text-amber-700 font-medium mb-2">Your additional changes:</p>
-                  <InlineTrackChanges
-                    fieldLabel=""
-                    originalValue={workingBaseline.purpose_of_position || ''}
-                    newValue={formData.purpose_of_position || ''}
-                    showToggle={false}
-                  />
-                </div>
-              )}
-            </div>
+            <EditableTrackChangesField
+              label="Purpose of the Position"
+              originalValue={originalData.purpose_of_position || ''}
+              hrValue={requisition?.purpose_of_position || ''}
+              currentValue={formData.purpose_of_position || ''}
+              onChange={(value) => setFormData({ ...formData, purpose_of_position: value })}
+              hrChangesAccepted={acceptedFields.has('purpose_of_position')}
+              onAcceptHRChanges={() => {
+                acceptHRChanges('purpose_of_position');
+                setFormData({ ...formData, purpose_of_position: requisition?.purpose_of_position });
+              }}
+            />
             
-            <div>
-              <Label htmlFor="objectives_of_programme">Objectives of the Programme</Label>
-              <Textarea
-                id="objectives_of_programme"
-                value={formData.objectives_of_programme || ''}
-                onChange={(e) => setFormData({ ...formData, objectives_of_programme: e.target.value })}
-                className={`min-h-24 ${currentChanges.some(c => c.field === 'objectives_of_programme') ? 'border-amber-400 bg-amber-50' : ''}`}
-              />
-              
-              {getHRChangeForField('objectives_of_programme') && !acceptedFields.has('objectives_of_programme') && (
-                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <p className="text-xs text-blue-700 font-medium">HR's changes:</p>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => {
-                        acceptHRChanges('objectives_of_programme');
-                        setFormData({ ...formData, objectives_of_programme: requisition?.objectives_of_programme });
-                      }}
-                      className="h-7 text-xs"
-                    >
-                      <Check className="h-3 w-3 mr-1" />
-                      Accept HR Changes
-                    </Button>
-                  </div>
-                  <InlineTrackChanges
-                    fieldLabel=""
-                    originalValue={originalData.objectives_of_programme || ''}
-                    newValue={requisition?.objectives_of_programme || ''}
-                    showToggle={false}
-                  />
-                </div>
-              )}
-              
-              {acceptedFields.has('objectives_of_programme') && (
-                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <span className="text-xs text-green-700">HR changes accepted</span>
-                </div>
-              )}
-              
-              {currentChanges.some(c => c.field === 'objectives_of_programme') && (
-                <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <p className="text-xs text-amber-700 font-medium mb-2">Your additional changes:</p>
-                  <InlineTrackChanges
-                    fieldLabel=""
-                    originalValue={workingBaseline.objectives_of_programme || ''}
-                    newValue={formData.objectives_of_programme || ''}
-                    showToggle={false}
-                  />
-                </div>
-              )}
-            </div>
+            <EditableTrackChangesField
+              label="Objectives of the Programme"
+              originalValue={originalData.objectives_of_programme || ''}
+              hrValue={requisition?.objectives_of_programme || ''}
+              currentValue={formData.objectives_of_programme || ''}
+              onChange={(value) => setFormData({ ...formData, objectives_of_programme: value })}
+              hrChangesAccepted={acceptedFields.has('objectives_of_programme')}
+              onAcceptHRChanges={() => {
+                acceptHRChanges('objectives_of_programme');
+                setFormData({ ...formData, objectives_of_programme: requisition?.objectives_of_programme });
+              }}
+            />
             
-            <div>
-              <Label htmlFor="main_duties_responsibilities">Main Duties and Responsibilities</Label>
-              <Textarea
-                id="main_duties_responsibilities"
-                value={formData.main_duties_responsibilities || ''}
-                onChange={(e) => setFormData({ ...formData, main_duties_responsibilities: e.target.value })}
-                className={`min-h-32 ${currentChanges.some(c => c.field === 'main_duties_responsibilities') ? 'border-amber-400 bg-amber-50' : ''}`}
-              />
-              
-              {getHRChangeForField('main_duties_responsibilities') && !acceptedFields.has('main_duties_responsibilities') && (
-                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <p className="text-xs text-blue-700 font-medium">HR's changes:</p>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => {
-                        acceptHRChanges('main_duties_responsibilities');
-                        setFormData({ ...formData, main_duties_responsibilities: requisition?.main_duties_responsibilities });
-                      }}
-                      className="h-7 text-xs"
-                    >
-                      <Check className="h-3 w-3 mr-1" />
-                      Accept HR Changes
-                    </Button>
-                  </div>
-                  <InlineTrackChanges
-                    fieldLabel=""
-                    originalValue={originalData.main_duties_responsibilities || ''}
-                    newValue={requisition?.main_duties_responsibilities || ''}
-                    showToggle={false}
-                  />
-                </div>
-              )}
-              
-              {acceptedFields.has('main_duties_responsibilities') && (
-                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <span className="text-xs text-green-700">HR changes accepted</span>
-                </div>
-              )}
-              
-              {currentChanges.some(c => c.field === 'main_duties_responsibilities') && (
-                <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <p className="text-xs text-amber-700 font-medium mb-2">Your additional changes:</p>
-                  <InlineTrackChanges
-                    fieldLabel=""
-                    originalValue={workingBaseline.main_duties_responsibilities || ''}
-                    newValue={formData.main_duties_responsibilities || ''}
-                    showToggle={false}
-                  />
-                </div>
-              )}
-            </div>
+            <EditableTrackChangesField
+              label="Main Duties and Responsibilities"
+              originalValue={originalData.main_duties_responsibilities || ''}
+              hrValue={requisition?.main_duties_responsibilities || ''}
+              currentValue={formData.main_duties_responsibilities || ''}
+              onChange={(value) => setFormData({ ...formData, main_duties_responsibilities: value })}
+              hrChangesAccepted={acceptedFields.has('main_duties_responsibilities')}
+              onAcceptHRChanges={() => {
+                acceptHRChanges('main_duties_responsibilities');
+                setFormData({ ...formData, main_duties_responsibilities: requisition?.main_duties_responsibilities });
+              }}
+            />
           </CardContent>
         </Card>
 
@@ -607,225 +479,57 @@ export default function JobRequisitionChiefHREdit() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4">
-              <div>
-                <Label htmlFor="essential_experience">Essential Experience</Label>
-                <Textarea
-                  id="essential_experience"
-                  value={formData.essential_experience || ''}
-                  onChange={(e) => setFormData({ ...formData, essential_experience: e.target.value })}
-                  className={`min-h-24 ${currentChanges.some(c => c.field === 'essential_experience') ? 'border-amber-400 bg-amber-50' : ''}`}
-                />
-                
-                {getHRChangeForField('essential_experience') && !acceptedFields.has('essential_experience') && (
-                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <p className="text-xs text-blue-700 font-medium">HR's changes:</p>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => {
-                          acceptHRChanges('essential_experience');
-                          setFormData({ ...formData, essential_experience: requisition?.essential_experience });
-                        }}
-                        className="h-7 text-xs"
-                      >
-                        <Check className="h-3 w-3 mr-1" />
-                        Accept HR Changes
-                      </Button>
-                    </div>
-                    <InlineTrackChanges
-                      fieldLabel=""
-                      originalValue={originalData.essential_experience || ''}
-                      newValue={requisition?.essential_experience || ''}
-                      showToggle={false}
-                    />
-                  </div>
-                )}
-                
-                {acceptedFields.has('essential_experience') && (
-                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <span className="text-xs text-green-700">HR changes accepted</span>
-                  </div>
-                )}
-                
-                {currentChanges.some(c => c.field === 'essential_experience') && (
-                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p className="text-xs text-amber-700 font-medium mb-2">Your additional changes:</p>
-                    <InlineTrackChanges
-                      fieldLabel=""
-                      originalValue={workingBaseline.essential_experience || ''}
-                      newValue={formData.essential_experience || ''}
-                      showToggle={false}
-                    />
-                  </div>
-                )}
-              </div>
+              <EditableTrackChangesField
+                label="Essential Experience"
+                originalValue={originalData.essential_experience || ''}
+                hrValue={requisition?.essential_experience || ''}
+                currentValue={formData.essential_experience || ''}
+                onChange={(value) => setFormData({ ...formData, essential_experience: value })}
+                hrChangesAccepted={acceptedFields.has('essential_experience')}
+                onAcceptHRChanges={() => {
+                  acceptHRChanges('essential_experience');
+                  setFormData({ ...formData, essential_experience: requisition?.essential_experience });
+                }}
+              />
               
-              <div>
-                <Label htmlFor="desirable_experience">Desirable Experience</Label>
-                <Textarea
-                  id="desirable_experience"
-                  value={formData.desirable_experience || ''}
-                  onChange={(e) => setFormData({ ...formData, desirable_experience: e.target.value })}
-                  className={`min-h-24 ${currentChanges.some(c => c.field === 'desirable_experience') ? 'border-amber-400 bg-amber-50' : ''}`}
-                />
-                
-                {getHRChangeForField('desirable_experience') && !acceptedFields.has('desirable_experience') && (
-                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <p className="text-xs text-blue-700 font-medium">HR's changes:</p>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => {
-                          acceptHRChanges('desirable_experience');
-                          setFormData({ ...formData, desirable_experience: requisition?.desirable_experience });
-                        }}
-                        className="h-7 text-xs"
-                      >
-                        <Check className="h-3 w-3 mr-1" />
-                        Accept HR Changes
-                      </Button>
-                    </div>
-                    <InlineTrackChanges
-                      fieldLabel=""
-                      originalValue={originalData.desirable_experience || ''}
-                      newValue={requisition?.desirable_experience || ''}
-                      showToggle={false}
-                    />
-                  </div>
-                )}
-                
-                {acceptedFields.has('desirable_experience') && (
-                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <span className="text-xs text-green-700">HR changes accepted</span>
-                  </div>
-                )}
-                
-                {currentChanges.some(c => c.field === 'desirable_experience') && (
-                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p className="text-xs text-amber-700 font-medium mb-2">Your additional changes:</p>
-                    <InlineTrackChanges
-                      fieldLabel=""
-                      originalValue={workingBaseline.desirable_experience || ''}
-                      newValue={formData.desirable_experience || ''}
-                      showToggle={false}
-                    />
-                  </div>
-                )}
-              </div>
+              <EditableTrackChangesField
+                label="Desirable Experience"
+                originalValue={originalData.desirable_experience || ''}
+                hrValue={requisition?.desirable_experience || ''}
+                currentValue={formData.desirable_experience || ''}
+                onChange={(value) => setFormData({ ...formData, desirable_experience: value })}
+                hrChangesAccepted={acceptedFields.has('desirable_experience')}
+                onAcceptHRChanges={() => {
+                  acceptHRChanges('desirable_experience');
+                  setFormData({ ...formData, desirable_experience: requisition?.desirable_experience });
+                }}
+              />
               
-              <div>
-                <Label htmlFor="essential_education">Essential Education</Label>
-                <Textarea
-                  id="essential_education"
-                  value={formData.essential_education || ''}
-                  onChange={(e) => setFormData({ ...formData, essential_education: e.target.value })}
-                  className={`min-h-24 ${currentChanges.some(c => c.field === 'essential_education') ? 'border-amber-400 bg-amber-50' : ''}`}
-                />
-                
-                {getHRChangeForField('essential_education') && !acceptedFields.has('essential_education') && (
-                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <p className="text-xs text-blue-700 font-medium">HR's changes:</p>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => {
-                          acceptHRChanges('essential_education');
-                          setFormData({ ...formData, essential_education: requisition?.essential_education });
-                        }}
-                        className="h-7 text-xs"
-                      >
-                        <Check className="h-3 w-3 mr-1" />
-                        Accept HR Changes
-                      </Button>
-                    </div>
-                    <InlineTrackChanges
-                      fieldLabel=""
-                      originalValue={originalData.essential_education || ''}
-                      newValue={requisition?.essential_education || ''}
-                      showToggle={false}
-                    />
-                  </div>
-                )}
-                
-                {acceptedFields.has('essential_education') && (
-                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <span className="text-xs text-green-700">HR changes accepted</span>
-                  </div>
-                )}
-                
-                {currentChanges.some(c => c.field === 'essential_education') && (
-                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p className="text-xs text-amber-700 font-medium mb-2">Your additional changes:</p>
-                    <InlineTrackChanges
-                      fieldLabel=""
-                      originalValue={workingBaseline.essential_education || ''}
-                      newValue={formData.essential_education || ''}
-                      showToggle={false}
-                    />
-                  </div>
-                )}
-              </div>
+              <EditableTrackChangesField
+                label="Essential Education"
+                originalValue={originalData.essential_education || ''}
+                hrValue={requisition?.essential_education || ''}
+                currentValue={formData.essential_education || ''}
+                onChange={(value) => setFormData({ ...formData, essential_education: value })}
+                hrChangesAccepted={acceptedFields.has('essential_education')}
+                onAcceptHRChanges={() => {
+                  acceptHRChanges('essential_education');
+                  setFormData({ ...formData, essential_education: requisition?.essential_education });
+                }}
+              />
               
-              <div>
-                <Label htmlFor="desirable_education">Desirable Education</Label>
-                <Textarea
-                  id="desirable_education"
-                  value={formData.desirable_education || ''}
-                  onChange={(e) => setFormData({ ...formData, desirable_education: e.target.value })}
-                  className={`min-h-24 ${currentChanges.some(c => c.field === 'desirable_education') ? 'border-amber-400 bg-amber-50' : ''}`}
-                />
-                
-                {getHRChangeForField('desirable_education') && !acceptedFields.has('desirable_education') && (
-                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <p className="text-xs text-blue-700 font-medium">HR's changes:</p>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => {
-                          acceptHRChanges('desirable_education');
-                          setFormData({ ...formData, desirable_education: requisition?.desirable_education });
-                        }}
-                        className="h-7 text-xs"
-                      >
-                        <Check className="h-3 w-3 mr-1" />
-                        Accept HR Changes
-                      </Button>
-                    </div>
-                    <InlineTrackChanges
-                      fieldLabel=""
-                      originalValue={originalData.desirable_education || ''}
-                      newValue={requisition?.desirable_education || ''}
-                      showToggle={false}
-                    />
-                  </div>
-                )}
-                
-                {acceptedFields.has('desirable_education') && (
-                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <span className="text-xs text-green-700">HR changes accepted</span>
-                  </div>
-                )}
-                
-                {currentChanges.some(c => c.field === 'desirable_education') && (
-                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p className="text-xs text-amber-700 font-medium mb-2">Your additional changes:</p>
-                    <InlineTrackChanges
-                      fieldLabel=""
-                      originalValue={workingBaseline.desirable_education || ''}
-                      newValue={formData.desirable_education || ''}
-                      showToggle={false}
-                    />
-                  </div>
-                )}
-              </div>
+              <EditableTrackChangesField
+                label="Desirable Education"
+                originalValue={originalData.desirable_education || ''}
+                hrValue={requisition?.desirable_education || ''}
+                currentValue={formData.desirable_education || ''}
+                onChange={(value) => setFormData({ ...formData, desirable_education: value })}
+                hrChangesAccepted={acceptedFields.has('desirable_education')}
+                onAcceptHRChanges={() => {
+                  acceptHRChanges('desirable_education');
+                  setFormData({ ...formData, desirable_education: requisition?.desirable_education });
+                }}
+              />
             </div>
           </CardContent>
         </Card>
