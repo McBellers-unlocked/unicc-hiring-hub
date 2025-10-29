@@ -34,80 +34,69 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
   // Check if there are HR changes
   const hasHRChanges = originalValue !== hrValue;
 
+  // Escape HTML to prevent XSS
+  const escapeHtml = (text: string): string => {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;")
+      .replace(/\n/g, "<br>");
+  };
+
   // Generate HTML with track changes
   const generateHTML = () => {
-    let html = "";
-
+    // Determine the baseline to compare against
+    const baseline = hrChangesAccepted ? hrValue : originalValue;
+    
+    // For HR changes not yet accepted, show them first
     if (!hrChangesAccepted && hasHRChanges) {
-      // Show HR's changes (original -> HR)
       const hrDiff = Diff.diffWords(originalValue || "", hrValue || "");
+      let html = "";
       
       hrDiff.forEach((part) => {
         const text = escapeHtml(part.value);
         if (part.removed) {
-          html += `<span class="text-red-600 line-through bg-red-50 px-0.5" data-change="hr-delete" title="Removed by HR">${text}</span>`;
+          html += `<span style="color: #dc2626; text-decoration: line-through; background-color: #fee2e2;" title="Removed by HR">${text}</span>`;
         } else if (part.added) {
-          html += `<span class="text-green-600 underline bg-green-50 px-0.5" data-change="hr-add" title="Added by HR">${text}</span>`;
+          html += `<span style="color: #16a34a; text-decoration: underline; background-color: #f0fdf4;" title="Added by HR">${text}</span>`;
         } else {
           html += text;
         }
       });
-
-      // If Chief HR made additional changes on top of HR's version
-      if (currentValue !== hrValue) {
-        // Show Chief HR's changes (HR -> Current)
-        const chiefDiff = Diff.diffWords(hrValue || "", currentValue || "");
-        let chiefHTML = "";
-        
-        chiefDiff.forEach((part) => {
-          const text = escapeHtml(part.value);
-          if (part.removed) {
-            chiefHTML += `<span class="text-blue-600 line-through bg-blue-50 px-0.5" data-change="chief-delete" title="Removed by Chief HR">${text}</span>`;
-          } else if (part.added) {
-            chiefHTML += `<span class="text-purple-600 underline bg-purple-50 px-0.5" data-change="chief-add" title="Added by Chief HR">${text}</span>`;
-          } else {
-            chiefHTML += text;
-          }
-        });
-
-        return chiefHTML;
-      }
-    } else {
-      // HR changes accepted or no HR changes, show Chief HR's changes
-      const baseline = hrChangesAccepted ? hrValue : originalValue;
       
-      if (currentValue !== baseline) {
-        const chiefDiff = Diff.diffWords(baseline || "", currentValue || "");
-        
-        chiefDiff.forEach((part) => {
-          const text = escapeHtml(part.value);
-          if (part.removed) {
-            html += `<span class="text-blue-600 line-through bg-blue-50 px-0.5" data-change="chief-delete" title="Removed by Chief HR">${text}</span>`;
-          } else if (part.added) {
-            html += `<span class="text-purple-600 underline bg-purple-50 px-0.5" data-change="chief-add" title="Added by Chief HR">${text}</span>`;
-          } else {
-            html += text;
-          }
-        });
-      } else {
-        html = escapeHtml(currentValue || "");
-      }
+      return html || '<span style="color: #9ca3af;">No content</span>';
     }
-
-    return html || '<span class="text-muted-foreground">No content</span>';
-  };
-
-  // Escape HTML to prevent XSS
-  const escapeHtml = (text: string): string => {
-    const div = document.createElement("div");
-    div.textContent = text;
-    return div.innerHTML;
+    
+    // For accepted HR changes or no HR changes, show Chief HR's changes
+    if (currentValue !== baseline) {
+      const chiefDiff = Diff.diffWords(baseline || "", currentValue || "");
+      let html = "";
+      
+      chiefDiff.forEach((part) => {
+        const text = escapeHtml(part.value);
+        if (part.removed) {
+          html += `<span style="color: #2563eb; text-decoration: line-through; background-color: #eff6ff;" title="Removed by Chief HR">${text}</span>`;
+        } else if (part.added) {
+          html += `<span style="color: #9333ea; text-decoration: underline; background-color: #faf5ff;" title="Added by Chief HR">${text}</span>`;
+        } else {
+          html += text;
+        }
+      });
+      
+      return html || '<span style="color: #9ca3af;">No content</span>';
+    }
+    
+    // No changes, show plain text
+    return escapeHtml(currentValue || "") || '<span style="color: #9ca3af;">No content</span>';
   };
 
   // Handle input from contentEditable
   const handleInput = () => {
     if (contentRef.current) {
-      const plainText = contentRef.current.innerText;
+      // Extract plain text, converting <br> back to newlines
+      const plainText = contentRef.current.innerText || "";
       onChange(plainText);
     }
   };
@@ -122,32 +111,13 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
     setIsEditing(false);
   };
 
-  // Update content when values change (but not during editing)
+  // Update content when values change (but not during active editing)
   useEffect(() => {
-    if (!isEditing && contentRef.current) {
-      const html = generateHTML();
-      if (contentRef.current.innerHTML !== html) {
-        // Save cursor position
-        const selection = window.getSelection();
-        const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
-        const cursorOffset = range?.startOffset || 0;
-
+    if (contentRef.current) {
+      // Only update if not currently editing
+      if (!isEditing) {
+        const html = generateHTML();
         contentRef.current.innerHTML = html;
-
-        // Restore cursor position (best effort)
-        try {
-          if (range && contentRef.current.firstChild) {
-            const newRange = document.createRange();
-            const textNode = contentRef.current.firstChild;
-            const offset = Math.min(cursorOffset, (textNode.textContent?.length || 0));
-            newRange.setStart(textNode, offset);
-            newRange.setEnd(textNode, offset);
-            selection?.removeAllRanges();
-            selection?.addRange(newRange);
-          }
-        } catch (e) {
-          // Cursor position restoration failed, ignore
-        }
       }
     }
   }, [originalValue, hrValue, currentValue, hrChangesAccepted, isEditing]);
@@ -171,18 +141,18 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
 
       <div
         ref={contentRef}
-        contentEditable={!disabled}
+        contentEditable={!disabled && (hrChangesAccepted || !hasHRChanges)}
         onInput={handleInput}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        suppressContentEditableWarning
         className={cn(
           "min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
           "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
           "overflow-auto whitespace-pre-wrap break-words",
-          disabled && "cursor-not-allowed opacity-50",
+          (disabled || (!hrChangesAccepted && hasHRChanges)) && "cursor-not-allowed opacity-70",
           className
         )}
-        dangerouslySetInnerHTML={{ __html: generateHTML() }}
       />
 
       {hrChangesAccepted && hasHRChanges && (
