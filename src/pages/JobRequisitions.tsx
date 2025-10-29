@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, FileText, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -41,6 +42,7 @@ interface JobRequisition {
 export default function JobRequisitions() {
   const [requisitions, setRequisitions] = useState<JobRequisition[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewFilter, setViewFilter] = useState<'all' | 'mine'>('all');
   const { user, userRoles } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -49,7 +51,7 @@ export default function JobRequisitions() {
     if (user) {
       fetchRequisitions();
     }
-  }, [user]);
+  }, [user, viewFilter]);
 
   const fetchRequisitions = async () => {
     try {
@@ -57,8 +59,10 @@ export default function JobRequisitions() {
         .from('job_requisitions')
         .select('*');
 
-      // Hiring managers should only see their own requisitions
-      if (userRoles.includes('Hiring Manager') && !userRoles.includes('Admin') && !userRoles.includes('HR Assistant')) {
+      // Filter based on view preference or user role
+      const isHiringManagerOnly = userRoles.includes('Hiring Manager') && !userRoles.includes('Admin') && !userRoles.includes('HR Assistant');
+      
+      if (isHiringManagerOnly || viewFilter === 'mine') {
         query = query.eq('created_by', user?.id);
       }
 
@@ -225,6 +229,15 @@ export default function JobRequisitions() {
           </Button>
         )}
       </div>
+
+      {(userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
+        <Tabs value={viewFilter} onValueChange={(value) => setViewFilter(value as 'all' | 'mine')} className="mb-6">
+          <TabsList>
+            <TabsTrigger value="all">All Requisitions</TabsTrigger>
+            <TabsTrigger value="mine">My Requisitions</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
 
       {loading ? (
         <div className="grid gap-4">
