@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, AlertTriangle, Eye, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Eye, CheckCircle2, Check } from "lucide-react";
 import { format } from "date-fns";
 import { InlineTrackChanges, InlineTrackChangesSummary } from "@/components/InlineTrackChanges";
+import { FinalDocumentReviewDialog } from "@/components/FinalDocumentReviewDialog";
 
 interface JobRequisition {
   id: string;
@@ -62,6 +63,9 @@ export default function JobRequisitionChiefHREdit() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [chiefHRComments, setChiefHRComments] = useState("");
+  const [acceptedFields, setAcceptedFields] = useState<Set<string>>(new Set());
+  const [workingBaseline, setWorkingBaseline] = useState<Partial<JobRequisition>>({});
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
 
   const isChiefHR = userRoles.includes('Admin') || userRoles.includes('HR Assistant');
 
@@ -92,6 +96,7 @@ export default function JobRequisitionChiefHREdit() {
         ? data.hr_original_data 
         : data;
       setOriginalData(baselineData as Partial<JobRequisition>);
+      setWorkingBaseline(baselineData as Partial<JobRequisition>);
       setChiefHRComments(data.chief_hr_comments || "");
     } catch (error) {
       console.error('Error fetching requisition:', error);
@@ -124,30 +129,51 @@ export default function JobRequisitionChiefHREdit() {
     ];
 
     fieldsToTrack.forEach(field => {
-      const originalValue = String(originalData[field.key as keyof JobRequisition] || '');
+      const baselineValue = String(workingBaseline[field.key as keyof JobRequisition] || '');
       const newValue = String(formData[field.key as keyof JobRequisition] || '');
       
-      if (originalValue !== newValue) {
-        const originalWords = originalValue.trim().split(/\s+/).filter(word => word.length > 0);
+      if (baselineValue !== newValue) {
+        const baselineWords = baselineValue.trim().split(/\s+/).filter(word => word.length > 0);
         const newWords = newValue.trim().split(/\s+/).filter(word => word.length > 0);
-        const wordsAdded = Math.max(0, newWords.length - originalWords.length);
-        const wordsRemoved = Math.max(0, originalWords.length - newWords.length);
+        const wordsAdded = Math.max(0, newWords.length - baselineWords.length);
+        const wordsRemoved = Math.max(0, baselineWords.length - newWords.length);
         
         changes.push({
           field: field.key,
           label: field.label,
-          originalValue,
+          originalValue: baselineValue,
           newValue,
           diffStats: {
             wordsAdded,
             wordsRemoved,
-            wordsModified: Math.min(originalWords.length, newWords.length)
+            wordsModified: Math.min(baselineWords.length, newWords.length)
           }
         });
       }
     });
 
     return changes;
+  };
+
+  const acceptHRChanges = (fieldKey: string) => {
+    // Update accepted fields set
+    setAcceptedFields(prev => new Set([...prev, fieldKey]));
+    
+    // Update working baseline to HR's version for this field
+    setWorkingBaseline(prev => ({
+      ...prev,
+      [fieldKey]: formData[fieldKey as keyof JobRequisition]
+    }));
+
+    toast({
+      title: "Changes Accepted",
+      description: `HR's changes to ${fieldKey.replace(/_/g, ' ')} have been accepted`,
+    });
+  };
+
+  const getHRChangeForField = (fieldKey: string) => {
+    const hrChanges = requisition?.hr_changes || [];
+    return hrChanges.find((change: FieldChange) => change.field === fieldKey);
   };
 
   const handleApprove = async () => {
@@ -412,6 +438,54 @@ export default function JobRequisitionChiefHREdit() {
                 onChange={(e) => setFormData({ ...formData, purpose_of_position: e.target.value })}
                 className={`min-h-24 ${currentChanges.some(c => c.field === 'purpose_of_position') ? 'border-amber-400 bg-amber-50' : ''}`}
               />
+              
+              {/* Show HR's changes if not accepted yet */}
+              {getHRChangeForField('purpose_of_position') && !acceptedFields.has('purpose_of_position') && (
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-xs text-blue-700 font-medium">HR's changes:</p>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => {
+                        acceptHRChanges('purpose_of_position');
+                        setFormData({ ...formData, purpose_of_position: requisition?.purpose_of_position });
+                      }}
+                      className="h-7 text-xs"
+                    >
+                      <Check className="h-3 w-3 mr-1" />
+                      Accept HR Changes
+                    </Button>
+                  </div>
+                  <InlineTrackChanges
+                    fieldLabel=""
+                    originalValue={originalData.purpose_of_position || ''}
+                    newValue={requisition?.purpose_of_position || ''}
+                    showToggle={false}
+                  />
+                </div>
+              )}
+              
+              {/* Show accepted indicator */}
+              {acceptedFields.has('purpose_of_position') && (
+                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <span className="text-xs text-green-700">HR changes accepted</span>
+                </div>
+              )}
+              
+              {/* Show Chief HR's own changes if any */}
+              {currentChanges.some(c => c.field === 'purpose_of_position') && (
+                <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-xs text-amber-700 font-medium mb-2">Your additional changes:</p>
+                  <InlineTrackChanges
+                    fieldLabel=""
+                    originalValue={workingBaseline.purpose_of_position || ''}
+                    newValue={formData.purpose_of_position || ''}
+                    showToggle={false}
+                  />
+                </div>
+              )}
             </div>
             
             <div>
@@ -422,6 +496,51 @@ export default function JobRequisitionChiefHREdit() {
                 onChange={(e) => setFormData({ ...formData, objectives_of_programme: e.target.value })}
                 className={`min-h-24 ${currentChanges.some(c => c.field === 'objectives_of_programme') ? 'border-amber-400 bg-amber-50' : ''}`}
               />
+              
+              {getHRChangeForField('objectives_of_programme') && !acceptedFields.has('objectives_of_programme') && (
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-xs text-blue-700 font-medium">HR's changes:</p>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => {
+                        acceptHRChanges('objectives_of_programme');
+                        setFormData({ ...formData, objectives_of_programme: requisition?.objectives_of_programme });
+                      }}
+                      className="h-7 text-xs"
+                    >
+                      <Check className="h-3 w-3 mr-1" />
+                      Accept HR Changes
+                    </Button>
+                  </div>
+                  <InlineTrackChanges
+                    fieldLabel=""
+                    originalValue={originalData.objectives_of_programme || ''}
+                    newValue={requisition?.objectives_of_programme || ''}
+                    showToggle={false}
+                  />
+                </div>
+              )}
+              
+              {acceptedFields.has('objectives_of_programme') && (
+                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <span className="text-xs text-green-700">HR changes accepted</span>
+                </div>
+              )}
+              
+              {currentChanges.some(c => c.field === 'objectives_of_programme') && (
+                <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-xs text-amber-700 font-medium mb-2">Your additional changes:</p>
+                  <InlineTrackChanges
+                    fieldLabel=""
+                    originalValue={workingBaseline.objectives_of_programme || ''}
+                    newValue={formData.objectives_of_programme || ''}
+                    showToggle={false}
+                  />
+                </div>
+              )}
             </div>
             
             <div>
@@ -432,12 +551,46 @@ export default function JobRequisitionChiefHREdit() {
                 onChange={(e) => setFormData({ ...formData, main_duties_responsibilities: e.target.value })}
                 className={`min-h-32 ${currentChanges.some(c => c.field === 'main_duties_responsibilities') ? 'border-amber-400 bg-amber-50' : ''}`}
               />
-              {currentChanges.some(c => c.field === 'main_duties_responsibilities') && (
-                <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-xs text-blue-700 font-medium mb-2">Preview of your additional changes:</p>
+              
+              {getHRChangeForField('main_duties_responsibilities') && !acceptedFields.has('main_duties_responsibilities') && (
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-xs text-blue-700 font-medium">HR's changes:</p>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => {
+                        acceptHRChanges('main_duties_responsibilities');
+                        setFormData({ ...formData, main_duties_responsibilities: requisition?.main_duties_responsibilities });
+                      }}
+                      className="h-7 text-xs"
+                    >
+                      <Check className="h-3 w-3 mr-1" />
+                      Accept HR Changes
+                    </Button>
+                  </div>
                   <InlineTrackChanges
                     fieldLabel=""
                     originalValue={originalData.main_duties_responsibilities || ''}
+                    newValue={requisition?.main_duties_responsibilities || ''}
+                    showToggle={false}
+                  />
+                </div>
+              )}
+              
+              {acceptedFields.has('main_duties_responsibilities') && (
+                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <span className="text-xs text-green-700">HR changes accepted</span>
+                </div>
+              )}
+              
+              {currentChanges.some(c => c.field === 'main_duties_responsibilities') && (
+                <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-xs text-amber-700 font-medium mb-2">Your additional changes:</p>
+                  <InlineTrackChanges
+                    fieldLabel=""
+                    originalValue={workingBaseline.main_duties_responsibilities || ''}
                     newValue={formData.main_duties_responsibilities || ''}
                     showToggle={false}
                   />
@@ -462,7 +615,53 @@ export default function JobRequisitionChiefHREdit() {
                   onChange={(e) => setFormData({ ...formData, essential_experience: e.target.value })}
                   className={`min-h-24 ${currentChanges.some(c => c.field === 'essential_experience') ? 'border-amber-400 bg-amber-50' : ''}`}
                 />
+                
+                {getHRChangeForField('essential_experience') && !acceptedFields.has('essential_experience') && (
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <p className="text-xs text-blue-700 font-medium">HR's changes:</p>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          acceptHRChanges('essential_experience');
+                          setFormData({ ...formData, essential_experience: requisition?.essential_experience });
+                        }}
+                        className="h-7 text-xs"
+                      >
+                        <Check className="h-3 w-3 mr-1" />
+                        Accept HR Changes
+                      </Button>
+                    </div>
+                    <InlineTrackChanges
+                      fieldLabel=""
+                      originalValue={originalData.essential_experience || ''}
+                      newValue={requisition?.essential_experience || ''}
+                      showToggle={false}
+                    />
+                  </div>
+                )}
+                
+                {acceptedFields.has('essential_experience') && (
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <span className="text-xs text-green-700">HR changes accepted</span>
+                  </div>
+                )}
+                
+                {currentChanges.some(c => c.field === 'essential_experience') && (
+                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-xs text-amber-700 font-medium mb-2">Your additional changes:</p>
+                    <InlineTrackChanges
+                      fieldLabel=""
+                      originalValue={workingBaseline.essential_experience || ''}
+                      newValue={formData.essential_experience || ''}
+                      showToggle={false}
+                    />
+                  </div>
+                )}
               </div>
+              
               <div>
                 <Label htmlFor="desirable_experience">Desirable Experience</Label>
                 <Textarea
@@ -471,7 +670,53 @@ export default function JobRequisitionChiefHREdit() {
                   onChange={(e) => setFormData({ ...formData, desirable_experience: e.target.value })}
                   className={`min-h-24 ${currentChanges.some(c => c.field === 'desirable_experience') ? 'border-amber-400 bg-amber-50' : ''}`}
                 />
+                
+                {getHRChangeForField('desirable_experience') && !acceptedFields.has('desirable_experience') && (
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <p className="text-xs text-blue-700 font-medium">HR's changes:</p>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          acceptHRChanges('desirable_experience');
+                          setFormData({ ...formData, desirable_experience: requisition?.desirable_experience });
+                        }}
+                        className="h-7 text-xs"
+                      >
+                        <Check className="h-3 w-3 mr-1" />
+                        Accept HR Changes
+                      </Button>
+                    </div>
+                    <InlineTrackChanges
+                      fieldLabel=""
+                      originalValue={originalData.desirable_experience || ''}
+                      newValue={requisition?.desirable_experience || ''}
+                      showToggle={false}
+                    />
+                  </div>
+                )}
+                
+                {acceptedFields.has('desirable_experience') && (
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <span className="text-xs text-green-700">HR changes accepted</span>
+                  </div>
+                )}
+                
+                {currentChanges.some(c => c.field === 'desirable_experience') && (
+                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-xs text-amber-700 font-medium mb-2">Your additional changes:</p>
+                    <InlineTrackChanges
+                      fieldLabel=""
+                      originalValue={workingBaseline.desirable_experience || ''}
+                      newValue={formData.desirable_experience || ''}
+                      showToggle={false}
+                    />
+                  </div>
+                )}
               </div>
+              
               <div>
                 <Label htmlFor="essential_education">Essential Education</Label>
                 <Textarea
@@ -480,7 +725,53 @@ export default function JobRequisitionChiefHREdit() {
                   onChange={(e) => setFormData({ ...formData, essential_education: e.target.value })}
                   className={`min-h-24 ${currentChanges.some(c => c.field === 'essential_education') ? 'border-amber-400 bg-amber-50' : ''}`}
                 />
+                
+                {getHRChangeForField('essential_education') && !acceptedFields.has('essential_education') && (
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <p className="text-xs text-blue-700 font-medium">HR's changes:</p>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          acceptHRChanges('essential_education');
+                          setFormData({ ...formData, essential_education: requisition?.essential_education });
+                        }}
+                        className="h-7 text-xs"
+                      >
+                        <Check className="h-3 w-3 mr-1" />
+                        Accept HR Changes
+                      </Button>
+                    </div>
+                    <InlineTrackChanges
+                      fieldLabel=""
+                      originalValue={originalData.essential_education || ''}
+                      newValue={requisition?.essential_education || ''}
+                      showToggle={false}
+                    />
+                  </div>
+                )}
+                
+                {acceptedFields.has('essential_education') && (
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <span className="text-xs text-green-700">HR changes accepted</span>
+                  </div>
+                )}
+                
+                {currentChanges.some(c => c.field === 'essential_education') && (
+                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-xs text-amber-700 font-medium mb-2">Your additional changes:</p>
+                    <InlineTrackChanges
+                      fieldLabel=""
+                      originalValue={workingBaseline.essential_education || ''}
+                      newValue={formData.essential_education || ''}
+                      showToggle={false}
+                    />
+                  </div>
+                )}
               </div>
+              
               <div>
                 <Label htmlFor="desirable_education">Desirable Education</Label>
                 <Textarea
@@ -489,6 +780,51 @@ export default function JobRequisitionChiefHREdit() {
                   onChange={(e) => setFormData({ ...formData, desirable_education: e.target.value })}
                   className={`min-h-24 ${currentChanges.some(c => c.field === 'desirable_education') ? 'border-amber-400 bg-amber-50' : ''}`}
                 />
+                
+                {getHRChangeForField('desirable_education') && !acceptedFields.has('desirable_education') && (
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <p className="text-xs text-blue-700 font-medium">HR's changes:</p>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          acceptHRChanges('desirable_education');
+                          setFormData({ ...formData, desirable_education: requisition?.desirable_education });
+                        }}
+                        className="h-7 text-xs"
+                      >
+                        <Check className="h-3 w-3 mr-1" />
+                        Accept HR Changes
+                      </Button>
+                    </div>
+                    <InlineTrackChanges
+                      fieldLabel=""
+                      originalValue={originalData.desirable_education || ''}
+                      newValue={requisition?.desirable_education || ''}
+                      showToggle={false}
+                    />
+                  </div>
+                )}
+                
+                {acceptedFields.has('desirable_education') && (
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <span className="text-xs text-green-700">HR changes accepted</span>
+                  </div>
+                )}
+                
+                {currentChanges.some(c => c.field === 'desirable_education') && (
+                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-xs text-amber-700 font-medium mb-2">Your additional changes:</p>
+                    <InlineTrackChanges
+                      fieldLabel=""
+                      originalValue={workingBaseline.desirable_education || ''}
+                      newValue={formData.desirable_education || ''}
+                      showToggle={false}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
@@ -515,26 +851,51 @@ export default function JobRequisitionChiefHREdit() {
         {/* Action Buttons */}
         <Card>
           <CardContent className="pt-6">
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="outline"
-                onClick={handleReturnToHR}
-                disabled={saving}
+            <div className="flex gap-3 justify-between">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowReviewDialog(true)}
+                className="gap-2"
               >
-                Return to HR
+                <Eye className="h-4 w-4" />
+                Review Final Document
               </Button>
-              <Button
-                onClick={handleApprove}
-                disabled={saving}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <CheckCircle2 className="h-4 w-4 mr-2" />
-                {saving ? 'Approving...' : 'Approve & Finalize'}
-              </Button>
+              
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={handleReturnToHR}
+                  disabled={saving}
+                >
+                  Return to HR
+                </Button>
+                <Button
+                  onClick={handleApprove}
+                  disabled={saving}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  {saving ? 'Approving...' : 'Approve & Finalize'}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Final Document Review Dialog */}
+      <FinalDocumentReviewDialog
+        open={showReviewDialog}
+        onOpenChange={setShowReviewDialog}
+        formData={formData}
+        onProceed={() => {
+          // User has reviewed and is ready to proceed
+          toast({
+            title: "Ready to Submit",
+            description: "Click 'Approve & Finalize' or 'Return to HR' to complete your review",
+          });
+        }}
+      />
     </div>
   );
 }
