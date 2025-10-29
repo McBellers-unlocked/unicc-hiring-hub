@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, FileText, Briefcase, CheckCircle, Clock, MessageSquare, Download, Mail } from "lucide-react";
 import { format } from "date-fns";
-import { InlineTrackChangesSummary } from "@/components/InlineTrackChanges";
+import { InlineTrackChanges } from "@/components/InlineTrackChanges";
 
 interface JobRequisition {
   id: string;
@@ -718,14 +718,20 @@ export default function JobRequisitionDetail() {
               )}
               
               {Array.isArray(requisition.hr_changes) && requisition.hr_changes.length > 0 && (
-                <div className="bg-white rounded-lg border border-amber-200">
-                  <div className="p-4">
-                    <InlineTrackChangesSummary 
-                      changes={requisition.hr_changes}
-                      title="HR Modifications"
-                      description="The following fields were modified by HR. Click to expand and view detailed changes."
-                    />
+                <div className="bg-white rounded-lg border border-amber-200 p-4 space-y-6">
+                  <div>
+                    <h4 className="font-medium text-amber-800 mb-1">HR Modifications ({requisition.hr_changes.length})</h4>
+                    <p className="text-sm text-amber-700 mb-4">The following fields were modified by HR:</p>
                   </div>
+                  {requisition.hr_changes.map((change: any, index: number) => (
+                    <InlineTrackChanges
+                      key={index}
+                      fieldLabel={change.label}
+                      originalValue={change.originalValue}
+                      newValue={change.newValue}
+                      showToggle={false}
+                    />
+                  ))}
                 </div>
               )}
               
