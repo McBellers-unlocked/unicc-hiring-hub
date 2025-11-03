@@ -83,10 +83,11 @@ Deno.serve(async (req) => {
         jobType = requisition.nature_of_position;
     }
 
-    // Salary lookup table based on UN salary scale (Step I to Step XIII gross amounts)
+    // Salary lookup table based on UN salary scale (Step I to Step XIII gross amounts in USD)
     const salaryTable: { [key: string]: { stepI: number; stepXIII: number } } = {
       'D-2': { stepI: 171094, stepXIII: 205942 },
       'D-1': { stepI: 152417, stepXIII: 193215 },
+      'D1': { stepI: 152417, stepXIII: 193215 }, // Support both formats
       'P-5': { stepI: 131486, stepXIII: 165076 },
       'P-4': { stepI: 107389, stepXIII: 131071 },
       'P-3': { stepI: 87779, stepXIII: 108653 },
@@ -100,7 +101,7 @@ Deno.serve(async (req) => {
       
       const salaryData = salaryTable[grade];
       if (salaryData) {
-        return `CHF ${salaryData.stepI.toLocaleString()} - CHF ${salaryData.stepXIII.toLocaleString()}`;
+        return `USD ${salaryData.stepI.toLocaleString()} - USD ${salaryData.stepXIII.toLocaleString()}`;
       }
       
       return grade; // Fallback to just the grade if not found in table
