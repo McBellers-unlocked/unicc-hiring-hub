@@ -761,6 +761,7 @@ export default function JobRequisitionForm() {
                           <SelectItem value="G4">G4</SelectItem>
                           <SelectItem value="G5">G5</SelectItem>
                           <SelectItem value="G6">G6</SelectItem>
+                          <SelectItem value="G7">G7</SelectItem>
                           <SelectItem value="P1">P1</SelectItem>
                           <SelectItem value="P2">P2</SelectItem>
                           <SelectItem value="P3">P3</SelectItem>
@@ -797,6 +798,7 @@ export default function JobRequisitionForm() {
                           <SelectItem value="G4">G4</SelectItem>
                           <SelectItem value="G5">G5</SelectItem>
                           <SelectItem value="G6">G6</SelectItem>
+                          <SelectItem value="G7">G7</SelectItem>
                           <SelectItem value="P1">P1</SelectItem>
                           <SelectItem value="P2">P2</SelectItem>
                           <SelectItem value="P3">P3</SelectItem>
