@@ -83,6 +83,29 @@ Deno.serve(async (req) => {
         jobType = requisition.nature_of_position;
     }
 
+    // Salary lookup table based on UN salary scale (Step I to Step XIII gross amounts)
+    const salaryTable: { [key: string]: { stepI: number; stepXIII: number } } = {
+      'D-2': { stepI: 171094, stepXIII: 205942 },
+      'D-1': { stepI: 152417, stepXIII: 193215 },
+      'P-5': { stepI: 131486, stepXIII: 165076 },
+      'P-4': { stepI: 107389, stepXIII: 131071 },
+      'P-3': { stepI: 87779, stepXIII: 108653 },
+      'P-2': { stepI: 67978, stepXIII: 86037 },
+      'P-1': { stepI: 52163, stepXIII: 67495 },
+    };
+
+    // Format salary estimate based on grade
+    const formatSalaryEstimate = (grade: string | null): string => {
+      if (!grade) return '';
+      
+      const salaryData = salaryTable[grade];
+      if (salaryData) {
+        return `CHF ${salaryData.stepI.toLocaleString()} - CHF ${salaryData.stepXIII.toLocaleString()}`;
+      }
+      
+      return grade; // Fallback to just the grade if not found in table
+    };
+
     const jobData = {
       title: requisition.position_title,
       notice_no: requisition.reference_number,
@@ -213,7 +236,7 @@ ${requisition.desirable_education || ''}
       })(),
       status: 'paused', // Set to paused status until HR publishes through job wizard
       category: 'Professional',
-      salary_estimate: requisition.grade,
+      salary_estimate: formatSalaryEstimate(requisition.grade),
       timezone: 'Europe/Zurich',
       privacy_notice_url: 'https://www.unicc.org/unicc-privacy-notice-for-applicants/',
     }
