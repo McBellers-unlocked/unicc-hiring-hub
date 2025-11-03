@@ -276,11 +276,13 @@ export default function ChiefOfDivisionView() {
                           <div className="prose prose-sm max-w-none">
                             <h4 className="text-base font-semibold mb-2">Language Requirements:</h4>
                             <ul className="list-disc ml-5 space-y-1 my-2">
-                              {Object.entries(requisition.language_requirements as Record<string, string>).map(([lang, level]) => (
-                                <li key={lang} className="text-sm">
-                                  <strong className="font-semibold capitalize">{lang}:</strong> {level}
-                                </li>
-                              ))}
+                              {Object.entries(requisition.language_requirements as Record<string, string>)
+                                .filter(([_, level]) => level && level.trim() !== '')
+                                .map(([lang, level]) => (
+                                  <li key={lang} className="text-sm">
+                                    <strong className="font-semibold">{lang.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> {level}
+                                  </li>
+                                ))}
                             </ul>
                           </div>
                         )}
