@@ -819,6 +819,7 @@ export type Database = {
           duty_station: string | null
           eligible_grades: string | null
           essential_education: string | null
+          essential_education_level: string | null
           essential_experience: string | null
           final_clean_version: Json | null
           finance_controller_approval: boolean | null
@@ -887,6 +888,7 @@ export type Database = {
           duty_station?: string | null
           eligible_grades?: string | null
           essential_education?: string | null
+          essential_education_level?: string | null
           essential_experience?: string | null
           final_clean_version?: Json | null
           finance_controller_approval?: boolean | null
@@ -955,6 +957,7 @@ export type Database = {
           duty_station?: string | null
           eligible_grades?: string | null
           essential_education?: string | null
+          essential_education_level?: string | null
           essential_experience?: string | null
           final_clean_version?: Json | null
           finance_controller_approval?: boolean | null
