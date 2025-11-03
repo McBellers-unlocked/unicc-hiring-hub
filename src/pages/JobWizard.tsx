@@ -38,6 +38,7 @@ export interface JobFormData {
   requirements_md: string;
 
   // Step 3: Requirements (moved from step 2)
+  essential_education_level: string;
   language_requirements: string;
   competencies: string;
 
@@ -125,6 +126,7 @@ export default function JobWizard() {
     branding: { preset: 'UNICC' },
     description_md: '',
     requirements_md: '',
+    essential_education_level: '',
     language_requirements: '',
     competencies: '',
     killer_questions: [],
@@ -247,6 +249,7 @@ ${requisition.essential_education || ''}
 
 ${requisition.desirable_education || ''}
             `.trim(),
+            essential_education_level: (requisition as any).essential_education_level || '',
              language_requirements: (() => {
                let langReq = '# Language Requirements\n\n## Required Language Skills\n\n- **English**: Expert knowledge is required\n\n## Additional Language Skills\n\n';
                
@@ -401,6 +404,7 @@ ${requisition.desirable_education || ''}
           branding: (jobData.branding as Record<string, any>) || { preset: 'UNICC' },
           description_md: jobData.description_md || '',
           requirements_md: jobData.requirements_md || '',
+          essential_education_level: jobData.essential_education_level || '',
           language_requirements: jobData.language_requirements || '',
           competencies: jobData.competencies || '',
           killer_questions: questionsData?.map(question => ({

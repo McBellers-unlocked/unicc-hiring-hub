@@ -1016,6 +1016,7 @@ export type Database = {
           created_at: string
           description_md: string | null
           eligibility_note: string | null
+          essential_education_level: string | null
           grade: string | null
           id: string
           issue_date: string | null
@@ -1043,6 +1044,7 @@ export type Database = {
           created_at?: string
           description_md?: string | null
           eligibility_note?: string | null
+          essential_education_level?: string | null
           grade?: string | null
           id?: string
           issue_date?: string | null
@@ -1070,6 +1072,7 @@ export type Database = {
           created_at?: string
           description_md?: string | null
           eligibility_note?: string | null
+          essential_education_level?: string | null
           grade?: string | null
           id?: string
           issue_date?: string | null

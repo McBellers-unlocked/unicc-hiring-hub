@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { JobFormData } from '@/pages/JobWizard';
@@ -22,6 +23,7 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
   const [requirementsContent, setRequirementsContent] = useState(data.requirements_md || '');
   const [languageContent, setLanguageContent] = useState(data.language_requirements || '');
   const [competenciesContent, setCompetenciesContent] = useState(data.competencies || '');
+  const [educationLevel, setEducationLevel] = useState(data.essential_education_level || '');
 
   const updateField = (field: keyof JobFormData, value: any) => {
     onUpdate({ [field]: value });
@@ -43,6 +45,11 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
     const content = value || '';
     setCompetenciesContent(content);
     updateField('competencies', content);
+  };
+
+  const handleEducationLevelChange = (value: string) => {
+    setEducationLevel(value);
+    updateField('essential_education_level', value);
   };
 
   const validateAndProceed = () => {
@@ -109,6 +116,27 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Essential Education Level */}
+        <div className="space-y-2">
+          <Label htmlFor="education-level" className="text-base font-medium">
+            Essential Education Level *
+          </Label>
+          <Select value={educationLevel} onValueChange={handleEducationLevelChange}>
+            <SelectTrigger className="w-full bg-background">
+              <SelectValue placeholder="Select required education level" />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              <SelectItem value="Secondary">Secondary Education</SelectItem>
+              <SelectItem value="First Level University">First Level University Degree (Bachelor's or equivalent)</SelectItem>
+              <SelectItem value="Advanced University">Advanced University Degree (Master's, PhD, or equivalent)</SelectItem>
+              <SelectItem value="Professional">Professional Certification</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-muted-foreground">
+            This structured requirement will automatically check candidate eligibility during application review
+          </p>
+        </div>
+
         {/* Requirements Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">

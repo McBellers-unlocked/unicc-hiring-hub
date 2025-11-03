@@ -115,6 +115,7 @@ Deno.serve(async (req) => {
       location: requisition.duty_station,
       org_unit: requisition.unit_section_division,
       positions: requisition.positions_available,
+      essential_education_level: requisition.essential_education_level || null,
       description_md: `
 # Purpose of the Position
 

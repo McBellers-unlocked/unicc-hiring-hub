@@ -117,6 +117,7 @@ const requisitionSchema = z.object({
   essential_experience: z.string().min(1, "Essential experience is required"),
   desirable_experience: z.string().optional(),
   essential_education: z.string().min(1, "Essential education is required"),
+  essential_education_level: z.string().min(1, "Essential education level is required"),
   desirable_education: z.string().optional(),
   core_competencies: z.array(z.string()).optional(),
   management_competencies: z.array(z.string()).optional(),
@@ -239,6 +240,7 @@ export default function JobRequisitionForm() {
       essential_experience: "",
       desirable_experience: "",
       essential_education: "",
+      essential_education_level: "",
       desirable_education: "",
       core_competencies: [],
       management_competencies: [],
@@ -349,6 +351,7 @@ export default function JobRequisitionForm() {
           essential_experience: data.essential_experience || "",
           desirable_experience: data.desirable_experience || "",
           essential_education: data.essential_education || "",
+          essential_education_level: (data as any).essential_education_level || "",
           desirable_education: data.desirable_education || "",
           core_competencies: Array.isArray(data.core_competencies) ? data.core_competencies as string[] : [],
           management_competencies: Array.isArray(data.management_competencies) ? data.management_competencies as string[] : [],
@@ -1199,12 +1202,41 @@ export default function JobRequisitionForm() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="essential_education_level"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Essential Education Level *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="bg-background">
+                              <SelectValue placeholder="Select required education level" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-background z-50">
+                            <SelectItem value="Secondary">Secondary Education</SelectItem>
+                            <SelectItem value="First Level University">First Level University Degree (Bachelor's or equivalent)</SelectItem>
+                            <SelectItem value="Advanced University">Advanced University Degree (Master's, PhD, or equivalent)</SelectItem>
+                            <SelectItem value="Professional">Professional Certification</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription className="text-xs">
+                          This structured requirement will automatically check candidate eligibility
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <FormField
                   control={form.control}
                   name="essential_education"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Essential Education *</FormLabel>
+                      <FormLabel>Essential Education Details *</FormLabel>
                       <FormControl>
                         <MDEditor
                           value={field.value}
@@ -1233,7 +1265,7 @@ export default function JobRequisitionForm() {
                         />
                       </FormControl>
                       <FormDescription className="text-xs">
-                        Tip: Remove empty lines before clicking the bullet button
+                        Provide additional details about the required education (field of study, specialization, etc.)
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

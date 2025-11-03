@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle, XCircle, AlertTriangle, GraduationCap, Briefcase, Clock, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { checkEducationEligibility, type EducationLevel } from '@/lib/educationUtils';
 
 interface RequirementsChecklistProps {
   applicationId: string;
@@ -25,6 +26,7 @@ export function RequirementsChecklist({ applicationId, jobId, phfData, candidate
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [loading, setLoading] = useState(true);
   const [jobRequirements, setJobRequirements] = useState<string>('');
+  const [essentialEducationLevel, setEssentialEducationLevel] = useState<EducationLevel | null>(null);
 
   useEffect(() => {
     fetchJobRequirements();
@@ -40,13 +42,14 @@ export function RequirementsChecklist({ applicationId, jobId, phfData, candidate
     try {
       const { data: job, error } = await supabase
         .from('jobs')
-        .select('requirements_md, essential_criteria(*)')
+        .select('requirements_md, essential_education_level, essential_criteria(*)')
         .eq('id', jobId)
         .single();
 
       if (error) throw error;
       
       setJobRequirements(job.requirements_md || '');
+      setEssentialEducationLevel(job.essential_education_level as EducationLevel || null);
     } catch (error) {
       console.error('Error fetching job requirements:', error);
     }
@@ -55,25 +58,46 @@ export function RequirementsChecklist({ applicationId, jobId, phfData, candidate
   const analyzeRequirements = () => {
     const reqs: Requirement[] = [];
 
-    // Education Analysis - use both PHF data and candidate info
-    const educationReqs = extractEducationRequirements(jobRequirements);
+    // Education Analysis - prioritize structured field
     const phfEducation = phfData?.education || [];
     const candidateEducation = candidateInfo?.education || [];
     
     // Combine both education sources
     const allEducation = [...phfEducation, ...candidateEducation];
     
-    educationReqs.forEach(req => {
-      const met = checkEducationRequirement(req, allEducation);
+    if (essentialEducationLevel) {
+      // Use structured education level for accurate checking
+      const eligibilityResult = checkEducationEligibility(
+        allEducation.map(edu => ({
+          degree_type: edu.degree_or_certificate_title || edu.degree_type || edu.degreeType || '',
+          is_completed: edu.is_completed !== false // Assume completed if not specified
+        })),
+        essentialEducationLevel
+      );
+      
       reqs.push({
-        id: `edu-${req.level}`,
+        id: 'edu-essential',
         category: 'education',
-        description: `${req.level} degree required`,
-        met,
-        evidence: met ? getEducationEvidence(req, allEducation) : 'No matching education found',
-        severity: req.required ? 'must-have' : 'preferred'
+        description: `${essentialEducationLevel} education required`,
+        met: eligibilityResult.eligible,
+        evidence: eligibilityResult.details,
+        severity: 'must-have'
       });
-    });
+    } else {
+      // Fall back to text parsing for backward compatibility
+      const educationReqs = extractEducationRequirements(jobRequirements);
+      educationReqs.forEach(req => {
+        const met = checkEducationRequirement(req, allEducation);
+        reqs.push({
+          id: `edu-${req.level}`,
+          category: 'education',
+          description: `${req.level} degree required`,
+          met,
+          evidence: met ? getEducationEvidence(req, allEducation) : 'No matching education found',
+          severity: req.required ? 'must-have' : 'preferred'
+        });
+      });
+    }
 
     // Experience Analysis - use both PHF and candidate work experience
     const experienceReqs = extractExperienceRequirements(jobRequirements);
