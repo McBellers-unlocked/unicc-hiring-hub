@@ -284,8 +284,8 @@ export default function DirectorView() {
                           <div className="prose prose-sm max-w-none">
                             <h4 className="text-base font-semibold mb-2">Language Requirements:</h4>
                             <ul className="list-disc ml-5 space-y-1 my-2">
-                              {Object.entries(requisition.language_requirements as Record<string, string>)
-                                .filter(([_, level]) => level && level.trim() !== '')
+                              {Object.entries(requisition.language_requirements as Record<string, any>)
+                                .filter(([_, level]) => level && typeof level === 'string' && level.trim() !== '')
                                 .map(([lang, level]) => (
                                   <li key={lang} className="text-sm">
                                     <strong className="font-semibold">{lang.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> {level}
