@@ -283,37 +283,12 @@ export default function JobRequisitionDetail() {
           </p>
         </div>
         <div className="flex gap-2">
-          {((requisition.status === 'hr_amendments') || 
-            (requisition.status === 'hiring_manager_review' && requisition.hr_reviewed && !requisition.hiring_manager_confirmed_hr_changes)) && 
-           requisition.created_by === user?.id && (
-            <Button onClick={() => navigate(`/requisitions/${requisition.id}/hm-review`)} className="bg-blue-600 hover:bg-blue-700">
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Review & Accept Changes
-            </Button>
-          )}
-          
           {/* Edit button - hiring managers can only edit drafts or amendments */}
           {(userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
            (userRoles.includes('Hiring Manager') && requisition.created_by === user?.id && 
             (requisition.status === 'draft' || requisition.status === 'hr_amendments'))) && (
             <Button variant="outline" onClick={() => navigate(`/requisitions/${requisition.id}/edit`)}>
               Edit
-            </Button>
-          )}
-          
-          {/* Test Email - only for Admin */}
-          {userRoles.includes('Admin') && (
-            <Button variant="outline" onClick={testEmailNotification}>
-              <Mail className="h-4 w-4 mr-2" />
-              Test Email
-            </Button>
-          )}
-          
-          {/* PDF generation - only for Admin and HR Assistant */}
-          {(userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
-            <Button variant="outline" onClick={generatePDF}>
-              <FileText className="h-4 w-4 mr-2" />
-              Generate PDF
             </Button>
           )}
           
@@ -873,6 +848,22 @@ export default function JobRequisitionDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Review & Accept Changes - Hiring Manager Action */}
+        {((requisition.status === 'hr_amendments') || 
+          (requisition.status === 'hiring_manager_review' && requisition.hr_reviewed && !requisition.hiring_manager_confirmed_hr_changes)) && 
+         requisition.created_by === user?.id && (
+          <div className="flex justify-center pt-4">
+            <Button 
+              onClick={() => navigate(`/requisitions/${requisition.id}/hm-review`)} 
+              size="lg"
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Review & Accept Changes
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
