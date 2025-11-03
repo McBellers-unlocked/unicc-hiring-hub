@@ -268,21 +268,13 @@ export default function JobRequisitionDetail() {
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="outline" onClick={() => navigate('/requisitions')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Requisitions
-        </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold">{requisition.position_title}</h1>
-            {getStatusBadge()}
-          </div>
-          <p className="text-muted-foreground">
-            Ref: {requisition.reference_number} • Created {format(new Date(requisition.created_at), 'MMM dd, yyyy')}
-          </p>
-        </div>
-        <div className="flex gap-2">
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <Button variant="outline" onClick={() => navigate('/requisitions')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Requisitions
+          </Button>
+          <div className="flex gap-2">
           {/* Edit button - hiring managers can only edit drafts or amendments */}
           {(userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
            (userRoles.includes('Hiring Manager') && requisition.created_by === user?.id && 
@@ -300,6 +292,18 @@ export default function JobRequisitionDetail() {
               Convert to Job
             </Button>
           )}
+          </div>
+        </div>
+        
+        <div className="mt-4 space-y-2">
+          <h1 className="text-3xl font-bold">{requisition.position_title}</h1>
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <span>Ref: {requisition.reference_number}</span>
+            <span>•</span>
+            <span>Created {format(new Date(requisition.created_at), 'MMM dd, yyyy')}</span>
+            <span>•</span>
+            {getStatusBadge()}
+          </div>
         </div>
       </div>
 
