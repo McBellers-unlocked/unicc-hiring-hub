@@ -55,8 +55,8 @@ export default function ChiefOfDivisionView() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
+        <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-bold">Chief of Division - Requisition Approvals</h1>
           <Badge variant="secondary">Test View</Badge>
         </div>
@@ -76,7 +76,7 @@ export default function ChiefOfDivisionView() {
             ) : (
               requisitions?.map((requisition) => (
                 <Card key={requisition.id}>
-                  <CardHeader>
+                  <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
                       <div>
                         <CardTitle>{requisition.position_title}</CardTitle>
@@ -88,8 +88,8 @@ export default function ChiefOfDivisionView() {
                       <Badge variant="secondary">Pending Chief Approval</Badge>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <CardContent className="pt-0">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                       <div>
                         <p className="text-sm font-medium">Reference Number</p>
                         <p className="text-sm text-muted-foreground">{requisition.reference_number}</p>
@@ -119,7 +119,7 @@ export default function ChiefOfDivisionView() {
                     </div>
 
                      {requisition.hr_change_summary && (
-                      <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                      <div className="mb-3 p-3 bg-blue-50 rounded-lg">
                         <p className="text-sm font-medium text-blue-900">HR Review Note:</p>
                         <p className="text-sm text-blue-800">{requisition.hr_change_summary}</p>
                       </div>
@@ -127,7 +127,7 @@ export default function ChiefOfDivisionView() {
 
                     {/* Show clean position description */}
                     {requisition.final_clean_version && (
-                      <div className="mb-4 space-y-3 max-h-96 overflow-y-auto border border-border rounded-lg p-3">
+                      <div className="mb-3 space-y-3 max-h-[500px] overflow-y-auto border border-border rounded-lg p-3">
                         <h3 className="font-semibold sticky top-0 bg-card pb-2">Position Description</h3>
                         
                         <div>
