@@ -7,7 +7,6 @@ import { JobWizardStep1 } from '@/components/job-wizard/JobWizardStep1';
 import { JobWizardStep2 } from '@/components/job-wizard/JobWizardStep2';
 import { JobWizardStep3 } from '@/components/job-wizard/JobWizardStep3';
 import { JobWizardStep4 } from '@/components/job-wizard/JobWizardStep4';
-import { JobWizardStep5 } from '@/components/job-wizard/JobWizardStep5';
 import { JobWizardStep6 } from '@/components/job-wizard/JobWizardStep6';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -76,8 +75,7 @@ const STEPS = [
   { id: 2, title: 'Job Description', description: 'Position description content' },
   { id: 3, title: 'Requirements', description: 'Essential and desirable requirements' },
   { id: 4, title: 'Killer Questions', description: 'Screening questions' },
-  { id: 5, title: 'Application Form', description: 'Attachments and custom fields' },
-  { id: 6, title: 'Review & Publish', description: 'Final review and publishing' },
+  { id: 5, title: 'Review & Publish', description: 'Final review and publishing' },
 ];
 
 export default function JobWizard() {
@@ -97,7 +95,7 @@ export default function JobWizard() {
     // If step parameter is provided, start at that step
     if (stepParam) {
       const step = parseInt(stepParam);
-      if (step >= 1 && step <= 6) {
+      if (step >= 1 && step <= 5) {
         return step;
       }
     }
@@ -521,19 +519,9 @@ ${requisition.desirable_education || ''}
         );
       case 5:
         return (
-          <JobWizardStep5
-            data={formData}
-            onUpdate={(data) => updateFormData(5, data)}
-            onNext={nextStep}
-            onPrev={prevStep}
-            jobId={jobId}
-          />
-        );
-      case 6:
-        return (
           <JobWizardStep6
             data={formData}
-            onUpdate={(data) => updateFormData(6, data)}
+            onUpdate={(data) => updateFormData(5, data)}
             onPrev={prevStep}
             isEditing={isEditing}
             jobId={jobId}
