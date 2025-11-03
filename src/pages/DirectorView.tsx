@@ -106,7 +106,7 @@ export default function DirectorView() {
                       </div>
                       <div>
                         <p className="text-sm font-medium">Created By</p>
-                        <p className="text-sm text-muted-foreground">{requisition.created_by}</p>
+                        <p className="text-sm text-muted-foreground">{(requisition as any).creator?.name || (requisition as any).creator?.email || requisition.created_by}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium">Created Date</p>
@@ -116,7 +116,7 @@ export default function DirectorView() {
                       </div>
                       <div>
                         <p className="text-sm font-medium">Chief Approved</p>
-                        <Badge variant="secondary">✓ Approved</Badge>
+                        <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200">✓ Approved</Badge>
                       </div>
                       {requisition.chief_of_division_approved_at && (
                         <div>
