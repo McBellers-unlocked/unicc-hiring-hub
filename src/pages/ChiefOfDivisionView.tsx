@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Layout } from "@/components/Layout";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import ReactMarkdown from "react-markdown";
+import { fixMarkdownFormatting } from "@/lib/utils";
 
 export default function ChiefOfDivisionView() {
   const queryClient = useQueryClient();
@@ -127,28 +129,61 @@ export default function ChiefOfDivisionView() {
 
                     {/* Show clean position description */}
                     {requisition.final_clean_version && (
-                      <div className="mb-3 space-y-3 border border-border rounded-lg p-3">
-                        <h3 className="font-semibold pb-2">Position Description</h3>
+                      <div className="mb-3 space-y-4 border border-border rounded-lg p-4">
+                        <h3 className="font-semibold text-lg pb-2 border-b">Position Description</h3>
                         
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Purpose of Position:</p>
-                          <p className="text-sm whitespace-pre-wrap">
-                            {(requisition.final_clean_version as any)?.purpose_of_position || requisition.purpose_of_position}
-                          </p>
+                        <div className="prose prose-sm max-w-none">
+                          <h4 className="text-base font-semibold mb-2">Purpose of Position:</h4>
+                          <ReactMarkdown 
+                            components={{
+                              h1: ({ children }) => <h1 className="text-lg font-semibold mb-2 mt-3 border-b pb-1">{children}</h1>,
+                              h2: ({ children }) => <h2 className="text-base font-semibold mb-2 mt-3 border-b pb-1">{children}</h2>,
+                              h3: ({ children }) => <h3 className="text-sm font-semibold mb-1 mt-2">{children}</h3>,
+                              ul: ({ children }) => <ul className="list-disc ml-5 space-y-1 my-2">{children}</ul>,
+                              ol: ({ children }) => <ol className="list-decimal ml-5 space-y-1 my-2">{children}</ol>,
+                              li: ({ children }) => <li className="text-sm">{children}</li>,
+                              p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                              strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                            }}
+                          >
+                            {fixMarkdownFormatting((requisition.final_clean_version as any)?.purpose_of_position || requisition.purpose_of_position || '')}
+                          </ReactMarkdown>
                         </div>
 
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Main Duties:</p>
-                          <p className="text-sm whitespace-pre-wrap">
-                            {(requisition.final_clean_version as any)?.main_duties_responsibilities || requisition.main_duties_responsibilities}
-                          </p>
+                        <div className="prose prose-sm max-w-none">
+                          <h4 className="text-base font-semibold mb-2">Main Duties and Responsibilities:</h4>
+                          <ReactMarkdown 
+                            components={{
+                              h1: ({ children }) => <h1 className="text-lg font-semibold mb-2 mt-3 border-b pb-1">{children}</h1>,
+                              h2: ({ children }) => <h2 className="text-base font-semibold mb-2 mt-3 border-b pb-1">{children}</h2>,
+                              h3: ({ children }) => <h3 className="text-sm font-semibold mb-1 mt-2">{children}</h3>,
+                              ul: ({ children }) => <ul className="list-disc ml-5 space-y-1 my-2">{children}</ul>,
+                              ol: ({ children }) => <ol className="list-decimal ml-5 space-y-1 my-2">{children}</ol>,
+                              li: ({ children }) => <li className="text-sm">{children}</li>,
+                              p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                              strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                            }}
+                          >
+                            {fixMarkdownFormatting((requisition.final_clean_version as any)?.main_duties_responsibilities || requisition.main_duties_responsibilities || '')}
+                          </ReactMarkdown>
                         </div>
 
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Essential Experience:</p>
-                          <p className="text-sm whitespace-pre-wrap">
-                            {(requisition.final_clean_version as any)?.essential_experience || requisition.essential_experience}
-                          </p>
+                        <div className="prose prose-sm max-w-none">
+                          <h4 className="text-base font-semibold mb-2">Essential Experience:</h4>
+                          <ReactMarkdown 
+                            components={{
+                              h1: ({ children }) => <h1 className="text-lg font-semibold mb-2 mt-3 border-b pb-1">{children}</h1>,
+                              h2: ({ children }) => <h2 className="text-base font-semibold mb-2 mt-3 border-b pb-1">{children}</h2>,
+                              h3: ({ children }) => <h3 className="text-sm font-semibold mb-1 mt-2">{children}</h3>,
+                              ul: ({ children }) => <ul className="list-disc ml-5 space-y-1 my-2">{children}</ul>,
+                              ol: ({ children }) => <ol className="list-decimal ml-5 space-y-1 my-2">{children}</ol>,
+                              li: ({ children }) => <li className="text-sm">{children}</li>,
+                              p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                              strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                            }}
+                          >
+                            {fixMarkdownFormatting((requisition.final_clean_version as any)?.essential_experience || requisition.essential_experience || '')}
+                          </ReactMarkdown>
                         </div>
                       </div>
                     )}
