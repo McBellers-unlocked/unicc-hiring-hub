@@ -18,7 +18,10 @@ export default function DirectorView() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("job_requisitions")
-        .select("*")
+        .select(`
+          *,
+          creator:users!created_by(name, email)
+        `)
         .eq("chief_of_division_approval", true)
         .or("director_approval.is.null,director_approval.eq.false")
         .order("created_at", { ascending: false });
@@ -106,7 +109,9 @@ export default function DirectorView() {
                       </div>
                       <div>
                         <p className="text-sm font-medium">Created By</p>
-                        <p className="text-sm text-muted-foreground">{requisition.created_by}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {(requisition as any).creator?.name || (requisition as any).creator?.email || 'Unknown User'}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm font-medium">Created Date</p>
