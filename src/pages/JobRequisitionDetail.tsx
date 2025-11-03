@@ -275,6 +275,18 @@ export default function JobRequisitionDetail() {
             Back to Requisitions
           </Button>
           <div className="flex gap-2">
+          {/* HR Final Review button - for HR to review after hiring manager approval */}
+          {requisition.status === 'hr_final_review' && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
+            <Button
+              variant="default"
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => navigate(`/requisitions/${requisition.id}/hr-edit`)}
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              HR Final Review & Send to Chief
+            </Button>
+          )}
+          
           {/* Edit button - hiring managers can only edit drafts or amendments */}
           {(userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
            (userRoles.includes('Hiring Manager') && requisition.created_by === user?.id && 

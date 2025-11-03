@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, FileText, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { Plus, FileText, CheckCircle, Clock, AlertCircle, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -287,6 +287,18 @@ export default function JobRequisitions() {
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">
+                      {/* HR Final Review button */}
+                      {requisition.status === 'hr_final_review' && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700"
+                          onClick={() => navigate(`/requisitions/${requisition.id}/hr-edit`)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          HR Final Review
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
