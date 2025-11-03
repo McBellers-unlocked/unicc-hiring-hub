@@ -459,13 +459,15 @@ export default function JobDetail() {
                   <CardContent>
                     <div 
                       className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ 
+                       dangerouslySetInnerHTML={{ 
                         __html: job.language_requirements
-                          // Remove internal field names that shouldn't be displayed
-                          .replace(/^[•\s]*Additional_languages:.*$/gm, '')
-                          .replace(/^[•\s]*Local_language_advantage:.*$/gm, '')
-                          .replace(/^[•\s]*un_language_advantage:.*$/gm, '')
-                          .replace(/^[•\s]*english:.*$/gm, '')
+                          // Remove internal field names that shouldn't be displayed (case-insensitive)
+                          .replace(/^[•\s]*(Additional_languages|additional_languages):.*$/gmi, '')
+                          .replace(/^[•\s]*(Local_language_advantage|local_language_advantage):.*$/gmi, '')
+                          .replace(/^[•\s]*(un_language_advantage):.*$/gmi, '')
+                          .replace(/^[•\s]*(english):.*$/gmi, '')
+                          // Remove standalone true/false values that might be leftovers
+                          .replace(/^[•\s]*(true|false)\s*$/gmi, '')
                           // Format headers
                           .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline; display: block; margin: 12px 0 4px 0;">$1</strong>')
                           // Format list items
