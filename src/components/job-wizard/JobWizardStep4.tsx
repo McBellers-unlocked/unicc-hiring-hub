@@ -172,7 +172,7 @@ export function JobWizardStep4({ data, onUpdate, onNext, onPrev }: Props) {
             Previous: Requirements
           </Button>
           <Button onClick={validateAndProceed}>
-            Next: Application Form
+            Next: Review & Publish
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
