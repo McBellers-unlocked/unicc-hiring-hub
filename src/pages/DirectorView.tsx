@@ -285,12 +285,33 @@ export default function DirectorView() {
                             <h4 className="text-base font-semibold mb-2">Language Requirements:</h4>
                             <ul className="list-disc ml-5 space-y-1 my-2">
                               {Object.entries(requisition.language_requirements as Record<string, any>)
-                                .filter(([_, level]) => level && typeof level === 'string' && level.trim() !== '')
-                                .map(([lang, level]) => (
-                                  <li key={lang} className="text-sm">
-                                    <strong className="font-semibold">{lang.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> {level}
-                                  </li>
-                                ))}
+                                .filter(([key, value]) => {
+                                  if (key === 'additional_languages') return false;
+                                  if (typeof value === 'string' && value.trim() !== '') return true;
+                                  if (typeof value === 'boolean' && value === true) return true;
+                                  return false;
+                                })
+                                .map(([lang, level]) => {
+                                  if (typeof level === 'boolean') {
+                                    if (lang === 'un_language_advantage') {
+                                      return <li key={lang} className="text-sm">Knowledge of another UN language is an advantage</li>;
+                                    }
+                                    if (lang === 'local_language_advantage') {
+                                      return <li key={lang} className="text-sm">Knowledge of the local language is an advantage</li>;
+                                    }
+                                  }
+                                  return (
+                                    <li key={lang} className="text-sm">
+                                      <strong className="font-semibold">{lang.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> {level}
+                                    </li>
+                                  );
+                                })}
+                              {(requisition.language_requirements as any).additional_languages && 
+                               Array.isArray((requisition.language_requirements as any).additional_languages) &&
+                               (requisition.language_requirements as any).additional_languages.length > 0 &&
+                               (requisition.language_requirements as any).additional_languages.map((lang: string, idx: number) => (
+                                 <li key={`additional-${idx}`} className="text-sm">{lang}</li>
+                               ))}
                             </ul>
                           </div>
                         )}
