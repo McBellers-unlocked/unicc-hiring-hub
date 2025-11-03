@@ -18,10 +18,7 @@ export default function ChiefOfDivisionView() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("job_requisitions")
-        .select(`
-          *,
-          creator:users!job_requisitions_created_by_fkey(name, email)
-        `)
+        .select("*")
         .eq("hr_final_review_completed", true)
         .eq("status", "chief_of_division_review")
         .or("chief_of_division_approval.is.null,chief_of_division_approval.eq.false")
@@ -109,7 +106,7 @@ export default function ChiefOfDivisionView() {
                       </div>
                       <div>
                         <p className="text-sm font-medium">Created By</p>
-                        <p className="text-sm text-muted-foreground">{(requisition as any).creator?.name || (requisition as any).creator?.email || requisition.created_by}</p>
+                        <p className="text-sm text-muted-foreground">{requisition.created_by}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium">Created Date</p>

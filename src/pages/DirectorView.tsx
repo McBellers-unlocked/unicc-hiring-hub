@@ -106,7 +106,7 @@ export default function DirectorView() {
                       </div>
                       <div>
                         <p className="text-sm font-medium">Created By</p>
-                        <p className="text-sm text-muted-foreground">{(requisition as any).creator?.name || (requisition as any).creator?.email || requisition.created_by}</p>
+                        <p className="text-sm text-muted-foreground">{requisition.created_by}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium">Created Date</p>
