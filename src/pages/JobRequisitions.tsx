@@ -96,6 +96,8 @@ export default function JobRequisitions() {
         return <Badge variant="destructive">Requires Amendments</Badge>;
       case 'hiring_manager_review':
         return <Badge variant="default" className="bg-blue-500">Manager Review</Badge>;
+      case 'hr_final_review':
+        return <Badge variant="default" className="bg-blue-600">HR Final Review</Badge>;
       case 'chief_division_review':
         return <Badge variant="default" className="bg-purple-500">Chief Review</Badge>;
       case 'director_review':
