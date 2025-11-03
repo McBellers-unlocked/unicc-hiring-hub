@@ -157,17 +157,19 @@ ${requisition.desirable_education || ''}
         if (hasUnAdvantage) {
           langReq += '- Knowledge of another UN language would be an advantage\n';
         }
-        if (requisition.language_requirements) {
-          if (typeof requisition.language_requirements === 'object') {
-            const additional = Object.entries(requisition.language_requirements)
-              .filter(([lang]) => lang.toLowerCase() !== 'english' && lang !== 'un_language_advantage')
-              .map(([lang, level]) => `- ${lang.charAt(0).toUpperCase() + lang.slice(1)}: ${level}`)
-              .join('\n');
-            if (additional) langReq += additional;
-          } else {
-            langReq += requisition.language_requirements;
+        
+        // Add additional languages if they exist
+        if (requisition.language_requirements && typeof requisition.language_requirements === 'object') {
+          const additionalLanguages = (requisition.language_requirements as any).additional_languages;
+          if (Array.isArray(additionalLanguages) && additionalLanguages.length > 0) {
+            additionalLanguages.forEach(lang => {
+              if (lang.name && lang.level) {
+                langReq += `- ${lang.name}: ${lang.level}\n`;
+              }
+            });
           }
         }
+        
         return langReq;
       })(),
       competencies: (() => {
