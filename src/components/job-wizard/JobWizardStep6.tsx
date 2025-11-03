@@ -95,16 +95,6 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
       description: 'At least one screening question is recommended',
     });
 
-    // Required uploads
-    const hasRequiredUploads = data.attachments_required?.motivation_letter || 
-                              data.attachments_required?.personal_history_form ||
-                              data.attachments_required?.cv;
-    items.push({
-      label: 'Required Uploads Set',
-      status: hasRequiredUploads ? 'pass' : 'warning',
-      description: 'At least one required document upload is recommended',
-    });
-
     // Closing date
     items.push({
       label: 'Closing Date Set',

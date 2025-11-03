@@ -580,7 +580,7 @@ ${requisition.desirable_education || ''}
             <Progress value={progress} className="w-full" />
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               {STEPS.map((step) => (
                 <div
                   key={step.id}
