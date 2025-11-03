@@ -461,11 +461,22 @@ export default function JobDetail() {
                       className="prose prose-sm max-w-none"
                       dangerouslySetInnerHTML={{ 
                         __html: job.language_requirements
+                          // Remove internal field names that shouldn't be displayed
+                          .replace(/^[•\s]*Additional_languages:.*$/gm, '')
+                          .replace(/^[•\s]*Local_language_advantage:.*$/gm, '')
+                          .replace(/^[•\s]*un_language_advantage:.*$/gm, '')
+                          .replace(/^[•\s]*english:.*$/gm, '')
+                          // Format headers
                           .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline; display: block; margin: 12px 0 4px 0;">$1</strong>')
+                          // Format list items
                           .replace(/^-\s*/gm, '• ')
+                          // Format bold text
                           .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                          // Handle line breaks
                           .replace(/\n\n/g, '<br>')
-                          .replace(/\n/g, '<br>') 
+                          .replace(/\n/g, '<br>')
+                          // Remove any empty lines
+                          .replace(/(<br>\s*){3,}/g, '<br><br>')
                       }}
                     />
                   </CardContent>
