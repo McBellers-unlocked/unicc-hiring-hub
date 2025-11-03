@@ -153,6 +153,29 @@ export default function JobWizard() {
       try {
         setLoading(true);
         
+        // Helper function to format salary based on grade
+        const formatSalaryFromGrade = (grade: string | null): string => {
+          if (!grade) return '';
+          
+          const salaryTable: { [key: string]: { stepI: number; stepXIII: number } } = {
+            'D-2': { stepI: 171094, stepXIII: 205942 },
+            'D-1': { stepI: 152417, stepXIII: 193215 },
+            'D1': { stepI: 152417, stepXIII: 193215 },
+            'P-5': { stepI: 131486, stepXIII: 165076 },
+            'P-4': { stepI: 107389, stepXIII: 131071 },
+            'P-3': { stepI: 87779, stepXIII: 108653 },
+            'P-2': { stepI: 67978, stepXIII: 86037 },
+            'P-1': { stepI: 52163, stepXIII: 67495 },
+          };
+          
+          const salaryData = salaryTable[grade];
+          if (salaryData) {
+            return `USD ${salaryData.stepI.toLocaleString()} - USD ${salaryData.stepXIII.toLocaleString()}`;
+          }
+          
+          return '';
+        };
+        
         if (requisitionId) {
           // Load requisition data to convert to job
           const { data: requisition, error: reqError } = await supabase
@@ -365,7 +388,9 @@ ${requisition.desirable_education || ''}
           type: jobData.type || '',
           positions: jobData.positions || 1,
           grade: jobData.grade || '',
-          salary_estimate: jobData.salary_estimate || '',
+          salary_estimate: jobData.salary_estimate && jobData.salary_estimate !== jobData.grade 
+            ? jobData.salary_estimate 
+            : formatSalaryFromGrade(jobData.grade),
           location: locationArray,
           org_unit: jobData.org_unit || '',
           issue_date: jobData.issue_date ? new Date(jobData.issue_date) : null,
