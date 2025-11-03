@@ -458,19 +458,79 @@ export default function JobRequisitionDetail() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Essential Experience</label>
-                <p className="mt-1 whitespace-pre-wrap">{requisition.essential_experience}</p>
+                {(() => {
+                  const hrChange = Array.isArray(requisition.hr_changes) && 
+                    requisition.hr_changes.find((c: any) => c.field === 'essential_experience');
+                  return hrChange ? (
+                    <div className="mt-1">
+                      <InlineTrackChanges
+                        fieldLabel=""
+                        originalValue={hrChange.originalValue}
+                        newValue={hrChange.newValue}
+                        showToggle={false}
+                      />
+                    </div>
+                  ) : (
+                    <p className="mt-1 whitespace-pre-wrap">{requisition.essential_experience}</p>
+                  );
+                })()}
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Desirable Experience</label>
-                <p className="mt-1 whitespace-pre-wrap">{requisition.desirable_experience || 'None specified'}</p>
+                {(() => {
+                  const hrChange = Array.isArray(requisition.hr_changes) && 
+                    requisition.hr_changes.find((c: any) => c.field === 'desirable_experience');
+                  return hrChange ? (
+                    <div className="mt-1">
+                      <InlineTrackChanges
+                        fieldLabel=""
+                        originalValue={hrChange.originalValue}
+                        newValue={hrChange.newValue}
+                        showToggle={false}
+                      />
+                    </div>
+                  ) : (
+                    <p className="mt-1 whitespace-pre-wrap">{requisition.desirable_experience || 'None specified'}</p>
+                  );
+                })()}
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Essential Education</label>
-                <p className="mt-1 whitespace-pre-wrap">{requisition.essential_education}</p>
+                {(() => {
+                  const hrChange = Array.isArray(requisition.hr_changes) && 
+                    requisition.hr_changes.find((c: any) => c.field === 'essential_education');
+                  return hrChange ? (
+                    <div className="mt-1">
+                      <InlineTrackChanges
+                        fieldLabel=""
+                        originalValue={hrChange.originalValue}
+                        newValue={hrChange.newValue}
+                        showToggle={false}
+                      />
+                    </div>
+                  ) : (
+                    <p className="mt-1 whitespace-pre-wrap">{requisition.essential_education}</p>
+                  );
+                })()}
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Desirable Education</label>
-                <p className="mt-1 whitespace-pre-wrap">{requisition.desirable_education || 'None specified'}</p>
+                {(() => {
+                  const hrChange = Array.isArray(requisition.hr_changes) && 
+                    requisition.hr_changes.find((c: any) => c.field === 'desirable_education');
+                  return hrChange ? (
+                    <div className="mt-1">
+                      <InlineTrackChanges
+                        fieldLabel=""
+                        originalValue={hrChange.originalValue}
+                        newValue={hrChange.newValue}
+                        showToggle={false}
+                      />
+                    </div>
+                  ) : (
+                    <p className="mt-1 whitespace-pre-wrap">{requisition.desirable_education || 'None specified'}</p>
+                  );
+                })()}
               </div>
             </div>
           </CardContent>
