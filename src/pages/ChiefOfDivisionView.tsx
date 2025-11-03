@@ -127,8 +127,8 @@ export default function ChiefOfDivisionView() {
 
                     {/* Show clean position description */}
                     {requisition.final_clean_version && (
-                      <div className="mb-3 space-y-3 max-h-[700px] overflow-y-auto border border-border rounded-lg p-3">
-                        <h3 className="font-semibold sticky top-0 bg-card pb-2">Position Description</h3>
+                      <div className="mb-3 space-y-3 border border-border rounded-lg p-3">
+                        <h3 className="font-semibold pb-2">Position Description</h3>
                         
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Purpose of Position:</p>
