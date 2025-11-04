@@ -509,6 +509,8 @@ export default function JobDetail() {
                           .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline; display: block; margin: 12px 0 4px 0;">$1</strong>')
                           .replace(/^-\s*/gm, '• ')
                           .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                          // Make competency names (text before colon) bold
+                          .replace(/([•\s]*)([\w\s&(),'-]+):/g, '$1<strong>$2</strong>:')
                           .replace(/\n\n/g, '<br>')
                           .replace(/\n/g, '<br>') 
                       }}
