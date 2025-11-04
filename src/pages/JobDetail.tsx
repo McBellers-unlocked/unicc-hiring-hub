@@ -506,7 +506,7 @@ export default function JobDetail() {
                       className="prose prose-sm max-w-none"
                       dangerouslySetInnerHTML={{ 
                         __html: job.competencies
-                          .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline; display: block; margin: 12px 0 4px 0;">$1</strong>')
+                          .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline; display: block; margin: 16px 0 12px 0;">$1</strong>')
                           .replace(/^-\s*/gm, '• ')
                           .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
                           // Make competency names (text before colon) bold
