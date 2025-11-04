@@ -19,6 +19,10 @@ interface WorkExperienceEntry {
   isCurrent?: boolean;
   isUNExperience?: boolean;
   description?: string;
+  supervisor_name?: string;
+  supervisor_title?: string;
+  supervisor_phone?: string;
+  supervisor_email?: string;
 }
 
 interface PHFWorkExperienceSectionProps {
@@ -49,7 +53,11 @@ export default function PHFWorkExperienceSection({
     endDate: '',
     isCurrent: false,
     isUNExperience: false,
-    description: ''
+    description: '',
+    supervisor_name: '',
+    supervisor_title: '',
+    supervisor_phone: '',
+    supervisor_email: ''
   });
   const [editingExperience, setEditingExperience] = useState({
     company: '',
@@ -60,7 +68,11 @@ export default function PHFWorkExperienceSection({
     endDate: '',
     isCurrent: false,
     isUNExperience: false,
-    description: ''
+    description: '',
+    supervisor_name: '',
+    supervisor_title: '',
+    supervisor_phone: '',
+    supervisor_email: ''
   });
   const formatDateRange = (startDate: string, endDate?: string, isCurrent?: boolean) => {
     const formatDate = (date: string) => {
@@ -98,7 +110,11 @@ export default function PHFWorkExperienceSection({
         location: newExperience.location,
         isCurrent: newExperience.isCurrent,
         isUNExperience: newExperience.isUNExperience,
-        description: newExperience.description
+        description: newExperience.description,
+        supervisor_name: newExperience.supervisor_name,
+        supervisor_title: newExperience.supervisor_title,
+        supervisor_phone: newExperience.supervisor_phone,
+        supervisor_email: newExperience.supervisor_email
       });
     }
     setIsAddDialogOpen(false);
@@ -112,7 +128,11 @@ export default function PHFWorkExperienceSection({
       endDate: '',
       isCurrent: false,
       isUNExperience: false,
-      description: ''
+      description: '',
+      supervisor_name: '',
+      supervisor_title: '',
+      supervisor_phone: '',
+      supervisor_email: ''
     });
   };
 
@@ -128,7 +148,11 @@ export default function PHFWorkExperienceSection({
       endDate: experienceToEdit.endDate || '',
       isCurrent: experienceToEdit.isCurrent || false,
       isUNExperience: experienceToEdit.isUNExperience || false,
-      description: experienceToEdit.description || ''
+      description: experienceToEdit.description || '',
+      supervisor_name: experienceToEdit.supervisor_name || '',
+      supervisor_title: experienceToEdit.supervisor_title || '',
+      supervisor_phone: experienceToEdit.supervisor_phone || '',
+      supervisor_email: experienceToEdit.supervisor_email || ''
     });
     setIsEditDialogOpen(true);
   };
@@ -143,7 +167,11 @@ export default function PHFWorkExperienceSection({
         location: editingExperience.location,
         isCurrent: editingExperience.isCurrent,
         isUNExperience: editingExperience.isUNExperience,
-        description: editingExperience.description
+        description: editingExperience.description,
+        supervisor_name: editingExperience.supervisor_name,
+        supervisor_title: editingExperience.supervisor_title,
+        supervisor_phone: editingExperience.supervisor_phone,
+        supervisor_email: editingExperience.supervisor_email
       });
     }
     setIsEditDialogOpen(false);
@@ -168,6 +196,9 @@ export default function PHFWorkExperienceSection({
           <div>
             <p className="text-sm text-blue-900">
               <span className="font-medium">Employment Record (reverse chronological):</span> Include military service. Note periods not gainfully employed separately. Last 5 years require attestations.
+            </p>
+            <p className="text-sm text-blue-900 mt-2">
+              <span className="font-medium">⚠️ Supervisor details are mandatory:</span> You must provide supervisor contact information (Name, Job Title, Phone, Email) for each employment entry for application verification purposes.
             </p>
           </div>
         </div>
@@ -351,6 +382,60 @@ export default function PHFWorkExperienceSection({
                     />
                   </div>
 
+                  {/* Supervisor Details Section */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-semibold text-foreground">Supervisor Details (Required)</h4>
+                      <Badge variant="destructive" className="text-xs">Mandatory</Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="supervisor_name">Supervisor Name *</Label>
+                        <Input
+                          id="supervisor_name"
+                          placeholder="Full name"
+                          value={newExperience.supervisor_name}
+                          onChange={(e) => setNewExperience(prev => ({ ...prev, supervisor_name: e.target.value }))}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="supervisor_title">Supervisor Job Title *</Label>
+                        <Input
+                          id="supervisor_title"
+                          placeholder="Job title"
+                          value={newExperience.supervisor_title}
+                          onChange={(e) => setNewExperience(prev => ({ ...prev, supervisor_title: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="supervisor_phone">Supervisor Phone Number *</Label>
+                        <Input
+                          id="supervisor_phone"
+                          type="tel"
+                          placeholder="+1 234 567 8900"
+                          value={newExperience.supervisor_phone}
+                          onChange={(e) => setNewExperience(prev => ({ ...prev, supervisor_phone: e.target.value }))}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="supervisor_email">Supervisor Email *</Label>
+                        <Input
+                          id="supervisor_email"
+                          type="email"
+                          placeholder="supervisor@company.com"
+                          value={newExperience.supervisor_email}
+                          onChange={(e) => setNewExperience(prev => ({ ...prev, supervisor_email: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="flex justify-end gap-2 pt-4">
                     <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                       Cancel
@@ -481,6 +566,60 @@ export default function PHFWorkExperienceSection({
                       value={editingExperience.description}
                       onChange={(e) => setEditingExperience(prev => ({ ...prev, description: e.target.value }))}
                     />
+                  </div>
+
+                  {/* Supervisor Details Section */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-semibold text-foreground">Supervisor Details (Required)</h4>
+                      <Badge variant="destructive" className="text-xs">Mandatory</Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-supervisor_name">Supervisor Name *</Label>
+                        <Input
+                          id="edit-supervisor_name"
+                          placeholder="Full name"
+                          value={editingExperience.supervisor_name}
+                          onChange={(e) => setEditingExperience(prev => ({ ...prev, supervisor_name: e.target.value }))}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-supervisor_title">Supervisor Job Title *</Label>
+                        <Input
+                          id="edit-supervisor_title"
+                          placeholder="Job title"
+                          value={editingExperience.supervisor_title}
+                          onChange={(e) => setEditingExperience(prev => ({ ...prev, supervisor_title: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-supervisor_phone">Supervisor Phone Number *</Label>
+                        <Input
+                          id="edit-supervisor_phone"
+                          type="tel"
+                          placeholder="+1 234 567 8900"
+                          value={editingExperience.supervisor_phone}
+                          onChange={(e) => setEditingExperience(prev => ({ ...prev, supervisor_phone: e.target.value }))}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-supervisor_email">Supervisor Email *</Label>
+                        <Input
+                          id="edit-supervisor_email"
+                          type="email"
+                          placeholder="supervisor@company.com"
+                          value={editingExperience.supervisor_email}
+                          onChange={(e) => setEditingExperience(prev => ({ ...prev, supervisor_email: e.target.value }))}
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex justify-end gap-2 pt-4">
