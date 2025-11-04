@@ -473,7 +473,8 @@ export default function JobDetail() {
                                    !cleanLine.includes('local_language_advantage') &&
                                    !cleanLine.includes('un_language_advantage') &&
                                    !cleanLine.match(/^(true|false)$/i) &&
-                                   cleanLine !== 'language requirements';
+                                   cleanLine !== 'language requirements' &&
+                                   cleanLine !== 'language requirements:';
                           })
                           .map(line => {
                             // Remove any markdown headers
