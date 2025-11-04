@@ -13,7 +13,7 @@ export default function WorkExperienceTimeline({ workExperience }: WorkExperienc
     if (!dateStr) return '';
     try {
       const date = new Date(dateStr);
-      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+      return date.toLocaleDateString('en-GB', { year: 'numeric', month: 'short' });
     } catch {
       return dateStr;
     }

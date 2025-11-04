@@ -204,7 +204,7 @@ export const AuditLogViewer: React.FC = () => {
                     <TableCell className="font-mono text-xs">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-3 w-3 text-muted-foreground" />
-                        {format(new Date(log.at), 'MMM dd, HH:mm:ss')}
+                        {format(new Date(log.at), 'dd/MM/yyyy HH:mm:ss')}
                       </div>
                     </TableCell>
                     

@@ -1894,7 +1894,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {newCertification.issue_date ? format(newCertification.issue_date, "PPP") : <span>Pick a date</span>}
+                              {newCertification.issue_date ? format(newCertification.issue_date, "dd/MM/yyyy") : <span>Pick a date</span>}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
@@ -1921,7 +1921,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                               )}
                             >
                               <CalendarIcon className="mr-2 h-4 w-4" />
-                              {newCertification.expiry_date ? format(newCertification.expiry_date, "PPP") : <span>Pick a date</span>}
+                              {newCertification.expiry_date ? format(newCertification.expiry_date, "dd/MM/yyyy") : <span>Pick a date</span>}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">

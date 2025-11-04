@@ -101,7 +101,7 @@ export default function PanelMemberDashboard() {
                   <div>
                     <p className="font-medium">{application?.candidate_name || 'Candidate'}</p>
                     <p className="text-sm text-muted-foreground">
-                      Interview: {interviewData?.scheduled_at ? format(new Date(interviewData.scheduled_at), 'PPP') : 'Date not set'}
+                      Interview: {interviewData?.scheduled_at ? format(new Date(interviewData.scheduled_at), 'dd/MM/yyyy') : 'Date not set'}
                     </p>
                   </div>
                   <Button onClick={() => navigate(`/panel-interview/${interview.panel_interview_id}/feedback`)}>
@@ -144,7 +144,7 @@ export default function PanelMemberDashboard() {
                         <div>
                           <h4 className="font-semibold">{application?.candidate_name || 'Candidate'}</h4>
                           <p className="text-sm text-muted-foreground">
-                            {interviewData?.scheduled_at ? format(new Date(interviewData.scheduled_at), 'PPP p') : 'Not scheduled'}
+                            {interviewData?.scheduled_at ? format(new Date(interviewData.scheduled_at), 'dd/MM/yyyy HH:mm') : 'Not scheduled'}
                           </p>
                         </div>
                         <Button 

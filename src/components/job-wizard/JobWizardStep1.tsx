@@ -358,7 +358,7 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
                      )}
                    >
                      <CalendarIcon className="mr-2 h-4 w-4" />
-                     {formData.issue_date ? format(formData.issue_date, "PPP") : "Pick a date"}
+                     {formData.issue_date ? format(formData.issue_date, "dd/MM/yyyy") : "Pick a date"}
                    </Button>
                  </PopoverTrigger>
                  <PopoverContent className="w-auto p-0" align="start">
@@ -390,7 +390,7 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.closing_date ? format(formData.closing_date, "PPP p") : "Pick date & time"}
+                  {formData.closing_date ? format(formData.closing_date, "dd/MM/yyyy HH:mm") : "Pick date & time"}
                 </Button>
               </PopoverTrigger>
                <PopoverContent className="w-auto p-0" align="start">

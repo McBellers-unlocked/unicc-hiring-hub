@@ -98,7 +98,7 @@ export function CandidateNotes({ candidateId }: CandidateNotesProps) {
                     <p className="text-sm">{note.note}</p>
                     <p className="text-xs text-muted-foreground mt-2">
                       By {note.created_by?.name || "Unknown"} •{" "}
-                      {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
+                      {new Date(note.created_at).toLocaleDateString('en-GB')}
                     </p>
                   </div>
                   <Button

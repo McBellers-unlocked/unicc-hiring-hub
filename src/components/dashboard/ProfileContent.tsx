@@ -40,7 +40,7 @@ export default function ProfileContent({ profile }: ProfileContentProps) {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString; // Return original if invalid
     
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString('en-GB', {
       year: 'numeric',
       month: 'short'
     });

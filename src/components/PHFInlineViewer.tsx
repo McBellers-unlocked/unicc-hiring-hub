@@ -24,7 +24,7 @@ export const PHFInlineViewer: React.FC<PHFInlineViewerProps> = ({ phfData, class
     if (!dateString) return 'Present';
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+      return date.toLocaleDateString('en-GB', { year: 'numeric', month: 'short' });
     } catch {
       return dateString;
     }

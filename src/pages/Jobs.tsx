@@ -521,7 +521,7 @@ export default function Jobs() {
                             {job.closing_date && (
                               <div className="flex items-center text-sm text-muted-foreground">
                                 <Calendar className="h-4 w-4 mr-2" />
-                                Closes {formatDistanceToNow(new Date(job.closing_date), { addSuffix: true })}
+                                Closes {new Date(job.closing_date).toLocaleDateString('en-GB')}
                               </div>
                             )}
 

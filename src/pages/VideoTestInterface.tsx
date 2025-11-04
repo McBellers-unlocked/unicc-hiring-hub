@@ -256,7 +256,7 @@ export default function VideoTestInterface() {
                         </div>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
                           <Clock className="w-3 h-3" />
-                          Deadline: {new Date(assignment.deadline_at).toLocaleDateString()}
+                          Deadline: {new Date(assignment.deadline_at).toLocaleDateString('en-GB')}
                         </div>
                       </div>
                     </div>

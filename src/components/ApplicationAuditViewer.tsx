@@ -275,7 +275,7 @@ export const ApplicationAuditViewer: React.FC<ApplicationAuditViewerProps> = ({
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Clock className="w-3 h-3" />
-                        {formatDistanceToNow(new Date(event.at), { addSuffix: true })}
+                        {format(new Date(event.at), 'dd/MM/yyyy HH:mm')}
                       </div>
                     </div>
                     
@@ -284,7 +284,7 @@ export const ApplicationAuditViewer: React.FC<ApplicationAuditViewerProps> = ({
                       <span>by {event.actor}</span>
                       <span>•</span>
                       <Calendar className="w-3 h-3" />
-                      <span>{format(new Date(event.at), 'PPp')}</span>
+                      <span>{format(new Date(event.at), 'dd/MM/yyyy HH:mm')}</span>
                     </div>
                     
                     {/* Reason/Comment for stage events */}

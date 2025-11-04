@@ -427,7 +427,7 @@ export default function ApplicationDetail() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Last updated: {format(new Date(application.updated_at || application.submitted_at), 'PPp')}
+                  Last updated: {format(new Date(application.updated_at || application.submitted_at), 'dd/MM/yyyy HH:mm')}
                 </p>
               </div>
 
@@ -582,7 +582,7 @@ export default function ApplicationDetail() {
                       </p>
                       {application.phf_data?.personalDetails?.dateOfBirth && (
                         <p className="text-sm text-muted-foreground">
-                          Born: {format(new Date(application.phf_data.personalDetails.dateOfBirth), 'PPP')}
+                          Born: {format(new Date(application.phf_data.personalDetails.dateOfBirth), 'dd/MM/yyyy')}
                         </p>
                       )}
                     </div>
@@ -629,7 +629,7 @@ export default function ApplicationDetail() {
                         )}
                         <div>
                           <span className="text-sm font-medium">Application Submitted:</span>
-                          <p className="text-sm text-muted-foreground">{format(new Date(application.submitted_at), 'PPP')}</p>
+                          <p className="text-sm text-muted-foreground">{format(new Date(application.submitted_at), 'dd/MM/yyyy')}</p>
                         </div>
                         <div>
                           <span className="text-sm font-medium">PHF Status:</span>
@@ -863,7 +863,7 @@ export default function ApplicationDetail() {
                         {cert.issuer && <p className="text-sm text-muted-foreground">{cert.issuer}</p>}
                         {cert.date && (
                           <p className="text-xs text-muted-foreground">
-                            Issued: {format(new Date(cert.date), 'PPP')}
+                            Issued: {format(new Date(cert.date), 'dd/MM/yyyy')}
                           </p>
                         )}
                       </div>

@@ -216,7 +216,7 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
 
     try {
       const videoLink = `${window.location.origin}/video/${assignment.token}`;
-      const deadline = format(new Date(assignment.deadline_at), 'PPP p');
+      const deadline = format(new Date(assignment.deadline_at), 'dd/MM/yyyy HH:mm');
 
       const { error } = await supabase.functions.invoke('send-video-invite', {
         body: {
@@ -277,7 +277,7 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
           candidateEmail: assignment.applications.candidates.email,
           jobTitle: assignment.applications.jobs.title,
           videoLink: `${window.location.origin}/video/${assignment.token}`,
-          deadline: format(newDeadline, 'PPP p'),
+          deadline: format(newDeadline, 'dd/MM/yyyy HH:mm'),
           jobTimezone: 'Europe/Zurich',
           retakesAllowed: assignment.video_question_sets.allow_retakes,
           maxRetakes: assignment.video_question_sets.max_retakes,
@@ -470,30 +470,30 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span>Created:</span>
-                <span>{format(new Date(assignment.created_at), 'PPp')}</span>
+                <span>{format(new Date(assignment.created_at), 'dd/MM/yyyy HH:mm')}</span>
               </div>
               <div className="flex justify-between">
                 <span>Deadline:</span>
                 <span className={daysUntilDeadline < 0 ? 'text-red-500' : ''}>
-                  {format(new Date(assignment.deadline_at), 'PPp')}
+                  {format(new Date(assignment.deadline_at), 'dd/MM/yyyy HH:mm')}
                 </span>
               </div>
               {assignment.opened_at && (
                 <div className="flex justify-between">
                   <span>First Opened:</span>
-                  <span>{format(new Date(assignment.opened_at), 'PPp')}</span>
+                  <span>{format(new Date(assignment.opened_at), 'dd/MM/yyyy HH:mm')}</span>
                 </div>
               )}
               {assignment.started_at && (
                 <div className="flex justify-between">
                   <span>Started:</span>
-                  <span>{format(new Date(assignment.started_at), 'PPp')}</span>
+                  <span>{format(new Date(assignment.started_at), 'dd/MM/yyyy HH:mm')}</span>
                 </div>
               )}
               {assignment.completed_at && (
                 <div className="flex justify-between">
                   <span>Completed:</span>
-                  <span>{format(new Date(assignment.completed_at), 'PPp')}</span>
+                  <span>{format(new Date(assignment.completed_at), 'dd/MM/yyyy HH:mm')}</span>
                 </div>
               )}
             </div>

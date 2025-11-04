@@ -228,7 +228,7 @@ export const PanelInterviewScheduler: React.FC<PanelInterviewSchedulerProps> = (
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {scheduledDate ? format(scheduledDate, "PPP") : "Pick a date"}
+                  {scheduledDate ? format(scheduledDate, "dd/MM/yyyy") : "Pick a date"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">

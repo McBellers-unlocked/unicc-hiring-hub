@@ -244,7 +244,7 @@ export default function AdminJobs() {
       const now = new Date();
       const isExpired = parsedDate < now;
       
-      const formatted = format(parsedDate, 'MMM dd, yyyy HH:mm');
+      const formatted = format(parsedDate, 'dd/MM/yyyy HH:mm');
       
       return (
         <span className={isExpired ? 'text-destructive' : ''}>
@@ -481,7 +481,7 @@ export default function AdminJobs() {
                         </TableCell>
                         <TableCell>{getStatusBadge(job.status)}</TableCell>
                         <TableCell className="text-muted-foreground">
-                          {format(new Date(job.updated_at), 'MMM dd, yyyy')}
+                          {format(new Date(job.updated_at), 'dd/MM/yyyy')}
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>

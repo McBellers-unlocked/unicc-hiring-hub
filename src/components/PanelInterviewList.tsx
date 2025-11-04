@@ -111,7 +111,7 @@ export const PanelInterviewList: React.FC<PanelInterviewListProps> = ({
               <div className="flex items-center gap-2">
                 <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">
-                  {format(new Date(interview.scheduled_at), 'PPP')}
+                  {format(new Date(interview.scheduled_at), 'dd/MM/yyyy')}
                 </span>
               </div>
               <div className="flex items-center gap-2">

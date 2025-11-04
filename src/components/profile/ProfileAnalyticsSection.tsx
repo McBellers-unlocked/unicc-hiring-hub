@@ -222,7 +222,7 @@ export default function ProfileAnalyticsSection({ profileId, completionPercentag
 
           {/* Last Updated */}
           <div className="text-xs text-muted-foreground">
-            Last updated: {new Date(analytics.lastUpdated).toLocaleDateString()}
+            Last updated: {new Date(analytics.lastUpdated).toLocaleDateString('en-GB')}
           </div>
         </CardContent>
       </Card>

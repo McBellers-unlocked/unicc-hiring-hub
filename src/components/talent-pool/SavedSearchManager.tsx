@@ -85,7 +85,7 @@ export function SavedSearchManager({ onLoadSearch }: SavedSearchManagerProps) {
                 <div className="text-sm text-muted-foreground space-y-1">
                   <p className="flex items-center gap-2">
                     <Calendar className="h-3 w-3" />
-                    {formatDistanceToNow(new Date(search.created_at), { addSuffix: true })}
+                    {new Date(search.created_at).toLocaleDateString('en-GB')}
                   </p>
                   <p>By {search.created_by?.name || "Unknown"}</p>
                 </div>

@@ -546,7 +546,7 @@ export default function JobApplication() {
                 <span>{job.org_unit}</span>
                 {job.closing_date && (
                   <Badge variant="outline">
-                    Closes: {new Date(job.closing_date).toLocaleDateString()}
+                    Closes: {new Date(job.closing_date).toLocaleDateString('en-GB')}
                   </Badge>
                 )}
               </div>

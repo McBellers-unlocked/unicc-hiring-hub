@@ -380,7 +380,7 @@ export default function CandidateDashboard() {
                     <div className="flex items-center gap-1 mt-2 text-xs text-orange-700">
                       <Clock className="h-3 w-3" />
                       <span>
-                        Due {formatDistanceToNow(new Date(task.deadline), { addSuffix: true })}
+                        Due {new Date(task.deadline).toLocaleDateString('en-GB')}
                       </span>
                     </div>
                   </div>

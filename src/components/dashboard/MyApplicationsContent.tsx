@@ -170,11 +170,7 @@ export default function MyApplicationsContent() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    return new Date(dateString).toLocaleDateString('en-GB');
   };
 
   const getVideoAssignmentStatus = (assignment: VideoAssignment | null) => {
@@ -354,7 +350,7 @@ export default function MyApplicationsContent() {
                         </div>
                         <p className="text-sm text-gray-600">
                           {application.video_assignment.status === 'Completed' 
-                            ? `Submitted ${formatDistanceToNow(new Date(application.video_assignment.completed_at!), { addSuffix: true })}`
+                            ? `Submitted ${formatDate(application.video_assignment.completed_at!)}`
                             : `Deadline: ${formatDate(application.video_assignment.deadline_at)}`
                           }
                         </p>

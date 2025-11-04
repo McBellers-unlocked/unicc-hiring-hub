@@ -301,7 +301,7 @@ export default function PortfolioSection({ portfolioFiles, email, onChange }: Po
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <span>{formatFileSize(file.size)}</span>
                               <span>•</span>
-                              <span>{new Date(file.uploadedAt).toLocaleDateString()}</span>
+                              <span>{new Date(file.uploadedAt).toLocaleDateString('en-GB')}</span>
                             </div>
                           </div>
                         </div>

@@ -116,7 +116,7 @@ export default function DirectorView() {
                       <div>
                         <p className="text-sm font-medium">Created Date</p>
                         <p className="text-sm text-muted-foreground">
-                          {format(new Date(requisition.created_at), "PPP")}
+                          {format(new Date(requisition.created_at), "dd/MM/yyyy")}
                         </p>
                       </div>
                       <div>
@@ -127,7 +127,7 @@ export default function DirectorView() {
                         <div>
                           <p className="text-sm font-medium">Chief Approved Date</p>
                           <p className="text-sm text-muted-foreground">
-                            {format(new Date(requisition.chief_of_division_approved_at), "PPP")}
+                            {format(new Date(requisition.chief_of_division_approved_at), "dd/MM/yyyy")}
                           </p>
                         </div>
                       )}

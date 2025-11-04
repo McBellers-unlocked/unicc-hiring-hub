@@ -205,7 +205,7 @@ export default function CandidateApplicationView() {
   };
 
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'MMM dd, yyyy');
+    return format(new Date(dateString), 'dd/MM/yyyy');
   };
 
   if (loading) {
@@ -606,18 +606,18 @@ export default function CandidateApplicationView() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                           <div className="bg-white p-4 rounded-lg">
                             <div className="text-sm text-gray-600 mb-1">Deadline</div>
-                            <div className="font-semibold">{format(new Date(assignment.deadline_at), 'MMM dd, yyyy HH:mm')}</div>
+                            <div className="font-semibold">{format(new Date(assignment.deadline_at), 'dd/MM/yyyy HH:mm')}</div>
                           </div>
                           {assignment.opened_at && (
                             <div className="bg-white p-4 rounded-lg">
                               <div className="text-sm text-gray-600 mb-1">First Opened</div>
-                              <div className="font-semibold">{formatDistanceToNow(new Date(assignment.opened_at), { addSuffix: true })}</div>
+                              <div className="font-semibold">{format(new Date(assignment.opened_at), 'dd/MM/yyyy HH:mm')}</div>
                             </div>
                           )}
                           {assignment.completed_at && (
                             <div className="bg-white p-4 rounded-lg">
                               <div className="text-sm text-gray-600 mb-1">Submitted</div>
-                              <div className="font-semibold">{formatDistanceToNow(new Date(assignment.completed_at), { addSuffix: true })}</div>
+                              <div className="font-semibold">{format(new Date(assignment.completed_at), 'dd/MM/yyyy HH:mm')}</div>
                             </div>
                           )}
                         </div>

@@ -110,7 +110,7 @@ export const HiringFunnelDashboard: React.FC = () => {
       const applicationDate = new Date(event.applications.created_at);
       const daysToHire = Math.floor((hireDate.getTime() - applicationDate.getTime()) / (1000 * 60 * 60 * 24));
       
-      const month = hireDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+      const month = hireDate.toLocaleDateString('en-GB', { year: 'numeric', month: 'short' });
       
       if (!acc[month]) {
         acc[month] = { total: 0, count: 0 };

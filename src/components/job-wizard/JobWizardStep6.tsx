@@ -352,7 +352,7 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
               </div>
               <div>
                 <span className="font-medium">Closing Date:</span> {
-                  data.closing_date ? new Date(data.closing_date).toLocaleDateString() : 'Not set'
+                  data.closing_date ? new Date(data.closing_date).toLocaleDateString('en-GB') : 'Not set'
                 }
               </div>
               <div>

@@ -16,7 +16,7 @@ export const PHFPreview: React.FC<PHFPreviewProps> = ({ phfData, photoUrl, onClo
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString();
+    return new Date(dateString).toLocaleDateString('en-GB');
   };
 
   // Helper function to safely render language proficiency (handles both strings and objects)

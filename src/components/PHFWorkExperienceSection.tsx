@@ -88,7 +88,7 @@ export default function PHFWorkExperienceSection({
       // Try to parse as a full date
       const d = new Date(date);
       if (isNaN(d.getTime())) return date; // Return original if invalid date
-      return d.toLocaleDateString('en-US', {
+      return d.toLocaleDateString('en-GB', {
         year: 'numeric',
         month: 'short'
       });

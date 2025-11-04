@@ -116,7 +116,7 @@ export default function ChiefOfDivisionView() {
                       <div>
                         <p className="text-sm font-medium">Created Date</p>
                         <p className="text-sm text-muted-foreground">
-                          {format(new Date(requisition.created_at), "PPP")}
+                          {format(new Date(requisition.created_at), "dd/MM/yyyy")}
                         </p>
                       </div>
                       <div>

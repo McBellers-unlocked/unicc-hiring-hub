@@ -169,12 +169,12 @@ export default function JobRequisitions() {
               {/* Show sent date if available, otherwise show approved date for existing data */}
               {(step.sentAt || (step.approved && step.approvedAt)) && (
                 <div className="text-xs text-muted-foreground">
-                  <span className="font-medium">Sent:</span> {new Date(step.sentAt || step.approvedAt!).toLocaleDateString()}
+                  <span className="font-medium">Sent:</span> {new Date(step.sentAt || step.approvedAt!).toLocaleDateString('en-GB')}
                 </div>
               )}
               {step.approved && step.approvedAt && (
                 <div className="text-xs text-muted-foreground">
-                  <span className="font-medium">Approved:</span> {new Date(step.approvedAt).toLocaleDateString()}
+                  <span className="font-medium">Approved:</span> {new Date(step.approvedAt).toLocaleDateString('en-GB')}
                 </div>
               )}
             </div>

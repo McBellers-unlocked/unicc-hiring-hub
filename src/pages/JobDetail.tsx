@@ -351,7 +351,7 @@ export default function JobDetail() {
                   {job.issue_date && (
                     <div className="flex items-center text-muted-foreground">
                       <Calendar className="h-4 w-4 mr-2" />
-                      Posted {format(new Date(job.issue_date), 'MMM d, yyyy')}
+                      Posted {format(new Date(job.issue_date), 'dd/MM/yyyy')}
                     </div>
                   )}
 
