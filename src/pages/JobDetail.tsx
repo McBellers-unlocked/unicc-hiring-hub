@@ -461,28 +461,33 @@ export default function JobDetail() {
                       className="prose prose-sm max-w-none"
                        dangerouslySetInnerHTML={{ 
                         __html: job.language_requirements
-                          .split('<br>')
+                          // First split by any line break (both <br> and \n)
+                          .replace(/<br\s*\/?>/gi, '\n')
+                          .split('\n')
                           .map(line => line.trim())
                           .filter(line => {
-                            const cleanLine = line.replace(/^[•\-\s]+/, '').trim();
-                            // Filter out internal field names and boolean values
-                            return cleanLine.length > 0 &&
-                                   !cleanLine.match(/^(Additional_languages|Local_language_advantage|un_language_advantage):/i) &&
-                                   !cleanLine.match(/^(true|false)$/i);
+                            if (!line) return false;
+                            const cleanLine = line.replace(/^[•\-\s]+/, '').toLowerCase().trim();
+                            // Filter out internal field names, boolean values, and duplicated headers
+                            return !cleanLine.includes('additional_languages') &&
+                                   !cleanLine.includes('local_language_advantage') &&
+                                   !cleanLine.includes('un_language_advantage') &&
+                                   !cleanLine.match(/^(true|false)$/i) &&
+                                   cleanLine !== 'language requirements';
                           })
                           .map(line => {
-                            // Format headers
-                            line = line.replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline; display: block; margin: 12px 0 4px 0;">$1</strong>');
-                            // Ensure bullet points
-                            if (!line.startsWith('<strong>') && !line.startsWith('•')) {
-                              line = '• ' + line;
+                            // Remove any markdown headers
+                            line = line.replace(/^#+\s*/, '');
+                            // Ensure it starts with a bullet if it doesn't already
+                            if (!line.trim().startsWith('•') && !line.trim().startsWith('-')) {
+                              return '• ' + line;
                             }
-                            return line;
+                            return line.replace(/^-\s*/, '• ');
                           })
                           .join('<br>')
                           // Format bold text
                           .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                          // Remove any empty lines
+                          // Clean up
                           .replace(/(<br>\s*){3,}/g, '<br><br>')
                       }}
                     />
