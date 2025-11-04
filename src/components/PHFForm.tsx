@@ -437,6 +437,13 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
             
             const hasDuties = emp.duties_and_responsibilities || empAny.description;
             
+            // Check supervisor details (all are required)
+            const hasSupervisorName = emp.supervisor_name && emp.supervisor_name.trim().length > 0;
+            const hasSupervisorTitle = emp.supervisor_title && emp.supervisor_title.trim().length > 0;
+            const hasSupervisorPhone = emp.supervisor_phone && emp.supervisor_phone.trim().length > 0;
+            const hasSupervisorEmail = emp.supervisor_email && emp.supervisor_email.trim().length > 0;
+            const hasSupervisorDetails = hasSupervisorName && hasSupervisorTitle && hasSupervisorPhone && hasSupervisorEmail;
+            
             console.log('Employment validation for:', emp.employer_name || empAny.company, {
               hasEmployer,
               hasTitle,
@@ -445,10 +452,17 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
               hasEndDate,
               hasValidDate,
               hasDuties,
-              incomplete: !hasEmployer || !hasTitle || !hasValidDate || !hasDuties
+              hasSupervisorDetails,
+              supervisor: {
+                name: hasSupervisorName,
+                title: hasSupervisorTitle,
+                phone: hasSupervisorPhone,
+                email: hasSupervisorEmail
+              },
+              incomplete: !hasEmployer || !hasTitle || !hasValidDate || !hasDuties || !hasSupervisorDetails
             });
             
-            return !hasEmployer || !hasTitle || !hasValidDate || !hasDuties;
+            return !hasEmployer || !hasTitle || !hasValidDate || !hasDuties || !hasSupervisorDetails;
           });
           
           console.log('Final employment validation result:', {
