@@ -461,22 +461,27 @@ export default function JobDetail() {
                       className="prose prose-sm max-w-none"
                        dangerouslySetInnerHTML={{ 
                         __html: job.language_requirements
-                          // Remove internal field names that shouldn't be displayed (case-insensitive)
-                          .replace(/^[•\s]*(Additional_languages|additional_languages):.*$/gmi, '')
-                          .replace(/^[•\s]*(Local_language_advantage|local_language_advantage):.*$/gmi, '')
-                          .replace(/^[•\s]*(un_language_advantage):.*$/gmi, '')
-                          .replace(/^[•\s]*(english):.*$/gmi, '')
-                          // Remove standalone true/false values that might be leftovers
-                          .replace(/^[•\s]*(true|false)\s*$/gmi, '')
-                          // Format headers
-                          .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline; display: block; margin: 12px 0 4px 0;">$1</strong>')
-                          // Format list items
-                          .replace(/^-\s*/gm, '• ')
+                          .split('<br>')
+                          .map(line => line.trim())
+                          .filter(line => {
+                            const cleanLine = line.replace(/^[•\-\s]+/, '').trim();
+                            // Filter out internal field names and boolean values
+                            return cleanLine.length > 0 &&
+                                   !cleanLine.match(/^(Additional_languages|Local_language_advantage|un_language_advantage):/i) &&
+                                   !cleanLine.match(/^(true|false)$/i);
+                          })
+                          .map(line => {
+                            // Format headers
+                            line = line.replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline; display: block; margin: 12px 0 4px 0;">$1</strong>');
+                            // Ensure bullet points
+                            if (!line.startsWith('<strong>') && !line.startsWith('•')) {
+                              line = '• ' + line;
+                            }
+                            return line;
+                          })
+                          .join('<br>')
                           // Format bold text
                           .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                          // Handle line breaks
-                          .replace(/\n\n/g, '<br>')
-                          .replace(/\n/g, '<br>')
                           // Remove any empty lines
                           .replace(/(<br>\s*){3,}/g, '<br><br>')
                       }}
