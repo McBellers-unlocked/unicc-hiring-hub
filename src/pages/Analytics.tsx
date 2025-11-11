@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { HiringFunnelDashboard } from '@/components/HiringFunnelDashboard';
 import { AuditLogViewer } from '@/components/AuditLogViewer';
@@ -6,9 +6,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart3, Activity, TrendingUp } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
+import { AnalyticsFilters, AnalyticsFilterState } from '@/components/analytics/AnalyticsFilters';
+import { PerformanceMetrics } from '@/components/analytics/PerformanceMetrics';
 
 export const Analytics: React.FC = () => {
   const { userRoles } = useAuth();
+  const [filters, setFilters] = useState<AnalyticsFilterState>({});
 
   // Check if user has access to analytics
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant');
@@ -27,6 +30,9 @@ export const Analytics: React.FC = () => {
           </p>
         </div>
 
+        {/* Global Filters */}
+        <AnalyticsFilters filters={filters} onChange={setFilters} />
+
         <Tabs defaultValue="dashboard" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
@@ -44,16 +50,11 @@ export const Analytics: React.FC = () => {
           </TabsList>
 
           <TabsContent value="dashboard">
-            <HiringFunnelDashboard />
+            <HiringFunnelDashboard filters={filters} />
           </TabsContent>
 
           <TabsContent value="performance">
-            <div className="space-y-6">
-              {/* Performance metrics will be expanded here */}
-              <div className="text-center py-12 text-muted-foreground">
-                Advanced performance analytics coming soon...
-              </div>
-            </div>
+            <PerformanceMetrics filters={filters} />
           </TabsContent>
 
           <TabsContent value="audit">

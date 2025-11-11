@@ -3,6 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { TrendingUp, TrendingDown, Clock, Users, Target, CheckCircle } from 'lucide-react';
+import { DrillDownModal } from './analytics/DrillDownModal';
+import { useNavigate } from 'react-router-dom';
+import StatsCard from './dashboard/StatsCard';
+import { AnalyticsFilterState } from './analytics/AnalyticsFilters';
 
 interface FunnelData {
   stage: string;
@@ -24,7 +28,12 @@ interface SourceData {
   conversionRate: number;
 }
 
-export const HiringFunnelDashboard: React.FC = () => {
+interface HiringFunnelDashboardProps {
+  filters?: AnalyticsFilterState;
+}
+
+export const HiringFunnelDashboard: React.FC<HiringFunnelDashboardProps> = ({ filters = {} }) => {
+  const navigate = useNavigate();
   const [funnelData, setFunnelData] = useState<FunnelData[]>([]);
   const [timeToHireData, setTimeToHireData] = useState<TimeToHireData[]>([]);
   const [sourceData, setSourceData] = useState<SourceData[]>([]);
@@ -35,10 +44,21 @@ export const HiringFunnelDashboard: React.FC = () => {
     conversionRate: 0,
     activeJobs: 0
   });
+  const [drillDown, setDrillDown] = useState<{
+    open: boolean;
+    title: string;
+    data: any[];
+    stage?: string;
+    source?: string;
+  }>({
+    open: false,
+    title: '',
+    data: []
+  });
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [filters]);
 
   const fetchDashboardData = async () => {
     try {
@@ -55,11 +75,30 @@ export const HiringFunnelDashboard: React.FC = () => {
     }
   };
 
+  const buildQuery = (query: any) => {
+    if (filters.dateFrom) {
+      query = query.gte('created_at', filters.dateFrom.toISOString());
+    }
+    if (filters.dateTo) {
+      query = query.lte('created_at', filters.dateTo.toISOString());
+    }
+    if (filters.jobId) {
+      query = query.eq('job_id', filters.jobId);
+    }
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+    return query;
+  };
+
   const fetchFunnelData = async () => {
-    const { data: applications, error } = await supabase
+    let query = supabase
       .from('applications')
-      .select('status, created_at')
+      .select('status, created_at, job_id')
       .order('created_at', { ascending: false });
+    
+    query = buildQuery(query);
+    const { data: applications, error } = await query;
 
     if (error) throw error;
 
@@ -90,18 +129,23 @@ export const HiringFunnelDashboard: React.FC = () => {
   };
 
   const fetchTimeToHireData = async () => {
-    // Calculate time to hire from stage events
-    const { data: stageEvents, error } = await supabase
+    let query = supabase
       .from('stage_events')
       .select(`
         application_id,
         at,
         to_stage,
-        applications!inner(created_at)
+        applications!inner(created_at, job_id)
       `)
       .eq('to_stage', 'Roster')
       .order('at', { ascending: false })
       .limit(50);
+    
+    if (filters.jobId) {
+      query = query.eq('applications.job_id', filters.jobId);
+    }
+    
+    const { data: stageEvents, error } = await query;
 
     if (error) throw error;
 
@@ -133,9 +177,12 @@ export const HiringFunnelDashboard: React.FC = () => {
   };
 
   const fetchSourceData = async () => {
-    const { data: applications, error } = await supabase
+    let query = supabase
       .from('applications')
-      .select('source, status');
+      .select('source, status, job_id, created_at');
+    
+    query = buildQuery(query);
+    const { data: applications, error } = await query;
 
     if (error) throw error;
 
@@ -165,10 +212,13 @@ export const HiringFunnelDashboard: React.FC = () => {
   };
 
   const fetchTotalMetrics = async () => {
+    let appsQuery = supabase.from('applications').select('id, created_at, status, job_id');
+    appsQuery = buildQuery(appsQuery);
+    
     const [applicationsRes, jobsRes, hiresRes] = await Promise.all([
-      supabase.from('applications').select('id, created_at, status'),
+      appsQuery,
       supabase.from('jobs').select('id').eq('status', 'active'),
-      supabase.from('stage_events').select('at, applications!inner(created_at)').eq('to_stage', 'Roster')
+      supabase.from('stage_events').select('at, applications!inner(created_at, job_id)').eq('to_stage', 'Roster')
     ]);
 
     const totalApplications = applicationsRes.data?.length || 0;
@@ -195,6 +245,124 @@ export const HiringFunnelDashboard: React.FC = () => {
     });
   };
 
+  const handleMetricClick = async (metricType: string) => {
+    let query = supabase.from('applications').select(`
+      *,
+      jobs!inner(title),
+      candidates!inner(name, email)
+    `);
+    
+    query = buildQuery(query);
+    
+    if (metricType === 'active_jobs') {
+      const { data: jobs } = await supabase.from('jobs').select('*').eq('status', 'active');
+      setDrillDown({
+        open: true,
+        title: 'Active Jobs',
+        data: jobs || []
+      });
+      return;
+    }
+    
+    const { data } = await query;
+    setDrillDown({
+      open: true,
+      title: metricType === 'applications' ? 'All Applications' : 'Applications Data',
+      data: data || []
+    });
+  };
+
+  const handleFunnelClick = async (stageName: string) => {
+    // Map display stage names to actual status values
+    const stageMapping: Record<string, string> = {
+      'Applications': 'Application',
+      'Longlist': 'Longlist',
+      'Shortlist': 'Shortlist',
+      'Video': 'Pre-Recorded Video',
+      'Panel': 'Panel Interview',
+      'Offer': 'Offer',
+      'Roster': 'Roster'
+    };
+    
+    const actualStatus = stageMapping[stageName] || stageName;
+    
+    let query = supabase.from('applications').select(`
+      *,
+      jobs!inner(title),
+      candidates!inner(name, email)
+    `);
+    
+    // Apply status filter without type assertion - let Supabase handle it
+    if (actualStatus) {
+      query = query.eq('status', actualStatus as any);
+    }
+    
+    query = buildQuery(query);
+    const { data } = await query;
+    
+    setDrillDown({
+      open: true,
+      title: `${stageName} Stage Applications`,
+      data: data || [],
+      stage: actualStatus
+    });
+  };
+
+  const handleSourceClick = async (source: string) => {
+    let query = supabase.from('applications').select(`
+      *,
+      jobs!inner(title),
+      candidates!inner(name, email)
+    `).eq('source', source);
+    
+    query = buildQuery(query);
+    const { data } = await query;
+    
+    setDrillDown({
+      open: true,
+      title: `Applications from ${source}`,
+      data: data || [],
+      source
+    });
+  };
+
+  const getDrillDownColumns = () => {
+    if (drillDown.data[0]?.title) {
+      // Jobs data
+      return [
+        { key: 'title', label: 'Job Title' },
+        { key: 'grade', label: 'Grade' },
+        { key: 'location', label: 'Location' },
+        { 
+          key: 'closing_date', 
+          label: 'Closing Date',
+          render: (val: string) => val ? new Date(val).toLocaleDateString() : 'N/A'
+        }
+      ];
+    }
+    
+    // Applications data
+    return [
+      { 
+        key: 'candidate_name', 
+        label: 'Candidate',
+        render: (_: any, row: any) => row.candidates?.name || 'N/A'
+      },
+      { 
+        key: 'job_title', 
+        label: 'Job',
+        render: (_: any, row: any) => row.jobs?.title || 'N/A'
+      },
+      { key: 'status', label: 'Status' },
+      { key: 'source', label: 'Source' },
+      { 
+        key: 'created_at', 
+        label: 'Applied',
+        render: (val: string) => new Date(val).toLocaleDateString()
+      }
+    ];
+  };
+
   if (loading) {
     return <div className="text-center py-8">Loading dashboard...</div>;
   }
@@ -203,51 +371,36 @@ export const HiringFunnelDashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalMetrics.totalApplications}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Time to Hire</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalMetrics.avgTimeToHire} days</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalMetrics.conversionRate}%</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalMetrics.activeJobs}</div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Total Applications"
+          value={totalMetrics.totalApplications}
+          icon={Users}
+          onClick={() => handleMetricClick('applications')}
+        />
+        <StatsCard
+          title="Avg Time to Hire"
+          value={`${totalMetrics.avgTimeToHire} days`}
+          icon={Clock}
+          subtitle="From application to roster"
+        />
+        <StatsCard
+          title="Conversion Rate"
+          value={`${totalMetrics.conversionRate}%`}
+          icon={Target}
+          subtitle="Applications to hires"
+        />
+        <StatsCard
+          title="Active Jobs"
+          value={totalMetrics.activeJobs}
+          icon={CheckCircle}
+          onClick={() => handleMetricClick('active_jobs')}
+        />
       </div>
 
       {/* Hiring Funnel */}
       <Card>
         <CardHeader>
-          <CardTitle>Hiring Funnel</CardTitle>
+          <CardTitle>Hiring Funnel (Click to drill down)</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -256,7 +409,12 @@ export const HiringFunnelDashboard: React.FC = () => {
               <XAxis dataKey="stage" />
               <YAxis />
               <Tooltip formatter={(value, name) => [value, 'Count']} />
-              <Bar dataKey="count" fill="#8884d8" />
+              <Bar 
+                dataKey="count" 
+                fill="hsl(var(--primary))" 
+                onClick={(data) => handleFunnelClick(data.stage)}
+                cursor="pointer"
+              />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -284,14 +442,18 @@ export const HiringFunnelDashboard: React.FC = () => {
         {/* Source Effectiveness */}
         <Card>
           <CardHeader>
-            <CardTitle>Source Effectiveness</CardTitle>
+            <CardTitle>Source Effectiveness (Click to drill down)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {sourceData.slice(0, 5).map((source, index) => (
-                <div key={source.source} className="flex items-center justify-between">
+                <div 
+                  key={source.source} 
+                  className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                  onClick={() => handleSourceClick(source.source)}
+                >
                   <div className="flex items-center space-x-3">
-                    <div className="w-3 h-3 rounded-full bg-blue-500" />
+                    <div className="w-3 h-3 rounded-full bg-primary" />
                     <span className="text-sm font-medium">{source.source}</span>
                   </div>
                   <div className="text-right">
@@ -306,6 +468,24 @@ export const HiringFunnelDashboard: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Drill Down Modal */}
+      <DrillDownModal
+        open={drillDown.open}
+        onClose={() => setDrillDown({ ...drillDown, open: false })}
+        title={drillDown.title}
+        data={drillDown.data}
+        columns={getDrillDownColumns()}
+        onRowClick={(row) => {
+          if (row.id && !row.title) {
+            // It's an application
+            navigate(`/admin/applications/${row.id}`);
+          } else if (row.id && row.title) {
+            // It's a job
+            navigate(`/admin/jobs/${row.id}`);
+          }
+        }}
+      />
     </div>
   );
 };
