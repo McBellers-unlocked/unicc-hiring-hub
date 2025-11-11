@@ -167,27 +167,24 @@ export default function ApplicationDetail() {
       if (answersError) throw answersError;
       setVideoAnswers(answers || []);
 
-      // Fetch video questions if answers exist
-      if (answers && answers.length > 0) {
-        // Get the application's job to find the question set
-        const { data: app, error: appError } = await supabase
-          .from('applications')
-          .select('job_id')
-          .eq('id', id)
-          .single();
+      // Always fetch video questions (not just when answers exist)
+      const { data: app, error: appError } = await supabase
+        .from('applications')
+        .select('job_id')
+        .eq('id', id)
+        .single();
 
-        if (appError) throw appError;
+      if (appError) throw appError;
 
-        // Get the video question set for this job
-        const { data: questionSet, error: questionSetError } = await supabase
-          .from('video_question_sets')
-          .select('questions')
-          .eq('job_id', app.job_id)
-          .single();
+      // Get the video question set for this job
+      const { data: questionSet, error: questionSetError } = await supabase
+        .from('video_question_sets')
+        .select('questions')
+        .eq('job_id', app.job_id)
+        .maybeSingle();
 
-        if (questionSetError) throw questionSetError;
-        setVideoQuestions(Array.isArray(questionSet?.questions) ? questionSet.questions : []);
-      }
+      if (questionSetError) throw questionSetError;
+      setVideoQuestions(Array.isArray(questionSet?.questions) ? questionSet.questions : []);
     } catch (error) {
       console.error('Error fetching video data:', error);
     }

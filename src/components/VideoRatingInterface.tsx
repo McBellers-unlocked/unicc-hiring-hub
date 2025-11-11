@@ -204,11 +204,12 @@ export const VideoRatingInterface: React.FC<VideoRatingInterfaceProps> = ({
     );
   }
 
-  if (videoAnswers.length === 0) {
+  // Show all questions with placeholders if no videos submitted
+  if (questions.length === 0) {
     return (
       <Card>
         <CardContent className="p-6 text-center">
-          <p className="text-muted-foreground">No video answers submitted yet.</p>
+          <p className="text-muted-foreground">No video questions configured for this job.</p>
         </CardContent>
       </Card>
     );
@@ -232,40 +233,47 @@ export const VideoRatingInterface: React.FC<VideoRatingInterfaceProps> = ({
               <span className="font-medium">Questions:</span> {questions.length}
             </div>
             <div>
-              <span className="font-medium">Answered:</span> {videoAnswers.length}
+              <span className="font-medium">Answered:</span> {videoAnswers.length}/{questions.length}
             </div>
             <div>
-              <span className="font-medium">Rated:</span> {Object.keys(ratings).length}
+              <span className="font-medium">Rated:</span> {Object.keys(ratings).length}{videoAnswers.length > 0 ? `/${videoAnswers.length}` : ''}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Video Questions and Ratings */}
-      {videoAnswers.map((videoAnswer, index) => {
-        const question = questions.find(q => q.id === videoAnswer.question_id);
-        const rating = ratings[videoAnswer.id];
-        
-        if (!question) return null;
+      {/* Video Questions and Ratings - Show all questions with placeholders */}
+      {questions.map((question, index) => {
+        const videoAnswer = videoAnswers.find(va => va.question_id === question.id);
+        const rating = videoAnswer ? ratings[videoAnswer.id] : undefined;
+        const hasVideo = !!videoAnswer;
 
         return (
-          <Card key={videoAnswer.id} className="border-l-4 border-l-primary">
+          <Card key={question.id} className={`border-l-4 ${hasVideo ? 'border-l-primary' : 'border-l-muted'}`}>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 Question {index + 1}
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary">
-                    {formatDuration(videoAnswer.duration)}
-                  </Badge>
-                  {videoAnswer.transcript && (
-                    <Button
-                      onClick={() => downloadTranscript(videoAnswer, question)}
-                      size="sm"
-                      variant="outline"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Transcript
-                    </Button>
+                  {hasVideo ? (
+                    <>
+                      <Badge variant="secondary">
+                        {formatDuration(videoAnswer.duration)}
+                      </Badge>
+                      {videoAnswer.transcript && (
+                        <Button
+                          onClick={() => downloadTranscript(videoAnswer, question)}
+                          size="sm"
+                          variant="outline"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Transcript
+                        </Button>
+                      )}
+                    </>
+                  ) : (
+                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300">
+                      Not Submitted Yet
+                    </Badge>
                   )}
                 </div>
               </CardTitle>
@@ -277,19 +285,28 @@ export const VideoRatingInterface: React.FC<VideoRatingInterfaceProps> = ({
                 <p className="text-muted-foreground">{question.text}</p>
               </div>
 
-              {/* Video Player */}
-              <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-                <video
-                  controls
-                  className="w-full h-full"
-                  src={videoAnswer.url}
-                  onPlay={() => setPlayingVideo(videoAnswer.id)}
-                  onPause={() => setPlayingVideo(null)}
-                />
+              {/* Video Player or Placeholder */}
+              <div className="aspect-video bg-muted rounded-lg overflow-hidden flex items-center justify-center">
+                {hasVideo ? (
+                  <video
+                    controls
+                    className="w-full h-full"
+                    src={videoAnswer.url}
+                    onPlay={() => setPlayingVideo(videoAnswer.id)}
+                    onPause={() => setPlayingVideo(null)}
+                  />
+                ) : (
+                  <div className="text-center p-8">
+                    <Play className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
+                    <p className="text-muted-foreground text-sm">
+                      Video answer not yet submitted by candidate
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Transcript */}
-              {videoAnswer.transcript && (
+              {hasVideo && videoAnswer.transcript && (
                 <div>
                   <h4 className="font-medium mb-2">Transcript:</h4>
                   <div className="bg-muted p-4 rounded-lg">
@@ -302,9 +319,11 @@ export const VideoRatingInterface: React.FC<VideoRatingInterfaceProps> = ({
 
               <Separator />
 
-              {/* Rating */}
+              {/* Rating - Always show, even without video */}
               <div className="space-y-4">
-                <h4 className="font-medium">Your Rating:</h4>
+                <h4 className="font-medium">
+                  {hasVideo ? 'Your Rating:' : 'Rating (Available when video is submitted):'}
+                </h4>
                 
                 <div className="flex items-center gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -312,15 +331,16 @@ export const VideoRatingInterface: React.FC<VideoRatingInterfaceProps> = ({
                       key={star}
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleRatingChange(videoAnswer.id, star)}
+                      onClick={() => hasVideo && handleRatingChange(videoAnswer.id, star)}
                       className="p-1"
+                      disabled={!hasVideo}
                     >
                       <Star
                         className={`w-6 h-6 ${
                           star <= (rating?.rating || 0)
                             ? 'fill-yellow-400 text-yellow-400'
                             : 'text-muted-foreground'
-                        }`}
+                        } ${!hasVideo ? 'opacity-30' : ''}`}
                       />
                     </Button>
                   ))}
@@ -333,10 +353,11 @@ export const VideoRatingInterface: React.FC<VideoRatingInterfaceProps> = ({
                 </div>
 
                 <Textarea
-                  placeholder="Add your comments and feedback..."
-                  value={comments[videoAnswer.id] || ''}
-                  onChange={(e) => handleCommentsChange(videoAnswer.id, e.target.value)}
+                  placeholder={hasVideo ? "Add your comments and feedback..." : "Comments will be available when video is submitted"}
+                  value={videoAnswer ? (comments[videoAnswer.id] || '') : ''}
+                  onChange={(e) => hasVideo && handleCommentsChange(videoAnswer.id, e.target.value)}
                   className="min-h-[100px]"
+                  disabled={!hasVideo}
                 />
               </div>
             </CardContent>
