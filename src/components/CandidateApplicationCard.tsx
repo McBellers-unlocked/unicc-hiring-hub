@@ -182,20 +182,21 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                 <div className="text-sm text-muted-foreground truncate" title={application.candidate.email}>
                   {application.candidate.email}
                 </div>
-                {application.candidate.location && (
-                  <div className="flex items-center gap-2 mt-1">
-                    {flagUrl && (
-                      <img 
-                        src={flagUrl} 
-                        alt={`${country} flag`} 
-                        className="w-4 h-3 object-cover rounded-sm flex-shrink-0"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    )}
-                    <span className="text-sm text-muted-foreground truncate" title={country || application.candidate.location}>
-                      {country || application.candidate.location}
+                {/* Present Location */}
+                {(application.candidate.present_city || application.candidate.present_country) && (
+                  <div className="text-sm mt-1">
+                    <span className="font-semibold">Present location: </span>
+                    <span className="text-muted-foreground">
+                      {[application.candidate.present_city, application.candidate.present_country].filter(Boolean).join(', ')}
+                    </span>
+                  </div>
+                )}
+                {/* Other/Permanent Location */}
+                {(application.candidate.permanent_city || application.candidate.permanent_country) && (
+                  <div className="text-sm mt-1">
+                    <span className="font-semibold">Other location: </span>
+                    <span className="text-muted-foreground">
+                      {[application.candidate.permanent_city, application.candidate.permanent_country].filter(Boolean).join(', ')}
                     </span>
                   </div>
                 )}
