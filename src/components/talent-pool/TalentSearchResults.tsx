@@ -128,6 +128,49 @@ export function TalentSearchResults({
   useEffect(() => {
     if (selectedJob && candidates) {
       const scores: Record<string, number> = {};
+      
+      // Extract job requirements from the selected job
+      const extractSkills = (description: string): string[] => {
+        const commonSkills = [
+          'penetration testing', 'vulnerability assessment', 'security auditing', 'risk assessment',
+          'incident response', 'malware analysis', 'network security', 'cloud security',
+          'project management', 'data analysis', 'communication', 'leadership',
+          'python', 'javascript', 'sql', 'bash', 'powershell', 'burp suite', 'metasploit',
+          'nmap', 'wireshark', 'kali linux', 'owasp', 'compliance', 'cissp', 'oscp', 'ceh'
+        ];
+        const descLower = description.toLowerCase();
+        return commonSkills.filter(skill => descLower.includes(skill));
+      };
+      
+      const extractExperience = (description: string): number | undefined => {
+        const expMatch = description.match(/(\d+)\s*years?\s*(of\s*)?experience/i);
+        return expMatch ? parseInt(expMatch[1]) : undefined;
+      };
+      
+      const extractEducation = (description: string): string | undefined => {
+        const descLower = description.toLowerCase();
+        if (descLower.includes('phd') || descLower.includes('doctorate')) return 'PhD';
+        if (descLower.includes('master')) return 'Master\'s';
+        if (descLower.includes('bachelor')) return 'Bachelor\'s';
+        return undefined;
+      };
+      
+      const extractLanguages = (description: string): string[] => {
+        const languages = ['english', 'french', 'spanish', 'arabic', 'chinese', 'russian', 'mandarin'];
+        const descLower = description.toLowerCase();
+        return languages.filter(lang => descLower.includes(lang));
+      };
+      
+      const jobDescription = `${selectedJob.requirements_md || ''} ${selectedJob.description_md || ''}`;
+      const jobRequirements = {
+        skills: extractSkills(jobDescription),
+        experience_years: extractExperience(jobDescription),
+        education_level: extractEducation(jobDescription),
+        languages: extractLanguages(jobDescription),
+        un_experience: jobDescription.toLowerCase().includes('un experience') || 
+                       jobDescription.toLowerCase().includes('united nations'),
+      };
+      
       candidates.forEach((candidate) => {
         const match = JobMatchingService.calculateJobMatch(
           {
@@ -138,13 +181,7 @@ export function TalentSearchResults({
             languages: (candidate.languages as any) || { un_languages: {}, other_languages: [] },
             work_experience: (candidate.work_experience as any) || [],
           },
-          {
-            skills: [],
-            experience_years: 0,
-            education_level: "",
-            languages: [],
-            un_experience: false,
-          }
+          jobRequirements
         );
         scores[candidate.id] = match.matchPercentage;
       });
