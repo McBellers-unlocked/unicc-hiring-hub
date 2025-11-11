@@ -37,6 +37,7 @@ export default function VideoTestInterface() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [videoAssignments, setVideoAssignments] = useState<VideoAssignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [simulatingVideos, setSimulatingVideos] = useState(false);
 
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
                    userRoles.includes('Hiring Manager');
@@ -166,6 +167,40 @@ export default function VideoTestInterface() {
     return `${window.location.origin}/admin/applications/${applicationId}`;
   };
 
+  const simulateVideoSubmissions = async () => {
+    try {
+      setSimulatingVideos(true);
+      
+      toast({
+        title: "Simulating Videos",
+        description: "Creating video submissions for all candidates...",
+      });
+
+      const { data, error } = await supabase.functions.invoke('simulate-video-submissions', {
+        body: { jobId: '9deaea12-c2c5-4c17-8899-a07cf938b0ba' }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: `Simulated ${data.questionsPerCandidate} video(s) for ${data.totalCandidates} candidates`,
+      });
+
+      // Refresh data
+      fetchData();
+    } catch (error) {
+      console.error('Error simulating videos:', error);
+      toast({
+        title: "Error",
+        description: "Failed to simulate video submissions",
+        variant: "destructive",
+      });
+    } finally {
+      setSimulatingVideos(false);
+    }
+  };
+
   if (!hasAccess) {
     return (
       <Layout>
@@ -183,10 +218,32 @@ export default function VideoTestInterface() {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Video Interview Testing</h1>
-          <p className="text-muted-foreground mt-2">
-            Test the video interview workflow from both candidate and hiring manager perspectives
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Video Interview Testing</h1>
+              <p className="text-muted-foreground mt-2">
+                Test the video interview workflow from both candidate and hiring manager perspectives
+              </p>
+            </div>
+            <Button 
+              onClick={simulateVideoSubmissions}
+              disabled={simulatingVideos}
+              size="lg"
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {simulatingVideos ? (
+                <>
+                  <Clock className="w-4 h-4 mr-2 animate-spin" />
+                  Simulating...
+                </>
+              ) : (
+                <>
+                  <Video className="w-4 h-4 mr-2" />
+                  Simulate All Videos (Digital Public Solutions)
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         {/* Create Video Assignments */}
