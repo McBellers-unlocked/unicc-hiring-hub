@@ -166,18 +166,6 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                   >
                     {application.candidate.name}
                   </h3>
-                  {application.candidate.gender && (
-                    <span 
-                      className={`text-lg font-bold flex-shrink-0 ${
-                        application.candidate.gender.toLowerCase() === 'male' ? 'text-blue-600' : 
-                        application.candidate.gender.toLowerCase() === 'female' ? 'text-pink-600' : 'text-gray-600'
-                      }`} 
-                      title={`Gender: ${application.candidate.gender}`}
-                    >
-                      {application.candidate.gender.toLowerCase() === 'male' ? '♂' : 
-                       application.candidate.gender.toLowerCase() === 'female' ? '♀' : '?'}
-                    </span>
-                  )}
                 </div>
                 <div className="text-sm text-muted-foreground truncate" title={application.candidate.email}>
                   {application.candidate.email}
