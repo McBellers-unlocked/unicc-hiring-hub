@@ -1101,7 +1101,7 @@ export default function AdminApplications() {
   };
 
   const handleReviewVideos = (applicationId: string) => {
-    navigate(`/applications/${applicationId}?tab=video`);
+    navigate(`/admin/applications/${applicationId}?tab=video`);
   };
 
   const handleMoveToPanelInterview = (applicationId: string) => {
@@ -1267,28 +1267,14 @@ export default function AdminApplications() {
           )}
         </div>
 
-        {/* Job Selection */}
+        {/* Redirect if no job selected */}
         {!selectedJobId && (
           <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Select Job</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Select value={selectedJobId} onValueChange={(value) => {
-                setSelectedJobId(value);
-                fetchApplications(value);
-              }}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a job to view applications" />
-                </SelectTrigger>
-                <SelectContent>
-                  {jobs.map((job) => (
-                    <SelectItem key={job.id} value={job.id}>
-                      {job.title} ({job.status})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground mb-4">No job selected</p>
+              <Button onClick={() => navigate('/applications')}>
+                Select a Job
+              </Button>
             </CardContent>
           </Card>
         )}

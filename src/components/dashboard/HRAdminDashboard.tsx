@@ -196,7 +196,7 @@ export default function HRAdminDashboard() {
           value={stats.videosExpiringToday} 
           alert={stats.videosExpiringToday > 0}
           icon={AlertCircle}
-          onClick={() => navigate('/admin/applications?filter=video_expiring')}
+          onClick={() => navigate('/applications/manage?filter=video_expiring')}
         />
         <StatsCard 
           title="PDs Stuck in Review" 
@@ -209,7 +209,7 @@ export default function HRAdminDashboard() {
           title="New Apps (7 Days)" 
           value={stats.recentApplications} 
           icon={Users}
-          onClick={() => navigate('/admin/applications')}
+          onClick={() => navigate('/applications')}
         />
       </div>
 

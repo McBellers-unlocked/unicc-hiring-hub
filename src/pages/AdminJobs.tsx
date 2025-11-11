@@ -458,7 +458,7 @@ export default function AdminJobs() {
                           <Button
                             variant="ghost"
                             className="h-auto p-0 hover:bg-transparent"
-                            onClick={() => navigate(`/admin/applications?job=${job.id}`)}
+                            onClick={() => navigate(`/applications/manage?job=${job.id}`)}
                           >
                             <div className="flex items-center text-primary hover:text-primary/80">
                               <Users className="w-4 h-4 mr-2" />

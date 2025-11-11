@@ -84,7 +84,7 @@ export default function HiringManagerDashboard() {
           alert={stats.recentApplications > 10}
           onClick={() => {
             if (myJobIds.length > 0) {
-              navigate(`/applications?job=${myJobIds[0]}`);
+              navigate(`/applications/manage?job=${myJobIds[0]}`);
             } else {
               navigate('/applications');
             }
@@ -125,11 +125,11 @@ export default function HiringManagerDashboard() {
             <Button 
               onClick={() => {
                 if (myJobIds.length > 0) {
-                  navigate(`/applications?job=${myJobIds[0]}`);
+                  navigate(`/applications/manage?job=${myJobIds[0]}`);
                 } else {
                   navigate('/applications');
                 }
-              }} 
+              }}
               variant="outline" 
               className="w-full justify-start"
             >

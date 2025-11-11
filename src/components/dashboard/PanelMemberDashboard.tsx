@@ -149,7 +149,7 @@ export default function PanelMemberDashboard() {
                         </div>
                         <Button 
                           variant="outline" 
-                          onClick={() => navigate(`/applications/${interviewData?.application_id}`)}
+                          onClick={() => navigate(`/admin/applications/${interviewData?.application_id}`)}
                         >
                           View Application
                         </Button>

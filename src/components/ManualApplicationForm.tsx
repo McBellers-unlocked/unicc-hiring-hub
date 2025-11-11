@@ -144,7 +144,7 @@ export default function ManualApplicationForm() {
           <div className="text-center">
             <h1 className="text-2xl font-bold text-destructive mb-4">Invalid Job</h1>
             <p className="text-muted-foreground">Manual application entry is only available for the Associate Policy (Legal) Officer role.</p>
-            <Button onClick={() => navigate('/admin/applications')} className="mt-4">
+            <Button onClick={() => navigate('/applications')} className="mt-4">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Applications
             </Button>
@@ -380,7 +380,7 @@ export default function ManualApplicationForm() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
-            <Button variant="outline" onClick={() => navigate('/admin/applications')}>
+            <Button variant="outline" onClick={() => navigate('/applications')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
@@ -682,7 +682,7 @@ export default function ManualApplicationForm() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate('/admin/applications')}
+              onClick={() => navigate('/applications')}
             >
               Cancel
             </Button>

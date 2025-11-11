@@ -39,6 +39,7 @@ import EditManualApplicationForm from "./components/EditManualApplicationForm";
 import AccountSecurity from "./pages/AccountSecurity";
 import VideoEmailTemplateSettings from "./pages/VideoEmailTemplateSettings";
 import TalentPool from "./pages/TalentPool";
+import ApplicationJobSelection from "./pages/ApplicationJobSelection";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,11 +66,11 @@ const App = () => (
             <Route path="/video-interview/:token" element={<VideoInterview />} />
             <Route path="/panel-interview/:interviewId/feedback" element={<PanelInterviewFeedback />} />
             <Route path="/analytics" element={<Analytics />} />
-            <Route path="/applications" element={<AdminApplications />} />
+            <Route path="/applications" element={<ApplicationJobSelection />} />
+            <Route path="/applications/manage" element={<AdminApplications />} />
             <Route path="/admin/jobs" element={<AdminJobs />} />
             <Route path="/admin/jobs/new" element={<JobWizard />} />
             <Route path="/admin/jobs/:jobId/edit" element={<JobWizard />} />
-            <Route path="/admin/applications" element={<AdminApplications />} />
             <Route path="/admin/applications/:id" element={<ApplicationDetail />} />
             <Route path="/admin/video-test" element={<VideoTestInterface />} />
             <Route path="/admin/scoring" element={<ApplicationScoringTest />} />

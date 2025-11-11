@@ -140,7 +140,7 @@ export default function EditManualApplicationForm() {
           description: "This application cannot be edited as it was not manually created.",
           variant: "destructive",
         });
-        navigate('/admin/applications');
+        navigate('/applications');
         return;
       }
 
@@ -195,7 +195,7 @@ export default function EditManualApplicationForm() {
         description: "Failed to load application details",
         variant: "destructive",
       });
-      navigate('/admin/applications');
+      navigate('/applications');
     } finally {
       setInitialLoading(false);
     }
@@ -448,7 +448,7 @@ export default function EditManualApplicationForm() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
-            <Button variant="outline" onClick={() => navigate('/admin/applications')}>
+            <Button variant="outline" onClick={() => navigate('/applications')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
@@ -750,7 +750,7 @@ export default function EditManualApplicationForm() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate('/admin/applications')}
+              onClick={() => navigate('/applications')}
             >
               Cancel
             </Button>

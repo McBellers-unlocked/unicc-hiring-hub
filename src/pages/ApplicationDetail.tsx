@@ -291,7 +291,7 @@ export default function ApplicationDetail() {
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-destructive mb-4">Application Not Found</h1>
-            <Button onClick={() => navigate('/admin/applications')}>
+            <Button onClick={() => navigate('/applications')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Applications
             </Button>
@@ -373,7 +373,7 @@ export default function ApplicationDetail() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
-            <Button variant="outline" onClick={() => navigate('/admin/applications')}>
+            <Button variant="outline" onClick={() => navigate('/applications')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Applications
             </Button>

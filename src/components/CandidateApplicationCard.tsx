@@ -464,7 +464,7 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => navigate(`/applications/${application.id}`)}
+                  onClick={() => navigate(`/admin/applications/${application.id}`)}
                   className="whitespace-nowrap"
                 >
                   <Eye className="w-3 h-3 mr-1" />
