@@ -114,12 +114,11 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({ filters, onC
           {/* Job Filter */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Job</label>
-            <Select value={filters.jobId || ''} onValueChange={(val) => updateFilter('jobId', val || undefined)}>
+            <Select value={filters.jobId} onValueChange={(val) => updateFilter('jobId', val)}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="All jobs" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All jobs</SelectItem>
                 {jobs.map(job => (
                   <SelectItem key={job.id} value={job.id}>{job.title}</SelectItem>
                 ))}
@@ -130,12 +129,11 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({ filters, onC
           {/* Status Filter */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Status</label>
-            <Select value={filters.status || ''} onValueChange={(val) => updateFilter('status', val || undefined)}>
+            <Select value={filters.status} onValueChange={(val) => updateFilter('status', val)}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All statuses</SelectItem>
                 {statuses.map(status => (
                   <SelectItem key={status} value={status}>{status}</SelectItem>
                 ))}
@@ -146,12 +144,11 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({ filters, onC
           {/* Grade Filter */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Grade</label>
-            <Select value={filters.grade || ''} onValueChange={(val) => updateFilter('grade', val || undefined)}>
+            <Select value={filters.grade} onValueChange={(val) => updateFilter('grade', val)}>
               <SelectTrigger className="w-[120px]">
                 <SelectValue placeholder="All grades" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All grades</SelectItem>
                 {grades.map(grade => (
                   <SelectItem key={grade} value={grade}>{grade}</SelectItem>
                 ))}
