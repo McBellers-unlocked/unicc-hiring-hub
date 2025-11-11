@@ -65,7 +65,16 @@ export function CandidateSearchCard({
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold truncate">{candidate.name}</h3>
                   {matchScore !== undefined && (
-                    <Badge variant={matchScore >= 70 ? "default" : matchScore >= 50 ? "secondary" : "outline"}>
+                    <Badge 
+                      variant={matchScore >= 70 ? "default" : "outline"}
+                      className={
+                        matchScore >= 70 
+                          ? "bg-green-600 hover:bg-green-700 text-white border-green-600" 
+                          : matchScore >= 50 
+                          ? "bg-amber-500 hover:bg-amber-600 text-white border-amber-500" 
+                          : "bg-red-100 text-red-700 border-red-300 dark:bg-red-950 dark:text-red-400 dark:border-red-800"
+                      }
+                    >
                       {matchScore}% match
                     </Badge>
                   )}
@@ -143,7 +152,16 @@ export function CandidateSearchCard({
 
         <CardContent className="space-y-3">
           {matchScore !== undefined && (
-            <Badge variant={matchScore >= 70 ? "default" : matchScore >= 50 ? "secondary" : "outline"} className="w-full justify-center">
+            <Badge 
+              variant={matchScore >= 70 ? "default" : "outline"}
+              className={`w-full justify-center ${
+                matchScore >= 70 
+                  ? "bg-green-600 hover:bg-green-700 text-white border-green-600" 
+                  : matchScore >= 50 
+                  ? "bg-amber-500 hover:bg-amber-600 text-white border-amber-500" 
+                  : "bg-red-100 text-red-700 border-red-300 dark:bg-red-950 dark:text-red-400 dark:border-red-800"
+              }`}
+            >
               {matchScore}% match
             </Badge>
           )}
