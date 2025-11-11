@@ -27,9 +27,28 @@ export function CandidateSearchCard({
     .slice(0, 2);
 
   const topSkills = (candidate.skills as string[] || []).slice(0, 5);
-  const education = Array.isArray(candidate.education) && candidate.education.length > 0
-    ? candidate.education[0]
-    : null;
+  
+  // Find highest education level
+  const getHighestEducation = (educationArray: any[]) => {
+    if (!Array.isArray(educationArray) || educationArray.length === 0) return null;
+    
+    // Define education hierarchy (higher value = higher degree)
+    const degreeRank = (degree: string) => {
+      const degreeStr = degree?.toLowerCase() || '';
+      if (degreeStr.includes('phd') || degreeStr.includes('doctorate')) return 3;
+      if (degreeStr.includes('master') || degreeStr.includes('mba') || degreeStr.includes('m.s') || degreeStr.includes('m.a')) return 2;
+      if (degreeStr.includes('bachelor') || degreeStr.includes('b.s') || degreeStr.includes('b.a')) return 1;
+      return 0;
+    };
+    
+    return educationArray.reduce((highest, current) => {
+      const currentRank = degreeRank(current.degree || current.level);
+      const highestRank = degreeRank(highest.degree || highest.level);
+      return currentRank > highestRank ? current : highest;
+    });
+  };
+  
+  const education = getHighestEducation(candidate.education);
 
   if (viewMode === "list") {
     return (

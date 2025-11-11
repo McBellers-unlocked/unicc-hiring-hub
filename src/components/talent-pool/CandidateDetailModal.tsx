@@ -99,12 +99,27 @@ export function CandidateDetailModal({
                   <Briefcase className="h-4 w-4 text-muted-foreground" />
                   <span>{candidate.years_of_experience || 0} years experience</span>
                 </div>
-                {candidate.education && Array.isArray(candidate.education) && candidate.education.length > 0 && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                    <span>{candidate.education[0].degree || candidate.education[0].level}</span>
-                  </div>
-                )}
+                {candidate.education && Array.isArray(candidate.education) && candidate.education.length > 0 && (() => {
+                  // Find highest education level
+                  const degreeRank = (degree: string) => {
+                    const degreeStr = degree?.toLowerCase() || '';
+                    if (degreeStr.includes('phd') || degreeStr.includes('doctorate')) return 3;
+                    if (degreeStr.includes('master') || degreeStr.includes('mba') || degreeStr.includes('m.s') || degreeStr.includes('m.a')) return 2;
+                    if (degreeStr.includes('bachelor') || degreeStr.includes('b.s') || degreeStr.includes('b.a')) return 1;
+                    return 0;
+                  };
+                  const highestEducation = candidate.education.reduce((highest: any, current: any) => {
+                    const currentRank = degreeRank(current.degree || current.level);
+                    const highestRank = degreeRank(highest.degree || highest.level);
+                    return currentRank > highestRank ? current : highest;
+                  });
+                  return (
+                    <div className="flex items-center gap-2 text-sm">
+                      <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                      <span>{highestEducation.degree || highestEducation.level}</span>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
