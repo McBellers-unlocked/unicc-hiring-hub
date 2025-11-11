@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
@@ -89,13 +89,14 @@ export default function ApplicationDetail() {
   const navigate = useNavigate();
   const { userRoles } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   
   const [application, setApplication] = useState<ApplicationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusChangeReason, setStatusChangeReason] = useState('');
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState('');
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "overview");
   const [showScheduler, setShowScheduler] = useState(false);
   const [videoQuestions, setVideoQuestions] = useState<any[]>([]);
   const [videoAnswers, setVideoAnswers] = useState<any[]>([]);
@@ -533,7 +534,11 @@ export default function ApplicationDetail() {
           </CardContent>
         </Card>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={(value) => {
+          setActiveTab(value);
+          // Update URL with tab parameter for better navigation
+          navigate(`/admin/applications/${id}?tab=${value}`, { replace: true });
+        }} className="space-y-6">
           <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="motivation">Motivation</TabsTrigger>

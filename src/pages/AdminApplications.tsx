@@ -1143,15 +1143,8 @@ export default function AdminApplications() {
 
   // New handlers for video stage
   const handleVideoAssignment = (applicationId: string) => {
-    const app = applications.find(a => a.id === applicationId);
-    if (!app) return;
-
-    // Always open the dialog - it will show the configure button if needed
-    setVideoAssignmentDialog({
-      open: true,
-      applicationId,
-      candidateName: app.candidate.name
-    });
+    // Navigate directly to the application detail page with video tab
+    navigate(`/admin/applications/${applicationId}?tab=video`);
   };
 
   const handleReviewVideos = (applicationId: string) => {

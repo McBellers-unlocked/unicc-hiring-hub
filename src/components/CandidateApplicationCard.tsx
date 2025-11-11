@@ -471,7 +471,7 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                     onClick={() => onVideoAssignment(application.id)}
                     className="whitespace-nowrap"
                   >
-                    <FileText className="w-3 h-3 mr-1" />
+                    <Video className="w-3 h-3 mr-1" />
                     Video Assignment
                   </Button>
                 )}
