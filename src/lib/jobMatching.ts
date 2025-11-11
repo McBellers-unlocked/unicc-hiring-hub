@@ -180,7 +180,7 @@ export class JobMatchingService {
       maxScore += languageWeight;
     }
 
-    const matchPercentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+    const matchPercentage = maxScore > 0 ? Math.min(100, Math.round((totalScore / maxScore) * 100)) : 0;
 
     return {
       matchPercentage,
