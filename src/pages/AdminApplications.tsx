@@ -211,7 +211,8 @@ export default function AdminApplications() {
           source,
           candidate:candidates(
             id, name, email, location, gender, education, work_experience, 
-            languages, years_of_experience, un_experience, skills
+            languages, years_of_experience, un_experience, skills,
+            present_city, present_country, permanent_city, permanent_country
           ),
           job:jobs(id, title, org_unit),
           screening_scores(ai_score, created_at)
