@@ -221,7 +221,60 @@ export default function AdminApplications() {
         .order('submitted_at', { ascending: false });
 
       if (error) throw error;
-      setApplications(data || []);
+      
+      // Check for video assignments and fix status if needed
+      if (data && data.length > 0) {
+        const { data: videoAssignments } = await supabase
+          .from('video_assignments')
+          .select('application_id')
+          .in('application_id', data.map(app => app.id));
+        
+        if (videoAssignments && videoAssignments.length > 0) {
+          const assignmentAppIds = videoAssignments.map(va => va.application_id);
+          const appsNeedingUpdate = data.filter(app => 
+            assignmentAppIds.includes(app.id) && app.status !== 'Pre-Recorded Video'
+          );
+          
+          // Update status for applications with video assignments
+          if (appsNeedingUpdate.length > 0) {
+            await supabase
+              .from('applications')
+              .update({ status: 'Pre-Recorded Video' })
+              .in('id', appsNeedingUpdate.map(app => app.id));
+            
+            // Refetch to get updated data
+            const { data: updatedData } = await supabase
+              .from('applications')
+              .select(`
+                id,
+                status,
+                submitted_at,
+                updated_at,
+                suggested_for_longlist,
+                phf_completed,
+                phf_data,
+                source,
+                candidate:candidates(
+                  id, name, email, location, gender, education, work_experience, 
+                  languages, years_of_experience, un_experience, skills,
+                  present_city, present_country, permanent_city, permanent_country
+                ),
+                job:jobs(id, title, org_unit),
+                screening_scores(ai_score, created_at)
+              `)
+              .eq('job_id', jobId)
+              .order('submitted_at', { ascending: false });
+            
+            setApplications(updatedData || []);
+          } else {
+            setApplications(data);
+          }
+        } else {
+          setApplications(data);
+        }
+      } else {
+        setApplications([]);
+      }
 
       // Force fresh check for video questions (bypass cache)
       const { data: questionSets } = await supabase

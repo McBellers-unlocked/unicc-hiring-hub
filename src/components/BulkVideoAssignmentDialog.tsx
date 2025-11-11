@@ -80,7 +80,15 @@ export function BulkVideoAssignmentDialog({
           continue;
         }
 
-        // Create stage event to trigger assignment creation
+        // Update application status first
+        const { error: statusError } = await supabase
+          .from('applications')
+          .update({ status: 'Pre-Recorded Video' })
+          .eq('id', appId);
+
+        if (statusError) throw statusError;
+
+        // Create stage event to log the change
         const { error: stageError } = await supabase
           .from('stage_events')
           .insert({
