@@ -85,14 +85,39 @@ Deno.serve(async (req) => {
 
     // Salary lookup table based on UN salary scale (Step I to Step XIII gross amounts in USD)
     const salaryTable: { [key: string]: { stepI: number; stepXIII: number } } = {
+      // Director levels
       'D-2': { stepI: 171094, stepXIII: 205942 },
       'D-1': { stepI: 152417, stepXIII: 193215 },
       'D1': { stepI: 152417, stepXIII: 193215 }, // Support both formats
+      
+      // Professional levels
       'P-5': { stepI: 131486, stepXIII: 165076 },
       'P-4': { stepI: 107389, stepXIII: 131071 },
       'P-3': { stepI: 87779, stepXIII: 108653 },
       'P-2': { stepI: 67978, stepXIII: 86037 },
       'P-1': { stepI: 52163, stepXIII: 67495 },
+      
+      // General Service levels (New York rates as reference)
+      'G-7': { stepI: 73650, stepXIII: 85280 },
+      'G-6': { stepI: 64920, stepXIII: 75180 },
+      'G-5': { stepI: 56840, stepXIII: 66350 },
+      'G-4': { stepI: 49520, stepXIII: 58300 },
+      'G-3': { stepI: 43260, stepXIII: 51490 },
+      'G-2': { stepI: 37840, stepXIII: 45680 },
+      'G-1': { stepI: 32950, stepXIII: 40250 },
+      
+      // National Officer levels
+      'NO-D': { stepI: 75000, stepXIII: 95000 },
+      'NO-C': { stepI: 60000, stepXIII: 80000 },
+      'NO-B': { stepI: 48000, stepXIII: 68000 },
+      'NO-A': { stepI: 38000, stepXIII: 55000 },
+      
+      // Field Service levels
+      'FS-7': { stepI: 92500, stepXIII: 115000 },
+      'FS-6': { stepI: 80000, stepXIII: 100000 },
+      'FS-5': { stepI: 68000, stepXIII: 88000 },
+      'FS-4': { stepI: 57000, stepXIII: 76000 },
+      'FS-3': { stepI: 48000, stepXIII: 66000 },
     };
 
     // Format salary estimate based on grade
