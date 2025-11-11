@@ -183,11 +183,14 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                   {application.candidate.email}
                 </div>
                 {/* Present Location */}
-                {(application.candidate.present_city || application.candidate.present_country) && (
+                {(application.candidate.present_city || application.candidate.present_country || application.candidate.location) && (
                   <div className="text-sm mt-1">
                     <span className="font-semibold">Present location: </span>
                     <span className="text-muted-foreground">
-                      {[application.candidate.present_city, application.candidate.present_country].filter(Boolean).join(', ')}
+                      {application.candidate.present_city && application.candidate.present_country
+                        ? `${application.candidate.present_city}, ${application.candidate.present_country}`
+                        : application.candidate.location || [application.candidate.present_city, application.candidate.present_country].filter(Boolean).join(', ')
+                      }
                     </span>
                   </div>
                 )}
