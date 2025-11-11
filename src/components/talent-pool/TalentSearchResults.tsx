@@ -89,15 +89,16 @@ export function TalentSearchResults({
           const education = candidate.education as any[];
           if (!Array.isArray(education) || education.length === 0) return false;
           
-          const highestDegree = education[0]?.degree?.toLowerCase() || '';
+          // Check all education entries, not just the first one
+          const allDegrees = education.map(e => e.degree?.toLowerCase() || '').join(' ');
           
           if (filters.educationLevel === 'first_degree') {
-            return highestDegree.includes('bachelor') || highestDegree.includes('b.a') || 
-                   highestDegree.includes('b.s') || highestDegree.includes('undergraduate');
+            return allDegrees.includes('bachelor') || allDegrees.includes('b.a') || 
+                   allDegrees.includes('b.s') || allDegrees.includes('undergraduate');
           } else if (filters.educationLevel === 'advanced_degree') {
-            return highestDegree.includes('master') || highestDegree.includes('phd') || 
-                   highestDegree.includes('doctorate') || highestDegree.includes('m.a') ||
-                   highestDegree.includes('m.s') || highestDegree.includes('mba');
+            return allDegrees.includes('master') || allDegrees.includes('phd') || 
+                   allDegrees.includes('doctorate') || allDegrees.includes('m.a') ||
+                   allDegrees.includes('m.s') || allDegrees.includes('mba');
           }
           return true;
         });
