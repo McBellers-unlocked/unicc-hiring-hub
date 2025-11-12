@@ -163,37 +163,61 @@ export default function ApplicationJobSelection() {
       return 'pipeline';
     }
     
-    // Determine recruitment stage based on application statuses (takes precedence over time-based stages)
-    const statuses = job.application_statuses || [];
-    const totalApps = job.application_count || 0;
-    
-    if (totalApps > 0 && statuses.length > 0) {
-      // Get count of applications in each stage
-      const inApplication = statuses.find(s => s.status === 'Application')?.count || 0;
-      const inLonglist = statuses.find(s => s.status === 'Longlist')?.count || 0;
-      const inShortlist = statuses.find(s => s.status === 'Shortlist')?.count || 0;
-      const inVideoInterview = statuses.find(s => s.status === 'Video Interview')?.count || 0;
-      const inPanelInterview = statuses.find(s => s.status === 'Panel Interview')?.count || 0;
-      const rejected = statuses.find(s => s.status === 'Rejected')?.count || 0;
+    // Check if job is still active/open first (this takes precedence over recruitment stages)
+    if (job.status === 'active' && job.closing_date) {
+      const closingDate = new Date(job.closing_date);
+      const now = new Date();
       
-      // Panel Interview Stage: At least one app in panel interview
-      if (inPanelInterview > 0) {
-        return 'panel_interview';
-      }
-      
-      // Video Interview Stage: At least one app in video interview
-      if (inVideoInterview > 0) {
-        return 'video_interview';
-      }
-      
-      // Hiring Manager Shortlisting: No apps in "Application" status AND there are longlisted/shortlisted apps
-      if (inApplication === 0 && (inLonglist + inShortlist) > 0) {
-        return 'hm_shortlisting';
+      // If closing date is in the future, job is either Active or Closing
+      if (closingDate > now) {
+        const threeDaysFromNow = new Date();
+        threeDaysFromNow.setDate(now.getDate() + 3);
+        
+        // Closing within 3 days
+        if (closingDate <= threeDaysFromNow) {
+          return 'closing';
+        }
+        
+        // Still active
+        return 'active';
       }
     }
     
-    // Check if closed and determine longlisting vs fully closed
+    // Default to active for active jobs without closing date
+    if (job.status === 'active') {
+      return 'active';
+    }
+    
+    // For CLOSED jobs, determine recruitment stage based on application statuses
     if (job.status === 'closed' || (job.closing_date && new Date(job.closing_date) < new Date())) {
+      const statuses = job.application_statuses || [];
+      const totalApps = job.application_count || 0;
+      
+      if (totalApps > 0 && statuses.length > 0) {
+        // Get count of applications in each stage
+        const inApplication = statuses.find(s => s.status === 'Application')?.count || 0;
+        const inLonglist = statuses.find(s => s.status === 'Longlist')?.count || 0;
+        const inShortlist = statuses.find(s => s.status === 'Shortlist')?.count || 0;
+        const inVideoInterview = statuses.find(s => s.status === 'Video Interview')?.count || 0;
+        const inPanelInterview = statuses.find(s => s.status === 'Panel Interview')?.count || 0;
+        
+        // Panel Interview Stage: At least one app in panel interview
+        if (inPanelInterview > 0) {
+          return 'panel_interview';
+        }
+        
+        // Video Interview Stage: At least one app in video interview
+        if (inVideoInterview > 0) {
+          return 'video_interview';
+        }
+        
+        // Hiring Manager Shortlisting: No apps in "Application" status AND there are longlisted/shortlisted apps
+        if (inApplication === 0 && (inLonglist + inShortlist) > 0) {
+          return 'hm_shortlisting';
+        }
+      }
+      
+      // Check if within 14-day longlisting period
       if (job.closing_date) {
         const closingDate = new Date(job.closing_date);
         const now = new Date();
@@ -205,24 +229,8 @@ export default function ApplicationJobSelection() {
           return 'longlisting';
         }
       }
-      return 'closed';
-    }
-    
-    // Check if closing within 3 days
-    if (job.status === 'active' && job.closing_date) {
-      const closingDate = new Date(job.closing_date);
-      const now = new Date();
-      const threeDaysFromNow = new Date();
-      threeDaysFromNow.setDate(now.getDate() + 3);
       
-      if (closingDate <= threeDaysFromNow && closingDate > now) {
-        return 'closing';
-      }
-    }
-    
-    // Default to active for active jobs
-    if (job.status === 'active') {
-      return 'active';
+      return 'closed';
     }
     
     // For draft/archived, return closed
