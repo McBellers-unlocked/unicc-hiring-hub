@@ -158,23 +158,31 @@ export default function ApplicationJobSelection() {
 
   // Determine the display status for a job
   const getJobDisplayStatus = (job: Job): JobDisplayStatus => {
-    // Debug logging for Digital Public Solutions Officer
-    if (job.title.includes('Digital Public Solutions')) {
-      console.log('Digital Public Solutions Officer job:', {
-        title: job.title,
-        status: job.status,
-        closing_date: job.closing_date,
-        application_count: job.application_count,
-        application_statuses: job.application_statuses
-      });
-    }
-    
     // Pipeline takes precedence if job has an active requisition
     if (job.requisition_status) {
       return 'pipeline';
     }
     
-    // Check if job is still active/open first (this takes precedence over recruitment stages)
+    // Check recruitment stage based on application statuses (takes precedence over everything except pipeline)
+    const statuses = job.application_statuses || [];
+    const totalApps = job.application_count || 0;
+    
+    if (totalApps > 0 && statuses.length > 0) {
+      const inVideoInterview = statuses.find(s => s.status === 'Video Interview')?.count || 0;
+      const inPanelInterview = statuses.find(s => s.status === 'Panel Interview')?.count || 0;
+      
+      // Panel Interview Stage: If any apps are in panel interview
+      if (inPanelInterview > 0) {
+        return 'panel_interview';
+      }
+      
+      // Video Interview Stage: If any apps are in video interview
+      if (inVideoInterview > 0) {
+        return 'video_interview';
+      }
+    }
+    
+    // Check if job is still active/open (for jobs not in interview stages)
     if (job.status === 'active' && job.closing_date) {
       const closingDate = new Date(job.closing_date);
       const now = new Date();
@@ -199,28 +207,12 @@ export default function ApplicationJobSelection() {
       return 'active';
     }
     
-    // For CLOSED jobs, determine recruitment stage based on application statuses
+    // For CLOSED jobs not in interview stages, determine other recruitment stages
     if (job.status === 'closed' || (job.closing_date && new Date(job.closing_date) < new Date())) {
-      const statuses = job.application_statuses || [];
-      const totalApps = job.application_count || 0;
-      
       if (totalApps > 0 && statuses.length > 0) {
-        // Get count of applications in each stage
         const inApplication = statuses.find(s => s.status === 'Application')?.count || 0;
         const inLonglist = statuses.find(s => s.status === 'Longlist')?.count || 0;
         const inShortlist = statuses.find(s => s.status === 'Shortlist')?.count || 0;
-        const inVideoInterview = statuses.find(s => s.status === 'Video Interview')?.count || 0;
-        const inPanelInterview = statuses.find(s => s.status === 'Panel Interview')?.count || 0;
-        
-        // Panel Interview Stage: At least one app in panel interview
-        if (inPanelInterview > 0) {
-          return 'panel_interview';
-        }
-        
-        // Video Interview Stage: At least one app in video interview
-        if (inVideoInterview > 0) {
-          return 'video_interview';
-        }
         
         // Hiring Manager Shortlisting: No apps in "Application" status AND there are longlisted/shortlisted apps
         if (inApplication === 0 && (inLonglist + inShortlist) > 0) {
