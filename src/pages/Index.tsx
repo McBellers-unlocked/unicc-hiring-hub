@@ -96,24 +96,20 @@ const Index = () => {
       return <CandidateDashboard />;
     }
     
-    if (isAdmin || isHR) {
+    if (isAdmin || isHR || isChiefHR) {
       return (
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold">HR Admin Dashboard</h1>
+            <h1 className="text-3xl font-bold">
+              {isChiefHR ? 'Chief HR Dashboard' : 'HR Admin Dashboard'}
+            </h1>
             <p className="text-muted-foreground mt-2">
-              Manage recruitment pipeline and applications
+              {isChiefHR 
+                ? 'Manage Chief HR reviews and position descriptions' 
+                : 'Manage recruitment pipeline and applications'}
             </p>
           </div>
-          <HRAdminDashboard />
-        </div>
-      );
-    }
-    
-    if (isChiefHR) {
-      return (
-        <div className="container mx-auto px-4 py-8">
-          <ChiefHRDashboard />
+          {isChiefHR ? <ChiefHRDashboard /> : <HRAdminDashboard />}
         </div>
       );
     }

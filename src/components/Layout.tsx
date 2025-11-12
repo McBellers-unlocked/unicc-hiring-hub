@@ -29,6 +29,9 @@ export const Layout = ({ children }: LayoutProps) => {
   const isPanelMember = userRoles.includes('Panel Member');
   const isCandidate = userRoles.includes('Candidate');
   const isChiefHR = userRoles.includes('Chief of HR');
+  
+  // Chief HR has same navigation access as Admin/HR
+  const hasAdminAccess = isAdmin || isHR || isChiefHR;
 
   return (
     <div className="min-h-screen bg-background">
@@ -70,27 +73,27 @@ export const Layout = ({ children }: LayoutProps) => {
                             </Link>
                           </DropdownMenuItem>
                         )}
-                        {(isAdmin || isHR) && (
-                          <DropdownMenuItem asChild>
-                            <Link to="/admin/requisitions" className="flex items-center w-full">
-                              <FileCheck className="w-4 h-4 mr-2" />
-                              Manage PD Pipeline
-                            </Link>
-                          </DropdownMenuItem>
-                        )}
-                        {(isAdmin || isHR || isChiefHR) && (
-                          <DropdownMenuItem asChild>
-                            <Link to="/admin/chief-hr-review" className="flex items-center w-full">
-                              <FileCheck className="w-4 h-4 mr-2" />
-                              Chief HR Review
-                            </Link>
-                          </DropdownMenuItem>
-                        )}
+                  {hasAdminAccess && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/requisitions" className="flex items-center w-full">
+                        <FileCheck className="w-4 h-4 mr-2" />
+                        Manage PD Pipeline
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {hasAdminAccess && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/chief-hr-review" className="flex items-center w-full">
+                        <FileCheck className="w-4 h-4 mr-2" />
+                        Chief HR Review
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
                   
-                  {(isAdmin || isHR) && (
+            {hasAdminAccess && (
                     <DropdownMenu>
                       <DropdownMenuTrigger className="flex items-center hover:text-accent transition-colors py-2 focus:outline-none">
                         <Settings className="w-4 h-4 mr-1" />
@@ -144,7 +147,7 @@ export const Layout = ({ children }: LayoutProps) => {
                     </DropdownMenu>
                   )}
                   
-                  {(isAdmin || isHR || isHiringManager || isPanelMember) && (
+                  {(hasAdminAccess || isHiringManager || isPanelMember) && (
                     <Link to="/applications" className="flex items-center hover:text-accent transition-colors py-2">
                       <UserCheck className="w-4 h-4 mr-1" />
                       Applications
