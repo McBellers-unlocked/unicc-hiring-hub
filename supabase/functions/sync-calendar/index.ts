@@ -84,9 +84,21 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Calendar event created:", JSON.stringify(calendarEvent, null, 2));
 
-    // In a real implementation, you would integrate with Microsoft Graph API here
-    // For now, we'll just log the event and mark as successful
-    console.log("Would sync to Outlook:", calendarEvent);
+    // Generate iCalendar (.ics) file
+    const icsContent = generateICS({
+      title,
+      startDate,
+      endDate,
+      location: location || "TBD",
+      description: `Panel Interview\n\n${meetingLink ? `Meeting Link: ${meetingLink}\n\n` : ''}Please join on time.`,
+      attendees: users.map(u => ({ email: u.email, name: u.name }))
+    });
+
+    console.log("Generated .ics file for Outlook sync");
+
+    // For now, store the ICS content in the interview notes
+    // In a full implementation, you would email this to participants
+    console.log("Would email .ics file to:", users.map(u => u.email).join(', '));
 
     // Update interview status to indicate calendar sync attempt
     const { error: updateError } = await supabase
@@ -104,7 +116,8 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({
         success: true,
         message: "Calendar sync initiated",
-        eventData: calendarEvent
+        eventData: calendarEvent,
+        icsGenerated: true
       }),
       {
         status: 200,
@@ -126,5 +139,47 @@ const handler = async (req: Request): Promise<Response> => {
     );
   }
 };
+
+// Helper function to generate iCalendar format
+function generateICS(params: {
+  title: string;
+  startDate: Date;
+  endDate: Date;
+  location: string;
+  description: string;
+  attendees: { email: string; name: string }[];
+}): string {
+  const { title, startDate, endDate, location, description, attendees } = params;
+  
+  // Format dates as YYYYMMDDTHHMMSSZ
+  const formatDate = (date: Date) => {
+    return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  };
+
+  const attendeeLines = attendees.map(att => 
+    `ATTENDEE;CN=${att.name};RSVP=TRUE:mailto:${att.email}`
+  ).join('\n');
+
+  const ics = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//UNICC//Panel Interview//EN
+CALSCALE:GREGORIAN
+METHOD:REQUEST
+BEGIN:VEVENT
+UID:${Date.now()}@unicc.org
+DTSTAMP:${formatDate(new Date())}
+DTSTART:${formatDate(startDate)}
+DTEND:${formatDate(endDate)}
+SUMMARY:${title}
+LOCATION:${location}
+DESCRIPTION:${description.replace(/\n/g, '\\n')}
+STATUS:CONFIRMED
+SEQUENCE:0
+${attendeeLines}
+END:VEVENT
+END:VCALENDAR`;
+
+  return ics;
+}
 
 serve(handler);

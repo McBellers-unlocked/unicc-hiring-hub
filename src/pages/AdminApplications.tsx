@@ -237,36 +237,45 @@ export default function AdminApplications() {
           );
           
           // Update status for applications with video assignments
+          // BUT only if they're not already in Panel Interview or beyond
           if (appsNeedingUpdate.length > 0) {
-            await supabase
-              .from('applications')
-              .update({ status: 'Pre-Recorded Video' })
-              .in('id', appsNeedingUpdate.map(app => app.id));
+            const appsToUpdate = appsNeedingUpdate.filter(app => 
+              !['Panel Interview', 'Recommended', 'Offer', 'Roster'].includes(app.status)
+            );
             
-            // Refetch to get updated data
-            const { data: updatedData } = await supabase
-              .from('applications')
-              .select(`
-                id,
-                status,
-                submitted_at,
-                updated_at,
-                suggested_for_longlist,
-                phf_completed,
-                phf_data,
-                source,
-                candidate:candidates(
-                  id, name, email, location, gender, education, work_experience, 
-                  languages, years_of_experience, un_experience, skills,
-                  present_city, present_country, permanent_city, permanent_country
-                ),
-                job:jobs(id, title, org_unit),
-                screening_scores(ai_score, created_at)
-              `)
-              .eq('job_id', jobId)
-              .order('submitted_at', { ascending: false });
-            
-            setApplications(updatedData || []);
+            if (appsToUpdate.length > 0) {
+              await supabase
+                .from('applications')
+                .update({ status: 'Pre-Recorded Video' })
+                .in('id', appsToUpdate.map(app => app.id));
+              
+              // Refetch to get updated data
+              const { data: updatedData } = await supabase
+                .from('applications')
+                .select(`
+                  id,
+                  status,
+                  submitted_at,
+                  updated_at,
+                  suggested_for_longlist,
+                  phf_completed,
+                  phf_data,
+                  source,
+                  candidate:candidates(
+                    id, name, email, location, gender, education, work_experience, 
+                    languages, years_of_experience, un_experience, skills,
+                    present_city, present_country, permanent_city, permanent_country
+                  ),
+                  job:jobs(id, title, org_unit),
+                  screening_scores(ai_score, created_at)
+                `)
+                .eq('job_id', jobId)
+                .order('submitted_at', { ascending: false });
+              
+              setApplications(updatedData || []);
+            } else {
+              setApplications(data);
+            }
           } else {
             setApplications(data);
           }
