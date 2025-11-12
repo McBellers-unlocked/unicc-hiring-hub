@@ -48,7 +48,9 @@ export default function InitialRequestReview() {
   const [comments, setComments] = useState('');
   const [processing, setProcessing] = useState(false);
 
-  const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR');
+  // For now, treating 'Hiring Manager' as potential Chief of Division
+  // In production, you'd want a specific 'Chief of Division' role
+  const hasAccess = userRoles.includes('Admin') || userRoles.includes('Hiring Manager');
 
   useEffect(() => {
     if (!hasAccess) {
@@ -112,10 +114,13 @@ export default function InitialRequestReview() {
       setProcessing(true);
 
       if (actionType === 'approve') {
-        // Approve the request
+        // Approve the request - mark as Chief approved
         const { error } = await supabase
           .from('job_requisitions')
           .update({
+            chief_of_division_approval: true,
+            chief_of_division_approved_by: user?.id,
+            chief_of_division_approved_at: new Date().toISOString(),
             initial_request_approved: true,
             initial_request_approved_by: user?.id,
             initial_request_approved_at: new Date().toISOString(),
@@ -127,7 +132,7 @@ export default function InitialRequestReview() {
 
         toast({
           title: "Request Approved",
-          description: "The hiring manager can now create the full position description",
+          description: "HR will notify the hiring manager to create the full position description",
         });
       } else {
         // Reject the request
@@ -135,6 +140,7 @@ export default function InitialRequestReview() {
           .from('job_requisitions')
           .update({
             status: 'draft',
+            initial_request_submitted: false,
             comments: JSON.stringify([
               {
                 user_id: user?.id,
@@ -181,9 +187,9 @@ export default function InitialRequestReview() {
     <Layout>
       <div className="container mx-auto py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Initial Request Review</h1>
+          <h1 className="text-3xl font-bold mb-2">Initial Request Review - Chief of Division</h1>
           <p className="text-muted-foreground">
-            Review and approve initial position requests from hiring managers
+            Review and approve initial position requests from hiring managers in your division
           </p>
         </div>
 
@@ -308,7 +314,7 @@ export default function InitialRequestReview() {
               </DialogTitle>
               <DialogDescription>
                 {actionType === 'approve' 
-                  ? 'This will allow the hiring manager to proceed with creating the full position description.'
+                  ? 'This will mark the initial request as approved by Chief of Division. HR can then notify the hiring manager to proceed with creating the full position description.'
                   : 'Please provide feedback for the hiring manager about why this request is being rejected.'}
               </DialogDescription>
             </DialogHeader>

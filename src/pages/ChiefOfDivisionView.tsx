@@ -16,19 +16,41 @@ export default function ChiefOfDivisionView() {
   const { data: requisitions, isLoading } = useQuery({
     queryKey: ["requisitions-chief-approval"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("job_requisitions")
-        .select(`
-          *,
-          creator:users!created_by(name, email)
-        `)
-        .eq("hr_final_review_completed", true)
-        .eq("status", "chief_of_division_review")
-        .or("chief_of_division_approval.is.null,chief_of_division_approval.eq.false")
-        .order("created_at", { ascending: false });
+      // Fetch both full PD approvals and initial requests
+      const [fullPDResult, initialRequestsResult] = await Promise.all([
+        // Full PD approvals
+        supabase
+          .from("job_requisitions")
+          .select(`
+            *,
+            creator:users!created_by(name, email)
+          `)
+          .eq("hr_final_review_completed", true)
+          .eq("status", "chief_of_division_review")
+          .or("chief_of_division_approval.is.null,chief_of_division_approval.eq.false")
+          .order("created_at", { ascending: false }),
+        
+        // Initial requests pending approval
+        supabase
+          .from("job_requisitions")
+          .select(`
+            *,
+            creator:users!created_by(name, email)
+          `)
+          .eq("status", "draft")
+          .eq("initial_request_submitted", true)
+          .or("initial_request_approved.is.null,initial_request_approved.eq.false")
+          .order("created_at", { ascending: false })
+      ]);
 
-      if (error) throw error;
-      return data;
+      if (fullPDResult.error) throw fullPDResult.error;
+      if (initialRequestsResult.error) throw initialRequestsResult.error;
+      
+      // Combine and mark which are initial requests
+      const fullPDs = (fullPDResult.data || []).map(r => ({ ...r, isInitialRequest: false }));
+      const initialRequests = (initialRequestsResult.data || []).map(r => ({ ...r, isInitialRequest: true }));
+      
+      return [...initialRequests, ...fullPDs];
     },
   });
 
@@ -79,98 +101,173 @@ export default function ChiefOfDivisionView() {
                 </CardContent>
               </Card>
             ) : (
-              requisitions?.map((requisition) => (
+              requisitions?.map((requisition: any) => (
                 <Card key={requisition.id}>
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
                       <div>
                         <CardTitle>{requisition.position_title}</CardTitle>
                         <div className="flex gap-2 mt-2">
-                          <Badge variant="outline">{requisition.grade}</Badge>
-                          <Badge variant="outline">{requisition.nature_of_position}</Badge>
+                          {requisition.grade && <Badge variant="outline">{requisition.grade}</Badge>}
+                          {requisition.nature_of_position && <Badge variant="outline">{requisition.nature_of_position}</Badge>}
+                          {requisition.isInitialRequest && <Badge className="bg-yellow-500">Initial Request</Badge>}
                         </div>
                       </div>
                       <Badge variant="secondary">Pending Chief Approval</Badge>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-                      <div>
-                        <p className="text-sm font-medium">Reference Number</p>
-                        <p className="text-sm text-muted-foreground">{requisition.reference_number}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Unit/Section/Division</p>
-                        <p className="text-sm text-muted-foreground">{requisition.unit_section_division}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Duty Station</p>
-                        <p className="text-sm text-muted-foreground">
-                          {(() => {
-                            try {
-                              if (typeof requisition.duty_station === 'string') {
-                                const parsed = JSON.parse(requisition.duty_station);
-                                return Array.isArray(parsed) ? parsed.join(', ') : String(parsed);
-                              } else if (Array.isArray(requisition.duty_station)) {
-                                return (requisition.duty_station as string[]).join(', ');
-                              } else {
-                                return String(requisition.duty_station || 'Not specified');
-                              }
-                            } catch {
-                              return String(requisition.duty_station || 'Not specified');
-                            }
-                          })()}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Created By</p>
-                        <p className="text-sm text-muted-foreground">
-                          {(requisition as any).creator?.name || (requisition as any).creator?.email || 'Unknown User'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">Created Date</p>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(requisition.created_at), "dd/MM/yyyy")}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">HR Reviewed</p>
-                        <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200">✓ Reviewed</Badge>
-                      </div>
-                    </div>
-
-                     {requisition.hr_change_summary && (
-                      <div className="mb-3 p-3 bg-blue-50 rounded-lg">
-                        <p className="text-sm font-medium text-blue-900">HR Review Note:</p>
-                        <p className="text-sm text-blue-800">{requisition.hr_change_summary}</p>
-                      </div>
-                    )}
-
-                    {/* Show clean position description */}
-                    {requisition.final_clean_version && (
-                      <div className="mb-3 space-y-4 border border-border rounded-lg p-4">
-                        <h3 className="font-semibold text-lg pb-2 border-b">Position Description</h3>
+                    {requisition.isInitialRequest ? (
+                      // Initial Request View
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-sm font-medium">Duty Station</p>
+                            <p className="text-sm text-muted-foreground">
+                              {(() => {
+                                try {
+                                  if (typeof requisition.duty_station === 'string') {
+                                    const parsed = JSON.parse(requisition.duty_station);
+                                    return Array.isArray(parsed) ? parsed.join(', ') : String(parsed);
+                                  } else if (Array.isArray(requisition.duty_station)) {
+                                    return requisition.duty_station.join(', ');
+                                  }
+                                  return 'Not specified';
+                                } catch {
+                                  return 'Not specified';
+                                }
+                              })()}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">Created By</p>
+                            <p className="text-sm text-muted-foreground">
+                              {requisition.creator?.name || requisition.creator?.email || 'Unknown User'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">Created Date</p>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(requisition.created_at), "dd/MM/yyyy")}
+                            </p>
+                          </div>
+                        </div>
                         
-                        {((requisition.final_clean_version as any)?.purpose_of_position || requisition.purpose_of_position) && (
-                          <div className="prose prose-sm max-w-none">
-                            <h4 className="text-base font-semibold mb-2">Purpose of Position:</h4>
-                            <ReactMarkdown 
-                              components={{
-                                h1: ({ children }) => <h1 className="text-lg font-semibold mb-2 mt-3 border-b pb-1">{children}</h1>,
-                                h2: ({ children }) => <h2 className="text-base font-semibold mb-2 mt-3 border-b pb-1">{children}</h2>,
-                                h3: ({ children }) => <h3 className="text-sm font-semibold mb-1 mt-2">{children}</h3>,
-                                ul: ({ children }) => <ul className="list-disc ml-5 space-y-1 my-2">{children}</ul>,
-                                ol: ({ children }) => <ol className="list-decimal ml-5 space-y-1 my-2">{children}</ol>,
-                                li: ({ children }) => <li className="text-sm">{children}</li>,
-                                p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
-                                strong: ({ children }) => <strong className="font-semibold">{children}</strong>
-                              }}
-                            >
-                              {fixMarkdownFormatting((requisition.final_clean_version as any)?.purpose_of_position || requisition.purpose_of_position || '')}
-                            </ReactMarkdown>
+                        {requisition.brief_outline && (
+                          <div className="p-3 bg-muted rounded-lg">
+                            <p className="text-sm font-medium mb-2">Brief Outline:</p>
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{requisition.brief_outline}</p>
                           </div>
                         )}
+                        
+                        {requisition.funding_status && (
+                          <div className="p-3 bg-muted rounded-lg">
+                            <p className="text-sm font-medium mb-2">Funding Status:</p>
+                            <p className="text-sm text-muted-foreground">{requisition.funding_status}</p>
+                            {requisition.funding_comments && (
+                              <p className="text-sm text-muted-foreground mt-1 italic">{requisition.funding_comments}</p>
+                            )}
+                          </div>
+                        )}
+                        
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            onClick={() => handleApproval(requisition.id, true)}
+                            disabled={approveMutation.isPending}
+                            size="sm"
+                          >
+                            Approve Initial Request
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={() => handleApproval(requisition.id, false)}
+                            disabled={approveMutation.isPending}
+                            size="sm"
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      </div>
+                       ) : (
+                        // Full PD View (existing code)
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                            <div>
+                              <p className="text-sm font-medium">Reference Number</p>
+                              <p className="text-sm text-muted-foreground">{requisition.reference_number}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">Unit/Section/Division</p>
+                              <p className="text-sm text-muted-foreground">{requisition.unit_section_division}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">Duty Station</p>
+                              <p className="text-sm text-muted-foreground">
+                                {(() => {
+                                  try {
+                                    if (typeof requisition.duty_station === 'string') {
+                                      const parsed = JSON.parse(requisition.duty_station);
+                                      return Array.isArray(parsed) ? parsed.join(', ') : String(parsed);
+                                    } else if (Array.isArray(requisition.duty_station)) {
+                                      return (requisition.duty_station as string[]).join(', ');
+                                    } else {
+                                      return String(requisition.duty_station || 'Not specified');
+                                    }
+                                  } catch {
+                                    return String(requisition.duty_station || 'Not specified');
+                                  }
+                                })()}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">Created By</p>
+                              <p className="text-sm text-muted-foreground">
+                                {(requisition as any).creator?.name || (requisition as any).creator?.email || 'Unknown User'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">Created Date</p>
+                              <p className="text-sm text-muted-foreground">
+                                {format(new Date(requisition.created_at), "dd/MM/yyyy")}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">HR Reviewed</p>
+                              <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200">✓ Reviewed</Badge>
+                            </div>
+                          </div>
+
+                          {requisition.hr_change_summary && (
+                            <div className="mb-3 p-3 bg-blue-50 rounded-lg">
+                              <p className="text-sm font-medium text-blue-900">HR Review Note:</p>
+                              <p className="text-sm text-blue-800">{requisition.hr_change_summary}</p>
+                            </div>
+                          )}
+
+                          {/* Show clean position description */}
+                          {requisition.final_clean_version && (
+                            <div className="mb-3 space-y-4 border border-border rounded-lg p-4">
+                              <h3 className="font-semibold text-lg pb-2 border-b">Position Description</h3>
+                              
+                              {((requisition.final_clean_version as any)?.purpose_of_position || requisition.purpose_of_position) && (
+                                <div className="prose prose-sm max-w-none">
+                                  <h4 className="text-base font-semibold mb-2">Purpose of Position:</h4>
+                                  <ReactMarkdown 
+                                    components={{
+                                      h1: ({ children }) => <h1 className="text-lg font-semibold mb-2 mt-3 border-b pb-1">{children}</h1>,
+                                      h2: ({ children }) => <h2 className="text-base font-semibold mb-2 mt-3 border-b pb-1">{children}</h2>,
+                                      h3: ({ children }) => <h3 className="text-sm font-semibold mb-1 mt-2">{children}</h3>,
+                                      ul: ({ children }) => <ul className="list-disc ml-5 space-y-1 my-2">{children}</ul>,
+                                      ol: ({ children }) => <ol className="list-decimal ml-5 space-y-1 my-2">{children}</ol>,
+                                      li: ({ children }) => <li className="text-sm">{children}</li>,
+                                      p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                                    }}
+                                  >
+                                    {fixMarkdownFormatting((requisition.final_clean_version as any)?.purpose_of_position || requisition.purpose_of_position || '')}
+                                  </ReactMarkdown>
+                                </div>
+                              )}
 
                         {((requisition.final_clean_version as any)?.objectives_of_programme || requisition.objectives_of_programme) && (
                           <div className="prose prose-sm max-w-none">
@@ -371,32 +468,33 @@ export default function ChiefOfDivisionView() {
                             </ul>
                           </div>
                         )}
-                      </div>
-                    )}
+                       </div>
 
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => handleApproval(requisition.id, true)}
-                        disabled={approveMutation.isPending}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={() => handleApproval(requisition.id, false)}
-                        disabled={approveMutation.isPending}
-                      >
-                        Reject
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => window.open(`/requisitions/${requisition.id}`, '_blank')}
-                      >
-                        View Details
-                      </Button>
-                    </div>
-                  </CardContent>
+                       <div className="flex gap-2 mt-4">
+                         <Button
+                           onClick={() => handleApproval(requisition.id, true)}
+                           disabled={approveMutation.isPending}
+                           className="bg-green-600 hover:bg-green-700"
+                         >
+                           Approve
+                         </Button>
+                         <Button
+                           variant="destructive"
+                           onClick={() => handleApproval(requisition.id, false)}
+                           disabled={approveMutation.isPending}
+                         >
+                           Reject
+                         </Button>
+                         <Button
+                           variant="outline"
+                           onClick={() => window.open(`/requisitions/${requisition.id}`, '_blank')}
+                         >
+                           View Details
+                         </Button>
+                       </div>
+                       </div>
+                     )}
+                   </CardContent>
                 </Card>
               ))
             )}
