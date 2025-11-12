@@ -186,8 +186,8 @@ export default function ApplicationJobSelection() {
         return 'video_interview';
       }
       
-      // Hiring Manager Shortlisting: All apps have been longlisted/shortlisted or rejected
-      if ((inLonglist + inShortlist) > 0 && (inLonglist + inShortlist + inVideoInterview + inPanelInterview + rejected) === totalApps) {
+      // Hiring Manager Shortlisting: All apps have been longlisted/shortlisted or rejected (no apps in Application stage)
+      if (inApplication === 0 && (inLonglist + inShortlist + inVideoInterview + inPanelInterview + rejected) === totalApps) {
         return 'hm_shortlisting';
       }
     }
@@ -200,11 +200,10 @@ export default function ApplicationJobSelection() {
         const fourteenDaysAfterClosing = new Date(closingDate);
         fourteenDaysAfterClosing.setDate(closingDate.getDate() + 14);
         
-        // If within 14 days of closing and still has applications to review
-        if (now <= fourteenDaysAfterClosing && now > closingDate) {
-          // If there are still applications in "Application" status, show longlisting
+        // If within 14 days of closing and still has applications in "Application" status
+        if (now <= fourteenDaysAfterClosing && now > closingDate && totalApps > 0) {
           const inApplication = statuses.find(s => s.status === 'Application')?.count || 0;
-          if (inApplication > 0 || totalApps === 0) {
+          if (inApplication > 0) {
             return 'longlisting';
           }
         }
