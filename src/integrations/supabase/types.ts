@@ -703,27 +703,41 @@ export type Database = {
       }
       feedback_form_templates: {
         Row: {
+          auto_generated: boolean | null
           created_at: string
           id: string
+          job_id: string | null
           name: string
           sections: Json | null
           updated_at: string
         }
         Insert: {
+          auto_generated?: boolean | null
           created_at?: string
           id?: string
+          job_id?: string | null
           name: string
           sections?: Json | null
           updated_at?: string
         }
         Update: {
+          auto_generated?: boolean | null
           created_at?: string
           id?: string
+          job_id?: string | null
           name?: string
           sections?: Json | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "feedback_form_templates_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       job_email_alerts: {
         Row: {
@@ -790,6 +804,96 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      job_interview_question_contributors: {
+        Row: {
+          contributed_at: string | null
+          contribution_type: string | null
+          id: string
+          question_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          contributed_at?: string | null
+          contribution_type?: string | null
+          id?: string
+          question_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          contributed_at?: string | null
+          contribution_type?: string | null
+          id?: string
+          question_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_interview_question_contributors_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "job_interview_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_interview_question_contributors_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_interview_questions: {
+        Row: {
+          competency: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          job_id: string | null
+          order_index: number | null
+          question_category: string | null
+          question_text: string
+          updated_at: string | null
+        }
+        Insert: {
+          competency?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          job_id?: string | null
+          order_index?: number | null
+          question_category?: string | null
+          question_text: string
+          updated_at?: string | null
+        }
+        Update: {
+          competency?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          job_id?: string | null
+          order_index?: number | null
+          question_category?: string | null
+          question_text?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_interview_questions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_interview_questions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       job_requisitions: {
         Row: {
