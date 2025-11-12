@@ -116,7 +116,8 @@ export default function AdminApplications() {
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
-                   userRoles.includes('Hiring Manager') || userRoles.includes('Panel Member');
+                   userRoles.includes('Chief of HR') || userRoles.includes('Hiring Manager') || 
+                   userRoles.includes('Panel Member');
   
   useEffect(() => {
     if (hasAccess) {

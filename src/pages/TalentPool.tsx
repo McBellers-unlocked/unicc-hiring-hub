@@ -42,7 +42,7 @@ export default function TalentPool() {
   const [sortBy, setSortBy] = useState<string>("updated_desc");
 
   // Check if user has HR or Admin role
-  const hasAccess = userRoles.includes("Admin") || userRoles.includes("HR Assistant");
+  const hasAccess = userRoles.includes("Admin") || userRoles.includes("HR Assistant") || userRoles.includes("Chief of HR");
 
   if (!hasAccess) {
     return <Navigate to="/" replace />;

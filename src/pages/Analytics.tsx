@@ -14,7 +14,7 @@ export const Analytics: React.FC = () => {
   const [filters, setFilters] = useState<AnalyticsFilterState>({});
 
   // Check if user has access to analytics
-  const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant');
+  const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR');
 
   if (!hasAccess) {
     return <Navigate to="/" />;

@@ -140,7 +140,7 @@ export default function JobWizard() {
   });
 
   // Check access permissions
-  const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant');
+  const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR');
 
   // Load existing job data when editing or converting from requisition
   useEffect(() => {

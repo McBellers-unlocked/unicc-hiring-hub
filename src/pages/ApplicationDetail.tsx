@@ -103,9 +103,10 @@ export default function ApplicationDetail() {
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
-                   userRoles.includes('Hiring Manager') || userRoles.includes('Panel Member');
+                   userRoles.includes('Chief of HR') || userRoles.includes('Hiring Manager') || 
+                   userRoles.includes('Panel Member');
   
-  const canMoveToLonglist = userRoles.includes('Admin') || userRoles.includes('HR Assistant');
+  const canMoveToLonglist = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR');
 
   useEffect(() => {
     if (id && hasAccess) {

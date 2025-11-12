@@ -62,7 +62,7 @@ export default function AdminJobs() {
   const [closingFilter, setClosingFilter] = useState('all');
   
   // Check access permissions
-  const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant');
+  const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR');
 
   useEffect(() => {
     if (hasAccess) {

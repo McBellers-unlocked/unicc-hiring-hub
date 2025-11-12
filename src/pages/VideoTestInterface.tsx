@@ -40,7 +40,7 @@ export default function VideoTestInterface() {
   const [simulatingVideos, setSimulatingVideos] = useState(false);
 
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
-                   userRoles.includes('Hiring Manager');
+                   userRoles.includes('Chief of HR') || userRoles.includes('Hiring Manager');
 
   useEffect(() => {
     if (hasAccess) {
