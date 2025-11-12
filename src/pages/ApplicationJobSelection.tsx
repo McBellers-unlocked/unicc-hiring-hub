@@ -158,6 +158,17 @@ export default function ApplicationJobSelection() {
 
   // Determine the display status for a job
   const getJobDisplayStatus = (job: Job): JobDisplayStatus => {
+    // Debug logging for Digital Public Solutions Officer
+    if (job.title.includes('Digital Public Solutions')) {
+      console.log('Digital Public Solutions Officer job:', {
+        title: job.title,
+        status: job.status,
+        closing_date: job.closing_date,
+        application_count: job.application_count,
+        application_statuses: job.application_statuses
+      });
+    }
+    
     // Pipeline takes precedence if job has an active requisition
     if (job.requisition_status) {
       return 'pipeline';
