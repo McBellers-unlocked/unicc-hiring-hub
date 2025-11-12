@@ -41,14 +41,15 @@ export default function ChiefHRReview() {
 
   const isAdmin = userRoles.includes('Admin');
   const isHR = userRoles.includes('HR Assistant');
+  const isChiefHR = userRoles.includes('Chief of HR');
 
   useEffect(() => {
-    if (!isAdmin && !isHR) {
+    if (!isAdmin && !isHR && !isChiefHR) {
       navigate('/');
       return;
     }
     fetchRequisitions();
-  }, [isAdmin, isHR, navigate]);
+  }, [isAdmin, isHR, isChiefHR, navigate]);
 
   const fetchRequisitions = async () => {
     try {

@@ -28,6 +28,7 @@ export const Layout = ({ children }: LayoutProps) => {
   const isHiringManager = userRoles.includes('Hiring Manager');
   const isPanelMember = userRoles.includes('Panel Member');
   const isCandidate = userRoles.includes('Candidate');
+  const isChiefHR = userRoles.includes('Chief of HR');
 
   return (
     <div className="min-h-screen bg-background">
@@ -53,7 +54,7 @@ export const Layout = ({ children }: LayoutProps) => {
                     My Profile
                   </Link>
                   
-                  {(isAdmin || isHR || isHiringManager) && (
+                  {(isAdmin || isHR || isHiringManager || isChiefHR) && (
                     <DropdownMenu>
                       <DropdownMenuTrigger className="flex items-center hover:text-accent transition-colors py-2 focus:outline-none">
                         <Building className="w-4 h-4 mr-1" />
@@ -61,17 +62,27 @@ export const Layout = ({ children }: LayoutProps) => {
                         <ChevronDown className="w-3 h-3 ml-1" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="bg-popover border border-border shadow-lg">
-                        <DropdownMenuItem asChild>
-                          <Link to="/requisitions" className="flex items-center w-full">
-                            <FileText className="w-4 h-4 mr-2" />
-                            PD Pipeline
-                          </Link>
-                        </DropdownMenuItem>
+                        {(isHiringManager || isAdmin || isHR) && (
+                          <DropdownMenuItem asChild>
+                            <Link to="/requisitions" className="flex items-center w-full">
+                              <FileText className="w-4 h-4 mr-2" />
+                              PD Pipeline
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
                         {(isAdmin || isHR) && (
                           <DropdownMenuItem asChild>
                             <Link to="/admin/requisitions" className="flex items-center w-full">
                               <FileCheck className="w-4 h-4 mr-2" />
                               Manage PD Pipeline
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                        {(isAdmin || isHR || isChiefHR) && (
+                          <DropdownMenuItem asChild>
+                            <Link to="/admin/chief-hr-review" className="flex items-center w-full">
+                              <FileCheck className="w-4 h-4 mr-2" />
+                              Chief HR Review
                             </Link>
                           </DropdownMenuItem>
                         )}
