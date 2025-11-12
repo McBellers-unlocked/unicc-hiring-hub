@@ -305,11 +305,26 @@ export default function JobRequisitionForm() {
       setCurrentRequisition(data);
 
       if (data) {
+        // Debug logging
+        console.log('=== JobRequisitionForm Debug ===');
+        console.log('User roles:', userRoles);
+        console.log('Requisition data:', {
+          id: data.id,
+          status: data.status,
+          initial_request_submitted: data.initial_request_submitted,
+          initial_request_approved: data.initial_request_approved,
+          initial_request_approved_at: data.initial_request_approved_at,
+        });
+        
         // Check access control: Hiring managers need initial request approval
         const isHiringManager = userRoles.includes('Hiring Manager') && 
                                 !userRoles.includes('Admin') && 
                                 !userRoles.includes('HR Assistant') && 
                                 !userRoles.includes('Chief of HR');
+        
+        console.log('Is Hiring Manager (needs approval):', isHiringManager);
+        console.log('Initial request approved value:', data.initial_request_approved);
+        console.log('Should block access:', isHiringManager && !data.initial_request_approved);
         
         if (isHiringManager && !data.initial_request_approved) {
           toast({
