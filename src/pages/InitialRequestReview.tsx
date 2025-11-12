@@ -69,9 +69,9 @@ export default function InitialRequestReview() {
             name
           )
         `)
-        .eq('status', 'initial_request')
+        .eq('status', 'draft')
         .eq('initial_request_submitted', true)
-        .eq('initial_request_approved', false)
+        .or('initial_request_approved.is.null,initial_request_approved.eq.false')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
