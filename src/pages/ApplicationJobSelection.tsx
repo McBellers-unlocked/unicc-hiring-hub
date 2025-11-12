@@ -163,22 +163,30 @@ export default function ApplicationJobSelection() {
       return 'pipeline';
     }
     
-    // Check recruitment stage based on application statuses (takes precedence over everything except pipeline)
+    // Check recruitment stage based on application statuses (prioritize stage with most candidates)
     const statuses = job.application_statuses || [];
     const totalApps = job.application_count || 0;
     
     if (totalApps > 0 && statuses.length > 0) {
+      const inApplication = statuses.find(s => s.status === 'Application')?.count || 0;
+      const inLonglist = statuses.find(s => s.status === 'Longlist')?.count || 0;
+      const inShortlist = statuses.find(s => s.status === 'Shortlist')?.count || 0;
       const inVideoInterview = statuses.find(s => s.status === 'Video Interview')?.count || 0;
       const inPanelInterview = statuses.find(s => s.status === 'Panel Interview')?.count || 0;
       
-      // Panel Interview Stage: If any apps are in panel interview
-      if (inPanelInterview > 0) {
-        return 'panel_interview';
-      }
+      // Find the stage with the most candidates (excluding Application and Rejected)
+      const stageCounts = [
+        { stage: 'panel_interview' as const, count: inPanelInterview },
+        { stage: 'video_interview' as const, count: inVideoInterview },
+        { stage: 'hm_shortlisting' as const, count: inLonglist + inShortlist },
+      ];
       
-      // Video Interview Stage: If any apps are in video interview
-      if (inVideoInterview > 0) {
-        return 'video_interview';
+      // Sort by count descending
+      stageCounts.sort((a, b) => b.count - a.count);
+      
+      // Return the stage with the most candidates (if any)
+      if (stageCounts[0].count > 0) {
+        return stageCounts[0].stage;
       }
     }
     
@@ -207,19 +215,8 @@ export default function ApplicationJobSelection() {
       return 'active';
     }
     
-    // For CLOSED jobs not in interview stages, determine other recruitment stages
+    // For CLOSED jobs not in interview stages, check longlisting period
     if (job.status === 'closed' || (job.closing_date && new Date(job.closing_date) < new Date())) {
-      if (totalApps > 0 && statuses.length > 0) {
-        const inApplication = statuses.find(s => s.status === 'Application')?.count || 0;
-        const inLonglist = statuses.find(s => s.status === 'Longlist')?.count || 0;
-        const inShortlist = statuses.find(s => s.status === 'Shortlist')?.count || 0;
-        
-        // Hiring Manager Shortlisting: No apps in "Application" status AND there are longlisted/shortlisted apps
-        if (inApplication === 0 && (inLonglist + inShortlist) > 0) {
-          return 'hm_shortlisting';
-        }
-      }
-      
       // Check if within 14-day longlisting period
       if (job.closing_date) {
         const closingDate = new Date(job.closing_date);
