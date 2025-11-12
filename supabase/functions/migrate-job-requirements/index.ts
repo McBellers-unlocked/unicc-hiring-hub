@@ -90,7 +90,21 @@ Extract each bullet point as a separate item. For criteria, the title should be 
     });
 
     const openaiData = await openaiResponse.json();
-    const parsed = JSON.parse(openaiData.choices[0].message.content);
+    let content = openaiData.choices[0].message.content;
+    
+    // Strip markdown code block formatting if present
+    content = content.trim();
+    if (content.startsWith('```json')) {
+      content = content.slice(7); // Remove ```json
+    }
+    if (content.startsWith('```')) {
+      content = content.slice(3); // Remove ```
+    }
+    if (content.endsWith('```')) {
+      content = content.slice(0, -3); // Remove trailing ```
+    }
+    
+    const parsed = JSON.parse(content.trim());
 
     // Insert Essential Criteria
     if (parsed.essentialCriteria?.length > 0) {
