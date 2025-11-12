@@ -469,6 +469,7 @@ export default function ChiefOfDivisionView() {
                           </div>
                         )}
                        </div>
+                      )}
 
                        <div className="flex gap-2 mt-4">
                          <Button
@@ -492,9 +493,9 @@ export default function ChiefOfDivisionView() {
                            View Details
                          </Button>
                        </div>
-                       </div>
-                     )}
-                   </CardContent>
+                     </div>
+                   )}
+                 </CardContent>
                 </Card>
               ))
             )}
