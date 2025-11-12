@@ -176,13 +176,13 @@ export default function ApplicationJobSelection() {
       const inPanelInterview = statuses.find(s => s.status === 'Panel Interview')?.count || 0;
       const rejected = statuses.find(s => s.status === 'Rejected')?.count || 0;
       
-      // Panel Interview Stage: All apps are in panel interview or beyond/rejected
-      if (inPanelInterview > 0 && (inPanelInterview + rejected) === totalApps) {
+      // Panel Interview Stage: At least one app in panel interview
+      if (inPanelInterview > 0) {
         return 'panel_interview';
       }
       
-      // Video Interview Stage: All apps are in video interview or beyond/rejected
-      if (inVideoInterview > 0 && (inVideoInterview + inPanelInterview + rejected) === totalApps) {
+      // Video Interview Stage: At least one app in video interview
+      if (inVideoInterview > 0) {
         return 'video_interview';
       }
       
