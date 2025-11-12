@@ -793,6 +793,7 @@ export type Database = {
       }
       job_requisitions: {
         Row: {
+          brief_outline: string | null
           chief_hr_comments: string | null
           chief_hr_reviewed: boolean | null
           chief_hr_reviewed_at: string | null
@@ -802,6 +803,7 @@ export type Database = {
           chief_of_division_approved_by: string | null
           chief_of_division_sent_at: string | null
           comments: Json | null
+          consultant_duration: string | null
           converted_to_job_id: string | null
           core_competencies: Json | null
           created_at: string
@@ -825,6 +827,8 @@ export type Database = {
           finance_controller_approval: boolean | null
           finance_controller_approved_at: string | null
           finance_controller_approved_by: string | null
+          funding_comments: string | null
+          funding_status: string | null
           global_competencies: Json | null
           grade: string | null
           hiring_manager_changes: Json | null
@@ -844,6 +848,10 @@ export type Database = {
           hr_reviewed_by: string | null
           hr_sent_at: string | null
           id: string
+          initial_request_approved: boolean | null
+          initial_request_approved_at: string | null
+          initial_request_approved_by: string | null
+          initial_request_submitted: boolean | null
           language_requirements: Json | null
           leadership_competencies: Json | null
           main_duties_responsibilities: string | null
@@ -862,6 +870,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          brief_outline?: string | null
           chief_hr_comments?: string | null
           chief_hr_reviewed?: boolean | null
           chief_hr_reviewed_at?: string | null
@@ -871,6 +880,7 @@ export type Database = {
           chief_of_division_approved_by?: string | null
           chief_of_division_sent_at?: string | null
           comments?: Json | null
+          consultant_duration?: string | null
           converted_to_job_id?: string | null
           core_competencies?: Json | null
           created_at?: string
@@ -894,6 +904,8 @@ export type Database = {
           finance_controller_approval?: boolean | null
           finance_controller_approved_at?: string | null
           finance_controller_approved_by?: string | null
+          funding_comments?: string | null
+          funding_status?: string | null
           global_competencies?: Json | null
           grade?: string | null
           hiring_manager_changes?: Json | null
@@ -913,6 +925,10 @@ export type Database = {
           hr_reviewed_by?: string | null
           hr_sent_at?: string | null
           id?: string
+          initial_request_approved?: boolean | null
+          initial_request_approved_at?: string | null
+          initial_request_approved_by?: string | null
+          initial_request_submitted?: boolean | null
           language_requirements?: Json | null
           leadership_competencies?: Json | null
           main_duties_responsibilities?: string | null
@@ -931,6 +947,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          brief_outline?: string | null
           chief_hr_comments?: string | null
           chief_hr_reviewed?: boolean | null
           chief_hr_reviewed_at?: string | null
@@ -940,6 +957,7 @@ export type Database = {
           chief_of_division_approved_by?: string | null
           chief_of_division_sent_at?: string | null
           comments?: Json | null
+          consultant_duration?: string | null
           converted_to_job_id?: string | null
           core_competencies?: Json | null
           created_at?: string
@@ -963,6 +981,8 @@ export type Database = {
           finance_controller_approval?: boolean | null
           finance_controller_approved_at?: string | null
           finance_controller_approved_by?: string | null
+          funding_comments?: string | null
+          funding_status?: string | null
           global_competencies?: Json | null
           grade?: string | null
           hiring_manager_changes?: Json | null
@@ -982,6 +1002,10 @@ export type Database = {
           hr_reviewed_by?: string | null
           hr_sent_at?: string | null
           id?: string
+          initial_request_approved?: boolean | null
+          initial_request_approved_at?: string | null
+          initial_request_approved_by?: string | null
+          initial_request_submitted?: boolean | null
           language_requirements?: Json | null
           leadership_competencies?: Json | null
           main_duties_responsibilities?: string | null
@@ -1003,6 +1027,13 @@ export type Database = {
           {
             foreignKeyName: "job_requisitions_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_requisitions_initial_request_approved_by_fkey"
+            columns: ["initial_request_approved_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]

@@ -41,6 +41,8 @@ import VideoEmailTemplateSettings from "./pages/VideoEmailTemplateSettings";
 import TalentPool from "./pages/TalentPool";
 import ApplicationJobSelection from "./pages/ApplicationJobSelection";
 import NotFound from "./pages/NotFound";
+import InitialRequestForm from "./pages/InitialRequestForm";
+import InitialRequestReview from "./pages/InitialRequestReview";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +79,9 @@ const App = () => (
             <Route path="/requisitions" element={<JobRequisitions />} />
             <Route path="/admin/requisitions" element={<AdminRequisitions />} />
             <Route path="/admin/chief-hr-review" element={<ChiefHRReview />} />
+            <Route path="/admin/initial-requests" element={<InitialRequestReview />} />
+            <Route path="/requisitions/initial/new" element={<InitialRequestForm />} />
+            <Route path="/requisitions/initial/:id" element={<InitialRequestForm />} />
             <Route path="/requisitions/new" element={<JobRequisitionForm />} />
             <Route path="/requisitions/:id" element={<JobRequisitionDetail />} />
             <Route path="/requisitions/:id/edit" element={<JobRequisitionForm />} />

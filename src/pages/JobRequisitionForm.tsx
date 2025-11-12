@@ -305,6 +305,22 @@ export default function JobRequisitionForm() {
       setCurrentRequisition(data);
 
       if (data) {
+        // Check access control: Hiring managers need initial request approval
+        const isHiringManager = userRoles.includes('Hiring Manager') && 
+                                !userRoles.includes('Admin') && 
+                                !userRoles.includes('HR Assistant') && 
+                                !userRoles.includes('Chief of HR');
+        
+        if (isHiringManager && !data.initial_request_approved) {
+          toast({
+            title: "Access Denied",
+            description: "Initial request must be approved before creating full position description",
+            variant: "destructive",
+          });
+          navigate('/requisitions');
+          return;
+        }
+
         // Parse existing unit_section_division to set division and unit
         const existingUnit = data.unit_section_division || "";
         const divisionKey = Object.keys(DIVISION_UNITS).find(key => 
@@ -598,7 +614,7 @@ export default function JobRequisitionForm() {
     navigate(`/admin/jobs/new?from_requisition=${id}`);
   };
 
-  if (!user || !userRoles.some(role => ['Admin', 'HR Assistant', 'Hiring Manager'].includes(role))) {
+  if (!user || !userRoles.some(role => ['Admin', 'HR Assistant', 'Chief of HR', 'Hiring Manager'].includes(role))) {
     return (
       <div className="container mx-auto p-6">
         <Card>
@@ -606,6 +622,32 @@ export default function JobRequisitionForm() {
             <div className="text-center">
               <p className="text-lg font-semibold">Access Denied</p>
               <p className="text-muted-foreground">You don't have permission to create position descriptions.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Check if hiring manager trying to create new PD without approval
+  const isHiringManagerOnly = userRoles.includes('Hiring Manager') && 
+                               !userRoles.includes('Admin') && 
+                               !userRoles.includes('HR Assistant') && 
+                               !userRoles.includes('Chief of HR');
+  
+  if (isHiringManagerOnly && (!id || id === 'new')) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <p className="text-lg font-semibold mb-2">Initial Request Required</p>
+              <p className="text-muted-foreground mb-4">
+                You need to submit an initial request first and get approval before creating a full position description.
+              </p>
+              <Button onClick={() => navigate('/requisitions/initial/new')}>
+                Create Initial Request
+              </Button>
             </div>
           </CardContent>
         </Card>

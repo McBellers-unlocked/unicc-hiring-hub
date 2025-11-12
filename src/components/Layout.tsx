@@ -65,14 +65,22 @@ export const Layout = ({ children }: LayoutProps) => {
                         <ChevronDown className="w-3 h-3 ml-1" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="bg-popover border border-border shadow-lg">
-                        {(isHiringManager || isAdmin || isHR) && (
-                          <DropdownMenuItem asChild>
-                            <Link to="/requisitions" className="flex items-center w-full">
-                              <FileText className="w-4 h-4 mr-2" />
-                              PD Pipeline
-                            </Link>
-                          </DropdownMenuItem>
-                        )}
+                  {(isHiringManager || isAdmin || isHR) && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/requisitions" className="flex items-center w-full">
+                        <FileText className="w-4 h-4 mr-2" />
+                        PD Pipeline
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {hasAdminAccess && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/initial-requests" className="flex items-center w-full">
+                        <FileCheck className="w-4 h-4 mr-2" />
+                        Initial Requests
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   {hasAdminAccess && (
                     <DropdownMenuItem asChild>
                       <Link to="/admin/requisitions" className="flex items-center w-full">

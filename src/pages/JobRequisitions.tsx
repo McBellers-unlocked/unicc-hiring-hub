@@ -88,6 +88,8 @@ export default function JobRequisitions() {
     }
     
     switch (requisition.status) {
+      case 'initial_request':
+        return <Badge variant="default" className="bg-yellow-500">Initial Request</Badge>;
       case 'draft':
         return <Badge variant="secondary">Draft</Badge>;
       case 'hr_review':
@@ -224,12 +226,30 @@ export default function JobRequisitions() {
           <h1 className="text-3xl font-bold">PD Pipeline</h1>
           <p className="text-muted-foreground">Manage position descriptions and approvals</p>
         </div>
-        {userRoles.some(role => ['Admin', 'Hiring Manager'].includes(role)) && (
-          <Button onClick={() => navigate('/requisitions/new')} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            New Position Description
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {(userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR')) && (
+            <Button 
+              onClick={() => navigate('/admin/initial-requests')} 
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Eye className="h-4 w-4" />
+              Review Initial Requests
+            </Button>
+          )}
+          {userRoles.some(role => ['Admin', 'HR Assistant', 'Chief of HR'].includes(role)) && (
+            <Button onClick={() => navigate('/requisitions/new')} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              New Position Description
+            </Button>
+          )}
+          {userRoles.includes('Hiring Manager') && !userRoles.some(role => ['Admin', 'HR Assistant', 'Chief of HR'].includes(role)) && (
+            <Button onClick={() => navigate('/requisitions/initial/new')} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              New Initial Request
+            </Button>
+          )}
+        </div>
       </div>
 
       {(userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
