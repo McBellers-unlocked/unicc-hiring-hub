@@ -13,8 +13,13 @@ interface Job {
   title: string;
   status: string;
   org_unit: string | null;
+  closing_date: string | null;
+  timezone: string;
   application_count?: number;
+  requisition_status?: string | null;
 }
+
+type JobDisplayStatus = 'active' | 'closing' | 'closed' | 'pipeline';
 
 export default function ApplicationJobSelection() {
   const { userRoles } = useAuth();
@@ -38,7 +43,7 @@ export default function ApplicationJobSelection() {
       setLoading(true);
       let query = supabase
         .from('jobs')
-        .select('id, title, status, org_unit')
+        .select('id, title, status, org_unit, closing_date, timezone')
         .order('updated_at', { ascending: false });
 
       // For hiring managers, check if they have job-specific assignments
@@ -64,6 +69,12 @@ export default function ApplicationJobSelection() {
       const { data, error } = await query;
       if (error) throw error;
 
+      // Fetch requisitions to identify pipeline jobs
+      const { data: requisitions } = await supabase
+        .from('job_requisitions')
+        .select('id, converted_to_job_id, status, initial_request_approved')
+        .not('converted_to_job_id', 'is', null);
+
       // Fetch application counts for each job
       if (data) {
         const jobsWithCounts = await Promise.all(
@@ -72,7 +83,18 @@ export default function ApplicationJobSelection() {
               .from('applications')
               .select('*', { count: 'exact', head: true })
               .eq('job_id', job.id);
-            return { ...job, application_count: count || 0 };
+            
+            // Find if this job has an associated requisition in pipeline
+            const requisition = requisitions?.find(req => req.converted_to_job_id === job.id);
+            const isPipeline = requisition && 
+                              requisition.initial_request_approved && 
+                              !['draft', 'initial_request_draft', 'initial_request_submitted'].includes(requisition.status || '');
+            
+            return { 
+              ...job, 
+              application_count: count || 0,
+              requisition_status: isPipeline ? requisition.status : null
+            };
           })
         );
         setJobs(jobsWithCounts);
@@ -97,22 +119,101 @@ export default function ApplicationJobSelection() {
     );
   }
 
-  const filteredJobs = jobs.filter(job =>
-    job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (job.org_unit?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  );
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'published':
-        return 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20';
-      case 'draft':
-        return 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20';
-      case 'closed':
-        return 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20';
-      default:
-        return 'bg-muted text-muted-foreground';
+  // Determine the display status for a job
+  const getJobDisplayStatus = (job: Job): JobDisplayStatus => {
+    // Pipeline takes precedence if job has an active requisition
+    if (job.requisition_status) {
+      return 'pipeline';
     }
+    
+    // Check if closed
+    if (job.status === 'closed') {
+      return 'closed';
+    }
+    
+    // Check if closing within 3 days
+    if (job.status === 'active' && job.closing_date) {
+      const closingDate = new Date(job.closing_date);
+      const now = new Date();
+      const threeDaysFromNow = new Date();
+      threeDaysFromNow.setDate(now.getDate() + 3);
+      
+      if (closingDate <= threeDaysFromNow && closingDate > now) {
+        return 'closing';
+      }
+    }
+    
+    // Default to active for active jobs
+    if (job.status === 'active') {
+      return 'active';
+    }
+    
+    // For draft/archived, return closed
+    return 'closed';
+  };
+
+  // Filter and sort jobs
+  const filteredJobs = jobs
+    .filter(job =>
+      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (job.org_unit?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      // Sort by display status priority: Active, Closing, Closed, Pipeline
+      const statusOrder: Record<JobDisplayStatus, number> = {
+        active: 1,
+        closing: 2,
+        closed: 3,
+        pipeline: 4
+      };
+      
+      const aStatus = getJobDisplayStatus(a);
+      const bStatus = getJobDisplayStatus(b);
+      
+      const statusDiff = statusOrder[aStatus] - statusOrder[bStatus];
+      if (statusDiff !== 0) return statusDiff;
+      
+      // Within same status, sort by application count (descending)
+      return (b.application_count || 0) - (a.application_count || 0);
+    });
+
+  const getStatusBadge = (job: Job) => {
+    const displayStatus = getJobDisplayStatus(job);
+    
+    const badgeConfig = {
+      active: { 
+        label: 'Active', 
+        className: 'bg-green-500 hover:bg-green-600 text-white'
+      },
+      closing: { 
+        label: 'Closing', 
+        className: 'bg-amber-500 hover:bg-amber-600 text-white'
+      },
+      closed: { 
+        label: 'Closed', 
+        className: 'bg-red-500 hover:bg-red-600 text-white'
+      },
+      pipeline: { 
+        label: 'Pipeline', 
+        className: 'bg-purple-400 hover:bg-purple-500 text-white'
+      }
+    } as const;
+
+    const config = badgeConfig[displayStatus];
+    return config.className;
+  };
+
+  const getStatusLabel = (job: Job) => {
+    const displayStatus = getJobDisplayStatus(job);
+    
+    const labels = {
+      active: 'Active',
+      closing: 'Closing',
+      closed: 'Closed',
+      pipeline: 'Pipeline'
+    } as const;
+
+    return labels[displayStatus];
   };
 
   return (
@@ -161,8 +262,8 @@ export default function ApplicationJobSelection() {
                 <CardHeader>
                   <div className="flex items-start justify-between mb-2">
                     <Briefcase className="w-5 h-5 text-primary" />
-                    <Badge className={getStatusColor(job.status)}>
-                      {job.status}
+                    <Badge className={getStatusBadge(job)}>
+                      {getStatusLabel(job)}
                     </Badge>
                   </div>
                   <CardTitle className="text-lg line-clamp-2">{job.title}</CardTitle>
