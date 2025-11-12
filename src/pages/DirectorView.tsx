@@ -105,7 +105,22 @@ export default function DirectorView() {
                       </div>
                       <div>
                         <p className="text-sm font-medium">Duty Station</p>
-                        <p className="text-sm text-muted-foreground">{requisition.duty_station}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {(() => {
+                            try {
+                              if (typeof requisition.duty_station === 'string') {
+                                const parsed = JSON.parse(requisition.duty_station);
+                                return Array.isArray(parsed) ? parsed.join(', ') : String(parsed);
+                              } else if (Array.isArray(requisition.duty_station)) {
+                                return (requisition.duty_station as string[]).join(', ');
+                              } else {
+                                return String(requisition.duty_station || 'Not specified');
+                              }
+                            } catch {
+                              return String(requisition.duty_station || 'Not specified');
+                            }
+                          })()}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm font-medium">Created By</p>

@@ -156,7 +156,22 @@ export default function ChiefHRReview() {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <span className="text-muted-foreground">Duty Station:</span>
-                        <p className="font-medium">{requisition.duty_station}</p>
+                        <p className="font-medium">
+                          {(() => {
+                            try {
+                              if (typeof requisition.duty_station === 'string') {
+                                const parsed = JSON.parse(requisition.duty_station);
+                                return Array.isArray(parsed) ? parsed.join(', ') : String(parsed);
+                              } else if (Array.isArray(requisition.duty_station)) {
+                                return (requisition.duty_station as string[]).join(', ');
+                              } else {
+                                return String(requisition.duty_station || 'Not specified');
+                              }
+                            } catch {
+                              return String(requisition.duty_station || 'Not specified');
+                            }
+                          })()}
+                        </p>
                       </div>
                       {requisition.hr_reviewed_at && (
                         <div>
