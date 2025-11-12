@@ -1288,7 +1288,7 @@ export default function AdminApplications() {
       <div className="container mx-auto px-4 py-8">
         {selectedJobId && (
           <Button
-            onClick={() => navigate('/applications/manage')}
+            onClick={() => navigate('/applications')}
             variant="outline"
             className="mb-4 flex items-center gap-2"
           >
@@ -1660,7 +1660,7 @@ export default function AdminApplications() {
 
         {selectedJobId && (
           <Button
-            onClick={() => navigate('/applications/manage')}
+            onClick={() => navigate('/applications')}
             variant="outline"
             className="mt-6 flex items-center gap-2"
           >
