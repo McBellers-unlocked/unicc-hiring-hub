@@ -23,6 +23,84 @@ const LOCATIONS = [
   'Remote',
 ];
 
+// Organizational structure
+const DIVISIONS = {
+  "CS": "Cybersecurity division (CS)",
+  "DD": "Digital Delivery division (DD)", 
+  "DS": "Digital Solutions Centre (DS)",
+  "DO": "Director (DO)",
+  "MS": "Management and Strategy (MS)",
+  "OP": "Operations (OP)"
+};
+
+const DIVISION_UNITS: Record<string, string[]> = {
+  "CS": [
+    "CISO Section (CISO)",
+    "Investigative Support Unit (CSI)", 
+    "Cybersecurity Solutions & Strategy Unit (CSS)",
+    "Cybersecurity Assurance & Architecture Section (CSA)",
+    "Cybersecurity Engineering Unit (CSE)",
+    "Cybersecurity Networking Unit (CSN)",
+    "Cybersecurity Operations Section (CSO)",
+    "Organizational Resilience Unit (CSR)"
+  ],
+  "DD": [
+    "Data and Artificial Intelligence Section (DDA)",
+    "Digital Development Center Section (DDC)",
+    "Digital Business Solutions Section (DDD)",
+    "Artificial Intelligence and Machine Learning Unit (DDAI)",
+    "Data Management Unit (DDAM)",
+    "Enterprise Service Management Unit (DDES)",
+    "Enterprise Solutions Section (DDE)",
+    "Hyperautomation Solutions Unit (DDHA)",
+    "MS Dynamics Unit (DDMS)",
+    "Projects & Programmes Section (DDP)",
+    "Programme Portfolio Unit (DDPG)",
+    "Project Portfolio Unit (DDPM)",
+    "Governance PMO Unit (DDPO)"
+  ],
+  "DS": [
+    "Digital Products Unit (DSDP)",
+    "Business Solutions Unit (DSB)",
+    "Digital Customer Services Unit (DSCS)",
+    "Unite Digital Workspace Services Unit (DSDW)",
+    "Learning Services Unit (DSL)",
+    "Digital Public Solutions Unit (DSPS)"
+  ],
+  "DO": [
+    "UNICC Directorate (DOD)",
+    "External Relations and Strategic Partnerships Section (DOE)",
+    "Digital ID Programme (DOP)",
+    "Business Relationship Management Section (DBR)"
+  ],
+  "MS": [
+    "Policy (Legal) Unit (MSL)",
+    "Business Control Section (MSB)",
+    "Process and Change Unit (MSBP)",
+    "Finance and Accounting Section (MSF)",
+    "GRC & QA Unit (MSG)",
+    "Human Resources Section (MSH)",
+    "Talent Unit (MSHT)",
+    "Procurement Section (MSP)"
+  ],
+  "OP": [
+    "Infrastructure and Platform Operations Unit (OPBO)",
+    "Customer IT Resilience Team (OPBR)",
+    "Data Center Support Unit (OPBS)",
+    "Customer Services Centre (OPC)",
+    "Service Desk Unit (OPCS)",
+    "Cloud Services Section (OPD)",
+    "Cloud Operations and Platform Service Unit (OPDA)",
+    "Digital Workplace Service Unit (OPDM)",
+    "Infrastructure and Operations Business Section (OPM)",
+    "Service Excellence Unit (OPMX)",
+    "On-premise Services (OPO)",
+    "Platform Architecture and Service Automation Unit (OPOA)",
+    "Oracle Unit (OPOU)",
+    "SAP Unit (OPOS)"
+  ]
+};
+
 const FUNDING_OPTIONS = [
   'This request is totally funded by a current agreement with client',
   'This request is critical for service continuity (non-chargeable)',
@@ -38,6 +116,8 @@ export default function InitialRequestForm() {
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [selectedDivision, setSelectedDivision] = useState('');
+  const [selectedUnit, setSelectedUnit] = useState('');
   
   const [formData, setFormData] = useState({
     position_title: '',
@@ -85,6 +165,18 @@ export default function InitialRequestForm() {
           funding_status: data.funding_status || '',
           funding_comments: data.funding_comments || '',
         });
+
+        // Parse existing unit_section_division to set division/unit dropdowns
+        if (data.unit_section_division) {
+          // Try to find which division this unit belongs to
+          for (const [divKey, divName] of Object.entries(DIVISIONS)) {
+            if (data.unit_section_division === divName || DIVISION_UNITS[divKey].includes(data.unit_section_division)) {
+              setSelectedDivision(divKey);
+              setSelectedUnit(data.unit_section_division);
+              break;
+            }
+          }
+        }
       }
     } catch (error: any) {
       toast({
@@ -399,14 +491,64 @@ export default function InitialRequestForm() {
             )}
 
             {/* Unit/Section/Division */}
-            <div className="space-y-2">
-              <Label htmlFor="unit">Unit/Section/Division</Label>
-              <Input
-                id="unit"
-                value={formData.unit_section_division}
-                onChange={(e) => setFormData(prev => ({ ...prev, unit_section_division: e.target.value }))}
-                placeholder="e.g., ICT Division"
-              />
+            <div className="space-y-3">
+              <Label>Unit/Section/Division</Label>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="division" className="text-sm text-muted-foreground">Division</Label>
+                  <Select 
+                    value={selectedDivision} 
+                    onValueChange={(value) => {
+                      setSelectedDivision(value);
+                      setSelectedUnit("");
+                      setFormData(prev => ({ ...prev, unit_section_division: "" }));
+                    }}
+                  >
+                    <SelectTrigger id="division">
+                      <SelectValue placeholder="Select division..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background">
+                      {Object.entries(DIVISIONS).map(([key, name]) => (
+                        <SelectItem key={key} value={key}>
+                          {name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {selectedDivision && (
+                  <div>
+                    <Label htmlFor="unit-section" className="text-sm text-muted-foreground">Unit/Section</Label>
+                    <Select 
+                      value={selectedUnit} 
+                      onValueChange={(value) => {
+                        setSelectedUnit(value);
+                        setFormData(prev => ({ ...prev, unit_section_division: value }));
+                      }}
+                    >
+                      <SelectTrigger id="unit-section">
+                        <SelectValue placeholder="Select unit/section..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background">
+                        {/* Main Division Option */}
+                        <SelectItem key={selectedDivision} value={DIVISIONS[selectedDivision]}>
+                          {DIVISIONS[selectedDivision]} (Main Division)
+                        </SelectItem>
+                        {/* Individual Units/Sections */}
+                        {DIVISION_UNITS[selectedDivision].map((unit) => (
+                          <SelectItem key={unit} value={unit}>
+                            {unit}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Choose the division first, then select the specific unit/section within that division.
+              </p>
             </div>
 
             {/* Location */}
