@@ -15,12 +15,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { ArrowLeft, Save, Send } from 'lucide-react';
 
 const LOCATIONS = [
-  'Valencia, Spain',
-  'Brindisi, Italy',
-  'New York, USA',
-  'Geneva, Switzerland',
-  'Rome, Italy',
-  'Copenhagen, Denmark',
+  'Valencia',
+  'Brindisi',
+  'New York',
+  'Geneva',
+  'Rome',
 ];
 
 const FUNDING_OPTIONS = [
