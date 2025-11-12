@@ -202,7 +202,7 @@ export default function InitialRequestForm() {
         funding_status: formData.funding_status,
         funding_comments: formData.funding_comments || null,
         initial_request_submitted: submit,
-        status: 'draft',
+        status: submit ? 'initial_request_submitted' : 'initial_request_draft',
         updated_at: new Date().toISOString(),
       };
 
@@ -229,7 +229,7 @@ export default function InitialRequestForm() {
       toast({
         title: submit ? "Initial Request Submitted" : "Draft Saved",
         description: submit 
-          ? "Your initial request has been submitted for review by HR/Finance"
+          ? "Your initial request has been submitted for Chief of Division review"
           : "Your draft has been saved successfully",
       });
 
