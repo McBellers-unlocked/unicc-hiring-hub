@@ -71,10 +71,9 @@ export default function InitialRequestReview() {
             name
           )
         `)
-        .eq('status', 'draft')
-        .eq('initial_request_submitted', true)
+        .in('status', ['initial_request_submitted', 'initial_request_chief_review'])
         .or('initial_request_approved.is.null,initial_request_approved.eq.false')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false});
 
       if (error) throw error;
 
@@ -124,7 +123,7 @@ export default function InitialRequestReview() {
             initial_request_approved: true,
             initial_request_approved_by: user?.id,
             initial_request_approved_at: new Date().toISOString(),
-            status: 'draft',
+            status: 'initial_request_approved',
           })
           .eq('id', selectedRequest.id);
 
@@ -139,8 +138,9 @@ export default function InitialRequestReview() {
         const { error } = await supabase
           .from('job_requisitions')
           .update({
-            status: 'draft',
+            status: 'initial_request_rejected',
             initial_request_submitted: false,
+            initial_request_approved: false,
             comments: JSON.stringify([
               {
                 user_id: user?.id,

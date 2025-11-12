@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ChiefHRReviewDialog } from "@/components/ChiefHRReviewDialog";
+import { RequisitionWorkflowTimeline } from "@/components/RequisitionWorkflowTimeline";
 
 interface JobRequisition {
   id: string;
@@ -220,12 +221,24 @@ export default function AdminRequisitions() {
     }
     
     switch (requisition.status) {
+      // Initial Request stages
+      case 'initial_request_draft':
+        return { label: 'Initial Request Draft', color: 'secondary', icon: Clock };
+      case 'initial_request_submitted':
+      case 'initial_request_chief_review':
+        return { label: 'Initial Request - Chief Review', color: 'warning', icon: AlertCircle };
+      case 'initial_request_approved':
+        return { label: 'Initial Request Approved', color: 'success', icon: CheckCircle2 };
+      case 'initial_request_rejected':
+        return { label: 'Initial Request Rejected', color: 'destructive', icon: XCircle };
+      // Full PD stages
+      case 'pd_draft':
       case 'draft':
-        return { label: 'Draft', color: 'secondary', icon: Clock };
+        return { label: 'PD Draft', color: 'secondary', icon: Clock };
+      case 'pd_submitted':
+        return { label: 'PD Submitted', color: 'info', icon: Clock };
       case 'hr_review':
         return { label: 'HR Review', color: 'warning', icon: AlertCircle };
-      case 'hr_amendments':
-        return { label: 'HR Amendments', color: 'destructive', icon: XCircle };
       case 'hiring_manager_review':
         if (requisition.hiring_manager_confirmed_hr_changes) {
           return { label: 'Manager Confirmed', color: 'success', icon: CheckCircle2 };
@@ -233,6 +246,7 @@ export default function AdminRequisitions() {
           return { label: 'Manager Review', color: 'warning', icon: Clock };
         }
       case 'chief_division_review':
+      case 'chief_of_division_review':
         return { label: 'Chief Review', color: 'info', icon: Clock };
       case 'director_review':
         return { label: 'Director Review', color: 'info', icon: Clock };
@@ -255,81 +269,12 @@ export default function AdminRequisitions() {
     }
   };
 
-  const ApprovalTimeline = ({ requisition }: { requisition: JobRequisition }) => {
-    const stages = [
-      {
-        key: 'submission',
-        label: 'Submission',
-        isCompleted: true,
-        completedAt: requisition.created_at
-      },
-      {
-        key: 'hr_review',
-        label: 'HR Review',
-        isCompleted: requisition.hr_reviewed,
-        completedAt: requisition.hr_reviewed_at
-      },
-      {
-        key: 'hiring_manager',
-        label: 'Manager Approval',
-        isCompleted: requisition.hiring_manager_confirmed_hr_changes,
-        completedAt: requisition.hiring_manager_confirmed_at
-      },
-      {
-        key: 'chief_approval',
-        label: 'Chief Approval',
-        isCompleted: requisition.chief_of_division_approval,
-        completedAt: requisition.chief_of_division_approved_at
-      },
-      {
-        key: 'director_approval',
-        label: 'Director Approval',
-        isCompleted: requisition.director_approval,
-        completedAt: requisition.director_approved_at
-      }
-    ];
-
-    return (
-      <div className="flex items-center justify-between py-3 px-4 bg-muted/30 rounded-lg">
-        {stages.map((stage, index) => (
-          <div key={stage.key} className="flex items-center">
-            <div className="flex flex-col items-center">
-              <div className={`
-                w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors
-                ${stage.isCompleted 
-                  ? 'bg-green-500 border-green-500 text-white' 
-                  : 'bg-background border-muted-foreground text-muted-foreground'
-                }
-              `}>
-                {stage.isCompleted ? (
-                  <CheckCircle2 className="h-4 w-4" />
-                ) : (
-                  <Clock className="h-4 w-4" />
-                )}
-              </div>
-              <span className="text-xs mt-1 text-center max-w-16 leading-tight">
-                {stage.label}
-              </span>
-              {stage.isCompleted && stage.completedAt && (
-                <span className="text-xs text-muted-foreground mt-1">
-                  {new Date(stage.completedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                </span>
-              )}
-            </div>
-            {index < stages.length - 1 && (
-              <div className={`
-                w-12 h-0.5 mx-2 transition-colors
-                ${stage.isCompleted ? 'bg-green-500' : 'bg-muted-foreground/30'}
-              `} />
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   const filterRequisitions = (status: string) => {
     switch (status) {
+      case 'initial-requests':
+        return requisitions.filter(r => 
+          r.status.includes('initial_request')
+        );
       case 'pending-hr':
         return requisitions.filter(r => 
           r.status === 'hr_review' && r.hr_internal_status === 'pending_initial_review'
@@ -348,7 +293,7 @@ export default function AdminRequisitions() {
         return requisitions.filter(r => r.status === 'hiring_manager_review');
       case 'in-progress':
         return requisitions.filter(r => 
-          ['chief_division_review', 'director_review'].includes(r.status)
+          ['chief_division_review', 'chief_of_division_review', 'director_review'].includes(r.status)
         );
       case 'completed':
         return requisitions.filter(r => ['approved', 'rejected'].includes(r.status) || r.converted_to_job_id);
@@ -382,6 +327,12 @@ export default function AdminRequisitions() {
         <Tabs defaultValue="all" className="space-y-6">
           <TabsList>
             <TabsTrigger value="all">All Position Descriptions</TabsTrigger>
+            <TabsTrigger value="initial-requests">
+              Initial Requests
+              <Badge variant="secondary" className="ml-2">
+                {filterRequisitions('initial-requests').length}
+              </Badge>
+            </TabsTrigger>
             <TabsTrigger value="pending-hr">
               Pending HR Review
               <Badge variant="secondary" className="ml-2">
@@ -416,7 +367,7 @@ export default function AdminRequisitions() {
             <TabsTrigger value="completed">Completed</TabsTrigger>
           </TabsList>
 
-          {(['all', 'pending-hr', 'chief-hr-review', 'hr-ready', 'amendments', 'manager-confirmation', 'in-progress', 'completed'] as const).map(tabValue => (
+          {(['all', 'initial-requests', 'pending-hr', 'chief-hr-review', 'hr-ready', 'amendments', 'manager-confirmation', 'in-progress', 'completed'] as const).map(tabValue => (
             <TabsContent key={tabValue} value={tabValue} className="space-y-4">
               {filterRequisitions(tabValue).length === 0 ? (
                 <Card>
@@ -544,7 +495,10 @@ export default function AdminRequisitions() {
                       
                       <CardContent>
                         <div className="space-y-4">
-                          <ApprovalTimeline requisition={requisition} />
+                          <div>
+                            <div className="text-sm font-medium mb-2">Workflow Status</div>
+                            <RequisitionWorkflowTimeline requisition={requisition} compact />
+                          </div>
                           
                           <div className="space-y-2">
                             <div className="flex items-center justify-between text-sm">

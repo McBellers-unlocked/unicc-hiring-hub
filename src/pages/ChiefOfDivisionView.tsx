@@ -37,8 +37,7 @@ export default function ChiefOfDivisionView() {
             *,
             creator:users!created_by(name, email)
           `)
-          .eq("status", "draft")
-          .eq("initial_request_submitted", true)
+          .in("status", ["initial_request_submitted", "initial_request_chief_review"])
           .or("initial_request_approved.is.null,initial_request_approved.eq.false")
           .order("created_at", { ascending: false })
       ]);
@@ -55,14 +54,28 @@ export default function ChiefOfDivisionView() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: async ({ id, approved }: { id: string; approved: boolean }) => {
+    mutationFn: async ({ id, approved, isInitialRequest }: { id: string; approved: boolean; isInitialRequest?: boolean }) => {
+      const updateData: any = {
+        chief_of_division_approved_at: new Date().toISOString(),
+        chief_of_division_approved_by: (await supabase.auth.getUser()).data.user?.id,
+      };
+
+      if (isInitialRequest) {
+        // For initial requests
+        updateData.chief_of_division_approval = approved;
+        updateData.initial_request_approved = approved;
+        updateData.initial_request_approved_by = (await supabase.auth.getUser()).data.user?.id;
+        updateData.initial_request_approved_at = new Date().toISOString();
+        updateData.status = approved ? 'initial_request_approved' : 'initial_request_rejected';
+      } else {
+        // For full PD approvals
+        updateData.chief_of_division_approval = approved;
+        updateData.status = approved ? 'director_review' : 'rejected';
+      }
+
       const { error } = await supabase
         .from("job_requisitions")
-        .update({
-          chief_of_division_approval: approved,
-          chief_of_division_approved_at: new Date().toISOString(),
-          chief_of_division_approved_by: (await supabase.auth.getUser()).data.user?.id,
-        })
+        .update(updateData)
         .eq("id", id);
 
       if (error) throw error;
@@ -76,8 +89,8 @@ export default function ChiefOfDivisionView() {
     },
   });
 
-  const handleApproval = (id: string, approved: boolean) => {
-    approveMutation.mutate({ id, approved });
+  const handleApproval = (id: string, approved: boolean, isInitialRequest?: boolean) => {
+    approveMutation.mutate({ id, approved, isInitialRequest });
   };
 
   return (
@@ -172,7 +185,7 @@ export default function ChiefOfDivisionView() {
                         
                         <div className="flex gap-2 pt-2">
                           <Button
-                            onClick={() => handleApproval(requisition.id, true)}
+                            onClick={() => handleApproval(requisition.id, true, true)}
                             disabled={approveMutation.isPending}
                             size="sm"
                           >
@@ -180,7 +193,7 @@ export default function ChiefOfDivisionView() {
                           </Button>
                           <Button
                             variant="destructive"
-                            onClick={() => handleApproval(requisition.id, false)}
+                            onClick={() => handleApproval(requisition.id, false, true)}
                             disabled={approveMutation.isPending}
                             size="sm"
                           >
@@ -473,7 +486,7 @@ export default function ChiefOfDivisionView() {
 
                        <div className="flex gap-2 mt-4">
                          <Button
-                           onClick={() => handleApproval(requisition.id, true)}
+                           onClick={() => handleApproval(requisition.id, true, false)}
                            disabled={approveMutation.isPending}
                            className="bg-green-600 hover:bg-green-700"
                          >
@@ -481,7 +494,7 @@ export default function ChiefOfDivisionView() {
                          </Button>
                          <Button
                            variant="destructive"
-                           onClick={() => handleApproval(requisition.id, false)}
+                           onClick={() => handleApproval(requisition.id, false, false)}
                            disabled={approveMutation.isPending}
                          >
                            Reject

@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, FileText, CheckCircle, Clock, AlertCircle, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { RequisitionWorkflowTimeline } from "@/components/RequisitionWorkflowTimeline";
 
 interface JobRequisition {
   id: string;
@@ -92,18 +93,27 @@ export default function JobRequisitions() {
     }
     
     switch (requisition.status) {
-      case 'initial_request':
-        return <Badge variant="default" className="bg-yellow-500">Initial Request</Badge>;
+      // Initial Request stages
+      case 'initial_request_draft':
+        return <Badge variant="secondary">Initial Request Draft</Badge>;
+      case 'initial_request_submitted':
+      case 'initial_request_chief_review':
+        return <Badge variant="default" className="bg-yellow-500">Initial Request - Chief Review</Badge>;
+      case 'initial_request_approved':
+        return <Badge variant="default" className="bg-green-500">Initial Request Approved</Badge>;
+      case 'initial_request_rejected':
+        return <Badge variant="destructive">Initial Request Rejected</Badge>;
+      // Full PD stages
+      case 'pd_draft':
       case 'draft':
-        return <Badge variant="secondary">Draft</Badge>;
+        return <Badge variant="secondary">PD Draft</Badge>;
+      case 'pd_submitted':
+        return <Badge variant="default" className="bg-blue-500">PD Submitted</Badge>;
       case 'hr_review':
         return <Badge variant="default" className="bg-orange-500">HR Review</Badge>;
-      case 'hr_amendments':
-        return <Badge variant="destructive">Requires Amendments</Badge>;
       case 'hiring_manager_review':
         return <Badge variant="default" className="bg-blue-500">Manager Review</Badge>;
-      case 'hr_final_review':
-        return <Badge variant="default" className="bg-blue-600">HR Final Review</Badge>;
+      case 'chief_of_division_review':
       case 'chief_division_review':
         return <Badge variant="default" className="bg-purple-500">Chief Review</Badge>;
       case 'director_review':
@@ -113,7 +123,7 @@ export default function JobRequisitions() {
       case 'rejected':
         return <Badge variant="destructive">Rejected</Badge>;
       default:
-        return <Badge variant="outline">Unknown Status</Badge>;
+        return <Badge variant="outline">{requisition.status}</Badge>;
     }
   };
 
@@ -357,11 +367,11 @@ export default function JobRequisitions() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-sm text-muted-foreground">
-                      Approval Progress:
+                  <div className="space-y-3">
+                    <div className="text-sm font-medium text-muted-foreground">
+                      Workflow Progress
                     </div>
-                    {getApprovalProgress(requisition)}
+                    <RequisitionWorkflowTimeline requisition={requisition} compact />
                   </div>
                 </CardContent>
               </Card>
