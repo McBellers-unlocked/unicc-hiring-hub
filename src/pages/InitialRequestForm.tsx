@@ -20,6 +20,7 @@ const LOCATIONS = [
   'New York',
   'Geneva',
   'Rome',
+  'Remote',
 ];
 
 const FUNDING_OPTIONS = [
@@ -45,6 +46,7 @@ export default function InitialRequestForm() {
     temporary_duration: '',
     consultant_duration: '',
     grade: '',
+    unit_section_division: '',
     duty_station: [] as string[],
     brief_outline: '',
     funding_status: '',
@@ -77,6 +79,7 @@ export default function InitialRequestForm() {
           temporary_duration: data.temporary_duration || '',
           consultant_duration: data.consultant_duration || '',
           grade: data.grade || '',
+          unit_section_division: data.unit_section_division || '',
           duty_station: data.duty_station ? JSON.parse(data.duty_station) : [],
           brief_outline: data.brief_outline || '',
           funding_status: data.funding_status || '',
@@ -197,6 +200,7 @@ export default function InitialRequestForm() {
         temporary_duration: formData.temporary_duration || null,
         consultant_duration: formData.consultant_duration || null,
         grade: formData.grade || null,
+        unit_section_division: formData.unit_section_division || null,
         duty_station: JSON.stringify(formData.duty_station),
         brief_outline: formData.brief_outline,
         funding_status: formData.funding_status,
@@ -393,6 +397,17 @@ export default function InitialRequestForm() {
                 />
               </div>
             )}
+
+            {/* Unit/Section/Division */}
+            <div className="space-y-2">
+              <Label htmlFor="unit">Unit/Section/Division</Label>
+              <Input
+                id="unit"
+                value={formData.unit_section_division}
+                onChange={(e) => setFormData(prev => ({ ...prev, unit_section_division: e.target.value }))}
+                placeholder="e.g., ICT Division"
+              />
+            </div>
 
             {/* Location */}
             <div className="space-y-2">
