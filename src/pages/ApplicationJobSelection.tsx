@@ -163,7 +163,7 @@ export default function ApplicationJobSelection() {
       return 'pipeline';
     }
     
-    // Determine recruitment stage based on application statuses
+    // Determine recruitment stage based on application statuses (takes precedence over time-based stages)
     const statuses = job.application_statuses || [];
     const totalApps = job.application_count || 0;
     
@@ -186,8 +186,8 @@ export default function ApplicationJobSelection() {
         return 'video_interview';
       }
       
-      // Hiring Manager Shortlisting: All apps have been longlisted/shortlisted or rejected (no apps in Application stage)
-      if (inApplication === 0 && (inLonglist + inShortlist + inVideoInterview + inPanelInterview + rejected) === totalApps) {
+      // Hiring Manager Shortlisting: No apps in "Application" status AND there are longlisted/shortlisted apps
+      if (inApplication === 0 && (inLonglist + inShortlist) > 0) {
         return 'hm_shortlisting';
       }
     }
@@ -200,12 +200,9 @@ export default function ApplicationJobSelection() {
         const fourteenDaysAfterClosing = new Date(closingDate);
         fourteenDaysAfterClosing.setDate(closingDate.getDate() + 14);
         
-        // If within 14 days of closing and still has applications in "Application" status
-        if (now <= fourteenDaysAfterClosing && now > closingDate && totalApps > 0) {
-          const inApplication = statuses.find(s => s.status === 'Application')?.count || 0;
-          if (inApplication > 0) {
-            return 'longlisting';
-          }
+        // If within 14 days of closing, show as longlisting
+        if (now <= fourteenDaysAfterClosing && now > closingDate) {
+          return 'longlisting';
         }
       }
       return 'closed';
