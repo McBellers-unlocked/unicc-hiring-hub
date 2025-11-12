@@ -39,6 +39,8 @@ interface JobRequisition {
   converted_to_job_id?: string;
   initial_request_submitted?: boolean;
   initial_request_approved?: boolean;
+  funding_status?: string;
+  brief_outline?: string;
 }
 
 export default function JobRequisitions() {
@@ -325,8 +327,13 @@ export default function JobRequisitions() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          // Route to initial request form if it's still in initial request stage
-                          if (requisition.initial_request_submitted && !requisition.initial_request_approved) {
+                          // Route to initial request form if:
+                          // 1. Initial request was submitted but not approved, OR
+                          // 2. Initial request draft exists (has funding_status/brief_outline but not submitted)
+                          const hasInitialRequestData = !!requisition.funding_status || !!requisition.brief_outline;
+                          const isStillInitialRequest = hasInitialRequestData && !requisition.initial_request_approved;
+                          
+                          if (isStillInitialRequest) {
                             navigate(`/requisitions/initial/${requisition.id}`);
                           } else {
                             navigate(`/requisitions/${requisition.id}`);
