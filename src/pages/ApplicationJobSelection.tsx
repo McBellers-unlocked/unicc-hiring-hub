@@ -174,6 +174,19 @@ export default function ApplicationJobSelection() {
       const inVideoInterview = statuses.find(s => s.status === 'Video Interview')?.count || 0;
       const inPanelInterview = statuses.find(s => s.status === 'Panel Interview')?.count || 0;
       
+      // Debug logging
+      if (job.title.includes('Digital Public Solutions')) {
+        console.log('Digital Public Solutions Officer stage calculation:', {
+          title: job.title,
+          inLonglist,
+          inShortlist,
+          inVideoInterview,
+          inPanelInterview,
+          hmShortlistingTotal: inLonglist + inShortlist,
+          statuses: job.application_statuses
+        });
+      }
+      
       // Find the stage with the most candidates (excluding Application and Rejected)
       const stageCounts = [
         { stage: 'panel_interview' as const, count: inPanelInterview },
@@ -183,6 +196,12 @@ export default function ApplicationJobSelection() {
       
       // Sort by count descending
       stageCounts.sort((a, b) => b.count - a.count);
+      
+      // Debug logging
+      if (job.title.includes('Digital Public Solutions')) {
+        console.log('Stage counts sorted:', stageCounts);
+        console.log('Selected stage:', stageCounts[0].stage);
+      }
       
       // Return the stage with the most candidates (if any)
       if (stageCounts[0].count > 0) {
