@@ -22,7 +22,7 @@ interface Job {
   requisition_status?: string | null;
 }
 
-type JobDisplayStatus = 'active' | 'closing' | 'closed' | 'pipeline';
+type JobDisplayStatus = 'active' | 'closing' | 'longlisting' | 'closed' | 'pipeline';
 
 export default function ApplicationJobSelection() {
   const { userRoles } = useAuth();
@@ -74,11 +74,10 @@ export default function ApplicationJobSelection() {
       const { data, error } = await query;
       if (error) throw error;
 
-      // Fetch requisitions to identify pipeline jobs
+      // Fetch requisitions to identify pipeline jobs (remove converted filter to get all requisitions)
       const { data: requisitions } = await supabase
         .from('job_requisitions')
-        .select('id, converted_to_job_id, status, initial_request_approved')
-        .not('converted_to_job_id', 'is', null);
+        .select('id, converted_to_job_id, status, initial_request_approved');
 
       // Fetch application counts for each job
       if (data) {
@@ -91,9 +90,22 @@ export default function ApplicationJobSelection() {
             
             // Find if this job has an associated requisition in pipeline
             const requisition = requisitions?.find(req => req.converted_to_job_id === job.id);
+            
+            // Pipeline statuses: requisitions that are in workflow but not yet published
+            const pipelineStatuses = [
+              'initial_request_approved',
+              'hr_review',
+              'hiring_manager_review',
+              'chief_division_review',
+              'chief_of_division_review',
+              'deputy_director_review',
+              'director_review',
+              'approved'
+            ];
+            
             const isPipeline = requisition && 
-                              requisition.initial_request_approved && 
-                              !['draft', 'initial_request_draft', 'initial_request_submitted'].includes(requisition.status || '');
+                              pipelineStatuses.includes(requisition.status || '') &&
+                              !requisition.converted_to_job_id;
             
             return { 
               ...job, 
@@ -131,8 +143,19 @@ export default function ApplicationJobSelection() {
       return 'pipeline';
     }
     
-    // Check if closed
-    if (job.status === 'closed') {
+    // Check if closed and determine longlisting vs fully closed
+    if (job.status === 'closed' || (job.closing_date && new Date(job.closing_date) < new Date())) {
+      if (job.closing_date) {
+        const closingDate = new Date(job.closing_date);
+        const now = new Date();
+        const fourteenDaysAfterClosing = new Date(closingDate);
+        fourteenDaysAfterClosing.setDate(closingDate.getDate() + 14);
+        
+        // If within 14 days of closing, show as "Longlisting"
+        if (now <= fourteenDaysAfterClosing && now > closingDate) {
+          return 'longlisting';
+        }
+      }
       return 'closed';
     }
     
@@ -161,6 +184,7 @@ export default function ApplicationJobSelection() {
   const stats = {
     active: jobs.filter(j => getJobDisplayStatus(j) === 'active').length,
     closing: jobs.filter(j => getJobDisplayStatus(j) === 'closing').length,
+    longlisting: jobs.filter(j => getJobDisplayStatus(j) === 'longlisting').length,
     closed: jobs.filter(j => getJobDisplayStatus(j) === 'closed').length,
     pipeline: jobs.filter(j => getJobDisplayStatus(j) === 'pipeline').length,
     totalApplications: jobs.reduce((sum, j) => sum + (j.application_count || 0), 0),
@@ -179,17 +203,18 @@ export default function ApplicationJobSelection() {
       if (activeFilter === 'all') return true;
       if (activeFilter === 'active-closing') {
         const status = getJobDisplayStatus(job);
-        return status === 'active' || status === 'closing';
+        return status === 'active' || status === 'closing' || status === 'longlisting';
       }
       return getJobDisplayStatus(job) === activeFilter;
     })
     .sort((a, b) => {
-      // Sort by display status priority: Active, Closing, Closed, Pipeline
+      // Sort by display status priority: Active, Closing, Longlisting, Pipeline, Closed
       const statusOrder: Record<JobDisplayStatus, number> = {
         active: 1,
         closing: 2,
-        closed: 3,
-        pipeline: 4
+        longlisting: 3,
+        pipeline: 4,
+        closed: 5
       };
       
       const aStatus = getJobDisplayStatus(a);
@@ -206,6 +231,7 @@ export default function ApplicationJobSelection() {
   const groupedJobs = {
     active: filteredJobs.filter(j => getJobDisplayStatus(j) === 'active'),
     closing: filteredJobs.filter(j => getJobDisplayStatus(j) === 'closing'),
+    longlisting: filteredJobs.filter(j => getJobDisplayStatus(j) === 'longlisting'),
     closed: filteredJobs.filter(j => getJobDisplayStatus(j) === 'closed'),
     pipeline: filteredJobs.filter(j => getJobDisplayStatus(j) === 'pipeline'),
   };
@@ -221,6 +247,10 @@ export default function ApplicationJobSelection() {
       closing: { 
         label: 'Closing', 
         className: 'bg-amber-500 hover:bg-amber-600 text-white'
+      },
+      longlisting: { 
+        label: 'Longlisting', 
+        className: 'bg-orange-500 hover:bg-orange-600 text-white'
       },
       closed: { 
         label: 'Closed', 
@@ -242,6 +272,7 @@ export default function ApplicationJobSelection() {
     const labels = {
       active: 'Active',
       closing: 'Closing',
+      longlisting: 'Longlisting',
       closed: 'Closed',
       pipeline: 'Pipeline'
     } as const;
@@ -281,7 +312,7 @@ export default function ApplicationJobSelection() {
         key={job.id}
         className={`cursor-pointer hover:shadow-lg transition-all hover:border-primary/50 ${
           urgent ? 'border-l-4 border-l-destructive' : ''
-        } ${displayStatus === 'closed' ? 'opacity-60' : ''}`}
+        } ${displayStatus === 'closed' ? 'opacity-60' : ''} ${displayStatus === 'longlisting' ? 'border-l-4 border-l-orange-500' : ''}`}
         onClick={() => navigate(`/applications/manage?job=${job.id}`)}
       >
         <CardHeader className="pb-3">
@@ -304,10 +335,16 @@ export default function ApplicationJobSelection() {
             <Users className="w-4 h-4 mr-2" />
             <span>{job.application_count} application{job.application_count !== 1 ? 's' : ''}</span>
           </div>
-          {relativeTime && displayStatus !== 'closed' && (
+          {relativeTime && displayStatus !== 'closed' && displayStatus !== 'longlisting' && (
             <div className="flex items-center text-sm text-muted-foreground">
               <Clock className="w-4 h-4 mr-2" />
               <span className={urgent ? 'text-destructive font-medium' : ''}>{relativeTime}</span>
+            </div>
+          )}
+          {displayStatus === 'longlisting' && job.closing_date && (
+            <div className="flex items-center text-sm text-orange-600 font-medium">
+              <Clock className="w-4 h-4 mr-2" />
+              <span>14-day longlisting period</span>
             </div>
           )}
         </CardContent>
@@ -348,7 +385,7 @@ export default function ApplicationJobSelection() {
         ) : (
           <>
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
               <StatsCard
                 title="Active Jobs"
                 value={stats.active}
@@ -367,6 +404,15 @@ export default function ApplicationJobSelection() {
                 onClick={() => setActiveFilter('closing')}
               />
               <StatsCard
+                title="Longlisting"
+                value={stats.longlisting}
+                subtitle="14-day KPI period"
+                icon={AlertCircle}
+                alert={stats.longlisting > 0}
+                className="cursor-pointer"
+                onClick={() => setActiveFilter('longlisting')}
+              />
+              <StatsCard
                 title="Pipeline Jobs"
                 value={stats.pipeline}
                 subtitle="PD in progress"
@@ -377,7 +423,7 @@ export default function ApplicationJobSelection() {
               <StatsCard
                 title="Closed Jobs"
                 value={stats.closed}
-                subtitle="No longer accepting"
+                subtitle="Past 14-day period"
                 className="cursor-pointer"
                 onClick={() => setActiveFilter('closed')}
               />
@@ -390,10 +436,10 @@ export default function ApplicationJobSelection() {
                 onClick={() => setActiveFilter('active-closing')}
                 size="sm"
               >
-                Active & Closing
+                Active & Priority
                 {activeFilter === 'active-closing' && (
                   <Badge variant="secondary" className="ml-2 bg-primary-foreground text-primary">
-                    {stats.active + stats.closing}
+                    {stats.active + stats.closing + stats.longlisting}
                   </Badge>
                 )}
               </Button>
@@ -430,6 +476,18 @@ export default function ApplicationJobSelection() {
                 {activeFilter === 'closing' && (
                   <Badge variant="secondary" className="ml-2 bg-primary-foreground text-primary">
                     {stats.closing}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                variant={activeFilter === 'longlisting' ? 'default' : 'outline'}
+                onClick={() => setActiveFilter('longlisting')}
+                size="sm"
+              >
+                Longlisting
+                {activeFilter === 'longlisting' && (
+                  <Badge variant="secondary" className="ml-2 bg-primary-foreground text-primary">
+                    {stats.longlisting}
                   </Badge>
                 )}
               </Button>
@@ -490,6 +548,24 @@ export default function ApplicationJobSelection() {
                 {/* Closing Soon */}
                 {renderJobSection('Closing Soon', groupedJobs.closing, groupedJobs.closing.length)}
                 
+                {/* Longlisting - 14 day KPI period */}
+                {groupedJobs.longlisting.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+                        Active Longlisting
+                        <Badge variant="secondary" className="text-xs">
+                          {groupedJobs.longlisting.length}
+                        </Badge>
+                      </h2>
+                      <Badge className="bg-orange-500 text-white">14-day KPI Period</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {groupedJobs.longlisting.map(renderJobCard)}
+                    </div>
+                  </div>
+                )}
+                
                 {/* Pipeline Jobs */}
                 {renderJobSection('Pipeline Jobs', groupedJobs.pipeline, groupedJobs.pipeline.length)}
                 
@@ -506,6 +582,7 @@ export default function ApplicationJobSelection() {
                         <Badge variant="secondary" className="text-xs">
                           {groupedJobs.closed.length}
                         </Badge>
+                        <span className="text-sm text-muted-foreground">(Past 14-day period)</span>
                       </div>
                       {showClosed ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                     </Button>
