@@ -1,0 +1,152 @@
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Plus, Trash2, GripVertical } from 'lucide-react';
+
+export interface Requirement {
+  id: string;
+  title: string;
+  description: string;
+  weight: number;
+  order_index: number;
+}
+
+interface RequirementsListProps {
+  requirements: Requirement[];
+  onChange: (requirements: Requirement[]) => void;
+  title: string;
+  category: 'Essential Criteria' | 'Desirable Criteria' | 'Essential Education' | 'Desirable Education';
+}
+
+export function RequirementsList({ requirements, onChange, title, category }: RequirementsListProps) {
+  const addRequirement = () => {
+    const newReq: Requirement = {
+      id: `temp-${Date.now()}`,
+      title: '',
+      description: '',
+      weight: 1,
+      order_index: requirements.length
+    };
+    onChange([...requirements, newReq]);
+  };
+
+  const updateRequirement = (index: number, field: keyof Requirement, value: string | number) => {
+    const updated = [...requirements];
+    updated[index] = { ...updated[index], [field]: value };
+    onChange(updated);
+  };
+
+  const removeRequirement = (index: number) => {
+    const updated = requirements.filter((_, i) => i !== index);
+    updated.forEach((req, i) => req.order_index = i);
+    onChange(updated);
+  };
+
+  const moveRequirement = (index: number, direction: 'up' | 'down') => {
+    if ((direction === 'up' && index === 0) || (direction === 'down' && index === requirements.length - 1)) {
+      return;
+    }
+
+    const updated = [...requirements];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    [updated[index], updated[targetIndex]] = [updated[targetIndex], updated[index]];
+    updated.forEach((req, i) => req.order_index = i);
+    onChange(updated);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Label className="text-base font-medium">{title}</Label>
+        <Button variant="outline" size="sm" onClick={addRequirement}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add {category.includes('Education') ? 'Education Requirement' : 'Criterion'}
+        </Button>
+      </div>
+
+      {requirements.length === 0 ? (
+        <div className="border border-dashed rounded-lg p-8 text-center text-muted-foreground">
+          <p>No {title.toLowerCase()} added yet. Click "Add" to create one.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {requirements.map((req, index) => (
+            <div key={req.id} className="border rounded-lg p-4 bg-card">
+              <div className="flex gap-3">
+                <div className="flex flex-col gap-1 pt-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0"
+                    onClick={() => moveRequirement(index, 'up')}
+                    disabled={index === 0}
+                  >
+                    ↑
+                  </Button>
+                  <GripVertical className="w-4 h-4 text-muted-foreground" />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0"
+                    onClick={() => moveRequirement(index, 'down')}
+                    disabled={index === requirements.length - 1}
+                  >
+                    ↓
+                  </Button>
+                </div>
+
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <Label className="text-sm">Title *</Label>
+                    <Input
+                      placeholder={category.includes('Education') ? 'e.g., Bachelor\'s in Computer Science' : 'e.g., 5 years of project management experience'}
+                      value={req.title}
+                      onChange={(e) => updateRequirement(index, 'title', e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm">Description (optional)</Label>
+                    <Textarea
+                      placeholder="Add details about this requirement..."
+                      value={req.description}
+                      onChange={(e) => updateRequirement(index, 'description', e.target.value)}
+                      className="mt-1 min-h-[60px]"
+                    />
+                  </div>
+                  {!category.includes('Desirable') && (
+                    <div>
+                      <Label className="text-sm">Weight</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={req.weight}
+                        onChange={(e) => updateRequirement(index, 'weight', parseInt(e.target.value) || 1)}
+                        className="mt-1 w-24"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        1-10 (higher = more important for scoring)
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => removeRequirement(index)}
+                  className="mt-2"
+                >
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

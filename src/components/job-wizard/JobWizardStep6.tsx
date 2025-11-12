@@ -179,23 +179,60 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
 
       if (result.error) throw result.error;
 
+      const finalJobId = isEditing ? jobId! : result.data?.id;
+
+      // Save structured requirements
+      if (data.structuredRequirements) {
+        const { essentialCriteria, desirableCriteria, essentialEducation, desirableEducation, competencies, languages } = data.structuredRequirements;
+        
+        // Delete existing requirements
+        if (isEditing) {
+          await supabase.from('job_requirements').delete().eq('job_id', finalJobId);
+          await supabase.from('job_competencies').delete().eq('job_id', finalJobId);
+          await supabase.from('job_language_requirements').delete().eq('job_id', finalJobId);
+        }
+
+        // Insert requirements
+        const allRequirements = [
+          ...essentialCriteria.map(r => ({ ...r, job_id: finalJobId, category: 'Essential Criteria' })),
+          ...desirableCriteria.map(r => ({ ...r, job_id: finalJobId, category: 'Desirable Criteria' })),
+          ...essentialEducation.map(r => ({ ...r, job_id: finalJobId, category: 'Essential Education' })),
+          ...desirableEducation.map(r => ({ ...r, job_id: finalJobId, category: 'Desirable Education' }))
+        ].filter(r => r.title?.trim());
+
+        if (allRequirements.length > 0) {
+          const { error } = await supabase.from('job_requirements').insert(
+            allRequirements.map(({ id, ...r }) => r)
+          );
+          if (error) throw error;
+        }
+
+        // Insert competencies
+        if (competencies.length > 0) {
+          const { error } = await supabase.from('job_competencies').insert(
+            competencies.filter(c => c.competency_name?.trim()).map(({ id, ...c }) => ({ ...c, job_id: finalJobId }))
+          );
+          if (error) throw error;
+        }
+
+        // Insert language requirements
+        if (languages.length > 0) {
+          const { error } = await supabase.from('job_language_requirements').insert(
+            languages.map(({ id, ...l }) => ({ ...l, job_id: finalJobId }))
+          );
+          if (error) throw error;
+        }
+      }
+
       // Save killer questions
       if (data.killer_questions?.length) {
         const questionsData = data.killer_questions.map(question => {
-          // Remove the temporary ID and let the database generate a UUID
           const { id, ...questionWithoutId } = question;
-          return {
-            ...questionWithoutId,
-            job_id: isEditing ? jobId : result.data?.id,
-          };
+          return { ...questionWithoutId, job_id: finalJobId };
         });
 
         if (isEditing) {
-          // Delete existing questions first
-          await supabase
-            .from('killer_questions')
-            .delete()
-            .eq('job_id', jobId);
+          await supabase.from('killer_questions').delete().eq('job_id', finalJobId);
         }
 
         const { error: questionsError } = await supabase

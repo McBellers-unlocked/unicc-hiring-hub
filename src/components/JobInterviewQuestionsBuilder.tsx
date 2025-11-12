@@ -2,25 +2,43 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, GripVertical, Save, Wand2, Users } from 'lucide-react';
+import { Plus, Trash2, Save, Wand2, Users, ChevronDown, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface InterviewQuestion {
   id?: string;
   question_text: string;
-  question_category: string;
-  competency: string;
+  requirement_id?: string | null;
+  competency_id?: string | null;
+  language_requirement_id?: string | null;
   order_index: number;
-  created_by?: string;
-  created_at?: string;
-  updated_at?: string;
+}
+
+interface Requirement {
+  id: string;
+  title: string;
+  category: string;
+  description?: string;
+}
+
+interface Competency {
+  id: string;
+  competency_name: string;
+  competency_type: string;
+  description?: string;
+}
+
+interface LanguageRequirement {
+  id: string;
+  language: string;
+  level: string;
+  is_essential: boolean;
 }
 
 interface Contributor {
@@ -35,77 +53,97 @@ interface JobInterviewQuestionsBuilderProps {
   jobTitle: string;
 }
 
-const CATEGORIES = [
-  'Technical Skills',
-  'Behavioral',
-  'Leadership',
-  'Cultural Fit',
-  'Problem Solving',
-  'Communication',
-  'Teamwork',
-  'Adaptability',
-  'Other'
-];
-
-const COMPETENCIES = [
-  'Problem Solving',
-  'Communication',
-  'Leadership',
-  'Technical Expertise',
-  'Collaboration',
-  'Innovation',
-  'Accountability',
-  'Client Orientation',
-  'Adaptability',
-  'Strategic Thinking'
-];
-
 export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQuestionsBuilderProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
+  const [requirements, setRequirements] = useState<Requirement[]>([]);
+  const [competencies, setCompetencies] = useState<Competency[]>([]);
+  const [languages, setLanguages] = useState<LanguageRequirement[]>([]);
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    fetchQuestions();
-    fetchContributors();
+    loadData();
   }, [jobId]);
 
-  const fetchQuestions = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('job_interview_questions')
-        .select('*')
-        .eq('job_id', jobId)
-        .order('order_index');
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        setQuestions(data);
-        const mostRecent = data.reduce((latest, current) => 
-          new Date(current.updated_at) > new Date(latest.updated_at) ? current : latest
-        );
-        setLastUpdated(mostRecent.updated_at);
-      } else {
-        // Start with empty questions
-        setQuestions([]);
-      }
+      await Promise.all([
+        fetchQuestions(),
+        fetchRequirements(),
+        fetchCompetencies(),
+        fetchLanguages(),
+        fetchContributors()
+      ]);
     } catch (error) {
-      console.error('Error fetching questions:', error);
+      console.error('Error loading data:', error);
       toast({
         title: "Error",
-        description: "Failed to load interview questions",
+        description: "Failed to load interview questions data",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchQuestions = async () => {
+    const { data, error } = await supabase
+      .from('job_interview_questions')
+      .select('*')
+      .eq('job_id', jobId)
+      .order('order_index');
+
+    if (error) throw error;
+    if (data) {
+      setQuestions(data);
+      if (data.length > 0) {
+        const mostRecent = data.reduce((latest, current) => 
+          new Date(current.updated_at || 0) > new Date(latest.updated_at || 0) ? current : latest
+        );
+        setLastUpdated(mostRecent.updated_at || null);
+      }
+    }
+  };
+
+  const fetchRequirements = async () => {
+    const { data, error } = await supabase
+      .from('job_requirements')
+      .select('*')
+      .eq('job_id', jobId)
+      .order('category, order_index');
+
+    if (error) throw error;
+    if (data) setRequirements(data);
+  };
+
+  const fetchCompetencies = async () => {
+    const { data, error } = await supabase
+      .from('job_competencies')
+      .select('*')
+      .eq('job_id', jobId)
+      .order('competency_type, order_index');
+
+    if (error) throw error;
+    if (data) setCompetencies(data);
+  };
+
+  const fetchLanguages = async () => {
+    const { data, error } = await supabase
+      .from('job_language_requirements')
+      .select('*')
+      .eq('job_id', jobId)
+      .eq('is_essential', true)
+      .order('order_index');
+
+    if (error) throw error;
+    if (data) setLanguages(data);
   };
 
   const fetchContributors = async () => {
@@ -148,41 +186,39 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
     }
   };
 
-  const addQuestion = () => {
+  const toggleSection = (sectionId: string) => {
+    const newExpanded = new Set(expandedSections);
+    if (newExpanded.has(sectionId)) {
+      newExpanded.delete(sectionId);
+    } else {
+      newExpanded.add(sectionId);
+    }
+    setExpandedSections(newExpanded);
+  };
+
+  const addQuestion = (requirementId?: string, competencyId?: string, languageId?: string) => {
     const newQuestion: InterviewQuestion = {
       question_text: '',
-      question_category: 'Technical Skills',
-      competency: 'Problem Solving',
-      order_index: questions.length
+      requirement_id: requirementId || null,
+      competency_id: competencyId || null,
+      language_requirement_id: languageId || null,
+      order_index: questions.filter(q => 
+        q.requirement_id === requirementId && 
+        q.competency_id === competencyId && 
+        q.language_requirement_id === languageId
+      ).length
     };
     setQuestions([...questions, newQuestion]);
   };
 
-  const updateQuestion = (index: number, field: keyof InterviewQuestion, value: string | number) => {
+  const updateQuestion = (index: number, text: string) => {
     const updated = [...questions];
-    updated[index] = { ...updated[index], [field]: value };
+    updated[index] = { ...updated[index], question_text: text };
     setQuestions(updated);
   };
 
   const removeQuestion = (index: number) => {
-    const updated = questions.filter((_, i) => i !== index);
-    // Update order indices
-    updated.forEach((q, i) => q.order_index = i);
-    setQuestions(updated);
-  };
-
-  const moveQuestion = (index: number, direction: 'up' | 'down') => {
-    if ((direction === 'up' && index === 0) || (direction === 'down' && index === questions.length - 1)) {
-      return;
-    }
-
-    const updated = [...questions];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    [updated[index], updated[targetIndex]] = [updated[targetIndex], updated[index]];
-    
-    // Update order indices
-    updated.forEach((q, i) => q.order_index = i);
-    setQuestions(updated);
+    setQuestions(questions.filter((_, i) => i !== index));
   };
 
   const saveQuestions = async () => {
@@ -191,7 +227,6 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
     try {
       setSaving(true);
 
-      // Validate questions
       const invalidQuestions = questions.filter(q => !q.question_text.trim());
       if (invalidQuestions.length > 0) {
         toast({
@@ -202,18 +237,17 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
         return;
       }
 
-      // Delete existing questions for this job
       await supabase
         .from('job_interview_questions')
         .delete()
         .eq('job_id', jobId);
 
-      // Insert new questions
       const questionsToInsert = questions.map((q, index) => ({
         job_id: jobId,
         question_text: q.question_text,
-        question_category: q.question_category,
-        competency: q.competency,
+        requirement_id: q.requirement_id,
+        competency_id: q.competency_id,
+        language_requirement_id: q.language_requirement_id,
         order_index: index,
         created_by: user.id
       }));
@@ -225,7 +259,6 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
       if (insertError) throw insertError;
 
-      // Track contributor
       if (insertedQuestions && insertedQuestions.length > 0) {
         await supabase
           .from('job_interview_question_contributors')
@@ -243,8 +276,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
         description: "Interview questions saved successfully",
       });
 
-      fetchQuestions();
-      fetchContributors();
+      await loadData();
     } catch (error) {
       console.error('Error saving questions:', error);
       toast({
@@ -269,8 +301,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
     try {
       setGenerating(true);
-
-      const { data, error } = await supabase.functions.invoke('generate-feedback-template', {
+      const { error } = await supabase.functions.invoke('generate-feedback-template', {
         body: { jobId }
       });
 
@@ -292,17 +323,207 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
     }
   };
 
-  const groupedQuestions = questions.reduce((acc, question) => {
-    if (!acc[question.question_category]) {
-      acc[question.question_category] = [];
-    }
-    acc[question.question_category].push(question);
-    return acc;
-  }, {} as Record<string, InterviewQuestion[]>);
+  const getQuestionsForItem = (requirementId?: string, competencyId?: string, languageId?: string) => {
+    return questions.filter(q => 
+      q.requirement_id === requirementId &&
+      q.competency_id === competencyId &&
+      q.language_requirement_id === languageId
+    );
+  };
+
+  const getCoveragePercentage = () => {
+    const totalItems = requirements.length + competencies.length + languages.length;
+    if (totalItems === 0) return 0;
+
+    const itemsWithQuestions = new Set([
+      ...questions.filter(q => q.requirement_id).map(q => q.requirement_id),
+      ...questions.filter(q => q.competency_id).map(q => q.competency_id),
+      ...questions.filter(q => q.language_requirement_id).map(q => q.language_requirement_id)
+    ]).size;
+
+    return Math.round((itemsWithQuestions / totalItems) * 100);
+  };
+
+  const renderRequirementSection = (category: string, items: Requirement[]) => {
+    const sectionId = `req-${category}`;
+    const isExpanded = expandedSections.has(sectionId);
+    const questionsCount = items.reduce((sum, item) => 
+      sum + getQuestionsForItem(item.id).length, 0
+    );
+
+    return (
+      <Collapsible
+        key={sectionId}
+        open={isExpanded}
+        onOpenChange={() => toggleSection(sectionId)}
+        className="border rounded-lg"
+      >
+        <CollapsibleTrigger className="w-full">
+          <div className="flex items-center justify-between p-3 hover:bg-muted/50">
+            <div className="flex items-center gap-2">
+              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              <span className="font-medium">{category}</span>
+              <Badge variant="secondary">{items.length}</Badge>
+              {questionsCount > 0 && (
+                <Badge variant="outline">{questionsCount} questions</Badge>
+              )}
+            </div>
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="p-3 pt-0 space-y-3">
+            {items.map(item => {
+              const itemQuestions = getQuestionsForItem(item.id);
+              return (
+                <div key={item.id} className="border rounded-lg p-3 bg-card space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{item.title}</p>
+                      {item.description && (
+                        <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => addQuestion(item.id)}
+                    >
+                      <Plus className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  
+                  {itemQuestions.length > 0 && (
+                    <div className="space-y-2 mt-2">
+                      {itemQuestions.map((q, qIndex) => {
+                        const globalIndex = questions.findIndex(gq => gq === q);
+                        return (
+                          <div key={globalIndex} className="flex gap-2 bg-muted/30 p-2 rounded">
+                            <Textarea
+                              placeholder="Interview question..."
+                              value={q.question_text}
+                              onChange={(e) => updateQuestion(globalIndex, e.target.value)}
+                              className="min-h-[60px] text-sm"
+                            />
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => removeQuestion(globalIndex)}
+                            >
+                              <Trash2 className="w-3 h-3 text-destructive" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    );
+  };
+
+  const renderCompetencySection = (type: string, items: Competency[]) => {
+    const sectionId = `comp-${type}`;
+    const isExpanded = expandedSections.has(sectionId);
+    const questionsCount = items.reduce((sum, item) => 
+      sum + getQuestionsForItem(undefined, item.id).length, 0
+    );
+
+    return (
+      <Collapsible
+        key={sectionId}
+        open={isExpanded}
+        onOpenChange={() => toggleSection(sectionId)}
+        className="border rounded-lg"
+      >
+        <CollapsibleTrigger className="w-full">
+          <div className="flex items-center justify-between p-3 hover:bg-muted/50">
+            <div className="flex items-center gap-2">
+              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              <span className="font-medium">{type} Competencies</span>
+              <Badge variant="secondary">{items.length}</Badge>
+              {questionsCount > 0 && (
+                <Badge variant="outline">{questionsCount} questions</Badge>
+              )}
+            </div>
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="p-3 pt-0 space-y-3">
+            {items.map(item => {
+              const itemQuestions = getQuestionsForItem(undefined, item.id);
+              return (
+                <div key={item.id} className="border rounded-lg p-3 bg-card space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{item.competency_name}</p>
+                      {item.description && (
+                        <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => addQuestion(undefined, item.id)}
+                    >
+                      <Plus className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  
+                  {itemQuestions.length > 0 && (
+                    <div className="space-y-2 mt-2">
+                      {itemQuestions.map((q, qIndex) => {
+                        const globalIndex = questions.findIndex(gq => gq === q);
+                        return (
+                          <div key={globalIndex} className="flex gap-2 bg-muted/30 p-2 rounded">
+                            <Textarea
+                              placeholder="Interview question..."
+                              value={q.question_text}
+                              onChange={(e) => updateQuestion(globalIndex, e.target.value)}
+                              className="min-h-[60px] text-sm"
+                            />
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => removeQuestion(globalIndex)}
+                            >
+                              <Trash2 className="w-3 h-3 text-destructive" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    );
+  };
 
   if (loading) {
     return <Card><CardContent className="p-6">Loading...</CardContent></Card>;
   }
+
+  const groupedRequirements = requirements.reduce((acc, req) => {
+    if (!acc[req.category]) acc[req.category] = [];
+    acc[req.category].push(req);
+    return acc;
+  }, {} as Record<string, Requirement[]>);
+
+  const groupedCompetencies = competencies.reduce((acc, comp) => {
+    if (!acc[comp.competency_type]) acc[comp.competency_type] = [];
+    acc[comp.competency_type].push(comp);
+    return acc;
+  }, {} as Record<string, Competency[]>);
+
+  const coverage = getCoveragePercentage();
+  const totalItems = requirements.length + competencies.length + languages.length;
 
   return (
     <Card>
@@ -311,7 +532,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
           <div>
             <CardTitle>Interview Questions for {jobTitle}</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Collaborate with your team to build comprehensive interview questions
+              Link questions to specific requirements and competencies
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -341,208 +562,124 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
             Last updated: {format(new Date(lastUpdated), 'PPp')}
           </p>
         )}
+        {totalItems > 0 && (
+          <div className="mt-3">
+            <div className="flex items-center justify-between text-sm mb-2">
+              <span>Coverage: {coverage}%</span>
+              <span className="text-muted-foreground">{questions.length} total questions</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2">
+              <div 
+                className="bg-primary h-2 rounded-full transition-all"
+                style={{ width: `${coverage}%` }}
+              />
+            </div>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Questions by Category */}
-        {Object.keys(groupedQuestions).length > 0 ? (
-          <div className="space-y-6">
-            {Object.entries(groupedQuestions).map(([category, categoryQuestions]) => (
-              <div key={category} className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-lg">{category}</h3>
-                  <Badge variant="secondary">{categoryQuestions.length} questions</Badge>
-                </div>
-                {categoryQuestions.map((question, idx) => {
-                  const globalIndex = questions.findIndex(q => q === question);
-                  return (
-                    <div key={globalIndex} className="border rounded-lg p-4 space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="flex flex-col gap-1 mt-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 w-6 p-0"
-                            onClick={() => moveQuestion(globalIndex, 'up')}
-                            disabled={globalIndex === 0}
-                          >
-                            ↑
-                          </Button>
-                          <GripVertical className="w-4 h-4 text-muted-foreground" />
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 w-6 p-0"
-                            onClick={() => moveQuestion(globalIndex, 'down')}
-                            disabled={globalIndex === questions.length - 1}
-                          >
-                            ↓
-                          </Button>
-                        </div>
-                        <div className="flex-1 space-y-3">
-                          <Textarea
-                            placeholder="Interview question..."
-                            value={question.question_text}
-                            onChange={(e) => updateQuestion(globalIndex, 'question_text', e.target.value)}
-                            className="min-h-[80px]"
-                          />
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-sm font-medium">Category</label>
-                              <Select
-                                value={question.question_category}
-                                onValueChange={(value) => updateQuestion(globalIndex, 'question_category', value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {CATEGORIES.map(cat => (
-                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium">Competency</label>
-                              <Select
-                                value={question.competency}
-                                onValueChange={(value) => updateQuestion(globalIndex, 'competency', value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {COMPETENCIES.map(comp => (
-                                    <SelectItem key={comp} value={comp}>{comp}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => removeQuestion(globalIndex)}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
+        {totalItems === 0 ? (
+          <div className="text-center py-12 text-muted-foreground border border-dashed rounded-lg">
+            <p className="text-lg font-medium mb-2">No Requirements Defined</p>
+            <p className="text-sm">
+              Please complete the job requirements in the Job Wizard first.<br />
+              You need to add Essential/Desirable Criteria, Education, Competencies, or Language Requirements.
+            </p>
           </div>
         ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>No interview questions yet. Add your first question to get started.</p>
-          </div>
-        )}
+          <>
+            <div className="space-y-3">
+              {Object.entries(groupedRequirements).map(([category, items]) => 
+                renderRequirementSection(category, items)
+              )}
+              
+              {Object.entries(groupedCompetencies).map(([type, items]) => 
+                renderCompetencySection(type, items)
+              )}
 
-        {/* All questions list for editing */}
-        {questions.length === 0 && (
-          <div className="space-y-3">
-            {questions.map((question, index) => (
-              <div key={index} className="border rounded-lg p-4 space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="flex flex-col gap-1 mt-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 w-6 p-0"
-                      onClick={() => moveQuestion(index, 'up')}
-                      disabled={index === 0}
-                    >
-                      ↑
-                    </Button>
-                    <GripVertical className="w-4 h-4 text-muted-foreground" />
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 w-6 p-0"
-                      onClick={() => moveQuestion(index, 'down')}
-                      disabled={index === questions.length - 1}
-                    >
-                      ↓
-                    </Button>
-                  </div>
-                  <div className="flex-1 space-y-3">
-                    <Textarea
-                      placeholder="Interview question..."
-                      value={question.question_text}
-                      onChange={(e) => updateQuestion(index, 'question_text', e.target.value)}
-                      className="min-h-[80px]"
-                    />
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-sm font-medium">Category</label>
-                        <Select
-                          value={question.question_category}
-                          onValueChange={(value) => updateQuestion(index, 'question_category', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CATEGORIES.map(cat => (
-                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Competency</label>
-                        <Select
-                          value={question.competency}
-                          onValueChange={(value) => updateQuestion(index, 'competency', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {COMPETENCIES.map(comp => (
-                              <SelectItem key={comp} value={comp}>{comp}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+              {languages.length > 0 && (
+                <Collapsible
+                  open={expandedSections.has('languages')}
+                  onOpenChange={() => toggleSection('languages')}
+                  className="border rounded-lg"
+                >
+                  <CollapsibleTrigger className="w-full">
+                    <div className="flex items-center justify-between p-3 hover:bg-muted/50">
+                      <div className="flex items-center gap-2">
+                        {expandedSections.has('languages') ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                        <span className="font-medium">Language Requirements</span>
+                        <Badge variant="secondary">{languages.length}</Badge>
                       </div>
                     </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => removeQuestion(index)}
-                  >
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="p-3 pt-0 space-y-3">
+                      {languages.map(lang => {
+                        const langQuestions = getQuestionsForItem(undefined, undefined, lang.id);
+                        return (
+                          <div key={lang.id} className="border rounded-lg p-3 bg-card space-y-2">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">{lang.language} - {lang.level}</p>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => addQuestion(undefined, undefined, lang.id)}
+                              >
+                                <Plus className="w-3 h-3" />
+                              </Button>
+                            </div>
+                            
+                            {langQuestions.length > 0 && (
+                              <div className="space-y-2 mt-2">
+                                {langQuestions.map((q, qIndex) => {
+                                  const globalIndex = questions.findIndex(gq => gq === q);
+                                  return (
+                                    <div key={globalIndex} className="flex gap-2 bg-muted/30 p-2 rounded">
+                                      <Textarea
+                                        placeholder="Interview question..."
+                                        value={q.question_text}
+                                        onChange={(e) => updateQuestion(globalIndex, e.target.value)}
+                                        className="min-h-[60px] text-sm"
+                                      />
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => removeQuestion(globalIndex)}
+                                      >
+                                        <Trash2 className="w-3 h-3 text-destructive" />
+                                      </Button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+            </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-4 border-t">
-          <Button onClick={addQuestion} variant="outline">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Question
-          </Button>
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={generateFeedbackTemplate}
-              variant="secondary"
-              disabled={questions.length === 0 || generating}
-            >
-              <Wand2 className="w-4 h-4 mr-2" />
-              {generating ? 'Generating...' : 'Generate Feedback Template'}
-            </Button>
-            <Button onClick={saveQuestions} disabled={saving || questions.length === 0}>
-              <Save className="w-4 h-4 mr-2" />
-              {saving ? 'Saving...' : 'Save Questions'}
-            </Button>
-          </div>
-        </div>
+            <div className="flex gap-3 pt-4 border-t">
+              <Button onClick={saveQuestions} disabled={saving || questions.length === 0}>
+                <Save className="w-4 h-4 mr-2" />
+                {saving ? 'Saving...' : 'Save Questions'}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={generateFeedbackTemplate} 
+                disabled={generating || questions.length === 0}
+              >
+                <Wand2 className="w-4 h-4 mr-2" />
+                {generating ? 'Generating...' : 'Generate Feedback Template'}
+              </Button>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

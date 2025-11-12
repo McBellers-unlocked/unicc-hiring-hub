@@ -70,7 +70,7 @@ export function ApplicationScoring({ applicationId }: ApplicationScoringProps) {
           applications!inner(
             id,
             jobs!inner(
-              essential_criteria(*)
+              job_requirements(*)
             )
           )
         `)
@@ -89,7 +89,7 @@ export function ApplicationScoring({ applicationId }: ApplicationScoringProps) {
       }
 
       setScoringData(screeningScore.rubric_breakdown as unknown as ScoringBreakdown);
-      setCriteriaData(screeningScore.applications.jobs.essential_criteria || []);
+      setCriteriaData(screeningScore.applications.jobs.job_requirements || []);
 
     } catch (err) {
       console.error('Error fetching scoring data:', err);

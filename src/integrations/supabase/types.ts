@@ -561,47 +561,6 @@ export type Database = {
           },
         ]
       }
-      essential_criteria: {
-        Row: {
-          created_at: string
-          id: string
-          job_id: string
-          label: string
-          must_have: boolean | null
-          params: Json | null
-          validator: string | null
-          weight: number
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          job_id: string
-          label: string
-          must_have?: boolean | null
-          params?: Json | null
-          validator?: string | null
-          weight?: number
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          job_id?: string
-          label?: string
-          must_have?: boolean | null
-          params?: Json | null
-          validator?: string | null
-          weight?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "essential_criteria_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       evaluations: {
         Row: {
           application_id: string
@@ -739,6 +698,47 @@ export type Database = {
           },
         ]
       }
+      job_competencies: {
+        Row: {
+          competency_name: string
+          competency_type: string
+          created_at: string | null
+          description: string | null
+          id: string
+          job_id: string
+          order_index: number | null
+          weight: number | null
+        }
+        Insert: {
+          competency_name: string
+          competency_type: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          job_id: string
+          order_index?: number | null
+          weight?: number | null
+        }
+        Update: {
+          competency_name?: string
+          competency_type?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          job_id?: string
+          order_index?: number | null
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_competencies_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_email_alerts: {
         Row: {
           categories: Json | null
@@ -846,39 +846,49 @@ export type Database = {
       }
       job_interview_questions: {
         Row: {
-          competency: string | null
+          competency_id: string | null
           created_at: string | null
           created_by: string | null
           id: string
           job_id: string | null
+          language_requirement_id: string | null
           order_index: number | null
-          question_category: string | null
           question_text: string
+          requirement_id: string | null
           updated_at: string | null
         }
         Insert: {
-          competency?: string | null
+          competency_id?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
           job_id?: string | null
+          language_requirement_id?: string | null
           order_index?: number | null
-          question_category?: string | null
           question_text: string
+          requirement_id?: string | null
           updated_at?: string | null
         }
         Update: {
-          competency?: string | null
+          competency_id?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
           job_id?: string | null
+          language_requirement_id?: string | null
           order_index?: number | null
-          question_category?: string | null
           question_text?: string
+          requirement_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "job_interview_questions_competency_id_fkey"
+            columns: ["competency_id"]
+            isOneToOne: false
+            referencedRelation: "job_competencies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "job_interview_questions_created_by_fkey"
             columns: ["created_by"]
@@ -888,6 +898,108 @@ export type Database = {
           },
           {
             foreignKeyName: "job_interview_questions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_interview_questions_language_requirement_id_fkey"
+            columns: ["language_requirement_id"]
+            isOneToOne: false
+            referencedRelation: "job_language_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_interview_questions_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "job_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_language_requirements: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_essential: boolean | null
+          job_id: string
+          language: string
+          level: string
+          order_index: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_essential?: boolean | null
+          job_id: string
+          language: string
+          level: string
+          order_index?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_essential?: boolean | null
+          job_id?: string
+          language?: string
+          level?: string
+          order_index?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_language_requirements_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_requirements: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          job_id: string
+          must_have: boolean | null
+          order_index: number | null
+          params: Json | null
+          title: string
+          validator: string | null
+          weight: number
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          job_id: string
+          must_have?: boolean | null
+          order_index?: number | null
+          params?: Json | null
+          title: string
+          validator?: string | null
+          weight?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          job_id?: string
+          must_have?: boolean | null
+          order_index?: number | null
+          params?: Json | null
+          title?: string
+          validator?: string | null
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "essential_criteria_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"

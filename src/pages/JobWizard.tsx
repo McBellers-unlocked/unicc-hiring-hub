@@ -40,6 +40,51 @@ export interface JobFormData {
   essential_education_level: string;
   language_requirements: string;
   competencies: string;
+  structuredRequirements?: {
+    essentialCriteria: Array<{
+      id: string;
+      title: string;
+      description: string;
+      weight: number;
+      order_index: number;
+    }>;
+    desirableCriteria: Array<{
+      id: string;
+      title: string;
+      description: string;
+      weight: number;
+      order_index: number;
+    }>;
+    essentialEducation: Array<{
+      id: string;
+      title: string;
+      description: string;
+      weight: number;
+      order_index: number;
+    }>;
+    desirableEducation: Array<{
+      id: string;
+      title: string;
+      description: string;
+      weight: number;
+      order_index: number;
+    }>;
+    competencies: Array<{
+      id: string;
+      competency_type: 'Core' | 'Management' | 'Leadership';
+      competency_name: string;
+      description: string;
+      weight: number;
+      order_index: number;
+    }>;
+    languages: Array<{
+      id: string;
+      language: string;
+      level: 'Basic' | 'Working' | 'Expert';
+      is_essential: boolean;
+      order_index: number;
+    }>;
+  };
 
   // Step 4: Killer Questions
   killer_questions: Array<{
