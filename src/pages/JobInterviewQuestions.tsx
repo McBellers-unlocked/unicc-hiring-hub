@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Database } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +15,7 @@ export default function JobInterviewQuestions() {
   const { toast } = useToast();
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [migrating, setMigrating] = useState(false);
 
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
                     userRoles.includes('Chief of HR') || userRoles.includes('Hiring Manager');
@@ -45,6 +46,34 @@ export default function JobInterviewQuestions() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMigrate = async () => {
+    try {
+      setMigrating(true);
+      const { data, error } = await supabase.functions.invoke('migrate-job-requirements', {
+        body: { jobId },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Job requirements migrated successfully. Refreshing...",
+      });
+
+      // Refresh the page to show migrated data
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+      console.error('Migration error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to migrate job requirements",
+        variant: "destructive",
+      });
+    } finally {
+      setMigrating(false);
     }
   };
 
@@ -84,10 +113,19 @@ export default function JobInterviewQuestions() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <Button variant="outline" onClick={() => navigate('/admin/jobs')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Jobs
+          </Button>
+          
+          <Button 
+            variant="secondary" 
+            onClick={handleMigrate}
+            disabled={migrating}
+          >
+            <Database className="w-4 h-4 mr-2" />
+            {migrating ? 'Migrating...' : 'Migrate Old Data'}
           </Button>
         </div>
 
