@@ -1098,6 +1098,14 @@ export default function ApplicationDetail() {
           </TabsContent>
         </Tabs>
 
+        {/* Bottom Back Button */}
+        <div className="mt-8 flex justify-center">
+          <Button variant="outline" onClick={() => navigate(`/applications/manage?job=${application.job.id}`)}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Applications
+          </Button>
+        </div>
+
         {/* Status Change Dialog */}
         <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
           <DialogContent>
