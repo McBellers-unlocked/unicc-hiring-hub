@@ -305,28 +305,17 @@ export default function JobRequisitionForm() {
       setCurrentRequisition(data);
 
       if (data) {
-        // Debug logging
-        console.log('=== JobRequisitionForm Debug ===');
-        console.log('User roles:', userRoles);
-        console.log('Requisition data:', {
-          id: data.id,
-          status: data.status,
-          initial_request_submitted: data.initial_request_submitted,
-          initial_request_approved: data.initial_request_approved,
-          initial_request_approved_at: data.initial_request_approved_at,
-        });
-        
         // Check access control: Hiring managers need initial request approval
+        // BUT only if the requisition went through the initial request workflow
         const isHiringManager = userRoles.includes('Hiring Manager') && 
                                 !userRoles.includes('Admin') && 
                                 !userRoles.includes('HR Assistant') && 
                                 !userRoles.includes('Chief of HR');
         
-        console.log('Is Hiring Manager (needs approval):', isHiringManager);
-        console.log('Initial request approved value:', data.initial_request_approved);
-        console.log('Should block access:', isHiringManager && !data.initial_request_approved);
+        // Block access only if initial request was submitted but not yet approved
+        const needsApproval = data.initial_request_submitted === true && !data.initial_request_approved;
         
-        if (isHiringManager && !data.initial_request_approved) {
+        if (isHiringManager && needsApproval) {
           toast({
             title: "Access Denied",
             description: "Initial request must be approved before creating full position description",
