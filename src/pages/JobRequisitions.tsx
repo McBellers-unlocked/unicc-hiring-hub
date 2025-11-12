@@ -37,6 +37,8 @@ interface JobRequisition {
   director_sent_at: string | null;
   pdf_url?: string;
   converted_to_job_id?: string;
+  initial_request_submitted?: boolean;
+  initial_request_approved?: boolean;
 }
 
 export default function JobRequisitions() {
@@ -322,7 +324,14 @@ export default function JobRequisitions() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/requisitions/${requisition.id}`)}
+                        onClick={() => {
+                          // Route to initial request form if it's still in initial request stage
+                          if (requisition.initial_request_submitted && !requisition.initial_request_approved) {
+                            navigate(`/requisitions/initial/${requisition.id}`);
+                          } else {
+                            navigate(`/requisitions/${requisition.id}`);
+                          }
+                        }}
                       >
                         View Details
                       </Button>
