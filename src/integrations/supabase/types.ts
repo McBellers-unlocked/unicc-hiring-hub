@@ -1773,6 +1773,7 @@ export type Database = {
         | "Hiring Manager"
         | "Panel Member"
         | "Candidate"
+        | "Chief of HR"
       video_assignment_status:
         | "NotStarted"
         | "LinkOpened"
@@ -1937,6 +1938,7 @@ export const Constants = {
         "Hiring Manager",
         "Panel Member",
         "Candidate",
+        "Chief of HR",
       ],
       video_assignment_status: [
         "NotStarted",
