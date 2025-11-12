@@ -20,9 +20,10 @@ interface Job {
   timezone: string;
   application_count?: number;
   requisition_status?: string | null;
+  application_statuses?: { status: string; count: number }[];
 }
 
-type JobDisplayStatus = 'active' | 'closing' | 'longlisting' | 'closed' | 'pipeline';
+type JobDisplayStatus = 'active' | 'closing' | 'longlisting' | 'hm_shortlisting' | 'video_interview' | 'panel_interview' | 'closed' | 'pipeline';
 
 export default function ApplicationJobSelection() {
   const { userRoles } = useAuth();
@@ -79,7 +80,7 @@ export default function ApplicationJobSelection() {
         .from('job_requisitions')
         .select('id, converted_to_job_id, status, initial_request_approved');
 
-      // Fetch application counts for each job
+      // Fetch application counts and statuses for each job
       if (data) {
         const jobsWithCounts = await Promise.all(
           data.map(async (job) => {
@@ -87,6 +88,24 @@ export default function ApplicationJobSelection() {
               .from('applications')
               .select('*', { count: 'exact', head: true })
               .eq('job_id', job.id);
+            
+            // Fetch application status breakdown
+            const { data: statusData } = await supabase
+              .from('applications')
+              .select('status')
+              .eq('job_id', job.id);
+            
+            // Count applications by status
+            const statusCounts = statusData?.reduce((acc, app) => {
+              const status = app.status || 'Application';
+              acc[status] = (acc[status] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>);
+            
+            const application_statuses = Object.entries(statusCounts || {}).map(([status, count]) => ({
+              status,
+              count
+            }));
             
             // Find if this job has an associated requisition in pipeline
             const requisition = requisitions?.find(req => req.converted_to_job_id === job.id);
@@ -110,6 +129,7 @@ export default function ApplicationJobSelection() {
             return { 
               ...job, 
               application_count: count || 0,
+              application_statuses,
               requisition_status: isPipeline ? requisition.status : null
             };
           })
@@ -143,6 +163,35 @@ export default function ApplicationJobSelection() {
       return 'pipeline';
     }
     
+    // Determine recruitment stage based on application statuses
+    const statuses = job.application_statuses || [];
+    const totalApps = job.application_count || 0;
+    
+    if (totalApps > 0 && statuses.length > 0) {
+      // Get count of applications in each stage
+      const inApplication = statuses.find(s => s.status === 'Application')?.count || 0;
+      const inLonglist = statuses.find(s => s.status === 'Longlist')?.count || 0;
+      const inShortlist = statuses.find(s => s.status === 'Shortlist')?.count || 0;
+      const inVideoInterview = statuses.find(s => s.status === 'Video Interview')?.count || 0;
+      const inPanelInterview = statuses.find(s => s.status === 'Panel Interview')?.count || 0;
+      const rejected = statuses.find(s => s.status === 'Rejected')?.count || 0;
+      
+      // Panel Interview Stage: All apps are in panel interview or beyond/rejected
+      if (inPanelInterview > 0 && (inPanelInterview + rejected) === totalApps) {
+        return 'panel_interview';
+      }
+      
+      // Video Interview Stage: All apps are in video interview or beyond/rejected
+      if (inVideoInterview > 0 && (inVideoInterview + inPanelInterview + rejected) === totalApps) {
+        return 'video_interview';
+      }
+      
+      // Hiring Manager Shortlisting: All apps have been longlisted/shortlisted or rejected
+      if ((inLonglist + inShortlist) > 0 && (inLonglist + inShortlist + inVideoInterview + inPanelInterview + rejected) === totalApps) {
+        return 'hm_shortlisting';
+      }
+    }
+    
     // Check if closed and determine longlisting vs fully closed
     if (job.status === 'closed' || (job.closing_date && new Date(job.closing_date) < new Date())) {
       if (job.closing_date) {
@@ -151,9 +200,13 @@ export default function ApplicationJobSelection() {
         const fourteenDaysAfterClosing = new Date(closingDate);
         fourteenDaysAfterClosing.setDate(closingDate.getDate() + 14);
         
-        // If within 14 days of closing, show as "Longlisting"
+        // If within 14 days of closing and still has applications to review
         if (now <= fourteenDaysAfterClosing && now > closingDate) {
-          return 'longlisting';
+          // If there are still applications in "Application" status, show longlisting
+          const inApplication = statuses.find(s => s.status === 'Application')?.count || 0;
+          if (inApplication > 0 || totalApps === 0) {
+            return 'longlisting';
+          }
         }
       }
       return 'closed';
@@ -185,6 +238,9 @@ export default function ApplicationJobSelection() {
     active: jobs.filter(j => getJobDisplayStatus(j) === 'active').length,
     closing: jobs.filter(j => getJobDisplayStatus(j) === 'closing').length,
     longlisting: jobs.filter(j => getJobDisplayStatus(j) === 'longlisting').length,
+    hm_shortlisting: jobs.filter(j => getJobDisplayStatus(j) === 'hm_shortlisting').length,
+    video_interview: jobs.filter(j => getJobDisplayStatus(j) === 'video_interview').length,
+    panel_interview: jobs.filter(j => getJobDisplayStatus(j) === 'panel_interview').length,
     closed: jobs.filter(j => getJobDisplayStatus(j) === 'closed').length,
     pipeline: jobs.filter(j => getJobDisplayStatus(j) === 'pipeline').length,
     totalApplications: jobs.reduce((sum, j) => sum + (j.application_count || 0), 0),
@@ -203,18 +259,22 @@ export default function ApplicationJobSelection() {
       if (activeFilter === 'all') return true;
       if (activeFilter === 'active-closing') {
         const status = getJobDisplayStatus(job);
-        return status === 'active' || status === 'closing' || status === 'longlisting';
+        return status === 'active' || status === 'closing' || status === 'longlisting' || 
+               status === 'hm_shortlisting' || status === 'video_interview' || status === 'panel_interview';
       }
       return getJobDisplayStatus(job) === activeFilter;
     })
     .sort((a, b) => {
-      // Sort by display status priority: Active, Closing, Longlisting, Pipeline, Closed
+      // Sort by display status priority
       const statusOrder: Record<JobDisplayStatus, number> = {
         active: 1,
         closing: 2,
         longlisting: 3,
-        pipeline: 4,
-        closed: 5
+        hm_shortlisting: 4,
+        video_interview: 5,
+        panel_interview: 6,
+        pipeline: 7,
+        closed: 8
       };
       
       const aStatus = getJobDisplayStatus(a);
@@ -232,6 +292,9 @@ export default function ApplicationJobSelection() {
     active: filteredJobs.filter(j => getJobDisplayStatus(j) === 'active'),
     closing: filteredJobs.filter(j => getJobDisplayStatus(j) === 'closing'),
     longlisting: filteredJobs.filter(j => getJobDisplayStatus(j) === 'longlisting'),
+    hm_shortlisting: filteredJobs.filter(j => getJobDisplayStatus(j) === 'hm_shortlisting'),
+    video_interview: filteredJobs.filter(j => getJobDisplayStatus(j) === 'video_interview'),
+    panel_interview: filteredJobs.filter(j => getJobDisplayStatus(j) === 'panel_interview'),
     closed: filteredJobs.filter(j => getJobDisplayStatus(j) === 'closed'),
     pipeline: filteredJobs.filter(j => getJobDisplayStatus(j) === 'pipeline'),
   };
@@ -251,6 +314,18 @@ export default function ApplicationJobSelection() {
       longlisting: { 
         label: 'Longlisting', 
         className: 'bg-orange-500 hover:bg-orange-600 text-white'
+      },
+      hm_shortlisting: { 
+        label: 'HM Shortlisting', 
+        className: 'bg-blue-500 hover:bg-blue-600 text-white'
+      },
+      video_interview: { 
+        label: 'Video Interview', 
+        className: 'bg-indigo-500 hover:bg-indigo-600 text-white'
+      },
+      panel_interview: { 
+        label: 'Panel Interview', 
+        className: 'bg-violet-500 hover:bg-violet-600 text-white'
       },
       closed: { 
         label: 'Closed', 
@@ -273,6 +348,9 @@ export default function ApplicationJobSelection() {
       active: 'Active',
       closing: 'Closing',
       longlisting: 'Longlisting',
+      hm_shortlisting: 'HM Shortlisting',
+      video_interview: 'Video Interview',
+      panel_interview: 'Panel Interview',
       closed: 'Closed',
       pipeline: 'Pipeline'
     } as const;
@@ -385,11 +463,11 @@ export default function ApplicationJobSelection() {
         ) : (
           <>
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4 mb-8">
               <StatsCard
                 title="Active Jobs"
                 value={stats.active}
-                subtitle={`${stats.totalApplications} total applications`}
+                subtitle="Accepting applications"
                 icon={Briefcase}
                 className="cursor-pointer"
                 onClick={() => setActiveFilter('active')}
@@ -406,24 +484,49 @@ export default function ApplicationJobSelection() {
               <StatsCard
                 title="Longlisting"
                 value={stats.longlisting}
-                subtitle="14-day KPI period"
+                subtitle="14-day KPI"
                 icon={AlertCircle}
                 alert={stats.longlisting > 0}
                 className="cursor-pointer"
                 onClick={() => setActiveFilter('longlisting')}
               />
               <StatsCard
-                title="Pipeline Jobs"
+                title="HM Shortlisting"
+                value={stats.hm_shortlisting}
+                subtitle="Manager review"
+                icon={Users}
+                alert={stats.hm_shortlisting > 0}
+                className="cursor-pointer"
+                onClick={() => setActiveFilter('hm_shortlisting')}
+              />
+              <StatsCard
+                title="Video Interview"
+                value={stats.video_interview}
+                subtitle="Video stage"
+                icon={Users}
+                className="cursor-pointer"
+                onClick={() => setActiveFilter('video_interview')}
+              />
+              <StatsCard
+                title="Panel Interview"
+                value={stats.panel_interview}
+                subtitle="Panel stage"
+                icon={Users}
+                className="cursor-pointer"
+                onClick={() => setActiveFilter('panel_interview')}
+              />
+              <StatsCard
+                title="Pipeline"
                 value={stats.pipeline}
-                subtitle="PD in progress"
+                subtitle="PD workflow"
                 icon={Users}
                 className="cursor-pointer"
                 onClick={() => setActiveFilter('pipeline')}
               />
               <StatsCard
-                title="Closed Jobs"
+                title="Closed"
                 value={stats.closed}
-                subtitle="Past 14-day period"
+                subtitle="Completed"
                 className="cursor-pointer"
                 onClick={() => setActiveFilter('closed')}
               />
@@ -436,10 +539,10 @@ export default function ApplicationJobSelection() {
                 onClick={() => setActiveFilter('active-closing')}
                 size="sm"
               >
-                Active & Priority
+                Active & In Progress
                 {activeFilter === 'active-closing' && (
                   <Badge variant="secondary" className="ml-2 bg-primary-foreground text-primary">
-                    {stats.active + stats.closing + stats.longlisting}
+                    {stats.active + stats.closing + stats.longlisting + stats.hm_shortlisting + stats.video_interview + stats.panel_interview}
                   </Badge>
                 )}
               </Button>
@@ -488,6 +591,42 @@ export default function ApplicationJobSelection() {
                 {activeFilter === 'longlisting' && (
                   <Badge variant="secondary" className="ml-2 bg-primary-foreground text-primary">
                     {stats.longlisting}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                variant={activeFilter === 'hm_shortlisting' ? 'default' : 'outline'}
+                onClick={() => setActiveFilter('hm_shortlisting')}
+                size="sm"
+              >
+                HM Shortlisting
+                {activeFilter === 'hm_shortlisting' && (
+                  <Badge variant="secondary" className="ml-2 bg-primary-foreground text-primary">
+                    {stats.hm_shortlisting}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                variant={activeFilter === 'video_interview' ? 'default' : 'outline'}
+                onClick={() => setActiveFilter('video_interview')}
+                size="sm"
+              >
+                Video Interview
+                {activeFilter === 'video_interview' && (
+                  <Badge variant="secondary" className="ml-2 bg-primary-foreground text-primary">
+                    {stats.video_interview}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                variant={activeFilter === 'panel_interview' ? 'default' : 'outline'}
+                onClick={() => setActiveFilter('panel_interview')}
+                size="sm"
+              >
+                Panel Interview
+                {activeFilter === 'panel_interview' && (
+                  <Badge variant="secondary" className="ml-2 bg-primary-foreground text-primary">
+                    {stats.panel_interview}
                   </Badge>
                 )}
               </Button>
@@ -565,6 +704,30 @@ export default function ApplicationJobSelection() {
                     </div>
                   </div>
                 )}
+                
+                {/* Hiring Manager Shortlisting */}
+                {groupedJobs.hm_shortlisting.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+                        Hiring Manager Shortlisting
+                        <Badge variant="secondary" className="text-xs">
+                          {groupedJobs.hm_shortlisting.length}
+                        </Badge>
+                      </h2>
+                      <Badge className="bg-blue-500 text-white">Manager Review Stage</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {groupedJobs.hm_shortlisting.map(renderJobCard)}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Video Interview */}
+                {renderJobSection('Video Interview Stage', groupedJobs.video_interview, groupedJobs.video_interview.length)}
+                
+                {/* Panel Interview */}
+                {renderJobSection('Panel Interview Stage', groupedJobs.panel_interview, groupedJobs.panel_interview.length)}
                 
                 {/* Pipeline Jobs */}
                 {renderJobSection('Pipeline Jobs', groupedJobs.pipeline, groupedJobs.pipeline.length)}
