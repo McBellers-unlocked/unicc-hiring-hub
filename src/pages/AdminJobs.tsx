@@ -46,7 +46,10 @@ interface Job {
     in_progress: number;
     by_status: Record<string, number>;
   };
+  requisition_status?: string | null;
 }
+
+type JobDisplayStatus = 'active' | 'closing' | 'closed' | 'pipeline';
 
 export default function AdminJobs() {
   const { userRoles } = useAuth();
@@ -73,12 +76,20 @@ export default function AdminJobs() {
   const fetchJobs = async () => {
     try {
       setLoading(true);
+      
+      // Fetch jobs
       const { data, error } = await supabase
         .from('jobs')
         .select('id, title, location, org_unit, closing_date, status, updated_at, slug, timezone')
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
+      
+      // Fetch requisitions to identify pipeline jobs
+      const { data: requisitions } = await supabase
+        .from('job_requisitions')
+        .select('id, converted_to_job_id, status, initial_request_approved')
+        .not('converted_to_job_id', 'is', null);
       
       // Fetch application statistics for each job
       const jobsWithStats = await Promise.all(
@@ -90,7 +101,7 @@ export default function AdminJobs() {
 
           if (appError) {
             console.error('Error fetching applications for job:', job.id, appError);
-            return { ...job, application_stats: { total: 0, completed: 0, in_progress: 0, by_status: {} } };
+            return { ...job, application_stats: { total: 0, completed: 0, in_progress: 0, by_status: {} }, requisition_status: null };
           }
 
           const total = applications?.length || 0;
@@ -102,6 +113,12 @@ export default function AdminJobs() {
             return acc;
           }, {} as Record<string, number>) || {};
 
+          // Find if this job has an associated requisition in pipeline
+          const requisition = requisitions?.find(req => req.converted_to_job_id === job.id);
+          const isPipeline = requisition && 
+                            requisition.initial_request_approved && 
+                            !['draft', 'initial_request_draft', 'initial_request_submitted'].includes(requisition.status || '');
+
           return {
             ...job,
             application_count: total,
@@ -110,7 +127,8 @@ export default function AdminJobs() {
               completed,
               in_progress,
               by_status
-            }
+            },
+            requisition_status: isPipeline ? requisition.status : null
           };
         })
       );
@@ -221,17 +239,66 @@ export default function AdminJobs() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      draft: "secondary",
-      active: "default",
-      closed: "outline",
-      archived: "destructive"
+  // Determine the display status for a job
+  const getJobDisplayStatus = (job: Job): JobDisplayStatus => {
+    // Pipeline takes precedence if job has an active requisition
+    if (job.requisition_status) {
+      return 'pipeline';
+    }
+    
+    // Check if closed
+    if (job.status === 'closed') {
+      return 'closed';
+    }
+    
+    // Check if closing within 3 days
+    if (job.status === 'active' && job.closing_date) {
+      const closingDate = new Date(job.closing_date);
+      const now = new Date();
+      const threeDaysFromNow = new Date();
+      threeDaysFromNow.setDate(now.getDate() + 3);
+      
+      if (closingDate <= threeDaysFromNow && closingDate > now) {
+        return 'closing';
+      }
+    }
+    
+    // Default to active for active jobs
+    if (job.status === 'active') {
+      return 'active';
+    }
+    
+    // For draft/archived, return closed
+    return 'closed';
+  };
+
+  const getStatusBadge = (job: Job) => {
+    const displayStatus = getJobDisplayStatus(job);
+    
+    const badgeConfig = {
+      active: { 
+        label: 'Active', 
+        className: 'bg-green-500 hover:bg-green-600 text-white'
+      },
+      closing: { 
+        label: 'Closing', 
+        className: 'bg-amber-500 hover:bg-amber-600 text-white'
+      },
+      closed: { 
+        label: 'Closed', 
+        className: 'bg-red-500 hover:bg-red-600 text-white'
+      },
+      pipeline: { 
+        label: 'Pipeline', 
+        className: 'bg-purple-400 hover:bg-purple-500 text-white'
+      }
     } as const;
 
+    const config = badgeConfig[displayStatus];
+
     return (
-      <Badge variant={variants[status as keyof typeof variants] || "secondary"}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+      <Badge className={config.className}>
+        {config.label}
       </Badge>
     );
   };
@@ -284,28 +351,47 @@ export default function AdminJobs() {
     return () => clearInterval(interval);
   }, [hasAccess]);
 
-  // Filter jobs based on search and filters
-  const filteredJobs = jobs.filter(job => {
-    const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         job.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         job.org_unit?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
-    const matchesOrgUnit = orgUnitFilter === 'all' || job.org_unit === orgUnitFilter;
-    const matchesLocation = locationFilter === 'all' || job.location === locationFilter;
-    
-    let matchesClosing = true;
-    if (closingFilter === 'closing_7_days') {
-      const sevenDaysFromNow = new Date();
-      sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-      matchesClosing = job.closing_date ? new Date(job.closing_date) <= sevenDaysFromNow : false;
-    } else if (closingFilter === 'expired') {
-      const now = new Date();
-      matchesClosing = job.closing_date ? new Date(job.closing_date) < now : false;
-    }
-    
-    return matchesSearch && matchesStatus && matchesOrgUnit && matchesLocation && matchesClosing;
-  });
+  // Filter and sort jobs based on search and filters
+  const filteredJobs = jobs
+    .filter(job => {
+      const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           job.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           job.org_unit?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
+      const matchesOrgUnit = orgUnitFilter === 'all' || job.org_unit === orgUnitFilter;
+      const matchesLocation = locationFilter === 'all' || job.location === locationFilter;
+      
+      let matchesClosing = true;
+      if (closingFilter === 'closing_7_days') {
+        const sevenDaysFromNow = new Date();
+        sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+        matchesClosing = job.closing_date ? new Date(job.closing_date) <= sevenDaysFromNow : false;
+      } else if (closingFilter === 'expired') {
+        const now = new Date();
+        matchesClosing = job.closing_date ? new Date(job.closing_date) < now : false;
+      }
+      
+      return matchesSearch && matchesStatus && matchesOrgUnit && matchesLocation && matchesClosing;
+    })
+    .sort((a, b) => {
+      // Sort by display status priority: Active, Closing, Closed, Pipeline
+      const statusOrder: Record<JobDisplayStatus, number> = {
+        active: 1,
+        closing: 2,
+        closed: 3,
+        pipeline: 4
+      };
+      
+      const aStatus = getJobDisplayStatus(a);
+      const bStatus = getJobDisplayStatus(b);
+      
+      const statusDiff = statusOrder[aStatus] - statusOrder[bStatus];
+      if (statusDiff !== 0) return statusDiff;
+      
+      // Within same status, sort by updated_at (most recent first)
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
 
   // Get unique values for filters
   const uniqueOrgUnits = [...new Set(jobs.map(job => job.org_unit).filter(Boolean))];
@@ -479,7 +565,7 @@ export default function AdminJobs() {
                             {formatClosingDate(job.closing_date, job.timezone)}
                           </div>
                         </TableCell>
-                        <TableCell>{getStatusBadge(job.status)}</TableCell>
+                        <TableCell>{getStatusBadge(job)}</TableCell>
                         <TableCell className="text-muted-foreground">
                           {format(new Date(job.updated_at), 'dd/MM/yyyy')}
                         </TableCell>
