@@ -202,7 +202,7 @@ export default function InitialRequestForm() {
         funding_status: formData.funding_status,
         funding_comments: formData.funding_comments || null,
         initial_request_submitted: submit,
-        status: submit ? 'initial_request' : 'draft',
+        status: 'draft',
         updated_at: new Date().toISOString(),
       };
 
