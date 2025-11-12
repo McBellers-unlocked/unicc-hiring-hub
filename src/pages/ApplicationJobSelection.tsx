@@ -171,7 +171,8 @@ export default function ApplicationJobSelection() {
       const inApplication = statuses.find(s => s.status === 'Application')?.count || 0;
       const inLonglist = statuses.find(s => s.status === 'Longlist')?.count || 0;
       const inShortlist = statuses.find(s => s.status === 'Shortlist')?.count || 0;
-      const inVideoInterview = statuses.find(s => s.status === 'Video Interview')?.count || 0;
+      const inVideoInterview = (statuses.find(s => s.status === 'Video Interview')?.count || 0) + 
+                               (statuses.find(s => s.status === 'Pre-Recorded Video')?.count || 0);
       const inPanelInterview = statuses.find(s => s.status === 'Panel Interview')?.count || 0;
       
       // Debug logging
