@@ -387,6 +387,67 @@ export default function InitialRequestForm() {
               />
             </div>
 
+            {/* Unit/Section/Division */}
+            <div className="space-y-3">
+              <Label>Unit/Section/Division</Label>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="division" className="text-sm text-muted-foreground">Division</Label>
+                  <Select 
+                    value={selectedDivision} 
+                    onValueChange={(value) => {
+                      setSelectedDivision(value);
+                      setSelectedUnit("");
+                      setFormData(prev => ({ ...prev, unit_section_division: "" }));
+                    }}
+                  >
+                    <SelectTrigger id="division">
+                      <SelectValue placeholder="Select division..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background">
+                      {Object.entries(DIVISIONS).map(([key, name]) => (
+                        <SelectItem key={key} value={key}>
+                          {name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {selectedDivision && (
+                  <div>
+                    <Label htmlFor="unit-section" className="text-sm text-muted-foreground">Unit/Section</Label>
+                    <Select 
+                      value={selectedUnit} 
+                      onValueChange={(value) => {
+                        setSelectedUnit(value);
+                        setFormData(prev => ({ ...prev, unit_section_division: value }));
+                      }}
+                    >
+                      <SelectTrigger id="unit-section">
+                        <SelectValue placeholder="Select unit/section..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background">
+                        {/* Main Division Option */}
+                        <SelectItem key={selectedDivision} value={DIVISIONS[selectedDivision]}>
+                          {DIVISIONS[selectedDivision]} (Main Division)
+                        </SelectItem>
+                        {/* Individual Units/Sections */}
+                        {DIVISION_UNITS[selectedDivision].map((unit) => (
+                          <SelectItem key={unit} value={unit}>
+                            {unit}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Choose the division first, then select the specific unit/section within that division.
+              </p>
+            </div>
+
             {/* Contract Type */}
             <div className="space-y-2">
               <Label>Type of Contract *</Label>
@@ -490,72 +551,18 @@ export default function InitialRequestForm() {
               </div>
             )}
 
-            {/* Unit/Section/Division */}
-            <div className="space-y-3">
-              <Label>Unit/Section/Division</Label>
-              <div className="space-y-3">
-                <div>
-                  <Label htmlFor="division" className="text-sm text-muted-foreground">Division</Label>
-                  <Select 
-                    value={selectedDivision} 
-                    onValueChange={(value) => {
-                      setSelectedDivision(value);
-                      setSelectedUnit("");
-                      setFormData(prev => ({ ...prev, unit_section_division: "" }));
-                    }}
-                  >
-                    <SelectTrigger id="division">
-                      <SelectValue placeholder="Select division..." />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background">
-                      {Object.entries(DIVISIONS).map(([key, name]) => (
-                        <SelectItem key={key} value={key}>
-                          {name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                {selectedDivision && (
-                  <div>
-                    <Label htmlFor="unit-section" className="text-sm text-muted-foreground">Unit/Section</Label>
-                    <Select 
-                      value={selectedUnit} 
-                      onValueChange={(value) => {
-                        setSelectedUnit(value);
-                        setFormData(prev => ({ ...prev, unit_section_division: value }));
-                      }}
-                    >
-                      <SelectTrigger id="unit-section">
-                        <SelectValue placeholder="Select unit/section..." />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background">
-                        {/* Main Division Option */}
-                        <SelectItem key={selectedDivision} value={DIVISIONS[selectedDivision]}>
-                          {DIVISIONS[selectedDivision]} (Main Division)
-                        </SelectItem>
-                        {/* Individual Units/Sections */}
-                        {DIVISION_UNITS[selectedDivision].map((unit) => (
-                          <SelectItem key={unit} value={unit}>
-                            {unit}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Choose the division first, then select the specific unit/section within that division.
-              </p>
-            </div>
-
             {/* Location */}
             <div className="space-y-2">
               <Label>Location (Duty Station) *</Label>
               <div className="space-y-2">
-                {LOCATIONS.map((location) => (
+                {LOCATIONS.filter(location => {
+                  // Only show Remote for Consultant or Intern
+                  if (location === 'Remote') {
+                    return formData.nature_of_position === 'Individual Consultant' || 
+                           formData.nature_of_position === 'Intern';
+                  }
+                  return true;
+                }).map((location) => (
                   <div key={location} className="flex items-center space-x-2">
                     <Checkbox
                       id={`location-${location}`}
