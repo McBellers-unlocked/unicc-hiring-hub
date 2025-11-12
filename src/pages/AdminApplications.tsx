@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Filter, User, FileText, Calendar, AlertCircle, Trash2, Eye, ChevronDown, ChevronRight, GraduationCap, Briefcase, Languages, Plus, Check, X, Edit, Users } from 'lucide-react';
+import { Search, Filter, User, FileText, Calendar, AlertCircle, Trash2, Eye, ChevronDown, ChevronRight, GraduationCap, Briefcase, Languages, Plus, Check, X, Edit, Users, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
 import { CandidateApplicationCard } from '@/components/CandidateApplicationCard';
@@ -1286,6 +1286,17 @@ export default function AdminApplications() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
+        {selectedJobId && (
+          <Button
+            onClick={() => navigate('/applications/manage')}
+            variant="outline"
+            className="mb-4 flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Jobs
+          </Button>
+        )}
+        
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Application Management</h1>
@@ -1645,6 +1656,17 @@ export default function AdminApplications() {
               </TooltipProvider>
             </CardContent>
           </Card>
+        )}
+
+        {selectedJobId && (
+          <Button
+            onClick={() => navigate('/applications/manage')}
+            variant="outline"
+            className="mt-6 flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Jobs
+          </Button>
         )}
       </div>
       
