@@ -82,7 +82,7 @@ export const PanelInterviewScheduler: React.FC<PanelInterviewSchedulerProps> = (
       const { data, error } = await supabase
         .from('users')
         .select('id, name, email, role')
-        .in('role', ['Admin', 'HR Assistant', 'Hiring Manager', 'Panel Member'])
+        .like('email', '%@unicc.org')
         .order('name');
 
       if (error) throw error;
@@ -181,7 +181,7 @@ export const PanelInterviewScheduler: React.FC<PanelInterviewSchedulerProps> = (
       const createdExternalIds: string[] = [];
       for (const external of externalPanelists) {
         const { data: externalData, error: externalError } = await supabase
-          .from('external_panel_members')
+          .from('external_panel_members' as any)
           .insert({
             name: external.name,
             position: external.position,
@@ -192,7 +192,9 @@ export const PanelInterviewScheduler: React.FC<PanelInterviewSchedulerProps> = (
           .single();
 
         if (externalError) throw externalError;
-        createdExternalIds.push(externalData.id);
+        if (externalData && 'id' in externalData) {
+          createdExternalIds.push(externalData.id as string);
+        }
       }
 
       // Create interview record
