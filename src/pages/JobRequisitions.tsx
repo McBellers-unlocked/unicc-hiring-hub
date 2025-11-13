@@ -354,20 +354,28 @@ export default function JobRequisitions() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          // Route to initial request form if:
-                          // 1. Initial request was submitted but not approved, OR
-                          // 2. Initial request draft exists (has funding_status/brief_outline but not submitted)
-                          const hasInitialRequestData = !!requisition.funding_status || !!requisition.brief_outline;
-                          const isStillInitialRequest = hasInitialRequestData && !requisition.initial_request_approved;
-                          
-                          if (isStillInitialRequest) {
-                            navigate(`/requisitions/initial/${requisition.id}`);
+                          // Route to hiring manager review if status is hiring_manager_review and user is the hiring manager
+                          if (requisition.status === 'hiring_manager_review' && requisition.created_by === user?.id) {
+                            navigate(`/requisitions/${requisition.id}/hm-review`);
                           } else {
-                            navigate(`/requisitions/${requisition.id}`);
+                            // Route to initial request form if:
+                            // 1. Initial request was submitted but not approved, OR
+                            // 2. Initial request draft exists (has funding_status/brief_outline but not submitted)
+                            const hasInitialRequestData = !!requisition.funding_status || !!requisition.brief_outline;
+                            const isStillInitialRequest = hasInitialRequestData && !requisition.initial_request_approved;
+                            
+                            if (isStillInitialRequest) {
+                              navigate(`/requisitions/initial/${requisition.id}`);
+                            } else {
+                              navigate(`/requisitions/${requisition.id}`);
+                            }
                           }
                         }}
                       >
-                        View Details
+                        {requisition.status === 'hiring_manager_review' && requisition.created_by === user?.id 
+                          ? 'Review HR Changes' 
+                          : 'View Details'
+                        }
                       </Button>
                       {/* Only show PDF for Admin and HR Assistant */}
                       {requisition.pdf_url && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
