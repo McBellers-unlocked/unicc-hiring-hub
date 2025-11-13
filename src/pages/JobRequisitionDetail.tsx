@@ -43,6 +43,7 @@ interface JobRequisition {
   hr_reviewed_by: string;
   hr_reviewed_at: string;
   hr_comments: string;
+  hr_final_review_completed: boolean;
   hiring_manager_confirmed_hr_changes: boolean;
   hiring_manager_confirmed_at: string;
   pdf_url: string;
@@ -733,12 +734,12 @@ export default function JobRequisitionDetail() {
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                {requisition.chief_of_division_approval ? (
+                {(requisition.chief_of_division_approval && requisition.hr_final_review_completed) ? (
                   <CheckCircle className="h-5 w-5 text-green-500" />
                 ) : (
                   <Clock className="h-5 w-5 text-gray-400" />
                 )}
-                <span className={requisition.chief_of_division_approval ? "text-green-700" : "text-gray-500"}>
+                <span className={(requisition.chief_of_division_approval && requisition.hr_final_review_completed) ? "text-green-700" : "text-gray-500"}>
                   Chief of Division Final Approval
                 </span>
               </div>
