@@ -47,11 +47,30 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
 
   // Generate HTML with track changes
   const generateHTML = () => {
-    // Determine the baseline to compare against
-    const baseline = hrChangesAccepted ? hrValue : originalValue;
+    // Always compare currentValue against hrValue to show Chief HR's changes
+    // HR's original changes are visible as the difference between originalValue and hrValue
     
-    // For HR changes not yet accepted, show them first
-    if (!hrChangesAccepted && hasHRChanges) {
+    if (currentValue !== hrValue) {
+      // Show Chief HR's changes compared to HR's version (in purple/blue)
+      const chiefDiff = Diff.diffWords(hrValue || "", currentValue || "");
+      let html = "";
+      
+      chiefDiff.forEach((part) => {
+        const text = escapeHtml(part.value);
+        if (part.removed) {
+          html += `<span style="color: #2563eb; text-decoration: line-through; background-color: #eff6ff;" title="Removed by Chief HR">${text}</span>`;
+        } else if (part.added) {
+          html += `<span style="color: #9333ea; text-decoration: underline; background-color: #faf5ff;" title="Added by Chief HR">${text}</span>`;
+        } else {
+          html += text;
+        }
+      });
+      
+      return html || '<span style="color: #9ca3af;">No content</span>';
+    }
+    
+    // No Chief HR changes, show HR's changes (green/red) if they exist
+    if (hasHRChanges && !hrChangesAccepted) {
       const hrDiff = Diff.diffWords(originalValue || "", hrValue || "");
       let html = "";
       
@@ -69,27 +88,8 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
       return html || '<span style="color: #9ca3af;">No content</span>';
     }
     
-    // For accepted HR changes or no HR changes, show Chief HR's changes
-    if (currentValue !== baseline) {
-      const chiefDiff = Diff.diffWords(baseline || "", currentValue || "");
-      let html = "";
-      
-      chiefDiff.forEach((part) => {
-        const text = escapeHtml(part.value);
-        if (part.removed) {
-          html += `<span style="color: #2563eb; text-decoration: line-through; background-color: #eff6ff;" title="Removed by Chief HR">${text}</span>`;
-        } else if (part.added) {
-          html += `<span style="color: #9333ea; text-decoration: underline; background-color: #faf5ff;" title="Added by Chief HR">${text}</span>`;
-        } else {
-          html += text;
-        }
-      });
-      
-      return html || '<span style="color: #9ca3af;">No content</span>';
-    }
-    
-    // No changes, show plain text
-    return escapeHtml(currentValue || "") || '<span style="color: #9ca3af;">No content</span>';
+    // No changes at all, show plain text
+    return escapeHtml(currentValue || hrValue || "") || '<span style="color: #9ca3af;">No content</span>';
   };
 
   // Handle input from contentEditable
@@ -97,17 +97,20 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
     if (contentRef.current) {
       // Extract plain text, converting <br> back to newlines
       const plainText = contentRef.current.innerText || "";
+      console.log('[EditableTrackChanges] Input changed:', { plainText, hrValue, currentValue });
       onChange(plainText);
     }
   };
 
   // Handle focus
   const handleFocus = () => {
+    console.log('[EditableTrackChanges] Focus - entering edit mode');
     setIsEditing(true);
   };
 
   // Handle blur
   const handleBlur = () => {
+    console.log('[EditableTrackChanges] Blur - exiting edit mode', { currentValue, hrValue });
     setIsEditing(false);
   };
 
