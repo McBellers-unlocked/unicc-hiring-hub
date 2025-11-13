@@ -447,6 +447,7 @@ export default function JobRequisitionForm() {
           .from('job_requisitions')
           .update({
             ...cleanFormData,
+            start_date: cleanFormData.start_date || null,
             duty_station: JSON.stringify(formData.duty_station),
             language_requirements: updatedLanguageRequirements,
             status: newStatus,
@@ -468,6 +469,7 @@ export default function JobRequisitionForm() {
           .from('job_requisitions')
           .insert({
             ...cleanFormData,
+            start_date: cleanFormData.start_date || null,
             duty_station: JSON.stringify(formData.duty_station),
             language_requirements: updatedLanguageRequirements,
             created_by: user?.id,
