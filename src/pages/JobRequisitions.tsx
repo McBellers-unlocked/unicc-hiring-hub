@@ -327,7 +327,7 @@ export default function JobRequisitions() {
                           variant="default"
                           size="sm"
                           className="bg-green-600 hover:bg-green-700"
-                          onClick={() => navigate(`/requisitions/${requisition.id}`)}
+                          onClick={() => navigate(`/requisitions/${requisition.id}/edit`)}
                         >
                           <FileText className="h-4 w-4 mr-1" />
                           Continue to Full PD
