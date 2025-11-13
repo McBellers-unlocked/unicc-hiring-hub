@@ -738,6 +738,32 @@ export default function ChiefOfDivisionView() {
               );
             })()}
           </div>
+          
+          {/* Action Buttons in Modal */}
+          {pdfPreview.requisitionId && (
+            <div className="flex gap-2 p-4 border-t bg-background">
+              <Button
+                onClick={() => {
+                  handleApproval(pdfPreview.requisitionId!, true, false);
+                  setPdfPreview({ open: false, requisitionId: null, pdfUrl: null, loading: false });
+                }}
+                disabled={approveMutation.isPending}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Approve
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  handleApproval(pdfPreview.requisitionId!, false, false);
+                  setPdfPreview({ open: false, requisitionId: null, pdfUrl: null, loading: false });
+                }}
+                disabled={approveMutation.isPending}
+              >
+                Reject
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </Layout>
