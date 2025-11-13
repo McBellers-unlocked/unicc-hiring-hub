@@ -10,6 +10,7 @@ import { Plus, FileText, CheckCircle, Clock, AlertCircle, Eye } from "lucide-rea
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { RequisitionWorkflowTimeline } from "@/components/RequisitionWorkflowTimeline";
+import { Layout } from "@/components/Layout";
 
 interface JobRequisition {
   id: string;
@@ -203,38 +204,43 @@ export default function JobRequisitions() {
 
   if (!user) {
     return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardContent className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <p className="text-lg font-semibold">Access Denied</p>
-              <p className="text-muted-foreground">Please log in to view job requisitions.</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Layout>
+        <div className="container mx-auto p-6">
+          <Card>
+            <CardContent className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <p className="text-lg font-semibold">Access Denied</p>
+                <p className="text-muted-foreground">Please log in to view job requisitions.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
     );
   }
 
   if (!userRoles.some(role => ['Admin', 'HR Assistant', 'Hiring Manager'].includes(role))) {
     return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardContent className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <p className="text-lg font-semibold">Access Denied</p>
-              <p className="text-muted-foreground">You don't have permission to view job requisitions.</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Layout>
+        <div className="container mx-auto p-6">
+          <Card>
+            <CardContent className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <p className="text-lg font-semibold">Access Denied</p>
+                <p className="text-muted-foreground">You don't have permission to view job requisitions.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <Layout>
+      <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">PD Pipeline</h1>
@@ -406,6 +412,7 @@ export default function JobRequisitions() {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </Layout>
   );
 }
