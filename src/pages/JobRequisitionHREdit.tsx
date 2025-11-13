@@ -488,11 +488,8 @@ export default function JobRequisitionHREdit() {
               <EditableTrackChangesField
                 label="Purpose of the Position"
                 originalValue={originalData.purpose_of_position || ''}
-                hrValue={hrVersion.purpose_of_position || originalData.purpose_of_position || ''}
                 currentValue={formData.purpose_of_position || ''}
                 onChange={(value) => setFormData({ ...formData, purpose_of_position: value })}
-                hrChangesAccepted={acceptedChiefHRFields.has('purpose_of_position')}
-                onAcceptHRChanges={() => acceptChiefHRChanges('purpose_of_position')}
               />
             ) : (
               <div>
@@ -521,11 +518,8 @@ export default function JobRequisitionHREdit() {
               <EditableTrackChangesField
                 label="Objectives of the Programme"
                 originalValue={originalData.objectives_of_programme || ''}
-                hrValue={hrVersion.objectives_of_programme || originalData.objectives_of_programme || ''}
                 currentValue={formData.objectives_of_programme || ''}
                 onChange={(value) => setFormData({ ...formData, objectives_of_programme: value })}
-                hrChangesAccepted={acceptedChiefHRFields.has('objectives_of_programme')}
-                onAcceptHRChanges={() => acceptChiefHRChanges('objectives_of_programme')}
               />
             ) : (
               <div>
@@ -554,11 +548,8 @@ export default function JobRequisitionHREdit() {
               <EditableTrackChangesField
                 label="Main Duties and Responsibilities"
                 originalValue={originalData.main_duties_responsibilities || ''}
-                hrValue={hrVersion.main_duties_responsibilities || originalData.main_duties_responsibilities || ''}
                 currentValue={formData.main_duties_responsibilities || ''}
                 onChange={(value) => setFormData({ ...formData, main_duties_responsibilities: value })}
-                hrChangesAccepted={acceptedChiefHRFields.has('main_duties_responsibilities')}
-                onAcceptHRChanges={() => acceptChiefHRChanges('main_duties_responsibilities')}
               />
             ) : (
               <div>
@@ -596,11 +587,8 @@ export default function JobRequisitionHREdit() {
                 <EditableTrackChangesField
                   label="Essential Experience"
                   originalValue={originalData.essential_experience || ''}
-                  hrValue={hrVersion.essential_experience || originalData.essential_experience || ''}
                   currentValue={formData.essential_experience || ''}
                   onChange={(value) => setFormData({ ...formData, essential_experience: value })}
-                  hrChangesAccepted={acceptedChiefHRFields.has('essential_experience')}
-                  onAcceptHRChanges={() => acceptChiefHRChanges('essential_experience')}
                 />
               ) : (
                 <div>
@@ -629,11 +617,8 @@ export default function JobRequisitionHREdit() {
                 <EditableTrackChangesField
                   label="Desirable Experience"
                   originalValue={originalData.desirable_experience || ''}
-                  hrValue={hrVersion.desirable_experience || originalData.desirable_experience || ''}
                   currentValue={formData.desirable_experience || ''}
                   onChange={(value) => setFormData({ ...formData, desirable_experience: value })}
-                  hrChangesAccepted={acceptedChiefHRFields.has('desirable_experience')}
-                  onAcceptHRChanges={() => acceptChiefHRChanges('desirable_experience')}
                 />
               ) : (
                 <div>
@@ -662,11 +647,8 @@ export default function JobRequisitionHREdit() {
                 <EditableTrackChangesField
                   label="Essential Education"
                   originalValue={originalData.essential_education || ''}
-                  hrValue={hrVersion.essential_education || originalData.essential_education || ''}
                   currentValue={formData.essential_education || ''}
                   onChange={(value) => setFormData({ ...formData, essential_education: value })}
-                  hrChangesAccepted={acceptedChiefHRFields.has('essential_education')}
-                  onAcceptHRChanges={() => acceptChiefHRChanges('essential_education')}
                 />
               ) : (
                 <div>
@@ -695,11 +677,8 @@ export default function JobRequisitionHREdit() {
                 <EditableTrackChangesField
                   label="Desirable Education"
                   originalValue={originalData.desirable_education || ''}
-                  hrValue={hrVersion.desirable_education || originalData.desirable_education || ''}
                   currentValue={formData.desirable_education || ''}
                   onChange={(value) => setFormData({ ...formData, desirable_education: value })}
-                  hrChangesAccepted={acceptedChiefHRFields.has('desirable_education')}
-                  onAcceptHRChanges={() => acceptChiefHRChanges('desirable_education')}
                 />
               ) : (
                 <div>

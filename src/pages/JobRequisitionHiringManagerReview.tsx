@@ -245,31 +245,22 @@ export default function JobRequisitionHiringManagerReview() {
             <EditableTrackChangesField
               label="Purpose of the Position"
               originalValue={originalData.purpose_of_position || ""}
-              hrValue={hrData.purpose_of_position || ""}
               currentValue={formData.purpose_of_position || ""}
               onChange={(value) => setFormData({ ...formData, purpose_of_position: value })}
-              hrChangesAccepted={acceptedFields.has('purpose_of_position')}
-              onAcceptHRChanges={() => acceptHRChanges('purpose_of_position')}
             />
 
             <EditableTrackChangesField
               label="Objectives of the Programme"
               originalValue={originalData.objectives_of_programme || ""}
-              hrValue={hrData.objectives_of_programme || ""}
               currentValue={formData.objectives_of_programme || ""}
               onChange={(value) => setFormData({ ...formData, objectives_of_programme: value })}
-              hrChangesAccepted={acceptedFields.has('objectives_of_programme')}
-              onAcceptHRChanges={() => acceptHRChanges('objectives_of_programme')}
             />
 
             <EditableTrackChangesField
               label="Main Duties and Responsibilities"
               originalValue={originalData.main_duties_responsibilities || ""}
-              hrValue={hrData.main_duties_responsibilities || ""}
               currentValue={formData.main_duties_responsibilities || ""}
               onChange={(value) => setFormData({ ...formData, main_duties_responsibilities: value })}
-              hrChangesAccepted={acceptedFields.has('main_duties_responsibilities')}
-              onAcceptHRChanges={() => acceptHRChanges('main_duties_responsibilities')}
             />
           </CardContent>
         </Card>
@@ -282,41 +273,29 @@ export default function JobRequisitionHiringManagerReview() {
             <EditableTrackChangesField
               label="Essential Experience"
               originalValue={originalData.essential_experience || ""}
-              hrValue={hrData.essential_experience || ""}
               currentValue={formData.essential_experience || ""}
               onChange={(value) => setFormData({ ...formData, essential_experience: value })}
-              hrChangesAccepted={acceptedFields.has('essential_experience')}
-              onAcceptHRChanges={() => acceptHRChanges('essential_experience')}
             />
 
             <EditableTrackChangesField
               label="Desirable Experience"
               originalValue={originalData.desirable_experience || ""}
-              hrValue={hrData.desirable_experience || ""}
               currentValue={formData.desirable_experience || ""}
               onChange={(value) => setFormData({ ...formData, desirable_experience: value })}
-              hrChangesAccepted={acceptedFields.has('desirable_experience')}
-              onAcceptHRChanges={() => acceptHRChanges('desirable_experience')}
             />
 
             <EditableTrackChangesField
               label="Essential Education"
               originalValue={originalData.essential_education || ""}
-              hrValue={hrData.essential_education || ""}
               currentValue={formData.essential_education || ""}
               onChange={(value) => setFormData({ ...formData, essential_education: value })}
-              hrChangesAccepted={acceptedFields.has('essential_education')}
-              onAcceptHRChanges={() => acceptHRChanges('essential_education')}
             />
 
             <EditableTrackChangesField
               label="Desirable Education"
               originalValue={originalData.desirable_education || ""}
-              hrValue={hrData.desirable_education || ""}
               currentValue={formData.desirable_education || ""}
               onChange={(value) => setFormData({ ...formData, desirable_education: value })}
-              hrChangesAccepted={acceptedFields.has('desirable_education')}
-              onAcceptHRChanges={() => acceptHRChanges('desirable_education')}
             />
           </CardContent>
         </Card>
