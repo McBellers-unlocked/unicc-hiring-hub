@@ -338,8 +338,10 @@ export default function JobRequisitions() {
                           Continue to Full PD
                         </Button>
                       )}
-                      {/* HR Final Review button */}
-                      {requisition.status === 'hr_final_review' && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
+                      {/* HR Final Review button - shown when manager has confirmed changes */}
+                      {(requisition.status === 'hr_final_review' || 
+                        (requisition.status === 'hr_review' && requisition.hiring_manager_confirmed_hr_changes)) && 
+                        (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
                         <Button
                           variant="default"
                           size="sm"
@@ -347,7 +349,7 @@ export default function JobRequisitions() {
                           onClick={() => navigate(`/requisitions/${requisition.id}/hr-edit`)}
                         >
                           <Eye className="h-4 w-4 mr-1" />
-                          HR Final Review
+                          Finalize & Send to Chief
                         </Button>
                       )}
                       <Button

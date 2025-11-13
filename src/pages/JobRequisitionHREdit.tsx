@@ -158,7 +158,9 @@ export default function JobRequisitionHREdit() {
     }
   };
   
-  const isFinalCleanup = requisition?.status === 'hr_final_review' && requisition?.hiring_manager_confirmed_hr_changes;
+  // HR can finalize when manager has confirmed changes
+  const isFinalCleanup = requisition?.hiring_manager_confirmed_hr_changes && 
+    (requisition?.status === 'hr_final_review' || requisition?.status === 'hr_review');
   const isSecondReview = requisition?.chief_hr_reviewed && !isFinalCleanup || false;
   
   const acceptChiefHRChanges = (fieldKey: string) => {
