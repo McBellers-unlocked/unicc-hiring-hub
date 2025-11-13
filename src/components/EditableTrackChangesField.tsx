@@ -1,5 +1,6 @@
-import React, { useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import * as Diff from "diff";
 
@@ -20,16 +21,7 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
   disabled = false,
   className,
 }) => {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const previewRef = useRef<HTMLDivElement>(null);
-
-  // Sync scroll between textarea and preview
-  const handleScroll = () => {
-    if (textareaRef.current && previewRef.current) {
-      previewRef.current.scrollTop = textareaRef.current.scrollTop;
-      previewRef.current.scrollLeft = textareaRef.current.scrollLeft;
-    }
-  };
+  const [isFocused, setIsFocused] = useState(false);
 
   // Escape HTML to prevent XSS
   const escapeHtml = (text: string): string => {
@@ -70,45 +62,39 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
     onChange(e.target.value);
   };
 
+  const handleFocus = () => {
+    setIsFocused(true);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+  };
+
   return (
     <div className={cn("space-y-2", className)}>
       <Label className="text-sm font-medium">{label}</Label>
 
-      <div className="relative">
-        {/* Track changes preview layer (behind) */}
-        <div
-          ref={previewRef}
-          className={cn(
-            "absolute inset-0 min-h-[400px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
-            "overflow-auto whitespace-pre-wrap break-words pointer-events-none font-mono"
-          )}
-          style={{ 
-            lineHeight: "1.5",
-            fontFamily: "inherit"
-          }}
-          dangerouslySetInnerHTML={{ __html: generateHTML() }}
-        />
-
-        {/* Textarea layer (on top, semi-transparent) */}
-        <textarea
-          ref={textareaRef}
+      {isFocused ? (
+        <Textarea
           value={currentValue}
           onChange={handleChange}
-          onScroll={handleScroll}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           disabled={disabled}
-          className={cn(
-            "relative min-h-[400px] w-full resize-none rounded-md border border-input px-3 py-2 text-sm",
-            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-            "overflow-auto whitespace-pre-wrap break-words",
-            disabled && "cursor-not-allowed opacity-50",
-            currentValue !== originalValue ? "bg-transparent text-transparent caret-black" : "bg-background"
-          )}
-          style={{
-            lineHeight: "1.5",
-            caretColor: currentValue !== originalValue ? "#000" : "auto"
-          }}
+          autoFocus
+          className="min-h-[400px] w-full resize-none"
         />
-      </div>
+      ) : (
+        <div
+          onClick={handleFocus}
+          className={cn(
+            "min-h-[400px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
+            "overflow-auto whitespace-pre-wrap break-words cursor-text",
+            disabled && "cursor-not-allowed opacity-50"
+          )}
+          dangerouslySetInnerHTML={{ __html: generateHTML() }}
+        />
+      )}
     </div>
   );
 };
