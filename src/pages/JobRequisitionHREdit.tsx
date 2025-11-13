@@ -12,6 +12,7 @@ import { ArrowLeft, Save, AlertTriangle, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { InlineTrackChanges } from "@/components/InlineTrackChanges";
 import EditableTrackChangesFieldWithHighlight from "@/components/EditableTrackChangesFieldWithHighlight";
+import { FinalDocumentReviewDialog } from "@/components/FinalDocumentReviewDialog";
 
 interface JobRequisition {
   id: string;
@@ -71,6 +72,7 @@ export default function JobRequisitionHREdit() {
   const [changeSummary, setChangeSummary] = useState("");
   const [acceptedChiefHRFields, setAcceptedChiefHRFields] = useState<Set<string>>(new Set());
   const [hrVersion, setHrVersion] = useState<Partial<JobRequisition>>({});
+  const [showFinalReviewDialog, setShowFinalReviewDialog] = useState(false);
 
   const isHR = userRoles.includes('HR Assistant') || userRoles.includes('Admin');
 
@@ -264,31 +266,17 @@ export default function JobRequisitionHREdit() {
       return;
     }
 
+    // If final cleanup, show preview dialog first
+    if (isFinalCleanup) {
+      setShowFinalReviewDialog(true);
+      return;
+    }
+
     setSaving(true);
     try {
       let updateData;
       
-      if (isFinalCleanup) {
-        // Final cleanup: create clean version for Division Chief
-        const cleanVersion = {
-          purpose_of_position: formData.purpose_of_position,
-          objectives_of_programme: formData.objectives_of_programme,
-          main_duties_responsibilities: formData.main_duties_responsibilities,
-          essential_experience: formData.essential_experience,
-          desirable_experience: formData.desirable_experience,
-          essential_education: formData.essential_education,
-          desirable_education: formData.desirable_education,
-        };
-        
-        updateData = {
-          ...formData,
-          final_clean_version: cleanVersion,
-          hr_final_review_completed: true,
-          hr_final_review_at: new Date().toISOString(),
-          hr_final_review_by: user?.id,
-          status: 'chief_of_division_review', // Ready for Division Chief
-        };
-      } else if (isSecondReview) {
+      if (isSecondReview) {
         // Second review: send to manager for confirmation
         updateData = {
           ...formData,
@@ -318,9 +306,7 @@ export default function JobRequisitionHREdit() {
 
       toast({
         title: "Success",
-        description: isFinalCleanup
-          ? "Clean version created and sent to Division Chief"
-          : isSecondReview 
+        description: isSecondReview 
           ? "Changes saved and sent to Manager for confirmation" 
           : "Changes saved and sent to Chief HR for review",
       });
@@ -331,6 +317,57 @@ export default function JobRequisitionHREdit() {
       toast({
         title: "Error",
         description: "Failed to save changes",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSendToChief = async () => {
+    if (!requisition) return;
+
+    setSaving(true);
+    try {
+      // Final cleanup: create clean version for Division Chief
+      const cleanVersion = {
+        purpose_of_position: formData.purpose_of_position,
+        objectives_of_programme: formData.objectives_of_programme,
+        main_duties_responsibilities: formData.main_duties_responsibilities,
+        essential_experience: formData.essential_experience,
+        desirable_experience: formData.desirable_experience,
+        essential_education: formData.essential_education,
+        desirable_education: formData.desirable_education,
+      };
+      
+      const updateData = {
+        ...formData,
+        final_clean_version: cleanVersion,
+        hr_final_review_completed: true,
+        hr_final_review_at: new Date().toISOString(),
+        hr_final_review_by: user?.id,
+        status: 'chief_of_division_review', // Ready for Division Chief
+      };
+
+      const { error } = await supabase
+        .from('job_requisitions')
+        .update(updateData)
+        .eq('id', requisition.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Clean version created and sent to Division Chief",
+      });
+
+      setShowFinalReviewDialog(false);
+      navigate('/admin/requisitions');
+    } catch (error) {
+      console.error('Error sending to chief:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send to Division Chief",
         variant: "destructive",
       });
     } finally {
@@ -799,6 +836,14 @@ export default function JobRequisitionHREdit() {
           </CardContent>
         </Card>
       </div>
+
+      <FinalDocumentReviewDialog
+        open={showFinalReviewDialog}
+        onOpenChange={setShowFinalReviewDialog}
+        formData={formData}
+        onProceed={handleSendToChief}
+        requisitionId={id}
+      />
     </div>
   );
 }
