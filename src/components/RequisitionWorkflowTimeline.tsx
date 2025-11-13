@@ -109,7 +109,7 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
       label: 'Chief of Division Approval',
       shortLabel: 'Chief Approval',
       description: 'Chief reviewing final PD',
-      isCompleted: !!requisition.chief_of_division_approval,
+      isCompleted: !!requisition.chief_of_division_approval && !!requisition.hr_final_review_completed,
       isActive: requisition.status === 'chief_of_division_review' || requisition.status === 'chief_division_review',
       completedAt: requisition.chief_of_division_approved_at,
       icon: UserCheck
