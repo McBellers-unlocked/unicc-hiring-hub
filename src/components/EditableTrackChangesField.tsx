@@ -24,6 +24,60 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const isUpdatingRef = useRef(false);
+
+  // Save cursor position
+  const saveCursorPosition = () => {
+    const selection = window.getSelection();
+    if (!selection || !contentRef.current) return null;
+
+    const range = selection.getRangeAt(0);
+    const preCaretRange = range.cloneRange();
+    preCaretRange.selectNodeContents(contentRef.current);
+    preCaretRange.setEnd(range.endContainer, range.endOffset);
+    return preCaretRange.toString().length;
+  };
+
+  // Restore cursor position
+  const restoreCursorPosition = (position: number) => {
+    if (!contentRef.current) return;
+
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    const textNodes: Text[] = [];
+    const walker = document.createTreeWalker(
+      contentRef.current,
+      NodeFilter.SHOW_TEXT,
+      null
+    );
+
+    let node;
+    while ((node = walker.nextNode())) {
+      textNodes.push(node as Text);
+    }
+
+    let currentPos = 0;
+    for (const textNode of textNodes) {
+      const textLength = textNode.textContent?.length || 0;
+      if (currentPos + textLength >= position) {
+        const range = document.createRange();
+        range.setStart(textNode, position - currentPos);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        return;
+      }
+      currentPos += textLength;
+    }
+
+    // If we couldn't find the exact position, place at end
+    const range = document.createRange();
+    range.selectNodeContents(contentRef.current);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  };
 
   // Escape HTML to prevent XSS
   const escapeHtml = (text: string): string => {
@@ -62,9 +116,17 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
 
   // Handle input from contentEditable
   const handleInput = () => {
-    if (contentRef.current) {
+    if (contentRef.current && !isUpdatingRef.current) {
+      const cursorPosition = saveCursorPosition();
       const plainText = contentRef.current.innerText || "";
       onChange(plainText);
+      
+      // Schedule cursor restoration after React updates
+      setTimeout(() => {
+        if (cursorPosition !== null) {
+          restoreCursorPosition(cursorPosition);
+        }
+      }, 0);
     }
   };
 
@@ -79,11 +141,18 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
     setIsEditing(false);
   };
 
-  // Update content when values change (but not during active editing)
+  // Update content when values change
   useEffect(() => {
-    if (contentRef.current && !isEditing) {
+    if (contentRef.current) {
+      isUpdatingRef.current = true;
+      const cursorPosition = isEditing ? saveCursorPosition() : null;
       const html = generateHTML();
       contentRef.current.innerHTML = html;
+      
+      if (isEditing && cursorPosition !== null) {
+        restoreCursorPosition(cursorPosition);
+      }
+      isUpdatingRef.current = false;
     }
   }, [originalValue, currentValue, isEditing]);
 
