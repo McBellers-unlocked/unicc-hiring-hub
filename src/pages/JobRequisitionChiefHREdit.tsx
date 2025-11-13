@@ -90,15 +90,43 @@ export default function JobRequisitionChiefHREdit() {
 
       if (error) throw error;
       
-      setRequisition(data);
-      setFormData(data);
+      // Format duty_station if it's a JSON array string
+      const formatDutyStation = (station: any) => {
+        if (!station) return '';
+        if (typeof station === 'string') {
+          try {
+            const parsed = JSON.parse(station);
+            if (Array.isArray(parsed)) {
+              return parsed.join(', ');
+            }
+            return station;
+          } catch {
+            return station;
+          }
+        }
+        if (Array.isArray(station)) {
+          return station.join(', ');
+        }
+        return station;
+      };
+
+      const formattedData = {
+        ...data,
+        duty_station: formatDutyStation(data.duty_station)
+      };
+      
+      setRequisition(formattedData);
+      setFormData(formattedData);
       // For showing HR changes inline, we need the original before HR's changes
       const beforeHRChanges = (data.hr_original_data && typeof data.hr_original_data === 'object') 
-        ? data.hr_original_data 
-        : data;
+        ? { 
+            ...(data.hr_original_data as any),
+            duty_station: formatDutyStation((data.hr_original_data as any).duty_station)
+          }
+        : formattedData;
       setOriginalData(beforeHRChanges as Partial<JobRequisition>);
       // For detecting Chief HR's changes, use current state as baseline
-      setWorkingBaseline(data);
+      setWorkingBaseline(formattedData);
       setChiefHRComments(data.chief_hr_comments || "");
     } catch (error) {
       console.error('Error fetching requisition:', error);
