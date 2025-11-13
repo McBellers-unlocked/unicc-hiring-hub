@@ -97,20 +97,38 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
     if (contentRef.current) {
       // Extract plain text, converting <br> back to newlines
       const plainText = contentRef.current.innerText || "";
-      console.log('[EditableTrackChanges] Input changed:', { plainText, hrValue, currentValue });
+      console.log('[EditableTrackChanges] Input changed:', { 
+        field: label,
+        plainText, 
+        plainTextLength: plainText.length,
+        hrValue, 
+        hrValueLength: (hrValue || "").length,
+        currentValue,
+        currentValueLength: (currentValue || "").length,
+        areSame: plainText === hrValue
+      });
       onChange(plainText);
     }
   };
 
   // Handle focus
   const handleFocus = () => {
-    console.log('[EditableTrackChanges] Focus - entering edit mode');
+    console.log('[EditableTrackChanges] Focus - entering edit mode for:', label);
     setIsEditing(true);
+    // Store the HR value when entering edit mode to detect if user actually changed anything
+    if (contentRef.current && currentValue === hrValue) {
+      contentRef.current.innerText = hrValue || "";
+    }
   };
 
   // Handle blur
   const handleBlur = () => {
-    console.log('[EditableTrackChanges] Blur - exiting edit mode', { currentValue, hrValue });
+    console.log('[EditableTrackChanges] Blur - exiting edit mode', { 
+      field: label,
+      currentValue, 
+      hrValue,
+      changed: currentValue !== hrValue
+    });
     setIsEditing(false);
   };
 
