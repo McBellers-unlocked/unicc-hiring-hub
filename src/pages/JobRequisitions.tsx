@@ -321,6 +321,18 @@ export default function JobRequisitions() {
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">
+                      {/* Continue to Full PD button for approved initial requests */}
+                      {requisition.initial_request_approved && !requisition.hr_reviewed && requisition.created_by === user?.id && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => navigate(`/requisitions/${requisition.id}`)}
+                        >
+                          <FileText className="h-4 w-4 mr-1" />
+                          Continue to Full PD
+                        </Button>
+                      )}
                       {/* HR Final Review button */}
                       {requisition.status === 'hr_final_review' && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
                         <Button
