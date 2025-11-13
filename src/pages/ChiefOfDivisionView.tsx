@@ -706,13 +706,61 @@ export default function ChiefOfDivisionView() {
                     </div>
                   )}
 
-                  {/* Competencies */}
+                  {/* Mandatory Competencies */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Mandatory Competencies</h3>
+                    <p className="text-sm text-muted-foreground mb-2">These competencies are automatically included for all positions:</p>
+                    <ul className="list-disc ml-5 space-y-1">
+                      <li className="text-sm"><strong className="font-semibold">Teamwork:</strong> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.</li>
+                      <li className="text-sm"><strong className="font-semibold">Communicating:</strong> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.</li>
+                      <li className="text-sm"><strong className="font-semibold">Respecting and promoting individual and cultural differences:</strong> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.</li>
+                      <li className="text-sm"><strong className="font-semibold">Creating an empowering and motivating environment (for Supervisory positions only):</strong> Guides and motivates staff towards meeting challenges and achieving objectives. Promotes ownership and responsibility for desired outcomes at all levels.</li>
+                    </ul>
+                  </div>
+
+                  {/* Global Competencies */}
+                  {requisition.global_competencies && Array.isArray(requisition.global_competencies) && (requisition.global_competencies as any[]).length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Global Competencies</h3>
+                      <ul className="list-disc ml-5 space-y-1">
+                        {(requisition.global_competencies as any[]).map((comp, idx) => (
+                          <li key={`global-${idx}`} className="text-sm">{comp}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Core Competencies */}
                   {requisition.core_competencies && Array.isArray(requisition.core_competencies) && (requisition.core_competencies as any[]).length > 0 && (
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Core Competencies</h3>
                       <ul className="list-disc ml-5 space-y-1">
                         {(requisition.core_competencies as any[]).map((comp, idx) => (
-                          <li key={idx} className="text-sm">{comp}</li>
+                          <li key={`core-${idx}`} className="text-sm">{comp}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Management Competencies */}
+                  {requisition.management_competencies && Array.isArray(requisition.management_competencies) && (requisition.management_competencies as any[]).length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Management Competencies</h3>
+                      <ul className="list-disc ml-5 space-y-1">
+                        {(requisition.management_competencies as any[]).map((comp, idx) => (
+                          <li key={`mgmt-${idx}`} className="text-sm">{comp}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Leadership Competencies */}
+                  {requisition.leadership_competencies && Array.isArray(requisition.leadership_competencies) && (requisition.leadership_competencies as any[]).length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Leadership Competencies</h3>
+                      <ul className="list-disc ml-5 space-y-1">
+                        {(requisition.leadership_competencies as any[]).map((comp, idx) => (
+                          <li key={`lead-${idx}`} className="text-sm">{comp}</li>
                         ))}
                       </ul>
                     </div>
