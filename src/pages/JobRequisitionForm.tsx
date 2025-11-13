@@ -413,7 +413,7 @@ export default function JobRequisitionForm() {
         // Get current requisition to check status
         const { data: currentReq, error: fetchError } = await supabase
           .from('job_requisitions')
-          .select('status, hr_reviewed')
+          .select('status, hr_reviewed, reference_number')
           .eq('id', id)
           .single();
 
@@ -454,6 +454,24 @@ export default function JobRequisitionForm() {
           .eq('id', id);
 
         if (error) throw error;
+
+        // Generate reference number when submitting full PD for HR review (if not already generated)
+        if (submit && newStatus === 'hr_review' && !currentReq.reference_number) {
+          const { data: refData, error: refError } = await supabase
+            .rpc('generate_position_description_reference', {
+              p_nature_of_position: formData.nature_of_position,
+              p_duty_station: JSON.stringify(formData.duty_station)
+            });
+
+          if (!refError && refData) {
+            await supabase
+              .from('job_requisitions')
+              .update({ reference_number: refData })
+              .eq('id', id);
+          }
+        }
+
+        currentRequisitionId = id;
       } else {
         // Create new requisition
         const { un_language_advantage, local_language_advantage, additional_languages, is_supervisor_role, ...cleanFormData } = formData as any;
