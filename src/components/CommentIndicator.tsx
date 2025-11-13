@@ -17,24 +17,27 @@ const CommentIndicator: React.FC<CommentIndicatorProps> = ({
   onClick,
   className,
 }) => {
-  if (totalCount === 0) return null;
-
   return (
     <Button
       variant="ghost"
       size="sm"
       onClick={onClick}
       className={cn("h-7 gap-1.5 px-2", className)}
+      title={totalCount === 0 ? "Add comment" : `${totalCount} comment${totalCount !== 1 ? 's' : ''}`}
     >
-      <MessageSquare className="h-4 w-4" />
-      {unresolvedCount > 0 ? (
-        <Badge variant="default" className="h-5 min-w-[20px] px-1 text-xs">
-          {unresolvedCount}
-        </Badge>
-      ) : (
-        <Badge variant="secondary" className="h-5 min-w-[20px] px-1 text-xs">
-          {totalCount}
-        </Badge>
+      <MessageSquare className={cn("h-4 w-4", unresolvedCount > 0 && "text-primary")} />
+      {totalCount > 0 && (
+        <>
+          {unresolvedCount > 0 ? (
+            <Badge variant="default" className="h-5 min-w-[20px] px-1 text-xs">
+              {unresolvedCount}
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="h-5 min-w-[20px] px-1 text-xs">
+              {totalCount}
+            </Badge>
+          )}
+        </>
       )}
     </Button>
   );
