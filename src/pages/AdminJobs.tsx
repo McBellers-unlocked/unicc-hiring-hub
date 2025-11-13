@@ -102,7 +102,13 @@ export default function AdminJobs() {
 
           if (appError) {
             console.error('Error fetching applications for job:', job.id, appError);
-            return { ...job, application_stats: { total: 0, completed: 0, in_progress: 0, by_status: {} }, requisition_status: null };
+            return { 
+              ...job, 
+              application_count: 0,
+              application_stats: { total: 0, completed: 0, in_progress: 0, by_status: {} }, 
+              application_statuses: [],
+              requisition_status: null 
+            };
           }
 
           const total = applications?.length || 0;
@@ -113,6 +119,12 @@ export default function AdminJobs() {
             acc[app.status] = (acc[app.status] || 0) + 1;
             return acc;
           }, {} as Record<string, number>) || {};
+
+          // Convert by_status to application_statuses array format
+          const application_statuses = Object.entries(by_status).map(([status, count]) => ({
+            status,
+            count
+          }));
 
           // Find if this job has an associated requisition in pipeline
           const requisition = requisitions?.find(req => req.converted_to_job_id === job.id);
@@ -129,6 +141,7 @@ export default function AdminJobs() {
               in_progress,
               by_status
             },
+            application_statuses,
             requisition_status: isPipeline ? requisition.status : null
           };
         })
