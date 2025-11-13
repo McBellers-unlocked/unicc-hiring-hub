@@ -24,6 +24,58 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [localValue, setLocalValue] = useState(currentValue);
+  const updateTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const cursorPositionRef = useRef<number>(0);
+
+  // Save cursor position
+  const saveCursorPosition = (): number => {
+    const selection = window.getSelection();
+    if (!selection || !contentRef.current || selection.rangeCount === 0) return 0;
+
+    const range = selection.getRangeAt(0);
+    const preCaretRange = range.cloneRange();
+    preCaretRange.selectNodeContents(contentRef.current);
+    preCaretRange.setEnd(range.endContainer, range.endOffset);
+    
+    const tempDiv = document.createElement('div');
+    tempDiv.appendChild(preCaretRange.cloneContents());
+    return tempDiv.innerText.length;
+  };
+
+  // Restore cursor position
+  const restoreCursorPosition = (charOffset: number) => {
+    if (!contentRef.current) return;
+
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    const textNodes: Node[] = [];
+    const walker = document.createTreeWalker(
+      contentRef.current,
+      NodeFilter.SHOW_TEXT
+    );
+
+    let node;
+    while ((node = walker.nextNode())) {
+      textNodes.push(node);
+    }
+
+    let currentOffset = 0;
+    for (const textNode of textNodes) {
+      const textLength = textNode.textContent?.length || 0;
+      if (currentOffset + textLength >= charOffset) {
+        const range = document.createRange();
+        const offset = Math.min(charOffset - currentOffset, textLength);
+        range.setStart(textNode, offset);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        return;
+      }
+      currentOffset += textLength;
+    }
+  };
 
   // Escape HTML to prevent XSS
   const escapeHtml = (text: string): string => {
@@ -60,35 +112,65 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
     return escapeHtml(currentValue || "") || '<span style="color: #9ca3af;">No content</span>';
   };
 
-  // Handle input from contentEditable
+  // Handle input from contentEditable with debounced track changes
   const handleInput = () => {
-    if (contentRef.current) {
-      const plainText = contentRef.current.innerText || "";
-      onChange(plainText);
+    if (!contentRef.current) return;
+    
+    const plainText = contentRef.current.innerText || "";
+    setLocalValue(plainText);
+    onChange(plainText);
+    
+    // Save cursor position
+    cursorPositionRef.current = saveCursorPosition();
+    
+    // Clear existing timer
+    if (updateTimerRef.current) {
+      clearTimeout(updateTimerRef.current);
     }
+    
+    // Set new timer to update track changes after brief pause (300ms)
+    updateTimerRef.current = setTimeout(() => {
+      if (contentRef.current && isEditing) {
+        const savedPosition = cursorPositionRef.current;
+        const html = generateHTML();
+        contentRef.current.innerHTML = html;
+        restoreCursorPosition(savedPosition);
+      }
+    }, 300);
   };
 
   // Handle focus
   const handleFocus = () => {
     setIsEditing(true);
-    // Show plain text for editing
-    if (contentRef.current) {
-      contentRef.current.innerText = currentValue || "";
-    }
   };
 
   // Handle blur
   const handleBlur = () => {
     setIsEditing(false);
+    // Clear any pending updates
+    if (updateTimerRef.current) {
+      clearTimeout(updateTimerRef.current);
+      updateTimerRef.current = null;
+    }
   };
 
-  // Update content when values change (but not during editing)
+  // Update content when values change from outside or when not editing
   useEffect(() => {
     if (contentRef.current && !isEditing) {
       const html = generateHTML();
       contentRef.current.innerHTML = html;
     }
+    setLocalValue(currentValue);
   }, [originalValue, currentValue, isEditing]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (updateTimerRef.current) {
+        clearTimeout(updateTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className={cn("space-y-2", className)}>
