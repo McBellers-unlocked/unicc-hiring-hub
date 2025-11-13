@@ -109,7 +109,7 @@ const requisitionSchema = z.object({
   unit_section_division: z.string().min(1, "Unit/Section/Division is required"),
   duty_station: z.array(z.string()).min(1, "At least one duty station is required"),
   temporary_duration: z.string().optional(),
-  start_date: z.string().optional(),
+  start_date: z.string().min(1, "Start date is required"),
   positions_available: z.number().min(1, "At least 1 position required"),
   purpose_of_position: z.string().min(1, "Purpose of position is required"),
   objectives_of_programme: z.string().optional(),
@@ -447,7 +447,6 @@ export default function JobRequisitionForm() {
           .from('job_requisitions')
           .update({
             ...cleanFormData,
-            start_date: cleanFormData.start_date || null,
             duty_station: JSON.stringify(formData.duty_station),
             language_requirements: updatedLanguageRequirements,
             status: newStatus,
@@ -469,7 +468,6 @@ export default function JobRequisitionForm() {
           .from('job_requisitions')
           .insert({
             ...cleanFormData,
-            start_date: cleanFormData.start_date || null,
             duty_station: JSON.stringify(formData.duty_station),
             language_requirements: updatedLanguageRequirements,
             created_by: user?.id,
@@ -978,9 +976,9 @@ export default function JobRequisitionForm() {
                 <FormField
                   control={form.control}
                   name="start_date"
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <FormItem>
-                      <FormLabel>Start Date</FormLabel>
+                      <FormLabel>Start Date *</FormLabel>
                       <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -988,7 +986,8 @@ export default function JobRequisitionForm() {
                               variant={"outline"}
                               className={cn(
                                 "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
+                                !field.value && "text-muted-foreground",
+                                fieldState.error && "border-destructive focus-visible:ring-destructive"
                               )}
                             >
                               {field.value ? (
