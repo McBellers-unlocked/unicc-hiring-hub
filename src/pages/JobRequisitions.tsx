@@ -322,11 +322,12 @@ export default function JobRequisitions() {
                     </div>
                     <div className="flex gap-2">
                       {/* Continue to Full PD button for approved initial requests */}
-                      {requisition.initial_request_approved && !requisition.hr_reviewed && (
-                        requisition.created_by === user?.id || 
+                      {requisition.initial_request_approved && 
+                       requisition.status === 'initial_request_approved' &&
+                       (requisition.created_by === user?.id || 
                         userRoles.includes('Admin') || 
                         userRoles.includes('HR Assistant')
-                      ) && (
+                       ) && (
                         <Button
                           variant="default"
                           size="sm"
