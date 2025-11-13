@@ -27,6 +27,7 @@ import { LonglistDocumentUploader } from '@/components/LonglistDocumentUploader'
 import { VideoInterviewManager } from '@/components/VideoInterviewManager';
 import { ApplicationAuditViewer } from '@/components/ApplicationAuditViewer';
 import { CompactCandidateView } from '@/components/CompactCandidateView';
+import { InterviewScoreMatrix } from '@/components/InterviewScoreMatrix';
 import {
   ArrowLeft, 
   User, 
@@ -540,12 +541,13 @@ export default function ApplicationDetail() {
           // Update URL with tab parameter for better navigation
           navigate(`/admin/applications/${id}?tab=${value}`, { replace: true });
         }} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="motivation">Motivation</TabsTrigger>
             <TabsTrigger value="emails">Emails</TabsTrigger>
             <TabsTrigger value="video">Video</TabsTrigger>
             <TabsTrigger value="interviews">Interviews</TabsTrigger>
+            <TabsTrigger value="scores">Score Matrix</TabsTrigger>
             <TabsTrigger value="feedback">Feedback</TabsTrigger>
             <TabsTrigger value="audit">Audit Trail</TabsTrigger>
           </TabsList>
@@ -1073,6 +1075,13 @@ export default function ApplicationDetail() {
             )}
             
             <PanelInterviewList applicationId={id!} />
+          </TabsContent>
+
+          <TabsContent value="scores">
+            <InterviewScoreMatrix 
+              applicationId={id!}
+              jobId={application.job.id}
+            />
           </TabsContent>
 
           <TabsContent value="feedback">

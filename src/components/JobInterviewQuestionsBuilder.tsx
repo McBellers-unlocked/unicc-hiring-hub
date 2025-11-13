@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, Save, Wand2, Users, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Save, Wand2, Users, ChevronDown, ChevronRight, CheckCircle2, AlertCircle, XCircle, Info, Folder, FolderOpen } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
@@ -344,6 +344,18 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
     return Math.round((itemsWithQuestions / totalItems) * 100);
   };
 
+  const getCoverageIcon = (itemId: string, type: 'requirement' | 'competency' | 'language') => {
+    const count = type === 'requirement' 
+      ? getQuestionsForItem(itemId).length
+      : type === 'competency'
+      ? getQuestionsForItem(undefined, itemId).length
+      : getQuestionsForItem(undefined, undefined, itemId).length;
+    
+    if (count === 0) return <XCircle className="w-4 h-4 text-destructive" />;
+    if (count < 2) return <AlertCircle className="w-4 h-4 text-yellow-600" />;
+    return <CheckCircle2 className="w-4 h-4 text-green-600" />;
+  };
+
   const renderRequirementSection = (category: string, items: Requirement[]) => {
     const sectionId = `req-${category}`;
     const isExpanded = expandedSections.has(sectionId);
@@ -442,7 +454,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
         <CollapsibleTrigger className="w-full">
           <div className="flex items-center justify-between p-3 hover:bg-muted/50">
             <div className="flex items-center gap-2">
-              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              {isExpanded ? <FolderOpen className="w-4 h-4" /> : <Folder className="w-4 h-4" />}
               <span className="font-medium">{type} Competencies</span>
               <Badge variant="secondary">{items.length}</Badge>
               {questionsCount > 0 && (
@@ -452,17 +464,23 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
           </div>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="p-3 pt-0 space-y-3">
+          <div className="p-3 pt-0 space-y-2">
             {items.map(item => {
               const itemQuestions = getQuestionsForItem(undefined, item.id);
               return (
                 <div key={item.id} className="border rounded-lg p-3 bg-card space-y-2">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{item.competency_name}</p>
-                      {item.description && (
-                        <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
-                      )}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2 flex-1">
+                      {getCoverageIcon(item.id, 'competency')}
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{item.competency_name}</p>
+                        {item.description && (
+                          <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          [{itemQuestions.length} {itemQuestions.length === 1 ? 'question' : 'questions'}]
+                        </p>
+                      </div>
                     </div>
                     <Button
                       size="sm"
@@ -589,12 +607,144 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
         ) : (
           <>
             <div className="space-y-3">
-              {Object.entries(groupedRequirements).map(([category, items]) => 
-                renderRequirementSection(category, items)
+              {/* COMPETENCIES AND SOFT-SKILLS Section */}
+              {competencies.length > 0 && (
+                <Collapsible
+                  defaultOpen
+                  className="border-2 border-primary/20 rounded-lg"
+                >
+                  <CollapsibleTrigger className="w-full">
+                    <div className="flex items-center justify-between p-4 hover:bg-muted/50 bg-primary/5">
+                      <div className="flex items-center gap-3">
+                        <FolderOpen className="w-5 h-5 text-primary" />
+                        <span className="font-bold text-base">📁 COMPETENCIES AND SOFT-SKILLS</span>
+                        <Badge variant="secondary">{competencies.length}</Badge>
+                        <Badge variant="outline">
+                          {questions.filter(q => q.competency_id).length} questions
+                        </Badge>
+                      </div>
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="p-3 space-y-3">
+                      {Object.entries(groupedCompetencies).map(([type, items]) => 
+                        renderCompetencySection(type, items)
+                      )}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               )}
-              
-              {Object.entries(groupedCompetencies).map(([type, items]) => 
-                renderCompetencySection(type, items)
+
+              {/* ESSENTIAL CRITERIA Section */}
+              {requirements.filter(r => r.category.includes('Essential')).length > 0 && (
+                <Collapsible
+                  defaultOpen
+                  className="border-2 border-orange-200 rounded-lg"
+                >
+                  <CollapsibleTrigger className="w-full">
+                    <div className="flex items-center justify-between p-4 hover:bg-muted/50 bg-orange-50">
+                      <div className="flex items-center gap-3">
+                        <FolderOpen className="w-5 h-5 text-orange-600" />
+                        <span className="font-bold text-base">📁 ESSENTIAL CRITERIA</span>
+                        <Badge variant="secondary">
+                          {requirements.filter(r => r.category.includes('Essential')).length}
+                        </Badge>
+                        <Badge variant="outline">
+                          {questions.filter(q => {
+                            const req = requirements.find(r => r.id === q.requirement_id);
+                            return req?.category.includes('Essential');
+                          }).length} questions
+                        </Badge>
+                      </div>
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="p-3 space-y-3">
+                      {Object.entries(groupedRequirements)
+                        .filter(([category]) => category.includes('Essential'))
+                        .map(([category, items]) => renderRequirementSection(category, items)
+                      )}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+
+              {/* DESIRABLE CRITERIA Section */}
+              {requirements.filter(r => r.category.includes('Desirable')).length > 0 && (
+                <Collapsible
+                  className="border-2 border-blue-200 rounded-lg"
+                >
+                  <CollapsibleTrigger className="w-full">
+                    <div className="flex items-center justify-between p-4 hover:bg-muted/50 bg-blue-50">
+                      <div className="flex items-center gap-3">
+                        <FolderOpen className="w-5 h-5 text-blue-600" />
+                        <span className="font-bold text-base">📁 DESIRABLE CRITERIA</span>
+                        <Badge variant="secondary">
+                          {requirements.filter(r => r.category.includes('Desirable')).length}
+                        </Badge>
+                        <Badge variant="outline">
+                          {questions.filter(q => {
+                            const req = requirements.find(r => r.id === q.requirement_id);
+                            return req?.category.includes('Desirable');
+                          }).length} questions
+                        </Badge>
+                        <Info className="w-4 h-4 text-blue-600" />
+                      </div>
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="p-3 space-y-3">
+                      {Object.entries(groupedRequirements)
+                        .filter(([category]) => category.includes('Desirable'))
+                        .map(([category, items]) => renderRequirementSection(category, items)
+                      )}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+
+              {/* OVERALL ASSESSMENT Section */}
+              {requirements.filter(r => r.category === 'Overall Assessment').length > 0 && (
+                <Collapsible
+                  defaultOpen
+                  className="border-2 border-green-200 rounded-lg"
+                >
+                  <CollapsibleTrigger className="w-full">
+                    <div className="flex items-center justify-between p-4 hover:bg-muted/50 bg-green-50">
+                      <div className="flex items-center gap-3">
+                        <FolderOpen className="w-5 h-5 text-green-600" />
+                        <span className="font-bold text-base">📁 OVERALL ASSESSMENT</span>
+                        <Badge variant="secondary">
+                          {requirements.filter(r => r.category === 'Overall Assessment').length}
+                        </Badge>
+                        <Info className="w-4 h-4 text-green-600" />
+                      </div>
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="p-3 space-y-3">
+                      <div className="text-sm text-muted-foreground mb-2 p-2 bg-green-50 rounded border border-green-200">
+                        ℹ️ These are holistic assessments scored during interviews. No specific questions needed.
+                      </div>
+                      {requirements
+                        .filter(r => r.category === 'Overall Assessment')
+                        .map(item => (
+                          <div key={item.id} className="border rounded-lg p-3 bg-card">
+                            <div className="flex items-start gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-green-600 mt-1" />
+                              <div>
+                                <p className="font-medium text-sm">{item.title}</p>
+                                {item.description && (
+                                  <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               )}
 
               {languages.length > 0 && (

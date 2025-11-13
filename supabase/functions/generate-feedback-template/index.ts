@@ -1,28 +1,23 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface GenerateFeedbackTemplateRequest {
-  jobId: string;
-}
-
-const handler = async (req: Request): Promise<Response> => {
+serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
-    const { jobId }: GenerateFeedbackTemplateRequest = await req.json();
-
+    const { jobId } = await req.json();
     console.log("Generating feedback template for job:", jobId);
 
     // Fetch job details
@@ -34,7 +29,25 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (jobError) throw jobError;
 
-    // Fetch all interview questions for this job
+    // Fetch competencies
+    const { data: competencies, error: competenciesError } = await supabase
+      .from('job_competencies')
+      .select('*')
+      .eq('job_id', jobId)
+      .order('competency_type, order_index');
+
+    if (competenciesError) throw competenciesError;
+
+    // Fetch requirements
+    const { data: requirements, error: requirementsError } = await supabase
+      .from('job_requirements')
+      .select('*')
+      .eq('job_id', jobId)
+      .order('category, order_index');
+
+    if (requirementsError) throw requirementsError;
+
+    // Fetch interview questions
     const { data: questions, error: questionsError } = await supabase
       .from('job_interview_questions')
       .select('*')
@@ -43,78 +56,87 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (questionsError) throw questionsError;
 
-    if (!questions || questions.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "No interview questions found for this job" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
+    // Helper function to get linked questions for a criterion
+    const getLinkedQuestions = (requirementId?: string, competencyId?: string) => {
+      return questions
+        ?.filter(q => 
+          (requirementId && q.requirement_id === requirementId) ||
+          (competencyId && q.competency_id === competencyId)
+        )
+        .map(q => q.question_text) || [];
+    };
+
+    // Build sections
+    const sections = [];
+
+    // Section 1: COMPETENCIES AND SOFT-SKILLS (40% weight)
+    if (competencies && competencies.length > 0) {
+      const competencyCriteria = competencies.map(comp => ({
+        id: comp.id,
+        name: comp.competency_name,
+        description: comp.description || '',
+        weight: comp.weight || 1,
+        is_essential: comp.competency_type === 'Mandatory' || comp.competency_type === 'Core',
+        linked_questions: getLinkedQuestions(undefined, comp.id)
+      }));
+
+      sections.push({
+        title: "COMPETENCIES AND SOFT-SKILLS",
+        weight: 40,
+        criteria: competencyCriteria
+      });
     }
 
-    // Group questions by category
-    const groupedQuestions = questions.reduce((acc: Record<string, any[]>, question) => {
-      if (!acc[question.question_category]) {
-        acc[question.question_category] = [];
-      }
-      acc[question.question_category].push(question);
-      return acc;
-    }, {});
+    // Section 2: ESSENTIAL CRITERIA (40% weight)
+    const essentialReqs = requirements?.filter(r => 
+      r.category.includes('Essential') && r.category !== 'Overall Assessment'
+    ) || [];
 
-    // Build feedback template sections
-    const sections = Object.entries(groupedQuestions).map(([category, categoryQuestions]) => ({
-      title: category,
-      questions: categoryQuestions.map((q: any) => ({
-        id: `question_${q.id}`,
-        label: q.question_text,
-        type: 'rating',
-        required: true,
-        options: {
-          max: 5,
-          min: 1,
-          competency: q.competency
-        }
-      }))
-    }));
+    if (essentialReqs.length > 0) {
+      const essentialCriteria = essentialReqs.map(req => ({
+        id: req.id,
+        name: req.title,
+        description: req.description || '',
+        weight: req.weight || 1,
+        is_essential: true,
+        linked_questions: getLinkedQuestions(req.id)
+      }));
 
-    // Add overall recommendation section
-    sections.push({
-      title: "Overall Assessment",
-      questions: [
-        {
-          id: "overall_score",
-          label: "Overall Performance Score",
-          type: "rating",
-          required: true,
-          options: {
-            max: 5,
-            min: 1
-          }
-        },
-        {
-          id: "recommendation",
-          label: "Recommendation",
-          type: "select",
-          required: true,
-          options: {
-            choices: [
-              "Highly Recommend",
-              "Recommend",
-              "Recommend with Reservations",
-              "Do Not Recommend"
-            ]
-          }
-        },
-        {
-          id: "comments",
-          label: "Additional Comments",
-          type: "textarea",
-          required: false,
-          options: {}
-        }
-      ]
-    });
+      sections.push({
+        title: "ESSENTIAL CRITERIA",
+        weight: 40,
+        criteria: essentialCriteria
+      });
+    }
+
+    // Section 3: OVERALL FIT (20% weight)
+    const overallAssessment = requirements?.filter(r => 
+      r.category === 'Overall Assessment'
+    ) || [];
+
+    if (overallAssessment.length > 0) {
+      const overallCriteria = overallAssessment.map(req => ({
+        id: req.id,
+        name: req.title,
+        description: req.description || 'Holistic assessment of cultural fit, values alignment, and long-term potential',
+        weight: req.weight || 1,
+        is_essential: true,
+        linked_questions: []
+      }));
+
+      sections.push({
+        title: "OVERALL FIT",
+        weight: 20,
+        criteria: overallCriteria
+      });
+    }
+
+    if (sections.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "No competencies or requirements found for this job" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
     const templateName = `${job.title} - Interview Feedback`;
 
@@ -147,10 +169,7 @@ const handler = async (req: Request): Promise<Response> => {
           message: "Feedback template updated successfully",
           templateId: existingTemplate.id
         }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     } else {
       // Create new template
@@ -175,10 +194,7 @@ const handler = async (req: Request): Promise<Response> => {
           message: "Feedback template created successfully",
           templateId: newTemplate.id
         }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -186,12 +202,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.error("Error in generate-feedback-template function:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
-};
-
-serve(handler);
+});

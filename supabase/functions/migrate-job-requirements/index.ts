@@ -181,6 +181,32 @@ Extract each bullet point as a separate item. For criteria, the title should be 
       if (error) console.error('Error inserting competencies:', error);
     }
 
+    // Always insert Overall Assessment items
+    const overallAssessmentItems = [
+      {
+        job_id: jobId,
+        category: 'Overall Assessment',
+        title: 'Overall fit to the organization',
+        description: 'Holistic assessment of cultural fit, values alignment, and long-term potential within the organization',
+        weight: 1,
+        order_index: 0
+      },
+      {
+        job_id: jobId,
+        category: 'Overall Assessment',
+        title: 'Potential',
+        description: 'Assessment of growth potential and capacity to exceed role requirements',
+        weight: 1,
+        order_index: 1
+      }
+    ];
+
+    const { error: overallError } = await supabase
+      .from('job_requirements')
+      .insert(overallAssessmentItems);
+    
+    if (overallError) console.error('Error inserting overall assessment:', overallError);
+
     // Insert Languages
     if (parsed.languages?.length > 0) {
       const { error } = await supabase.from('job_language_requirements').insert(

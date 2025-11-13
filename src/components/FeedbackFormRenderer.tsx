@@ -8,24 +8,28 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+
+interface FeedbackCriterion {
+  id: string;
+  name: string;
+  description: string;
+  weight: number;
+  is_essential: boolean;
+  linked_questions: string[];
+}
 
 interface FeedbackSection {
-  id: string;
   title: string;
-  description?: string;
-  questions: Array<{
-    id: string;
-    question: string;
-    type: 'rating' | 'text' | 'select';
-    options?: string[];
-    required?: boolean;
-  }>;
+  weight: number;
+  criteria: FeedbackCriterion[];
 }
 
 interface FeedbackTemplate {
   id: string;
   name: string;
-  sections: any;
+  sections: FeedbackSection[];
 }
 
 interface FeedbackFormRendererProps {
@@ -47,6 +51,7 @@ export const FeedbackFormRenderer: React.FC<FeedbackFormRendererProps> = ({
   const { toast } = useToast();
   const [template, setTemplate] = useState<FeedbackTemplate | null>(null);
   const [responses, setResponses] = useState<Record<string, any>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
   const [overallRating, setOverallRating] = useState<number>();
   const [recommendation, setRecommendation] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -73,7 +78,15 @@ export const FeedbackFormRenderer: React.FC<FeedbackFormRendererProps> = ({
         .single();
 
       if (error) throw error;
-      setTemplate(data);
+      
+      // Parse sections from Json to proper type
+      const parsedTemplate: FeedbackTemplate = {
+        id: data.id,
+        name: data.name,
+        sections: (data.sections as any) || []
+      };
+      
+      setTemplate(parsedTemplate);
     } catch (error) {
       console.error('Error fetching template:', error);
       toast({
@@ -86,20 +99,44 @@ export const FeedbackFormRenderer: React.FC<FeedbackFormRendererProps> = ({
     }
   };
 
-  const handleResponseChange = (sectionId: string, questionId: string, value: any) => {
+  const handleRatingChange = (criterionId: string, value: number) => {
     setResponses(prev => ({
       ...prev,
-      [`${sectionId}_${questionId}`]: value
+      [criterionId]: value
     }));
   };
 
-  const calculateAverageRating = () => {
-    const ratings = Object.values(responses).filter(value => 
-      typeof value === 'number' && value >= 1 && value <= 5
-    );
-    return ratings.length > 0 
-      ? Math.round((ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length) * 10) / 10
-      : 0;
+  const handleNoteChange = (criterionId: string, value: string) => {
+    setNotes(prev => ({
+      ...prev,
+      [criterionId]: value
+    }));
+  };
+
+  const calculateSectionAverage = (section: FeedbackSection) => {
+    const sectionScores = section.criteria
+      .map(c => responses[c.id])
+      .filter(score => typeof score === 'number');
+    
+    if (sectionScores.length === 0) return 0;
+    return Math.round((sectionScores.reduce((sum, score) => sum + score, 0) / sectionScores.length) * 10) / 10;
+  };
+
+  const calculateWeightedTotal = () => {
+    if (!template) return 0;
+    
+    let totalWeightedScore = 0;
+    let totalWeight = 0;
+
+    template.sections.forEach(section => {
+      const sectionAvg = calculateSectionAverage(section);
+      if (sectionAvg > 0) {
+        totalWeightedScore += (sectionAvg / 5) * section.weight;
+        totalWeight += section.weight;
+      }
+    });
+
+    return totalWeight > 0 ? Math.round((totalWeightedScore / totalWeight) * 100) : 0;
   };
 
   const handleSubmit = async () => {
@@ -107,7 +144,7 @@ export const FeedbackFormRenderer: React.FC<FeedbackFormRendererProps> = ({
 
     setSubmitting(true);
     try {
-      const averageRating = calculateAverageRating();
+      const overallPercentage = calculateWeightedTotal();
       
       const { error } = await supabase
         .from('feedback_form_responses')
@@ -115,8 +152,8 @@ export const FeedbackFormRenderer: React.FC<FeedbackFormRendererProps> = ({
           application_id: applicationId,
           panel_interview_id: panelInterviewId,
           evaluator_id: user.id,
-          responses,
-          overall: overallRating || averageRating,
+          responses: { ...responses, notes },
+          overall: overallRating || Math.round((overallPercentage / 100) * 5),
           recommendation: (recommendation as any) || null
         });
 
@@ -146,95 +183,135 @@ export const FeedbackFormRenderer: React.FC<FeedbackFormRendererProps> = ({
     return <div className="text-center py-8">No feedback template configured</div>;
   }
 
-  const averageRating = calculateAverageRating();
+  const overallPercentage = calculateWeightedTotal();
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>{template.name}</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Evaluate the candidate across all criteria. Use the 1-5 scale for each item.
+          </p>
         </CardHeader>
       </Card>
 
-      {template.sections.map((section) => (
-        <Card key={section.id}>
-          <CardHeader>
-            <CardTitle className="text-lg">{section.title}</CardTitle>
-            {section.description && (
-              <p className="text-sm text-muted-foreground">{section.description}</p>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {section.questions.map((question) => (
-              <div key={question.id} className="space-y-2">
-                <Label className="text-base font-medium">
-                  {question.question}
-                  {question.required && <span className="text-red-500 ml-1">*</span>}
-                </Label>
-                
-                {question.type === 'rating' && (
-                  <RadioGroup
-                    value={responses[`${section.id}_${question.id}`]?.toString()}
-                    onValueChange={(value) => 
-                      handleResponseChange(section.id, question.id, parseInt(value))
-                    }
-                    disabled={readonly}
-                    className="flex gap-4"
-                  >
-                    {[1, 2, 3, 4, 5].map((rating) => (
-                      <div key={rating} className="flex items-center space-x-2">
-                        <RadioGroupItem value={rating.toString()} id={`${question.id}_${rating}`} />
-                        <Label htmlFor={`${question.id}_${rating}`}>{rating}</Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                )}
-
-                {question.type === 'text' && (
-                  <Textarea
-                    value={responses[`${section.id}_${question.id}`] || ''}
-                    onChange={(e) => 
-                      handleResponseChange(section.id, question.id, e.target.value)
-                    }
-                    disabled={readonly}
-                    placeholder="Enter your response..."
-                    rows={3}
-                  />
-                )}
-
-                {question.type === 'select' && question.options && (
-                  <Select
-                    value={responses[`${section.id}_${question.id}`] || ''}
-                    onValueChange={(value) => 
-                      handleResponseChange(section.id, question.id, value)
-                    }
-                    disabled={readonly}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an option" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {question.options.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+      {template.sections.map((section, sectionIndex) => {
+        const sectionAvg = calculateSectionAverage(section);
+        const sectionPercentage = Math.round((sectionAvg / 5) * 100);
+        
+        return (
+          <Card key={sectionIndex}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    {section.title}
+                    <Badge variant="outline">{section.weight}% weight</Badge>
+                  </CardTitle>
+                  {section.criteria.length > 0 && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {section.criteria.length} criteria to assess
+                    </p>
+                  )}
+                </div>
+                {sectionAvg > 0 && (
+                  <Badge variant="secondary" className="text-base">
+                    Avg: {sectionAvg}/5 ({sectionPercentage}%)
+                  </Badge>
                 )}
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      ))}
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {section.criteria.map((criterion, criterionIndex) => (
+                <div key={criterion.id} className="space-y-3 pb-4 border-b last:border-b-0">
+                  <div>
+                    <Label className="text-base font-semibold flex items-center gap-2">
+                      {criterion.name}
+                      {criterion.is_essential && (
+                        <Badge variant="destructive" className="text-xs">Required</Badge>
+                      )}
+                    </Label>
+                    {criterion.description && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {criterion.description}
+                      </p>
+                    )}
+                  </div>
+
+                  {criterion.linked_questions.length > 0 && (
+                    <div className="bg-muted/50 p-3 rounded-lg">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">
+                        Questions to explore:
+                      </p>
+                      <ul className="text-sm space-y-1">
+                        {criterion.linked_questions.map((q, qIdx) => (
+                          <li key={qIdx} className="text-foreground">• {q}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Score (1-5)</Label>
+                    <RadioGroup
+                      value={responses[criterion.id]?.toString() || ''}
+                      onValueChange={(value) => handleRatingChange(criterion.id, parseInt(value))}
+                      disabled={readonly}
+                      className="flex gap-4"
+                    >
+                      {[1, 2, 3, 4, 5].map((rating) => (
+                        <div key={rating} className="flex items-center space-x-2">
+                          <RadioGroupItem 
+                            value={rating.toString()} 
+                            id={`${criterion.id}_${rating}`} 
+                          />
+                          <Label htmlFor={`${criterion.id}_${rating}`} className="cursor-pointer">
+                            {rating}
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Notes (optional)</Label>
+                    <Textarea
+                      value={notes[criterion.id] || ''}
+                      onChange={(e) => handleNoteChange(criterion.id, e.target.value)}
+                      disabled={readonly}
+                      placeholder="Add any observations or comments..."
+                      rows={2}
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        );
+      })}
 
       <Card>
         <CardHeader>
-          <CardTitle>Overall Assessment</CardTitle>
+          <CardTitle>Overall Assessment & Recommendation</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+            <div>
+              <p className="text-sm text-muted-foreground">Calculated Overall Score</p>
+              <p className="text-2xl font-bold">{overallPercentage}%</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Mark out of 100</p>
+              <p className="text-2xl font-bold">{overallPercentage}</p>
+            </div>
+          </div>
+
+          <Separator />
+
           <div className="space-y-2">
-            <Label>Overall Rating (1-5)</Label>
+            <Label>Override Overall Rating (optional)</Label>
             <RadioGroup
               value={overallRating?.toString() || ''}
               onValueChange={(value) => setOverallRating(parseInt(value))}
@@ -248,15 +325,13 @@ export const FeedbackFormRenderer: React.FC<FeedbackFormRendererProps> = ({
                 </div>
               ))}
             </RadioGroup>
-            {averageRating > 0 && (
-              <p className="text-sm text-muted-foreground">
-                Calculated average from ratings: {averageRating}
-              </p>
-            )}
+            <p className="text-xs text-muted-foreground">
+              Leave empty to use calculated score ({Math.round((overallPercentage / 100) * 5)}/5)
+            </p>
           </div>
 
           <div className="space-y-2">
-            <Label>Final Recommendation</Label>
+            <Label>Final Recommendation *</Label>
             <Select
               value={recommendation}
               onValueChange={setRecommendation}
@@ -277,8 +352,9 @@ export const FeedbackFormRenderer: React.FC<FeedbackFormRendererProps> = ({
           {!readonly && (
             <Button 
               onClick={handleSubmit}
-              disabled={submitting}
+              disabled={submitting || !recommendation}
               className="w-full"
+              size="lg"
             >
               {submitting ? 'Submitting...' : 'Submit Feedback'}
             </Button>
