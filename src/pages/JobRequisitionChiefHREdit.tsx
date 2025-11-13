@@ -92,12 +92,10 @@ export default function JobRequisitionChiefHREdit() {
       
       setRequisition(data);
       setFormData(data);
-      // Use HR's version as the baseline for Chief HR review
-      const baselineData = (data.hr_original_data && typeof data.hr_original_data === 'object') 
-        ? data.hr_original_data 
-        : data;
-      setOriginalData(baselineData as Partial<JobRequisition>);
-      setWorkingBaseline(baselineData as Partial<JobRequisition>);
+      // For Chief HR, the baseline should be the current state (with HR changes already applied)
+      // not the original before HR changes
+      setOriginalData(data);
+      setWorkingBaseline(data);
       setChiefHRComments(data.chief_hr_comments || "");
     } catch (error) {
       console.error('Error fetching requisition:', error);
