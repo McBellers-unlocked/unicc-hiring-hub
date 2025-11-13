@@ -109,17 +109,6 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
           className
         )}
       />
-
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1">
-          <span className="inline-block w-3 h-3 bg-red-50 border border-red-200 rounded"></span>
-          <span className="text-red-600">Removed</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="inline-block w-3 h-3 bg-green-50 border border-green-200 rounded"></span>
-          <span className="text-green-600">Added</span>
-        </div>
-      </div>
     </div>
   );
 };
