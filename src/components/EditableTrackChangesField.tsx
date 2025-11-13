@@ -71,10 +71,7 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
   // Handle focus
   const handleFocus = () => {
     setIsEditing(true);
-    // When entering edit mode, show plain text for easier editing
-    if (contentRef.current) {
-      contentRef.current.innerText = currentValue || "";
-    }
+    // Keep track changes visible during editing
   };
 
   // Handle blur
