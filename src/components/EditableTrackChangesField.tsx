@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,23 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
   className,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  // Auto-adjust textarea height
+  const adjustHeight = () => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.max(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  };
+
+  // Adjust height when content changes or when switching to edit mode
+  useEffect(() => {
+    if (isFocused) {
+      adjustHeight();
+    }
+  }, [currentValue, isFocused]);
 
   // Escape HTML to prevent XSS
   const escapeHtml = (text: string): string => {
@@ -60,6 +77,7 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value);
+    adjustHeight();
   };
 
   const handleFocus = () => {
@@ -76,20 +94,22 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
 
       {isFocused ? (
         <Textarea
+          ref={textareaRef}
           value={currentValue}
           onChange={handleChange}
           onFocus={handleFocus}
           onBlur={handleBlur}
           disabled={disabled}
           autoFocus
-          className="min-h-[400px] w-full resize-none"
+          className="min-h-[120px] w-full resize-none overflow-hidden"
         />
       ) : (
         <div
+          ref={previewRef}
           onClick={handleFocus}
           className={cn(
-            "min-h-[400px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
-            "overflow-auto whitespace-pre-wrap break-words cursor-text",
+            "min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
+            "whitespace-pre-wrap break-words cursor-text",
             disabled && "cursor-not-allowed opacity-50"
           )}
           dangerouslySetInnerHTML={{ __html: generateHTML() }}
