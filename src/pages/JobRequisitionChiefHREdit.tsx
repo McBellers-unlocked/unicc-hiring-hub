@@ -92,9 +92,12 @@ export default function JobRequisitionChiefHREdit() {
       
       setRequisition(data);
       setFormData(data);
-      // For Chief HR, the baseline should be the current state (with HR changes already applied)
-      // not the original before HR changes
-      setOriginalData(data);
+      // For showing HR changes inline, we need the original before HR's changes
+      const beforeHRChanges = (data.hr_original_data && typeof data.hr_original_data === 'object') 
+        ? data.hr_original_data 
+        : data;
+      setOriginalData(beforeHRChanges as Partial<JobRequisition>);
+      // For detecting Chief HR's changes, use current state as baseline
       setWorkingBaseline(data);
       setChiefHRComments(data.chief_hr_comments || "");
     } catch (error) {
