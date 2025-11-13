@@ -347,6 +347,10 @@ export default function JobRequisitionHREdit() {
         hr_final_review_at: new Date().toISOString(),
         hr_final_review_by: user?.id,
         status: 'chief_of_division_review', // Ready for Division Chief
+        // Reset chief approval status when sending for new review
+        chief_of_division_approval: false,
+        chief_of_division_approved_at: null,
+        chief_of_division_approved_by: null,
       };
 
       const { error } = await supabase
