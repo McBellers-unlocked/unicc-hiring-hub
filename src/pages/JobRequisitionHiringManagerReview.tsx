@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, Eye, FileCheck } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import EditableTrackChangesField from "@/components/EditableTrackChangesField";
+import { FinalDocumentReviewDialog } from "@/components/FinalDocumentReviewDialog";
 
 interface JobRequisition {
   id: string;
@@ -47,7 +47,7 @@ export default function JobRequisitionHiringManagerReview() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [acceptedFields, setAcceptedFields] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<'track-changes' | 'final'>('track-changes');
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
 
   useEffect(() => {
     if (id && user) {
@@ -244,6 +244,13 @@ export default function JobRequisitionHiringManagerReview() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowReviewDialog(true)}
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            View Final Version
+          </Button>
           <Button variant="outline" onClick={handleSaveDraft} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
             Save Draft
@@ -254,19 +261,6 @@ export default function JobRequisitionHiringManagerReview() {
           </Button>
         </div>
       </div>
-
-      <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'track-changes' | 'final')} className="mb-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="track-changes">
-            <Eye className="h-4 w-4 mr-2" />
-            Track Changes View
-          </TabsTrigger>
-          <TabsTrigger value="final">
-            <FileCheck className="h-4 w-4 mr-2" />
-            Final Version
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
 
       <div className="space-y-6">
         <Card>
@@ -291,80 +285,42 @@ export default function JobRequisitionHiringManagerReview() {
           <CardHeader>
             <CardTitle>Position Description</CardTitle>
             <p className="text-sm text-muted-foreground mt-2">
-              {viewMode === 'track-changes' 
-                ? 'Review HR changes below. You can accept them or make your own edits.' 
-                : 'Final version with all changes applied.'}
+              Review HR changes below. You can accept them or make your own edits.
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
-            {viewMode === 'track-changes' ? (
-              <>
-                <EditableTrackChangesField
-                  label="Purpose of the Position"
-                  originalValue={originalData.purpose_of_position || ""}
-                  currentValue={formData.purpose_of_position || ""}
-                  onChange={(value) => setFormData({ ...formData, purpose_of_position: value })}
-                  requisitionId={id}
-                  fieldName="purpose_of_position"
-                  currentUserId={user?.id}
-                  canResolveComments={false}
-                />
+            <EditableTrackChangesField
+              label="Purpose of the Position"
+              originalValue={originalData.purpose_of_position || ""}
+              currentValue={formData.purpose_of_position || ""}
+              onChange={(value) => setFormData({ ...formData, purpose_of_position: value })}
+              requisitionId={id}
+              fieldName="purpose_of_position"
+              currentUserId={user?.id}
+              canResolveComments={false}
+            />
 
-                <EditableTrackChangesField
-                  label="Objectives of the Programme"
-                  originalValue={originalData.objectives_of_programme || ""}
-                  currentValue={formData.objectives_of_programme || ""}
-                  onChange={(value) => setFormData({ ...formData, objectives_of_programme: value })}
-                  requisitionId={id}
-                  fieldName="objectives_of_programme"
-                  currentUserId={user?.id}
-                  canResolveComments={false}
-                />
+            <EditableTrackChangesField
+              label="Objectives of the Programme"
+              originalValue={originalData.objectives_of_programme || ""}
+              currentValue={formData.objectives_of_programme || ""}
+              onChange={(value) => setFormData({ ...formData, objectives_of_programme: value })}
+              requisitionId={id}
+              fieldName="objectives_of_programme"
+              currentUserId={user?.id}
+              canResolveComments={false}
+            />
 
-                <EditableTrackChangesField
-                  label="Main Duties and Responsibilities"
-                  originalValue={originalData.main_duties_responsibilities || ""}
-                  currentValue={formData.main_duties_responsibilities || ""}
-                  onChange={(value) => setFormData({ ...formData, main_duties_responsibilities: value })}
-                  requisitionId={id}
-                  fieldName="main_duties_responsibilities"
-                  currentUserId={user?.id}
-                  canResolveComments={false}
-                />
-              </>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <Label>Purpose of the Position</Label>
-                  <Textarea 
-                    value={formData.purpose_of_position || ""} 
-                    onChange={(e) => setFormData({ ...formData, purpose_of_position: e.target.value })}
-                    rows={4}
-                    className="bg-background"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Objectives of the Programme</Label>
-                  <Textarea 
-                    value={formData.objectives_of_programme || ""} 
-                    onChange={(e) => setFormData({ ...formData, objectives_of_programme: e.target.value })}
-                    rows={4}
-                    className="bg-background"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Main Duties and Responsibilities</Label>
-                  <Textarea 
-                    value={formData.main_duties_responsibilities || ""} 
-                    onChange={(e) => setFormData({ ...formData, main_duties_responsibilities: e.target.value })}
-                    rows={6}
-                    className="bg-background"
-                  />
-                </div>
-              </>
-            )}
+            <EditableTrackChangesField
+              label="Main Duties and Responsibilities"
+              originalValue={originalData.main_duties_responsibilities || ""}
+              currentValue={formData.main_duties_responsibilities || ""}
+              onChange={(value) => setFormData({ ...formData, main_duties_responsibilities: value })}
+              requisitionId={id}
+              fieldName="main_duties_responsibilities"
+              currentUserId={user?.id}
+              canResolveComments={false}
+            />
           </CardContent>
         </Card>
 
@@ -373,98 +329,73 @@ export default function JobRequisitionHiringManagerReview() {
             <CardTitle>Requirements</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {viewMode === 'track-changes' ? (
-              <>
-                <EditableTrackChangesField
-                  label="Essential Experience"
-                  originalValue={originalData.essential_experience || ""}
-                  currentValue={formData.essential_experience || ""}
-                  onChange={(value) => setFormData({ ...formData, essential_experience: value })}
-                  requisitionId={id}
-                  fieldName="essential_experience"
-                  currentUserId={user?.id}
-                  canResolveComments={false}
-                />
+            <EditableTrackChangesField
+              label="Essential Experience"
+              originalValue={originalData.essential_experience || ""}
+              currentValue={formData.essential_experience || ""}
+              onChange={(value) => setFormData({ ...formData, essential_experience: value })}
+              requisitionId={id}
+              fieldName="essential_experience"
+              currentUserId={user?.id}
+              canResolveComments={false}
+            />
 
-                <EditableTrackChangesField
-                  label="Desirable Experience"
-                  originalValue={originalData.desirable_experience || ""}
-                  currentValue={formData.desirable_experience || ""}
-                  onChange={(value) => setFormData({ ...formData, desirable_experience: value })}
-                  requisitionId={id}
-                  fieldName="desirable_experience"
-                  currentUserId={user?.id}
-                  canResolveComments={false}
-                />
+            <EditableTrackChangesField
+              label="Desirable Experience"
+              originalValue={originalData.desirable_experience || ""}
+              currentValue={formData.desirable_experience || ""}
+              onChange={(value) => setFormData({ ...formData, desirable_experience: value })}
+              requisitionId={id}
+              fieldName="desirable_experience"
+              currentUserId={user?.id}
+              canResolveComments={false}
+            />
 
-                <EditableTrackChangesField
-                  label="Essential Education"
-                  originalValue={originalData.essential_education || ""}
-                  currentValue={formData.essential_education || ""}
-                  onChange={(value) => setFormData({ ...formData, essential_education: value })}
-                  requisitionId={id}
-                  fieldName="essential_education"
-                  currentUserId={user?.id}
-                  canResolveComments={false}
-                />
+            <EditableTrackChangesField
+              label="Essential Education"
+              originalValue={originalData.essential_education || ""}
+              currentValue={formData.essential_education || ""}
+              onChange={(value) => setFormData({ ...formData, essential_education: value })}
+              requisitionId={id}
+              fieldName="essential_education"
+              currentUserId={user?.id}
+              canResolveComments={false}
+            />
 
-                <EditableTrackChangesField
-                  label="Desirable Education"
-                  originalValue={originalData.desirable_education || ""}
-                  currentValue={formData.desirable_education || ""}
-                  onChange={(value) => setFormData({ ...formData, desirable_education: value })}
-                  requisitionId={id}
-                  fieldName="desirable_education"
-                  currentUserId={user?.id}
-                  canResolveComments={false}
-                />
-              </>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <Label>Essential Experience</Label>
-                  <Textarea 
-                    value={formData.essential_experience || ""} 
-                    onChange={(e) => setFormData({ ...formData, essential_experience: e.target.value })}
-                    rows={4}
-                    className="bg-background"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Desirable Experience</Label>
-                  <Textarea 
-                    value={formData.desirable_experience || ""} 
-                    onChange={(e) => setFormData({ ...formData, desirable_experience: e.target.value })}
-                    rows={4}
-                    className="bg-background"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Essential Education</Label>
-                  <Textarea 
-                    value={formData.essential_education || ""} 
-                    onChange={(e) => setFormData({ ...formData, essential_education: e.target.value })}
-                    rows={4}
-                    className="bg-background"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Desirable Education</Label>
-                  <Textarea 
-                    value={formData.desirable_education || ""} 
-                    onChange={(e) => setFormData({ ...formData, desirable_education: e.target.value })}
-                    rows={4}
-                    className="bg-background"
-                  />
-                </div>
-              </>
-            )}
+            <EditableTrackChangesField
+              label="Desirable Education"
+              originalValue={originalData.desirable_education || ""}
+              currentValue={formData.desirable_education || ""}
+              onChange={(value) => setFormData({ ...formData, desirable_education: value })}
+              requisitionId={id}
+              fieldName="desirable_education"
+              currentUserId={user?.id}
+              canResolveComments={false}
+            />
           </CardContent>
         </Card>
       </div>
+
+      {/* Final Document Review Dialog */}
+      <FinalDocumentReviewDialog
+        open={showReviewDialog}
+        onOpenChange={setShowReviewDialog}
+        formData={{
+          position_title: requisition.position_title,
+          grade: requisition.grade,
+          unit_section_division: requisition.unit_section_division,
+          duty_station: requisition.duty_station,
+          nature_of_position: requisition.nature_of_position,
+          positions_available: requisition.positions_available,
+          ...formData
+        }}
+        onProceed={() => {
+          toast({
+            title: "Ready to Submit",
+            description: "Click 'Save & Return to HR' when you're ready to send for job conversion",
+          });
+        }}
+      />
     </div>
   );
 }
