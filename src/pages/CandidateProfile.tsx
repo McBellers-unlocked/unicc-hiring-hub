@@ -17,6 +17,7 @@ import CertificationsGrid from "@/components/profile/CertificationsGrid";
 import JobRecommendationsSection from "@/components/profile/JobRecommendationsSection";
 import PortfolioSection from "@/components/profile/PortfolioSection";
 import ProfileAnalyticsSection from "@/components/profile/ProfileAnalyticsSection";
+import { Layout } from "@/components/Layout";
 
 interface CandidateProfile {
   id: string;
@@ -206,29 +207,34 @@ export default function CandidateProfile() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8">
-        <div className="animate-pulse space-y-6">
-          <div className="h-32 bg-muted rounded-lg"></div>
-          <div className="h-64 bg-muted rounded-lg"></div>
+      <Layout>
+        <div className="container mx-auto py-8">
+          <div className="animate-pulse space-y-6">
+            <div className="h-32 bg-muted rounded-lg"></div>
+            <div className="h-64 bg-muted rounded-lg"></div>
+          </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   if (!profile) {
     return (
-      <div className="container mx-auto py-8 text-center">
-        <h1 className="text-2xl font-bold">Profile not found</h1>
-        <Button onClick={() => navigate("/")} className="mt-4">
-          Go Home
-        </Button>
-      </div>
+      <Layout>
+        <div className="container mx-auto py-8 text-center">
+          <h1 className="text-2xl font-bold">Profile not found</h1>
+          <Button onClick={() => navigate("/")} className="mt-4">
+            Go Home
+          </Button>
+        </div>
+      </Layout>
     );
   }
 
 
   return (
-    <div className="container mx-auto py-8 max-w-7xl space-y-6">
+    <Layout>
+      <div className="container mx-auto py-8 max-w-7xl space-y-6">
       {/* Hero Section */}
       <ProfileHero 
         profile={profile}
@@ -401,6 +407,7 @@ export default function CandidateProfile() {
           </Card>
         </div>
       </div>
-    </div>
+      </div>
+    </Layout>
   );
 }
