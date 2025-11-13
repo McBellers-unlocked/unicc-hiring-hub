@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { CalendarIcon, Clock, MapPin, Link as LinkIcon, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -17,12 +17,19 @@ interface PanelInterview {
   status: string;
   participants: Array<{
     id: string;
-    panelist_id: string;
+    panelist_id: string | null;
+    external_panelist_id: string | null;
     confirmed: boolean;
-    users: {
+    users?: {
       name: string;
       email: string;
-    };
+    } | null;
+    external_panel_members?: {
+      name: string;
+      email: string;
+      position: string;
+      organization: string;
+    } | null;
   }>;
 }
 
@@ -50,8 +57,10 @@ export const PanelInterviewList: React.FC<PanelInterviewListProps> = ({
           participants:panel_interview_participants(
             id,
             panelist_id,
+            external_panelist_id,
             confirmed,
-            users(name, email)
+            users(name, email),
+            external_panel_members(name, email, position, organization)
           )
         `)
         .eq('application_id', applicationId)
@@ -133,7 +142,7 @@ export const PanelInterviewList: React.FC<PanelInterviewListProps> = ({
                     href={interview.meeting_link} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:underline"
+                    className="text-sm text-primary hover:underline"
                   >
                     Join Meeting
                   </a>
@@ -142,39 +151,44 @@ export const PanelInterviewList: React.FC<PanelInterviewListProps> = ({
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Panelists:</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {interview.participants.map((participant) => (
-                  <div key={participant.id} className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      participant.confirmed ? 'bg-green-500' : 'bg-yellow-500'
-                    }`} />
-                    <span className="text-sm">{participant.users.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Panel Members
+              </Label>
+              <div className="space-y-1">
+                {interview.participants.map((participant) => {
+                  const isExternal = participant.external_panelist_id !== null;
+                  const name = isExternal 
+                    ? participant.external_panel_members?.name 
+                    : participant.users?.name;
+                  const email = isExternal 
+                    ? participant.external_panel_members?.email 
+                    : participant.users?.email;
+                  const extraInfo = isExternal 
+                    ? `${participant.external_panel_members?.position} at ${participant.external_panel_members?.organization}`
+                    : null;
 
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => window.open(`/panel-interview/${interview.id}/feedback`, '_blank')}
-              >
-                View Feedback
-              </Button>
-              {interview.meeting_link && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => window.open(interview.meeting_link, '_blank')}
-                >
-                  Join Meeting
-                </Button>
-              )}
+                  return (
+                    <div key={participant.id} className="flex items-center justify-between text-sm p-2 bg-muted/50 rounded">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium">{name}</div>
+                          {isExternal && (
+                            <Badge variant="outline" className="text-xs">External</Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground">{email}</div>
+                        {extraInfo && (
+                          <div className="text-xs text-muted-foreground">{extraInfo}</div>
+                        )}
+                      </div>
+                      <Badge variant={participant.confirmed ? "default" : "outline"}>
+                        {participant.confirmed ? "Confirmed" : "Pending"}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </CardContent>
         </Card>
