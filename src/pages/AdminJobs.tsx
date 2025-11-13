@@ -46,10 +46,11 @@ interface Job {
     in_progress: number;
     by_status: Record<string, number>;
   };
+  application_statuses?: { status: string; count: number }[];
   requisition_status?: string | null;
 }
 
-type JobDisplayStatus = 'active' | 'closing' | 'closed' | 'pipeline';
+type JobDisplayStatus = 'active' | 'closing' | 'longlisting' | 'hm_shortlisting' | 'video_interview' | 'panel_interview' | 'closed' | 'pipeline';
 
 export default function AdminJobs() {
   const { userRoles } = useAuth();
@@ -246,6 +247,39 @@ export default function AdminJobs() {
       return 'pipeline';
     }
     
+    // Check recruitment stage based on application statuses (prioritize stage with most candidates)
+    const statuses = job.application_statuses || [];
+    const totalApps = job.application_count || 0;
+    
+    if (totalApps > 0 && statuses.length > 0) {
+      const inApplication = statuses.find(s => s.status === 'Application')?.count || 0;
+      const inLonglist = statuses.find(s => s.status === 'Longlist')?.count || 0;
+      const inShortlist = statuses.find(s => s.status === 'Shortlist')?.count || 0;
+      const inVideoInterview = (statuses.find(s => s.status === 'Video Interview')?.count || 0) + 
+                               (statuses.find(s => s.status === 'Pre-Recorded Video')?.count || 0);
+      const inPanelInterview = statuses.find(s => s.status === 'Panel Interview')?.count || 0;
+      
+      // Find the stage with the most candidates (excluding Application and Rejected)
+      const stageCounts = [
+        { stage: 'panel_interview' as const, count: inPanelInterview },
+        { stage: 'video_interview' as const, count: inVideoInterview },
+        { stage: 'hm_shortlisting' as const, count: inLonglist + inShortlist },
+      ];
+      
+      // Sort by count descending
+      stageCounts.sort((a, b) => b.count - a.count);
+      
+      // Return the stage with the most candidates (if any)
+      if (stageCounts[0].count > 0) {
+        return stageCounts[0].stage;
+      }
+      
+      // If we only have applications in "Application" status, show longlisting
+      if (inApplication > 0) {
+        return 'longlisting';
+      }
+    }
+    
     // Check if closed
     if (job.status === 'closed') {
       return 'closed';
@@ -260,6 +294,11 @@ export default function AdminJobs() {
       
       if (closingDate <= threeDaysFromNow && closingDate > now) {
         return 'closing';
+      }
+      
+      // If closing date is in the future, job is active
+      if (closingDate > now) {
+        return 'active';
       }
     }
     
@@ -283,6 +322,22 @@ export default function AdminJobs() {
       closing: { 
         label: 'Closing', 
         className: 'bg-amber-500 hover:bg-amber-600 text-white'
+      },
+      longlisting: {
+        label: 'Longlisting',
+        className: 'bg-orange-500 hover:bg-orange-600 text-white'
+      },
+      hm_shortlisting: {
+        label: 'HM Shortlisting',
+        className: 'bg-blue-500 hover:bg-blue-600 text-white'
+      },
+      video_interview: {
+        label: 'Video Interview',
+        className: 'bg-indigo-500 hover:bg-indigo-600 text-white'
+      },
+      panel_interview: {
+        label: 'Panel Interview',
+        className: 'bg-cyan-500 hover:bg-cyan-600 text-white'
       },
       closed: { 
         label: 'Closed', 
@@ -375,12 +430,16 @@ export default function AdminJobs() {
       return matchesSearch && matchesStatus && matchesOrgUnit && matchesLocation && matchesClosing;
     })
     .sort((a, b) => {
-      // Sort by display status priority: Active, Closing, Closed, Pipeline
+      // Sort by display status priority
       const statusOrder: Record<JobDisplayStatus, number> = {
         active: 1,
         closing: 2,
-        closed: 3,
-        pipeline: 4
+        longlisting: 3,
+        hm_shortlisting: 4,
+        video_interview: 5,
+        panel_interview: 6,
+        closed: 7,
+        pipeline: 8
       };
       
       const aStatus = getJobDisplayStatus(a);
