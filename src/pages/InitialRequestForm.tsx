@@ -586,10 +586,10 @@ export default function InitialRequestForm() {
                 onChange={(e) => setFormData(prev => ({ ...prev, brief_outline: e.target.value }))}
                 placeholder="Provide a brief description of the role and its main responsibilities..."
                 rows={5}
-                maxLength={500}
+                maxLength={1000}
               />
               <p className="text-xs text-muted-foreground">
-                {formData.brief_outline.length}/500 characters
+                {formData.brief_outline.length}/1000 characters
               </p>
             </div>
 

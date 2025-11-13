@@ -365,7 +365,7 @@ export default function JobRequisitionForm() {
           temporary_duration: (data as any).temporary_duration || "",
           start_date: data.start_date || "",
           positions_available: data.positions_available || 1,
-          purpose_of_position: data.purpose_of_position || "",
+          purpose_of_position: data.purpose_of_position || data.brief_outline || "",
           objectives_of_programme: data.objectives_of_programme || "UNICC provides the digital foundations that support the digital transformation and future of the UN system and other international organizations.",
           main_duties_responsibilities: data.main_duties_responsibilities || "The incumbent will work under the direct supervision and guidance of the [SUPERVISOR TITLE] within the [DIVISION NAME] and in close collaboration with the [SECTION NAME] team members. The incumbent will perform the following duties:\n\n",
           essential_experience: data.essential_experience || "",
