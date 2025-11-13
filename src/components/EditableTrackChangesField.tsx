@@ -160,6 +160,12 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
         )}
       </div>
 
+      {!hrChangesAccepted && hasHRChanges && currentValue !== hrValue && (
+        <div className="bg-amber-50 border border-amber-200 rounded-md p-2 text-xs text-amber-800">
+          <strong>Note:</strong> HR's changes are hidden while you're editing. Accept HR's changes first to see them alongside your edits, or expand the "HR Made Changes" section above to review them.
+        </div>
+      )}
+
       <div
         ref={contentRef}
         contentEditable={!disabled}
