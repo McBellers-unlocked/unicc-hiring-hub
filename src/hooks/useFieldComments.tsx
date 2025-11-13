@@ -34,13 +34,16 @@ export const useFieldComments = (requisitionId: string | undefined, fieldName: s
         .from("requisition_field_comments")
         .select(`
           *,
-          author:users!requisition_field_comments_author_id_fkey(name, role)
+          author:author_id(name, role)
         `)
         .eq("requisition_id", requisitionId)
         .eq("field_name", fieldName)
         .order("created_at", { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching comments:", error);
+        throw error;
+      }
 
       // Organize comments into threads
       const commentMap = new Map<string, FieldComment>();
@@ -88,9 +91,9 @@ export const useFieldComments = (requisitionId: string | undefined, fieldName: s
 
     if (!requisitionId) return;
 
-    // Subscribe to real-time updates
+    // Subscribe to real-time updates for this specific field
     const channel = supabase
-      .channel(`field-comments-${requisitionId}-${fieldName}`)
+      .channel(`comments:${requisitionId}:${fieldName}`)
       .on(
         "postgres_changes",
         {
@@ -99,11 +102,19 @@ export const useFieldComments = (requisitionId: string | undefined, fieldName: s
           table: "requisition_field_comments",
           filter: `requisition_id=eq.${requisitionId}`,
         },
-        () => {
-          fetchComments();
+        (payload) => {
+          console.log("Comment change detected:", payload);
+          // Only refetch if the change is for this field
+          if (payload.new && (payload.new as any).field_name === fieldName) {
+            fetchComments();
+          } else if (payload.old && (payload.old as any).field_name === fieldName) {
+            fetchComments();
+          }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("Realtime subscription status:", status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -119,15 +130,23 @@ export const useFieldComments = (requisitionId: string | undefined, fieldName: s
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { error } = await supabase.from("requisition_field_comments").insert({
+      const { data, error } = await supabase.from("requisition_field_comments").insert({
         requisition_id: requisitionId,
         field_name: fieldName,
         comment_text: commentText,
         author_id: user.id,
         parent_comment_id: parentCommentId || null,
-      });
+      }).select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error adding comment:", error);
+        throw error;
+      }
+
+      console.log("Comment added successfully:", data);
+      
+      // Immediately refetch to show the new comment
+      await fetchComments();
 
       toast({
         title: "Comment added",
