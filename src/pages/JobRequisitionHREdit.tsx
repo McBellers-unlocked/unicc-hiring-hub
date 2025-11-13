@@ -183,6 +183,43 @@ export default function JobRequisitionHREdit() {
     return changes;
   };
 
+  const handleSaveDraft = async () => {
+    if (!requisition) return;
+
+    setSaving(true);
+    try {
+      // Save draft without changing status or sending to Chief HR
+      const updateData = {
+        ...formData,
+        hr_change_summary: changeSummary,
+        // Keep existing status and don't mark as reviewed
+      };
+
+      const { error } = await supabase
+        .from('job_requisitions')
+        .update(updateData)
+        .eq('id', requisition.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Draft Saved",
+        description: "Your changes have been saved as a draft",
+      });
+
+      navigate('/admin/requisitions');
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save draft",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSaveChanges = async () => {
     if (!requisition) return;
 
@@ -331,6 +368,12 @@ export default function JobRequisitionHREdit() {
             <Eye className="h-4 w-4 mr-2" />
             View Only
           </Button>
+          {!isFinalCleanup && !isSecondReview && (
+            <Button variant="outline" onClick={handleSaveDraft} disabled={saving}>
+              <Save className="h-4 w-4 mr-2" />
+              Save Draft
+            </Button>
+          )}
           <Button onClick={handleSaveChanges} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
             {saving 
