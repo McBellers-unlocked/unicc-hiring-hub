@@ -288,6 +288,194 @@ ${requisition.desirable_education || ''}
       )
     }
 
+    // Populate job_competencies table from requisition competencies
+    const competenciesToInsert = [];
+    let orderIndex = 0;
+
+    // Competency definitions
+    const competencyDefinitions: { [key: string]: { type: string; description: string } } = {
+      // Mandatory competencies (always included)
+      'Teamwork': {
+        type: 'Core',
+        description: 'Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.'
+      },
+      'Communicating': {
+        type: 'Core',
+        description: 'Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.'
+      },
+      'Respecting and promoting individual and cultural differences': {
+        type: 'Core',
+        description: 'Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.'
+      },
+      'Creating an empowering and motivating environment': {
+        type: 'Management',
+        description: 'Guides and motivates staff towards meeting challenges and achieving objectives. Promotes ownership and responsibility for desired outcomes at all levels.'
+      },
+      // Core competencies
+      'Knowing and managing yourself': {
+        type: 'Core',
+        description: 'Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.'
+      },
+      'Producing results': {
+        type: 'Core',
+        description: 'Produces and delivers quality results. Is action oriented and committed to achieving outcomes.'
+      },
+      'Moving forward in a changing environment': {
+        type: 'Core',
+        description: 'Is open to and proposes new approaches and ideas. Adapts and responds positively to change.'
+      },
+      'Setting an example': {
+        type: 'Core',
+        description: 'Acts within UNICC\'s / WHO\'s professional, ethical and legal boundaries and encourages others to adhere to these. Behaves consistently in accordance with clear personal ethics and values.'
+      },
+      // Management competencies
+      'Ensuring effective use of resources': {
+        type: 'Management',
+        description: 'Identifies priorities in accordance with UNICC\'s strategic directions. Develops and implements action plans, organizes the necessary resources and monitors outcomes.'
+      },
+      'Building and promoting partnerships across the Organization and beyond': {
+        type: 'Management',
+        description: 'Develops and strengthens internal and external partnerships that can provide information, assistance and support to UNICC. Identifies and uses synergies across the Organization and with external partners.'
+      },
+      // Leadership competencies
+      'Driving UNICC to a successful future': {
+        type: 'Leadership',
+        description: 'Demonstrates a broad-based understanding of the growing complexities of ICT issues and activities. Creates a compelling vision of shared goals, and develops a roadmap for successfully achieving real progress in improving ICT services.'
+      },
+      'Promoting innovation and Organizational learning': {
+        type: 'Leadership',
+        description: 'Invigorates the Organization by building a culture which encourages learning and development. Sponsors innovative approaches and solutions.'
+      },
+      'Promoting UNICC\'s position': {
+        type: 'Leadership',
+        description: 'Positions UNICC as a leader in ICT services. Gains support for UNICC\'s mission. Coordinates plans and communicates in a way that attracts support from intended audiences.'
+      }
+    };
+
+    // Add mandatory competencies (3 or 4 depending on if supervisor role)
+    const mandatoryCompetencies = [
+      'Teamwork',
+      'Communicating',
+      'Respecting and promoting individual and cultural differences'
+    ];
+
+    // Check if Creating an empowering environment is included (supervisor role)
+    const hasSupervisorCompetency = 
+      requisition.management_competencies?.includes('Creating an empowering and motivating environment') ||
+      requisition.core_competencies?.includes('Creating an empowering and motivating environment');
+
+    if (hasSupervisorCompetency) {
+      mandatoryCompetencies.push('Creating an empowering and motivating environment');
+    }
+
+    for (const compName of mandatoryCompetencies) {
+      const def = competencyDefinitions[compName];
+      if (def) {
+        competenciesToInsert.push({
+          job_id: newJob.id,
+          competency_type: def.type,
+          competency_name: compName,
+          description: def.description,
+          weight: 1,
+          order_index: orderIndex++
+        });
+      }
+    }
+
+    // Add selected core competencies (excluding mandatory ones)
+    if (Array.isArray(requisition.core_competencies)) {
+      for (const compName of requisition.core_competencies) {
+        if (!mandatoryCompetencies.includes(compName)) {
+          const def = competencyDefinitions[compName];
+          if (def) {
+            competenciesToInsert.push({
+              job_id: newJob.id,
+              competency_type: 'Core',
+              competency_name: compName,
+              description: def.description,
+              weight: 1,
+              order_index: orderIndex++
+            });
+          }
+        }
+      }
+    }
+
+    // Add selected management competencies (excluding mandatory ones)
+    if (Array.isArray(requisition.management_competencies)) {
+      for (const compName of requisition.management_competencies) {
+        if (!mandatoryCompetencies.includes(compName)) {
+          const def = competencyDefinitions[compName];
+          if (def) {
+            competenciesToInsert.push({
+              job_id: newJob.id,
+              competency_type: 'Management',
+              competency_name: compName,
+              description: def.description,
+              weight: 1,
+              order_index: orderIndex++
+            });
+          }
+        }
+      }
+    }
+
+    // Add selected leadership competencies
+    if (Array.isArray(requisition.leadership_competencies)) {
+      for (const compName of requisition.leadership_competencies) {
+        const def = competencyDefinitions[compName];
+        if (def) {
+          competenciesToInsert.push({
+            job_id: newJob.id,
+            competency_type: 'Leadership',
+            competency_name: compName,
+            description: def.description,
+            weight: 1,
+            order_index: orderIndex++
+          });
+        }
+      }
+    }
+
+    // Insert competencies
+    if (competenciesToInsert.length > 0) {
+      const { error: competenciesError } = await supabaseClient
+        .from('job_competencies')
+        .insert(competenciesToInsert);
+
+      if (competenciesError) {
+        console.error('Error inserting job competencies:', competenciesError);
+      }
+    }
+
+    // Create "Overall Assessment" requirements
+    const overallAssessmentItems = [
+      {
+        job_id: newJob.id,
+        category: 'Overall Assessment',
+        title: 'Overall fit to the organization',
+        description: 'Holistic assessment of cultural fit, values alignment, and long-term potential within the organization',
+        weight: 1,
+        order_index: 0
+      },
+      {
+        job_id: newJob.id,
+        category: 'Overall Assessment',
+        title: 'Potential',
+        description: 'Assessment of growth potential and capacity to exceed role requirements',
+        weight: 1,
+        order_index: 1
+      }
+    ];
+
+    const { error: overallAssessmentError } = await supabaseClient
+      .from('job_requirements')
+      .insert(overallAssessmentItems);
+
+    if (overallAssessmentError) {
+      console.error('Error inserting overall assessment items:', overallAssessmentError);
+    }
+
     // Update the requisition with the job ID
     const { error: updateError } = await supabaseClient
       .from('job_requisitions')
