@@ -490,6 +490,10 @@ export default function JobRequisitionHREdit() {
                 originalValue={originalData.purpose_of_position || ''}
                 currentValue={formData.purpose_of_position || ''}
                 onChange={(value) => setFormData({ ...formData, purpose_of_position: value })}
+                requisitionId={id}
+                fieldName="purpose_of_position"
+                currentUserId={user?.id}
+                canResolveComments={true}
               />
             ) : (
               <div>
@@ -520,6 +524,10 @@ export default function JobRequisitionHREdit() {
                 originalValue={originalData.objectives_of_programme || ''}
                 currentValue={formData.objectives_of_programme || ''}
                 onChange={(value) => setFormData({ ...formData, objectives_of_programme: value })}
+                requisitionId={id}
+                fieldName="objectives_of_programme"
+                currentUserId={user?.id}
+                canResolveComments={true}
               />
             ) : (
               <div>
@@ -550,6 +558,10 @@ export default function JobRequisitionHREdit() {
                 originalValue={originalData.main_duties_responsibilities || ''}
                 currentValue={formData.main_duties_responsibilities || ''}
                 onChange={(value) => setFormData({ ...formData, main_duties_responsibilities: value })}
+                requisitionId={id}
+                fieldName="main_duties_responsibilities"
+                currentUserId={user?.id}
+                canResolveComments={true}
               />
             ) : (
               <div>
@@ -589,6 +601,10 @@ export default function JobRequisitionHREdit() {
                   originalValue={originalData.essential_experience || ''}
                   currentValue={formData.essential_experience || ''}
                   onChange={(value) => setFormData({ ...formData, essential_experience: value })}
+                  requisitionId={id}
+                  fieldName="essential_experience"
+                  currentUserId={user?.id}
+                  canResolveComments={true}
                 />
               ) : (
                 <div>
@@ -619,6 +635,10 @@ export default function JobRequisitionHREdit() {
                   originalValue={originalData.desirable_experience || ''}
                   currentValue={formData.desirable_experience || ''}
                   onChange={(value) => setFormData({ ...formData, desirable_experience: value })}
+                  requisitionId={id}
+                  fieldName="desirable_experience"
+                  currentUserId={user?.id}
+                  canResolveComments={true}
                 />
               ) : (
                 <div>
@@ -649,6 +669,10 @@ export default function JobRequisitionHREdit() {
                   originalValue={originalData.essential_education || ''}
                   currentValue={formData.essential_education || ''}
                   onChange={(value) => setFormData({ ...formData, essential_education: value })}
+                  requisitionId={id}
+                  fieldName="essential_education"
+                  currentUserId={user?.id}
+                  canResolveComments={true}
                 />
               ) : (
                 <div>
@@ -679,6 +703,10 @@ export default function JobRequisitionHREdit() {
                   originalValue={originalData.desirable_education || ''}
                   currentValue={formData.desirable_education || ''}
                   onChange={(value) => setFormData({ ...formData, desirable_education: value })}
+                  requisitionId={id}
+                  fieldName="desirable_education"
+                  currentUserId={user?.id}
+                  canResolveComments={true}
                 />
               ) : (
                 <div>

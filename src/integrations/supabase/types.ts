@@ -1459,6 +1459,77 @@ export type Database = {
         }
         Relationships: []
       }
+      requisition_field_comments: {
+        Row: {
+          author_id: string
+          comment_text: string
+          created_at: string
+          field_name: string
+          id: string
+          is_resolved: boolean
+          parent_comment_id: string | null
+          requisition_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          comment_text: string
+          created_at?: string
+          field_name: string
+          id?: string
+          is_resolved?: boolean
+          parent_comment_id?: string | null
+          requisition_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          comment_text?: string
+          created_at?: string
+          field_name?: string
+          id?: string
+          is_resolved?: boolean
+          parent_comment_id?: string | null
+          requisition_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requisition_field_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requisition_field_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "requisition_field_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requisition_field_comments_requisition_id_fkey"
+            columns: ["requisition_id"]
+            isOneToOne: false
+            referencedRelation: "job_requisitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requisition_field_comments_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       screening_scores: {
         Row: {
           ai_score: number | null
