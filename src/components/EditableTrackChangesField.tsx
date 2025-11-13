@@ -55,15 +55,15 @@ const EditableTrackChangesField: React.FC<EditableTrackChangesFieldProps> = ({
         } else if (part.added) {
           html += `<span style="color: #16a34a; text-decoration: underline; background-color: #f0fdf4;" title="Added">${text}</span>`;
         } else {
-          html += `<span style="color: transparent;">${text}</span>`;
+          html += text;
         }
       });
       
       return html || '<span style="color: #9ca3af;">No content</span>';
     }
     
-    // No changes, return empty so textarea text shows through
-    return "";
+    // No changes, show plain text
+    return escapeHtml(currentValue || "") || '<span style="color: #9ca3af;">No content</span>';
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
