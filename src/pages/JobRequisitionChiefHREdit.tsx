@@ -68,7 +68,7 @@ export default function JobRequisitionChiefHREdit() {
   const [workingBaseline, setWorkingBaseline] = useState<Partial<JobRequisition>>({});
   const [showReviewDialog, setShowReviewDialog] = useState(false);
 
-  const isChiefHR = userRoles.includes('Admin') || userRoles.includes('HR Assistant');
+  const isChiefHR = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR');
 
   useEffect(() => {
     if (!isChiefHR) {
