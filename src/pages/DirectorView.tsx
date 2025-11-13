@@ -348,6 +348,17 @@ export default function DirectorView() {
                           </div>
                         )}
 
+                        <div className="prose prose-sm max-w-none">
+                          <h4 className="text-base font-semibold mb-2">Mandatory Competencies:</h4>
+                          <p className="text-sm text-muted-foreground mb-2">These competencies are automatically included for all positions:</p>
+                          <ul className="list-disc ml-5 space-y-1 my-2">
+                            <li className="text-sm"><strong className="font-semibold">Teamwork:</strong> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.</li>
+                            <li className="text-sm"><strong className="font-semibold">Communicating:</strong> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.</li>
+                            <li className="text-sm"><strong className="font-semibold">Respecting and promoting individual and cultural differences:</strong> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.</li>
+                            <li className="text-sm"><strong className="font-semibold">Creating an empowering and motivating environment (for Supervisory positions only):</strong> Guides and motivates staff towards meeting challenges and achieving objectives. Promotes ownership and responsibility for desired outcomes at all levels.</li>
+                          </ul>
+                        </div>
+
                         {requisition.global_competencies && Array.isArray(requisition.global_competencies) && (requisition.global_competencies as any[]).length > 0 && (
                           <div className="prose prose-sm max-w-none">
                             <h4 className="text-base font-semibold mb-2">Global Competencies:</h4>
