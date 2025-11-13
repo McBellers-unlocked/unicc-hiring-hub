@@ -22,8 +22,7 @@ export default function DirectorView() {
           *,
           creator:users!created_by(name, email)
         `)
-        .eq("chief_of_division_approval", true)
-        .or("director_approval.is.null,director_approval.eq.false")
+        .eq("status", "director_review")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
