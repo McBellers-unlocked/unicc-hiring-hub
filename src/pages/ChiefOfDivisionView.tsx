@@ -106,24 +106,14 @@ export default function ChiefOfDivisionView() {
   };
 
   const handleViewDetails = async (requisitionId: string) => {
-    setPdfPreview({ open: true, requisitionId, pdfUrl: null, loading: true });
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-requisition-pdf', {
-        body: { requisitionId }
+    const requisition = requisitions?.find(r => r.id === requisitionId);
+    if (requisition) {
+      setPdfPreview({ 
+        open: true, 
+        requisitionId, 
+        pdfUrl: null, 
+        loading: false 
       });
-
-      if (error) throw error;
-
-      if (data?.pdfUrl) {
-        setPdfPreview(prev => ({ ...prev, pdfUrl: data.pdfUrl, loading: false }));
-      } else {
-        throw new Error('No PDF URL returned');
-      }
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast.error('Failed to generate PDF preview');
-      setPdfPreview({ open: false, requisitionId: null, pdfUrl: null, loading: false });
     }
   };
 
@@ -538,7 +528,7 @@ export default function ChiefOfDivisionView() {
                            onClick={() => handleViewDetails(requisition.id)}
                          >
                            <FileText className="h-4 w-4 mr-2" />
-                           View PDF
+                           View Position Description
                          </Button>
                        </div>
                      </div>
@@ -551,36 +541,191 @@ export default function ChiefOfDivisionView() {
         )}
       </div>
 
-      {/* PDF Preview Dialog */}
-      <Dialog open={pdfPreview.open} onOpenChange={(open) => !pdfPreview.loading && setPdfPreview({ open, requisitionId: null, pdfUrl: null, loading: false })}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+      {/* Position Description View Dialog */}
+      <Dialog open={pdfPreview.open} onOpenChange={(open) => setPdfPreview({ open, requisitionId: null, pdfUrl: null, loading: false })}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Position Description - PDF Preview
+              Position Description
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-auto">
-            {pdfPreview.loading ? (
-              <div className="flex items-center justify-center h-96 bg-muted rounded-lg">
-                <div className="text-center">
-                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
-                  <p className="text-sm text-muted-foreground">Generating PDF preview...</p>
+            {(() => {
+              const requisition = requisitions?.find(r => r.id === pdfPreview.requisitionId);
+              if (!requisition) return null;
+
+              return (
+                <div className="space-y-6 p-6">
+                  {/* Position Information */}
+                  <div className="border-b pb-4">
+                    <h2 className="text-2xl font-bold mb-4">{requisition.position_title}</h2>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="font-semibold">Grade:</span> {requisition.grade}
+                      </div>
+                      <div>
+                        <span className="font-semibold">Nature:</span> {requisition.nature_of_position}
+                      </div>
+                      <div>
+                        <span className="font-semibold">Unit/Division:</span> {requisition.unit_section_division}
+                      </div>
+                      <div>
+                        <span className="font-semibold">Duty Station:</span>{' '}
+                        {(() => {
+                          try {
+                            if (typeof requisition.duty_station === 'string') {
+                              const parsed = JSON.parse(requisition.duty_station);
+                              return Array.isArray(parsed) ? parsed.join(', ') : String(parsed);
+                            } else if (Array.isArray(requisition.duty_station)) {
+                              return (requisition.duty_station as string[]).join(', ');
+                            } else {
+                              return String(requisition.duty_station || 'Not specified');
+                            }
+                          } catch {
+                            return String(requisition.duty_station || 'Not specified');
+                          }
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Purpose of Position */}
+                  {((requisition.final_clean_version as any)?.purpose_of_position || requisition.purpose_of_position) && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Purpose of the Position</h3>
+                      <div className="prose prose-sm max-w-none">
+                        <ReactMarkdown 
+                          components={{
+                            p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                            strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                          }}
+                        >
+                          {fixMarkdownFormatting((requisition.final_clean_version as any)?.purpose_of_position || requisition.purpose_of_position || '')}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Objectives of Programme */}
+                  {((requisition.final_clean_version as any)?.objectives_of_programme || requisition.objectives_of_programme) && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Objectives of the Programme</h3>
+                      <div className="prose prose-sm max-w-none">
+                        <ReactMarkdown 
+                          components={{
+                            p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                            strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                          }}
+                        >
+                          {fixMarkdownFormatting((requisition.final_clean_version as any)?.objectives_of_programme || requisition.objectives_of_programme || '')}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Main Duties */}
+                  {((requisition.final_clean_version as any)?.main_duties_responsibilities || requisition.main_duties_responsibilities) && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Main Duties and Responsibilities</h3>
+                      <div className="prose prose-sm max-w-none">
+                        <ReactMarkdown 
+                          components={{
+                            ul: ({ children }) => <ul className="list-disc ml-5 space-y-1 my-2">{children}</ul>,
+                            li: ({ children }) => <li className="text-sm">{children}</li>,
+                            p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                            strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                          }}
+                        >
+                          {fixMarkdownFormatting((requisition.final_clean_version as any)?.main_duties_responsibilities || requisition.main_duties_responsibilities || '')}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Experience */}
+                  {((requisition.final_clean_version as any)?.essential_experience || requisition.essential_experience) && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Essential Experience</h3>
+                      <div className="prose prose-sm max-w-none">
+                        <ReactMarkdown 
+                          components={{
+                            ul: ({ children }) => <ul className="list-disc ml-5 space-y-1 my-2">{children}</ul>,
+                            li: ({ children }) => <li className="text-sm">{children}</li>,
+                            p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                            strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                          }}
+                        >
+                          {fixMarkdownFormatting((requisition.final_clean_version as any)?.essential_experience || requisition.essential_experience || '')}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  )}
+
+                  {((requisition.final_clean_version as any)?.desirable_experience || requisition.desirable_experience) && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Desirable Experience</h3>
+                      <div className="prose prose-sm max-w-none">
+                        <ReactMarkdown 
+                          components={{
+                            ul: ({ children }) => <ul className="list-disc ml-5 space-y-1 my-2">{children}</ul>,
+                            li: ({ children }) => <li className="text-sm">{children}</li>,
+                            p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                            strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                          }}
+                        >
+                          {fixMarkdownFormatting((requisition.final_clean_version as any)?.desirable_experience || requisition.desirable_experience || '')}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Education */}
+                  {((requisition.final_clean_version as any)?.essential_education || requisition.essential_education) && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Essential Education</h3>
+                      <p className="text-sm">{(requisition.final_clean_version as any)?.essential_education || requisition.essential_education}</p>
+                    </div>
+                  )}
+
+                  {((requisition.final_clean_version as any)?.desirable_education || requisition.desirable_education) && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Desirable Education</h3>
+                      <p className="text-sm">{(requisition.final_clean_version as any)?.desirable_education || requisition.desirable_education}</p>
+                    </div>
+                  )}
+
+                  {/* Competencies */}
+                  {requisition.core_competencies && Array.isArray(requisition.core_competencies) && (requisition.core_competencies as any[]).length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Core Competencies</h3>
+                      <ul className="list-disc ml-5 space-y-1">
+                        {(requisition.core_competencies as any[]).map((comp, idx) => (
+                          <li key={idx} className="text-sm">{comp}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Language Requirements */}
+                  {requisition.language_requirements && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Language Requirements</h3>
+                      <ul className="list-disc ml-5 space-y-1">
+                        {(requisition.language_requirements as any).english && (
+                          <li className="text-sm">English: {(requisition.language_requirements as any).english}</li>
+                        )}
+                        {Array.isArray((requisition.language_requirements as any).additional_languages) &&
+                          (requisition.language_requirements as any).additional_languages.length > 0 &&
+                          (requisition.language_requirements as any).additional_languages.map((lang: string, idx: number) => (
+                            <li key={idx} className="text-sm">{lang}</li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ) : pdfPreview.pdfUrl ? (
-              <div className="border rounded-lg overflow-hidden bg-muted h-[600px]">
-                <iframe
-                  src={pdfPreview.pdfUrl}
-                  className="w-full h-full"
-                  title="PDF Preview"
-                />
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-96 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">Unable to load PDF preview</p>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </DialogContent>
       </Dialog>
