@@ -9,9 +9,22 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
 import { fixMarkdownFormatting } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Loader2, FileText } from "lucide-react";
 
 export default function ChiefOfDivisionView() {
   const queryClient = useQueryClient();
+  const [pdfPreview, setPdfPreview] = useState<{ open: boolean; requisitionId: string | null; pdfUrl: string | null; loading: boolean }>({
+    open: false,
+    requisitionId: null,
+    pdfUrl: null,
+    loading: false
+  });
 
   const { data: requisitions, isLoading } = useQuery({
     queryKey: ["requisitions-chief-approval"],
@@ -90,6 +103,28 @@ export default function ChiefOfDivisionView() {
 
   const handleApproval = (id: string, approved: boolean, isInitialRequest?: boolean) => {
     approveMutation.mutate({ id, approved, isInitialRequest });
+  };
+
+  const handleViewDetails = async (requisitionId: string) => {
+    setPdfPreview({ open: true, requisitionId, pdfUrl: null, loading: true });
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-requisition-pdf', {
+        body: { requisitionId }
+      });
+
+      if (error) throw error;
+
+      if (data?.pdfUrl) {
+        setPdfPreview(prev => ({ ...prev, pdfUrl: data.pdfUrl, loading: false }));
+      } else {
+        throw new Error('No PDF URL returned');
+      }
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF preview');
+      setPdfPreview({ open: false, requisitionId: null, pdfUrl: null, loading: false });
+    }
   };
 
   return (
@@ -442,7 +477,7 @@ export default function ChiefOfDivisionView() {
                             <h4 className="text-base font-semibold mb-2">Global Competencies:</h4>
                             <ul className="list-disc ml-5 space-y-1 my-2">
                               {(requisition.global_competencies as any[]).map((comp, idx) => (
-                                <li key={idx} className="text-sm">{comp}</li>
+                                <li key={`global-${idx}`} className="text-sm">{comp}</li>
                               ))}
                             </ul>
                           </div>
@@ -453,7 +488,7 @@ export default function ChiefOfDivisionView() {
                             <h4 className="text-base font-semibold mb-2">Core Competencies:</h4>
                             <ul className="list-disc ml-5 space-y-1 my-2">
                               {(requisition.core_competencies as any[]).map((comp, idx) => (
-                                <li key={idx} className="text-sm">{comp}</li>
+                                <li key={`core-${idx}`} className="text-sm">{comp}</li>
                               ))}
                             </ul>
                           </div>
@@ -464,7 +499,7 @@ export default function ChiefOfDivisionView() {
                             <h4 className="text-base font-semibold mb-2">Management Competencies:</h4>
                             <ul className="list-disc ml-5 space-y-1 my-2">
                               {(requisition.management_competencies as any[]).map((comp, idx) => (
-                                <li key={idx} className="text-sm">{comp}</li>
+                                <li key={`mgmt-${idx}`} className="text-sm">{comp}</li>
                               ))}
                             </ul>
                           </div>
@@ -475,7 +510,7 @@ export default function ChiefOfDivisionView() {
                             <h4 className="text-base font-semibold mb-2">Leadership Competencies:</h4>
                             <ul className="list-disc ml-5 space-y-1 my-2">
                               {(requisition.leadership_competencies as any[]).map((comp, idx) => (
-                                <li key={idx} className="text-sm">{comp}</li>
+                                <li key={`lead-${idx}`} className="text-sm">{comp}</li>
                               ))}
                             </ul>
                           </div>
@@ -500,9 +535,10 @@ export default function ChiefOfDivisionView() {
                          </Button>
                          <Button
                            variant="outline"
-                           onClick={() => window.open(`/requisitions/${requisition.id}`, '_blank')}
+                           onClick={() => handleViewDetails(requisition.id)}
                          >
-                           View Details
+                           <FileText className="h-4 w-4 mr-2" />
+                           View PDF
                          </Button>
                        </div>
                      </div>
@@ -514,6 +550,40 @@ export default function ChiefOfDivisionView() {
           </div>
         )}
       </div>
+
+      {/* PDF Preview Dialog */}
+      <Dialog open={pdfPreview.open} onOpenChange={(open) => !pdfPreview.loading && setPdfPreview({ open, requisitionId: null, pdfUrl: null, loading: false })}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Position Description - PDF Preview
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            {pdfPreview.loading ? (
+              <div className="flex items-center justify-center h-96 bg-muted rounded-lg">
+                <div className="text-center">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
+                  <p className="text-sm text-muted-foreground">Generating PDF preview...</p>
+                </div>
+              </div>
+            ) : pdfPreview.pdfUrl ? (
+              <div className="border rounded-lg overflow-hidden bg-muted h-[600px]">
+                <iframe
+                  src={pdfPreview.pdfUrl}
+                  className="w-full h-full"
+                  title="PDF Preview"
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-96 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">Unable to load PDF preview</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
