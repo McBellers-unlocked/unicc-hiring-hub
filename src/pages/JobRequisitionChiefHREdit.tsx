@@ -12,7 +12,7 @@ import { ArrowLeft, AlertTriangle, Eye, CheckCircle2, Check } from "lucide-react
 import { format } from "date-fns";
 import { InlineTrackChanges, InlineTrackChangesSummary } from "@/components/InlineTrackChanges";
 import { FinalDocumentReviewDialog } from "@/components/FinalDocumentReviewDialog";
-import EditableTrackChangesField from "@/components/EditableTrackChangesField";
+import EditableTrackChangesFieldWithHighlight from "@/components/EditableTrackChangesFieldWithHighlight";
 
 interface JobRequisition {
   id: string;
@@ -432,7 +432,7 @@ export default function JobRequisitionChiefHREdit() {
             <CardTitle>Position Description</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <EditableTrackChangesField
+            <EditableTrackChangesFieldWithHighlight
               label="Purpose of the Position"
               originalValue={originalData.purpose_of_position || ''}
               currentValue={formData.purpose_of_position || ''}
@@ -443,7 +443,7 @@ export default function JobRequisitionChiefHREdit() {
               canResolveComments={true}
             />
             
-            <EditableTrackChangesField
+            <EditableTrackChangesFieldWithHighlight
               label="Objectives of the Programme"
               originalValue={originalData.objectives_of_programme || ''}
               currentValue={formData.objectives_of_programme || ''}
@@ -454,7 +454,7 @@ export default function JobRequisitionChiefHREdit() {
               canResolveComments={true}
             />
             
-            <EditableTrackChangesField
+            <EditableTrackChangesFieldWithHighlight
               label="Main Duties and Responsibilities"
               originalValue={originalData.main_duties_responsibilities || ''}
               currentValue={formData.main_duties_responsibilities || ''}
@@ -474,7 +474,7 @@ export default function JobRequisitionChiefHREdit() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4">
-              <EditableTrackChangesField
+              <EditableTrackChangesFieldWithHighlight
                 label="Essential Experience"
                 originalValue={originalData.essential_experience || ''}
                 currentValue={formData.essential_experience || ''}
@@ -485,7 +485,7 @@ export default function JobRequisitionChiefHREdit() {
                 canResolveComments={true}
               />
               
-              <EditableTrackChangesField
+              <EditableTrackChangesFieldWithHighlight
                 label="Desirable Experience"
                 originalValue={originalData.desirable_experience || ''}
                 currentValue={formData.desirable_experience || ''}
@@ -496,7 +496,7 @@ export default function JobRequisitionChiefHREdit() {
                 canResolveComments={true}
               />
               
-              <EditableTrackChangesField
+              <EditableTrackChangesFieldWithHighlight
                 label="Essential Education"
                 originalValue={originalData.essential_education || ''}
                 currentValue={formData.essential_education || ''}
@@ -507,7 +507,7 @@ export default function JobRequisitionChiefHREdit() {
                 canResolveComments={true}
               />
               
-              <EditableTrackChangesField
+              <EditableTrackChangesFieldWithHighlight
                 label="Desirable Education"
                 originalValue={originalData.desirable_education || ''}
                 currentValue={formData.desirable_education || ''}

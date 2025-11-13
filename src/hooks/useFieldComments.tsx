@@ -14,6 +14,9 @@ export interface FieldComment {
   resolved_at: string | null;
   created_at: string;
   updated_at: string;
+  highlighted_text: string | null;
+  selection_start: number | null;
+  selection_end: number | null;
   author?: {
     name: string;
     role: string;
@@ -121,7 +124,11 @@ export const useFieldComments = (requisitionId: string | undefined, fieldName: s
     };
   }, [requisitionId, fieldName]);
 
-  const addComment = async (commentText: string, parentCommentId?: string) => {
+  const addComment = async (
+    commentText: string, 
+    parentCommentId?: string,
+    selection?: { text: string; start: number; end: number }
+  ) => {
     if (!requisitionId) return;
 
     try {
@@ -136,6 +143,9 @@ export const useFieldComments = (requisitionId: string | undefined, fieldName: s
         comment_text: commentText,
         author_id: user.id,
         parent_comment_id: parentCommentId || null,
+        highlighted_text: selection?.text || null,
+        selection_start: selection?.start ?? null,
+        selection_end: selection?.end ?? null,
       }).select();
 
       if (error) {
@@ -150,7 +160,9 @@ export const useFieldComments = (requisitionId: string | undefined, fieldName: s
 
       toast({
         title: "Comment added",
-        description: "Your comment has been posted successfully.",
+        description: selection 
+          ? "Comment added to selected text." 
+          : "Your comment has been posted successfully.",
       });
     } catch (error: any) {
       console.error("Error adding comment:", error);

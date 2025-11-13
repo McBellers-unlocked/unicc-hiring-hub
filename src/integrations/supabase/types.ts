@@ -1465,12 +1465,15 @@ export type Database = {
           comment_text: string
           created_at: string
           field_name: string
+          highlighted_text: string | null
           id: string
           is_resolved: boolean
           parent_comment_id: string | null
           requisition_id: string
           resolved_at: string | null
           resolved_by: string | null
+          selection_end: number | null
+          selection_start: number | null
           updated_at: string
         }
         Insert: {
@@ -1478,12 +1481,15 @@ export type Database = {
           comment_text: string
           created_at?: string
           field_name: string
+          highlighted_text?: string | null
           id?: string
           is_resolved?: boolean
           parent_comment_id?: string | null
           requisition_id: string
           resolved_at?: string | null
           resolved_by?: string | null
+          selection_end?: number | null
+          selection_start?: number | null
           updated_at?: string
         }
         Update: {
@@ -1491,12 +1497,15 @@ export type Database = {
           comment_text?: string
           created_at?: string
           field_name?: string
+          highlighted_text?: string | null
           id?: string
           is_resolved?: boolean
           parent_comment_id?: string | null
           requisition_id?: string
           resolved_at?: string | null
           resolved_by?: string | null
+          selection_end?: number | null
+          selection_start?: number | null
           updated_at?: string
         }
         Relationships: [

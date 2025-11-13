@@ -17,6 +17,7 @@ interface CommentPanelProps {
   onDeleteComment: (commentId: string) => void;
   currentUserId?: string;
   canResolve?: boolean;
+  selectedText?: string;
 }
 
 const CommentThread: React.FC<{
@@ -64,6 +65,13 @@ const CommentThread: React.FC<{
             )}
           </div>
         </div>
+
+        {comment.highlighted_text && (
+          <div className="mb-2 p-2 bg-amber-50 border-l-2 border-amber-400 rounded text-xs">
+            <span className="font-medium">On: </span>
+            <span className="italic">&quot;{comment.highlighted_text}&quot;</span>
+          </div>
+        )}
 
         <p className="text-sm whitespace-pre-wrap break-words mb-3">{comment.comment_text}</p>
 
@@ -147,6 +155,7 @@ const CommentPanel: React.FC<CommentPanelProps> = ({
   onDeleteComment,
   currentUserId,
   canResolve = false,
+  selectedText,
 }) => {
   const [newComment, setNewComment] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -234,10 +243,16 @@ const CommentPanel: React.FC<CommentPanelProps> = ({
         )}
 
         <div className="space-y-2">
+          {selectedText && (
+            <div className="p-2 bg-muted rounded-md text-sm">
+              <span className="font-medium">Selected text: </span>
+              <span className="italic">&quot;{selectedText}&quot;</span>
+            </div>
+          )}
           <Textarea
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Add a comment..."
+            placeholder={selectedText ? "Comment on selected text..." : "Add a comment..."}
             className="min-h-[80px] resize-none"
           />
           <Button
