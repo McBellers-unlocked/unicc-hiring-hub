@@ -531,7 +531,7 @@ export default function JobRequisitionHREdit() {
             <CardTitle>Position Description</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {isSecondReview ? (
+            {isSecondReview || isFinalCleanup ? (
               <EditableTrackChangesFieldWithHighlight
                 label="Purpose of the Position"
                 originalValue={originalData.purpose_of_position || ''}
@@ -565,7 +565,7 @@ export default function JobRequisitionHREdit() {
               </div>
             )}
             
-            {isSecondReview ? (
+            {isSecondReview || isFinalCleanup ? (
               <EditableTrackChangesFieldWithHighlight
                 label="Objectives of the Programme"
                 originalValue={originalData.objectives_of_programme || ''}
@@ -599,7 +599,7 @@ export default function JobRequisitionHREdit() {
               </div>
             )}
             
-            {isSecondReview ? (
+            {isSecondReview || isFinalCleanup ? (
               <EditableTrackChangesFieldWithHighlight
                 label="Main Duties and Responsibilities"
                 originalValue={originalData.main_duties_responsibilities || ''}
@@ -642,7 +642,7 @@ export default function JobRequisitionHREdit() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4">
-              {isSecondReview ? (
+              {isSecondReview || isFinalCleanup ? (
                 <EditableTrackChangesFieldWithHighlight
                   label="Essential Experience"
                   originalValue={originalData.essential_experience || ''}
@@ -676,7 +676,7 @@ export default function JobRequisitionHREdit() {
                 </div>
               )}
               
-              {isSecondReview ? (
+              {isSecondReview || isFinalCleanup ? (
                 <EditableTrackChangesFieldWithHighlight
                   label="Desirable Experience"
                   originalValue={originalData.desirable_experience || ''}
@@ -710,7 +710,7 @@ export default function JobRequisitionHREdit() {
                 </div>
               )}
               
-              {isSecondReview ? (
+              {isSecondReview || isFinalCleanup ? (
                 <EditableTrackChangesFieldWithHighlight
                   label="Essential Education"
                   originalValue={originalData.essential_education || ''}
@@ -744,7 +744,7 @@ export default function JobRequisitionHREdit() {
                 </div>
               )}
               
-              {isSecondReview ? (
+              {isSecondReview || isFinalCleanup ? (
                 <EditableTrackChangesFieldWithHighlight
                   label="Desirable Education"
                   originalValue={originalData.desirable_education || ''}
