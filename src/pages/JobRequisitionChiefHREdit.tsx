@@ -187,15 +187,15 @@ export default function JobRequisitionChiefHREdit() {
     try {
       const updateData = {
         ...formData,
+        // IMPORTANT: Preserve hr_original_data so we don't lose HR's change history
+        hr_original_data: requisition.hr_original_data || originalData,
+        // Preserve HR's changes in the hr_changes field
+        hr_changes: requisition.hr_changes || [],
         chief_hr_reviewed: true,
         chief_hr_reviewed_at: new Date().toISOString(),
         chief_hr_reviewed_by: user?.id,
         chief_hr_comments: chiefHRComments,
         hr_internal_status: 'ready_for_manager',
-        // If Chief HR made additional changes, track them
-        ...(changes.length > 0 && {
-          hr_changes: [...(requisition.hr_changes || []), ...changes] as any,
-        })
       };
 
       const { error } = await supabase
