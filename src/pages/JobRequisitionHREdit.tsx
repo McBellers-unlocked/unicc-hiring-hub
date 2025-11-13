@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, AlertTriangle, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { InlineTrackChanges } from "@/components/InlineTrackChanges";
-import EditableTrackChangesField from "@/components/EditableTrackChangesField";
+import EditableTrackChangesFieldWithHighlight from "@/components/EditableTrackChangesFieldWithHighlight";
 
 interface JobRequisition {
   id: string;
@@ -94,8 +94,33 @@ export default function JobRequisitionHREdit() {
 
       if (error) throw error;
       
-      setRequisition(data);
-      setFormData(data);
+      // Format duty_station if it's a JSON array string
+      const formatDutyStation = (station: any) => {
+        if (!station) return '';
+        if (typeof station === 'string') {
+          try {
+            const parsed = JSON.parse(station);
+            if (Array.isArray(parsed)) {
+              return parsed.join(', ');
+            }
+            return station;
+          } catch {
+            return station;
+          }
+        }
+        if (Array.isArray(station)) {
+          return station.join(', ');
+        }
+        return station;
+      };
+
+      const formattedData = {
+        ...data,
+        duty_station: formatDutyStation(data.duty_station)
+      };
+      
+      setRequisition(formattedData);
+      setFormData(formattedData);
       
       // Determine the review stage
       const isFinalCleanup = data.status === 'hr_final_review' && data.hiring_manager_confirmed_hr_changes;
@@ -104,17 +129,20 @@ export default function JobRequisitionHREdit() {
       if (isFinalCleanup) {
         // Final cleanup stage: start with current (HM modified) version
         // HR will create a clean version for Division Chief
-        setOriginalData(data);
+        setOriginalData(formattedData);
       } else if (isSecondReview) {
         // Second review: show Chief HR's changes compared to HR's version
         const hrVersionData = (typeof data.hr_original_data === 'object' && data.hr_original_data !== null) 
-          ? data.hr_original_data as Partial<JobRequisition>
-          : data;
+          ? {
+              ...(data.hr_original_data as any),
+              duty_station: formatDutyStation((data.hr_original_data as any).duty_station)
+            }
+          : formattedData;
         setHrVersion(hrVersionData as Partial<JobRequisition>);
         setOriginalData(hrVersionData as Partial<JobRequisition>); // HR's version is the baseline
       } else {
         // Initial review: show manager's original version
-        setOriginalData(data);
+        setOriginalData(formattedData);
       }
       
       setChangeSummary(data.hr_change_summary || "");
@@ -387,6 +415,23 @@ export default function JobRequisitionHREdit() {
         </div>
       </div>
 
+      {isSecondReview && requisition?.chief_hr_comments && (
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-800">
+              <AlertTriangle className="h-5 w-5" />
+              Chief HR Comments
+            </CardTitle>
+            <CardDescription className="text-blue-700">
+              Review these comments from Chief of HR before making any changes
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm whitespace-pre-wrap">{requisition.chief_hr_comments}</p>
+          </CardContent>
+        </Card>
+      )}
+
       {changes.length > 0 && (
         <Card className="mb-6 border-amber-200 bg-amber-50">
           <CardHeader>
@@ -485,7 +530,7 @@ export default function JobRequisitionHREdit() {
           </CardHeader>
           <CardContent className="space-y-4">
             {isSecondReview ? (
-              <EditableTrackChangesField
+              <EditableTrackChangesFieldWithHighlight
                 label="Purpose of the Position"
                 originalValue={originalData.purpose_of_position || ''}
                 currentValue={formData.purpose_of_position || ''}
@@ -519,7 +564,7 @@ export default function JobRequisitionHREdit() {
             )}
             
             {isSecondReview ? (
-              <EditableTrackChangesField
+              <EditableTrackChangesFieldWithHighlight
                 label="Objectives of the Programme"
                 originalValue={originalData.objectives_of_programme || ''}
                 currentValue={formData.objectives_of_programme || ''}
@@ -553,7 +598,7 @@ export default function JobRequisitionHREdit() {
             )}
             
             {isSecondReview ? (
-              <EditableTrackChangesField
+              <EditableTrackChangesFieldWithHighlight
                 label="Main Duties and Responsibilities"
                 originalValue={originalData.main_duties_responsibilities || ''}
                 currentValue={formData.main_duties_responsibilities || ''}
@@ -596,7 +641,7 @@ export default function JobRequisitionHREdit() {
           <CardContent>
             <div className="grid grid-cols-1 gap-4">
               {isSecondReview ? (
-                <EditableTrackChangesField
+                <EditableTrackChangesFieldWithHighlight
                   label="Essential Experience"
                   originalValue={originalData.essential_experience || ''}
                   currentValue={formData.essential_experience || ''}
@@ -630,7 +675,7 @@ export default function JobRequisitionHREdit() {
               )}
               
               {isSecondReview ? (
-                <EditableTrackChangesField
+                <EditableTrackChangesFieldWithHighlight
                   label="Desirable Experience"
                   originalValue={originalData.desirable_experience || ''}
                   currentValue={formData.desirable_experience || ''}
@@ -664,7 +709,7 @@ export default function JobRequisitionHREdit() {
               )}
               
               {isSecondReview ? (
-                <EditableTrackChangesField
+                <EditableTrackChangesFieldWithHighlight
                   label="Essential Education"
                   originalValue={originalData.essential_education || ''}
                   currentValue={formData.essential_education || ''}
@@ -698,7 +743,7 @@ export default function JobRequisitionHREdit() {
               )}
               
               {isSecondReview ? (
-                <EditableTrackChangesField
+                <EditableTrackChangesFieldWithHighlight
                   label="Desirable Education"
                   originalValue={originalData.desirable_education || ''}
                   currentValue={formData.desirable_education || ''}
