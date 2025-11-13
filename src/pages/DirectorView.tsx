@@ -631,6 +631,18 @@ export default function DirectorView() {
                     </ul>
                   </div>
 
+                  {/* Global Competencies */}
+                  {requisition.global_competencies && Array.isArray(requisition.global_competencies) && (requisition.global_competencies as any[]).length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Global Competencies</h3>
+                      <ul className="list-disc ml-5 space-y-1 my-2">
+                        {(requisition.global_competencies as any[]).map((comp, idx) => (
+                          <li key={`global-${idx}`} className="text-sm">{comp}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
                   {/* Core Competencies */}
                   {requisition.core_competencies && Array.isArray(requisition.core_competencies) && (requisition.core_competencies as any[]).length > 0 && (
                     <div>
