@@ -203,12 +203,35 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
       competency_id: competencyId || null,
       language_requirement_id: languageId || null,
       order_index: questions.filter(q => 
-        q.requirement_id === requirementId && 
-        q.competency_id === competencyId && 
-        q.language_requirement_id === languageId
+        q.requirement_id === (requirementId || null) && 
+        q.competency_id === (competencyId || null) && 
+        q.language_requirement_id === (languageId || null)
       ).length
     };
     setQuestions([...questions, newQuestion]);
+    
+    // Auto-expand the parent section if it's not already expanded
+    if (requirementId) {
+      const requirement = requirements.find(r => r.id === requirementId);
+      if (requirement) {
+        const sectionId = `req-${requirement.category}`;
+        if (!expandedSections.has(sectionId)) {
+          const newExpanded = new Set(expandedSections);
+          newExpanded.add(sectionId);
+          setExpandedSections(newExpanded);
+        }
+      }
+    } else if (competencyId) {
+      const competency = competencies.find(c => c.id === competencyId);
+      if (competency) {
+        const sectionId = `comp-${competency.competency_type}`;
+        if (!expandedSections.has(sectionId)) {
+          const newExpanded = new Set(expandedSections);
+          newExpanded.add(sectionId);
+          setExpandedSections(newExpanded);
+        }
+      }
+    }
   };
 
   const updateQuestion = (index: number, text: string) => {
