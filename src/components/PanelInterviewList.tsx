@@ -59,11 +59,20 @@ export const PanelInterviewList: React.FC<PanelInterviewListProps> = ({
 
   const fetchInterviews = async () => {
     try {
+      // First get the job_id from the application
+      const { data: appData, error: appError } = await supabase
+        .from('applications')
+        .select('job_id')
+        .eq('id', applicationId)
+        .single();
+
+      if (appError) throw appError;
+
+      // Then get interviews
       const { data, error } = await supabase
         .from('panel_interviews')
         .select(`
           *,
-          applications!inner(job_id),
           participants:panel_interview_participants(
             id,
             panelist_id,
@@ -77,7 +86,14 @@ export const PanelInterviewList: React.FC<PanelInterviewListProps> = ({
         .order('scheduled_at', { ascending: true });
 
       if (error) throw error;
-      setInterviews((data as any) || []);
+      
+      // Add job_id to each interview
+      const interviewsWithJobId = (data || []).map(interview => ({
+        ...interview,
+        applications: { job_id: appData.job_id }
+      }));
+      
+      setInterviews(interviewsWithJobId as any);
     } catch (error) {
       console.error('Error fetching interviews:', error);
       toast({
