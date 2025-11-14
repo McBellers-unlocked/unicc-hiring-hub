@@ -403,44 +403,6 @@ export function PanelInterviewSlotManager({ jobId, panelMembers }: PanelIntervie
             </p>
           </div>
         )}
-
-        {/* Existing Slots */}
-        <div className="space-y-2">
-          <h3 className="font-medium">Scheduled Time Slots ({slots.length})</h3>
-          {slots.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No time slots created yet</p>
-          ) : (
-            <div className="space-y-2">
-              {slots.map((slot) => (
-                <div
-                  key={slot.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex-1">
-                    <div className="font-medium">
-                      {format(new Date(slot.slot_datetime), "PPP 'at' p")}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Duration: {slot.duration_minutes} minutes
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(slot.status)}
-                    {slot.status === 'available' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteSlot(slot.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </CardContent>
     </Card>
   );
