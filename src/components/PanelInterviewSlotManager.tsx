@@ -40,6 +40,8 @@ export function PanelInterviewSlotManager({ jobId, panelMembers }: PanelIntervie
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState('09:00');
   const [duration, setDuration] = useState(60);
+  const [suggestedSlots, setSuggestedSlots] = useState<Array<{datetime: Date, duration: number}>>([]);
+  const [findingSuggested, setFindingSuggested] = useState(false);
 
   useEffect(() => {
     fetchSlots();
@@ -101,6 +103,94 @@ export function PanelInterviewSlotManager({ jobId, panelMembers }: PanelIntervie
     } catch (error) {
       console.error('Error creating slot:', error);
       toast.error('Failed to create time slot');
+    }
+  };
+
+  // PLACEHOLDER: This will integrate with Outlook Calendar API
+  const findAvailableSlots = async () => {
+    if (!selectedDate) {
+      toast.error('Please select a start date');
+      return;
+    }
+
+    if (panelMembers.length === 0) {
+      toast.error('No panel members assigned');
+      return;
+    }
+
+    setFindingSuggested(true);
+    
+    try {
+      // TODO: Replace with actual Outlook Graph API integration
+      // This will query all panel members' calendars and find common free slots
+      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
+      
+      // Generate 10 mock available slots (placeholder logic)
+      const mockSlots = [];
+      let currentDate = new Date(selectedDate);
+      let slotsGenerated = 0;
+      
+      while (slotsGenerated < 10) {
+        // Skip weekends
+        if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {
+          // Generate 2-3 slots per business day at different times
+          const timesPerDay = Math.min(3, 10 - slotsGenerated);
+          for (let i = 0; i < timesPerDay; i++) {
+            const slotTime = new Date(currentDate);
+            slotTime.setHours(9 + (i * 3), 0, 0, 0); // 9 AM, 12 PM, 3 PM
+            mockSlots.push({
+              datetime: slotTime,
+              duration: duration
+            });
+            slotsGenerated++;
+            if (slotsGenerated >= 10) break;
+          }
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      setSuggestedSlots(mockSlots);
+      toast.success(`Found ${mockSlots.length} available slots where all panel members are free`);
+      
+    } catch (error) {
+      console.error('Error finding available slots:', error);
+      toast.error('Failed to find available slots');
+    } finally {
+      setFindingSuggested(false);
+    }
+  };
+
+  const publishSlotsToCandidate = async () => {
+    if (suggestedSlots.length === 0) {
+      toast.error('No slots to publish');
+      return;
+    }
+
+    try {
+      const allPanelMemberIds = panelMembers.map(pm => pm.user_id);
+      
+      // Insert all suggested slots into database
+      const slotsToInsert = suggestedSlots.map(slot => ({
+        job_id: jobId,
+        slot_datetime: slot.datetime.toISOString(),
+        duration_minutes: slot.duration,
+        panel_member_ids: allPanelMemberIds,
+        status: 'available'
+      }));
+
+      const { error } = await supabase
+        .from('panel_interview_time_slots' as any)
+        .insert(slotsToInsert);
+
+      if (error) throw error;
+
+      toast.success('Slots published to candidates - first come, first served!');
+      setSuggestedSlots([]);
+      fetchSlots();
+      
+    } catch (error) {
+      console.error('Error publishing slots:', error);
+      toast.error('Failed to publish slots');
     }
   };
 
@@ -197,6 +287,8 @@ export function PanelInterviewSlotManager({ jobId, panelMembers }: PanelIntervie
     );
   }
 
+  const isPanelValid = panelMembers.length > 0;
+
   return (
     <Card>
       <CardHeader>
@@ -206,6 +298,112 @@ export function PanelInterviewSlotManager({ jobId, panelMembers }: PanelIntervie
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        
+        {/* Find Available Slots Section */}
+        <div className="p-4 border rounded-lg bg-primary/5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-lg">Find Common Available Slots</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Search all panel members' calendars for 10 common free time slots
+                {!isPanelValid && <span className="text-destructive"> (Requires valid panel composition)</span>}
+              </p>
+            </div>
+            <Badge variant={isPanelValid ? "default" : "secondary"}>
+              {panelMembers.length} Panel Members
+            </Badge>
+          </div>
+
+          <div className="flex items-end gap-4">
+            <div className="flex-1">
+              <Label>Start Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                    disabled={!isPanelValid}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    disabled={(date) => date < new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="w-32">
+              <Label>Duration (min)</Label>
+              <Input
+                type="number"
+                value={duration}
+                onChange={(e) => setDuration(parseInt(e.target.value))}
+                min="15"
+                step="15"
+                disabled={!isPanelValid}
+              />
+            </div>
+
+            <Button
+              onClick={findAvailableSlots}
+              disabled={!isPanelValid || !selectedDate || findingSuggested}
+              className="gap-2"
+            >
+              {findingSuggested ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                  Searching...
+                </>
+              ) : (
+                <>
+                  <CalendarIcon className="h-4 w-4" />
+                  Find Slots
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* Suggested Slots Display */}
+        {suggestedSlots.length > 0 && (
+          <div className="p-4 border rounded-lg space-y-4 bg-accent/5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold">Suggested Available Slots ({suggestedSlots.length})</h3>
+              <Button onClick={publishSlotsToCandidate} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Publish to Candidates
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {suggestedSlots.map((slot, index) => (
+                <div key={index} className="p-3 bg-background rounded border flex items-center justify-between">
+                  <div>
+                    <div className="font-medium">{format(slot.datetime, "PPP")}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {format(slot.datetime, "p")} • {slot.duration} min
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="bg-green-500/10 text-green-700 border-green-500/20">Available</Badge>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              * These slots will be published to candidates on a first-come, first-served basis
+            </p>
+          </div>
+        )}
+
         {/* Create New Slot */}
         <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
           <h3 className="font-medium">Create Time Slots</h3>
