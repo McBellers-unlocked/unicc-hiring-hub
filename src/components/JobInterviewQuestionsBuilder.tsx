@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { PanelMemberSelector } from '@/components/PanelMemberSelector';
 
 interface InterviewQuestion {
   id?: string;
@@ -582,42 +583,47 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
   const totalItems = essentialCriteria.length + desirableCriteria.length + competencies.length;
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Interview Questions for {jobTitle}</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Link questions to specific requirements and competencies
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {contributors.length > 0 && (
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-muted-foreground" />
-                <div className="flex -space-x-2">
-                  {contributors.slice(0, 3).map((contributor) => (
-                    <Avatar key={contributor.user_id} className="w-8 h-8 border-2 border-background">
-                      <AvatarFallback className="text-xs">
-                        {contributor.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                  ))}
-                  {contributors.length > 3 && (
-                    <div className="w-8 h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs">
-                      +{contributors.length - 3}
-                    </div>
-                  )}
+    <div className="space-y-6">
+      {/* Panel Member Selector */}
+      <PanelMemberSelector jobId={jobId} />
+      
+      {/* Interview Questions */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Interview Questions for {jobTitle}</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Link questions to specific requirements and competencies
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {contributors.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-muted-foreground" />
+                  <div className="flex -space-x-2">
+                    {contributors.slice(0, 3).map((contributor) => (
+                      <Avatar key={contributor.user_id} className="w-8 h-8 border-2 border-background">
+                        <AvatarFallback className="text-xs">
+                          {contributor.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                    ))}
+                    {contributors.length > 3 && (
+                      <div className="w-8 h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs">
+                        +{contributors.length - 3}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-        {lastUpdated && (
-          <p className="text-xs text-muted-foreground mt-2">
-            Last updated: {format(new Date(lastUpdated), 'PPp')}
-          </p>
-        )}
+          {lastUpdated && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Last updated: {format(new Date(lastUpdated), 'PPp')}
+            </p>
+          )}
         {totalItems > 0 && (
           <div className="mt-3">
             <div className="flex items-center justify-between text-sm mb-2">
@@ -758,5 +764,6 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
         )}
       </CardContent>
     </Card>
+    </div>
   );
 }
