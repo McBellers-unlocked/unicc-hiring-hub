@@ -375,20 +375,38 @@ export function PanelInterviewSlotManager({ jobId, panelMembers }: PanelIntervie
           </div>
         </div>
 
-        {/* Suggested Slots Display */}
-        {suggestedSlots.length > 0 && (
-          <div className="p-4 border rounded-lg space-y-4 bg-accent/5">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold">Suggested Available Slots ({suggestedSlots.length})</h3>
-              <Button onClick={publishSlotsToCandidate} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Publish to Candidates
-              </Button>
+        {/* All Time Slots - Unified View */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-lg">
+              Time Slots ({suggestedSlots.length + slots.length})
+            </h3>
+            <div className="flex items-center gap-2">
+              {suggestedSlots.length > 0 && (
+                <Button onClick={publishSlotsToCandidate} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Publish to Candidates
+                </Button>
+              )}
+              {(slots.length > 0 || suggestedSlots.length > 0) && (
+                <p className="text-sm text-muted-foreground">Monitor booking status</p>
+              )}
             </div>
+          </div>
+          
+          {slots.length === 0 && suggestedSlots.length === 0 ? (
+            <div className="p-8 text-center border rounded-lg bg-muted/20">
+              <p className="text-muted-foreground">No time slots yet. Click "Find Slots" to search for available times.</p>
+            </div>
+          ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {/* Suggested slots first */}
               {suggestedSlots.map((slot, index) => (
-                <div key={index} className="p-3 bg-background rounded border flex items-center justify-between">
-                  <div>
+                <div 
+                  key={`suggested-${index}`} 
+                  className="p-3 bg-yellow-500/5 border-yellow-500/20 rounded border flex items-center justify-between"
+                >
+                  <div className="flex-1">
                     <div className="font-medium">{format(slot.datetime, "PPP")}</div>
                     <div className="text-sm text-muted-foreground">
                       {format(slot.datetime, "p")} • {slot.duration} min
@@ -397,30 +415,8 @@ export function PanelInterviewSlotManager({ jobId, panelMembers }: PanelIntervie
                   <Badge variant="outline" className="bg-yellow-500/10 text-yellow-700 border-yellow-500/20">Pending</Badge>
                 </div>
               ))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              * These slots will be published to candidates on a first-come, first-served basis
-            </p>
-          </div>
-        )}
-
-        {/* All Time Slots - Combined View */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-lg">
-              Time Slots ({slots.length})
-            </h3>
-            {slots.length > 0 && (
-              <p className="text-sm text-muted-foreground">Monitor booking status</p>
-            )}
-          </div>
-          
-          {slots.length === 0 && suggestedSlots.length === 0 ? (
-            <div className="p-8 text-center border rounded-lg bg-muted/20">
-              <p className="text-muted-foreground">No time slots yet. Click "Find Slots" to search for available times.</p>
-            </div>
-          ) : slots.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              
+              {/* Published slots */}
               {slots.map((slot) => (
                 <div
                   key={slot.id}
@@ -455,7 +451,13 @@ export function PanelInterviewSlotManager({ jobId, panelMembers }: PanelIntervie
                 </div>
               ))}
             </div>
-          ) : null}
+          )}
+          
+          {suggestedSlots.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              * Pending slots (yellow) will be published to candidates on a first-come, first-served basis
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>
