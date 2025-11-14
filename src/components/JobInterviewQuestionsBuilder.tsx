@@ -355,13 +355,16 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
   };
 
   const getCoveragePercentage = () => {
-    const totalItems = requirements.length + competencies.length + languages.length;
+    // Only count Essential Criteria (not Essential Education) and Competencies
+    const essentialCriteria = requirements.filter(r => 
+      r.category === 'Essential Criteria'
+    );
+    const totalItems = essentialCriteria.length + competencies.length;
     if (totalItems === 0) return 0;
 
     const itemsWithQuestions = new Set([
-      ...questions.filter(q => q.requirement_id).map(q => q.requirement_id),
-      ...questions.filter(q => q.competency_id).map(q => q.competency_id),
-      ...questions.filter(q => q.language_requirement_id).map(q => q.language_requirement_id)
+      ...questions.filter(q => q.requirement_id && essentialCriteria.some(r => r.id === q.requirement_id)).map(q => q.requirement_id),
+      ...questions.filter(q => q.competency_id).map(q => q.competency_id)
     ]).size;
 
     return Math.round((itemsWithQuestions / totalItems) * 100);
@@ -374,7 +377,16 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
       ? getQuestionsForItem(undefined, itemId).length
       : getQuestionsForItem(undefined, undefined, itemId).length;
     
-    if (count === 0) return <XCircle className="w-4 h-4 text-destructive" />;
+    // Check if this is a desirable requirement
+    const item = type === 'requirement' ? requirements.find(r => r.id === itemId) : null;
+    const isDesirable = item?.category === 'Desirable Criteria';
+    
+    if (count === 0) {
+      // Desirable criteria don't require questions
+      return isDesirable ? 
+        <Info className="w-4 h-4 text-muted-foreground" /> : 
+        <XCircle className="w-4 h-4 text-destructive" />;
+    }
     if (count < 2) return <AlertCircle className="w-4 h-4 text-yellow-600" />;
     return <CheckCircle2 className="w-4 h-4 text-green-600" />;
   };
@@ -564,7 +576,10 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
   }, {} as Record<string, Competency[]>);
 
   const coverage = getCoveragePercentage();
-  const totalItems = requirements.length + competencies.length + languages.length;
+  // Only show criteria sections (not education or language)
+  const essentialCriteria = requirements.filter(r => r.category === 'Essential Criteria');
+  const desirableCriteria = requirements.filter(r => r.category === 'Desirable Criteria');
+  const totalItems = essentialCriteria.length + desirableCriteria.length + competencies.length;
 
   return (
     <Card>
@@ -624,7 +639,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
             <p className="text-lg font-medium mb-2">No Requirements Defined</p>
             <p className="text-sm">
               Please complete the job requirements in the Job Wizard first.<br />
-              You need to add Essential/Desirable Criteria, Education, Competencies, or Language Requirements.
+              You need to add Essential/Desirable Criteria or Competencies.
             </p>
           </div>
         ) : (
@@ -658,8 +673,8 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                 </Collapsible>
               )}
 
-              {/* ESSENTIAL CRITERIA Section */}
-              {requirements.filter(r => r.category.includes('Essential')).length > 0 && (
+              {/* ESSENTIAL CRITERIA Section - Only Essential Criteria, not Essential Education */}
+              {essentialCriteria.length > 0 && (
                 <Collapsible
                   defaultOpen
                   className="border-2 border-orange-200 rounded-lg"
@@ -670,12 +685,12 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                         <FolderOpen className="w-5 h-5 text-orange-600" />
                         <span className="font-bold text-base">📁 ESSENTIAL CRITERIA</span>
                         <Badge variant="secondary">
-                          {requirements.filter(r => r.category.includes('Essential')).length}
+                          {essentialCriteria.length}
                         </Badge>
                         <Badge variant="outline">
                           {questions.filter(q => {
                             const req = requirements.find(r => r.id === q.requirement_id);
-                            return req?.category.includes('Essential');
+                            return req?.category === 'Essential Criteria';
                           }).length} questions
                         </Badge>
                       </div>
@@ -683,17 +698,14 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <div className="p-3 space-y-3">
-                      {Object.entries(groupedRequirements)
-                        .filter(([category]) => category.includes('Essential'))
-                        .map(([category, items]) => renderRequirementSection(category, items)
-                      )}
+                      {renderRequirementSection('Essential Criteria', essentialCriteria)}
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
               )}
 
               {/* DESIRABLE CRITERIA Section */}
-              {requirements.filter(r => r.category.includes('Desirable')).length > 0 && (
+              {desirableCriteria.length > 0 && (
                 <Collapsible
                   className="border-2 border-blue-200 rounded-lg"
                 >
@@ -703,134 +715,25 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                         <FolderOpen className="w-5 h-5 text-blue-600" />
                         <span className="font-bold text-base">📁 DESIRABLE CRITERIA</span>
                         <Badge variant="secondary">
-                          {requirements.filter(r => r.category.includes('Desirable')).length}
+                          {desirableCriteria.length}
                         </Badge>
                         <Badge variant="outline">
                           {questions.filter(q => {
                             const req = requirements.find(r => r.id === q.requirement_id);
-                            return req?.category.includes('Desirable');
+                            return req?.category === 'Desirable Criteria';
                           }).length} questions
                         </Badge>
                         <Info className="w-4 h-4 text-blue-600" />
+                        <span className="text-xs text-muted-foreground">(Optional)</span>
                       </div>
                     </div>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <div className="p-3 space-y-3">
-                      {Object.entries(groupedRequirements)
-                        .filter(([category]) => category.includes('Desirable'))
-                        .map(([category, items]) => renderRequirementSection(category, items)
-                      )}
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              )}
-
-              {/* OVERALL ASSESSMENT Section */}
-              {requirements.filter(r => r.category === 'Overall Assessment').length > 0 && (
-                <Collapsible
-                  defaultOpen
-                  className="border-2 border-green-200 rounded-lg"
-                >
-                  <CollapsibleTrigger className="w-full">
-                    <div className="flex items-center justify-between p-4 hover:bg-muted/50 bg-green-50">
-                      <div className="flex items-center gap-3">
-                        <FolderOpen className="w-5 h-5 text-green-600" />
-                        <span className="font-bold text-base">📁 OVERALL ASSESSMENT</span>
-                        <Badge variant="secondary">
-                          {requirements.filter(r => r.category === 'Overall Assessment').length}
-                        </Badge>
-                        <Info className="w-4 h-4 text-green-600" />
+                      <div className="text-sm text-muted-foreground mb-2 p-2 bg-blue-50 rounded border border-blue-200">
+                        ℹ️ Questions for desirable criteria are optional - add them if you want to assess these during interviews.
                       </div>
-                    </div>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div className="p-3 space-y-3">
-                      <div className="text-sm text-muted-foreground mb-2 p-2 bg-green-50 rounded border border-green-200">
-                        ℹ️ These are holistic assessments scored during interviews. No specific questions needed.
-                      </div>
-                      {requirements
-                        .filter(r => r.category === 'Overall Assessment')
-                        .map(item => (
-                          <div key={item.id} className="border rounded-lg p-3 bg-card">
-                            <div className="flex items-start gap-2">
-                              <CheckCircle2 className="w-4 h-4 text-green-600 mt-1" />
-                              <div>
-                                <p className="font-medium text-sm">{item.title}</p>
-                                {item.description && (
-                                  <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      }
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              )}
-
-              {languages.length > 0 && (
-                <Collapsible
-                  open={expandedSections.has('languages')}
-                  onOpenChange={() => toggleSection('languages')}
-                  className="border rounded-lg"
-                >
-                  <CollapsibleTrigger className="w-full">
-                    <div className="flex items-center justify-between p-3 hover:bg-muted/50">
-                      <div className="flex items-center gap-2">
-                        {expandedSections.has('languages') ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                        <span className="font-medium">Language Requirements</span>
-                        <Badge variant="secondary">{languages.length}</Badge>
-                      </div>
-                    </div>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div className="p-3 pt-0 space-y-3">
-                      {languages.map(lang => {
-                        const langQuestions = getQuestionsForItem(undefined, undefined, lang.id);
-                        return (
-                          <div key={lang.id} className="border rounded-lg p-3 bg-card space-y-2">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <p className="font-medium text-sm">{lang.language} - {lang.level}</p>
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => addQuestion(undefined, undefined, lang.id)}
-                              >
-                                <Plus className="w-3 h-3" />
-                              </Button>
-                            </div>
-                            
-                            {langQuestions.length > 0 && (
-                              <div className="space-y-2 mt-2">
-                                {langQuestions.map((q, qIndex) => {
-                                  const globalIndex = questions.findIndex(gq => gq === q);
-                                  return (
-                                    <div key={globalIndex} className="flex gap-2 bg-muted/30 p-2 rounded">
-                                      <Textarea
-                                        placeholder="Interview question..."
-                                        value={q.question_text}
-                                        onChange={(e) => updateQuestion(globalIndex, e.target.value)}
-                                        className="min-h-[60px] text-sm"
-                                      />
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => removeQuestion(globalIndex)}
-                                      >
-                                        <Trash2 className="w-3 h-3 text-destructive" />
-                                      </Button>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                      {renderRequirementSection('Desirable Criteria', desirableCriteria)}
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
