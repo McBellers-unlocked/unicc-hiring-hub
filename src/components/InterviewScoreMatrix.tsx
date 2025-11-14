@@ -36,7 +36,7 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
     try {
       setLoading(true);
 
-      // Fetch template
+      // Fetch template (for display structure)
       const { data: templateData, error: templateError } = await supabase
         .from('feedback_form_templates')
         .select('*')
@@ -46,6 +46,51 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
 
       if (templateError) throw templateError;
       setTemplate(templateData);
+
+      // Fetch interview questions for this job
+      const { data: questionsData, error: questionsError } = await supabase
+        .from('job_interview_questions')
+        .select('id')
+        .eq('job_id', jobId);
+
+      if (questionsError) throw questionsError;
+
+      // Create mapping of questions to competencies/requirements
+      const questionMapping: Record<string, string[]> = {};
+      
+      for (const question of questionsData || []) {
+        // Fetch competencies for this question
+        const { data: compData } = await supabase
+          .from('job_interview_question_competencies')
+          .select('competency_id, job_competencies(id)')
+          .eq('question_id', question.id);
+
+        // Fetch requirements for this question
+        const { data: reqData } = await supabase
+          .from('job_interview_question_requirements')
+          .select('requirement_id, job_requirements(id)')
+          .eq('question_id', question.id);
+
+        const criterionIds: string[] = [];
+        
+        if (compData) {
+          compData.forEach((c: any) => {
+            if (c.job_competencies) {
+              criterionIds.push(c.job_competencies.id);
+            }
+          });
+        }
+        
+        if (reqData) {
+          reqData.forEach((r: any) => {
+            if (r.job_requirements) {
+              criterionIds.push(r.job_requirements.id);
+            }
+          });
+        }
+
+        questionMapping[question.id] = criterionIds;
+      }
 
       // Fetch all feedback responses for this application
       const { data: responses, error: responsesError } = await supabase
@@ -58,13 +103,48 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
 
       if (responsesError) throw responsesError;
 
-      const panelistScores: PanelistScore[] = responses.map((r: any) => ({
-        panelist_id: r.evaluator_id,
-        panelist_name: r.evaluator?.name || 'Unknown',
-        responses: r.responses || {},
-        overall: r.overall || 0,
-        recommendation: r.recommendation || 'N/A'
-      }));
+      const panelistScores: PanelistScore[] = responses.map((r: any) => {
+        // Map question scores to criterion scores
+        const criterionScores: Record<string, number[]> = {};
+        const questionResponses = r.responses || {};
+
+        Object.keys(questionResponses).forEach(questionId => {
+          const responseData = questionResponses[questionId];
+          const score = typeof responseData === 'object' ? responseData.score : responseData;
+          
+          if (typeof score === 'number') {
+            const criterionIds = questionMapping[questionId] || [];
+            criterionIds.forEach(criterionId => {
+              if (!criterionScores[criterionId]) {
+                criterionScores[criterionId] = [];
+              }
+              criterionScores[criterionId].push(score);
+            });
+          }
+        });
+
+        // Average scores for each criterion
+        const avgCriterionScores: Record<string, number> = {};
+        Object.keys(criterionScores).forEach(criterionId => {
+          const scores = criterionScores[criterionId];
+          avgCriterionScores[criterionId] = 
+            scores.reduce((sum, s) => sum + s, 0) / scores.length;
+        });
+
+        // Calculate overall as average of all criterion scores
+        const allScores = Object.values(avgCriterionScores);
+        const overall = allScores.length > 0
+          ? allScores.reduce((sum, s) => sum + s, 0) / allScores.length
+          : 0;
+
+        return {
+          panelist_id: r.evaluator_id,
+          panelist_name: r.evaluator?.name || 'Unknown',
+          responses: avgCriterionScores,
+          overall: overall,
+          recommendation: r.recommendation || 'N/A'
+        };
+      });
 
       setScores(panelistScores);
     } catch (error) {
