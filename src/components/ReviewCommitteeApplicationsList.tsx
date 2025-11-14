@@ -13,6 +13,11 @@ interface Application {
   avgScore?: number;
   percentage?: number;
   feedbackCount?: number;
+  stageHistory?: Array<{
+    from_stage: string | null;
+    to_stage: string;
+    at: string;
+  }>;
   candidate?: {
     name?: string;
     email?: string;
@@ -130,26 +135,42 @@ export function ReviewCommitteeApplicationsList({ applications }: ReviewCommitte
     );
   }
 
+  // Helper function to get the stage before rejection
+  const getStageBeforeRejection = (app: Application): string | null => {
+    if (app.status !== "Rejected" || !app.stageHistory) return app.status;
+    
+    // Find the last non-rejected stage
+    const stages = [...app.stageHistory].reverse();
+    const lastBeforeRejection = stages.find(s => s.to_stage !== "Rejected");
+    return lastBeforeRejection?.to_stage || null;
+  };
+
   // Group candidates by their furthest stage (only appear in one section)
-  const panelInterview = applications.filter(app => app.status === "Panel Interview");
+  const panelInterview = applications.filter(app => {
+    const stage = getStageBeforeRejection(app);
+    return stage === "Panel Interview";
+  });
   
-  const videoInterview = applications.filter(app => 
-    app.status === "Pre-Recorded Video" && !panelInterview.find(p => p.id === app.id)
-  );
+  const videoInterview = applications.filter(app => {
+    const stage = getStageBeforeRejection(app);
+    return stage === "Pre-Recorded Video" && !panelInterview.find(p => p.id === app.id);
+  });
   
-  const longlistedNotSelected = applications.filter(app => 
-    app.suggested_for_longlist === true &&
-    (app.status === "Longlist" || app.status === "Rejected") &&
-    !panelInterview.find(p => p.id === app.id) &&
-    !videoInterview.find(v => v.id === app.id)
-  );
+  const longlistedNotSelected = applications.filter(app => {
+    const stage = getStageBeforeRejection(app);
+    return (stage === "Longlist" || (stage === "Screening" && app.suggested_for_longlist === true)) &&
+      !panelInterview.find(p => p.id === app.id) &&
+      !videoInterview.find(v => v.id === app.id);
+  });
   
-  const notLonglisted = applications.filter(app => 
-    (app.suggested_for_longlist === false || app.suggested_for_longlist === null) &&
-    !panelInterview.find(p => p.id === app.id) &&
-    !videoInterview.find(v => v.id === app.id) &&
-    !longlistedNotSelected.find(l => l.id === app.id)
-  );
+  const notLonglisted = applications.filter(app => {
+    const stage = getStageBeforeRejection(app);
+    return (stage === "Application" || stage === "Screening") &&
+      (app.suggested_for_longlist === false || app.suggested_for_longlist === null) &&
+      !panelInterview.find(p => p.id === app.id) &&
+      !videoInterview.find(v => v.id === app.id) &&
+      !longlistedNotSelected.find(l => l.id === app.id);
+  });
 
   return (
     <div className="space-y-4">

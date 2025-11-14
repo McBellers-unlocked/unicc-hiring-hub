@@ -31,7 +31,7 @@ export default function ReviewCommittee() {
     },
   });
 
-  // Fetch all candidates for this job
+  // Fetch all candidates for this job with stage history
   const { data: candidates, isLoading: candidatesLoading } = useQuery({
     queryKey: ["all-candidates", jobId],
     queryFn: async () => {
@@ -50,7 +50,20 @@ export default function ReviewCommittee() {
         .order("submitted_at", { ascending: false });
       
       if (error) throw error;
-      return data;
+
+      // Fetch stage events for all applications
+      const appIds = data?.map(app => app.id) || [];
+      const { data: stageEvents } = await supabase
+        .from("stage_events")
+        .select("*")
+        .in("application_id", appIds)
+        .order("at", { ascending: true });
+
+      // Attach stage history to each application
+      return data?.map(app => ({
+        ...app,
+        stageHistory: stageEvents?.filter(e => e.application_id === app.id) || []
+      }));
     },
   });
 
