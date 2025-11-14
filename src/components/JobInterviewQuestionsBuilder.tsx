@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-// import { PanelInterviewSlotManager } from '@/components/PanelInterviewSlotManager';
+import { PanelInterviewSlotManager } from '@/components/PanelInterviewSlotManager';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -970,13 +970,13 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
         </CardContent>
         </Card>
 
-        {/* Panel Interview Scheduling - Temporarily disabled while types regenerate */}
-        {/* {panelValidation.valid && panelMembers.length > 0 && (
+        {/* Panel Interview Scheduling */}
+        {panelValidation.valid && panelMembers.length > 0 && (
           <PanelInterviewSlotManager 
             jobId={jobId} 
             panelMembers={panelMembers}
           />
-        )} */}
+        )}
 
         {/* Interview Questions */}
         <Card>
