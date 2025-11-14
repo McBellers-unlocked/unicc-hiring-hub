@@ -147,6 +147,26 @@ export const PanelInterviewFeedbackForm: React.FC<PanelInterviewFeedbackFormProp
         };
       });
 
+      // Add overall_fit and potential to responses
+      if (responses['overall_fit'] !== undefined) {
+        combinedResponses['overall_fit'] = {
+          score: responses['overall_fit'],
+          note: notes['overall_fit'] || ''
+        };
+      }
+      if (responses['potential'] !== undefined) {
+        combinedResponses['potential'] = {
+          score: responses['potential'],
+          note: notes['potential'] || ''
+        };
+      }
+      if (notes['overall_notes']) {
+        combinedResponses['overall_notes'] = {
+          score: 0,
+          note: notes['overall_notes']
+        };
+      }
+
       const feedbackData: any = {
         application_id: applicationId,
         evaluator_id: userId,
