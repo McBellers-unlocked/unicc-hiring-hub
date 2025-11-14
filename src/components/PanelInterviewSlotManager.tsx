@@ -458,6 +458,67 @@ export function PanelInterviewSlotManager({ jobId, panelMembers }: PanelIntervie
               * Pending slots (yellow) will be published to candidates on a first-come, first-served basis
             </p>
           )}
+          
+          {/* Manual Slot Creation */}
+          <div className="pt-4 border-t">
+            <h4 className="font-medium mb-3">Manually Add Slot</h4>
+            <div className="flex items-end gap-3">
+              <div className="flex-1">
+                <Label className="text-xs">Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !selectedDate && "text-muted-foreground"
+                      )}
+                      size="sm"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      disabled={(date) => date < new Date()}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="w-32">
+                <Label className="text-xs">Time</Label>
+                <Input
+                  type="time"
+                  value={selectedTime}
+                  onChange={(e) => setSelectedTime(e.target.value)}
+                  size={1}
+                />
+              </div>
+
+              <div className="w-28">
+                <Label className="text-xs">Duration (min)</Label>
+                <Input
+                  type="number"
+                  value={duration}
+                  onChange={(e) => setDuration(parseInt(e.target.value))}
+                  min="15"
+                  step="15"
+                  size={1}
+                />
+              </div>
+
+              <Button onClick={createSlot} size="sm" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Slot
+              </Button>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
