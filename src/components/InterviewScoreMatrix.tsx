@@ -203,7 +203,7 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
     totalCriteria += 2; // Add 2 for overall_fit and potential
     
     const maxPossible = totalCriteria * 5;
-    return Math.round((overall / maxPossible) * 100);
+    return maxPossible > 0 ? Math.round((overall / maxPossible) * 100) : 0;
   };
 
   const getRankings = () => {
