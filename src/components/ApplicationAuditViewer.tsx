@@ -13,7 +13,9 @@ import {
   CheckCircle,
   XCircle,
   ArrowRight,
-  Clock
+  Clock,
+  FileText,
+  AlertCircle
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
@@ -161,6 +163,11 @@ export const ApplicationAuditViewer: React.FC<ApplicationAuditViewerProps> = ({
         return <XCircle className="w-4 h-4 text-red-600" />;
       case 'VIEW':
         return <Eye className="w-4 h-4 text-purple-600" />;
+      case 'INTERVIEW_SCHEDULED':
+        return <Calendar className="w-4 h-4 text-indigo-600" />;
+      case 'FEEDBACK_SUBMITTED':
+      case 'FEEDBACK_UPDATED':
+        return <User className="w-4 h-4 text-teal-600" />;
       default:
         return <Activity className="w-4 h-4 text-gray-600" />;
     }
@@ -176,6 +183,12 @@ export const ApplicationAuditViewer: React.FC<ApplicationAuditViewerProps> = ({
         return 'AI scoring initiated';
       case 'EMAIL_SENT':
         return `Email sent: ${log.after?.subject || 'Notification'}`;
+      case 'INTERVIEW_SCHEDULED':
+        return `Panel interview scheduled${log.after?.scheduled_at ? ` for ${format(new Date(log.after.scheduled_at), 'PPP p')}` : ''}`;
+      case 'FEEDBACK_SUBMITTED':
+        return `Submitted interview feedback${log.after?.overall_score ? ` (Overall: ${log.after.overall_score}/5)` : ''}`;
+      case 'FEEDBACK_UPDATED':
+        return `Updated interview feedback${log.after?.overall_score ? ` (Overall: ${log.after.overall_score}/5)` : ''}`;
       default:
         return log.action.toLowerCase().replace('_', ' ');
     }
@@ -206,7 +219,8 @@ export const ApplicationAuditViewer: React.FC<ApplicationAuditViewerProps> = ({
     } as StageTimelineEvent)),
     // Add relevant audit events
     ...auditLogs
-      .filter(log => !['INSERT', 'UPDATE'].includes(log.action) || log.action === 'AUTO_SCORING_TRIGGERED')
+      .filter(log => !['INSERT', 'UPDATE'].includes(log.action) || 
+              ['AUTO_SCORING_TRIGGERED', 'INTERVIEW_SCHEDULED', 'FEEDBACK_SUBMITTED', 'FEEDBACK_UPDATED'].includes(log.action))
       .map(log => ({
         id: log.id,
         type: 'audit',

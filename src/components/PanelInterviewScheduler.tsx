@@ -262,6 +262,23 @@ export const PanelInterviewScheduler: React.FC<PanelInterviewSchedulerProps> = (
         });
       }
 
+      // Log the interview booking to audit trail
+      await supabase.functions.invoke('create-audit-log', {
+        body: {
+          action: 'INTERVIEW_SCHEDULED',
+          entity: 'panel_interviews',
+          entityId: applicationId,
+          actorId: user?.id,
+          after: {
+            interview_id: interview.id,
+            title,
+            scheduled_at: scheduledDateTime.toISOString(),
+            duration_minutes: duration,
+            panelists_count: allParticipants.length
+          }
+        }
+      });
+
       toast({
         title: "Success",
         description: "Panel interview scheduled successfully"
