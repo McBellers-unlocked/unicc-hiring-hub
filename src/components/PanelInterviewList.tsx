@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { CalendarIcon, Clock, MapPin, Link as LinkIcon, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { PanelInterviewFeedbackForm } from './PanelInterviewFeedbackForm';
 
 interface PanelInterview {
   id: string;
@@ -15,6 +17,7 @@ interface PanelInterview {
   location?: string;
   meeting_link?: string;
   status: string;
+  feedback_template_id?: string;
   participants: Array<{
     id: string;
     panelist_id: string | null;
@@ -41,8 +44,10 @@ export const PanelInterviewList: React.FC<PanelInterviewListProps> = ({
   applicationId
 }) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [interviews, setInterviews] = useState<PanelInterview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedInterview, setExpandedInterview] = useState<string | null>(null);
 
   useEffect(() => {
     fetchInterviews();

@@ -208,7 +208,6 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[300px]">Criteria</TableHead>
-                <TableHead className="w-[60px]">R/D</TableHead>
                 {hasFeedback && scores.map(s => (
                   <TableHead key={s.panelist_id} className="text-center">
                     {s.panelist_name}
@@ -221,7 +220,7 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
               {template.sections.map((section: any) => (
                 <React.Fragment key={section.title}>
                   <TableRow className="bg-muted/50">
-                    <TableCell colSpan={hasFeedback ? scores.length + 3 : 2} className="font-bold">
+                    <TableCell colSpan={hasFeedback ? scores.length + 2 : 1} className="font-bold">
                       {section.title} ({section.weight}% weight)
                     </TableCell>
                   </TableRow>
@@ -229,11 +228,6 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
                     <TableRow key={criterion.id}>
                       <TableCell className="font-medium text-sm">
                         {criterion.name}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant={criterion.is_essential ? "destructive" : "secondary"}>
-                          {criterion.is_essential ? 'R' : 'D'}
-                        </Badge>
                       </TableCell>
                       {hasFeedback && scores.map(s => {
                         const score = s.responses[criterion.id];
