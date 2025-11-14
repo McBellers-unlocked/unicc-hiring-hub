@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { FileText, Download, Users, Award, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ReviewCommitteeScoreMatrix } from "@/components/ReviewCommitteeScoreMatrix";
 
 export default function ReviewCommittee() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -182,82 +183,7 @@ export default function ReviewCommittee() {
 
           {/* Summary Tab */}
           <TabsContent value="summary" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Candidate Rankings</CardTitle>
-                <CardDescription>
-                  Ranked by average interview score (80%+ are appointable)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {candidatesWithStats && candidatesWithStats.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-16">Rank</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Location</TableHead>
-                        <TableHead className="text-center">Avg Score</TableHead>
-                        <TableHead className="text-center">Percentage</TableHead>
-                        <TableHead className="text-center">Feedback Count</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {candidatesWithStats.map((app, index) => {
-                        const rank = index + 1;
-                        const status = app.percentage < 80 
-                          ? "Not Recommended" 
-                          : rank === 1 
-                            ? "Recommended" 
-                            : "Alternate";
-                        const statusVariant = app.percentage < 80 
-                          ? "destructive" 
-                          : rank === 1 
-                            ? "default" 
-                            : "secondary";
-
-                        return (
-                          <TableRow key={app.id}>
-                            <TableCell className="font-bold text-lg">#{rank}</TableCell>
-                            <TableCell className="font-medium">
-                              {app.candidate?.name || "N/A"}
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {app.candidate?.email || "N/A"}
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {app.candidate?.location || "N/A"}
-                            </TableCell>
-                            <TableCell className="text-center font-semibold">
-                              {app.avgScore}/100
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <span className={app.percentage >= 80 ? "text-green-600 font-semibold" : ""}>
-                                {app.percentage}%
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {app.feedbackCount}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={statusVariant}>{status}</Badge>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <Alert>
-                    <AlertDescription>
-                      No candidates have reached the Panel Interview stage yet.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
+            <ReviewCommitteeScoreMatrix jobId={jobId!} />
           </TabsContent>
 
           {/* Applications Tab */}
