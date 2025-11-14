@@ -515,6 +515,28 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
             </div>
           )}
 
+          {/* Panel Composition Summary */}
+          {panelValidation && panelValidation.summary && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+              <div className="space-y-1">
+                <div className="text-2xl font-bold">{panelValidation.summary.total_members}</div>
+                <div className="text-sm text-muted-foreground">Panel Members</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-2xl font-bold">{panelValidation.summary.nationalities.length}</div>
+                <div className="text-sm text-muted-foreground">Nationalities</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-2xl font-bold">{panelValidation.summary.duty_stations.length}</div>
+                <div className="text-sm text-muted-foreground">Duty Stations</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-2xl font-bold">{panelValidation.summary.divisions.length}</div>
+                <div className="text-sm text-muted-foreground">Divisions</div>
+              </div>
+            </div>
+          )}
+
           {/* Current Panel Members */}
           {panelMembers.length > 0 && (
             <div className="space-y-2">
@@ -553,14 +575,14 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                   <Button variant="outline" className="justify-between">
                     {selectedUser
                       ? availableUsers.find(u => u.id === selectedUser)?.name
-                      : "Select user..."}
+                      : "Select staff..."}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[300px] p-0">
                   <Command>
-                    <CommandInput placeholder="Search users..." />
+                    <CommandInput placeholder="Search staff..." />
                     <CommandList>
-                      <CommandEmpty>No user found.</CommandEmpty>
+                      <CommandEmpty>No staff found.</CommandEmpty>
                       <CommandGroup>
                         {availableUsers.map(user => (
                           <CommandItem
