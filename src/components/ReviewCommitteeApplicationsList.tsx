@@ -136,16 +136,17 @@ export function ReviewCommitteeApplicationsList({ applications }: ReviewCommitte
     app.status === "Pre-Recorded Video" && !panelInterview.find(p => p.id === app.id)
   );
   const longlistedSelected = applications.filter(app => 
-    app.status === "Longlist" && 
     app.suggested_for_longlist === true &&
+    (app.status === "Pre-Recorded Video" || app.status === "Panel Interview") &&
     !panelInterview.find(p => p.id === app.id) &&
     !videoInterview.find(v => v.id === app.id)
   );
   const longlistedNotSelected = applications.filter(app => 
-    app.status === "Longlist" && 
-    app.suggested_for_longlist === false &&
+    app.suggested_for_longlist === true &&
+    app.status === "Longlist" &&
     !panelInterview.find(p => p.id === app.id) &&
-    !videoInterview.find(v => v.id === app.id)
+    !videoInterview.find(v => v.id === app.id) &&
+    !longlistedSelected.find(l => l.id === app.id)
   );
   const longlisted = applications.filter(app => 
     app.status === "Screening" && 
@@ -157,7 +158,7 @@ export function ReviewCommitteeApplicationsList({ applications }: ReviewCommitte
   );
   const notLonglisted = applications.filter(app => 
     (app.status === "Screening" || app.status === "Application") && 
-    app.suggested_for_longlist === false &&
+    (app.suggested_for_longlist === false || app.suggested_for_longlist === null) &&
     !panelInterview.find(p => p.id === app.id) &&
     !videoInterview.find(v => v.id === app.id) &&
     !longlistedSelected.find(l => l.id === app.id) &&
