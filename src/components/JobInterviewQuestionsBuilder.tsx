@@ -6,13 +6,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, Save, Wand2, Users, ChevronDown, ChevronRight, CheckCircle2, AlertCircle, XCircle, Info, Folder, FolderOpen } from 'lucide-react';
+import { Plus, Trash2, Save, Wand2, Users, ChevronDown, ChevronRight, CheckCircle2, AlertCircle, XCircle, Info, Folder, FolderOpen, Search, Check } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PanelInterviewSlotManager } from '@/components/PanelInterviewSlotManager';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 interface InterviewQuestion {
   id?: string;
@@ -104,6 +107,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
   const [panelValidation, setPanelValidation] = useState<PanelValidation | null>(null);
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [selectedRole, setSelectedRole] = useState<string>('');
+  const [userComboboxOpen, setUserComboboxOpen] = useState(false);
   const [addingMember, setAddingMember] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -890,20 +894,59 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
           <div className="space-y-2">
             <h3 className="font-medium">Add Panel Member</h3>
             <div className="flex gap-2">
-              <Select value={selectedUser} onValueChange={setSelectedUser}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Select staff member" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableUsers
-                    .filter(u => !panelMembers.some(pm => pm.user_id === u.id))
-                    .map(user => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name} ({user.email})
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+              <Popover open={userComboboxOpen} onOpenChange={setUserComboboxOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={userComboboxOpen}
+                    className="flex-1 justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Search className="h-4 w-4 shrink-0 opacity-50" />
+                      <span className={cn(!selectedUser && "text-muted-foreground")}>
+                        {selectedUser
+                          ? availableUsers.find(u => u.id === selectedUser)?.name
+                          : "Search staff member..."}
+                      </span>
+                    </div>
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Type to search..." />
+                    <CommandList>
+                      <CommandEmpty>No staff member found.</CommandEmpty>
+                      <CommandGroup>
+                        {availableUsers
+                          .filter(u => !panelMembers.some(pm => pm.user_id === u.id))
+                          .map(user => (
+                            <CommandItem
+                              key={user.id}
+                              value={`${user.name} ${user.email}`}
+                              onSelect={() => {
+                                setSelectedUser(user.id);
+                                setUserComboboxOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedUser === user.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex flex-col">
+                                <span>{user.name}</span>
+                                <span className="text-xs text-muted-foreground">{user.email}</span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               <Select value={selectedRole} onValueChange={setSelectedRole}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Select role" />
