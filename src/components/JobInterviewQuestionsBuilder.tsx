@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Alert } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Trash2, Save, Wand2, Users, ChevronDown, ChevronRight, CheckCircle2, AlertCircle, XCircle, Info, Folder, FolderOpen } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,9 +24,37 @@ interface InterviewQuestion {
 }
 
 interface PanelMember {
-  id: string;
+  panel_member_id: string;
+  user_id: string;
   name: string;
   panel_role: string;
+  gender?: string;
+  duty_station?: string;
+  nationality?: string;
+  division?: string;
+}
+
+interface PanelValidation {
+  valid: boolean;
+  issues: Array<{ type: string; message: string }>;
+  warnings: Array<{ type: string; message: string }>;
+  summary: {
+    total_members: number;
+    gender_diversity: number;
+    duty_stations: string[];
+    nationalities: string[];
+    divisions: string[];
+  };
+}
+
+interface AvailableUser {
+  id: string;
+  name: string;
+  email: string;
+  gender?: string;
+  duty_station?: string;
+  nationality?: string;
+  division?: string;
 }
 
 interface Requirement {
@@ -70,6 +99,11 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
   const [languages, setLanguages] = useState<LanguageRequirement[]>([]);
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [panelMembers, setPanelMembers] = useState<PanelMember[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<AvailableUser[]>([]);
+  const [panelValidation, setPanelValidation] = useState<PanelValidation | null>(null);
+  const [selectedUser, setSelectedUser] = useState<string>('');
+  const [selectedRole, setSelectedRole] = useState<string>('');
+  const [addingMember, setAddingMember] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -89,7 +123,9 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
         fetchCompetencies(),
         fetchLanguages(),
         fetchContributors(),
-        fetchPanelMembers()
+        fetchPanelMembers(),
+        fetchAvailableUsers(),
+        validatePanel()
       ]);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -202,17 +238,105 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
       .select(`
         id,
         panel_role,
-        user:users(id, name)
+        user:users(id, name, gender, duty_station, nationality, division)
       `)
       .eq('job_id', jobId);
 
     if (error) throw error;
     if (data) {
       setPanelMembers(data.map((pm: any) => ({
-        id: pm.user.id,
+        panel_member_id: pm.id,
+        user_id: pm.user.id,
         name: pm.user.name,
-        panel_role: pm.panel_role
+        panel_role: pm.panel_role,
+        gender: pm.user.gender,
+        duty_station: pm.user.duty_station,
+        nationality: pm.user.nationality,
+        division: pm.user.division
       })));
+    }
+  };
+
+  const fetchAvailableUsers = async () => {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, name, email, gender, duty_station, nationality, division')
+      .or('role.eq.Admin,role.eq.HR Assistant,role.eq.Hiring Manager,role.eq.Panel Member')
+      .order('name');
+
+    if (error) throw error;
+    if (data) setAvailableUsers(data);
+  };
+
+  const validatePanel = async () => {
+    const { data, error } = await supabase.rpc('validate_panel_composition', {
+      p_job_id: jobId
+    });
+
+    if (error) {
+      console.error('Validation error:', error);
+      return;
+    }
+    setPanelValidation(data);
+  };
+
+  const addPanelMember = async () => {
+    if (!selectedUser || !selectedRole) return;
+
+    try {
+      setAddingMember(true);
+      const { error } = await supabase
+        .from('job_interview_panel_members')
+        .insert({
+          job_id: jobId,
+          user_id: selectedUser,
+          panel_role: selectedRole
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Panel member added successfully",
+      });
+
+      setSelectedUser('');
+      setSelectedRole('');
+      await loadData();
+    } catch (error) {
+      console.error('Error adding panel member:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add panel member",
+        variant: "destructive",
+      });
+    } finally {
+      setAddingMember(false);
+    }
+  };
+
+  const removePanelMember = async (panelMemberId: string) => {
+    try {
+      const { error } = await supabase
+        .from('job_interview_panel_members')
+        .delete()
+        .eq('id', panelMemberId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Panel member removed successfully",
+      });
+
+      await loadData();
+    } catch (error) {
+      console.error('Error removing panel member:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove panel member",
+        variant: "destructive",
+      });
     }
   };
 
@@ -508,7 +632,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                                 <SelectContent>
                                   <SelectItem value="">Unassigned</SelectItem>
                                   {panelMembers.map(member => (
-                                    <SelectItem key={member.id} value={member.id}>
+                                    <SelectItem key={member.user_id} value={member.user_id}>
                                       {member.name} ({member.panel_role})
                                     </SelectItem>
                                   ))}
@@ -640,6 +764,158 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
   return (
     <div className="space-y-6">
+      {/* Interview Panel Composition */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Interview Panel Composition
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Select panel members ensuring gender balance, diversity in duty stations, nationalities, and divisions
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Validation Results */}
+          {panelValidation && (
+            <>
+              {panelValidation.issues.map((issue, idx) => (
+                <Alert key={`issue-${idx}`} variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <div>
+                    <div className="font-medium">Issue</div>
+                    <div className="text-sm">{issue.message}</div>
+                  </div>
+                </Alert>
+              ))}
+              
+              {panelValidation.warnings.map((warning, idx) => (
+                <Alert key={`warning-${idx}`}>
+                  <Info className="h-4 w-4" />
+                  <div>
+                    <div className="font-medium">Recommendation</div>
+                    <div className="text-sm">{warning.message}</div>
+                  </div>
+                </Alert>
+              ))}
+              
+              {panelValidation.valid && panelValidation.issues.length === 0 && (
+                <Alert>
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <div>
+                    <div className="font-medium">Panel Composition Valid</div>
+                    <div className="text-sm">The panel meets all diversity requirements</div>
+                  </div>
+                </Alert>
+              )}
+              
+              {/* Summary Stats */}
+              {panelValidation.summary && (
+                <div className="grid grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+                  <div>
+                    <div className="text-sm text-muted-foreground">Members</div>
+                    <div className="text-2xl font-bold">{panelValidation.summary.total_members}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Duty Stations</div>
+                    <div className="text-sm font-medium">{panelValidation.summary.duty_stations?.join(', ') || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Nationalities</div>
+                    <div className="text-sm font-medium">{panelValidation.summary.nationalities?.join(', ') || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Divisions</div>
+                    <div className="text-sm font-medium">{panelValidation.summary.divisions?.join(', ') || 'N/A'}</div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Current Panel Members */}
+          <div className="space-y-2">
+            <h3 className="font-medium">Current Panel Members</h3>
+            {panelMembers.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No panel members added yet</p>
+            ) : (
+              <div className="space-y-2">
+                {panelMembers.map((member) => (
+                  <div key={member.panel_member_id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Avatar>
+                        <AvatarFallback>
+                          {member.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium">{member.name}</div>
+                        <div className="flex gap-2 text-xs text-muted-foreground">
+                          {member.gender && <Badge variant="outline">{member.gender}</Badge>}
+                          {member.duty_station && <Badge variant="outline">{member.duty_station}</Badge>}
+                          {member.nationality && <Badge variant="outline">{member.nationality}</Badge>}
+                          {member.division && <Badge variant="outline">{member.division}</Badge>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge>{member.panel_role}</Badge>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => removePanelMember(member.panel_member_id)}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Add Panel Member Form */}
+          <div className="space-y-2">
+            <h3 className="font-medium">Add Panel Member</h3>
+            <div className="flex gap-2">
+              <Select value={selectedUser} onValueChange={setSelectedUser}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Select staff member" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableUsers
+                    .filter(u => !panelMembers.some(pm => pm.user_id === u.id))
+                    .map(user => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.name} ({user.email})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedRole} onValueChange={setSelectedRole}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Hiring Manager">Hiring Manager</SelectItem>
+                  <SelectItem value="HR Rep">HR Rep</SelectItem>
+                  <SelectItem value="Technical Expert">Technical Expert</SelectItem>
+                  <SelectItem value="Additional Panel Member">Additional Panel Member</SelectItem>
+                  <SelectItem value="Observer">Observer</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button 
+                onClick={addPanelMember}
+                disabled={!selectedUser || !selectedRole || addingMember}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Interview Questions */}
       <Card>
         <CardHeader>
