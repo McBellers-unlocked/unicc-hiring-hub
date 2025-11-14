@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.simulate-slot-bookings]
 verify_jwt = false
+
+[functions.reset-and-rebook-interviews]
+verify_jwt = false
