@@ -7,7 +7,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { JobInterviewQuestionsBuilder } from '@/components/JobInterviewQuestionsBuilder';
-import { InterviewPanelManager } from '@/components/InterviewPanelManager';
 
 export default function JobInterviewQuestions() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -130,10 +129,7 @@ export default function JobInterviewQuestions() {
           </Button>
         </div>
 
-        <div className="space-y-6">
-          <InterviewPanelManager jobId={job.id} />
-          <JobInterviewQuestionsBuilder jobId={job.id} jobTitle={job.title} />
-        </div>
+        <JobInterviewQuestionsBuilder jobId={job.id} jobTitle={job.title} />
       </div>
     </Layout>
   );
