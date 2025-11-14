@@ -609,6 +609,36 @@ export type Database = {
           },
         ]
       }
+      external_panel_members: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          organization: string
+          position: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          organization: string
+          position: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          organization?: string
+          position?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       feedback_form_responses: {
         Row: {
           application_id: string
@@ -805,6 +835,84 @@ export type Database = {
         }
         Relationships: []
       }
+      job_interview_panel_members: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          panel_role: Database["public"]["Enums"]["panel_member_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          panel_role: Database["public"]["Enums"]["panel_member_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          panel_role?: Database["public"]["Enums"]["panel_member_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_interview_panel_members_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_interview_panel_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_interview_question_competencies: {
+        Row: {
+          competency_id: string
+          created_at: string
+          id: string
+          question_id: string
+        }
+        Insert: {
+          competency_id: string
+          created_at?: string
+          id?: string
+          question_id: string
+        }
+        Update: {
+          competency_id?: string
+          created_at?: string
+          id?: string
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_interview_question_competencies_competency_id_fkey"
+            columns: ["competency_id"]
+            isOneToOne: false
+            referencedRelation: "job_competencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_interview_question_competencies_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "job_interview_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_interview_question_contributors: {
         Row: {
           contributed_at: string | null
@@ -844,8 +952,45 @@ export type Database = {
           },
         ]
       }
+      job_interview_question_requirements: {
+        Row: {
+          created_at: string
+          id: string
+          question_id: string
+          requirement_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          question_id: string
+          requirement_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          question_id?: string
+          requirement_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_interview_question_requirements_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "job_interview_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_interview_question_requirements_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "job_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_interview_questions: {
         Row: {
+          assigned_to: string | null
           competency_id: string | null
           created_at: string | null
           created_by: string | null
@@ -858,6 +1003,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          assigned_to?: string | null
           competency_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -870,6 +1016,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          assigned_to?: string | null
           competency_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -882,6 +1029,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "job_interview_questions_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "job_interview_questions_competency_id_fkey"
             columns: ["competency_id"]
@@ -1388,28 +1542,114 @@ export type Database = {
         Row: {
           confirmed: boolean | null
           created_at: string
+          external_panelist_id: string | null
           id: string
           panel_interview_id: string
-          panelist_id: string
+          panelist_id: string | null
           role: string | null
         }
         Insert: {
           confirmed?: boolean | null
           created_at?: string
+          external_panelist_id?: string | null
           id?: string
           panel_interview_id: string
-          panelist_id: string
+          panelist_id?: string | null
           role?: string | null
         }
         Update: {
           confirmed?: boolean | null
           created_at?: string
+          external_panelist_id?: string | null
           id?: string
           panel_interview_id?: string
-          panelist_id?: string
+          panelist_id?: string | null
           role?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "panel_interview_participants_external_panelist_id_fkey"
+            columns: ["external_panelist_id"]
+            isOneToOne: false
+            referencedRelation: "external_panel_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "panel_interview_participants_panel_interview_id_fkey"
+            columns: ["panel_interview_id"]
+            isOneToOne: false
+            referencedRelation: "panel_interviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "panel_interview_participants_panelist_id_fkey"
+            columns: ["panelist_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      panel_interview_time_slots: {
+        Row: {
+          booked_by_application_id: string | null
+          created_at: string
+          created_by: string | null
+          duration_minutes: number
+          id: string
+          job_id: string
+          panel_member_ids: string[]
+          slot_datetime: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          booked_by_application_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number
+          id?: string
+          job_id: string
+          panel_member_ids: string[]
+          slot_datetime: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          booked_by_application_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number
+          id?: string
+          job_id?: string
+          panel_member_ids?: string[]
+          slot_datetime?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "panel_interview_time_slots_booked_by_application_id_fkey"
+            columns: ["booked_by_application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "panel_interview_time_slots_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "panel_interview_time_slots_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       panel_interviews: {
         Row: {
@@ -1712,27 +1952,39 @@ export type Database = {
         Row: {
           created_at: string
           department: string | null
+          division: string | null
+          duty_station: string | null
           email: string
+          gender: string | null
           id: string
           name: string
+          nationality: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
         Insert: {
           created_at?: string
           department?: string | null
+          division?: string | null
+          duty_station?: string | null
           email: string
+          gender?: string | null
           id: string
           name: string
+          nationality?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
         Update: {
           created_at?: string
           department?: string | null
+          division?: string | null
+          duty_station?: string | null
           email?: string
+          gender?: string | null
           id?: string
           name?: string
+          nationality?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
@@ -2066,6 +2318,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      validate_panel_composition: { Args: { p_job_id: string }; Returns: Json }
       validate_video_assignment_token: {
         Args: { assignment_token: string }
         Returns: {
@@ -2093,6 +2346,12 @@ export type Database = {
         | "Rejected"
       input_type: "boolean" | "single" | "multi" | "text"
       killer_question_rule: "yes_required" | "no_required" | "custom"
+      panel_member_role:
+        | "Hiring Manager"
+        | "Additional Panel Member"
+        | "Subject Matter Expert"
+        | "HR Rep"
+        | "Observer"
       recommendation: "Yes" | "No" | "Reserve" | "Roster"
       user_role:
         | "Admin"
@@ -2258,6 +2517,13 @@ export const Constants = {
       ],
       input_type: ["boolean", "single", "multi", "text"],
       killer_question_rule: ["yes_required", "no_required", "custom"],
+      panel_member_role: [
+        "Hiring Manager",
+        "Additional Panel Member",
+        "Subject Matter Expert",
+        "HR Rep",
+        "Observer",
+      ],
       recommendation: ["Yes", "No", "Reserve", "Roster"],
       user_role: [
         "Admin",
