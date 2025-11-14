@@ -39,8 +39,6 @@ function StageSection({
 }) {
   const [isOpen, setIsOpen] = useState(true);
 
-  if (candidates.length === 0) return null;
-
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card>
@@ -57,7 +55,14 @@ function StageSection({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="space-y-4 pt-0">
-            {candidates.map((app) => (
+            {candidates.length === 0 ? (
+              <Alert>
+                <AlertDescription>
+                  No candidates in this stage yet.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              candidates.map((app) => (
               <Card key={app.id}>
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between gap-4">
@@ -105,7 +110,8 @@ function StageSection({
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              ))
+            )}
           </CardContent>
         </CollapsibleContent>
       </Card>
