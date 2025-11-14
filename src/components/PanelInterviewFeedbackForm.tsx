@@ -94,10 +94,24 @@ export const PanelInterviewFeedbackForm: React.FC<PanelInterviewFeedbackFormProp
       if (existingResponse) {
         setExistingResponseId(existingResponse.id);
         const existingResponses = existingResponse.responses as any;
-        setResponses(existingResponses || {});
-        const existingNotes = existingResponse as any;
-        if (existingNotes.notes) {
-          setNotes(existingNotes.notes);
+        
+        // Extract scores and notes from the combined responses object
+        if (existingResponses) {
+          const extractedScores: Record<string, number> = {};
+          const extractedNotes: Record<string, string> = {};
+          
+          Object.keys(existingResponses).forEach(key => {
+            if (typeof existingResponses[key] === 'object') {
+              extractedScores[key] = existingResponses[key].score || 0;
+              extractedNotes[key] = existingResponses[key].note || '';
+            } else {
+              // Backward compatibility for old format
+              extractedScores[key] = existingResponses[key] || 0;
+            }
+          });
+          
+          setResponses(extractedScores);
+          setNotes(extractedNotes);
         }
       }
     } catch (error) {
@@ -124,12 +138,20 @@ export const PanelInterviewFeedbackForm: React.FC<PanelInterviewFeedbackFormProp
     try {
       setSaving(true);
 
+      // Combine scores and notes into a single responses object
+      const combinedResponses: any = {};
+      questions.forEach(q => {
+        combinedResponses[q.id] = {
+          score: responses[q.id] || 0,
+          note: notes[q.id] || ''
+        };
+      });
+
       const feedbackData: any = {
         application_id: applicationId,
         evaluator_id: userId,
         panel_interview_id: interviewId,
-        responses: responses as any,
-        notes: notes as any
+        responses: combinedResponses
       };
 
       if (existingResponseId) {
