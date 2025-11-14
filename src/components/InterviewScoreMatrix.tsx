@@ -389,6 +389,48 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
                     ))}
                     <TableCell className="text-center">-</TableCell>
                   </TableRow>
+
+                  <TableRow className="bg-accent/10 font-bold">
+                    <TableCell colSpan={2}>Overall Fit</TableCell>
+                    {scores.map(s => {
+                      const overallFit = s.responses['overall_fit'];
+                      return (
+                        <TableCell key={s.panelist_id} className="text-center">
+                          {typeof overallFit === 'number' ? (
+                            <span className={cn("px-2 py-1 rounded font-medium", getScoreColor(overallFit))}>
+                              {overallFit}
+                            </span>
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                      );
+                    })}
+                    <TableCell className="text-center">
+                      {calculateAverage('overall_fit')}
+                    </TableCell>
+                  </TableRow>
+
+                  <TableRow className="bg-accent/10 font-bold">
+                    <TableCell colSpan={2}>Potential</TableCell>
+                    {scores.map(s => {
+                      const potential = s.responses['potential'];
+                      return (
+                        <TableCell key={s.panelist_id} className="text-center">
+                          {typeof potential === 'number' ? (
+                            <span className={cn("px-2 py-1 rounded font-medium", getScoreColor(potential))}>
+                              {potential}
+                            </span>
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                      );
+                    })}
+                    <TableCell className="text-center">
+                      {calculateAverage('potential')}
+                    </TableCell>
+                  </TableRow>
                 </>
               )}
             </TableBody>

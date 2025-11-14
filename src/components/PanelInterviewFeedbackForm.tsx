@@ -260,6 +260,61 @@ export const PanelInterviewFeedbackForm: React.FC<PanelInterviewFeedbackFormProp
           </div>
         ))}
 
+        {/* Overall Assessment */}
+        <div className="border-t pt-6 mt-6 space-y-4">
+          <h3 className="font-semibold text-lg">Overall Assessment</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="overall-fit">Overall Fit (0-5)</Label>
+              <select
+                id="overall-fit"
+                disabled={readOnly}
+                value={responses['overall_fit'] || ''}
+                onChange={(e) => handleScoreChange('overall_fit', parseInt(e.target.value) || 0)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">Select</option>
+                {[0, 1, 2, 3, 4, 5].map(score => (
+                  <option key={score} value={score}>
+                    {score}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <Label htmlFor="potential">Potential (0-5)</Label>
+              <select
+                id="potential"
+                disabled={readOnly}
+                value={responses['potential'] || ''}
+                onChange={(e) => handleScoreChange('potential', parseInt(e.target.value) || 0)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">Select</option>
+                {[0, 1, 2, 3, 4, 5].map(score => (
+                  <option key={score} value={score}>
+                    {score}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="overall-notes">Overall Notes</Label>
+            <Textarea
+              id="overall-notes"
+              disabled={readOnly}
+              value={notes['overall_notes'] || ''}
+              onChange={(e) => handleNoteChange('overall_notes', e.target.value)}
+              placeholder="Add overall assessment notes..."
+              rows={3}
+            />
+          </div>
+        </div>
+
         {!readOnly && (
           <Button 
             onClick={handleSave} 
