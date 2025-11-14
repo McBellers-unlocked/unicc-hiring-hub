@@ -523,16 +523,28 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                 <div className="text-sm text-muted-foreground">Panel Members</div>
               </div>
               <div className="space-y-1">
-                <div className="text-2xl font-bold">{panelValidation.summary.nationalities.length}</div>
-                <div className="text-sm text-muted-foreground">Nationalities</div>
+                <div className="text-sm font-medium mb-1">Nationalities</div>
+                <div className="text-sm text-muted-foreground">
+                  {panelValidation.summary.nationalities.length > 0 
+                    ? panelValidation.summary.nationalities.join(', ')
+                    : 'None'}
+                </div>
               </div>
               <div className="space-y-1">
-                <div className="text-2xl font-bold">{panelValidation.summary.duty_stations.length}</div>
-                <div className="text-sm text-muted-foreground">Duty Stations</div>
+                <div className="text-sm font-medium mb-1">Duty Stations</div>
+                <div className="text-sm text-muted-foreground">
+                  {panelValidation.summary.duty_stations.length > 0 
+                    ? panelValidation.summary.duty_stations.join(', ')
+                    : 'None'}
+                </div>
               </div>
               <div className="space-y-1">
-                <div className="text-2xl font-bold">{panelValidation.summary.divisions.length}</div>
-                <div className="text-sm text-muted-foreground">Divisions</div>
+                <div className="text-sm font-medium mb-1">Divisions</div>
+                <div className="text-sm text-muted-foreground">
+                  {panelValidation.summary.divisions.length > 0 
+                    ? panelValidation.summary.divisions.join(', ')
+                    : 'None'}
+                </div>
               </div>
             </div>
           )}
