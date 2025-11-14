@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { CalendarIcon, Clock, MapPin, Link as LinkIcon, Users } from 'lucide-react';
 import { format } from 'date-fns';
@@ -18,6 +19,9 @@ interface PanelInterview {
   meeting_link?: string;
   status: string;
   feedback_template_id?: string;
+  applications?: {
+    job_id: string;
+  };
   participants: Array<{
     id: string;
     panelist_id: string | null;
@@ -59,6 +63,7 @@ export const PanelInterviewList: React.FC<PanelInterviewListProps> = ({
         .from('panel_interviews')
         .select(`
           *,
+          applications!inner(job_id),
           participants:panel_interview_participants(
             id,
             panelist_id,
@@ -195,6 +200,32 @@ export const PanelInterviewList: React.FC<PanelInterviewListProps> = ({
                 })}
               </div>
             </div>
+
+            {interview.applications?.job_id && user && (
+              <div className="pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setExpandedInterview(
+                    expandedInterview === interview.id ? null : interview.id
+                  )}
+                  className="w-full"
+                >
+                  {expandedInterview === interview.id ? 'Hide' : 'Provide'} Interview Feedback
+                </Button>
+                
+                {expandedInterview === interview.id && (
+                  <div className="mt-4">
+                    <PanelInterviewFeedbackForm
+                      interviewId={interview.id}
+                      applicationId={applicationId}
+                      jobId={interview.applications.job_id}
+                      userId={user.id}
+                      readOnly={false}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       ))}
