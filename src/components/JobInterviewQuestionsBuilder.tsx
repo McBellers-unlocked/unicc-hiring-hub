@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PanelInterviewSlotManager } from '@/components/PanelInterviewSlotManager';
 
 interface InterviewQuestion {
   id?: string;
@@ -277,7 +278,9 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
       console.error('Validation error:', error);
       return;
     }
-    setPanelValidation(data);
+    if (data) {
+      setPanelValidation(data as unknown as PanelValidation);
+    }
   };
 
   const addPanelMember = async () => {
@@ -287,11 +290,11 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
       setAddingMember(true);
       const { error } = await supabase
         .from('job_interview_panel_members')
-        .insert({
+        .insert([{
           job_id: jobId,
           user_id: selectedUser,
-          panel_role: selectedRole
-        });
+          panel_role: selectedRole as any
+        }]);
 
       if (error) throw error;
 
@@ -923,10 +926,18 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
             </div>
           </div>
         </CardContent>
-      </Card>
+        </Card>
 
-      {/* Interview Questions */}
-      <Card>
+        {/* Panel Interview Scheduling - Only show when panel is valid */}
+        {panelValidation.valid && panelMembers.length > 0 && (
+          <PanelInterviewSlotManager 
+            jobId={jobId} 
+            panelMembers={panelMembers}
+          />
+        )}
+
+        {/* Interview Questions */}
+        <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
