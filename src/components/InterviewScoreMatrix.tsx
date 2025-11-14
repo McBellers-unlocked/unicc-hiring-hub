@@ -213,19 +213,19 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
       .map((s, rank) => ({ ...s, rank: rank + 1 }));
   };
 
-  const getRecommendationStatus = (panelistScore: PanelistScore) => {
-    const percentage = calculateOverallPercentage(panelistScore.overall);
-    const ranked = getRankings().find(r => r.panelist_id === panelistScore.panelist_id);
+  const getCandidateRecommendationStatus = () => {
+    // Calculate average overall score across all panelists
+    if (scores.length === 0) return null;
     
+    const avgOverall = scores.reduce((sum, s) => sum + s.overall, 0) / scores.length;
+    const percentage = calculateOverallPercentage(avgOverall);
+    
+    // For now, we'll assume rank 1 if 80%+ (proper ranking would need all candidates)
     if (percentage < 80) {
-      return { status: 'Not Recommended', variant: 'destructive' as const };
+      return { status: 'Not Recommended', variant: 'destructive' as const, percentage };
     }
     
-    if (ranked?.rank === 1) {
-      return { status: 'Recommended', variant: 'default' as const };
-    }
-    
-    return { status: 'Alternate', variant: 'secondary' as const };
+    return { status: 'Appointable (80%+)', variant: 'default' as const, percentage };
   };
 
   const exportToExcel = () => {
@@ -449,19 +449,6 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
                     </TableCell>
                   </TableRow>
 
-                  <TableRow className="bg-primary/10 font-bold">
-                    <TableCell colSpan={2}>Rank</TableCell>
-                    {scores.map(s => {
-                      const ranked = rankings.find(r => r.panelist_id === s.panelist_id);
-                      return (
-                        <TableCell key={s.panelist_id} className="text-center">
-                          {ranked?.rank || '-'}
-                        </TableCell>
-                      );
-                    })}
-                    <TableCell className="text-center">-</TableCell>
-                  </TableRow>
-
                   <TableRow className="bg-blue-50">
                     <TableCell colSpan={2} className="font-medium">Panelist Recommendation</TableCell>
                     {scores.map(s => (
@@ -475,18 +462,28 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
                   </TableRow>
 
                   <TableRow className="bg-gradient-to-r from-primary/20 to-primary/10 border-t-2 border-primary">
-                    <TableCell colSpan={2} className="font-bold text-lg">Final Recommendation Status</TableCell>
-                    {scores.map(s => {
-                      const { status, variant } = getRecommendationStatus(s);
-                      return (
-                        <TableCell key={s.panelist_id} className="text-center">
-                          <Badge variant={variant} className="font-semibold text-sm px-3 py-1">
-                            {status}
-                          </Badge>
-                        </TableCell>
-                      );
-                    })}
-                    <TableCell className="text-center">-</TableCell>
+                    <TableCell className="font-bold text-base">Final Candidate Status</TableCell>
+                    <TableCell colSpan={scores.length + 1}>
+                      {(() => {
+                        const statusInfo = getCandidateRecommendationStatus();
+                        if (!statusInfo) return '-';
+                        return (
+                          <div className="flex items-center gap-3">
+                            <Badge variant={statusInfo.variant} className="font-semibold text-sm px-4 py-1.5">
+                              {statusInfo.status}
+                            </Badge>
+                            <span className="text-sm text-muted-foreground">
+                              Average Score: {statusInfo.percentage}%
+                            </span>
+                            {statusInfo.status === 'Appointable (80%+)' && (
+                              <span className="text-xs text-green-700 bg-green-50 px-2 py-1 rounded">
+                                ✓ Meets appointment threshold
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </TableCell>
                   </TableRow>
                 </>
               )}
