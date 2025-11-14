@@ -77,6 +77,33 @@ export default function JobInterviewQuestions() {
     }
   };
 
+  const handleFixCompetencies = async () => {
+    try {
+      setMigrating(true);
+      const { data, error } = await supabase.functions.invoke('fix-job-competencies', {
+        body: { jobId },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: data.message || "Competencies fixed successfully. Refreshing...",
+      });
+
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+      console.error('Fix competencies error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fix competencies",
+        variant: "destructive",
+      });
+    } finally {
+      setMigrating(false);
+    }
+  };
+
   if (!hasAccess) {
     return (
       <Layout>
@@ -119,14 +146,24 @@ export default function JobInterviewQuestions() {
             Back to Jobs
           </Button>
           
-          <Button 
-            variant="secondary" 
-            onClick={handleMigrate}
-            disabled={migrating}
-          >
-            <Database className="w-4 h-4 mr-2" />
-            {migrating ? 'Migrating...' : 'Migrate Old Data'}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="secondary" 
+              onClick={handleFixCompetencies}
+              disabled={migrating}
+            >
+              <Database className="w-4 h-4 mr-2" />
+              {migrating ? 'Fixing...' : 'Fix Competencies'}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleMigrate}
+              disabled={migrating}
+            >
+              <Database className="w-4 h-4 mr-2" />
+              {migrating ? 'Migrating...' : 'Migrate Old Data'}
+            </Button>
+          </div>
         </div>
 
         <JobInterviewQuestionsBuilder jobId={job.id} jobTitle={job.title} />
