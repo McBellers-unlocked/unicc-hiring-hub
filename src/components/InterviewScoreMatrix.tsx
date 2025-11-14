@@ -131,11 +131,19 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
             scores.reduce((sum, s) => sum + s, 0) / scores.length;
         });
 
-        // Calculate overall as average of all criterion scores
+        // Add overall_fit and potential directly from responses
+        if (questionResponses['overall_fit']) {
+          const overallFitData = questionResponses['overall_fit'];
+          avgCriterionScores['overall_fit'] = typeof overallFitData === 'object' ? overallFitData.score : overallFitData;
+        }
+        if (questionResponses['potential']) {
+          const potentialData = questionResponses['potential'];
+          avgCriterionScores['potential'] = typeof potentialData === 'object' ? potentialData.score : potentialData;
+        }
+
+        // Calculate overall as SUM of all criterion scores (not average)
         const allScores = Object.values(avgCriterionScores);
-        const overall = allScores.length > 0
-          ? allScores.reduce((sum, s) => sum + s, 0) / allScores.length
-          : 0;
+        const overall = allScores.reduce((sum, s) => sum + s, 0);
 
         return {
           panelist_id: r.evaluator_id,
@@ -176,7 +184,15 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
   };
 
   const calculateOverallPercentage = (overall: number) => {
-    return Math.round((overall / 5) * 100);
+    // Calculate total possible points: (number of criteria + 2 for overall_fit and potential) * 5
+    let totalCriteria = 0;
+    template?.sections.forEach((section: any) => {
+      totalCriteria += section.criteria.length;
+    });
+    totalCriteria += 2; // Add 2 for overall_fit and potential
+    
+    const maxPossible = totalCriteria * 5;
+    return Math.round((overall / maxPossible) * 100);
   };
 
   const getRankings = () => {
@@ -335,61 +351,6 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
               
               {hasFeedback && (
                 <>
-                  <TableRow className="bg-primary/10 font-bold">
-                    <TableCell colSpan={2}>Overall Mark</TableCell>
-                    {scores.map(s => (
-                      <TableCell key={s.panelist_id} className="text-center">
-                        {s.overall}
-                      </TableCell>
-                    ))}
-                    <TableCell className="text-center">
-                      {scores.length > 0 
-                        ? (scores.reduce((sum, s) => sum + s.overall, 0) / scores.length).toFixed(1)
-                        : '-'
-                      }
-                    </TableCell>
-                  </TableRow>
-
-                  <TableRow className="bg-primary/10 font-bold">
-                    <TableCell colSpan={2}>Overall %</TableCell>
-                    {scores.map(s => (
-                      <TableCell key={s.panelist_id} className="text-center">
-                        {calculateOverallPercentage(s.overall)}%
-                      </TableCell>
-                    ))}
-                    <TableCell className="text-center">
-                      {scores.length > 0 
-                        ? Math.round((scores.reduce((sum, s) => sum + s.overall, 0) / scores.length / 5) * 100) + '%'
-                        : '-'
-                      }
-                    </TableCell>
-                  </TableRow>
-
-                  <TableRow className="bg-primary/10 font-bold">
-                    <TableCell colSpan={2}>Rank</TableCell>
-                    {scores.map(s => {
-                      const ranked = rankings.find(r => r.panelist_id === s.panelist_id);
-                      return (
-                        <TableCell key={s.panelist_id} className="text-center">
-                          {ranked?.rank || '-'}
-                        </TableCell>
-                      );
-                    })}
-                    <TableCell className="text-center">-</TableCell>
-                  </TableRow>
-
-                  <TableRow className="bg-blue-50">
-                    <TableCell colSpan={2} className="font-medium">Recommendation</TableCell>
-                    {scores.map(s => (
-                      <TableCell key={s.panelist_id} className="text-center text-sm">
-                        <Badge variant={s.recommendation === 'Yes' ? 'default' : 'secondary'}>
-                          {s.recommendation}
-                        </Badge>
-                      </TableCell>
-                    ))}
-                    <TableCell className="text-center">-</TableCell>
-                  </TableRow>
-
                   <TableRow className="bg-accent/10 font-bold">
                     <TableCell colSpan={2}>Overall Fit</TableCell>
                     {scores.map(s => {
@@ -430,6 +391,61 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
                     <TableCell className="text-center">
                       {calculateAverage('potential')}
                     </TableCell>
+                  </TableRow>
+
+                  <TableRow className="bg-primary/10 font-bold">
+                    <TableCell colSpan={2}>Overall Mark (Total)</TableCell>
+                    {scores.map(s => (
+                      <TableCell key={s.panelist_id} className="text-center">
+                        {s.overall.toFixed(1)}
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-center">
+                      {scores.length > 0 
+                        ? (scores.reduce((sum, s) => sum + s.overall, 0) / scores.length).toFixed(1)
+                        : '-'
+                      }
+                    </TableCell>
+                  </TableRow>
+
+                  <TableRow className="bg-primary/10 font-bold">
+                    <TableCell colSpan={2}>Overall %</TableCell>
+                    {scores.map(s => (
+                      <TableCell key={s.panelist_id} className="text-center">
+                        {calculateOverallPercentage(s.overall)}%
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-center">
+                      {scores.length > 0 
+                        ? calculateOverallPercentage(scores.reduce((sum, s) => sum + s.overall, 0) / scores.length) + '%'
+                        : '-'
+                      }
+                    </TableCell>
+                  </TableRow>
+
+                  <TableRow className="bg-primary/10 font-bold">
+                    <TableCell colSpan={2}>Rank</TableCell>
+                    {scores.map(s => {
+                      const ranked = rankings.find(r => r.panelist_id === s.panelist_id);
+                      return (
+                        <TableCell key={s.panelist_id} className="text-center">
+                          {ranked?.rank || '-'}
+                        </TableCell>
+                      );
+                    })}
+                    <TableCell className="text-center">-</TableCell>
+                  </TableRow>
+
+                  <TableRow className="bg-blue-50">
+                    <TableCell colSpan={2} className="font-medium">Recommendation</TableCell>
+                    {scores.map(s => (
+                      <TableCell key={s.panelist_id} className="text-center text-sm">
+                        <Badge variant={s.recommendation === 'Yes' ? 'default' : 'secondary'}>
+                          {s.recommendation}
+                        </Badge>
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-center">-</TableCell>
                   </TableRow>
                 </>
               )}
