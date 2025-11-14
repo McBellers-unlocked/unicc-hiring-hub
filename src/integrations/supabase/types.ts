@@ -1410,6 +1410,48 @@ export type Database = {
           },
         ]
       }
+      job_review_committee_members: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          role: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          role?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          role?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_review_committee_members_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_review_committee_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           attachments_required: Json | null
@@ -2299,6 +2341,10 @@ export type Database = {
       }
       is_panelist_for_interview: {
         Args: { _interview_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_review_committee_member: {
+        Args: { _job_id: string; _user_id: string }
         Returns: boolean
       }
       log_email_sent: {

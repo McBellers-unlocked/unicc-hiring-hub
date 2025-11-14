@@ -657,6 +657,10 @@ export default function AdminJobs() {
                                 <Users className="w-4 h-4 mr-2" />
                                 Interview Management
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => navigate(`/admin/jobs/${job.id}/review-committee`)}>
+                                <Users className="w-4 h-4 mr-2" />
+                                Review Committee
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => cloneJob(job.id)}>
                                 <Copy className="w-4 h-4 mr-2" />
                                 Clone
