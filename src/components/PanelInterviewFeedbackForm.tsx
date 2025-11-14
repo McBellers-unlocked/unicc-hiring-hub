@@ -181,12 +181,40 @@ export const PanelInterviewFeedbackForm: React.FC<PanelInterviewFeedbackFormProp
           .eq('id', existingResponseId);
 
         if (error) throw error;
+
+        // Log feedback update to audit trail
+        await supabase.functions.invoke('create-audit-log', {
+          body: {
+            action: 'FEEDBACK_UPDATED',
+            entity: 'feedback_form_responses',
+            entityId: applicationId,
+            actorId: userId,
+            after: {
+              overall_score: feedbackData.overall,
+              recommendation: feedbackData.recommendation
+            }
+          }
+        });
       } else {
         const { error } = await supabase
           .from('feedback_form_responses')
           .insert([feedbackData]);
 
         if (error) throw error;
+
+        // Log feedback submission to audit trail
+        await supabase.functions.invoke('create-audit-log', {
+          body: {
+            action: 'FEEDBACK_SUBMITTED',
+            entity: 'feedback_form_responses',
+            entityId: applicationId,
+            actorId: userId,
+            after: {
+              overall_score: feedbackData.overall,
+              recommendation: feedbackData.recommendation
+            }
+          }
+        });
       }
 
       toast({
