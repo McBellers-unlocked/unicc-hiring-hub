@@ -953,9 +953,9 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Hiring Manager">Hiring Manager</SelectItem>
-                  <SelectItem value="HR Rep">HR Rep</SelectItem>
-                  <SelectItem value="Technical Expert">Technical Expert</SelectItem>
+                  <SelectItem value="Subject Matter Expert">Subject Matter Expert</SelectItem>
                   <SelectItem value="Additional Panel Member">Additional Panel Member</SelectItem>
+                  <SelectItem value="HR Rep">HR Rep</SelectItem>
                   <SelectItem value="Observer">Observer</SelectItem>
                 </SelectContent>
               </Select>
