@@ -408,7 +408,7 @@ export function PanelInterviewSlotManager({ jobId, panelMembers }: PanelIntervie
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-lg">
-              {suggestedSlots.length > 0 ? 'Published Time Slots' : 'Time Slots'} ({slots.length})
+              Time Slots ({slots.length})
             </h3>
             {slots.length > 0 && (
               <p className="text-sm text-muted-foreground">Monitor booking status</p>
