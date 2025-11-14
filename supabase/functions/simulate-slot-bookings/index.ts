@@ -53,9 +53,44 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Book slots for each application
+    // Get feedback template for this job
+    const { data: template, error: templateError } = await supabase
+      .from('feedback_form_templates')
+      .select('id')
+      .eq('job_id', jobId)
+      .eq('auto_generated', true)
+      .single();
+
+    if (templateError) {
+      console.error('Error fetching template:', templateError);
+    }
+
+    // Get panel members for this job
+    const { data: panelMembers, error: panelError } = await supabase
+      .from('job_interview_panel_members')
+      .select('user_id, panel_role')
+      .eq('job_id', jobId);
+
+    if (panelError) {
+      console.error('Error fetching panel members:', panelError);
+    }
+
+    // Get slot details to use scheduled_at time
+    const { data: slotDetails, error: slotDetailsError } = await supabase
+      .from('panel_interview_time_slots')
+      .select('id, slot_datetime, duration_minutes')
+      .in('id', slots.map(s => s.id));
+
+    if (slotDetailsError) {
+      console.error('Error fetching slot details:', slotDetailsError);
+    }
+
+    // Book slots for each application and create panel interviews
     const updates = [];
     for (let i = 0; i < Math.min(applications.length, slots.length); i++) {
+      const slotDetail = slotDetails?.find(sd => sd.id === slots[i].id);
+      
+      // Update slot status
       const { error: updateError } = await supabase
         .from('panel_interview_time_slots')
         .update({
@@ -67,12 +102,51 @@ Deno.serve(async (req) => {
 
       if (updateError) {
         console.error('Error updating slot:', updateError);
-      } else {
-        updates.push({
-          slotId: slots[i].id,
-          applicationId: applications[i].id
-        });
+        continue;
       }
+
+      // Create panel interview record
+      const { data: interview, error: interviewError } = await supabase
+        .from('panel_interviews')
+        .insert({
+          application_id: applications[i].id,
+          title: 'Panel Interview',
+          scheduled_at: slotDetail?.slot_datetime,
+          duration_minutes: slotDetail?.duration_minutes || 60,
+          status: 'scheduled',
+          feedback_template_id: template?.id || null,
+          created_by: applications[i].candidate_id
+        })
+        .select('id')
+        .single();
+
+      if (interviewError) {
+        console.error('Error creating panel interview:', interviewError);
+        continue;
+      }
+
+      // Add panel members as participants
+      if (interview && panelMembers && panelMembers.length > 0) {
+        const participants = panelMembers.map(pm => ({
+          panel_interview_id: interview.id,
+          panelist_id: pm.user_id,
+          role: pm.panel_role
+        }));
+
+        const { error: participantsError } = await supabase
+          .from('panel_interview_participants')
+          .insert(participants);
+
+        if (participantsError) {
+          console.error('Error adding participants:', participantsError);
+        }
+      }
+
+      updates.push({
+        slotId: slots[i].id,
+        applicationId: applications[i].id,
+        interviewId: interview?.id
+      });
     }
 
     return new Response(
