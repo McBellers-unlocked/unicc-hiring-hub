@@ -28,6 +28,7 @@ import { VideoInterviewManager } from '@/components/VideoInterviewManager';
 import { ApplicationAuditViewer } from '@/components/ApplicationAuditViewer';
 import { CompactCandidateView } from '@/components/CompactCandidateView';
 import { InterviewScoreMatrix } from '@/components/InterviewScoreMatrix';
+import { InterviewRecommendationStatus } from '@/components/InterviewRecommendationStatus';
 import {
   ArrowLeft, 
   User, 
@@ -431,71 +432,78 @@ export default function ApplicationDetail() {
                 </p>
               </div>
 
-              {/* Status Change */}
-              <div className="space-y-3">
-                <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Move to Stage</h4>
-                <Select value={application.status} onValueChange={handleStatusChange}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select new status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Application">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        Application
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="Longlist">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                        Longlist
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="Shortlist">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                        Shortlist
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="Pre-Recorded Video">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
-                        Pre-Recorded Video
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="Panel Interview">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                        Panel Interview
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="Offer">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        Offer
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="Roster">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                        Roster
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="Rejected">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                        Rejected
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                {!canMoveToLonglist && (
-                  <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-md">
-                    <AlertCircle className="w-3 h-3 inline mr-1" />
-                    Only HR Assistants can move from Application to Longlist
-                  </p>
-                )}
-              </div>
+              {/* Status Change - Hidden at Panel Interview */}
+              {application.status !== 'Panel Interview' && (
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Move to Stage</h4>
+                  <Select value={application.status} onValueChange={handleStatusChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select new status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Application">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          Application
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Longlist">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                          Longlist
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Shortlist">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                          Shortlist
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Pre-Recorded Video">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                          Pre-Recorded Video
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Panel Interview">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                          Panel Interview
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Offer">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          Offer
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Roster">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                          Roster
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Rejected">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                          Rejected
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {!canMoveToLonglist && (
+                    <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-md">
+                      <AlertCircle className="w-3 h-3 inline mr-1" />
+                      Only HR Assistants can move from Application to Longlist
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Interview Recommendation Status - Shown at Panel Interview */}
+              {application.status === 'Panel Interview' && (
+                <InterviewRecommendationStatus applicationId={application.id} jobId={application.job.id} />
+              )}
 
               {/* Quick Actions */}
               <div className="space-y-3">
