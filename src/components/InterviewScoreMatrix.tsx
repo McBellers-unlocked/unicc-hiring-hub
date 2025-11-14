@@ -157,42 +157,50 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
     return <Card><CardContent className="p-6">Loading scores...</CardContent></Card>;
   }
 
-  if (!template || scores.length === 0) {
+  if (!template) {
     return (
       <Card>
         <CardContent className="p-6 text-center text-muted-foreground">
-          No interview feedback submitted yet
+          No feedback template configured for this job.
         </CardContent>
       </Card>
     );
   }
 
-  const rankings = getRankings();
+  const hasFeedback = scores.length > 0;
+  const rankings = hasFeedback ? getRankings() : [];
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Interview Score Matrix</CardTitle>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowNotes(!showNotes)}
-            >
-              {showNotes ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
-              {showNotes ? 'Hide' : 'Show'} Notes
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportToExcel}
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export to CSV
-            </Button>
-          </div>
+          {hasFeedback && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowNotes(!showNotes)}
+              >
+                {showNotes ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
+                {showNotes ? 'Hide' : 'Show'} Notes
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportToExcel}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export to CSV
+              </Button>
+            </div>
+          )}
         </div>
+        {!hasFeedback && (
+          <p className="text-sm text-muted-foreground mt-2">
+            Awaiting feedback from panel members. The criteria below will be used for scoring.
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -201,19 +209,19 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
               <TableRow>
                 <TableHead className="w-[300px]">Criteria</TableHead>
                 <TableHead className="w-[60px]">R/D</TableHead>
-                {scores.map(s => (
+                {hasFeedback && scores.map(s => (
                   <TableHead key={s.panelist_id} className="text-center">
                     {s.panelist_name}
                   </TableHead>
                 ))}
-                <TableHead className="text-center font-bold">Avg</TableHead>
+                {hasFeedback && <TableHead className="text-center font-bold">Avg</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {template.sections.map((section: any) => (
                 <React.Fragment key={section.title}>
                   <TableRow className="bg-muted/50">
-                    <TableCell colSpan={scores.length + 3} className="font-bold">
+                    <TableCell colSpan={hasFeedback ? scores.length + 3 : 2} className="font-bold">
                       {section.title} ({section.weight}% weight)
                     </TableCell>
                   </TableRow>
@@ -227,7 +235,7 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
                           {criterion.is_essential ? 'R' : 'D'}
                         </Badge>
                       </TableCell>
-                      {scores.map(s => {
+                      {hasFeedback && scores.map(s => {
                         const score = s.responses[criterion.id];
                         return (
                           <TableCell key={s.panelist_id} className="text-center">
@@ -241,68 +249,74 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
                           </TableCell>
                         );
                       })}
-                      <TableCell className="text-center font-bold">
-                        {calculateAverage(criterion.id)}
-                      </TableCell>
+                      {hasFeedback && (
+                        <TableCell className="text-center font-bold">
+                          {calculateAverage(criterion.id)}
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </React.Fragment>
               ))}
               
-              <TableRow className="bg-primary/10 font-bold">
-                <TableCell colSpan={2}>Overall Mark</TableCell>
-                {scores.map(s => (
-                  <TableCell key={s.panelist_id} className="text-center">
-                    {s.overall}
-                  </TableCell>
-                ))}
-                <TableCell className="text-center">
-                  {scores.length > 0 
-                    ? (scores.reduce((sum, s) => sum + s.overall, 0) / scores.length).toFixed(1)
-                    : '-'
-                  }
-                </TableCell>
-              </TableRow>
-
-              <TableRow className="bg-primary/10 font-bold">
-                <TableCell colSpan={2}>Overall %</TableCell>
-                {scores.map(s => (
-                  <TableCell key={s.panelist_id} className="text-center">
-                    {calculateOverallPercentage(s.overall)}%
-                  </TableCell>
-                ))}
-                <TableCell className="text-center">
-                  {scores.length > 0 
-                    ? Math.round((scores.reduce((sum, s) => sum + s.overall, 0) / scores.length / 5) * 100) + '%'
-                    : '-'
-                  }
-                </TableCell>
-              </TableRow>
-
-              <TableRow className="bg-primary/10 font-bold">
-                <TableCell colSpan={2}>Rank</TableCell>
-                {scores.map(s => {
-                  const ranked = rankings.find(r => r.panelist_id === s.panelist_id);
-                  return (
-                    <TableCell key={s.panelist_id} className="text-center">
-                      {ranked?.rank || '-'}
+              {hasFeedback && (
+                <>
+                  <TableRow className="bg-primary/10 font-bold">
+                    <TableCell colSpan={2}>Overall Mark</TableCell>
+                    {scores.map(s => (
+                      <TableCell key={s.panelist_id} className="text-center">
+                        {s.overall}
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-center">
+                      {scores.length > 0 
+                        ? (scores.reduce((sum, s) => sum + s.overall, 0) / scores.length).toFixed(1)
+                        : '-'
+                      }
                     </TableCell>
-                  );
-                })}
-                <TableCell className="text-center">-</TableCell>
-              </TableRow>
+                  </TableRow>
 
-              <TableRow className="bg-blue-50">
-                <TableCell colSpan={2} className="font-medium">Recommendation</TableCell>
-                {scores.map(s => (
-                  <TableCell key={s.panelist_id} className="text-center text-sm">
-                    <Badge variant={s.recommendation === 'Yes' ? 'default' : 'secondary'}>
-                      {s.recommendation}
-                    </Badge>
-                  </TableCell>
-                ))}
-                <TableCell className="text-center">-</TableCell>
-              </TableRow>
+                  <TableRow className="bg-primary/10 font-bold">
+                    <TableCell colSpan={2}>Overall %</TableCell>
+                    {scores.map(s => (
+                      <TableCell key={s.panelist_id} className="text-center">
+                        {calculateOverallPercentage(s.overall)}%
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-center">
+                      {scores.length > 0 
+                        ? Math.round((scores.reduce((sum, s) => sum + s.overall, 0) / scores.length / 5) * 100) + '%'
+                        : '-'
+                      }
+                    </TableCell>
+                  </TableRow>
+
+                  <TableRow className="bg-primary/10 font-bold">
+                    <TableCell colSpan={2}>Rank</TableCell>
+                    {scores.map(s => {
+                      const ranked = rankings.find(r => r.panelist_id === s.panelist_id);
+                      return (
+                        <TableCell key={s.panelist_id} className="text-center">
+                          {ranked?.rank || '-'}
+                        </TableCell>
+                      );
+                    })}
+                    <TableCell className="text-center">-</TableCell>
+                  </TableRow>
+
+                  <TableRow className="bg-blue-50">
+                    <TableCell colSpan={2} className="font-medium">Recommendation</TableCell>
+                    {scores.map(s => (
+                      <TableCell key={s.panelist_id} className="text-center text-sm">
+                        <Badge variant={s.recommendation === 'Yes' ? 'default' : 'secondary'}>
+                          {s.recommendation}
+                        </Badge>
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-center">-</TableCell>
+                  </TableRow>
+                </>
+              )}
             </TableBody>
           </Table>
         </div>
