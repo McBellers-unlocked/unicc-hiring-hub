@@ -11,6 +11,7 @@ import { FileText, Download, Users, Award, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ReviewCommitteeScoreMatrix } from "@/components/ReviewCommitteeScoreMatrix";
+import { ReviewCommitteeApplicationsList } from "@/components/ReviewCommitteeApplicationsList";
 
 export default function ReviewCommittee() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -187,63 +188,8 @@ export default function ReviewCommittee() {
           </TabsContent>
 
           {/* Applications Tab */}
-          <TabsContent value="applications" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>All Candidate Applications</CardTitle>
-                <CardDescription>
-                  Complete application data for all panel interview candidates
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {candidatesWithStats && candidatesWithStats.length > 0 ? (
-                  <div className="space-y-4">
-                    {candidatesWithStats.map((app) => (
-                      <Card key={app.id}>
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg">
-                              {app.candidate?.name}
-                            </CardTitle>
-                            <Button variant="outline" size="sm" asChild>
-                              <a href={`/admin/applications/${app.id}`} target="_blank">
-                                View Full Application
-                              </a>
-                            </Button>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                            <div>
-                              <p className="text-muted-foreground">Email</p>
-                              <p className="font-medium">{app.candidate?.email}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Gender</p>
-                              <p className="font-medium">{app.candidate?.gender || "N/A"}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Location</p>
-                              <p className="font-medium">{app.candidate?.location || "N/A"}</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Experience</p>
-                              <p className="font-medium">{app.candidate?.years_of_experience || 0} years</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <Alert>
-                    <AlertDescription>
-                      No applications available.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
+          <TabsContent value="applications" className="space-y-6">
+            <ReviewCommitteeApplicationsList candidatesWithStats={candidatesWithStats || []} />
           </TabsContent>
 
           {/* Scores Tab */}
