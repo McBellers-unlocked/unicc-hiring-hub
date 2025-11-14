@@ -15,6 +15,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
+import { InterviewCoverageTracker } from '@/components/InterviewCoverageTracker';
 
 interface InterviewQuestion {
   id?: string;
@@ -610,37 +611,8 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
         <PanelInterviewSlotManager jobId={jobId} panelMembers={panelMembers} />
       )}
 
-      {/* Coverage Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Question Coverage Summary</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <div className="text-2xl font-bold">{stats.totalQuestions}</div>
-              <div className="text-sm text-muted-foreground">Total Questions</div>
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <div className="text-2xl font-bold">{stats.essentialCovered}/{stats.essentialTotal}</div>
-                {stats.essentialCovered === stats.essentialTotal && stats.essentialTotal > 0 && (
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                )}
-              </div>
-              <div className="text-sm text-muted-foreground">Essential Criteria</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-2xl font-bold">{stats.desirableCovered}/{stats.desirableTotal}</div>
-              <div className="text-sm text-muted-foreground">Desirable Criteria</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-2xl font-bold">{stats.competenciesCovered}/{stats.competenciesTotal}</div>
-              <div className="text-sm text-muted-foreground">Competencies</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Coverage Tracker */}
+      <InterviewCoverageTracker stats={stats} />
 
       {/* Interview Questions */}
       <Card>
