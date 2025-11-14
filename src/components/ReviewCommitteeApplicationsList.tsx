@@ -132,38 +132,23 @@ export function ReviewCommitteeApplicationsList({ applications }: ReviewCommitte
 
   // Group candidates by their furthest stage (only appear in one section)
   const panelInterview = applications.filter(app => app.status === "Panel Interview");
+  
   const videoInterview = applications.filter(app => 
     app.status === "Pre-Recorded Video" && !panelInterview.find(p => p.id === app.id)
   );
-  const longlistedSelected = applications.filter(app => 
-    app.suggested_for_longlist === true &&
-    (app.status === "Pre-Recorded Video" || app.status === "Panel Interview") &&
-    !panelInterview.find(p => p.id === app.id) &&
-    !videoInterview.find(v => v.id === app.id)
-  );
+  
   const longlistedNotSelected = applications.filter(app => 
     app.suggested_for_longlist === true &&
     (app.status === "Longlist" || app.status === "Rejected") &&
     !panelInterview.find(p => p.id === app.id) &&
-    !videoInterview.find(v => v.id === app.id) &&
-    !longlistedSelected.find(l => l.id === app.id)
+    !videoInterview.find(v => v.id === app.id)
   );
-  const longlisted = applications.filter(app => 
-    app.status === "Screening" && 
-    app.suggested_for_longlist === true &&
-    !panelInterview.find(p => p.id === app.id) &&
-    !videoInterview.find(v => v.id === app.id) &&
-    !longlistedSelected.find(l => l.id === app.id) &&
-    !longlistedNotSelected.find(l => l.id === app.id)
-  );
+  
   const notLonglisted = applications.filter(app => 
-    (app.status === "Screening" || app.status === "Application") && 
     (app.suggested_for_longlist === false || app.suggested_for_longlist === null) &&
     !panelInterview.find(p => p.id === app.id) &&
     !videoInterview.find(v => v.id === app.id) &&
-    !longlistedSelected.find(l => l.id === app.id) &&
-    !longlistedNotSelected.find(l => l.id === app.id) &&
-    !longlisted.find(l => l.id === app.id)
+    !longlistedNotSelected.find(l => l.id === app.id)
   );
 
   return (
@@ -182,21 +167,9 @@ export function ReviewCommitteeApplicationsList({ applications }: ReviewCommitte
       />
       
       <StageSection
-        title="Longlisted - Selected by Hiring Manager"
-        description="Candidates who were longlisted and selected to proceed by the hiring manager"
-        candidates={longlistedSelected}
-      />
-      
-      <StageSection
         title="Longlisted - Not Selected by Hiring Manager"
         description="Candidates who were longlisted but not selected to proceed by the hiring manager"
         candidates={longlistedNotSelected}
-      />
-      
-      <StageSection
-        title="Longlisted by HR"
-        description="Candidates who were recommended for longlist by HR screening"
-        candidates={longlisted}
       />
       
       <StageSection
