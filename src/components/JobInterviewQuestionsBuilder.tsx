@@ -265,7 +265,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
     const { data, error } = await supabase
       .from('users')
       .select('id, name, email')
-      .or('role.eq.Admin,role.eq.HR Assistant,role.eq.Hiring Manager,role.eq.Panel Member,role.eq.Chief of HR')
+      .ilike('email', '%@unicc.org')
       .order('name');
 
     if (error) throw error;
