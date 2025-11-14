@@ -109,6 +109,11 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
         const questionResponses = r.responses || {};
 
         Object.keys(questionResponses).forEach(questionId => {
+          // Skip overall_fit and potential as they're handled separately
+          if (questionId === 'overall_fit' || questionId === 'potential') {
+            return;
+          }
+
           const responseData = questionResponses[questionId];
           const score = typeof responseData === 'object' ? responseData.score : responseData;
           
@@ -134,11 +139,17 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
         // Add overall_fit and potential directly from responses
         if (questionResponses['overall_fit']) {
           const overallFitData = questionResponses['overall_fit'];
-          avgCriterionScores['overall_fit'] = typeof overallFitData === 'object' ? overallFitData.score : overallFitData;
+          const score = typeof overallFitData === 'object' ? overallFitData.score : overallFitData;
+          if (typeof score === 'number') {
+            avgCriterionScores['overall_fit'] = score;
+          }
         }
         if (questionResponses['potential']) {
           const potentialData = questionResponses['potential'];
-          avgCriterionScores['potential'] = typeof potentialData === 'object' ? potentialData.score : potentialData;
+          const score = typeof potentialData === 'object' ? potentialData.score : potentialData;
+          if (typeof score === 'number') {
+            avgCriterionScores['potential'] = score;
+          }
         }
 
         // Calculate overall as SUM of all criterion scores (not average)
