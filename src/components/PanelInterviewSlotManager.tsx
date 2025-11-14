@@ -394,7 +394,7 @@ export function PanelInterviewSlotManager({ jobId, panelMembers }: PanelIntervie
                       {format(slot.datetime, "p")} • {slot.duration} min
                     </div>
                   </div>
-                  <Badge variant="outline" className="bg-green-500/10 text-green-700 border-green-500/20">Available</Badge>
+                  <Badge variant="outline" className="bg-yellow-500/10 text-yellow-700 border-yellow-500/20">Pending</Badge>
                 </div>
               ))}
             </div>
@@ -404,25 +404,39 @@ export function PanelInterviewSlotManager({ jobId, panelMembers }: PanelIntervie
           </div>
         )}
 
-        {/* Published Slots - Monitor Status */}
-        {slots.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-lg">Published Time Slots ({slots.length})</h3>
+        {/* All Time Slots - Combined View */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-lg">
+              {suggestedSlots.length > 0 ? 'Published Time Slots' : 'Time Slots'} ({slots.length})
+            </h3>
+            {slots.length > 0 && (
               <p className="text-sm text-muted-foreground">Monitor booking status</p>
+            )}
+          </div>
+          
+          {slots.length === 0 && suggestedSlots.length === 0 ? (
+            <div className="p-8 text-center border rounded-lg bg-muted/20">
+              <p className="text-muted-foreground">No time slots yet. Click "Find Slots" to search for available times.</p>
             </div>
-            <div className="space-y-2">
+          ) : slots.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {slots.map((slot) => (
                 <div
                   key={slot.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                  className={cn(
+                    "p-3 rounded border flex items-center justify-between transition-all",
+                    slot.status === 'available' && "bg-background hover:bg-muted/50",
+                    slot.status === 'booked' && "bg-blue-500/5 border-blue-500/20",
+                    slot.status === 'reserved' && "bg-yellow-500/5 border-yellow-500/20"
+                  )}
                 >
                   <div className="flex-1">
                     <div className="font-medium">
-                      {format(new Date(slot.slot_datetime), "PPP 'at' p")}
+                      {format(new Date(slot.slot_datetime), "PPP")}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Duration: {slot.duration_minutes} minutes
+                      {format(new Date(slot.slot_datetime), "p")} • {slot.duration_minutes} min
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -441,8 +455,8 @@ export function PanelInterviewSlotManager({ jobId, panelMembers }: PanelIntervie
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : null}
+        </div>
       </CardContent>
     </Card>
   );
