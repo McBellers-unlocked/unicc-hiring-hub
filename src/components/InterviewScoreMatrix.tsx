@@ -213,6 +213,21 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
       .map((s, rank) => ({ ...s, rank: rank + 1 }));
   };
 
+  const getRecommendationStatus = (panelistScore: PanelistScore) => {
+    const percentage = calculateOverallPercentage(panelistScore.overall);
+    const ranked = getRankings().find(r => r.panelist_id === panelistScore.panelist_id);
+    
+    if (percentage < 80) {
+      return { status: 'Not Recommended', variant: 'destructive' as const };
+    }
+    
+    if (ranked?.rank === 1) {
+      return { status: 'Recommended', variant: 'default' as const };
+    }
+    
+    return { status: 'Alternate', variant: 'secondary' as const };
+  };
+
   const exportToExcel = () => {
     // Simple CSV export
     let csv = 'Criteria,R/D,';
@@ -448,7 +463,7 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
                   </TableRow>
 
                   <TableRow className="bg-blue-50">
-                    <TableCell colSpan={2} className="font-medium">Recommendation</TableCell>
+                    <TableCell colSpan={2} className="font-medium">Panelist Recommendation</TableCell>
                     {scores.map(s => (
                       <TableCell key={s.panelist_id} className="text-center text-sm">
                         <Badge variant={s.recommendation === 'Yes' ? 'default' : 'secondary'}>
@@ -456,6 +471,21 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
                         </Badge>
                       </TableCell>
                     ))}
+                    <TableCell className="text-center">-</TableCell>
+                  </TableRow>
+
+                  <TableRow className="bg-gradient-to-r from-primary/20 to-primary/10 border-t-2 border-primary">
+                    <TableCell colSpan={2} className="font-bold text-lg">Final Recommendation Status</TableCell>
+                    {scores.map(s => {
+                      const { status, variant } = getRecommendationStatus(s);
+                      return (
+                        <TableCell key={s.panelist_id} className="text-center">
+                          <Badge variant={variant} className="font-semibold text-sm px-3 py-1">
+                            {status}
+                          </Badge>
+                        </TableCell>
+                      );
+                    })}
                     <TableCell className="text-center">-</TableCell>
                   </TableRow>
                 </>
