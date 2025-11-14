@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.simulate-video-submissions]
 verify_jwt = false
+
+[functions.simulate-slot-bookings]
+verify_jwt = false
