@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { PanelMemberSelector } from '@/components/PanelMemberSelector';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface InterviewQuestion {
   id?: string;
@@ -19,6 +19,13 @@ interface InterviewQuestion {
   competency_id?: string | null;
   language_requirement_id?: string | null;
   order_index: number;
+  assigned_to?: string | null;
+}
+
+interface PanelMember {
+  id: string;
+  name: string;
+  panel_role: string;
 }
 
 interface Requirement {
@@ -62,6 +69,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
   const [competencies, setCompetencies] = useState<Competency[]>([]);
   const [languages, setLanguages] = useState<LanguageRequirement[]>([]);
   const [contributors, setContributors] = useState<Contributor[]>([]);
+  const [panelMembers, setPanelMembers] = useState<PanelMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -80,7 +88,8 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
         fetchRequirements(),
         fetchCompetencies(),
         fetchLanguages(),
-        fetchContributors()
+        fetchContributors(),
+        fetchPanelMembers()
       ]);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -187,6 +196,26 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
     }
   };
 
+  const fetchPanelMembers = async () => {
+    const { data, error } = await supabase
+      .from('job_interview_panel_members')
+      .select(`
+        id,
+        panel_role,
+        user:users(id, name)
+      `)
+      .eq('job_id', jobId);
+
+    if (error) throw error;
+    if (data) {
+      setPanelMembers(data.map((pm: any) => ({
+        id: pm.user.id,
+        name: pm.user.name,
+        panel_role: pm.panel_role
+      })));
+    }
+  };
+
   const toggleSection = (sectionId: string) => {
     const newExpanded = new Set(expandedSections);
     if (newExpanded.has(sectionId)) {
@@ -238,6 +267,12 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
   const updateQuestion = (index: number, text: string) => {
     const updated = [...questions];
     updated[index] = { ...updated[index], question_text: text };
+    setQuestions(updated);
+  };
+
+  const updateQuestionAssignment = (index: number, assignedTo: string | null) => {
+    const updated = [...questions];
+    updated[index] = { ...updated[index], assigned_to: assignedTo };
     setQuestions(updated);
   };
 
@@ -445,20 +480,41 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                       {itemQuestions.map((q, qIndex) => {
                         const globalIndex = questions.findIndex(gq => gq === q);
                         return (
-                          <div key={globalIndex} className="flex gap-2 bg-muted/30 p-2 rounded">
-                            <Textarea
-                              placeholder="Interview question..."
-                              value={q.question_text}
-                              onChange={(e) => updateQuestion(globalIndex, e.target.value)}
-                              className="min-h-[60px] text-sm"
-                            />
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => removeQuestion(globalIndex)}
-                            >
-                              <Trash2 className="w-3 h-3 text-destructive" />
-                            </Button>
+                          <div key={globalIndex} className="space-y-2 bg-muted/30 p-2 rounded">
+                            <div className="flex gap-2">
+                              <Textarea
+                                placeholder="Interview question..."
+                                value={q.question_text}
+                                onChange={(e) => updateQuestion(globalIndex, e.target.value)}
+                                className="min-h-[60px] text-sm flex-1"
+                              />
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => removeQuestion(globalIndex)}
+                              >
+                                <Trash2 className="w-3 h-3 text-destructive" />
+                              </Button>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">Asked by:</span>
+                              <Select
+                                value={q.assigned_to || ""}
+                                onValueChange={(value) => updateQuestionAssignment(globalIndex, value || null)}
+                              >
+                                <SelectTrigger className="h-8 text-xs w-[200px]">
+                                  <SelectValue placeholder="Select panel member" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="">Unassigned</SelectItem>
+                                  {panelMembers.map(member => (
+                                    <SelectItem key={member.id} value={member.id}>
+                                      {member.name} ({member.panel_role})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </div>
                         );
                       })}
@@ -584,9 +640,6 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
   return (
     <div className="space-y-6">
-      {/* Panel Member Selector */}
-      <PanelMemberSelector jobId={jobId} />
-      
       {/* Interview Questions */}
       <Card>
         <CardHeader>
