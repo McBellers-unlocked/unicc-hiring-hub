@@ -1,0 +1,4 @@
+-- Delete duplicate job requirements created at the later timestamp
+DELETE FROM job_requirements
+WHERE job_id = '9deaea12-c2c5-4c17-8899-a07cf938b0ba'
+AND created_at = '2025-11-13 07:26:48.295101+00';
