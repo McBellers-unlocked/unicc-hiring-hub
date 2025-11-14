@@ -403,6 +403,46 @@ export function PanelInterviewSlotManager({ jobId, panelMembers }: PanelIntervie
             </p>
           </div>
         )}
+
+        {/* Published Slots - Monitor Status */}
+        {slots.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-lg">Published Time Slots ({slots.length})</h3>
+              <p className="text-sm text-muted-foreground">Monitor booking status</p>
+            </div>
+            <div className="space-y-2">
+              {slots.map((slot) => (
+                <div
+                  key={slot.id}
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex-1">
+                    <div className="font-medium">
+                      {format(new Date(slot.slot_datetime), "PPP 'at' p")}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Duration: {slot.duration_minutes} minutes
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(slot.status)}
+                    {slot.status === 'available' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteSlot(slot.id)}
+                        title="Delete this slot"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
