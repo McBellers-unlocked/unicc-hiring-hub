@@ -143,7 +143,7 @@ export function ReviewCommitteeApplicationsList({ applications }: ReviewCommitte
   );
   const longlistedNotSelected = applications.filter(app => 
     app.suggested_for_longlist === true &&
-    app.status === "Longlist" &&
+    (app.status === "Longlist" || app.status === "Rejected") &&
     !panelInterview.find(p => p.id === app.id) &&
     !videoInterview.find(v => v.id === app.id) &&
     !longlistedSelected.find(l => l.id === app.id)
