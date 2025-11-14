@@ -348,9 +348,9 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
   const getQuestionsForItem = (requirementId?: string, competencyId?: string, languageId?: string) => {
     return questions.filter(q => 
-      q.requirement_id === requirementId &&
-      q.competency_id === competencyId &&
-      q.language_requirement_id === languageId
+      q.requirement_id === (requirementId || null) &&
+      q.competency_id === (competencyId || null) &&
+      q.language_requirement_id === (languageId || null)
     );
   };
 
