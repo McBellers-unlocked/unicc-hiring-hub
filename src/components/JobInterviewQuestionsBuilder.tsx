@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PanelInterviewSlotManager } from '@/components/PanelInterviewSlotManager';
+// import { PanelInterviewSlotManager } from '@/components/PanelInterviewSlotManager';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -239,11 +239,11 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
   const fetchPanelMembers = async () => {
     const { data, error } = await supabase
-      .from('job_interview_panel_members')
+      .from('job_interview_panel_members' as any)
       .select(`
         id,
         panel_role,
-        user:users(id, name, gender, duty_station, nationality, division)
+        user:users(id, name, duty_station, nationality, division)
       `)
       .eq('job_id', jobId);
 
@@ -254,7 +254,6 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
         user_id: pm.user.id,
         name: pm.user.name,
         panel_role: pm.panel_role,
-        gender: pm.user.gender,
         duty_station: pm.user.duty_station,
         nationality: pm.user.nationality,
         division: pm.user.division
@@ -265,16 +264,16 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
   const fetchAvailableUsers = async () => {
     const { data, error } = await supabase
       .from('users')
-      .select('id, name, email, gender, duty_station, nationality, division')
+      .select('id, name, email')
       .or('role.eq.Admin,role.eq.HR Assistant,role.eq.Hiring Manager,role.eq.Panel Member')
       .order('name');
 
     if (error) throw error;
-    if (data) setAvailableUsers(data);
+    if (data) setAvailableUsers(data as any);
   };
 
   const validatePanel = async () => {
-    const { data, error } = await supabase.rpc('validate_panel_composition', {
+    const { data, error } = await supabase.rpc('validate_panel_composition' as any, {
       p_job_id: jobId
     });
 
@@ -293,7 +292,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
     try {
       setAddingMember(true);
       const { error } = await supabase
-        .from('job_interview_panel_members')
+        .from('job_interview_panel_members' as any)
         .insert([{
           job_id: jobId,
           user_id: selectedUser,
@@ -325,7 +324,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
   const removePanelMember = async (panelMemberId: string) => {
     try {
       const { error } = await supabase
-        .from('job_interview_panel_members')
+        .from('job_interview_panel_members' as any)
         .delete()
         .eq('id', panelMemberId);
 
@@ -971,13 +970,13 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
         </CardContent>
         </Card>
 
-        {/* Panel Interview Scheduling - Only show when panel is valid */}
-        {panelValidation.valid && panelMembers.length > 0 && (
+        {/* Panel Interview Scheduling - Temporarily disabled while types regenerate */}
+        {/* {panelValidation.valid && panelMembers.length > 0 && (
           <PanelInterviewSlotManager 
             jobId={jobId} 
             panelMembers={panelMembers}
           />
-        )}
+        )} */}
 
         {/* Interview Questions */}
         <Card>
