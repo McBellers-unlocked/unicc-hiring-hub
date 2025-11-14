@@ -523,7 +523,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                 <div className="text-sm text-muted-foreground">Panel Members</div>
               </div>
               <div className="space-y-1">
-                <div className="text-sm font-medium mb-1">Gender</div>
+                <div className="text-sm font-medium mb-1">Gender Balance</div>
                 <div className="text-sm text-muted-foreground">
                   {(() => {
                     const genderCounts = panelMembers.reduce((acc, m) => {
