@@ -31,9 +31,9 @@ export default function ReviewCommittee() {
     },
   });
 
-  // Fetch all candidates who reached Panel Interview stage
+  // Fetch all candidates for this job
   const { data: candidates, isLoading: candidatesLoading } = useQuery({
-    queryKey: ["panel-interview-candidates", jobId],
+    queryKey: ["all-candidates", jobId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("applications")
@@ -47,7 +47,6 @@ export default function ReviewCommittee() {
           )
         `)
         .eq("job_id", jobId)
-        .eq("status", "Panel Interview")
         .order("submitted_at", { ascending: false });
       
       if (error) throw error;
@@ -189,7 +188,7 @@ export default function ReviewCommittee() {
 
           {/* Applications Tab */}
           <TabsContent value="applications" className="space-y-6">
-            <ReviewCommitteeApplicationsList candidatesWithStats={candidatesWithStats || []} />
+            <ReviewCommitteeApplicationsList applications={candidatesWithStats || []} />
           </TabsContent>
 
           {/* Scores Tab */}
