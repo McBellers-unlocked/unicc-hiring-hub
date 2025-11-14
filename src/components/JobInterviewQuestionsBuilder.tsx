@@ -623,14 +623,13 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-muted-foreground">Asked by:</span>
                               <Select
-                                value={q.assigned_to || ""}
-                                onValueChange={(value) => updateQuestionAssignment(globalIndex, value || null)}
+                                value={q.assigned_to || undefined}
+                                onValueChange={(value) => updateQuestionAssignment(globalIndex, value)}
                               >
                                 <SelectTrigger className="h-8 text-xs w-[200px]">
                                   <SelectValue placeholder="Select panel member" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="">Unassigned</SelectItem>
                                   {panelMembers.map(member => (
                                     <SelectItem key={member.user_id} value={member.user_id}>
                                       {member.name} ({member.panel_role})
@@ -638,6 +637,16 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                                   ))}
                                 </SelectContent>
                               </Select>
+                              {q.assigned_to && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => updateQuestionAssignment(globalIndex, null)}
+                                  className="h-6 px-2"
+                                >
+                                  <XCircle className="w-3 h-3" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                         );
