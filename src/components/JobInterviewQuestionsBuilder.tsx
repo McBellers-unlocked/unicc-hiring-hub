@@ -517,10 +517,30 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
           {/* Panel Composition Summary */}
           {panelValidation && panelValidation.summary && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 bg-muted/50 rounded-lg">
               <div className="space-y-1">
                 <div className="text-2xl font-bold">{panelValidation.summary.total_members}</div>
                 <div className="text-sm text-muted-foreground">Panel Members</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-sm font-medium mb-1">Gender</div>
+                <div className="text-sm text-muted-foreground">
+                  {(() => {
+                    const genderCounts = panelMembers.reduce((acc, m) => {
+                      const gender = m.gender?.toLowerCase() || 'unknown';
+                      acc[gender] = (acc[gender] || 0) + 1;
+                      return acc;
+                    }, {} as Record<string, number>);
+                    
+                    const parts = Object.entries(genderCounts).map(([gender, count]) => {
+                      const label = gender === 'male' ? 'man' : gender === 'female' ? 'woman' : gender;
+                      const plural = count > 1 && gender !== 'unknown' ? (gender === 'male' ? 'men' : 'women') : label;
+                      return `${count} ${count === 1 ? label : plural}`;
+                    });
+                    
+                    return parts.length > 0 ? `(${parts.join(', ')})` : 'Not specified';
+                  })()}
+                </div>
               </div>
               <div className="space-y-1">
                 <div className="text-sm font-medium mb-1">Nationalities</div>
