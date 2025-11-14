@@ -126,7 +126,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
   const fetchQuestions = async () => {
     const { data: questionsData, error: questionsError } = await supabase
-      .from('job_interview_questions')
+      .from('job_interview_questions' as any)
       .select('*')
       .eq('job_id', jobId)
       .order('order_index');
@@ -135,14 +135,14 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
     // Fetch associated requirements and competencies for each question
     const questionsWithAssociations = await Promise.all(
-      (questionsData || []).map(async (q) => {
+      (questionsData || []).map(async (q: any) => {
         const [reqData, compData] = await Promise.all([
           supabase
-            .from('job_interview_question_requirements')
+            .from('job_interview_question_requirements' as any)
             .select('requirement_id')
             .eq('question_id', q.id),
           supabase
-            .from('job_interview_question_competencies')
+            .from('job_interview_question_competencies' as any)
             .select('competency_id')
             .eq('question_id', q.id)
         ]);
@@ -152,8 +152,8 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
           question_text: q.question_text,
           order_index: q.order_index,
           assigned_to: q.assigned_to,
-          requirement_ids: reqData.data?.map(r => r.requirement_id) || [],
-          competency_ids: compData.data?.map(c => c.competency_id) || []
+          requirement_ids: reqData.data?.map((r: any) => r.requirement_id) || [],
+          competency_ids: compData.data?.map((c: any) => c.competency_id) || []
         };
       })
     );
@@ -185,7 +185,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
   const fetchPanelMembers = async () => {
     const { data, error } = await supabase
-      .from('job_interview_panel_members')
+      .from('job_interview_panel_members' as any)
       .select(`
         id,
         job_id,
@@ -204,15 +204,15 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
     if (error) throw error;
 
-    const formattedMembers = (data || []).map(member => ({
+    const formattedMembers = (data || []).map((member: any) => ({
       panel_member_id: member.id,
       user_id: member.user_id,
-      name: (member.users as any).name,
+      name: member.users?.name || '',
       panel_role: member.panel_role,
-      gender: (member.users as any).gender,
-      duty_station: (member.users as any).duty_station,
-      nationality: (member.users as any).nationality,
-      division: (member.users as any).division,
+      gender: member.users?.gender,
+      duty_station: member.users?.duty_station,
+      nationality: member.users?.nationality,
+      division: member.users?.division,
     }));
 
     setPanelMembers(formattedMembers);
@@ -220,18 +220,18 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
   const fetchAvailableUsers = async () => {
     const { data, error } = await supabase
-      .from('users')
+      .from('users' as any)
       .select('id, name, email, gender, duty_station, nationality, division')
       .in('role', ['Panel Member', 'Hiring Manager', 'HR Assistant', 'Chief of HR', 'Admin'])
       .order('name');
 
     if (error) throw error;
-    setAvailableUsers(data || []);
+    setAvailableUsers((data as any) || []);
   };
 
   const validatePanel = async () => {
     try {
-      const { data, error } = await supabase.rpc('validate_panel_composition', {
+      const { data, error } = await (supabase.rpc as any)('validate_panel_composition', {
         p_job_id: jobId
       });
 
@@ -257,11 +257,11 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
     setAddingMember(true);
     try {
       const { error } = await supabase
-        .from('job_interview_panel_members')
+        .from('job_interview_panel_members' as any)
         .insert([{
           job_id: jobId,
           user_id: selectedUser,
-          panel_role: selectedRole as any
+          panel_role: selectedRole
         }]);
 
       if (error) throw error;
@@ -289,7 +289,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
   const removePanelMember = async (panelMemberId: string) => {
     try {
       const { error } = await supabase
-        .from('job_interview_panel_members')
+        .from('job_interview_panel_members' as any)
         .delete()
         .eq('id', panelMemberId);
 
@@ -363,7 +363,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
       if (insertError) throw insertError;
 
       // Insert requirement associations
-      const requirementAssociations = insertedQuestions.flatMap((q, idx) => 
+      const requirementAssociations = insertedQuestions.flatMap((q: any, idx) => 
         questions[idx].requirement_ids.map(reqId => ({
           question_id: q.id,
           requirement_id: reqId
@@ -372,14 +372,14 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
       if (requirementAssociations.length > 0) {
         const { error: reqError } = await supabase
-          .from('job_interview_question_requirements')
+          .from('job_interview_question_requirements' as any)
           .insert(requirementAssociations);
 
         if (reqError) throw reqError;
       }
 
       // Insert competency associations
-      const competencyAssociations = insertedQuestions.flatMap((q, idx) => 
+      const competencyAssociations = insertedQuestions.flatMap((q: any, idx) => 
         questions[idx].competency_ids.map(compId => ({
           question_id: q.id,
           competency_id: compId
@@ -388,7 +388,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
       if (competencyAssociations.length > 0) {
         const { error: compError } = await supabase
-          .from('job_interview_question_competencies')
+          .from('job_interview_question_competencies' as any)
           .insert(competencyAssociations);
 
         if (compError) throw compError;
