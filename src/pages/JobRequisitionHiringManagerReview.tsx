@@ -115,10 +115,16 @@ export default function JobRequisitionHiringManagerReview() {
     try {
       setSaving(true);
 
+      // Clean data: convert empty strings to null for date fields
+      const cleanedData = { ...formData };
+      if (cleanedData.start_date === '') cleanedData.start_date = null;
+      if (cleanedData.temporary_duration === '') cleanedData.temporary_duration = null;
+      if (cleanedData.consultant_duration === '') cleanedData.consultant_duration = null;
+
       const { error } = await supabase
         .from('job_requisitions')
         .update({
-          ...formData,
+          ...cleanedData,
           updated_at: new Date().toISOString(),
         })
         .eq('id', requisition.id);
@@ -170,10 +176,16 @@ export default function JobRequisitionHiringManagerReview() {
         }
       }
 
+      // Clean data: convert empty strings to null for date fields
+      const cleanedData = { ...formData };
+      if (cleanedData.start_date === '') cleanedData.start_date = null;
+      if (cleanedData.temporary_duration === '') cleanedData.temporary_duration = null;
+      if (cleanedData.consultant_duration === '') cleanedData.consultant_duration = null;
+
       const { error } = await supabase
         .from('job_requisitions')
         .update({
-          ...formData,
+          ...cleanedData,
           hiring_manager_confirmed_hr_changes: true,
           hiring_manager_confirmed_at: new Date().toISOString(),
           hiring_manager_changes: hmChanges,
