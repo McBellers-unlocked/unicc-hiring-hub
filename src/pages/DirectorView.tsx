@@ -43,6 +43,28 @@ export default function DirectorView() {
     },
   });
 
+  // Fetch pending review committee approvals
+  const { data: pendingCommittees, isLoading: committeesLoading } = useQuery({
+    queryKey: ["review-committees-director-approval"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("jobs")
+        .select(`
+          id,
+          title,
+          notice_no,
+          review_committee_status,
+          review_committee_sent_for_approval_at,
+          sender:users!review_committee_sent_by(name, email)
+        `)
+        .eq("review_committee_status", "pending_approval")
+        .order("review_committee_sent_for_approval_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const approveMutation = useMutation({
     mutationFn: async ({ id, approved }: { id: string; approved: boolean }) => {
       const { error } = await supabase
@@ -66,31 +88,133 @@ export default function DirectorView() {
     },
   });
 
+  const approveCommitteeMutation = useMutation({
+    mutationFn: async ({ id, approved }: { id: string; approved: boolean }) => {
+      const { error } = await supabase
+        .from("jobs")
+        .update({
+          review_committee_approved: approved,
+          review_committee_approved_at: new Date().toISOString(),
+          review_committee_approved_by: (await supabase.auth.getUser()).data.user?.id,
+          review_committee_status: approved ? "approved" : "rejected"
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["review-committees-director-approval"] });
+      toast.success("Review committee updated successfully");
+    },
+    onError: () => {
+      toast.error("Failed to update review committee");
+    },
+  });
+
   const handleApproval = (id: string, approved: boolean) => {
     approveMutation.mutate({ id, approved });
+  };
+
+  const handleCommitteeApproval = (id: string, approved: boolean) => {
+    approveCommitteeMutation.mutate({ id, approved });
   };
 
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Director - Requisition Approvals</h1>
+          <h1 className="text-3xl font-bold">Director - Approvals</h1>
           <Badge variant="secondary">Test View</Badge>
         </div>
 
-        {isLoading ? (
-          <div>Loading...</div>
-        ) : (
-          <div className="grid gap-4">
-            {requisitions?.length === 0 ? (
-              <Card>
-                <CardContent className="p-6">
-                  <p className="text-center text-muted-foreground">
-                    No requisitions pending your approval
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
+        {/* Review Committee Approvals Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4">Review Committee Approvals</h2>
+          {committeesLoading ? (
+            <div>Loading...</div>
+          ) : (
+            <div className="grid gap-4">
+              {pendingCommittees?.length === 0 ? (
+                <Card>
+                  <CardContent className="p-6">
+                    <p className="text-center text-muted-foreground">
+                      No review committees pending your approval
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                pendingCommittees?.map((job) => (
+                  <Card key={job.id}>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle>{job.title}</CardTitle>
+                          <div className="flex gap-2 mt-2">
+                            <Badge variant="outline">{job.notice_no}</Badge>
+                          </div>
+                        </div>
+                        <Badge variant="secondary">Pending Director Approval</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <p className="text-sm font-medium">Sent By</p>
+                          <p className="text-sm text-muted-foreground">
+                            {(job as any).sender?.name || (job as any).sender?.email || 'Unknown User'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Sent Date</p>
+                          <p className="text-sm text-muted-foreground">
+                            {job.review_committee_sent_for_approval_at 
+                              ? format(new Date(job.review_committee_sent_for_approval_at), "dd/MM/yyyy")
+                              : 'N/A'
+                            }
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => handleCommitteeApproval(job.id, true)}
+                          disabled={approveCommitteeMutation.isPending}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={() => handleCommitteeApproval(job.id, false)}
+                          disabled={approveCommitteeMutation.isPending}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Requisition Approvals Section */}
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Position Description Approvals</h2>
+
+          {isLoading ? (
+            <div>Loading...</div>
+          ) : (
+            <div className="grid gap-4">
+              {requisitions?.length === 0 ? (
+                <Card>
+                  <CardContent className="p-6">
+                    <p className="text-center text-muted-foreground">
+                      No position descriptions pending your approval
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
               requisitions?.map((requisition) => (
                 <Card key={requisition.id}>
                   <CardHeader>
@@ -434,6 +558,7 @@ export default function DirectorView() {
             )}
           </div>
         )}
+        </div>
       </div>
 
       {/* Position Description View Dialog */}

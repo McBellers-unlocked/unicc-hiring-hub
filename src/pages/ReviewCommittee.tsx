@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ReviewCommitteeScoreMatrix } from "@/components/ReviewCommitteeScoreMatrix";
 import { ReviewCommitteeApplicationsList } from "@/components/ReviewCommitteeApplicationsList";
 import { InterviewPanelReport } from "@/components/InterviewPanelReport";
+import { ReviewCommitteeComposition } from "@/components/ReviewCommitteeComposition";
 
 export default function ReviewCommittee() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -175,8 +176,12 @@ export default function ReviewCommittee() {
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="summary" className="space-y-4">
+        <Tabs defaultValue="composition" className="space-y-4">
           <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="composition">
+              <Users className="h-4 w-4 mr-2" />
+              RC Composition
+            </TabsTrigger>
             <TabsTrigger value="summary">
               <TrendingUp className="h-4 w-4 mr-2" />
               Summary & Rankings
@@ -185,15 +190,16 @@ export default function ReviewCommittee() {
               <FileText className="h-4 w-4 mr-2" />
               Applications
             </TabsTrigger>
-            <TabsTrigger value="scores">
-              <Award className="h-4 w-4 mr-2" />
-              Interview Scores
-            </TabsTrigger>
             <TabsTrigger value="report">
               <Users className="h-4 w-4 mr-2" />
               Interview Panel Report
             </TabsTrigger>
           </TabsList>
+
+          {/* RC Composition Tab */}
+          <TabsContent value="composition" className="space-y-4">
+            <ReviewCommitteeComposition jobId={jobId!} />
+          </TabsContent>
 
           {/* Summary Tab */}
           <TabsContent value="summary" className="space-y-4">
@@ -203,25 +209,6 @@ export default function ReviewCommittee() {
           {/* Applications Tab */}
           <TabsContent value="applications" className="space-y-6">
             <ReviewCommitteeApplicationsList applications={candidatesWithStats || []} />
-          </TabsContent>
-
-          {/* Scores Tab */}
-          <TabsContent value="scores" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Interview Scores Detail</CardTitle>
-                <CardDescription>
-                  Detailed breakdown of interview panel scores
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Alert>
-                  <AlertDescription>
-                    Detailed score matrices are available in individual application views.
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* Report Tab */}
