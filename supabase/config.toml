@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.reset-and-rebook-interviews]
 verify_jwt = false
+
+[functions.reset-longlist-flags]
+verify_jwt = false
