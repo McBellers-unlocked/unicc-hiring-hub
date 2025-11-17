@@ -88,7 +88,7 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
       shortLabel: 'HR Review',
       description: 'HR reviewing and editing PD',
       isCompleted: !!requisition.hr_reviewed,
-      isActive: requisition.status === 'hr_review',
+      isActive: requisition.status === 'hr_review' && !requisition.hiring_manager_confirmed_hr_changes,
       completedAt: requisition.hr_reviewed_at,
       icon: Users
     },
@@ -98,7 +98,7 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
       shortLabel: 'Mgr Confirm',
       description: 'Hiring manager reviews HR changes',
       isCompleted: !!requisition.hiring_manager_confirmed_hr_changes,
-      isActive: requisition.status === 'hiring_manager_review',
+      isActive: requisition.status === 'hiring_manager_review' && !requisition.hiring_manager_confirmed_hr_changes,
       completedAt: requisition.hiring_manager_confirmed_at,
       icon: UserCheck
     },
@@ -108,8 +108,9 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
       shortLabel: 'Chief Approval',
       description: 'Chief reviewing final PD for approval',
       isCompleted: !!requisition.chief_of_division_approval && !!requisition.hiring_manager_confirmed_hr_changes,
-      isActive: requisition.status === 'chief_of_division_review' || 
-                requisition.status === 'chief_division_review',
+      isActive: (requisition.status === 'chief_of_division_review' || 
+                requisition.status === 'chief_division_review') ||
+                (!!requisition.hiring_manager_confirmed_hr_changes && !requisition.chief_of_division_approval),
       completedAt: requisition.chief_of_division_approved_at,
       icon: UserCheck
     },
