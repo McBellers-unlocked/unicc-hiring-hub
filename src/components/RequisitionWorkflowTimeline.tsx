@@ -109,9 +109,10 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
       shortLabel: 'Chief Approval',
       description: 'Chief reviewing final PD for approval',
       isCompleted: !!requisition.chief_of_division_approval && !!requisition.chief_of_division_sent_at,
-      isActive: (!!requisition.hiring_manager_confirmed_hr_changes && !requisition.chief_of_division_sent_at) ||
+      isActive: ((!!requisition.hiring_manager_confirmed_hr_changes && !requisition.chief_of_division_sent_at) ||
                 requisition.status === 'chief_of_division_review' || 
-                requisition.status === 'chief_division_review',
+                requisition.status === 'chief_division_review') &&
+                requisition.status !== 'director_review',
       completedAt: requisition.chief_of_division_sent_at ? requisition.chief_of_division_approved_at : null,
       icon: UserCheck
     },
