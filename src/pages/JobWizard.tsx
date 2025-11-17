@@ -379,6 +379,68 @@ ${requisition.desirable_education || ''}
 
         if (jobError) throw jobError;
 
+        // Load structured requirements, competencies, and languages
+        const [
+          { data: requirementsData },
+          { data: competenciesData },
+          { data: languagesData }
+        ] = await Promise.all([
+          supabase
+            .from('job_requirements')
+            .select('*')
+            .eq('job_id', jobId)
+            .order('order_index'),
+          supabase
+            .from('job_competencies')
+            .select('*')
+            .eq('job_id', jobId)
+            .order('order_index'),
+          supabase
+            .from('job_language_requirements')
+            .select('*')
+            .eq('job_id', jobId)
+            .order('order_index')
+        ]);
+
+        // Organize structured requirements by category
+        const structuredRequirements = {
+          essentialCriteria: (requirementsData || [])
+            .filter(r => r.category === 'Essential Criteria')
+            .map(r => ({
+              id: r.id,
+              title: r.title,
+              description: r.description,
+              weight: r.weight,
+              order_index: r.order_index
+            })),
+          desirableCriteria: (requirementsData || [])
+            .filter(r => r.category === 'Desirable Criteria')
+            .map(r => ({
+              id: r.id,
+              title: r.title,
+              description: r.description,
+              weight: r.weight,
+              order_index: r.order_index
+            })),
+          essentialEducation: [],
+          desirableEducation: [],
+          competencies: (competenciesData || []).map(c => ({
+            id: c.id,
+            competency_type: c.competency_type as 'Core' | 'Management' | 'Leadership',
+            competency_name: c.competency_name,
+            description: c.description,
+            weight: c.weight,
+            order_index: c.order_index
+          })),
+          languages: (languagesData || []).map(l => ({
+            id: l.id,
+            language: l.language,
+            level: l.level as 'Basic' | 'Working' | 'Expert',
+            is_essential: l.is_essential,
+            order_index: l.order_index
+          }))
+        };
+
         // Debug: Log the loaded data to help with troubleshooting
         console.log('Loaded job data:', {
           language_requirements: jobData.language_requirements,
@@ -450,6 +512,7 @@ ${requisition.desirable_education || ''}
           essential_education_level: jobData.essential_education_level || '',
           language_requirements: jobData.language_requirements || '',
           competencies: jobData.competencies || '',
+          structuredRequirements: structuredRequirements,
           killer_questions: questionsData?.map(question => ({
             id: question.id,
             label: question.label,
