@@ -16,6 +16,7 @@ export interface LanguageRequirement {
 interface LanguageRequirementsListProps {
   languages: LanguageRequirement[];
   onChange: (languages: LanguageRequirement[]) => void;
+  readOnly?: boolean;
 }
 
 const COMMON_LANGUAGES = [
@@ -32,7 +33,7 @@ const COMMON_LANGUAGES = [
   'Other'
 ];
 
-export function LanguageRequirementsList({ languages, onChange }: LanguageRequirementsListProps) {
+export function LanguageRequirementsList({ languages, onChange, readOnly = false }: LanguageRequirementsListProps) {
   const addLanguage = () => {
     const newLang: LanguageRequirement = {
       id: `temp-${Date.now()}`,
@@ -58,17 +59,25 @@ export function LanguageRequirementsList({ languages, onChange }: LanguageRequir
 
   return (
     <div className="space-y-4">
+      {readOnly && (
+        <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm text-muted-foreground mb-4">
+          <p className="font-medium">📋 Approved at PD Phase</p>
+          <p className="text-xs mt-1">These language requirements were approved during the Position Description phase and are displayed as reference.</p>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <Label className="text-base font-medium">Language Requirements</Label>
-        <Button variant="outline" size="sm" onClick={addLanguage}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Language
-        </Button>
+        {!readOnly && (
+          <Button variant="outline" size="sm" onClick={addLanguage}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Language
+          </Button>
+        )}
       </div>
 
       {languages.length === 0 ? (
         <div className="border border-dashed rounded-lg p-8 text-center text-muted-foreground">
-          <p>No language requirements specified. Click "Add Language" to create one.</p>
+          <p>No language requirements specified. {!readOnly && 'Click "Add Language" to create one.'}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -81,19 +90,22 @@ export function LanguageRequirementsList({ languages, onChange }: LanguageRequir
                     <Select
                       value={lang.language}
                       onValueChange={(value) => updateLanguage(index, 'language', value)}
+                      disabled={readOnly}
                     >
-                      <SelectTrigger className="mt-1">
+                      <SelectTrigger className={`mt-1 ${readOnly ? 'bg-muted' : ''}`}>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
-                        {COMMON_LANGUAGES.map(language => (
-                          <SelectItem key={language} value={language}>
-                            {language}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
+                      {!readOnly && (
+                        <SelectContent>
+                          {COMMON_LANGUAGES.map(language => (
+                            <SelectItem key={language} value={language}>
+                              {language}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      )}
                     </Select>
-                    {lang.language === 'Other' && (
+                    {lang.language === 'Other' && !readOnly && (
                       <Input
                         placeholder="Specify language"
                         className="mt-2"
@@ -107,15 +119,18 @@ export function LanguageRequirementsList({ languages, onChange }: LanguageRequir
                     <Select
                       value={lang.level}
                       onValueChange={(value: 'Basic' | 'Working' | 'Expert') => updateLanguage(index, 'level', value)}
+                      disabled={readOnly}
                     >
-                      <SelectTrigger className="mt-1">
+                      <SelectTrigger className={`mt-1 ${readOnly ? 'bg-muted' : ''}`}>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Basic">Basic</SelectItem>
-                        <SelectItem value="Working">Working</SelectItem>
-                        <SelectItem value="Expert">Expert</SelectItem>
-                      </SelectContent>
+                      {!readOnly && (
+                        <SelectContent>
+                          <SelectItem value="Basic">Basic</SelectItem>
+                          <SelectItem value="Working">Working</SelectItem>
+                          <SelectItem value="Expert">Expert</SelectItem>
+                        </SelectContent>
+                      )}
                     </Select>
                   </div>
 
@@ -125,6 +140,7 @@ export function LanguageRequirementsList({ languages, onChange }: LanguageRequir
                         id={`essential-${lang.id}`}
                         checked={lang.is_essential}
                         onCheckedChange={(checked) => updateLanguage(index, 'is_essential', checked === true)}
+                        disabled={readOnly}
                       />
                       <Label htmlFor={`essential-${lang.id}`} className="text-sm font-normal cursor-pointer">
                         Essential
@@ -133,14 +149,16 @@ export function LanguageRequirementsList({ languages, onChange }: LanguageRequir
                   </div>
                 </div>
 
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => removeLanguage(index)}
-                  className="mt-6"
-                >
-                  <Trash2 className="w-4 h-4 text-destructive" />
-                </Button>
+                {!readOnly && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => removeLanguage(index)}
+                    className="mt-6"
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                )}
               </div>
             </div>
           ))}
@@ -148,7 +166,10 @@ export function LanguageRequirementsList({ languages, onChange }: LanguageRequir
       )}
 
       <p className="text-sm text-muted-foreground">
-        Specify the language proficiency requirements for this position. Essential requirements will be used in candidate screening.
+        {readOnly 
+          ? 'Language proficiency requirements approved at PD phase.'
+          : 'Specify the language proficiency requirements for this position. Essential requirements will be used in candidate screening.'
+        }
       </p>
     </div>
   );
