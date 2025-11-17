@@ -728,6 +728,60 @@ export type Database = {
           },
         ]
       }
+      interview_panel_reports: {
+        Row: {
+          application_id: string
+          competencies: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          introduction: string | null
+          job_id: string
+          recommendation: string | null
+          skills: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          application_id: string
+          competencies?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          introduction?: string | null
+          job_id: string
+          recommendation?: string | null
+          skills?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          application_id?: string
+          competencies?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          introduction?: string | null
+          job_id?: string
+          recommendation?: string | null
+          skills?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_panel_reports_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_panel_reports_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_competencies: {
         Row: {
           competency_name: string

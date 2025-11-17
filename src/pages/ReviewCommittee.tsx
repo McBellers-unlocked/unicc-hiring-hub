@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ReviewCommitteeScoreMatrix } from "@/components/ReviewCommitteeScoreMatrix";
 import { ReviewCommitteeApplicationsList } from "@/components/ReviewCommitteeApplicationsList";
+import { InterviewPanelReport } from "@/components/InterviewPanelReport";
 
 export default function ReviewCommittee() {
   const { jobId } = useParams<{ jobId: string }>();
@@ -190,7 +191,7 @@ export default function ReviewCommittee() {
             </TabsTrigger>
             <TabsTrigger value="report">
               <Users className="h-4 w-4 mr-2" />
-              HR Report
+              Interview Panel Report
             </TabsTrigger>
           </TabsList>
 
@@ -225,21 +226,7 @@ export default function ReviewCommittee() {
 
           {/* Report Tab */}
           <TabsContent value="report" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>HR Report</CardTitle>
-                <CardDescription>
-                  Final report prepared by HR representative
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Alert>
-                  <AlertDescription>
-                    HR report functionality coming soon. This will include panel consensus, recommendations, and procedural notes.
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
+            <InterviewPanelReport jobId={jobId!} />
           </TabsContent>
         </Tabs>
       </div>
