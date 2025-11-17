@@ -77,10 +77,7 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
       label: 'Full PD Submitted',
       shortLabel: 'PD Submitted',
       description: 'Position description submitted for HR review',
-      isCompleted: requisition.status !== 'initial_request_draft' && 
-                   requisition.status !== 'initial_request_submitted' &&
-                   requisition.status !== 'initial_request_chief_review' &&
-                   !!requisition.initial_request_approved,
+      isCompleted: !!requisition.hr_reviewed,
       isActive: requisition.status === 'pd_submitted' || requisition.status === 'pd_draft',
       icon: FileText
     },
