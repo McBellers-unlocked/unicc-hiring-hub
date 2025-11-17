@@ -68,6 +68,18 @@ serve(async (req) => {
       });
     }
 
+    // Normalize grade format for salary lookup (handle both "P3" and "P-3" formats)
+    const normalizeGrade = (grade: string) => {
+      if (!grade) return '';
+      // If grade doesn't have a hyphen and matches pattern like P3, G5, etc., add hyphen
+      if (/^[A-Z]+\d+$/.test(grade)) {
+        return grade.replace(/([A-Z]+)(\d+)/, '$1-$2');
+      }
+      return grade;
+    };
+    const normalizedGrade = normalizeGrade(req_data.grade);
+    const salaryEstimate = SALARY_RANGES[normalizedGrade] || SALARY_RANGES[req_data.grade] || req_data.grade || '';
+
     const { data: newJob, error: jobError } = await supabase.from('jobs').insert({
       title: req_data.position_title,
       notice_no: req_data.reference_number,
@@ -83,7 +95,7 @@ serve(async (req) => {
       competencies: '',
       status: 'paused',
       category: 'Professional',
-      salary_estimate: SALARY_RANGES[req_data.grade] || req_data.grade || '',
+      salary_estimate: salaryEstimate,
       timezone: 'Europe/Zurich',
       privacy_notice_url: 'https://www.unicc.org/unicc-privacy-notice-for-applicants/'
     }).select().single();
