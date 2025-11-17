@@ -61,6 +61,13 @@ const companies = [
   "UK National Cyber Security Centre", "CISA", "NSA", "GCHQ", "FBI Cyber Division"
 ];
 
+const unOrganizations = [
+  "UNICEF", "WHO (World Health Organization)", "UNHCR", "UNDP", "WFP (World Food Programme)",
+  "UNESCO", "ILO (International Labour Organization)", "FAO", "UNEP", "UN-Habitat",
+  "UNODC (UN Office on Drugs and Crime)", "UNOPS", "UN Women", "UNFPA", "UNICC",
+  "ITU", "WMO (World Meteorological Organization)", "IMO", "WIPO", "IFAD"
+];
+
 const universities = [
   "MIT", "Stanford University", "Carnegie Mellon University", "UC Berkeley", "Oxford University",
   "Cambridge University", "Imperial College London", "ETH Zurich", "TU Munich", "KTH Royal Institute",
@@ -126,8 +133,11 @@ const degrees = [
   { level: "PhD", field: "Information Security" }
 ];
 
-const languages = ["English", "Spanish", "French", "German", "Mandarin", "Arabic", "Russian", "Japanese", "Portuguese", "Italian"];
-const proficiencyLevels = ["Native", "Fluent", "Advanced", "Intermediate"];
+const languages = [
+  "English", "Spanish", "French", "German", "Mandarin", "Arabic", "Russian", 
+  "Japanese", "Portuguese", "Italian", "Hindi", "Swahili", "Korean", "Dutch"
+];
+const proficiencyLevels = ["Native", "Fluent", "Advanced", "Intermediate", "Basic"];
 
 function randomItem<T>(array: T[]): T {
   return array[Math.floor(Math.random() * array.length)];
@@ -188,15 +198,42 @@ function generateEducation(quality: string): any[] {
 }
 
 function generateWorkExperience(quality: string, education: any[]): any[] {
-  const numJobs = 3 + Math.floor(Math.random() * 2); // 3-4 jobs
-  const workExperience = [];
   const currentYear = new Date().getFullYear();
-  const graduationYear = Math.max(...education.map(e => e.year));
+  const workExperience = [];
   
-  let careerStartYear = graduationYear;
+  // Determine years of experience based on quality
+  let minYears, maxYears;
+  if (quality === 'strong') {
+    minYears = 8;
+    maxYears = 20;
+  } else if (quality === 'good') {
+    minYears = 5;
+    maxYears = 12;
+  } else if (quality === 'average') {
+    minYears = 3;
+    maxYears = 8;
+  } else {
+    minYears = 1;
+    maxYears = 4;
+  }
+  
+  const totalYears = minYears + Math.floor(Math.random() * (maxYears - minYears));
+  const numJobs = Math.ceil(totalYears / 3); // Average 3 years per job
+  
+  // Education end year for career start
+  const latestEducation = education.sort((a, b) => b.year - a.year)[0];
+  const careerStartYear = latestEducation.year;
+  
+  // Determine if candidate has UN experience (30% chance for strong, 15% for good, 5% for others)
+  const hasUNExperience = (quality === 'strong' && Math.random() < 0.3) || 
+                          (quality === 'good' && Math.random() < 0.15) ||
+                          (Math.random() < 0.05);
+  
+  // If they have UN experience, add 1-2 UN positions
+  const unJobCount = hasUNExperience ? (Math.random() > 0.6 ? 2 : 1) : 0;
   
   for (let i = 0; i < numJobs; i++) {
-    const isRecent = i === 0;
+    const isRecent = i === numJobs - 1;
     const startYear = careerStartYear + i * (Math.floor(Math.random() * 2) + 1);
     const endYear = isRecent ? currentYear : startYear + 2 + Math.floor(Math.random() * 3);
     
@@ -205,14 +242,20 @@ function generateWorkExperience(quality: string, education: any[]): any[] {
     if (quality === 'strong') titleIndex = Math.min(titleIndex + 3, jobTitles.length - 1);
     if (quality === 'weak') titleIndex = Math.max(0, titleIndex - 3);
     
+    // Decide if this is a UN job
+    const isUNJob = unJobCount > 0 && i >= numJobs - unJobCount;
+    const company = isUNJob ? randomItem(unOrganizations) : randomItem(companies);
+    
     workExperience.push({
       position: jobTitles[titleIndex],
-      company: randomItem(companies),
-      location: randomItem(["London, UK", "New York, USA", "Singapore", "Geneva, Switzerland", "Dubai, UAE", "Toronto, Canada"]),
+      company: company,
+      location: randomItem(["London, UK", "New York, USA", "Singapore", "Geneva, Switzerland", "Dubai, UAE", "Toronto, Canada", "Nairobi, Kenya", "Rome, Italy", "Vienna, Austria", "Copenhagen, Denmark"]),
       start_date: `${startYear}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-01`,
       end_date: isRecent ? null : `${endYear}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-01`,
       current: isRecent,
-      description: `Conducted security assessments and penetration testing for enterprise clients. Identified and reported critical vulnerabilities in web applications, networks, and cloud infrastructure. Collaborated with development teams to remediate security issues and improve security posture.`
+      description: isUNJob 
+        ? `Conducted security assessments and penetration testing for UN systems and infrastructure. Collaborated with international teams across multiple duty stations. Ensured compliance with UN security standards and policies. Provided security awareness training to UN staff members.`
+        : `Conducted security assessments and penetration testing for enterprise clients. Identified and reported critical vulnerabilities in web applications, networks, and cloud infrastructure. Collaborated with development teams to remediate security issues and improve security posture.`
     });
   }
   
@@ -244,15 +287,22 @@ function generateCertifications(quality: string): any[] {
 }
 
 function generateLanguages(): any {
-  const numLanguages = 2 + Math.floor(Math.random() * 2); // 2-3 languages
+  const numLanguages = 2 + Math.floor(Math.random() * 3); // 2-4 languages
   const selectedLanguages = randomItems(languages, numLanguages);
+  
+  // Ensure English is always included
+  if (!selectedLanguages.includes("English")) {
+    selectedLanguages[0] = "English";
+  }
   
   const result: any = {};
   selectedLanguages.forEach((lang, i) => {
+    const isNative = i === 0;
+    const level = isNative ? 'Native' : randomItem(proficiencyLevels);
     result[lang.toLowerCase()] = {
-      read: i === 0 ? 'Native' : randomItem(proficiencyLevels),
-      write: i === 0 ? 'Native' : randomItem(proficiencyLevels),
-      speak: i === 0 ? 'Native' : randomItem(proficiencyLevels)
+      read: level,
+      write: level,
+      speak: level
     };
   });
   
@@ -314,6 +364,12 @@ const handler = async (req: Request): Promise<Response> => {
         return sum + (end - start);
       }, 0);
       
+      // Check if candidate has UN experience
+      const hasUNExp = workExperience.some(job => unOrganizations.includes(job.company));
+      const unOrgsWorked = hasUNExp ? workExperience
+        .filter(job => unOrganizations.includes(job.company))
+        .map(job => job.company) : [];
+      
       const candidate = {
         name: `${firstName} ${lastName}`,
         first_name: firstName,
@@ -321,23 +377,37 @@ const handler = async (req: Request): Promise<Response> => {
         email: email,
         phone: `+${Math.floor(Math.random() * 90) + 10}-${Math.floor(Math.random() * 900000000) + 100000000}`,
         location: randomItem(["London, UK", "New York, USA", "Singapore", "Geneva, Switzerland", "Toronto, Canada"]),
+        present_country: randomItem(["United Kingdom", "United States", "Singapore", "Switzerland", "Canada", "Australia", "Germany", "France"]),
+        present_nationality: randomItem(["British", "American", "Canadian", "Australian", "German", "French", "Indian", "Chinese", "Japanese", "Brazilian"]),
         education: education,
         work_experience: workExperience,
         skills: skills,
         certifications: certifications,
         languages: languagesData,
         years_of_experience: yearsOfExp,
-        professional_summary: `Experienced cybersecurity professional with ${yearsOfExp}+ years specializing in penetration testing, vulnerability assessment, and security consulting. Proven track record of identifying critical security vulnerabilities and helping organizations strengthen their security posture.`,
+        professional_summary: hasUNExp 
+          ? `Experienced cybersecurity professional with ${yearsOfExp}+ years including work with UN organizations. Specializing in penetration testing, vulnerability assessment, and security consulting for international organizations. Proven track record of identifying critical security vulnerabilities and helping organizations strengthen their security posture.`
+          : `Experienced cybersecurity professional with ${yearsOfExp}+ years specializing in penetration testing, vulnerability assessment, and security consulting. Proven track record of identifying critical security vulnerabilities and helping organizations strengthen their security posture.`,
         has_security_clearance: quality === 'strong' && Math.random() > 0.7,
-        un_experience: quality === 'strong' && Math.random() > 0.8,
+        security_clearance_level: (quality === 'strong' && Math.random() > 0.7) ? randomItem(["Secret", "Top Secret", "NATO Secret"]) : null,
+        un_experience: hasUNExp,
+        un_organizations_worked: unOrgsWorked,
         willing_to_relocate: Math.random() > 0.3,
+        remote_work_preference: randomItem(["Fully Remote", "Hybrid", "On-site", "Flexible"]),
+        travel_availability: randomItem(["Up to 25%", "Up to 50%", "Up to 75%", "Willing to travel extensively"]),
+        contract_type_preference: randomItem(["Fixed term", "Temporary", "Permanent", "Consultant", "Flexible"]),
+        notice_period: randomItem(["Immediate", "1 month", "2 months", "3 months"]),
+        notice_period_days: randomItem([0, 30, 60, 90]),
+        availability_status: randomItem(["Immediately available", "Available with notice", "Employed but looking", "Actively looking"]),
         profile_completion_percentage: 95,
         date_of_birth: randomDate(new Date(1980, 0, 1), new Date(1998, 11, 31)),
         gender: Math.random() > 0.5 ? 'Male' : 'Female',
         nationality_changed: false,
         present_nationality_detailed: randomItem(["British", "American", "Canadian", "Australian", "German", "French", "Indian", "Chinese", "Japanese", "Brazilian"]),
         marital_status_detailed: randomItem(["Single", "Married", "Divorced"]),
-        availability_date_detailed: randomDate(new Date(), new Date(new Date().setMonth(new Date().getMonth() + 3)))
+        availability_date_detailed: randomDate(new Date(), new Date(new Date().setMonth(new Date().getMonth() + 3))),
+        preferred_locations: randomItems(["Geneva", "New York", "Vienna", "Rome", "Nairobi", "Bangkok", "Copenhagen", "London"], 2 + Math.floor(Math.random() * 3)),
+        salary_expectation_range: quality === 'strong' ? "$90,000 - $120,000" : quality === 'good' ? "$70,000 - $90,000" : quality === 'average' ? "$50,000 - $70,000" : "$40,000 - $55,000"
       };
       
       candidatesToCreate.push(candidate);
