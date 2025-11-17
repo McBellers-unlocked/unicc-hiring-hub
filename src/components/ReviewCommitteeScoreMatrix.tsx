@@ -221,7 +221,7 @@ export function ReviewCommitteeScoreMatrix({ jobId }: ReviewCommitteeScoreMatrix
       rows.push([section.name, '', ...candidateScores.map(() => '')]);
       
       section.criteria.forEach((criterion: any) => {
-        const required = criterion.must_have ? 'R' : 'D';
+        const required = 'R';
         const scores = candidateScores.map(c => {
           const score = c.criterionScores[criterion.id];
           return score ? score.toFixed(1) : '-';
@@ -368,8 +368,8 @@ export function ReviewCommitteeScoreMatrix({ jobId }: ReviewCommitteeScoreMatrix
                     <TableRow key={criterion.id}>
                       <TableCell className="sticky left-0 bg-background z-10">{criterion.name}</TableCell>
                       <TableCell className="text-center">
-                        <Badge variant={criterion.must_have ? "default" : "secondary"}>
-                          {criterion.must_have ? 'R' : 'D'}
+                        <Badge variant="default">
+                          R
                         </Badge>
                       </TableCell>
                       {candidateScores.map((candidate, idx) => {
