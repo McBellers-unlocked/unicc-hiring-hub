@@ -118,6 +118,7 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
         killer_questions,
         custom_fields,
         consent_checkboxes,
+        structuredRequirements,
         ...jobData
       } = data;
 
