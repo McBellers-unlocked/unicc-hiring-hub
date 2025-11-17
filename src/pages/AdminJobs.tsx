@@ -260,17 +260,61 @@ export default function AdminJobs() {
       return 'pipeline';
     }
     
-    // Check if manually closed by HR
+    // Check if job has applications and closing date has passed - show recruitment stage regardless of status
+    const closingDate = job.closing_date ? new Date(job.closing_date) : null;
+    const now = new Date();
+    const closingDatePassed = closingDate && closingDate <= now;
+    
+    const statuses = job.application_statuses || [];
+    const totalApps = job.application_count || 0;
+    
+    // If job has applications and closing date has passed, determine recruitment stage
+    if (closingDatePassed && totalApps > 0 && statuses.length > 0) {
+      const inApplication = statuses.find(s => s.status === 'Application')?.count || 0;
+      const inLonglist = statuses.find(s => s.status === 'Longlist')?.count || 0;
+      const inShortlist = statuses.find(s => s.status === 'Shortlist')?.count || 0;
+      const inVideoInterview = (statuses.find(s => s.status === 'Video Interview')?.count || 0) + 
+                               (statuses.find(s => s.status === 'Pre-Recorded Video')?.count || 0);
+      const inPanelInterview = statuses.find(s => s.status === 'Panel Interview')?.count || 0;
+      
+      // Panel Interview stage (highest priority)
+      if (inPanelInterview > 0) {
+        return 'panel_interview';
+      }
+      
+      // Video Interview stage
+      if (inVideoInterview > 0) {
+        return 'video_interview';
+      }
+      
+      // Check if 14 days have passed since closing
+      const fourteenDaysAfterClosing = new Date(closingDate);
+      fourteenDaysAfterClosing.setDate(fourteenDaysAfterClosing.getDate() + 14);
+      const fourteenDaysPassed = now >= fourteenDaysAfterClosing;
+      
+      // HM Shortlisting - only if ALL applications moved out of "Application" status
+      if (inApplication === 0 && (inLonglist > 0 || inShortlist > 0)) {
+        return 'hm_shortlisting';
+      }
+      
+      // Longlisting - if within 14 days of closing OR if any applications still in "Application" status
+      if (!fourteenDaysPassed || inApplication > 0) {
+        return 'longlisting';
+      }
+      
+      // After 14 days, if all apps processed but still in early stages
+      if (inLonglist > 0 || inShortlist > 0) {
+        return 'hm_shortlisting';
+      }
+    }
+    
+    // Check if manually closed (and no applications in process)
     if (job.status === 'closed') {
       return 'closed';
     }
     
     // Check if job is active
     if (job.status === 'active') {
-      const closingDate = job.closing_date ? new Date(job.closing_date) : null;
-      const now = new Date();
-      
-      // If closing date is in the future, job is active or closing soon
       if (closingDate && closingDate > now) {
         const threeDaysFromNow = new Date();
         threeDaysFromNow.setDate(now.getDate() + 3);
@@ -282,50 +326,8 @@ export default function AdminJobs() {
         return 'active';
       }
       
-      // Job has closed (closing date passed), now check recruitment stage
-      if (closingDate && closingDate <= now) {
-        const statuses = job.application_statuses || [];
-        const totalApps = job.application_count || 0;
-        
-        if (totalApps > 0 && statuses.length > 0) {
-          const inApplication = statuses.find(s => s.status === 'Application')?.count || 0;
-          const inLonglist = statuses.find(s => s.status === 'Longlist')?.count || 0;
-          const inShortlist = statuses.find(s => s.status === 'Shortlist')?.count || 0;
-          const inVideoInterview = (statuses.find(s => s.status === 'Video Interview')?.count || 0) + 
-                                   (statuses.find(s => s.status === 'Pre-Recorded Video')?.count || 0);
-          const inPanelInterview = statuses.find(s => s.status === 'Panel Interview')?.count || 0;
-          
-          // Panel Interview stage (highest priority)
-          if (inPanelInterview > 0) {
-            return 'panel_interview';
-          }
-          
-          // Video Interview stage
-          if (inVideoInterview > 0) {
-            return 'video_interview';
-          }
-          
-          // Check if 14 days have passed since closing
-          const fourteenDaysAfterClosing = new Date(closingDate);
-          fourteenDaysAfterClosing.setDate(fourteenDaysAfterClosing.getDate() + 14);
-          const fourteenDaysPassed = now >= fourteenDaysAfterClosing;
-          
-          // HM Shortlisting - only if ALL applications moved out of "Application" status
-          // AND either 14 days have passed OR all apps are processed
-          if (inApplication === 0 && (inLonglist > 0 || inShortlist > 0)) {
-            return 'hm_shortlisting';
-          }
-          
-          // Longlisting - if within 14 days of closing OR if any applications still in "Application" status
-          if (!fourteenDaysPassed || inApplication > 0) {
-            return 'longlisting';
-          }
-          
-          // After 14 days with no apps in Application, but also no shortlist/longlist, stay in longlisting
-          return 'longlisting';
-        }
-        
-        // No applications yet, show longlisting after closing
+      // Active job with closing date passed but no applications
+      if (closingDatePassed && totalApps === 0) {
         return 'longlisting';
       }
       
