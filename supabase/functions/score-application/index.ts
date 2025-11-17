@@ -538,26 +538,9 @@ serve(async (req) => {
 
     console.log('Screening score saved successfully:', scoreData);
 
-    // Update application with longlist recommendation
-    console.log('Updating application with longlist recommendation:', recommendForLonglist);
-    const { data: updateData, error: updateError } = await supabase
-      .from('applications')
-      .update({
-        suggested_for_longlist: recommendForLonglist
-      })
-      .eq('id', applicationId)
-      .select();
-
-    if (updateError) {
-      console.error('Error updating application:', updateError);
-      console.error('Update error details:', JSON.stringify(updateError, null, 2));
-      return new Response(
-        JSON.stringify({ error: 'Failed to update application', details: updateError }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('Application updated successfully:', updateData);
+    // Note: We no longer automatically set suggested_for_longlist
+    // The recommendation is available in the breakdown for human review
+    console.log('Score includes recommendation:', recommendForLonglist);
 
     console.log(`Application scoring completed successfully`);
 
