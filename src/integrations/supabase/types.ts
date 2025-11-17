@@ -1527,6 +1527,12 @@ export type Database = {
           positions: number | null
           privacy_notice_url: string | null
           requirements_md: string | null
+          review_committee_approved: boolean | null
+          review_committee_approved_at: string | null
+          review_committee_approved_by: string | null
+          review_committee_sent_by: string | null
+          review_committee_sent_for_approval_at: string | null
+          review_committee_status: string | null
           salary_estimate: string | null
           slug: string | null
           status: string | null
@@ -1555,6 +1561,12 @@ export type Database = {
           positions?: number | null
           privacy_notice_url?: string | null
           requirements_md?: string | null
+          review_committee_approved?: boolean | null
+          review_committee_approved_at?: string | null
+          review_committee_approved_by?: string | null
+          review_committee_sent_by?: string | null
+          review_committee_sent_for_approval_at?: string | null
+          review_committee_status?: string | null
           salary_estimate?: string | null
           slug?: string | null
           status?: string | null
@@ -1583,6 +1595,12 @@ export type Database = {
           positions?: number | null
           privacy_notice_url?: string | null
           requirements_md?: string | null
+          review_committee_approved?: boolean | null
+          review_committee_approved_at?: string | null
+          review_committee_approved_by?: string | null
+          review_committee_sent_by?: string | null
+          review_committee_sent_for_approval_at?: string | null
+          review_committee_status?: string | null
           salary_estimate?: string | null
           slug?: string | null
           status?: string | null
