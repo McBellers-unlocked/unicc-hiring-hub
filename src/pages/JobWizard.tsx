@@ -405,7 +405,7 @@ ${requisition.desirable_education || ''}
         // Organize structured requirements by category
         const structuredRequirements = {
           essentialCriteria: (requirementsData || [])
-            .filter(r => r.category === 'Essential Criteria')
+            .filter(r => r.category === 'Essential Criteria' && r.title === 'Essential Experience')
             .map(r => ({
               id: r.id,
               title: r.title,
@@ -414,7 +414,7 @@ ${requisition.desirable_education || ''}
               order_index: r.order_index
             })),
           desirableCriteria: (requirementsData || [])
-            .filter(r => r.category === 'Desirable Criteria')
+            .filter(r => r.category === 'Desirable Criteria' && r.title === 'Desirable Experience')
             .map(r => ({
               id: r.id,
               title: r.title,
@@ -422,8 +422,24 @@ ${requisition.desirable_education || ''}
               weight: r.weight,
               order_index: r.order_index
             })),
-          essentialEducation: [],
-          desirableEducation: [],
+          essentialEducation: (requirementsData || [])
+            .filter(r => r.category === 'Essential Criteria' && r.title === 'Essential Education')
+            .map(r => ({
+              id: r.id,
+              title: r.title,
+              description: r.description,
+              weight: r.weight,
+              order_index: r.order_index
+            })),
+          desirableEducation: (requirementsData || [])
+            .filter(r => r.category === 'Desirable Criteria' && r.title === 'Desirable Education')
+            .map(r => ({
+              id: r.id,
+              title: r.title,
+              description: r.description,
+              weight: r.weight,
+              order_index: r.order_index
+            })),
           competencies: (competenciesData || []).map(c => ({
             id: c.id,
             competency_type: c.competency_type as 'Core' | 'Management' | 'Leadership',
