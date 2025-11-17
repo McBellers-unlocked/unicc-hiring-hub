@@ -260,58 +260,63 @@ export default function AdminJobs() {
       return 'pipeline';
     }
     
-    // Check recruitment stage based on application statuses (prioritize stage with most candidates)
+    // Check if manually closed
+    if (job.status === 'closed') {
+      return 'closed';
+    }
+    
+    // Check closing date status FIRST (before checking application stages)
+    if (job.status === 'active' && job.closing_date) {
+      const closingDate = new Date(job.closing_date);
+      const now = new Date();
+      
+      // If closing date is in the future, job is active or closing soon
+      if (closingDate > now) {
+        const threeDaysFromNow = new Date();
+        threeDaysFromNow.setDate(now.getDate() + 3);
+        
+        if (closingDate <= threeDaysFromNow) {
+          return 'closing';
+        }
+        
+        return 'active';
+      }
+      
+      // Job has closed (closing date passed), now check recruitment stage
+    }
+    
+    // Only check recruitment stages if job has closed (or has no closing date but is active)
     const statuses = job.application_statuses || [];
     const totalApps = job.application_count || 0;
     
     if (totalApps > 0 && statuses.length > 0) {
       const inApplication = statuses.find(s => s.status === 'Application')?.count || 0;
+      const inRejected = statuses.find(s => s.status === 'Rejected')?.count || 0;
       const inLonglist = statuses.find(s => s.status === 'Longlist')?.count || 0;
       const inShortlist = statuses.find(s => s.status === 'Shortlist')?.count || 0;
       const inVideoInterview = (statuses.find(s => s.status === 'Video Interview')?.count || 0) + 
                                (statuses.find(s => s.status === 'Pre-Recorded Video')?.count || 0);
       const inPanelInterview = statuses.find(s => s.status === 'Panel Interview')?.count || 0;
       
-      // Find the stage with the most candidates (excluding Application and Rejected)
-      const stageCounts = [
-        { stage: 'panel_interview' as const, count: inPanelInterview },
-        { stage: 'video_interview' as const, count: inVideoInterview },
-        { stage: 'hm_shortlisting' as const, count: inLonglist + inShortlist },
-      ];
-      
-      // Sort by count descending
-      stageCounts.sort((a, b) => b.count - a.count);
-      
-      // Return the stage with the most candidates (if any)
-      if (stageCounts[0].count > 0) {
-        return stageCounts[0].stage;
+      // Panel Interview stage (highest priority)
+      if (inPanelInterview > 0) {
+        return 'panel_interview';
       }
       
-      // If we only have applications in "Application" status, show longlisting
+      // Video Interview stage
+      if (inVideoInterview > 0) {
+        return 'video_interview';
+      }
+      
+      // HM Shortlisting - only if NO applications remain in "Application" status
+      // (all must be rejected, longlisted, or shortlisted)
+      if (inApplication === 0 && (inLonglist > 0 || inShortlist > 0)) {
+        return 'hm_shortlisting';
+      }
+      
+      // Longlisting - if any applications are still in "Application" status
       if (inApplication > 0) {
         return 'longlisting';
-      }
-    }
-    
-    // Check if closed
-    if (job.status === 'closed') {
-      return 'closed';
-    }
-    
-    // Check if closing within 3 days
-    if (job.status === 'active' && job.closing_date) {
-      const closingDate = new Date(job.closing_date);
-      const now = new Date();
-      const threeDaysFromNow = new Date();
-      threeDaysFromNow.setDate(now.getDate() + 3);
-      
-      if (closingDate <= threeDaysFromNow && closingDate > now) {
-        return 'closing';
-      }
-      
-      // If closing date is in the future, job is active
-      if (closingDate > now) {
-        return 'active';
       }
     }
     
