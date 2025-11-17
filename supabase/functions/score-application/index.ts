@@ -400,7 +400,7 @@ serve(async (req) => {
           title,
           description_md,
           requirements_md,
-          essential_criteria(*)
+          job_requirements(*)
         )
       `)
       .eq('id', applicationId)
@@ -422,7 +422,7 @@ serve(async (req) => {
     const jobRequirements = await extractJobRequirements(
       application.jobs.title,
       jobDescription,
-      application.jobs.essential_criteria || []
+      application.jobs.job_requirements || []
     );
 
     console.log('Job requirements extracted:', jobRequirements);
@@ -467,7 +467,7 @@ serve(async (req) => {
     // Map analysis to criterion scores
     const criteriaScores = mapAnalysisToScores(
       candidateAnalysis,
-      application.jobs.essential_criteria || []
+      application.jobs.job_requirements || []
     );
 
     console.log('Mapped criteria scores:', criteriaScores);
