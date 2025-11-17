@@ -352,6 +352,20 @@ export function ReviewCommitteeScoreMatrix({ jobId }: ReviewCommitteeScoreMatrix
                   </TableCell>
                 ))}
               </TableRow>
+              <TableRow className="bg-primary/5">
+                <TableCell className="font-medium sticky left-0 bg-primary/5 z-10">Rank</TableCell>
+                <TableCell></TableCell>
+                {candidateScores.map((candidate, idx) => (
+                  <TableCell key={candidate.application_id} className={cn(
+                    "text-center",
+                    idx % 2 === 0 ? "bg-muted/30" : "bg-muted/10"
+                  )}>
+                    <Badge variant={candidate.rank === 1 ? "default" : "secondary"} className="font-bold">
+                      #{candidate.rank}
+                    </Badge>
+                  </TableCell>
+                ))}
+              </TableRow>
               <TableRow>
                 <TableCell colSpan={2 + candidateScores.length} className="h-2"></TableCell>
               </TableRow>
