@@ -339,18 +339,11 @@ export default function AdminJobs() {
 
   const getStatusBadge = (job: Job) => {
     // Check actual job status for draft/paused first
-    if (job.status === 'draft') {
+    // Both draft and paused jobs that haven't been published should show as "Draft"
+    if (job.status === 'draft' || job.status === 'paused') {
       return (
         <Badge className="bg-gray-500 hover:bg-gray-600 text-white">
           Draft
-        </Badge>
-      );
-    }
-    
-    if (job.status === 'paused') {
-      return (
-        <Badge className="bg-gray-500 hover:bg-gray-600 text-white">
-          Paused
         </Badge>
       );
     }
