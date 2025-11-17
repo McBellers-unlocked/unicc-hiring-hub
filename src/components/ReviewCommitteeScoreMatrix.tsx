@@ -204,6 +204,12 @@ export function ReviewCommitteeScoreMatrix({ jobId }: ReviewCommitteeScoreMatrix
     return 'bg-green-500/10 text-green-700';
   };
 
+  const formatGender = (gender: string) => {
+    if (gender?.toLowerCase() === 'female') return 'Woman';
+    if (gender?.toLowerCase() === 'male') return 'Man';
+    return gender;
+  };
+
   const exportToCSV = () => {
     if (!template || candidateScores.length === 0) return;
 
@@ -212,7 +218,7 @@ export function ReviewCommitteeScoreMatrix({ jobId }: ReviewCommitteeScoreMatrix
 
     // Add candidate info rows
     rows.push(['Nationality', '', ...candidateScores.map(c => c.nationality)]);
-    rows.push(['Gender', '', ...candidateScores.map(c => c.gender)]);
+    rows.push(['Gender', '', ...candidateScores.map(c => formatGender(c.gender))]);
     rows.push(['Intern/Extern', '', ...candidateScores.map(c => c.intern_extern)]);
     rows.push(['', '', ...candidateScores.map(() => '')]);
 
@@ -336,7 +342,7 @@ export function ReviewCommitteeScoreMatrix({ jobId }: ReviewCommitteeScoreMatrix
                     "text-center",
                     idx % 2 === 0 ? "bg-muted/30" : "bg-muted/10"
                   )}>
-                    {candidate.gender}
+                    {formatGender(candidate.gender)}
                   </TableCell>
                 ))}
               </TableRow>
