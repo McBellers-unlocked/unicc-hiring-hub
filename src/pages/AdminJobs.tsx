@@ -130,7 +130,7 @@ export default function AdminJobs() {
           const requisition = requisitions?.find(req => req.converted_to_job_id === job.id);
           const isPipeline = requisition && 
                             requisition.initial_request_approved && 
-                            !['draft', 'initial_request_draft', 'initial_request_submitted'].includes(requisition.status || '');
+                            !['draft', 'initial_request_draft', 'initial_request_submitted', 'converted'].includes(requisition.status || '');
 
           return {
             ...job,
