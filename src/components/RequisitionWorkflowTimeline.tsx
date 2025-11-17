@@ -64,7 +64,7 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
     {
       key: 'initial_request_approved',
       label: 'Chief Approved Initial Request',
-      shortLabel: 'Chief Approved',
+      shortLabel: 'Init Approved',
       description: 'Initial request approved, ready for full PD',
       isCompleted: !!requisition.initial_request_approved,
       isActive: false,
@@ -106,9 +106,9 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
     },
     {
       key: 'chief_approval',
-      label: 'Chief of Division Approval',
-      shortLabel: 'Chief Approval',
-      description: 'Chief reviewing final PD',
+      label: 'Chief Approved Full PD',
+      shortLabel: 'PD Approved',
+      description: 'Chief approved final position description',
       isCompleted: !!requisition.chief_of_division_approval,
       isActive: requisition.status === 'chief_of_division_review' || 
                 requisition.status === 'chief_division_review' ||
