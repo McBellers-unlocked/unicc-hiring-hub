@@ -111,10 +111,113 @@ serve(async (req) => {
 
     if (comps.length > 0) await supabase.from('job_competencies').insert(comps);
 
-    await supabase.from('job_requirements').insert([
-      { job_id: newJob.id, category: 'Overall Assessment', title: 'Overall fit to the organization', description: 'Holistic assessment of cultural fit, values alignment, and long-term potential within the organization', weight: 1, order_index: 0 },
-      { job_id: newJob.id, category: 'Overall Assessment', title: 'Potential', description: 'Assessment of growth potential and capacity to exceed role requirements', weight: 1, order_index: 1 }
-    ]);
+    // Create structured requirements from requisition fields
+    const requirements = [];
+    let reqIdx = 0;
+
+    // Essential Experience
+    if (req_data.essential_experience) {
+      requirements.push({
+        job_id: newJob.id,
+        category: 'Essential Criteria',
+        title: 'Essential Experience',
+        description: req_data.essential_experience,
+        must_have: true,
+        weight: 3,
+        order_index: reqIdx++
+      });
+    }
+
+    // Essential Education Details
+    if (req_data.essential_education) {
+      requirements.push({
+        job_id: newJob.id,
+        category: 'Essential Criteria',
+        title: 'Essential Education',
+        description: req_data.essential_education,
+        must_have: true,
+        weight: 3,
+        order_index: reqIdx++
+      });
+    }
+
+    // Desirable Experience
+    if (req_data.desirable_experience) {
+      requirements.push({
+        job_id: newJob.id,
+        category: 'Desirable Criteria',
+        title: 'Desirable Experience',
+        description: req_data.desirable_experience,
+        must_have: false,
+        weight: 2,
+        order_index: reqIdx++
+      });
+    }
+
+    // Desirable Education
+    if (req_data.desirable_education) {
+      requirements.push({
+        job_id: newJob.id,
+        category: 'Desirable Criteria',
+        title: 'Desirable Education',
+        description: req_data.desirable_education,
+        must_have: false,
+        weight: 2,
+        order_index: reqIdx++
+      });
+    }
+
+    // Overall Assessment criteria
+    requirements.push(
+      { 
+        job_id: newJob.id, 
+        category: 'Overall Assessment', 
+        title: 'Overall fit to the organization', 
+        description: 'Holistic assessment of cultural fit, values alignment, and long-term potential within the organization', 
+        weight: 1, 
+        order_index: reqIdx++ 
+      },
+      { 
+        job_id: newJob.id, 
+        category: 'Overall Assessment', 
+        title: 'Potential', 
+        description: 'Assessment of growth potential and capacity to exceed role requirements', 
+        weight: 1, 
+        order_index: reqIdx++ 
+      }
+    );
+
+    if (requirements.length > 0) await supabase.from('job_requirements').insert(requirements);
+
+    // Create language requirements
+    const langRequirements = [];
+    let langIdx = 0;
+
+    // Always add English as essential
+    langRequirements.push({
+      job_id: newJob.id,
+      language: 'English',
+      level: 'Expert',
+      is_essential: true,
+      order_index: langIdx++
+    });
+
+    // Add additional languages from requisition
+    if (req_data.language_requirements?.additional_languages) {
+      req_data.language_requirements.additional_languages.forEach((l: any) => {
+        if (l.name && l.level) {
+          langRequirements.push({
+            job_id: newJob.id,
+            language: l.name,
+            level: l.level,
+            is_essential: l.is_essential || false,
+            order_index: langIdx++
+          });
+        }
+      });
+    }
+
+    if (langRequirements.length > 0) await supabase.from('job_language_requirements').insert(langRequirements);
 
     await supabase.from('job_requisitions').update({ converted_to_job_id: newJob.id, status: 'converted' }).eq('id', requisitionId);
     await supabase.functions.invoke('create-audit-log', { body: { action: 'REQUISITION_CONVERTED', entity: 'job_requisitions', entityId: requisitionId, after: { converted_to_job_id: newJob.id } } });
