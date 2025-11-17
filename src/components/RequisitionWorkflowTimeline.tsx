@@ -90,7 +90,13 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
       shortLabel: 'HR Review',
       description: 'HR reviewing and editing PD',
       isCompleted: !!requisition.hr_reviewed,
-      isActive: requisition.status === 'hr_review',
+      isActive: requisition.status === 'hr_review' || 
+                (!!requisition.initial_request_approved && 
+                 !requisition.hr_reviewed && 
+                 !requisition.hiring_manager_confirmed_hr_changes &&
+                 requisition.status !== 'initial_request_draft' &&
+                 requisition.status !== 'initial_request_submitted' &&
+                 requisition.status !== 'initial_request_chief_review'),
       completedAt: requisition.hr_reviewed_at,
       icon: Users
     },
@@ -106,13 +112,13 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
     },
     {
       key: 'chief_approval',
-      label: 'Chief Approved Full PD',
-      shortLabel: 'PD Approved',
-      description: 'Chief approved final position description',
+      label: 'Chief of Division Approval',
+      shortLabel: 'Chief Approval',
+      description: 'Chief reviewing final PD for approval',
       isCompleted: !!requisition.chief_of_division_approval,
       isActive: requisition.status === 'chief_of_division_review' || 
                 requisition.status === 'chief_division_review' ||
-                (!!requisition.hiring_manager_confirmed_hr_changes && requisition.status === 'hr_review'),
+                (!!requisition.hiring_manager_confirmed_hr_changes && !requisition.chief_of_division_approval),
       completedAt: requisition.chief_of_division_approved_at,
       icon: UserCheck
     },
