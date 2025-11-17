@@ -255,7 +255,7 @@ export default function AdminJobs() {
 
   // Determine the display status for a job
   const getJobDisplayStatus = (job: Job): JobDisplayStatus => {
-    // Pipeline takes precedence if job has an active requisition
+    // Pipeline takes precedence if job has an active requisition that hasn't been converted
     if (job.requisition_status) {
       return 'pipeline';
     }
@@ -265,27 +265,7 @@ export default function AdminJobs() {
       return 'closed';
     }
     
-    // Check closing date status FIRST (before checking application stages)
-    if (job.status === 'active' && job.closing_date) {
-      const closingDate = new Date(job.closing_date);
-      const now = new Date();
-      
-      // If closing date is in the future, job is active or closing soon
-      if (closingDate > now) {
-        const threeDaysFromNow = new Date();
-        threeDaysFromNow.setDate(now.getDate() + 3);
-        
-        if (closingDate <= threeDaysFromNow) {
-          return 'closing';
-        }
-        
-        return 'active';
-      }
-      
-      // Job has closed (closing date passed), now check recruitment stage
-    }
-    
-    // Only check recruitment stages if job has closed (or has no closing date but is active)
+    // Check recruitment stages based on application statuses
     const statuses = job.application_statuses || [];
     const totalApps = job.application_count || 0;
     
@@ -298,26 +278,52 @@ export default function AdminJobs() {
                                (statuses.find(s => s.status === 'Pre-Recorded Video')?.count || 0);
       const inPanelInterview = statuses.find(s => s.status === 'Panel Interview')?.count || 0;
       
-      // Panel Interview stage (highest priority)
+      // Check if closing date has passed
+      const closingDatePassed = job.closing_date ? new Date(job.closing_date) <= new Date() : false;
+      
+      // Panel Interview stage (always show if active)
       if (inPanelInterview > 0) {
         return 'panel_interview';
       }
       
-      // Video Interview stage
+      // Video Interview stage (always show if active)
       if (inVideoInterview > 0) {
         return 'video_interview';
       }
       
-      // HM Shortlisting - only if NO applications remain in "Application" status
-      // (all must be rejected, longlisted, or shortlisted)
-      if (inApplication === 0 && (inLonglist > 0 || inShortlist > 0)) {
-        return 'hm_shortlisting';
+      // If closing date has passed, show recruitment stages
+      if (closingDatePassed) {
+        // HM Shortlisting - only if NO applications remain in "Application" status
+        if (inApplication === 0 && (inLonglist > 0 || inShortlist > 0)) {
+          return 'hm_shortlisting';
+        }
+        
+        // Longlisting - if any applications are still in "Application" status
+        if (inApplication > 0) {
+          return 'longlisting';
+        }
+      }
+    }
+    
+    // Check closing date status for active jobs
+    if (job.status === 'active' && job.closing_date) {
+      const closingDate = new Date(job.closing_date);
+      const now = new Date();
+      
+      // If closing date is in the future
+      if (closingDate > now) {
+        const threeDaysFromNow = new Date();
+        threeDaysFromNow.setDate(now.getDate() + 3);
+        
+        if (closingDate <= threeDaysFromNow) {
+          return 'closing';
+        }
+        
+        return 'active';
       }
       
-      // Longlisting - if any applications are still in "Application" status
-      if (inApplication > 0) {
-        return 'longlisting';
-      }
+      // If closing date has passed but no applications, show active
+      return 'active';
     }
     
     // Default to active for active jobs
@@ -325,11 +331,28 @@ export default function AdminJobs() {
       return 'active';
     }
     
-    // For draft/archived, return closed
+    // For draft/paused/archived, return closed
     return 'closed';
   };
 
   const getStatusBadge = (job: Job) => {
+    // Check actual job status for draft/paused first
+    if (job.status === 'draft') {
+      return (
+        <Badge className="bg-gray-500 hover:bg-gray-600 text-white">
+          Draft
+        </Badge>
+      );
+    }
+    
+    if (job.status === 'paused') {
+      return (
+        <Badge className="bg-gray-500 hover:bg-gray-600 text-white">
+          Paused
+        </Badge>
+      );
+    }
+    
     const displayStatus = getJobDisplayStatus(job);
     
     const badgeConfig = {
@@ -531,6 +554,7 @@ export default function AdminJobs() {
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="paused">Paused</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="closed">Closed</SelectItem>
                   <SelectItem value="archived">Archived</SelectItem>
