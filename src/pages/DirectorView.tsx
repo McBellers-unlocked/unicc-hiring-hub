@@ -122,9 +122,8 @@ export default function DirectorView() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
+        <div className="mb-6">
           <h1 className="text-3xl font-bold">Director - Approvals</h1>
-          <Badge variant="secondary">Test View</Badge>
         </div>
 
         {/* Review Committee Approvals Section */}
@@ -138,7 +137,7 @@ export default function DirectorView() {
                 <Card>
                   <CardContent className="p-6">
                     <p className="text-center text-muted-foreground">
-                      No review committees pending your approval
+                      No review committee compositions pending your approval
                     </p>
                   </CardContent>
                 </Card>
