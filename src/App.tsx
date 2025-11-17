@@ -99,7 +99,7 @@ const App = () => (
             <Route path="/admin/video-email-template" element={<VideoEmailTemplateSettings />} />
             <Route path="/admin/talent-pool" element={<TalentPool />} />
             <Route path="/test/chief-view" element={<ChiefOfDivisionView />} />
-            <Route path="/test/director-view" element={<DirectorView />} />
+            <Route path="/director-view" element={<DirectorView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

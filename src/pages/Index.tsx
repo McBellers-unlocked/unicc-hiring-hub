@@ -120,7 +120,7 @@ const Index = () => {
     }
     
     if (isDirector) {
-      navigate('/test/director-view');
+      navigate('/director-view');
       return null;
     }
     
