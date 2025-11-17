@@ -48,6 +48,7 @@ export default function JobRequisitionHiringManagerReview() {
   const [saving, setSaving] = useState(false);
   const [acceptedFields, setAcceptedFields] = useState<Set<string>>(new Set());
   const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (id && user) {
@@ -109,6 +110,26 @@ export default function JobRequisitionHiringManagerReview() {
     setAcceptedFields(prev => new Set(prev).add(fieldKey));
   };
 
+  const validateRequiredFields = () => {
+    const errors = new Set<string>();
+    const requiredFields = [
+      'purpose_of_position',
+      'objectives_of_programme',
+      'main_duties_responsibilities',
+      'essential_experience',
+      'essential_education'
+    ];
+
+    for (const field of requiredFields) {
+      if (!formData[field]?.trim()) {
+        errors.add(field);
+      }
+    }
+
+    setValidationErrors(errors);
+    return errors.size === 0;
+  };
+
   const handleSaveDraft = async () => {
     if (!requisition) return;
 
@@ -149,6 +170,16 @@ export default function JobRequisitionHiringManagerReview() {
 
   const handleReturnToHR = async () => {
     if (!requisition) return;
+
+    // Validate required fields
+    if (!validateRequiredFields()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields (marked with red border)",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       setSaving(true);
@@ -301,38 +332,80 @@ export default function JobRequisitionHiringManagerReview() {
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
-            <EditableTrackChangesField
-              label="Purpose of the Position"
-              originalValue={originalData.purpose_of_position || ""}
-              currentValue={formData.purpose_of_position || ""}
-              onChange={(value) => setFormData({ ...formData, purpose_of_position: value })}
-              requisitionId={id}
-              fieldName="purpose_of_position"
-              currentUserId={user?.id}
-              canResolveComments={false}
-            />
+            <div className={validationErrors.has('purpose_of_position') ? 'border-2 border-destructive rounded-lg p-4' : ''}>
+              {validationErrors.has('purpose_of_position') && (
+                <p className="text-sm text-destructive font-semibold mb-2">⚠️ This field is required</p>
+              )}
+              <EditableTrackChangesField
+                label="Purpose of the Position"
+                originalValue={originalData.purpose_of_position || ""}
+                currentValue={formData.purpose_of_position || ""}
+                onChange={(value) => {
+                  setFormData({ ...formData, purpose_of_position: value });
+                  if (value?.trim()) {
+                    setValidationErrors(prev => {
+                      const next = new Set(prev);
+                      next.delete('purpose_of_position');
+                      return next;
+                    });
+                  }
+                }}
+                requisitionId={id}
+                fieldName="purpose_of_position"
+                currentUserId={user?.id}
+                canResolveComments={false}
+              />
+            </div>
 
-            <EditableTrackChangesField
-              label="Objectives of the Programme"
-              originalValue={originalData.objectives_of_programme || ""}
-              currentValue={formData.objectives_of_programme || ""}
-              onChange={(value) => setFormData({ ...formData, objectives_of_programme: value })}
-              requisitionId={id}
+            <div className={validationErrors.has('objectives_of_programme') ? 'border-2 border-destructive rounded-lg p-4' : ''}>
+              {validationErrors.has('objectives_of_programme') && (
+                <p className="text-sm text-destructive font-semibold mb-2">⚠️ This field is required</p>
+              )}
+              <EditableTrackChangesField
+                label="Objectives of the Programme"
+                originalValue={originalData.objectives_of_programme || ""}
+                currentValue={formData.objectives_of_programme || ""}
+                onChange={(value) => {
+                  setFormData({ ...formData, objectives_of_programme: value });
+                  if (value?.trim()) {
+                    setValidationErrors(prev => {
+                      const next = new Set(prev);
+                      next.delete('objectives_of_programme');
+                      return next;
+                    });
+                  }
+                }}
+                requisitionId={id}
               fieldName="objectives_of_programme"
               currentUserId={user?.id}
               canResolveComments={false}
             />
+            </div>
 
-            <EditableTrackChangesField
-              label="Main Duties and Responsibilities"
-              originalValue={originalData.main_duties_responsibilities || ""}
-              currentValue={formData.main_duties_responsibilities || ""}
-              onChange={(value) => setFormData({ ...formData, main_duties_responsibilities: value })}
-              requisitionId={id}
-              fieldName="main_duties_responsibilities"
-              currentUserId={user?.id}
-              canResolveComments={false}
-            />
+            <div className={validationErrors.has('main_duties_responsibilities') ? 'border-2 border-destructive rounded-lg p-4' : ''}>
+              {validationErrors.has('main_duties_responsibilities') && (
+                <p className="text-sm text-destructive font-semibold mb-2">⚠️ This field is required</p>
+              )}
+              <EditableTrackChangesField
+                label="Main Duties and Responsibilities"
+                originalValue={originalData.main_duties_responsibilities || ""}
+                currentValue={formData.main_duties_responsibilities || ""}
+                onChange={(value) => {
+                  setFormData({ ...formData, main_duties_responsibilities: value });
+                  if (value?.trim()) {
+                    setValidationErrors(prev => {
+                      const next = new Set(prev);
+                      next.delete('main_duties_responsibilities');
+                      return next;
+                    });
+                  }
+                }}
+                requisitionId={id}
+                fieldName="main_duties_responsibilities"
+                currentUserId={user?.id}
+                canResolveComments={false}
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -341,16 +414,30 @@ export default function JobRequisitionHiringManagerReview() {
             <CardTitle>Requirements</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <EditableTrackChangesField
-              label="Essential Experience"
-              originalValue={originalData.essential_experience || ""}
-              currentValue={formData.essential_experience || ""}
-              onChange={(value) => setFormData({ ...formData, essential_experience: value })}
-              requisitionId={id}
-              fieldName="essential_experience"
-              currentUserId={user?.id}
-              canResolveComments={false}
-            />
+            <div className={validationErrors.has('essential_experience') ? 'border-2 border-destructive rounded-lg p-4' : ''}>
+              {validationErrors.has('essential_experience') && (
+                <p className="text-sm text-destructive font-semibold mb-2">⚠️ This field is required</p>
+              )}
+              <EditableTrackChangesField
+                label="Essential Experience"
+                originalValue={originalData.essential_experience || ""}
+                currentValue={formData.essential_experience || ""}
+                onChange={(value) => {
+                  setFormData({ ...formData, essential_experience: value });
+                  if (value?.trim()) {
+                    setValidationErrors(prev => {
+                      const next = new Set(prev);
+                      next.delete('essential_experience');
+                      return next;
+                    });
+                  }
+                }}
+                requisitionId={id}
+                fieldName="essential_experience"
+                currentUserId={user?.id}
+                canResolveComments={false}
+              />
+            </div>
 
             <EditableTrackChangesField
               label="Desirable Experience"
@@ -363,16 +450,30 @@ export default function JobRequisitionHiringManagerReview() {
               canResolveComments={false}
             />
 
-            <EditableTrackChangesField
-              label="Essential Education"
-              originalValue={originalData.essential_education || ""}
-              currentValue={formData.essential_education || ""}
-              onChange={(value) => setFormData({ ...formData, essential_education: value })}
-              requisitionId={id}
-              fieldName="essential_education"
-              currentUserId={user?.id}
+            <div className={validationErrors.has('essential_education') ? 'border-2 border-destructive rounded-lg p-4' : ''}>
+              {validationErrors.has('essential_education') && (
+                <p className="text-sm text-destructive font-semibold mb-2">⚠️ This field is required</p>
+              )}
+              <EditableTrackChangesField
+                label="Essential Education"
+                originalValue={originalData.essential_education || ""}
+                currentValue={formData.essential_education || ""}
+                onChange={(value) => {
+                  setFormData({ ...formData, essential_education: value });
+                  if (value?.trim()) {
+                    setValidationErrors(prev => {
+                      const next = new Set(prev);
+                      next.delete('essential_education');
+                      return next;
+                    });
+                  }
+                }}
+                requisitionId={id}
+                fieldName="essential_education"
+                currentUserId={user?.id}
               canResolveComments={false}
             />
+            </div>
 
             <EditableTrackChangesField
               label="Desirable Education"
