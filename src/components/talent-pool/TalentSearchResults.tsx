@@ -191,23 +191,39 @@ export function TalentSearchResults({
     }
   }, [selectedJob, candidates]);
 
-  // Sort candidates
-  const sortedCandidates = candidates ? [...candidates].sort((a, b) => {
-    switch (sortBy) {
-      case "updated_desc":
-        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-      case "experience_desc":
-        return (b.years_of_experience || 0) - (a.years_of_experience || 0);
-      case "experience_asc":
-        return (a.years_of_experience || 0) - (b.years_of_experience || 0);
-      case "name_asc":
-        return a.name.localeCompare(b.name);
-      case "match_score":
-        return (matchScores[b.id] || 0) - (matchScores[a.id] || 0);
-      default:
-        return 0;
+  // Filter and sort candidates
+  const sortedCandidates = candidates ? (() => {
+    let filtered = [...candidates];
+    
+    // When a job is selected, filter out 0% matches
+    if (filters.selectedJobId && Object.keys(matchScores).length > 0) {
+      filtered = filtered.filter((candidate) => (matchScores[candidate.id] || 0) > 0);
     }
-  }) : [];
+    
+    // Sort candidates
+    return filtered.sort((a, b) => {
+      // When a job is selected, default to match score sorting
+      if (filters.selectedJobId && Object.keys(matchScores).length > 0) {
+        return (matchScores[b.id] || 0) - (matchScores[a.id] || 0);
+      }
+      
+      // Otherwise use the selected sort option
+      switch (sortBy) {
+        case "updated_desc":
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+        case "experience_desc":
+          return (b.years_of_experience || 0) - (a.years_of_experience || 0);
+        case "experience_asc":
+          return (a.years_of_experience || 0) - (b.years_of_experience || 0);
+        case "name_asc":
+          return a.name.localeCompare(b.name);
+        case "match_score":
+          return (matchScores[b.id] || 0) - (matchScores[a.id] || 0);
+        default:
+          return 0;
+      }
+    });
+  })() : [];
 
   if (isLoading) {
     return (
