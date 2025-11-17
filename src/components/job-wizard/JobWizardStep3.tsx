@@ -19,6 +19,14 @@ interface Props {
 export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
   const { toast } = useToast();
   
+  // Determine if this is a converted requisition (read-only mode)
+  // Jobs converted from requisitions already have approved requirements
+  const isConvertedRequisition = Boolean(
+    data.structuredRequirements?.essentialCriteria?.length ||
+    data.structuredRequirements?.essentialEducation?.length ||
+    data.structuredRequirements?.competencies?.length
+  );
+  
   // State for structured requirements
   const [essentialCriteria, setEssentialCriteria] = useState<Requirement[]>([]);
   const [desirableCriteria, setDesirableCriteria] = useState<Requirement[]>([]);
@@ -106,8 +114,10 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
       <CardHeader>
         <CardTitle>Step 3: Requirements & Competencies</CardTitle>
         <p className="text-muted-foreground">
-          Define the structured requirements, education, competencies, and language proficiency needed for this position.
-          These will be used for candidate screening, interview questions, and scoring.
+          {isConvertedRequisition 
+            ? 'These requirements were approved at the Position Description phase and are displayed for review.'
+            : 'Define the structured requirements, education, competencies, and language proficiency needed for this position. These will be used for candidate screening, interview questions, and scoring.'
+          }
         </p>
       </CardHeader>
       <CardContent className="space-y-8">
@@ -117,6 +127,7 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
           onChange={setEssentialCriteria}
           title="Essential Criteria"
           category="Essential Criteria"
+          readOnly={isConvertedRequisition}
         />
 
         {/* Desirable Criteria */}
@@ -125,6 +136,7 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
           onChange={setDesirableCriteria}
           title="Desirable Criteria"
           category="Desirable Criteria"
+          readOnly={isConvertedRequisition}
         />
 
         <div className="border-t pt-6" />
@@ -135,6 +147,7 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
           onChange={setEssentialEducation}
           title="Essential Education"
           category="Essential Education"
+          readOnly={isConvertedRequisition}
         />
 
         {/* Desirable Education */}
@@ -143,6 +156,7 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
           onChange={setDesirableEducation}
           title="Desirable Education"
           category="Desirable Education"
+          readOnly={isConvertedRequisition}
         />
 
         <div className="border-t pt-6" />
