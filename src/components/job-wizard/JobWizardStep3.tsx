@@ -165,6 +165,7 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
         <CompetenciesList
           competencies={competencies}
           onChange={setCompetencies}
+          readOnly={isConvertedRequisition}
         />
 
         <div className="border-t pt-6" />
@@ -173,6 +174,7 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
         <LanguageRequirementsList
           languages={languages}
           onChange={setLanguages}
+          readOnly={isConvertedRequisition}
         />
 
         {/* Navigation */}

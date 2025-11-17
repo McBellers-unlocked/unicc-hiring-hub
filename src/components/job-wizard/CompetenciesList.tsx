@@ -18,6 +18,7 @@ export interface Competency {
 interface CompetenciesListProps {
   competencies: Competency[];
   onChange: (competencies: Competency[]) => void;
+  readOnly?: boolean;
 }
 
 const CORE_COMPETENCIES = [
@@ -49,7 +50,7 @@ const LEADERSHIP_COMPETENCIES = [
   'Innovation'
 ];
 
-export function CompetenciesList({ competencies, onChange }: CompetenciesListProps) {
+export function CompetenciesList({ competencies, onChange, readOnly = false }: CompetenciesListProps) {
   const [activeTab, setActiveTab] = useState<'Core' | 'Management' | 'Leadership'>('Core');
 
   const addCompetency = (type: 'Core' | 'Management' | 'Leadership', name: string = '') => {
@@ -115,96 +116,95 @@ export function CompetenciesList({ competencies, onChange }: CompetenciesListPro
 
     return (
       <div className="space-y-4">
-        <div>
-          <Label className="text-sm font-medium mb-2 block">Common {type} Competencies</Label>
-          <div className="grid grid-cols-2 gap-2">
-            {predefined.map(name => {
-              const exists = typeComps.some(c => c.competency_name === name);
-              return (
-                <Button
-                  key={name}
-                  variant={exists ? "secondary" : "outline"}
-                  size="sm"
-                  onClick={() => exists ? removeCompetency(typeComps.find(c => c.competency_name === name)!.id) : addCompetency(type, name)}
-                  className="justify-start"
-                >
-                  {exists ? '✓ ' : '+ '}{name}
-                </Button>
-              );
-            })}
+        {!readOnly && (
+          <div>
+            <Label className="text-sm font-medium mb-2 block">Common {type} Competencies</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {predefined.map(name => {
+                const exists = typeComps.some(c => c.competency_name === name);
+                return (
+                  <Button
+                    key={name}
+                    variant={exists ? "secondary" : "outline"}
+                    size="sm"
+                    onClick={() => exists ? removeCompetency(typeComps.find(c => c.competency_name === name)!.id) : addCompetency(type, name)}
+                    className="justify-start"
+                  >
+                    {exists ? '✓ ' : '+ '}{name}
+                  </Button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium">Custom {type} Competencies</Label>
-          <Button variant="outline" size="sm" onClick={() => addCompetency(type)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Custom
-          </Button>
-        </div>
+        {!readOnly && (
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium">Custom {type} Competencies</Label>
+            <Button variant="outline" size="sm" onClick={() => addCompetency(type)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Custom
+            </Button>
+          </div>
+        )}
 
-        {typeComps.filter(c => !predefined.includes(c.competency_name)).length === 0 ? (
+        {typeComps.length === 0 ? (
           <div className="border border-dashed rounded-lg p-4 text-center text-sm text-muted-foreground">
-            No custom competencies. Use the buttons above or add a custom one.
+            No {readOnly ? type.toLowerCase() : 'custom'} competencies{readOnly ? ' from approved PD' : '. Use the buttons above or add a custom one'}.
           </div>
         ) : (
           <div className="space-y-3">
             {typeComps.map(comp => (
               <div key={comp.id} className="border rounded-lg p-3 bg-card">
                 <div className="flex gap-3">
-                  <div className="flex flex-col gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 w-6 p-0"
-                      onClick={() => moveCompetency(comp.id, 'up')}
-                    >
-                      ↑
-                    </Button>
-                    <GripVertical className="w-3 h-3 text-muted-foreground" />
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 w-6 p-0"
-                      onClick={() => moveCompetency(comp.id, 'down')}
-                    >
-                      ↓
-                    </Button>
-                  </div>
+                  {!readOnly && (
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0"
+                        onClick={() => moveCompetency(comp.id, 'up')}
+                      >
+                        ↑
+                      </Button>
+                      <GripVertical className="w-3 h-3 text-muted-foreground" />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0"
+                        onClick={() => moveCompetency(comp.id, 'down')}
+                      >
+                        ↓
+                      </Button>
+                    </div>
+                  )}
 
                   <div className="flex-1 space-y-2">
                     <Input
                       placeholder="Competency name"
                       value={comp.competency_name}
                       onChange={(e) => updateCompetency(comp.id, 'competency_name', e.target.value)}
-                      className="font-medium"
+                      className={`font-medium ${readOnly ? 'bg-muted' : ''}`}
+                      disabled={readOnly}
                     />
                     <Textarea
                       placeholder="Description (optional)"
                       value={comp.description}
                       onChange={(e) => updateCompetency(comp.id, 'description', e.target.value)}
-                      className="min-h-[50px] text-sm"
+                      className={`text-sm ${readOnly ? 'min-h-[100px] bg-muted' : 'min-h-[50px]'}`}
+                      disabled={readOnly}
                     />
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs">Weight:</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={comp.weight}
-                        onChange={(e) => updateCompetency(comp.id, 'weight', parseInt(e.target.value) || 1)}
-                        className="w-16 h-7 text-sm"
-                      />
-                    </div>
                   </div>
 
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => removeCompetency(comp.id)}
-                  >
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </Button>
+                  {!readOnly && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => removeCompetency(comp.id)}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
@@ -216,8 +216,14 @@ export function CompetenciesList({ competencies, onChange }: CompetenciesListPro
 
   return (
     <div className="space-y-4">
+      {readOnly && (
+        <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm text-muted-foreground mb-4">
+          <p className="font-medium">📋 Approved at PD Phase</p>
+          <p className="text-xs mt-1">These competencies were approved during the Position Description phase and are displayed as reference.</p>
+        </div>
+      )}
       <Label className="text-base font-medium">Competencies</Label>
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className={readOnly ? 'pointer-events-none opacity-80' : ''}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="Core">
             Core ({getCompetenciesByType('Core').length})

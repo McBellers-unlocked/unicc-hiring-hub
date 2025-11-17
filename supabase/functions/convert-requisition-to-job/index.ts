@@ -229,6 +229,29 @@ serve(async (req) => {
       });
     }
 
+    // Add UN language advantage if specified
+    if (req_data.language_requirements?.un_language_advantage) {
+      langRequirements.push({
+        job_id: newJob.id,
+        language: 'Any UN Language (French, Spanish, Arabic, Chinese, Russian)',
+        level: 'Working',
+        is_essential: false,
+        order_index: langIdx++
+      });
+    }
+
+    if (langRequirements.length > 0) await supabase.from('job_language_requirements').insert(langRequirements);
+          langRequirements.push({
+            job_id: newJob.id,
+            language: l.name,
+            level: l.level,
+            is_essential: l.is_essential || false,
+            order_index: langIdx++
+          });
+        }
+      });
+    }
+
     if (langRequirements.length > 0) await supabase.from('job_language_requirements').insert(langRequirements);
 
     await supabase.from('job_requisitions').update({ converted_to_job_id: newJob.id, status: 'converted' }).eq('id', requisitionId);
