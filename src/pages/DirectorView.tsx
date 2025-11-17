@@ -131,69 +131,67 @@ export default function DirectorView() {
           <h2 className="text-2xl font-bold mb-4">Review Committee Approvals</h2>
           {committeesLoading ? (
             <div>Loading...</div>
-          ) : (
+          ) : pendingCommittees && pendingCommittees.length > 0 ? (
             <div className="grid gap-4">
-              {pendingCommittees?.length === 0 ? (
-                <Card>
-                  <CardContent className="p-6">
-                    <p className="text-center text-muted-foreground">
-                      No review committee compositions pending your approval
-                    </p>
+              {pendingCommittees.map((job) => (
+                <Card key={job.id}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle>{job.title}</CardTitle>
+                        <div className="flex gap-2 mt-2">
+                          <Badge variant="outline">{job.notice_no}</Badge>
+                        </div>
+                      </div>
+                      <Badge variant="secondary">Pending Director Approval</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p className="text-sm font-medium">Sent By</p>
+                        <p className="text-sm text-muted-foreground">
+                          {(job as any).sender?.name || (job as any).sender?.email || 'Unknown User'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Sent Date</p>
+                        <p className="text-sm text-muted-foreground">
+                          {job.review_committee_sent_for_approval_at 
+                            ? format(new Date(job.review_committee_sent_for_approval_at), "dd/MM/yyyy")
+                            : 'N/A'
+                          }
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleCommitteeApproval(job.id, true)}
+                        disabled={approveCommitteeMutation.isPending}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() => handleCommitteeApproval(job.id, false)}
+                        disabled={approveCommitteeMutation.isPending}
+                      >
+                        Reject
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
-              ) : (
-                pendingCommittees?.map((job) => (
-                  <Card key={job.id}>
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle>{job.title}</CardTitle>
-                          <div className="flex gap-2 mt-2">
-                            <Badge variant="outline">{job.notice_no}</Badge>
-                          </div>
-                        </div>
-                        <Badge variant="secondary">Pending Director Approval</Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <p className="text-sm font-medium">Sent By</p>
-                          <p className="text-sm text-muted-foreground">
-                            {(job as any).sender?.name || (job as any).sender?.email || 'Unknown User'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">Sent Date</p>
-                          <p className="text-sm text-muted-foreground">
-                            {job.review_committee_sent_for_approval_at 
-                              ? format(new Date(job.review_committee_sent_for_approval_at), "dd/MM/yyyy")
-                              : 'N/A'
-                            }
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => handleCommitteeApproval(job.id, true)}
-                          disabled={approveCommitteeMutation.isPending}
-                        >
-                          Approve
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          onClick={() => handleCommitteeApproval(job.id, false)}
-                          disabled={approveCommitteeMutation.isPending}
-                        >
-                          Reject
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
+              ))}
             </div>
+          ) : (
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-center text-muted-foreground">
+                  No review committee compositions pending your approval
+                </p>
+              </CardContent>
+            </Card>
           )}
         </div>
 
