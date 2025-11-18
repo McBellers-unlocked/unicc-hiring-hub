@@ -145,30 +145,65 @@ Deno.serve(async (req) => {
       
       for (const user of batch) {
         try {
-          // Check if auth user exists
-          const { data: authUsers } = await supabaseClient.auth.admin.listUsers();
-          let authUser = authUsers?.users?.find(u => u.email === user.email);
+          let authUserId: string | undefined;
+
+          // Try to get existing auth user by email
+          try {
+            const { data: authUsers } = await supabaseClient.auth.admin.listUsers();
+            const existingAuthUser = authUsers?.users?.find(u => u.email === user.email);
+            
+            if (existingAuthUser) {
+              authUserId = existingAuthUser.id;
+              console.log(`Auth account already exists for ${user.email}`);
+            }
+          } catch (listError) {
+            console.error('Error listing auth users:', listError);
+          }
 
           // Create auth account if it doesn't exist
-          if (!authUser) {
+          if (!authUserId) {
             console.log(`Creating auth account for ${user.email}`);
-            const { data: newAuthUser, error: authError } = await supabaseClient.auth.admin.createUser({
-              email: user.email,
-              password: 'UN1CC0nnect',
-              email_confirm: true, // Skip email verification
-              user_metadata: {
-                name: user.name
-              }
-            });
+            try {
+              const { data: newAuthUser, error: authError } = await supabaseClient.auth.admin.createUser({
+                email: user.email,
+                password: 'UN1CC0nnect',
+                email_confirm: true,
+                user_metadata: {
+                  name: user.name
+                }
+              });
 
-            if (authError) {
-              console.error('Error creating auth user:', user.email, authError);
+              if (authError) {
+                // If error is "email_exists", user already has auth account but we couldn't find it
+                if (authError.message?.includes('already been registered') || authError.code === 'email_exists') {
+                  console.log(`Auth account exists for ${user.email}, will update users table only`);
+                  // Try to find the auth user again
+                  const { data: authUsers } = await supabaseClient.auth.admin.listUsers();
+                  const existingAuthUser = authUsers?.users?.find(u => u.email === user.email);
+                  if (existingAuthUser) {
+                    authUserId = existingAuthUser.id;
+                  }
+                } else {
+                  console.error('Error creating auth user:', user.email, authError);
+                  errors++;
+                  continue;
+                }
+              } else if (newAuthUser?.user) {
+                authUserId = newAuthUser.user.id;
+                console.log(`Created auth account for ${user.email}`);
+              }
+            } catch (createError) {
+              console.error('Exception creating auth user:', user.email, createError);
               errors++;
               continue;
             }
-            
-            authUser = newAuthUser.user;
-            console.log(`Created auth account for ${user.email}`);
+          }
+
+          // Only proceed if we have an auth user ID
+          if (!authUserId) {
+            console.error(`Could not get auth user ID for ${user.email}`);
+            errors++;
+            continue;
           }
 
           // Check if user exists in users table
@@ -198,7 +233,7 @@ Deno.serve(async (req) => {
             // Insert or update with Hiring Manager role, using auth user ID
             const userWithId = {
               ...user,
-              id: authUser!.id
+              id: authUserId
             };
 
             const { error } = await supabaseClient
