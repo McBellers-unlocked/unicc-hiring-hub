@@ -1,0 +1,378 @@
+﻿First name,Last name,Email Address,Nationality,Gender_x,Worker type,Office location,Division,Unit,Line manager
+Pablo,ABELLA,abella@unicc.org,Spain,Man,Staff,Valencia,CS,CSN,Ana FERRANDIZ ROCA
+Roy,ABJELINA,abjelina@unicc.org,United States of America,Man,Staff,New York,DD,DDAM,Elena RIVAS RUZAFA
+Enrique,AGUILAR RICO,aguilar@unicc.org,Spain,Man,Staff,Valencia,CS,CSA,Nitesh KUDVA
+Alaa,Ahmed,ahmeda@unicc.org,West Bank and Gaza Strip,Man,Staff,Valencia,CS,CSA,João Paulo HENRIQUES REMEDIO
+Ilaria,AIELLO,aiello@unicc.org,Italy,Woman,Staff,Brindisi,DS,DSL,Franca VINCI
+Carlos,ALEIXANDRE,aleixandre@unicc.org,Spain,Man,Staff,Valencia,CS,CSA,Nitesh KUDVA
+Francesc,ALEJOS PERAL,alejos@unicc.org,Spain,Man,Staff,Valencia,CS,CSN,Ernesto MAGALLO SIMEON
+Hector Nazario,ALEPUZ SORIANO,alepuz@unicc.org,Spain,Man,Staff,Valencia,CS,CSN,Ernesto MAGALLO SIMEON
+Salvatore,ALFEO,alfeo@unicc.org,Italy,Man,Staff,Brindisi,DD,DDC,Dimitra RALLI
+Rosa,ALIANELLI,alianelli@unicc.org,Italy,Woman,Staff,Brindisi,DS,DSCS,Stefania DE LEO
+Miguel,ALONSO,alonso@unicc.org,Spain,Man,Staff,Valencia,DD,DDMS,Carlos GARCIA
+Dave,AMMARI,ammari@unicc.org,Jordan,Man,Staff,Brindisi,DS,DSCS,Stefania DE LEO
+Aura,ANDRIOLI,andrioli@unicc.org,Italy,Woman,Staff,Brindisi,DD,DDC,Dimitra RALLI
+Gabriella,ANDRIUZZI,andriuzzi@unicc.org,Italy,Woman,Staff,Valencia,CS,CSO,Amedeo CIOFFI
+Antonio,ANGELOTTI,angelotti@unicc.org,Italy,Man,Staff,Brindisi,DD,DDES,Maristella CAPPELLI
+Roberto,ANILE,anile@unicc.org,Italy,Man,Staff,Rome,OP,OPOS,Mikael Ingemar LILJEBLADH
+Erick,ANTEZANA,antezana@unicc.org,Bolivia,Man,Staff,Valencia,DD,DDAS,Elena RIVAS RUZAFA
+Ramon,ARACIL SANCHEZ,aracil@unicc.org,Spain,Man,Staff,Valencia,DS,DSB,Lejla SALIHAGIC-CELJO
+Alessio,RANDAZZO,arandazzo@unicc.org,Italy,Man,Staff,Rome,CS,CSO,Amedeo CIOFFI
+Daniel,ARASTEY AROCA,arastey@unicc.org,Spain,Man,Staff,Valencia,CS,CSO,
+Yannis,ARFARAS,arfaras@unicc.org,Switzerland,Man,Staff,Geneva,MS,MSB,Milena GRECUCCIO
+Antonio,ARGENTIERI,argentieria@unicc.org,Italy,Man,Staff,Brindisi,OP,OPBO,Manuel Humberto SOTO MALDONADO
+Cristina,ARGENTIERI,argentieric@unicc.org,Italy,Woman,Staff,Brindisi,OP,OP,Milena GRECUCCIO
+Diego,ARISTA VINAIXA,arista@unicc.org,Spain,Man,Staff,Valencia,MS,MSHT,Matthew VALENTE
+Pablo,ARRIBAS,arribas@unicc.org,Spain,Man,Staff,Valencia,DD,DDC,Dimitra RALLI
+Esteban,ATIENZA,atienza@unicc.org,Spain,Man,Staff,Valencia,OP,OPBO,Antonio ARGENTIERI
+K Pan,AUNG LATT,aung@unicc.org,Myanmar,Woman,Staff,Rome,DS,DS,Anish SETHI
+Omar Ahad,AZIZ,aziz@unicc.org,Afghanistan,Man,Staff,Geneva,OP,OPDM,Vishal Anand Kumar SHARMA
+Tarun,BADERIYA,baderiya@unicc.org,India,Man,Staff,Geneva,CS,CSN,Ana FERRANDIZ ROCA
+Maria Adelaide,BAGNOLI,bagnoli@unicc.org,Italy,Woman,Staff,Rome,OP,OPOU,Marco TRAVAGLINI
+Paloma,BAHILO ALPUENTE,bahilo@unicc.org,Spain,Woman,Staff,Valencia,DO,DBR,Prado NIETO
+Massimo,BALDASSARRE,baldassarre@unicc.org,Italy,Man,Staff,Brindisi,DD,DDAS,Erick ANTEZANA
+Sandra,BARDON MORAL,bardon@unicc.org,Spain,Woman,Staff,Madrid,CS,CSR,Lyle Gregory MCFADYEN
+Hélio José,SOEIRO BATISTA,batista@unicc.org,Portugal,Man,Staff,Valencia,OP,OPBO,Artan HAJRULLAHU
+Jorge,BEA FRAU,bea@unicc.org,Spain,Man,Staff,Valencia,OP,OPDA,Robert CULTRARA
+Dan,BELTRON,beltron@unicc.org,France,Man,Staff,Geneva,MS,MSB,Yannis ARFARAS
+Victor Manuel,BENET ANCHEL,benet@unicc.org,Spain,Man,Staff,Valencia,DD,DDPG,Catherine REYMOND
+Emily Ann,BENNETT,bennette@unicc.org,United States of America,Woman,Staff,Valencia,DS,DS,Anish SETHI
+Silvia,BERIO,berio@unicc.org,Italy,Woman,Staff,Brindisi,DD,DDD,Colin Douglas LAING
+Gloria,BIRTOLO,birtolo@unicc.org,Italy,Woman,Staff,Brindisi,OP,OPMX,Cynthia Sibusisiwe SHUMBA
+Fesseha,BISRAT,bisrat@unicc.org,Ethiopia,Man,Staff,New York,DO,DBR,Prado NIETO
+Paula,BLASCO,blasco@unicc.org,Spain,Woman,Staff,Valencia,OP,OPBO,Manuel Humberto SOTO MALDONADO
+Simon,BOISSEAU,boisseau@unicc.org,France,Man,Staff,Brindisi,DD,DDC,Dimitra RALLI
+Javier,BONET,bonet@unicc.org,Spain,Man,Staff,Valencia,OP,OPBS,Antonio MORALES
+Anna,BRADY,brady@unicc.org,Ireland,Woman,Staff,Valencia,OP,OPCS,Dave Devendranauth ROOPNARINE
+Andrea,BRANET,braneta@unicc.org,Slovak Republic,Woman,Staff,Valencia,MS,MSF,Ester Judith MATUTINA
+Bogdan-Teofil,BRANZAN,branzan@unicc.org,Romania,Man,Staff,Valencia,DS,DSDW,Lejla SALIHAGIC-CELJO
+Dacian,BRINZAS,brinzas@unicc.org,Romania,Man,Staff,Brindisi,DS,DSDW,Lejla SALIHAGIC-CELJO
+Kristian Alexander,BRIZENDINE,brizendine@unicc.org,United States of America,Man,Staff,Valencia,DD,DDPG,Catherine REYMOND
+Tom Frans,BUELENS,buelens@unicc.org,Belgium,Man,Staff,Valencia,CS,CSE,Rui Manuel Ramos FERREIRA DA COSTA
+Benoit Bernard,BUISSON,buisson@unicc.org,France,Man,Staff,Geneva,DD,DDPM,Vanessa TIRALONGO
+Luis,BUNUEL,bunuel@unicc.org,Spain,Man,Staff,Valencia,OP,OPDA,Maria JOVER ANDREU
+Carlos,BURGUET ZARAGOZA,burguet@unicc.org,Spain,Man,Staff,Valencia,CS,CISO,Fabio MAGGIORE
+Nikola,BURSIK,bursik@unicc.org,Czech Republic,Woman,Staff,Valencia,CS,CSO,Gabriella ANDRIUZZI
+Alejandro,BUSTOS MORENO,bustos@unicc.org,Spain,Man,Staff,Valencia,CS,CSI,Bojan SIMETIC
+Emilio,CABANERO ALCOLEA,cabanero@unicc.org,Spain,Man,Staff,Valencia,OP,OPCS,Dave Devendranauth ROOPNARINE
+Gianpiero,CADINU,cadinu@unicc.org,Italy,Man,Staff,Valencia,OP,OPMX,Cynthia Sibusisiwe SHUMBA
+Carlos,CALDERON,calderon@unicc.org,Spain,Man,Staff,Valencia,OP,OPBO,Antonio ARGENTIERI
+Mario,CALVI,calvi@unicc.org,Italy,Man,Staff,Brindisi,DS,DSCS,Stefania DE LEO
+Roberto,CANO ROBERTO,cano@unicc.org,Spain,Man,Staff,Valencia,DD,DDHA,Angelo DE ANGELIS
+Maristella,CAPPELLI,cappelli@unicc.org,Italy,Woman,Staff,Brindisi,DD,DDES,Angelo DE ANGELIS
+Yann Patrick Claude,CARBONELL,carbonell@unicc.org,France,Man,Staff,Valencia,CS,CSE,Rui Manuel Ramos FERREIRA DA COSTA
+Julia Carolina,CASSISTA,cassista@unicc.org,Italy,Woman,Staff,Brindisi,MS,MSP,Jacqueline ENSTONE
+Ana,CATALAN CELADES,catalan@unicc.org,Spain,Woman,Staff,Valencia,OP,OPCS,Dave Devendranauth ROOPNARINE
+Paolo,CATALETA,cataleta@unicc.org,Italy,Man,Staff,Brindisi,CS,CSN,Matilde GIL QUINZA
+Veronika,CAVAGLIERI,cavaglieri@unicc.org,Czech Republic,Woman,Staff,Geneva,DO,DOD,Aline N.D. DUTRUEL
+Gabriele Carmelo,CAVALLO,cavallo@unicc.org,Italy,Man,Staff,Rome,OP,OPOS,Roberto ANILE
+Marilena,CECERE,cecere@unicc.org,Italy,Woman,Staff,Brindisi,DS,DSCS,Stefania DE LEO
+Marika,CEO,ceoma@unicc.org,Italy,Woman,Staff,Rome,MS,MSP,Jacqueline ENSTONE
+Raymund Tiongson,CHAVEZ,chavez@unicc.org,Philippines,Man,Staff,New York,OP,OPCS,Dave Devendranauth ROOPNARINE
+Giovanni,Chiodi,chiodi@unicc.org,Italy,Man,Staff,Valencia,DD,DDC,Salvatore ALFEO
+Sharif,CHOUDHURY,choudhury@unicc.org,United States of America,Man,Staff,New York,CS,CSE,Lucas VIANNA
+Siddhartha,CHOWDHURY,chowdhury@unicc.org,India,Man,Staff,New York,OP,OPM,Ian COLLIAR
+Amedeo,CIOFFI,cioffi@unicc.org,Italy,Man,Staff,Valencia,CS,CSO,Tima SONI
+Vicente,CLARAMUNT PEREZ,claramunt@unicc.org,Spain,Man,Staff,Valencia,OP,OPDM,Vishal Anand Kumar SHARMA
+Ian,COLLIAR,colliar@unicc.org,United Kingdom,Man,Staff,Geneva,OP,OPM,Milena GRECUCCIO
+Francisco Javier,CONDE GONZALEZ CARRASCOSA,conde@unicc.org,Spain,Man,Staff,Geneva,OP,OPOA,Mikael Ingemar LILJEBLADH
+Andrea,CONTALDO,contaldo@unicc.org,Italy,Man,Staff,Brindisi,DS,DSB,Lejla SALIHAGIC-CELJO
+Luca,CONTURSI,contursi@unicc.org,Italy,Man,Staff,Brindisi,OP,OPM,Ian COLLIAR
+Marylise Jeanine,CONVERSET,converset@unicc.org,France,Woman,Staff,Geneva,OP,OPBS,Antonio MORALES
+Francisco Javier,CORBIN SANCHEZ,corbin@unicc.org,Spain,Man,Staff,Valencia,OP,OPDA,Maria JOVER ANDREU
+Andres,CORREDOR ALMENDROS,corredor@unicc.org,Spain,Man,Staff,Valencia,OP,OPBR,Orlando B. VENTURA
+Carlos José,PEREIRA ROSA GAMA CORREIA,correia@unicc.org,Portugal,Man,Staff,Geneva,DO,DO,Milena GRECUCCIO
+Fabrizio,COSTANTINI,costantini@unicc.org,United Kingdom,Man,Staff,Brindisi,DS,DSDW,Lejla SALIHAGIC-CELJO
+Roberto,CRUZ FLORES,cruzflores@unicc.org,Mexico,Man,Staff,Geneva,DO,DBR,Prado NIETO
+Marta,CUCALA ESCORIHUELA,cucala@unicc.org,Spain,Woman,Staff,Valencia,MS,MSP,Jacqueline ENSTONE
+Alejandro,CUENCA MUÑOZ,cuenca@unicc.org,Spain,Man,Staff,Valencia,DD,DDHA,Roberto CANO ROBERTO
+Abel,CUETO RODRIGUEZ,cueto@unicc.org,Cuba,Man,Staff,Valencia,OP,OPOU,Marco TRAVAGLINI
+Robert,CULTRARA,cultrara@unicc.org,Italy,Man,Staff,Rome,OP,OPDA,Maria JOVER ANDREU
+Stijn R.,CUMPS,cumps@unicc.org,Belgium,Man,Staff,Valencia,DS,DSB,Lejla SALIHAGIC-CELJO
+Rafael,CUNAT MOTA,cunat@unicc.org,Spain,Man,Staff,Valencia,DD,DDAS,Erick ANTEZANA
+Maria Irene,HERNANDEZ-CURRY,curry@unicc.org,Ireland,Woman,Staff,Geneva,MS,MSF,Ester Judith MATUTINA
+Kinjal,DALAL,dalal@unicc.org,United States of America,Woman,Staff,"Washington, D.C.",DD,DDP,Marco LIUZZI
+Daniela,D'AMELIO,damelio@unicc.org,Italy,Woman,Staff,Rome,DD,DD,Marco LIUZZI
+David,DAMIAN SANDOVAL,damian@unicc.org,Mexico,Man,Staff,New York,DO,DOE,Meredith Rachel KRAVITZ
+Alessio Maria,D'AMICO,damico@unicc.org,Italy,Man,Staff,Valencia,CS,CSA,Nitesh KUDVA
+Ilaria,D'AMURI,damuri@unicc.org,Italy,Woman,Staff,Brindisi,DD,DDC,Dimitra RALLI
+Anusha,DANDAPANI,dandapani@unicc.org,India,Woman,Staff,New York,DO,DO,Milena GRECUCCIO
+Pedro,BARCO GONZALEZ,dbgonzalez@unicc.org,Spain,Man,Staff,Valencia,OP,OPBO,Artan HAJRULLAHU
+Angelo,DE ANGELIS,deangelis@unicc.org,Italy,Man,Staff,Brindisi,DD,DDE,Marco LIUZZI
+Concetta,DE FILIPPIS,defilippis@unicc.org,Italy,Woman,Staff,Brindisi,DS,DSCS,Stefania DE LEO
+Hannah,DE JONG,dejong@unicc.org,Germany,Woman,Staff,Valencia,CS,CSA,Nitesh KUDVA
+Marta,DE LA CRUZ,delacruzm@unicc.org,Spain,Woman,Staff,Valencia,CS,CSO,Marco MOLTENI
+Robert,DE LAURENTIS,delaurentis@unicc.org,United States of America,Man,Staff,New York,CS,CSE,Rui Manuel Ramos FERREIRA DA COSTA
+Stefania,DE LEO,deleo@unicc.org,Italy,Woman,Staff,Brindisi,DS,DSCS,Lejla SALIHAGIC-CELJO
+Amelia Pilar,DELGADO CALOT,delgadoa@unicc.org,Spain,Woman,Staff,Valencia,CS,CSN,Ana FERRANDIZ ROCA
+Enrique,DEL RIO BLAY,delrio@unicc.org,Spain,Man,Staff,Valencia,OP,OPDA,Juan Antonio FORNER GROS
+Luigi,DE LUCA,deluca@unicc.org,Italy,Man,Staff,Brindisi,DD,DDES,Maristella CAPPELLI
+Carmine,DE MARCO,demarco@unicc.org,Italy,Man,Staff,Brindisi,DS,DSDW,Lejla SALIHAGIC-CELJO
+Bhavin Jagdish,DESAI,desai@unicc.org,India,Man,Staff,Geneva,OP,OPOU,Marco TRAVAGLINI
+Sandra,DE TOGNI,detogni@unicc.org,Italy,Woman,Staff,Brindisi,DS,DSB,Lejla SALIHAGIC-CELJO
+Arnaud R.G.,DEVILLIERS,devilliers@unicc.org,France,Man,Staff,Valencia,OP,OPMX,Cynthia Sibusisiwe SHUMBA
+Annalisa,DIANA,diana@unicc.org,Italy,Woman,Staff,Brindisi,DD,DDPG,Catherine REYMOND
+Stephane,DI BARI,dibari@unicc.org,Belgium,Man,Staff,Valencia,OP,OPC,Eu Min FOO
+Serigne,DIOP,diop@unicc.org,United States of America,Man,Staff,New York,OP,OPCS,Dave Devendranauth ROOPNARINE
+Katia,DISTANTE,distante@unicc.org,Italy,Woman,Staff,Brindisi,DS,DS,Anish SETHI
+Michele,DI TOMMASO,ditommaso@unicc.org,Italy,Man,Staff,Brindisi,DS,DSDW,Lejla SALIHAGIC-CELJO
+Raul,DOLZ GARCIA,dolz@unicc.org,Spain,Man,Staff,Valencia,CS,CSN,Matilde GIL QUINZA
+Shahul Hameed,DOULATH BASHA,doulathbasha@unicc.org,India,Man,Staff,Valencia,OP,OPOU,Marco TRAVAGLINI
+Aline N.D.,DUTRUEL,dutruel@unicc.org,France,Woman,Staff,Geneva,DO,DOD,Sameer CHAUHAN
+Esther,HERRERO CANTERO,eherrero@unicc.org,Spain,Woman,Staff,Valencia,MS,MSHT,Matthew VALENTE
+Mostafa Mohamed,ELKORDY,elkordy@unicc.org,United States of America,Man,Staff,Valencia,CS,CS,Tima SONI
+Jacqueline,ENSTONE,enstone@unicc.org,United Kingdom,Woman,Staff,Valencia,MS,MSP,Milena GRECUCCIO
+Natalia,ESCUTIA ROIG,escutia@unicc.org,Spain,Woman,Staff,Valencia,OP,OPCS,Dave Devendranauth ROOPNARINE
+Raul,ESGUEVA,esgueva@unicc.org,Spain,Man,Staff,Valencia,OP,OPBO,Manuel Humberto SOTO MALDONADO
+Cristina,ESTEVE APARICIO,esteve@unicc.org,Spain,Woman,Staff,Valencia,OP,OPCS,Liliana Guadalupe HEDGES
+Christian,FABBRIS,fabbris@unicc.org,Italy,Man,Staff,Brindisi,DD,DDPM,Vanessa TIRALONGO
+Massimiliano,FALCINELLI,falcinelli@unicc.org,Italy,Man,Staff,Valencia,DD,DDC,Dimitra RALLI
+Antonio,FANTASIA,fantasia@unicc.org,Italy,Man,Staff,Brindisi,DS,DSCS,Stefania DE LEO
+Toby,FELGENNER,felgenner@unicc.org,Australia,Man,Staff,Geneva,CS,CSA,Fabio MAGGIORE
+Diana,FERNANDEZ,fernandezd@unicc.org,Spain,Woman,Staff,Valencia,DD,DDMS,Carlos GARCIA
+Ana,FERRANDIZ ROCA,ferrandiz@unicc.org,Spain,Woman,Staff,Valencia,CS,CSN,Matilde GIL QUINZA
+Salvatore,FERRARO,ferraro@unicc.org,Italy,Man,Staff,Brindisi,OP,OPOU,Marco TRAVAGLINI
+Rui Manuel Ramos,FERREIRA DA COSTA,ferreiradc@unicc.org,Portugal,Man,Staff,Valencia,CS,CSE,Tima SONI
+Esther,Ferrer,ferrer@unicc.org,Spain,Woman,Staff,Valencia,DO,DBR,Prado NIETO
+Fabrizio,FIORELLA,fiorella@unicc.org,Italy,Man,Staff,Brindisi,DD,DDES,Maristella CAPPELLI
+Dawit,FISSEHA,fisseha@unicc.org,Switzerland,Man,Staff,Geneva,DD,DDD,Venkatram VENKATESWARAN
+Eu Min,FOO,foo@unicc.org,Malaysia,Man,Staff,Valencia,OP,OPC,Milena GRECUCCIO
+Juan Antonio,FORNER GROS,forner@unicc.org,Spain,Man,Staff,Valencia,OP,OPDA,Maria JOVER ANDREU
+Nyuta,FORTUNA,fortuna@unicc.org,Italy,Woman,Staff,Valencia,OP,OPO,Mikael Ingemar LILJEBLADH
+Marc,FRANCO SALVADOR,francom@unicc.org,Spain,Man,Staff,Valencia,DD,DDAI,Elena RIVAS RUZAFA
+Jose,FUERTES TARAZONA,fuertes@unicc.org,Spain,Man,Staff,Valencia,OP,OPDM,Miguel LOPEZ SERRANO
+Patricia,FUSTER,fuster@unicc.org,Spain,Woman,Staff,Valencia,DO,DBR,Prado NIETO
+Anjum,GADHOK,gadhok@unicc.org,United States of America,Woman,Staff,Valencia,MS,MSB,Yannis ARFARAS
+Gabriele,GALATI,galati@unicc.org,Italy,Man,Staff,Geneva,DO,DBR,Prado NIETO
+Carlos,GARCIA,garciac@unicc.org,Spain,Man,Staff,Valencia,DD,DDMS,Angelo DE ANGELIS
+Neyla Dalinda,GARCIA PENA,garcian@unicc.org,Mexico,Woman,Staff,Valencia,OP,OPCS,Dave Devendranauth ROOPNARINE
+Zulema,GARCIA,garciaz@unicc.org,Spain,Woman,Staff,Valencia,MS,MS,Sandra RUIZ SERRANO
+Giuseppe,GENOVESI,genovesi@unicc.org,Italy,Man,Staff,Brindisi,CS,CSR,Lyle Gregory MCFADYEN
+Matilde,GIL QUINZA,gilm@unicc.org,Spain,Woman,Staff,Valencia,CS,CSN,Tima SONI
+Pablo,GIL ROSELLO,gilp@unicc.org,Spain,Man,Staff,Valencia,OP,OPCS,Dave Devendranauth ROOPNARINE
+Carlos,GIL PIQUERAS,gilpi@unicc.org,Spain,Man,Staff,Valencia,CS,CSO,Amedeo CIOFFI
+Manel,GIMENO,gimeno@unicc.org,Spain,Man,Staff,Valencia,OP,OPDA,Juan Antonio FORNER GROS
+Marie-José,GRAS,gras@unicc.org,France,Woman,Staff,New York,OP,OPCS,Dave Devendranauth ROOPNARINE
+Giuseppe,GRECO,greco@unicc.org,Italy,Man,Staff,Brindisi,DS,DSCS,Stefania DE LEO
+Vincenzo,GRECO,grecovi@unicc.org,Italy,Man,Staff,Brindisi,CS,CSR,Claudio SAVARESE
+Milena,GRECUCCIO,grecuccio@unicc.org,Switzerland,Woman,Staff,Valencia,DO,DO,Sameer CHAUHAN
+Valentina,GROSSI,grossi@unicc.org,Italy,Woman,Staff,Brindisi,DS,DSDP,Dharam PALURU
+Grace,SOTO,gsoto@unicc.org,Mexico,Woman,Staff,New York,DO,DBR,Magaly MARTINEZ
+Maria Isabel,GUARDENO EXPOSITO,guardeno@unicc.org,Spain,Woman,Staff,Valencia,MS,MSHT,Anna NEGYESI-MOUYSSET
+Andres,GUERRERO,guerrero@unicc.org,Spain,Man,Staff,Valencia,DD,DDAI,Marc FRANCO SALVADOR
+Jorge,GUTIERREZ GONZALEZ,gutierrez@unicc.org,Mexico,Man,Staff,Rome,DS,DS,Anish SETHI
+Artan,HAJRULLAHU,hajrullahu@unicc.org,Others,Man,Staff,Valencia,OP,OPBO,Manuel Humberto SOTO MALDONADO
+Valerie,HANESSE,hanesse@unicc.org,France,Woman,Staff,Valencia,OP,OPCS,Dave Devendranauth ROOPNARINE
+Sabina,HASANLI,hasanli@unicc.org,Azerbaijan,Woman,Staff,Valencia,CS,CSO,Francesco PICASSO
+Aidan,HATTINGH,hattingh@unicc.org,New Zealand,Man,Staff,Valencia,DD,DDC,Pablo ARRIBAS
+Liliana Guadalupe,HEDGES,hedges@unicc.org,Mexico,Woman,Staff,Valencia,OP,OPCS,Eu Min FOO
+Lorena,HENRIQUEZ,henriquez@unicc.org,France,Woman,Staff,Valencia,DS,DSL,Franca VINCI
+Manuel,HINOJO,hinojo@unicc.org,Spain,Man,Staff,Valencia,DD,DDHA,Roberto CANO ROBERTO
+Lavinia,HOEHNE,hoehne@unicc.org,Germany,Woman,Staff,Valencia,DD,DDES,Maristella CAPPELLI
+Lisa,HUNT,hunt@unicc.org,United States of America,Woman,Staff,New York,OP,OPCS,Dave Devendranauth ROOPNARINE
+Carlos,INFANTES OANES,infantes@unicc.org,Spain,Man,Staff,Valencia,OP,OPDA,Juan Antonio FORNER GROS
+Monirul,ISLAM,islam@unicc.org,United States of America,Man,Staff,New York,OP,OPCS,Dave Devendranauth ROOPNARINE
+Antonio,IVARS LLOPIS,ivars@unicc.org,Spain,Man,Staff,Valencia,OP,OPBR,Orlando B. VENTURA
+Benedicte Solange,JACQUIER,jacquier@unicc.org,France,Woman,Staff,Geneva,MS,MSHT,Anna NEGYESI-MOUYSSET
+Maha,JAROUR,jarour@unicc.org,West Bank and Gaza Strip,Woman,Staff,Valencia,DO,DOE,Jean Pierre MORA CASASOLA
+Juan,HERNANDEZ SANTOS,jhernandez@unicc.org,Spain,Man,Staff,Valencia,OP,OPCS,Dave Devendranauth ROOPNARINE
+Pravin Vilas,JOSHI,joshi@unicc.org,India,Man,Staff,New York,OP,OPOU,Marco TRAVAGLINI
+Maria,JOVER ANDREU,jover@unicc.org,Spain,Woman,Staff,Valencia,OP,OPDA,Paolo VALENZA
+Laurance Brian,KIRWAN,kirwan@unicc.org,Ireland,Man,Staff,Valencia,OP,OPCS,Liliana Guadalupe HEDGES
+George Nyabera,KITISHA,kitisha@unicc.org,Kenya,Man,Staff,Geneva,DO,DBR,Prado NIETO
+Snjezana,KOKOTOVIC-GRGIC,kokotovic@unicc.org,Bosnia and Herzegovina,Woman,Staff,Brindisi,DS,DSB,Lejla SALIHAGIC-CELJO
+Meredith Rachel,KRAVITZ,kravitz@unicc.org,Canada,Woman,Staff,Geneva,DO,DOE,Sameer CHAUHAN
+Nitesh,KUDVA,kudva@unicc.org,India,Man,Staff,New York,CS,CSA,Tima SONI
+Nikoloz Merab,KUDZESHVILI,kudzeshvili@unicc.org,Georgia,Man,Staff,Geneva,CS,CSN,Ana FERRANDIZ ROCA
+Jordi,LACOBA MORTE,lacoba@unicc.org,Spain,Man,Staff,Valencia,OP,OPDM,Paolo VALENZA
+Jose,LACRUZ GIMENO,lacruz@unicc.org,Spain,Man,Staff,Valencia,OP,OPBR,Orlando B. VENTURA
+Colin Douglas,LAING,laingc@unicc.org,United Kingdom,Man,Staff,Valencia,DD,DDD,Venkatram VENKATESWARAN
+Frederic,LAVAL,laval@unicc.org,France,Man,Staff,Geneva,MS,MSH,Milena GRECUCCIO
+Angelo,LAVENEZIANA,laveneziana@unicc.org,Italy,Man,Staff,Brindisi,OP,OPBS,Antonio MORALES
+Andre,LEGER,leger@unicc.org,Canada,Man,Staff,Valencia,DS,DSL,Franca VINCI
+Olga Anni Ina,LEHTINEN,lehtinen@unicc.org,Finland,Woman,Staff,New York,MS,MSH,Frederic LAVAL
+David,Leiva,leiva@unicc.org,Spain,Man,Staff,Valencia,CS,CSN,Ernesto MAGALLO SIMEON
+Delphine,LEKEU,lekeu@unicc.org,Belgium,Woman,Staff,Valencia,OP,OPCS,Liliana Guadalupe HEDGES
+Xi,LIANG,liang@unicc.org,China,Woman,Staff,Valencia,MS,MSF,Ester Judith MATUTINA
+Mikael Ingemar,LILJEBLADH,liljebladh@unicc.org,Sweden,Man,Staff,Geneva,OP,OPO,Milena GRECUCCIO
+Zhichun,LIN,linz@unicc.org,United States of America,Man,Staff,New York,OP,OPBS,Antonio MORALES
+Carla,LITTI,litti@unicc.org,Italy,Woman,Staff,Brindisi,DS,DSB,Lejla SALIHAGIC-CELJO
+Marco,LIUZZI,liuzzi@unicc.org,Italy,Man,Staff,Brindisi,DD,DD,Sameer CHAUHAN
+Miguel,LOPEZ SERRANO,lopezm@unicc.org,Spain,Man,Staff,Valencia,OP,OPDM,Jordi LACOBA MORTE
+Justo Manuel,LORENTE CASTELLANO,lorente@unicc.org,Spain,Man,Staff,Valencia,OP,OPBO,Artan HAJRULLAHU
+Philippe,LOTHSAVAN,lothsavan@unicc.org,France,Man,Staff,Geneva,DO,DBR,Prado NIETO
+Portia Lynn,DA GAMA ROSE MACHANCOSES,machancoses@unicc.org,Portugal,Woman,Staff,Madrid,DO,DBR,Prado NIETO
+Ernesto,MAGALLO SIMEON,magallo@unicc.org,Spain,Man,Staff,Valencia,CS,CSN,Matilde GIL QUINZA
+Fabio,MAGGIORE,maggiore@unicc.org,Italy,Man,Staff,Geneva,CS,CISO,Tima SONI
+Daniele,MAGLI,magli@unicc.org,Italy,Man,Staff,Brindisi,DS,DSCS,Stefania DE LEO
+Fernando,MAGLIO,maglio@unicc.org,Italy,Man,Staff,Brindisi,DD,DDAM,Elena RIVAS RUZAFA
+Luis,MALDONADO CAVADAS,maldonado@unicc.org,Spain,Man,Staff,Valencia,CS,CSN,Ernesto MAGALLO SIMEON
+Francesca,MANFREDINI,manfredini@unicc.org,Italy,Woman,Staff,Geneva,MS,MSL,Szilvia PETKOV
+Chiara,MARGARI,margari@unicc.org,Italy,Woman,Staff,Brindisi,DD,DDC,Massimiliano FALCINELLI
+Jorge,MARTI CORONIL,marti@unicc.org,Spain,Man,Staff,Valencia,CS,CSE,Rui Manuel Ramos FERREIRA DA COSTA
+Andres,MARTINEZ BADIA,martinez@unicc.org,Spain,Man,Staff,Valencia,OP,OPDA,Maria JOVER ANDREU
+Marcos,MARTINEZ GARCIA,martinezm@unicc.org,Spain,Man,Staff,Valencia,DS,DSPS,Emily Ann BENNETT
+Magaly,MARTINEZ,martinezma@unicc.org,Peru,Woman,Staff,Valencia,DO,DBR,Prado NIETO
+Noelia,MARTINEZ ZAPATA,martinezn@unicc.org,Spain,Woman,Staff,Valencia,OP,OPCS,Dave Devendranauth ROOPNARINE
+Eduardo Francisco,MENDES MARTINS,martins@unicc.org,Portugal,Man,Staff,Valencia,DD,DDPO,Kinjal DALAL
+Edilio,MASSARO,massaroe@unicc.org,Italy,Man,Staff,Brindisi,CS,CSE,Rui Manuel Ramos FERREIRA DA COSTA
+Ester Judith,MATUTINA,matutina@unicc.org,Philippines,Woman,Staff,Geneva,MS,MSF,Milena GRECUCCIO
+Elisa,MAYOR SENDRA,mayor@unicc.org,Spain,Woman,Staff,Valencia,OP,OPD,Paolo VALENZA
+Lyle Gregory,MCFADYEN,mcfadyen@unicc.org,Canada,Man,Staff,New York,CS,CSR,Tima SONI
+Julie Olayiwola,MEGHOMA,meghoma@unicc.org,Nigeria,Woman,Staff,New York,OP,OPCS,Dave Devendranauth ROOPNARINE
+Angel,MENA,mena@unicc.org,Spain,Man,Staff,Valencia,OP,OPBR,Orlando B. VENTURA
+Gustavo,MENDEZ CASERO,mendez@unicc.org,Spain,Man,Staff,Valencia,DD,DDHA,Roberto CANO ROBERTO
+Massimiliano,Merelli,merelli@unicc.org,Italy,Man,Staff,Rome,DO,DOP,Sameer CHAUHAN
+Sandra,MIMICA HARE,mimica@unicc.org,Croatia,Woman,Staff,Brindisi,DS,DSCS,Stefania DE LEO
+Jose Juan,MIRET,miret@unicc.org,Spain,Man,Staff,Valencia,CS,CSO,Gabriella ANDRIUZZI
+Nicola Walter,MISSERE,missere@unicc.org,Italy,Man,Staff,Brindisi,OP,OPMX,Cynthia Sibusisiwe SHUMBA
+Romina,MOGAVERO,mogavero@unicc.org,Argentina,Woman,Staff,Valencia,OP,OPOS,Roberto ANILE
+Shambhavi,MOHAN,mohan@unicc.org,India,Woman,Staff,New York,DD,DDAI,Marc FRANCO SALVADOR
+Marco,MOLTENI,molteni@unicc.org,Italy,Man,Staff,Rome,CS,CSO,Amedeo CIOFFI
+Luisa,MONOPOLI,monopoli@unicc.org,Italy,Woman,Staff,Brindisi,DS,DSCS,Stefania DE LEO
+Jean Pierre,MORA CASASOLA,mora@unicc.org,Costa Rica,Man,Staff,Valencia,DO,DOE,Meredith Rachel KRAVITZ
+Antonio,MORALES,moralesa@unicc.org,Spain,Man,Staff,Geneva,OP,OPBS,Orlando B. VENTURA
+David,MORENO GUILLEN,moreno@unicc.org,Spain,Man,Staff,Valencia,DD,DDPM,Vanessa TIRALONGO
+Evelyn,MUNOZ,munoz@unicc.org,Ecuador,Woman,Staff,Valencia,DO,DBR,Prado NIETO
+Balkrishna Sonaba,NALAWADE,nalawade@unicc.org,India,Man,Staff,Geneva,OP,OPOS,Roberto ANILE
+Doaa,NASSAR,nassar@unicc.org,West Bank and Gaza Strip,Woman,Staff,Valencia,CS,CSA,João Paulo HENRIQUES REMEDIO
+Vandana,NATHOLIA,natholia@unicc.org,India,Woman,Staff,Valencia,DS,DSPS,Emily Ann BENNETT
+Rafael,NAVARRO,navarro@unicc.org,Spain,Man,Staff,Valencia,OP,OPCS,Liliana Guadalupe HEDGES
+Arame,NDOYE,ndoye@unicc.org,Senegal,Woman,Staff,New York,DO,DBR,Prado NIETO
+Anastasia,NEBYLITSA TULANOVA,nebylitsa@unicc.org,Spain,Woman,Staff,Valencia,DD,DDC,Ada OMIE-BENSON
+Oliver,NEFF,neff@unicc.org,Germany,Man,Staff,Geneva,MS,MSB,Yannis ARFARAS
+Anna,NEGYESI-MOUYSSET,negyesi@unicc.org,Hungary,Woman,Staff,Valencia,MS,MSHT,Frederic LAVAL
+Sunil Kumar,NEWA,newa@unicc.org,Nepal,Man,Staff,Brindisi,DS,DSB,Lejla SALIHAGIC-CELJO
+Nicholas,Hedges,nhedges@unicc.org,United Kingdom,Man,Staff,Valencia,OP,OPBO,Raul ESGUEVA
+Prado,NIETO,nieto@unicc.org,Spain,Woman,Staff,Geneva,DO,DBR,Sameer CHAUHAN
+Glory,NINSIIMA,ninsiima@unicc.org,Uganda,Woman,Staff,Valencia,MS,MSG,Milena GRECUCCIO
+Akhilesh,NIRAPURE,nirapure@unicc.org,India,Man,Staff,Valencia,DD,DDS,Marco LIUZZI
+Ellen,NORMAND-QUINET,normand@unicc.org,France,Woman,Staff,Geneva,DO,DOD,Aline N.D. DUTRUEL
+Miguel Jorge,MOREIRA LAMAS CARVALHO NU,nunesm@unicc.org,Portugal,Man,Staff,Valencia,OP,OPOA,Francisco Javier CONDE GONZALEZ CARRASCOSA
+Gianluca,NUZZO,nuzzo@unicc.org,Italy,Man,Staff,Brindisi,DD,DDC,Dimitra RALLI
+Ada,OMIE-BENSON,omiebenson@unicc.org,Canada,Woman,Staff,Valencia,DD,DDC,Dimitra RALLI
+Amina,OSMANOVA,osmanova@unicc.org,Kazakhstan,Woman,Staff,Geneva,DO,DOE,Meredith Rachel KRAVITZ
+Oluwasanmi,OTUSEMADE,otusemade@unicc.org,Spain,Man,Staff,Valencia,OP,OPCS,Dave Devendranauth ROOPNARINE
+Anas,OUFROUKHI,oufroukhi@unicc.org,Morocco,Man,Staff,Valencia,DS,DSB,Lejla SALIHAGIC-CELJO
+Denian,OUYANG,ouyang@unicc.org,China,Woman,Staff,New York,DO,DOE,Jean Pierre MORA CASASOLA
+Tommaso,PALMIERI,palmierit@unicc.org,Italy,Man,Staff,Brindisi,DD,DDD,Colin Douglas LAING
+Dharam,PALURU,paluru@unicc.org,India,Man,Staff,Geneva,DS,DSDP,Anish SETHI
+Tejopriya,PAMARTHI,pamarthi@unicc.org,India,Woman,Staff,New York,DD,DDC,Dimitra RALLI
+Ricardo Jorge Rana,PARDAL,pardal@unicc.org,Portugal,Man,Staff,Valencia,OP,OPD,Paolo VALENZA
+Gianluca,PAREO,pareo@unicc.org,Italy,Man,Staff,Brindisi,DD,DDES,Maristella CAPPELLI
+Bryan,PASCUAL,pascual@unicc.org,United States of America,Man,Staff,New York,OP,OPCS,Dave Devendranauth ROOPNARINE
+Serena,PATI,pati@unicc.org,Italy,Woman,Staff,Brindisi,CS,CSA,Nitesh KUDVA
+Javier,PAYA GARRIDO,paya@unicc.org,Spain,Man,Staff,Valencia,CS,CSO,Gabriella ANDRIUZZI
+Cristian,PEREZ TEJADA,perez@unicc.org,Dominican Republic,Man,Staff,New York,OP,OPCS,Dave Devendranauth ROOPNARINE
+Szilvia,PETKOV,petkov@unicc.org,Austria,Woman,Staff,Valencia,MS,MSL,Milena GRECUCCIO
+Giulia,PETROCELLI,petrocelli@unicc.org,Italy,Woman,Staff,Rome,MS,MS,Milena GRECUCCIO
+Francesco,PICASSO,picasso@unicc.org,Italy,Man,Staff,Rome,CS,CSO,Amedeo CIOFFI
+Catalina,PICIOREA,piciorea@unicc.org,Romania,Woman,Staff,Valencia,MS,MSB,Yannis ARFARAS
+Francisco Jose,PICO,picof@unicc.org,Spain,Man,Staff,Valencia,DD,DDPM,Vanessa TIRALONGO
+Luca,PITOTTI,pitotti@unicc.org,Italy,Man,Staff,Brindisi,DS,DSDW,Lejla SALIHAGIC-CELJO
+Serena,PRIFTI,prifti@unicc.org,Albania,Woman,Staff,Brindisi,MS,MSP,Jacqueline ENSTONE
+Adrian Thomas,PUGH,pugh@unicc.org,United Kingdom,Man,Staff,Brindisi,DD,DDPM,Vanessa TIRALONGO
+Enrique,PUIG NOUSELLES,puign@unicc.org,Spain,Man,Staff,Valencia,DD,DDA,Elena RIVAS RUZAFA
+Shweta,PUJARI,pujari@unicc.org,India,Woman,Staff,Geneva,DD,DDC,Dimitra RALLI
+Alessandro,RAFFAELE,raffaele@unicc.org,Italy,Man,Staff,Rome,OP,OPOA,Francisco Javier CONDE GONZALEZ CARRASCOSA
+Shashank,RAI,raish@unicc.org,United Kingdom,Man,Staff,Geneva,DD,DDS,Marco LIUZZI
+Balajirajah,BALASUBRAMANIAM,rajah@unicc.org,India,Man,Staff,New York,CS,CSN,Ana FERRANDIZ ROCA
+Dimitra,RALLI,ralli@unicc.org,Greece,Woman,Staff,Geneva,DD,DDC,Marco LIUZZI
+Prasad,RAO,raopr@unicc.org,India,Man,Staff,Valencia,DD,DDAI,Marc FRANCO SALVADOR
+Jorge,REGUERO SANCHEZ,reguero@unicc.org,Spain,Man,Staff,Valencia,DO,DBR,Prado NIETO
+Laura,REIS,reis@unicc.org,Brazil,Woman,Staff,Valencia,MS,MSF,Ester Judith MATUTINA
+João Paulo,HENRIQUES REMEDIO,remedio@unicc.org,Portugal,Man,Staff,Geneva,CS,CSA,Nitesh KUDVA
+Nuria Isabel,REQUES Y WATERINK,requesn@unicc.org,Netherlands,Woman,Staff,Rome,DO,DBR,Prado NIETO
+Catherine,REYMOND,reymond@unicc.org,Switzerland,Woman,Staff,Geneva,DD,DDPG,Kinjal DALAL
+Ana,RIBEIRO,ribeiro@unicc.org,Portugal,Woman,Staff,Valencia,DD,DDAM,Elena RIVAS RUZAFA
+Luca,RIMA,rima@unicc.org,Italy,Man,Staff,Brindisi,OP,OPOU,Marco TRAVAGLINI
+Elena,RIVAS RUZAFA,rivas@unicc.org,Spain,Woman,Staff,Valencia,DD,DDAM,Marco LIUZZI
+Lucia del Pilar,RODENAS ZULETA,rodenas@unicc.org,Spain,Woman,Staff,Valencia,MS,MSHT,Anna NEGYESI-MOUYSSET
+Gerson,RODRIGO MENENDEZ,rodrigo@unicc.org,Spain,Man,Staff,Valencia,OP,OPDA,Maria JOVER ANDREU
+Carlos,RODRIGO,rodrigoc@unicc.org,Spain,Man,Staff,Valencia,DS,DSB,Lejla SALIHAGIC-CELJO
+Maria Antonia B.,RODRIGUES,rodrigues@unicc.org,Mozambique,Woman,Staff,New York,DD,DDPM,Vanessa TIRALONGO
+Boris,RODRIGUEZ GOMEZ,rodriguez@unicc.org,Spain,Man,Staff,Madrid,DO,DBR,Prado NIETO
+Hector,RODRIGUEZ,rodriguezh@unicc.org,Spain,Man,Staff,Valencia,CS,CSO,Francesco PICASSO
+Pedro Javier,RODRIGUEZ DE LA CALLE,rodriguezp@unicc.org,Spain,Man,Staff,Valencia,DD,DDAM,Elena RIVAS RUZAFA
+Maria Francesca,ROMANO,romano@unicc.org,Italy,Woman,Staff,Valencia,MS,MSH,Olga Anni Ina LEHTINEN
+Pablo,ROMEU,romeu@unicc.org,Spain,Man,Staff,Valencia,DD,DDC,Dimitra RALLI
+Dave Devendranauth,ROOPNARINE,roopnarine@unicc.org,United States of America,Man,Staff,New York,OP,OPCS,Eu Min FOO
+Alejandra,RUANO,ruano@unicc.org,Spain,Woman,Staff,Valencia,OP,OPCS,Dave Devendranauth ROOPNARINE
+Angelo,RUBINO,rubino@unicc.org,Italy,Man,Staff,Brindisi,CS,CSS,Giovanna ZANETTI
+Chiara,RUCCO,rucco@unicc.org,Italy,Woman,Staff,Brindisi,DD,DDA,Enrique PUIG NOUSELLES
+Sandra,RUIZ SERRANO,ruiz@unicc.org,Spain,Woman,Staff,Valencia,MS,MS,Milena GRECUCCIO
+Tajdheen,SAHULHAMEED,sahulhameed@unicc.org,France,Man,Staff,Geneva,OP,OPDM,Vishal Anand Kumar SHARMA
+Lejla,SALIHAGIC-CELJO,salihagicce@unicc.org,Bosnia and Herzegovina,Woman,Staff,Valencia,DS,DSDW,Anish SETHI
+Ermal,SALIU,saliu@unicc.org,Albania,Man,Staff,Geneva,OP,OPC,Stephane DI BARI
+Gurdeep Singh,SALUJA,saluja@unicc.org,India,Man,Staff,Valencia,DD,DDD,Venkatram VENKATESWARAN
+Jesus,SALVADOR,salvador@unicc.org,Spain,Man,Staff,Valencia,OP,OPBR,Orlando B. VENTURA
+Ludovic,SALVI,salvi@unicc.org,France,Man,Staff,Valencia,MS,MSP,Jacqueline ENSTONE
+Maximiliano,SANABRIA TORRES,sanabria@unicc.org,Colombia,Man,Staff,Valencia,OP,OPBS,
+Carmen,SANCHEZ DE LA ROSA,sanchez@unicc.org,Spain,Woman,Staff,Valencia,MS,MSP,Jacqueline ENSTONE
+Helder,SANCHES,sanchezh@unicc.org,Cape Verde,Man,Staff,Valencia,DD,DDMS,Carlos GARCIA
+Lorenzo,SANCHEZ ROMERO,sanchezl@unicc.org,Spain,Man,Staff,Valencia,CS,CSE,Rui Manuel Ramos FERREIRA DA COSTA
+Rafael,SANTA BLANCH,santa@unicc.org,Spain,Man,Staff,Valencia,CS,CSO,Gabriella ANDRIUZZI
+Joselito,SANTIAGO,santiagojo@unicc.org,Philippines,Man,Staff,Valencia,OP,OPMX,Cynthia Sibusisiwe SHUMBA
+Aurora,SANTILLAN,santillan@unicc.org,Philippines,Woman,Staff,New York,DD,DDAM,Elena RIVAS RUZAFA
+Alberto,SANZ,sanz@unicc.org,Spain,Man,Staff,Valencia,DS,DSB,Lejla SALIHAGIC-CELJO
+Claudio,SAVARESE,savarese@unicc.org,Italy,Man,Staff,Rome,CS,CSR,Lyle Gregory MCFADYEN
+Gavin,SCALLAN,scallan@unicc.org,Australia,Man,Staff,Valencia,CS,CSS,Giovanna ZANETTI
+Domenico,SCHIANO LOMORIELLO,schiano@unicc.org,Italy,Man,Staff,Brindisi,CS,CSN,Ana FERRANDIZ ROCA
+Marc Jean,SCHITTEK,schittek@unicc.org,Germany,Man,Staff,Geneva,OP,OPD,Paolo VALENZA
+Maria Carmen,SELLES VIDAL,selles@unicc.org,Spain,Woman,Staff,Valencia,CS,CSO,Marco MOLTENI
+Anu,SENAN,senan@unicc.org,India,Woman,Staff,New York,DO,DBR,Prado NIETO
+Anish,SETHI,sethi@unicc.org,United States of America,Man,Staff,New York,DS,DS,Sameer CHAUHAN
+Pravesh Kumar,SHARMA,sharma@unicc.org,India,Man,Staff,Geneva,DD,DDD,Gurdeep Singh SALUJA
+Vishal Anand Kumar,SHARMA,sharmavi@unicc.org,India,Man,Staff,Valencia,OP,OPDM,Jordi LACOBA MORTE
+Yamini,SHARMA,sharmay@unicc.org,India,Woman,Staff,Valencia,CS,CSO,Marco MOLTENI
+Cynthia Sibusisiwe,SHUMBA,shumba@unicc.org,Zimbabwe,Woman,Staff,New York,OP,OPMX,Ian COLLIAR
+Bojan,SIMETIC,simetic@unicc.org,Bosnia and Herzegovina,Man,Staff,Valencia,CS,CSI,Tima SONI
+Christine,SIMM,simm@unicc.org,Estonia,Woman,Staff,Valencia,DS,DSDW,Lejla SALIHAGIC-CELJO
+Joan,SOLER,soler@unicc.org,Spain,Man,Staff,Valencia,OP,OPDM,Miguel LOPEZ SERRANO
+Miguel,SOLER SANGUESA,solerm@unicc.org,Spain,Man,Staff,Valencia,OP,OPBR,Orlando B. VENTURA
+Tima,SONI,soni@unicc.org,India,Woman,Staff,New York,CS,CS,Sameer CHAUHAN
+Jose,SORIA,soria@unicc.org,Spain,Man,Staff,Valencia,OP,OPBR,Orlando B. VENTURA
+Vicent,SORNOSA RISEN,sornosa@unicc.org,Spain,Man,Staff,Valencia,DS,DSB,Lejla SALIHAGIC-CELJO
+Manuel Humberto,SOTO MALDONADO,soto@unicc.org,Mexico,Man,Staff,Valencia,OP,OPBO,Orlando B. VENTURA
+Mohammed,SROUR,srour@unicc.org,West Bank and Gaza Strip,Man,Staff,Valencia,CS,CSO,Francesco PICASSO
+Ilaria,STEFANIZZI,stefanizzi@unicc.org,Italy,Woman,Staff,Brindisi,DD,DDES,Maristella CAPPELLI
+Amalia,STEIN,stein@unicc.org,Switzerland,Woman,Staff,Geneva,MS,MSHT,Matthew VALENTE
+Victor,SUAY CANSANS,suay@unicc.org,Spain,Man,Staff,Valencia,OP,OPBR,Orlando B. VENTURA
+Narcisse,TCHOUATI NGANTCHOUE,tchouati@unicc.org,"Cameroon, Republic of",Man,Staff,Valencia,OP,OPO,Mikael Ingemar LILJEBLADH
+Gonzalo,TEJERO,tejero@unicc.org,Spain,Man,Staff,Valencia,OP,OPBR,Orlando B. VENTURA
+Richard Maria,TIBEN,tiben@unicc.org,Netherlands,Man,Staff,Brindisi,DS,DSCS,Stefania DE LEO
+Vanessa,TIRALONGO,tiralongo@unicc.org,France,Woman,Staff,Valencia,DD,DDPM,Kinjal DALAL
+Fernando,TOMAS VALLEJO,tomasf@unicc.org,Spain,Man,Staff,Valencia,OP,OPD,Paolo VALENZA
+Soledad,TORRERO,torrero@unicc.org,Argentina,Woman,Staff,Geneva,OP,OPM,Ian COLLIAR
+Maria,TRANCHESE,tranchese@unicc.org,Italy,Woman,Staff,Rome,MS,MSF,Ester Judith MATUTINA
+Marco,TRAVAGLINI,travaglini@unicc.org,Canada,Man,Staff,Geneva,OP,OPOU,Mikael Ingemar LILJEBLADH
+Francisca,TUR ESCANDELL,tur@unicc.org,Spain,Woman,Staff,Valencia,DS,DSDW,Lejla SALIHAGIC-CELJO
+Antonio,TURI,turi@unicc.org,Italy,Man,Staff,Brindisi,DD,DDD,Colin Douglas LAING
+Roberty Cornel,TURTUREA,turturea@unicc.org,Romania,Man,Staff,Geneva,DO,DBR,Prado NIETO
+Silviu-Paul,TUTUIANU,tutuianu@unicc.org,Romania,Man,Staff,Valencia,OP,OPBO,Antonio ARGENTIERI
+Yuba Nanda,VAIDYA,vaidya@unicc.org,Nepal,Man,Staff,Geneva,OP,OPC,Stephane DI BARI
+Mario,VALACCA,valacca@unicc.org,Italy,Man,Staff,Valencia,DD,DDC,Simon BOISSEAU
+Ismael,VALDIVIA,valdivia@unicc.org,Spain,Man,Staff,Valencia,CS,CSE,Lucas VIANNA
+Matthew,VALENTE,valente@unicc.org,United Kingdom,Man,Staff,Valencia,MS,MSHT,Anna NEGYESI-MOUYSSET
+Silvia,VALENTI,valenti@unicc.org,Italy,Woman,Staff,Brindisi,DD,DD,Marco LIUZZI
+Paolo,VALENZA,valenza@unicc.org,Italy,Man,Staff,New York,OP,OPD,Milena GRECUCCIO
+Marcos,VALVERDE DURAN,valverdem@unicc.org,Spain,Man,Staff,Valencia,OP,OPCS,Liliana Guadalupe HEDGES
+Juan Sebastien,VANEGAS,vanegas@unicc.org,France,Man,Staff,Brindisi,CS,CSA,Nitesh KUDVA
+Jan,VANDE MEULEBROECKE,vdmeu@unicc.org,Belgium,Man,Staff,Valencia,OP,OPO,Mikael Ingemar LILJEBLADH
+Javier,VELA DIAGO,vela@unicc.org,Spain,Man,Staff,Valencia,DD,DDS,Marco LIUZZI
+Carlos Andres,VELASQUEZ OROZCO,velasquez@unicc.org,Colombia,Man,Staff,Geneva,OP,OPDM,Jordi LACOBA MORTE
+Venkatram,VENKATESWARAN,venkat@unicc.org,India,Man,Staff,Geneva,DD,DDD,Marco LIUZZI
+Orlando B.,VENTURA,ventura@unicc.org,Philippines,Man,Staff,Valencia,OP,OPB,Milena GRECUCCIO
+Nagesh,VEPA,vepan@unicc.org,India,Man,Staff,Geneva,DD,DD,Marco LIUZZI
+Lucas,VIANNA,vianna@unicc.org,Brazil,Man,Staff,Valencia,CS,CSE,Rui Manuel Ramos FERREIRA DA COSTA
+Rocio,VILLAR SOSPEDRA,villarro@unicc.org,Spain,Woman,Staff,Valencia,OP,OPOU,Abel CUETO RODRIGUEZ
+Borja,VILLORA,villora@unicc.org,Spain,Man,Staff,Valencia,CS,CSA,João Paulo HENRIQUES REMEDIO
+Franca,VINCI,vinci@unicc.org,Italy,Woman,Staff,Brindisi,DS,DSL,Anish SETHI
+Raquel,VISIEDO PINO,visiedo@unicc.org,Spain,Woman,Staff,Valencia,OP,OPCS,Dave Devendranauth ROOPNARINE
+Julia,VITORIA REDONDO,vitoria@unicc.org,Spain,Woman,Staff,Valencia,MS,MSF,Ester Judith MATUTINA
+Sara Mesfin,WOLDEABEZEGI,woldeabezegi@unicc.org,Ethiopia,Woman,Staff,New York,DS,DS,Anish SETHI
+Yaru,WU,wuy@unicc.org,China,Woman,Staff,Geneva,MS,MSB,Yannis ARFARAS
+Leiming,YAO,yao@unicc.org,United States of America,Man,Staff,New York,CS,CSA,Nitesh KUDVA
+Vallipuram,YOGENDRA,yogendra@unicc.org,Sri Lanka,Man,Staff,Valencia,OP,OPB,Orlando B. VENTURA
+Giovanna,ZANETTI,zanetti@unicc.org,Italy,Woman,Staff,Valencia,CS,CSS,Tima SONI
+Anna,ZIZZI,zizzi@unicc.org,Italy,Woman,Staff,Brindisi,DS,DSCS,Stefania DE LEO

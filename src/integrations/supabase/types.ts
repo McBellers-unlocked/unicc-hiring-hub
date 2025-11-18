@@ -2071,11 +2071,13 @@ export type Database = {
           email: string
           gender: string | null
           id: string
+          line_manager: string | null
           name: string
           nationality: string | null
           role: Database["public"]["Enums"]["user_role"]
-          section: string | null
+          unit: string | null
           updated_at: string
+          worker_type: string | null
         }
         Insert: {
           created_at?: string
@@ -2085,11 +2087,13 @@ export type Database = {
           email: string
           gender?: string | null
           id: string
+          line_manager?: string | null
           name: string
           nationality?: string | null
           role?: Database["public"]["Enums"]["user_role"]
-          section?: string | null
+          unit?: string | null
           updated_at?: string
+          worker_type?: string | null
         }
         Update: {
           created_at?: string
@@ -2099,11 +2103,13 @@ export type Database = {
           email?: string
           gender?: string | null
           id?: string
+          line_manager?: string | null
           name?: string
           nationality?: string | null
           role?: Database["public"]["Enums"]["user_role"]
-          section?: string | null
+          unit?: string | null
           updated_at?: string
+          worker_type?: string | null
         }
         Relationships: []
       }
