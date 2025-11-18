@@ -381,19 +381,13 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
                   Configure video questions to enable video assignments for this job.
                 </p>
               </div>
-              <div className="flex gap-2 justify-center">
-                <Button 
-                  onClick={() => navigate(`/admin/jobs/${jobId}/video-assignment`)}
-                  variant="default"
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Configure Video Questions
-                </Button>
-                <Button variant="outline" disabled>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Video Assignment
-                </Button>
-              </div>
+              <Button 
+                onClick={() => navigate(`/admin/jobs/${jobId}/video-assignment`)}
+                variant="default"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Configure Video Questions
+              </Button>
             </div>
           ) : (
             <div className="text-center py-6">
