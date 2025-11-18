@@ -449,9 +449,12 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
     questions.forEach(q => {
       (q.requirement_ids || []).forEach(id => {
         const [reqId, bulletIdx] = id.split(':');
-        coveredRequirements.add(reqId);
         if (bulletIdx !== undefined) {
+          // Bullet-level selection: only this specific bullet is covered
           coveredBulletIds.add(`${reqId}:${bulletIdx}`);
+        } else {
+          // Legacy requirement-level selection: treat all bullets for this requirement as covered
+          coveredRequirements.add(reqId);
         }
       });
       (q.competency_ids || []).forEach(id => coveredCompetencies.add(id));
