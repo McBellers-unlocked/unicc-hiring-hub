@@ -100,6 +100,47 @@ Deno.serve(async (req) => {
       // Don't throw here, as the video was successfully uploaded
     }
 
+    // Update video assignment status
+    // First, get the assignment for this application
+    const { data: assignment, error: assignmentError } = await supabase
+      .from('video_assignments')
+      .select('id, video_question_sets(questions)')
+      .eq('application_id', applicationId)
+      .single();
+
+    if (!assignmentError && assignment) {
+      // Count how many answers exist for this application
+      const { data: answerCount, error: countError } = await supabase
+        .from('video_answers')
+        .select('id', { count: 'exact', head: true })
+        .eq('application_id', applicationId);
+
+      if (!countError) {
+        const totalQuestions = assignment.video_question_sets?.questions?.length || 0;
+        const answeredQuestions = answerCount?.length || 0;
+
+        // Update assignment status based on completion
+        let newStatus = 'InProgress';
+        if (answeredQuestions >= totalQuestions) {
+          newStatus = 'Completed';
+        }
+
+        const { error: statusUpdateError } = await supabase
+          .from('video_assignments')
+          .update({ 
+            status: newStatus,
+            completed_at: newStatus === 'Completed' ? new Date().toISOString() : null
+          })
+          .eq('id', assignment.id);
+
+        if (statusUpdateError) {
+          console.error('Error updating assignment status:', statusUpdateError);
+        } else {
+          console.log(`Assignment status updated to: ${newStatus}`);
+        }
+      }
+    }
+
     console.log(`Video answer uploaded successfully: ${videoAnswer.id}`);
 
     return new Response(
