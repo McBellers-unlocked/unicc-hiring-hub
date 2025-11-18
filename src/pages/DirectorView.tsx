@@ -26,6 +26,25 @@ export default function DirectorView() {
     setPdfPreview({ open: true, requisitionId });
   };
 
+  // Fetch initial requisition requests pending Director approval
+  const { data: initialRequests, isLoading: initialRequestsLoading } = useQuery({
+    queryKey: ["initial-requisitions-director-approval"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("job_requisitions")
+        .select(`
+          *,
+          creator:users!created_by(name, email)
+        `)
+        .eq("status", "initial_request_submitted")
+        .eq("initial_request_approved", false)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: requisitions, isLoading } = useQuery({
     queryKey: ["requisitions-director-approval"],
     queryFn: async () => {
@@ -62,6 +81,29 @@ export default function DirectorView() {
 
       if (error) throw error;
       return data;
+    },
+  });
+
+  const approveInitialRequestMutation = useMutation({
+    mutationFn: async ({ id, approved }: { id: string; approved: boolean }) => {
+      const { error } = await supabase
+        .from("job_requisitions")
+        .update({
+          initial_request_approved: approved,
+          initial_request_approved_at: new Date().toISOString(),
+          initial_request_approved_by: (await supabase.auth.getUser()).data.user?.id,
+          status: approved ? "initial_request_approved" : "rejected"
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["initial-requisitions-director-approval"] });
+      toast.success("Initial request updated successfully");
+    },
+    onError: () => {
+      toast.error("Failed to update initial request");
     },
   });
 
@@ -111,6 +153,10 @@ export default function DirectorView() {
     },
   });
 
+  const handleInitialRequestApproval = (id: string, approved: boolean) => {
+    approveInitialRequestMutation.mutate({ id, approved });
+  };
+
   const handleApproval = (id: string, approved: boolean) => {
     approveMutation.mutate({ id, approved });
   };
@@ -126,7 +172,70 @@ export default function DirectorView() {
           <h1 className="text-3xl font-bold">Director - Approvals</h1>
         </div>
 
-        {/* Requisition Approvals Section */}
+        {/* Initial Requisition Requests Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4">Initial Requisition Requests</h2>
+
+          {initialRequestsLoading ? (
+            <div>Loading...</div>
+          ) : (
+            <div className="grid gap-4">
+              {initialRequests?.length === 0 ? (
+                <Card>
+                  <CardContent className="p-6">
+                    <p className="text-center text-muted-foreground">
+                      No initial requisition requests pending your approval
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                initialRequests?.map((requisition) => (
+                  <Card key={requisition.id}>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle>{requisition.position_title}</CardTitle>
+                          <div className="flex gap-2 mt-2">
+                            <Badge variant="outline">{requisition.grade}</Badge>
+                            <Badge variant="outline">{requisition.nature_of_position}</Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Submitted: {format(new Date(requisition.created_at), "PPP")}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            By: {requisition.creator?.name}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => handleViewDetails(requisition.id)}
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            View Details
+                          </Button>
+                          <Button
+                            onClick={() => handleInitialRequestApproval(requisition.id, true)}
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={() => handleInitialRequestApproval(requisition.id, false)}
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Position Description Approvals Section */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-4">Position Description Approvals</h2>
 
