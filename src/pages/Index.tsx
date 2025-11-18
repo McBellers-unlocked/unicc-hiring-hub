@@ -95,6 +95,11 @@ const Index = () => {
     if (isCandidate) {
       return <CandidateDashboard />;
     }
+
+    if (isChiefOfDivision) {
+      navigate('/chief-of-division');
+      return null;
+    }
     
     if (isAdmin || isHR || isChiefHR) {
       return (
