@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
         division: row.division || null,
         unit: row.unit || null,
         line_manager: row.lineManager || null,
-        role: 'Candidate' as const,
+        role: 'Hiring Manager' as const,
       }));
 
     console.log('Inserting', usersToInsert.length, 'users');
