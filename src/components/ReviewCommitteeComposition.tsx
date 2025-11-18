@@ -360,7 +360,7 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
                           })
                           .map((user) => (
                             <SelectItem key={user.id} value={user.id}>
-                              {user.name} ({user.role})
+                              {user.name}
                             </SelectItem>
                           ))}
                       </SelectContent>
