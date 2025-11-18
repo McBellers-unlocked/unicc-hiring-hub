@@ -1804,7 +1804,35 @@ export default function JobRequisitionForm() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onSubmit(form.getValues(), false)}
+                onClick={async () => {
+                  const isValid = await form.trigger();
+                  if (!isValid) {
+                    const errors = form.formState.errors;
+                    const missingFields = Object.entries(errors)
+                      .map(([field, error]) => {
+                        if (field === 'start_date') return 'Start Date';
+                        if (field === 'position_title') return 'Position Title';
+                        if (field === 'nature_of_position') return 'Nature of Position';
+                        if (field === 'unit_section_division') return 'Unit/Section/Division';
+                        if (field === 'duty_station') return 'Duty Station';
+                        if (field === 'purpose_of_position') return 'Purpose of Position';
+                        if (field === 'main_duties_responsibilities') return 'Main Duties';
+                        if (field === 'essential_experience') return 'Essential Experience';
+                        if (field === 'essential_education') return 'Essential Education';
+                        if (field === 'essential_education_level') return 'Essential Education Level';
+                        return field;
+                      })
+                      .filter(Boolean);
+                    
+                    toast({
+                      title: "Required Fields Missing",
+                      description: `Please fill in the following required fields: ${missingFields.join(', ')}`,
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  onSubmit(form.getValues(), false);
+                }}
                 disabled={saving}
               >
                 <Save className="h-4 w-4 mr-2" />
@@ -1815,7 +1843,35 @@ export default function JobRequisitionForm() {
               {currentRequisition?.status !== 'hr_amendments' && (
                 <Button
                   type="button"
-                  onClick={() => onSubmit(form.getValues(), true)}
+                  onClick={async () => {
+                    const isValid = await form.trigger();
+                    if (!isValid) {
+                      const errors = form.formState.errors;
+                      const missingFields = Object.entries(errors)
+                        .map(([field, error]) => {
+                          if (field === 'start_date') return 'Start Date';
+                          if (field === 'position_title') return 'Position Title';
+                          if (field === 'nature_of_position') return 'Nature of Position';
+                          if (field === 'unit_section_division') return 'Unit/Section/Division';
+                          if (field === 'duty_station') return 'Duty Station';
+                          if (field === 'purpose_of_position') return 'Purpose of Position';
+                          if (field === 'main_duties_responsibilities') return 'Main Duties';
+                          if (field === 'essential_experience') return 'Essential Experience';
+                          if (field === 'essential_education') return 'Essential Education';
+                          if (field === 'essential_education_level') return 'Essential Education Level';
+                          return field;
+                        })
+                        .filter(Boolean);
+                      
+                      toast({
+                        title: "Required Fields Missing",
+                        description: `Please fill in the following required fields: ${missingFields.join(', ')}`,
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    onSubmit(form.getValues(), true);
+                  }}
                   disabled={saving || !form.getValues('confirmChiefApproval')}
                 >
                   <Send className="h-4 w-4 mr-2" />
