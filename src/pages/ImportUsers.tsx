@@ -10,13 +10,49 @@ import { Upload, ArrowLeft } from 'lucide-react';
 export default function ImportUsers() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      if (selectedFile.type === 'text/csv' || selectedFile.name.endsWith('.csv')) {
+        setFile(selectedFile);
+      } else {
+        toast({
+          title: 'Invalid file type',
+          description: 'Please select a CSV file',
+          variant: 'destructive',
+        });
+      }
     }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile && (droppedFile.type === 'text/csv' || droppedFile.name.endsWith('.csv'))) {
+      setFile(droppedFile);
+    } else {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please drop a CSV file',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
   };
 
   const handleImport = async () => {
@@ -84,10 +120,19 @@ export default function ImportUsers() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+            <div 
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                isDragging 
+                  ? 'border-primary bg-primary/5' 
+                  : 'border-border hover:border-primary/50'
+              }`}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+            >
               <input
                 type="file"
-                accept=".csv"
+                accept=".csv,text/csv"
                 onChange={handleFileChange}
                 className="hidden"
                 id="csv-upload"
