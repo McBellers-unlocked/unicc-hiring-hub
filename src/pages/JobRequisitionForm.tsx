@@ -1195,9 +1195,10 @@ export default function JobRequisitionForm() {
                           data-color-mode="light"
                           className="[&_.w-md-editor-text]:placeholder-shown:bg-muted/20"
                           visibleDragbar={false}
-                          textareaProps={{
-                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
-                          }}
+                           textareaProps={{
+                             onPaste: (e) => handlePaste(e, field.onChange, field.value),
+                             onKeyDown: (e) => handleListEnter(e, field.onChange, field.value)
+                           }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
                               name: 'title',
@@ -1257,7 +1258,8 @@ export default function JobRequisitionForm() {
                           hideToolbar={false}
                           data-color-mode="light"
                           textareaProps={{
-                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
+                            onPaste: (e) => handlePaste(e, field.onChange, field.value),
+                            onKeyDown: (e) => handleListEnter(e, field.onChange, field.value)
                           }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
@@ -1297,7 +1299,8 @@ export default function JobRequisitionForm() {
                           hideToolbar={false}
                           data-color-mode="light"
                           textareaProps={{
-                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
+                            onPaste: (e) => handlePaste(e, field.onChange, field.value),
+                            onKeyDown: (e) => handleListEnter(e, field.onChange, field.value)
                           }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
@@ -1369,7 +1372,8 @@ export default function JobRequisitionForm() {
                           hideToolbar={false}
                           data-color-mode="light"
                           textareaProps={{
-                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
+                            onPaste: (e) => handlePaste(e, field.onChange, field.value),
+                            onKeyDown: (e) => handleListEnter(e, field.onChange, field.value)
                           }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
@@ -1409,7 +1413,8 @@ export default function JobRequisitionForm() {
                           hideToolbar={false}
                           data-color-mode="light"
                           textareaProps={{
-                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
+                            onPaste: (e) => handlePaste(e, field.onChange, field.value),
+                            onKeyDown: (e) => handleListEnter(e, field.onChange, field.value)
                           }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
