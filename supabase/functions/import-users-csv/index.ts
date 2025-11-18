@@ -16,6 +16,7 @@ interface UserRow {
   division?: string;
   unit?: string;
   lineManager?: string;
+  currentGrade?: string;
 }
 
 Deno.serve(async (req) => {
@@ -103,6 +104,7 @@ Deno.serve(async (req) => {
           division: values[7] || null,
           unit: values[8] || null,
           lineManager: values[9] || null,
+          currentGrade: values[10] || null,
         });
       }
     }
@@ -123,6 +125,7 @@ Deno.serve(async (req) => {
           division: row.division || null,
           unit: row.unit || null,
           line_manager: row.lineManager || null,
+          current_grade: row.currentGrade || null,
           role: 'Hiring Manager' as const,
         };
 
