@@ -75,6 +75,11 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
   useEffect(() => {
     if (currentQuestion && phase === 'preparation') {
       startTimer(currentQuestion.prep_and_read_secs);
+      
+      // Ensure video stream is reconnected for new question
+      if (videoRef.current && mediaStream) {
+        videoRef.current.srcObject = mediaStream;
+      }
     }
   }, [currentQuestionIndex, phase]);
 
@@ -365,6 +370,15 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
 
   const proceedToNext = () => {
     if (currentQuestionIndex < questions.length - 1) {
+      // Clear previous question's recording and reset state
+      setRecordedBlob(null);
+      setRetakeCount(0);
+      
+      // Reconnect live video stream
+      if (videoRef.current && mediaStream) {
+        videoRef.current.srcObject = mediaStream;
+      }
+      
       setCurrentQuestionIndex(prev => prev + 1);
       setPhase('preparation');
     } else {
