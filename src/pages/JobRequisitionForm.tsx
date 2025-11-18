@@ -201,6 +201,44 @@ const customUnorderedListCommand: ICommand = {
   }
 };
 
+// Handle Enter key in lists to maintain spacing
+const handleListEnter = (e: React.KeyboardEvent, onChange: (value: string) => void, currentValue: string) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    const textarea = e.target as HTMLTextAreaElement;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    
+    // Get the current line
+    const beforeCursor = currentValue.substring(0, start);
+    const afterCursor = currentValue.substring(end);
+    const lines = beforeCursor.split('\n');
+    const currentLine = lines[lines.length - 1];
+    
+    // Check if we're in a bullet list
+    const bulletMatch = currentLine.match(/^(\s*-\s*)(.*)/);
+    if (bulletMatch) {
+      e.preventDefault();
+      const [, bullet, content] = bulletMatch;
+      
+      // If the current bullet is empty, remove it
+      if (!content.trim()) {
+        const newValue = beforeCursor.substring(0, beforeCursor.length - currentLine.length) + afterCursor;
+        onChange(newValue);
+        setTimeout(() => {
+          textarea.selectionStart = textarea.selectionEnd = beforeCursor.length - currentLine.length;
+        }, 0);
+      } else {
+        // Add new bullet with blank line
+        const newValue = beforeCursor + '\n\n- ' + afterCursor;
+        onChange(newValue);
+        setTimeout(() => {
+          textarea.selectionStart = textarea.selectionEnd = start + 4; // Position after "\n\n- "
+        }, 0);
+      }
+    }
+  }
+};
+
 export default function JobRequisitionForm() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -1137,7 +1175,8 @@ export default function JobRequisitionForm() {
                           className="[&_.w-md-editor-text]:placeholder-shown:bg-muted/20"
                           visibleDragbar={false}
                           textareaProps={{
-                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
+                            onPaste: (e) => handlePaste(e, field.onChange, field.value),
+                            onKeyDown: (e) => handleListEnter(e, field.onChange, field.value)
                           }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
@@ -1198,7 +1237,8 @@ export default function JobRequisitionForm() {
                           hideToolbar={false}
                           data-color-mode="light"
                           textareaProps={{
-                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
+                            onPaste: (e) => handlePaste(e, field.onChange, field.value),
+                            onKeyDown: (e) => handleListEnter(e, field.onChange, field.value)
                           }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
@@ -1238,7 +1278,8 @@ export default function JobRequisitionForm() {
                           hideToolbar={false}
                           data-color-mode="light"
                           textareaProps={{
-                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
+                            onPaste: (e) => handlePaste(e, field.onChange, field.value),
+                            onKeyDown: (e) => handleListEnter(e, field.onChange, field.value)
                           }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
@@ -1310,7 +1351,8 @@ export default function JobRequisitionForm() {
                           hideToolbar={false}
                           data-color-mode="light"
                           textareaProps={{
-                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
+                            onPaste: (e) => handlePaste(e, field.onChange, field.value),
+                            onKeyDown: (e) => handleListEnter(e, field.onChange, field.value)
                           }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
@@ -1350,7 +1392,8 @@ export default function JobRequisitionForm() {
                           hideToolbar={false}
                           data-color-mode="light"
                           textareaProps={{
-                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
+                            onPaste: (e) => handlePaste(e, field.onChange, field.value),
+                            onKeyDown: (e) => handleListEnter(e, field.onChange, field.value)
                           }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
