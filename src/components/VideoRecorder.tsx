@@ -420,7 +420,6 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
                 src={recordedBlob ? URL.createObjectURL(recordedBlob) : undefined}
                 className="w-full h-full object-cover"
                 controls
-                autoPlay={phase === 'review'}
                 playsInline
               />
             ) : (
