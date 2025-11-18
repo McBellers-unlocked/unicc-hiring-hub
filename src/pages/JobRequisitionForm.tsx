@@ -185,17 +185,25 @@ const handlePaste = (event: React.ClipboardEvent, onChange: (value: string) => v
 const customUnorderedListCommand: ICommand = {
   ...commands.unorderedListCommand,
   execute: (state, api) => {
-    const selection = state.selection;
+    const { selection, text } = state;
 
-    // If nothing is selected, use the default behaviour
+    // If nothing is selected, insert a single bullet at the cursor without selecting it
     if (selection.start === selection.end) {
-      if (typeof commands.unorderedListCommand.execute === "function") {
-        return commands.unorderedListCommand.execute(state, api);
+      const before = text.substring(0, selection.start);
+      const after = text.substring(selection.end);
+
+      // Respect existing spacing: if we're in the middle of a line, just insert "- "
+      const insert = "- ";
+      api.replaceSelection(insert);
+
+      const cursor = selection.start + insert.length;
+      if (typeof api.setSelectionRange === "function") {
+        api.setSelectionRange({ start: cursor, end: cursor });
       }
       return;
     }
 
-    const selectedText = state.text.substring(selection.start, selection.end);
+    const selectedText = text.substring(selection.start, selection.end);
 
     // Remove empty lines and format with bullets
     const lines = selectedText.split('\n');
@@ -223,41 +231,50 @@ const customUnorderedListCommand: ICommand = {
 };
 
 // Handle Enter key in lists to maintain spacing
-const handleListEnter = (e: React.KeyboardEvent, onChange: (value: string) => void, currentValue: string) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    const textarea = e.target as HTMLTextAreaElement;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    
-    // Get the current line
-    const beforeCursor = currentValue.substring(0, start);
-    const afterCursor = currentValue.substring(end);
-    const lines = beforeCursor.split('\n');
-    const currentLine = lines[lines.length - 1];
-    
-    // Check if we're in a bullet list
-    const bulletMatch = currentLine.match(/^(\s*-\s*)(.*)/);
-    if (bulletMatch) {
-      e.preventDefault();
-      const [, bullet, content] = bulletMatch;
-      
-      // If the current bullet is empty, remove it
-      if (!content.trim()) {
-        const newValue = beforeCursor.substring(0, beforeCursor.length - currentLine.length) + afterCursor;
-        onChange(newValue);
-        setTimeout(() => {
-          textarea.selectionStart = textarea.selectionEnd = beforeCursor.length - currentLine.length;
-        }, 0);
-      } else {
-        // Add new bullet with blank line
-        const newValue = beforeCursor + '\n\n- ' + afterCursor;
-        onChange(newValue);
-        setTimeout(() => {
-          textarea.selectionStart = textarea.selectionEnd = start + 4; // Position after "\n\n- "
-        }, 0);
-      }
-    }
+const handleListEnter = (
+  e: React.KeyboardEvent,
+  onChange: (value: string) => void,
+  currentValue: string
+) => {
+  if (e.key !== 'Enter' || e.shiftKey) return;
+
+  const textarea = e.target as HTMLTextAreaElement;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+
+  // Defensive: if we don't have a current value, fall back to default behaviour
+  if (typeof currentValue !== 'string') return;
+
+  const beforeCursor = currentValue.substring(0, start);
+  const afterCursor = currentValue.substring(end);
+  const lines = beforeCursor.split('\n');
+  const currentLine = lines[lines.length - 1] ?? '';
+
+  // Check if we're in a bullet list
+  const bulletMatch = currentLine.match(/^(\s*-\s*)(.*)/);
+  if (!bulletMatch) return;
+
+  e.preventDefault();
+  const [, bullet, content] = bulletMatch;
+
+  // If the current bullet is empty, remove it
+  if (!content.trim()) {
+    const newValue = beforeCursor.substring(0, beforeCursor.length - currentLine.length) + afterCursor;
+    onChange(newValue);
+    setTimeout(() => {
+      const newPos = beforeCursor.length - currentLine.length;
+      textarea.selectionStart = textarea.selectionEnd = newPos;
+    }, 0);
+    return;
   }
+
+  // Add new bullet with blank line
+  const newValue = beforeCursor + '\n\n- ' + afterCursor;
+  onChange(newValue);
+  setTimeout(() => {
+    const newPos = start + 4; // position after "\n\n- "
+    textarea.selectionStart = textarea.selectionEnd = newPos;
+  }, 0);
 };
 
 export default function JobRequisitionForm() {
