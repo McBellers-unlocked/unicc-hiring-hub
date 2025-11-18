@@ -141,64 +141,84 @@ Deno.serve(async (req) => {
       const batch = usersToInsert.slice(i, i + batchSize);
       
       for (const user of batch) {
-        // Check if user exists in auth.users by email
-        const { data: authUser } = await supabaseClient.auth.admin.listUsers();
-        const existingAuthUser = authUser?.users?.find(u => u.email === user.email);
+        try {
+          // Check if auth user exists
+          const { data: authUsers } = await supabaseClient.auth.admin.listUsers();
+          let authUser = authUsers?.users?.find(u => u.email === user.email);
 
-        if (!existingAuthUser) {
-          // Skip users without auth accounts
-          console.log(`Skipping ${user.email} - no auth account found`);
-          errors++;
-          continue;
-        }
-
-        // Check if user exists in users table
-        const { data: existingUser } = await supabaseClient
-          .from('users')
-          .select('id, role')
-          .eq('email', user.email)
-          .single();
-
-        // Preserve Admin, HR Assistant, and Chief of HR roles
-        const adminRoles = ['Admin', 'HR Assistant', 'Chief of HR', 'Director'];
-        if (existingUser && adminRoles.includes(existingUser.role)) {
-          // Update without changing the role
-          const { role, ...userWithoutRole } = user;
-          const { error } = await supabaseClient
-            .from('users')
-            .update(userWithoutRole)
-            .eq('id', existingUser.id);
-
-          if (error) {
-            console.error('Error updating user:', user.email, error);
-            errors++;
-          } else {
-            updated++;
-          }
-        } else {
-          // Insert or update with Hiring Manager role, using auth user ID
-          const userWithId = {
-            ...user,
-            id: existingAuthUser.id
-          };
-
-          const { error } = await supabaseClient
-            .from('users')
-            .upsert(userWithId, { 
-              onConflict: 'id',
-              ignoreDuplicates: false 
+          // Create auth account if it doesn't exist
+          if (!authUser) {
+            console.log(`Creating auth account for ${user.email}`);
+            const { data: newAuthUser, error: authError } = await supabaseClient.auth.admin.createUser({
+              email: user.email,
+              password: 'UN1CC0nnect',
+              email_confirm: true, // Skip email verification
+              user_metadata: {
+                name: user.name
+              }
             });
 
-          if (error) {
-            console.error('Error inserting user:', user.email, error);
-            errors++;
-          } else {
-            if (existingUser) {
-              updated++;
+            if (authError) {
+              console.error('Error creating auth user:', user.email, authError);
+              errors++;
+              continue;
+            }
+            
+            authUser = newAuthUser.user;
+            console.log(`Created auth account for ${user.email}`);
+          }
+
+          // Check if user exists in users table
+          const { data: existingUser } = await supabaseClient
+            .from('users')
+            .select('id, role')
+            .eq('email', user.email)
+            .single();
+
+          // Preserve Admin, HR Assistant, Chief of HR, and Director roles
+          const adminRoles = ['Admin', 'HR Assistant', 'Chief of HR', 'Director'];
+          if (existingUser && adminRoles.includes(existingUser.role)) {
+            // Update without changing the role
+            const { role, ...userWithoutRole } = user;
+            const { error } = await supabaseClient
+              .from('users')
+              .update(userWithoutRole)
+              .eq('id', existingUser.id);
+
+            if (error) {
+              console.error('Error updating user:', user.email, error);
+              errors++;
             } else {
-              inserted++;
+              updated++;
+            }
+          } else {
+            // Insert or update with Hiring Manager role, using auth user ID
+            const userWithId = {
+              ...user,
+              id: authUser!.id
+            };
+
+            const { error } = await supabaseClient
+              .from('users')
+              .upsert(userWithId, { 
+                onConflict: 'id',
+                ignoreDuplicates: false 
+              });
+
+            if (error) {
+              console.error('Error inserting user:', user.email, error);
+              errors++;
+            } else {
+              if (existingUser) {
+                updated++;
+              } else {
+                inserted++;
+              }
             }
           }
+        } catch (error) {
+          console.error('Error processing user:', user.email, error);
+          errors++;
         }
       }
     }
