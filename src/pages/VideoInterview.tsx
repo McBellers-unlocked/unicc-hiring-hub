@@ -35,6 +35,7 @@ export default function VideoInterview() {
   const navigate = useNavigate();
   const [questionSet, setQuestionSet] = useState<VideoQuestionSet | null>(null);
   const [job, setJob] = useState<Job | null>(null);
+  const [showInstructions, setShowInstructions] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isValidLink, setIsValidLink] = useState(false);
@@ -222,7 +223,137 @@ export default function VideoInterview() {
       <div className="min-h-screen bg-background">
         <VideoHeader />
         <div className="container mx-auto px-4 py-8 max-w-4xl">
-          <Card>
+          {showInstructions ? (
+            // Detailed Instructions Screen
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-2xl">Video Interview Instructions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Welcome */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Welcome to Your Video Interview</h3>
+                  <p className="text-muted-foreground">
+                    Thank you for taking the time to complete this video interview for the position of <strong>{job.title}</strong> at <strong>{job.company}</strong>.
+                  </p>
+                </div>
+
+                {/* Technical Requirements */}
+                <div className="border rounded-lg p-4 bg-muted/50">
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Video className="h-5 w-5" />
+                    Technical Requirements
+                  </h3>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary">✓</span>
+                      <span>A working camera and microphone</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary">✓</span>
+                      <span>A stable internet connection</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary">✓</span>
+                      <span>A quiet, well-lit environment</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary">✓</span>
+                      <span>Allow browser permissions for camera and microphone access</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Interview Format */}
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    Interview Format
+                  </h3>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-start gap-2">
+                      <span className="font-semibold text-primary">1.</span>
+                      <span>You will be presented with <strong>{questionSet.questions.length} questions</strong> one at a time</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-semibold text-primary">2.</span>
+                      <span>For each question, you will have time to read and prepare before recording starts</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-semibold text-primary">3.</span>
+                      <span>Once recording begins, answer the question clearly and concisely</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-semibold text-primary">4.</span>
+                      <span>You can review your answer before submitting</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-semibold text-primary">5.</span>
+                      <span>Some questions may allow retakes if you are not satisfied with your answer</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Tips */}
+                <div className="border rounded-lg p-4 bg-primary/5">
+                  <h3 className="text-lg font-semibold mb-3">Tips for Success</h3>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-start gap-2">
+                      <span>•</span>
+                      <span>Position your camera at eye level</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>•</span>
+                      <span>Look directly at the camera when speaking</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>•</span>
+                      <span>Speak clearly and at a moderate pace</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>•</span>
+                      <span>Take a moment to organize your thoughts during preparation time</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>•</span>
+                      <span>Be yourself and show your personality</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Time Estimate */}
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <p className="text-sm">
+                    <strong>Estimated Time:</strong> Approximately {formatTime(calculateTotalTime())} to complete this interview
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    size="lg"
+                    className="flex-1"
+                    onClick={() => {
+                      setShowInstructions(false);
+                      setHasStarted(true);
+                    }}
+                  >
+                    <Video className="mr-2 h-4 w-4" />
+                    Begin Interview
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={() => setShowInstructions(false)}
+                  >
+                    Back
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            // Overview Screen
+            <Card>
             <CardHeader className="text-center">
               <div className="flex justify-center mb-4">
                 <Video className="w-16 h-16 text-primary" />
@@ -337,13 +468,14 @@ export default function VideoInterview() {
 
               {/* Start Button */}
               <div className="text-center">
-                <Button onClick={() => setHasStarted(true)} size="lg" className="px-8">
+                <Button onClick={() => setShowInstructions(true)} size="lg" className="px-8">
                   <Video className="w-5 h-5 mr-2" />
-                  Start Video Interview
+                  Start Interview
                 </Button>
               </div>
             </CardContent>
           </Card>
+          )}
         </div>
       </div>
     );
