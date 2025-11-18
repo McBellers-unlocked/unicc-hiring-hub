@@ -158,7 +158,13 @@ const fixMarkdownFormatting = (text: string): string => {
 
   // Fix bold formatting with spaces before closing markers
   // **text ** -> **text**
-  return text.replace(/(\*\*[^*]+?)\s+(\*\*)/g, "$1$2");
+  let fixed = text.replace(/(\*\*[^*]+?)\s+(\*\*)/g, "$1$2");
+
+  // Ensure exactly one blank line between bullet items
+  // "- a\n- b" or "- a\n\n\n- b" -> "- a\n\n- b"
+  fixed = fixed.replace(/(^\s*-\s+.*?)(\n+)(?=\s*-\s+)/gm, "$1\n\n");
+
+  return fixed;
 };
 
 // Handle paste events to convert HTML to Markdown
@@ -228,52 +234,6 @@ const customUnorderedListCommand: ICommand = {
     // Add blank line between each bullet point for spacing
     api.replaceSelection(formattedLines.join('\n\n'));
   }
-};
-
-// Handle Enter key in lists to maintain spacing
-const handleListEnter = (
-  e: React.KeyboardEvent<HTMLTextAreaElement>,
-  onChange: (value: string) => void,
-) => {
-  if (e.key !== "Enter" || e.shiftKey) return;
-
-  const textarea = e.currentTarget;
-  const value = textarea.value ?? "";
-  const start = textarea.selectionStart ?? value.length;
-  const end = textarea.selectionEnd ?? value.length;
-
-  const beforeCursor = value.substring(0, start);
-  const afterCursor = value.substring(end);
-  const lines = beforeCursor.split("\n");
-  const currentLine = lines[lines.length - 1] ?? "";
-
-  // Check if we're in a bullet list
-  const bulletMatch = currentLine.match(/^(\s*-\s*)(.*)/);
-  if (!bulletMatch) return;
-
-  console.log("handleListEnter", { currentLine, start });
-
-  e.preventDefault();
-  const [, , content] = bulletMatch;
-
-  // If the current bullet is empty, remove it
-  if (!content.trim()) {
-    const newValue = beforeCursor.substring(0, beforeCursor.length - currentLine.length) + afterCursor;
-    onChange(newValue);
-    setTimeout(() => {
-      const newPos = beforeCursor.length - currentLine.length;
-      textarea.setSelectionRange(newPos, newPos);
-    }, 0);
-    return;
-  }
-
-  // Add new bullet with blank line
-  const newValue = beforeCursor + "\n\n- " + afterCursor;
-  onChange(newValue);
-  setTimeout(() => {
-    const newPos = start + 4; // position after "\n\n- "
-    textarea.setSelectionRange(newPos, newPos);
-  }, 0);
 };
 
 export default function JobRequisitionForm() {
@@ -1211,10 +1171,9 @@ export default function JobRequisitionForm() {
                           data-color-mode="light"
                           className="[&_.w-md-editor-text]:placeholder-shown:bg-muted/20"
                           visibleDragbar={false}
-                           textareaProps={{
-                             onPaste: (e) => handlePaste(e, field.onChange, field.value),
-                             onKeyDown: (e) => handleListEnter(e, field.onChange)
-                           }}
+                          textareaProps={{
+                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
+                          }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
                               name: 'title',
@@ -1273,10 +1232,9 @@ export default function JobRequisitionForm() {
                           preview="edit"
                           hideToolbar={false}
                           data-color-mode="light"
-                          textareaProps={{
-                            onPaste: (e) => handlePaste(e, field.onChange, field.value),
-                            onKeyDown: (e) => handleListEnter(e, field.onChange)
-                          }}
+                           textareaProps={{
+                             onPaste: (e) => handlePaste(e, field.onChange, field.value)
+                           }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
                               name: 'title',
@@ -1315,8 +1273,7 @@ export default function JobRequisitionForm() {
                           hideToolbar={false}
                           data-color-mode="light"
                           textareaProps={{
-                            onPaste: (e) => handlePaste(e, field.onChange, field.value),
-                            onKeyDown: (e) => handleListEnter(e, field.onChange)
+                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
                           }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
@@ -1388,8 +1345,7 @@ export default function JobRequisitionForm() {
                           hideToolbar={false}
                           data-color-mode="light"
                           textareaProps={{
-                            onPaste: (e) => handlePaste(e, field.onChange, field.value),
-                            onKeyDown: (e) => handleListEnter(e, field.onChange)
+                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
                           }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
@@ -1429,8 +1385,7 @@ export default function JobRequisitionForm() {
                           hideToolbar={false}
                           data-color-mode="light"
                           textareaProps={{
-                            onPaste: (e) => handlePaste(e, field.onChange, field.value),
-                            onKeyDown: (e) => handleListEnter(e, field.onChange)
+                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
                           }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
