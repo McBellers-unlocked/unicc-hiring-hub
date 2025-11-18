@@ -781,7 +781,11 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                                              <div className="font-medium">
                                                {req.title}
                                              </div>
-                                             <div className="text-xs text-muted-foreground">{req.category}</div>
+                                             {req.description && (
+                                               <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                                 {req.description}
+                                               </div>
+                                             )}
                                            </div>
                                         </CommandItem>
                                       ))}
