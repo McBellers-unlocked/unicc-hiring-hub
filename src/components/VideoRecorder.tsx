@@ -269,11 +269,10 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
       if (isPractice) {
         toast({
           title: "Practice Complete",
-          description: "Great! Your camera and microphone are working. Ready to start the actual interview?",
+          description: "Great! Your camera and microphone are working. Review your recording below.",
         });
         setPhase('submitted');
-        setRecordedBlob(null);
-        setRetakeCount(0);
+        // Keep the recordedBlob for practice so they can review it
         setIsUploading(false);
         return;
       }
@@ -409,13 +408,23 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
       <Card>
         <CardContent className="p-6">
           <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
-            <video
-              ref={videoRef}
-              autoPlay
-              muted
-              playsInline
-              className="w-full h-full object-cover"
-            />
+            {phase === 'review' || (phase === 'submitted' && isPractice && recordedBlob) ? (
+              <video
+                ref={videoRef}
+                src={recordedBlob ? URL.createObjectURL(recordedBlob) : undefined}
+                className="w-full h-full object-cover"
+                controls
+                autoPlay={phase === 'review'}
+              />
+            ) : (
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
+            )}
             
             {/* Preparation Phase Overlay */}
             {phase === 'preparation' && (
@@ -559,7 +568,7 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
           {phase === 'submitted' && (
             <div className="text-center text-green-600 font-medium mt-4">
               ✓ {isPractice 
-                ? 'Practice complete! Your camera and microphone are working properly. Click the button to start the actual interview.'
+                ? 'Practice complete! Review your recording above. You can practice again or start the actual interview when ready.'
                 : `Your answer has been successfully submitted. ${currentQuestionIndex < questions.length - 1 
                   ? 'Click the button to continue to the next question.' 
                   : 'Click the button to complete your interview.'}`
