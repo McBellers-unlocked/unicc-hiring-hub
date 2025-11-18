@@ -283,7 +283,7 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
       if (membersInSameDivision.length > 0) {
         membersInSameDivision.forEach(member => {
           errors.push(
-            `${member.user?.name} (${member.role}) cannot be in the same division as the Chair (${chairDivision})`
+            `${member.user?.name} (${member.role}) should not be in the same reporting line as the Chair (${chairDivision})`
           );
         });
       }
