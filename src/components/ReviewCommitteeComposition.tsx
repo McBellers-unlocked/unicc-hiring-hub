@@ -260,8 +260,10 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
     // Check gender balance (must be 2 men and 2 women)
     const genderCounts = committeeMembers.reduce((acc, member) => {
       const gender = member.user?.gender?.toLowerCase();
-      if (gender === 'male' || gender === 'female') {
-        acc[gender] = (acc[gender] || 0) + 1;
+      if (gender === 'male' || gender === 'man') {
+        acc['male'] = (acc['male'] || 0) + 1;
+      } else if (gender === 'female' || gender === 'woman') {
+        acc['female'] = (acc['female'] || 0) + 1;
       }
       return acc;
     }, {} as Record<string, number>);
