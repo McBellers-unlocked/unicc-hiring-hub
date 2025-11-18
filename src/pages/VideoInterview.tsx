@@ -242,7 +242,7 @@ export default function VideoInterview() {
                   <p className="text-sm text-muted-foreground">
                     This is a practice question to help you test your camera and microphone setup. 
                     <strong className="text-foreground"> Your answer will NOT be recorded or reviewed</strong> by the hiring team.
-                    When you are satisfied with your setup, you can proceed to the actual interview.
+                    You can practice as many times as you want. When you are satisfied with your setup, proceed to the actual interview.
                   </p>
                 </div>
               </div>
@@ -254,6 +254,11 @@ export default function VideoInterview() {
             onComplete={() => {
               setShowPractice(false);
               setHasStarted(true);
+            }}
+            onPracticeAgain={() => {
+              // Force remount of VideoRecorder by toggling state
+              setShowPractice(false);
+              setTimeout(() => setShowPractice(true), 10);
             }}
             isPractice={true}
           />
