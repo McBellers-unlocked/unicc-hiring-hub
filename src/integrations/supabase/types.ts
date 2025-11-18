@@ -2065,6 +2065,7 @@ export type Database = {
       users: {
         Row: {
           created_at: string
+          current_grade: string | null
           department: string | null
           division: string | null
           duty_station: string | null
@@ -2081,6 +2082,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_grade?: string | null
           department?: string | null
           division?: string | null
           duty_station?: string | null
@@ -2097,6 +2099,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_grade?: string | null
           department?: string | null
           division?: string | null
           duty_station?: string | null
