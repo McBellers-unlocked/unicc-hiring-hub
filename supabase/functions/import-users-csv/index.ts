@@ -60,6 +60,31 @@ Deno.serve(async (req) => {
       throw new Error('Only authorized personnel can import users');
     }
 
+    // Build an in-memory map of existing auth users (email -> id) to avoid per-user lookups
+    const authUserMap = new Map<string, string>();
+    try {
+      const perPage = 1000;
+      let page = 1;
+      while (true) {
+        const { data, error } = await supabaseClient.auth.admin.listUsers({ page, perPage });
+        if (error) {
+          console.error('Error listing auth users for cache:', error);
+          break;
+        }
+        const users = data?.users ?? [];
+        for (const u of users) {
+          if (u.email) {
+            authUserMap.set(u.email.toLowerCase(), u.id);
+          }
+        }
+        if (users.length < perPage) break;
+        page++;
+      }
+      console.log('Cached', authUserMap.size, 'auth users for import');
+    } catch (authCacheError) {
+      console.error('Error building auth user cache:', authCacheError);
+    }
+
     const { csvData } = await req.json();
     
     console.log('Starting CSV import with', csvData?.length, 'rows');
@@ -145,22 +170,11 @@ Deno.serve(async (req) => {
       
       for (const user of batch) {
         try {
-          let authUserId: string | undefined;
-
-          // Try to get existing auth user by email
-          try {
-            const { data: authUsers } = await supabaseClient.auth.admin.listUsers();
-            const existingAuthUser = authUsers?.users?.find(u => u.email === user.email);
-            
-            if (existingAuthUser) {
-              authUserId = existingAuthUser.id;
-              console.log(`Auth account already exists for ${user.email}`);
-            }
-          } catch (listError) {
-            console.error('Error listing auth users:', listError);
-          }
+          // Try to resolve auth user from cache first
+          let authUserId: string | undefined = authUserMap.get(user.email);
 
           // Create auth account if it doesn't exist
+          if (!authUserId) {
           if (!authUserId) {
             console.log(`Creating auth account for ${user.email}`);
             try {
@@ -174,14 +188,12 @@ Deno.serve(async (req) => {
               });
 
               if (authError) {
-                // If error is "email_exists", user already has auth account but we couldn't find it
+                // If error is "email_exists", user already has auth account
                 if (authError.message?.includes('already been registered') || authError.code === 'email_exists') {
-                  console.log(`Auth account exists for ${user.email}, will update users table only`);
-                  // Try to find the auth user again
-                  const { data: authUsers } = await supabaseClient.auth.admin.listUsers();
-                  const existingAuthUser = authUsers?.users?.find(u => u.email === user.email);
-                  if (existingAuthUser) {
-                    authUserId = existingAuthUser.id;
+                  console.log(`Auth account exists for ${user.email}, using cached auth user if available`);
+                  const cachedId = authUserMap.get(user.email);
+                  if (cachedId) {
+                    authUserId = cachedId;
                   } else {
                     // Fallback: resolve auth user id via existing users row by email
                     const { data: existingUserByEmail } = await supabaseClient
@@ -200,6 +212,7 @@ Deno.serve(async (req) => {
                 }
               } else if (newAuthUser?.user) {
                 authUserId = newAuthUser.user.id;
+                authUserMap.set(user.email, authUserId);
                 console.log(`Created auth account for ${user.email}`);
               }
             } catch (createError) {
