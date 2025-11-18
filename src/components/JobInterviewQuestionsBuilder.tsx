@@ -745,8 +745,8 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                             <Popover>
                               <PopoverTrigger asChild>
                                 <Button variant="outline" className="w-full justify-between">
-                                  {question.requirement_ids && question.requirement_ids.length > 0
-                                    ? `${question.requirement_ids.length} selected`
+                                  {(question.requirement_ids ?? []).length > 0
+                                    ? `${(question.requirement_ids ?? []).length} selected`
                                     : "Select skills..."}
                                 </Button>
                               </PopoverTrigger>
@@ -790,8 +790,8 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                             <Popover>
                               <PopoverTrigger asChild>
                                 <Button variant="outline" className="w-full justify-between">
-                                  {question.competency_ids && question.competency_ids.length > 0
-                                    ? `${question.competency_ids.length} selected`
+                                  {(question.competency_ids ?? []).length > 0
+                                    ? `${(question.competency_ids ?? []).length} selected`
                                     : "Select competencies..."}
                                 </Button>
                               </PopoverTrigger>
