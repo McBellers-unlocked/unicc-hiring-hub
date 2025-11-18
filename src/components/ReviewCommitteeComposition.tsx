@@ -22,11 +22,11 @@ const REQUIRED_ROLES = [
 
 // ExCo members who can be Chair
 const EXCO_MEMBERS = [
-  "Sameer Chauhan",
-  "Milena Grecuccio",
-  "Tima Soni",
-  "Anish Sethi",
-  "Marco Liuzzi"
+  " Sameer Chauhan",
+  "Milena GRECUCCIO",
+  "Tima SONI",
+  "Anish SETHI",
+  "Marco LIUZZI"
 ];
 
 // Staff representatives eligible for Staff Representative role
