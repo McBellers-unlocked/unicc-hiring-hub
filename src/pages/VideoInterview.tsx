@@ -41,6 +41,7 @@ export default function VideoInterview() {
   const [isLoading, setIsLoading] = useState(true);
   const [isValidLink, setIsValidLink] = useState(false);
   const [applicationId, setApplicationId] = useState<string | null>(null);
+  const [assignmentStatus, setAssignmentStatus] = useState<string | null>(null);
   const { toast } = useToast();
 
   const practiceQuestion: VideoQuestion = {
@@ -85,6 +86,20 @@ export default function VideoInterview() {
 
       const assignment = validationData[0];
       setApplicationId(assignment.application_id);
+      setAssignmentStatus(assignment.status);
+
+      // Check if interview was already started
+      if (assignment.status === 'InProgress') {
+        toast({
+          title: "Interview Already Started",
+          description: "You have already begun this interview. For fairness, you cannot restart after viewing the questions.",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          navigate('/my-applications');
+        }, 3000);
+        return;
+      }
 
       // Get application and job details
       const { data: application, error: appError } = await supabase
@@ -162,12 +177,41 @@ export default function VideoInterview() {
     }
   };
 
+  const handleStartActualInterview = async () => {
+    // Mark interview as started in database
+    try {
+      await supabase.rpc('update_video_assignment_status', {
+        assignment_token: token,
+        new_status: 'InProgress'
+      });
+    } catch (error) {
+      console.error('Error updating interview status:', error);
+    }
+    
+    setShowPractice(false);
+    setHasStarted(true);
+  };
+
   const handleInterviewComplete = () => {
     toast({
       title: "Interview Complete!",
       description: "Thank you for completing the video interview. You may now close this page.",
     });
   };
+
+  // Prevent navigation away during interview
+  useEffect(() => {
+    if (hasStarted) {
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        e.preventDefault();
+        e.returnValue = 'Are you sure you want to leave? Your interview progress will be lost and you will not be able to restart.';
+        return e.returnValue;
+      };
+
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }
+  }, [hasStarted]);
 
   const calculateTotalTime = () => {
     if (!questionSet) return 0;
@@ -252,10 +296,7 @@ export default function VideoInterview() {
             key="practice-recorder"
             questions={[practiceQuestion]}
             applicationId={applicationId!}
-            onComplete={() => {
-              setShowPractice(false);
-              setHasStarted(true);
-            }}
+            onComplete={handleStartActualInterview}
             onPracticeAgain={() => {
               // Force remount of VideoRecorder by toggling state
               setShowPractice(false);
