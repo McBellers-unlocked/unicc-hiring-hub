@@ -38,6 +38,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
   const [needsProfileSetup, setNeedsProfileSetup] = useState(false);
   const [mfaRequired, setMfaRequired] = useState(false);
+  const getUserRolesForProfile = (role: string | null | undefined, email: string | null | undefined): string[] => {
+    const roles: string[] = [];
+    if (role) {
+      roles.push(role);
+    }
+
+    const chiefDivisionEmails = [
+      'grecuccio@unicc.org', // Milena
+      'liuzzi@unicc.org',    // Marco
+      'sethi@unicc.org',     // Anish
+      'soni@unicc.org',      // Tima
+    ];
+
+    if (email && chiefDivisionEmails.includes(email.toLowerCase()) && !roles.includes('Chief of Division')) {
+      roles.push('Chief of Division');
+    }
+
+    return roles;
+  };
 
   useEffect(() => {
     // Set up auth state listener
@@ -56,7 +75,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 .eq('id', session.user.id)
                 .single();
               
-              setUserRoles(userProfile?.role ? [userProfile.role] : []);
+              setUserRoles(getUserRolesForProfile(userProfile?.role, session.user.email));
               setUserName(userProfile?.name || null);
               
               // Check if candidate needs profile setup
@@ -108,7 +127,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               .eq('id', session.user.id)
               .single();
             
-            setUserRoles(userProfile?.role ? [userProfile.role] : []);
+            setUserRoles(getUserRolesForProfile(userProfile?.role, session.user.email));
             setUserName(userProfile?.name || null);
             
             // Check if candidate needs profile setup
