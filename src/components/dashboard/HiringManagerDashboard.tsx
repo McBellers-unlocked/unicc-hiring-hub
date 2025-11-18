@@ -71,7 +71,7 @@ export default function HiringManagerDashboard() {
       .select('*', { count: 'exact' })
       .eq('created_by', user.id)
       .eq('initial_request_approved', true)
-      .is('chief_of_division_approval', null)
+      .or('chief_of_division_approval.is.null,chief_of_division_approval.eq.false')
       .gte('initial_request_approved_at', thirtyDaysAgo.toISOString())
       .order('initial_request_approved_at', { ascending: false })
       .limit(5);
