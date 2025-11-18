@@ -69,14 +69,25 @@ export default function ChiefOfDivisionView() {
       if (fullPDResult.error) throw fullPDResult.error;
       if (initialRequestsResult.error) throw initialRequestsResult.error;
       
-      // Filter requisitions based on hiring manager's division
+      // Filter requisitions based on the requisition's unit/division
       // If user is chief of MS, also show OP requisitions
       const divisionsToShow = userDivision === 'MS' ? ['MS', 'OP'] : [userDivision];
       
+      // Helper to extract division from unit_section_division field
+      const getDivisionFromUnit = (unitName: string | null): string | null => {
+        if (!unitName) return null;
+        const upper = unitName.toUpperCase();
+        if (upper.includes('MS') || upper.includes('MSHT')) return 'MS';
+        if (upper.includes('DO') || upper.includes('DOP') || upper.includes('DDAM')) return 'DO';
+        if (upper.includes('OP')) return 'OP';
+        if (upper.includes('DS') || upper.includes('CSA') || upper.includes('CYBER')) return 'DS';
+        return null;
+      };
+      
       const filterByDivision = (reqs: any[]) => 
         reqs.filter(r => {
-          const creatorDivision = r.creator?.division;
-          return divisionsToShow.includes(creatorDivision);
+          const reqDivision = getDivisionFromUnit(r.unit_section_division);
+          return reqDivision && divisionsToShow.includes(reqDivision);
         });
       
       // Combine and mark which are initial requests
