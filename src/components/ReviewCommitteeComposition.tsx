@@ -20,6 +20,27 @@ const REQUIRED_ROLES = [
   { value: "Staff Representative", label: "Staff Representative", count: 1 },
 ];
 
+// ExCo members who can be Chair
+const EXCO_MEMBERS = [
+  "Sameer Chauhan",
+  "Milena Grecuccio",
+  "Tima Soni",
+  "Anish Sethi",
+  "Marco Liuzzi"
+];
+
+// Staff representatives eligible for Staff Representative role
+const STAFF_REPRESENTATIVES = [
+  "Victor BENET",
+  "Lyle MCFADYEN",
+  "Elena RIVAS RUZAFA",
+  "Paloma BAHILO ALPUENTE",
+  "Gabriella ANDRIUZZI",
+  "Rosa ALIANELLI",
+  "Daniela D'AMELIO",
+  "Nick HEDGES"
+];
+
 export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeCompositionProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -172,8 +193,68 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
       });
       return;
     }
+
+    // Validate role eligibility
+    const selectedUser = staffUsers?.find(u => u.id === selectedUserId);
+    if (!selectedUser) {
+      toast({
+        title: "Error",
+        description: "Selected user not found",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const validationError = validateRoleEligibility(selectedUser, selectedRole);
+    if (validationError) {
+      toast({
+        title: "Error",
+        description: validationError,
+        variant: "destructive",
+      });
+      return;
+    }
+
     addMemberMutation.mutate();
   };
+
+  // Validate if a user is eligible for a specific role
+  const validateRoleEligibility = (user: any, role: string): string | null => {
+    if (role === "Chair") {
+      if (!EXCO_MEMBERS.includes(user.name)) {
+        return "Chair can only be occupied by ExCo members (Sameer Chauhan, Milena Grecuccio, Tima Soni, Anish Sethi, Marco Liuzzi)";
+      }
+    } else if (role === "Member") {
+      const grade = user.current_grade;
+      if (grade !== "P4" && grade !== "P5") {
+        return "Members can only be P4 or P5 grade staff";
+      }
+    } else if (role === "Staff Representative") {
+      if (!STAFF_REPRESENTATIVES.includes(user.name)) {
+        return "Staff Representative can only be elected staff representatives";
+      }
+    }
+    return null;
+  };
+
+  // Check if committee composition is valid for approval
+  const getValidationErrors = (): string[] => {
+    const errors: string[] = [];
+    
+    if (!committeeMembers) return errors;
+
+    committeeMembers.forEach((member) => {
+      const error = validateRoleEligibility(member.user, member.role);
+      if (error) {
+        errors.push(`${member.user?.name} (${member.role}): ${error}`);
+      }
+    });
+
+    return errors;
+  };
+
+  const validationErrors = getValidationErrors();
+  const hasValidationErrors = validationErrors.length > 0;
 
   const handleRemoveMember = (memberId: string) => {
     removeMemberMutation.mutate(memberId);
@@ -195,6 +276,7 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
 
   const canSendForApproval = 
     isCommitteeComplete && 
+    !hasValidationErrors &&
     (!job?.review_committee_status || job.review_committee_status === "draft");
 
   const isPendingOrApproved = 
@@ -264,11 +346,23 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
                         <SelectValue placeholder="Select a staff member" />
                       </SelectTrigger>
                       <SelectContent>
-                        {staffUsers?.map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.name} ({user.role})
-                          </SelectItem>
-                        ))}
+                        {staffUsers
+                          ?.filter((user) => {
+                            // Filter users based on selected role
+                            if (selectedRole === "Chair") {
+                              return EXCO_MEMBERS.includes(user.name);
+                            } else if (selectedRole === "Member") {
+                              return user.current_grade === "P4" || user.current_grade === "P5";
+                            } else if (selectedRole === "Staff Representative") {
+                              return STAFF_REPRESENTATIVES.includes(user.name);
+                            }
+                            return true;
+                          })
+                          .map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.name} ({user.role}) {user.current_grade ? `- ${user.current_grade}` : ''}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -351,7 +445,22 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
             </div>
           )}
 
-          {!isCommitteeComplete && !isPendingOrApproved && (
+          {hasValidationErrors && !isPendingOrApproved && (
+            <Alert variant="destructive">
+              <AlertDescription>
+                <div className="space-y-1">
+                  <p className="font-semibold">Committee composition validation errors:</p>
+                  <ul className="list-disc list-inside text-sm">
+                    {validationErrors.map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!isCommitteeComplete && !hasValidationErrors && !isPendingOrApproved && (
             <Alert>
               <AlertDescription>
                 Complete the committee composition by adding all required roles before sending for approval.
