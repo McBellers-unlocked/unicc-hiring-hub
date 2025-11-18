@@ -31,6 +31,7 @@ interface VideoRecorderProps {
   questions: VideoQuestion[];
   applicationId: string;
   onComplete?: () => void;
+  onPracticeAgain?: () => void;
   isPractice?: boolean;
 }
 
@@ -40,6 +41,7 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
   questions, 
   applicationId, 
   onComplete,
+  onPracticeAgain,
   isPractice = false 
 }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -518,24 +520,33 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
             )}
 
             {phase === 'submitted' && (
-              <Button onClick={proceedToNext} size="lg">
-                {isPractice ? (
-                  <>
-                    <Play className="w-4 h-4 mr-2" />
-                    Start Actual Interview
-                  </>
-                ) : currentQuestionIndex < questions.length - 1 ? (
-                  <>
-                    <Play className="w-4 h-4 mr-2" />
-                    Proceed to Next Question
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Complete Interview
-                  </>
+              <div className="flex gap-3">
+                <Button onClick={proceedToNext} size="lg">
+                  {isPractice ? (
+                    <>
+                      <Play className="w-4 h-4 mr-2" />
+                      Start Actual Interview
+                    </>
+                  ) : currentQuestionIndex < questions.length - 1 ? (
+                    <>
+                      <Play className="w-4 h-4 mr-2" />
+                      Proceed to Next Question
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Complete Interview
+                    </>
+                  )}
+                </Button>
+                
+                {isPractice && onPracticeAgain && (
+                  <Button onClick={onPracticeAgain} variant="outline" size="lg">
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Practice Again
+                  </Button>
                 )}
-              </Button>
+              </div>
             )}
           </div>
 
