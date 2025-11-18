@@ -43,7 +43,7 @@ export default function ChiefOfDivisionView() {
 
       // Fetch both full PD approvals and initial requests
       const [fullPDResult, initialRequestsResult] = await Promise.all([
-        // Full PD approvals
+        // Full PD approvals - requisitions ready for chief approval after HR review
         supabase
           .from("job_requisitions")
           .select(`
@@ -52,6 +52,7 @@ export default function ChiefOfDivisionView() {
           `)
           .eq("hr_final_review_completed", true)
           .eq("status", "chief_of_division_review")
+          .or("chief_of_division_approval.is.null,chief_of_division_approval.eq.false")
           .order("created_at", { ascending: false }),
         
         // Initial requests pending approval
