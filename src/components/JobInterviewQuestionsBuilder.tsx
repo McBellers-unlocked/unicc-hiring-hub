@@ -365,7 +365,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
       // Insert requirement associations
       const requirementAssociations = insertedQuestions.flatMap((q: any, idx) => 
-        questions[idx].requirement_ids.map(reqId => ({
+        (questions[idx].requirement_ids || []).map(reqId => ({
           question_id: q.id,
           requirement_id: reqId
         }))
@@ -381,7 +381,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
       // Insert competency associations
       const competencyAssociations = insertedQuestions.flatMap((q: any, idx) => 
-        questions[idx].competency_ids.map(compId => ({
+        (questions[idx].competency_ids || []).map(compId => ({
           question_id: q.id,
           competency_id: compId
         }))
@@ -443,8 +443,8 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
     const coveredCompetencies = new Set<string>();
 
     questions.forEach(q => {
-      q.requirement_ids.forEach(id => coveredRequirements.add(id));
-      q.competency_ids.forEach(id => coveredCompetencies.add(id));
+      (q.requirement_ids || []).forEach(id => coveredRequirements.add(id));
+      (q.competency_ids || []).forEach(id => coveredCompetencies.add(id));
     });
 
     const essentialRequirements = requirements.filter(r => r.category === 'Essential Criteria');
@@ -745,7 +745,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                             <Popover>
                               <PopoverTrigger asChild>
                                 <Button variant="outline" className="w-full justify-between">
-                                  {question.requirement_ids.length > 0
+                                  {question.requirement_ids && question.requirement_ids.length > 0
                                     ? `${question.requirement_ids.length} selected`
                                     : "Select skills..."}
                                 </Button>
@@ -760,16 +760,16 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                                         <CommandItem
                                           key={req.id}
                                           onSelect={() => {
-                                            const ids = question.requirement_ids.includes(req.id)
-                                              ? question.requirement_ids.filter(id => id !== req.id)
-                                              : [...question.requirement_ids, req.id];
+                                            const ids = (question.requirement_ids || []).includes(req.id)
+                                              ? (question.requirement_ids || []).filter(id => id !== req.id)
+                                              : [...(question.requirement_ids || []), req.id];
                                             updateQuestion(index, 'requirement_ids', ids);
                                           }}
                                         >
                                           <Check
                                             className={cn(
                                               "mr-2 h-4 w-4",
-                                              question.requirement_ids.includes(req.id) ? "opacity-100" : "opacity-0"
+                                              (question.requirement_ids || []).includes(req.id) ? "opacity-100" : "opacity-0"
                                             )}
                                           />
                                           <div className="flex-1">
@@ -790,7 +790,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                             <Popover>
                               <PopoverTrigger asChild>
                                 <Button variant="outline" className="w-full justify-between">
-                                  {question.competency_ids.length > 0
+                                  {question.competency_ids && question.competency_ids.length > 0
                                     ? `${question.competency_ids.length} selected`
                                     : "Select competencies..."}
                                 </Button>
@@ -805,16 +805,16 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                                         <CommandItem
                                           key={comp.id}
                                           onSelect={() => {
-                                            const ids = question.competency_ids.includes(comp.id)
-                                              ? question.competency_ids.filter(id => id !== comp.id)
-                                              : [...question.competency_ids, comp.id];
+                                            const ids = (question.competency_ids || []).includes(comp.id)
+                                              ? (question.competency_ids || []).filter(id => id !== comp.id)
+                                              : [...(question.competency_ids || []), comp.id];
                                             updateQuestion(index, 'competency_ids', ids);
                                           }}
                                         >
                                           <Check
                                             className={cn(
                                               "mr-2 h-4 w-4",
-                                              question.competency_ids.includes(comp.id) ? "opacity-100" : "opacity-0"
+                                              (question.competency_ids || []).includes(comp.id) ? "opacity-100" : "opacity-0"
                                             )}
                                           />
                                           <div className="flex-1">
@@ -833,7 +833,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
                         {/* Display selected tags */}
                         <div className="flex flex-wrap gap-2">
-                          {question.requirement_ids.map(reqId => {
+                          {(question.requirement_ids || []).map(reqId => {
                             const req = requirements.find(r => r.id === reqId);
                             return req ? (
                               <Badge key={reqId} variant="secondary" className="text-xs">
@@ -841,7 +841,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                               </Badge>
                             ) : null;
                           })}
-                          {question.competency_ids.map(compId => {
+                          {(question.competency_ids || []).map(compId => {
                             const comp = competencies.find(c => c.id === compId);
                             return comp ? (
                               <Badge key={compId} variant="outline" className="text-xs">
