@@ -232,30 +232,29 @@ const customUnorderedListCommand: ICommand = {
 
 // Handle Enter key in lists to maintain spacing
 const handleListEnter = (
-  e: React.KeyboardEvent,
+  e: React.KeyboardEvent<HTMLTextAreaElement>,
   onChange: (value: string) => void,
-  currentValue: string
 ) => {
-  if (e.key !== 'Enter' || e.shiftKey) return;
+  if (e.key !== "Enter" || e.shiftKey) return;
 
-  const textarea = e.target as HTMLTextAreaElement;
-  const start = textarea.selectionStart;
-  const end = textarea.selectionEnd;
+  const textarea = e.currentTarget;
+  const value = textarea.value ?? "";
+  const start = textarea.selectionStart ?? value.length;
+  const end = textarea.selectionEnd ?? value.length;
 
-  // Defensive: if we don't have a current value, fall back to default behaviour
-  if (typeof currentValue !== 'string') return;
-
-  const beforeCursor = currentValue.substring(0, start);
-  const afterCursor = currentValue.substring(end);
-  const lines = beforeCursor.split('\n');
-  const currentLine = lines[lines.length - 1] ?? '';
+  const beforeCursor = value.substring(0, start);
+  const afterCursor = value.substring(end);
+  const lines = beforeCursor.split("\n");
+  const currentLine = lines[lines.length - 1] ?? "";
 
   // Check if we're in a bullet list
   const bulletMatch = currentLine.match(/^(\s*-\s*)(.*)/);
   if (!bulletMatch) return;
 
+  console.log("handleListEnter", { currentLine, start });
+
   e.preventDefault();
-  const [, bullet, content] = bulletMatch;
+  const [, , content] = bulletMatch;
 
   // If the current bullet is empty, remove it
   if (!content.trim()) {
@@ -263,17 +262,17 @@ const handleListEnter = (
     onChange(newValue);
     setTimeout(() => {
       const newPos = beforeCursor.length - currentLine.length;
-      textarea.selectionStart = textarea.selectionEnd = newPos;
+      textarea.setSelectionRange(newPos, newPos);
     }, 0);
     return;
   }
 
   // Add new bullet with blank line
-  const newValue = beforeCursor + '\n\n- ' + afterCursor;
+  const newValue = beforeCursor + "\n\n- " + afterCursor;
   onChange(newValue);
   setTimeout(() => {
     const newPos = start + 4; // position after "\n\n- "
-    textarea.selectionStart = textarea.selectionEnd = newPos;
+    textarea.setSelectionRange(newPos, newPos);
   }, 0);
 };
 
@@ -1214,7 +1213,7 @@ export default function JobRequisitionForm() {
                           visibleDragbar={false}
                            textareaProps={{
                              onPaste: (e) => handlePaste(e, field.onChange, field.value),
-                             onKeyDown: (e) => handleListEnter(e, field.onChange, field.value)
+                             onKeyDown: (e) => handleListEnter(e, field.onChange)
                            }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
@@ -1276,7 +1275,7 @@ export default function JobRequisitionForm() {
                           data-color-mode="light"
                           textareaProps={{
                             onPaste: (e) => handlePaste(e, field.onChange, field.value),
-                            onKeyDown: (e) => handleListEnter(e, field.onChange, field.value)
+                            onKeyDown: (e) => handleListEnter(e, field.onChange)
                           }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
@@ -1317,7 +1316,7 @@ export default function JobRequisitionForm() {
                           data-color-mode="light"
                           textareaProps={{
                             onPaste: (e) => handlePaste(e, field.onChange, field.value),
-                            onKeyDown: (e) => handleListEnter(e, field.onChange, field.value)
+                            onKeyDown: (e) => handleListEnter(e, field.onChange)
                           }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
@@ -1390,7 +1389,7 @@ export default function JobRequisitionForm() {
                           data-color-mode="light"
                           textareaProps={{
                             onPaste: (e) => handlePaste(e, field.onChange, field.value),
-                            onKeyDown: (e) => handleListEnter(e, field.onChange, field.value)
+                            onKeyDown: (e) => handleListEnter(e, field.onChange)
                           }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
@@ -1431,7 +1430,7 @@ export default function JobRequisitionForm() {
                           data-color-mode="light"
                           textareaProps={{
                             onPaste: (e) => handlePaste(e, field.onChange, field.value),
-                            onKeyDown: (e) => handleListEnter(e, field.onChange, field.value)
+                            onKeyDown: (e) => handleListEnter(e, field.onChange)
                           }}
                           commands={[
                             commands.group([commands.title1, commands.title2, commands.title3], {
