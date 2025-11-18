@@ -295,16 +295,16 @@ export default function JobRequisitionForm() {
   }, [id]);
 
   // Auto-check language advantages based on grade
+  const watchedGrade = form.watch('grade');
   useEffect(() => {
-    const currentGrade = form.watch('grade');
-    if (currentGrade) {
-      if (currentGrade.startsWith('P') || currentGrade.startsWith('D')) {
+    if (watchedGrade) {
+      if (watchedGrade.startsWith('P') || watchedGrade.startsWith('D')) {
         form.setValue('un_language_advantage', true);
-      } else if (currentGrade.startsWith('G')) {
+      } else if (watchedGrade.startsWith('G')) {
         form.setValue('local_language_advantage', true);
       }
     }
-  }, [form.watch('grade')]);
+  }, [watchedGrade, form]);
 
   const addLanguage = () => {
     const newLanguage = { name: '', level: '' };
