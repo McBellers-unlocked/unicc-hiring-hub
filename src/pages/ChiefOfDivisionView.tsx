@@ -52,7 +52,7 @@ export default function ChiefOfDivisionView() {
           `)
           .eq("hr_final_review_completed", true)
           .eq("status", "chief_of_division_review")
-          .is("chief_of_division_approval", null)
+          .or("chief_of_division_approval.is.null,chief_of_division_approval.eq.false")
           .order("created_at", { ascending: false }),
         
         // Initial requests pending approval - exclude already approved ones
@@ -63,7 +63,7 @@ export default function ChiefOfDivisionView() {
             creator:users!created_by(name, email, division)
           `)
           .in("status", ["initial_request_submitted", "initial_request_chief_review"])
-          .is("initial_request_approved", null)
+          .or("initial_request_approved.is.null,initial_request_approved.eq.false")
           .order("created_at", { ascending: false })
       ]);
 
