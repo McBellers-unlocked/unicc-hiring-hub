@@ -112,18 +112,22 @@ Deno.serve(async (req) => {
     // Prepare user records for insertion
     const usersToInsert = rows
       .filter(row => row.email && row.email.includes('@'))
-      .map(row => ({
-        email: row.email.toLowerCase(),
-        name: `${row.firstName} ${row.lastName}`.trim(),
-        nationality: row.nationality || null,
-        gender: row.gender || null,
-        worker_type: row.workerType || null,
-        duty_station: row.officeLocation || null,
-        division: row.division || null,
-        unit: row.unit || null,
-        line_manager: row.lineManager || null,
-        role: 'Hiring Manager' as const,
-      }));
+      .map(row => {
+        const baseUser = {
+          email: row.email.toLowerCase(),
+          name: `${row.firstName} ${row.lastName}`.trim(),
+          nationality: row.nationality || null,
+          gender: row.gender || null,
+          worker_type: row.workerType || null,
+          duty_station: row.officeLocation || null,
+          division: row.division || null,
+          unit: row.unit || null,
+          line_manager: row.lineManager || null,
+          role: 'Hiring Manager' as const,
+        };
+
+        return baseUser;
+      });
 
     console.log('Inserting', usersToInsert.length, 'users');
 
@@ -137,7 +141,18 @@ Deno.serve(async (req) => {
       const batch = usersToInsert.slice(i, i + batchSize);
       
       for (const user of batch) {
-        // Check if user exists and has an admin-type role
+        // Check if user exists in auth.users by email
+        const { data: authUser } = await supabaseClient.auth.admin.listUsers();
+        const existingAuthUser = authUser?.users?.find(u => u.email === user.email);
+
+        if (!existingAuthUser) {
+          // Skip users without auth accounts
+          console.log(`Skipping ${user.email} - no auth account found`);
+          errors++;
+          continue;
+        }
+
+        // Check if user exists in users table
         const { data: existingUser } = await supabaseClient
           .from('users')
           .select('id, role')
@@ -145,14 +160,14 @@ Deno.serve(async (req) => {
           .single();
 
         // Preserve Admin, HR Assistant, and Chief of HR roles
-        const adminRoles = ['Admin', 'HR Assistant', 'Chief of HR'];
+        const adminRoles = ['Admin', 'HR Assistant', 'Chief of HR', 'Director'];
         if (existingUser && adminRoles.includes(existingUser.role)) {
           // Update without changing the role
           const { role, ...userWithoutRole } = user;
           const { error } = await supabaseClient
             .from('users')
             .update(userWithoutRole)
-            .eq('email', user.email);
+            .eq('id', existingUser.id);
 
           if (error) {
             console.error('Error updating user:', user.email, error);
@@ -161,11 +176,16 @@ Deno.serve(async (req) => {
             updated++;
           }
         } else {
-          // Insert or update with Hiring Manager role
+          // Insert or update with Hiring Manager role, using auth user ID
+          const userWithId = {
+            ...user,
+            id: existingAuthUser.id
+          };
+
           const { error } = await supabaseClient
             .from('users')
-            .upsert(user, { 
-              onConflict: 'email',
+            .upsert(userWithId, { 
+              onConflict: 'id',
               ignoreDuplicates: false 
             });
 
