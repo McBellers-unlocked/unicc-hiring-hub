@@ -40,6 +40,13 @@ const Index = () => {
     }
   }, [user, userRoles, loading, needsProfileSetup, navigate]);
 
+  // Redirect Chief of Division to their dashboard
+  useEffect(() => {
+    if (!loading && user && userRoles.includes('Chief of Division')) {
+      navigate('/chief-of-division');
+    }
+  }, [user, userRoles, loading, navigate]);
+
   if (loading) {
     return (
       <Layout>
@@ -94,11 +101,6 @@ const Index = () => {
   const renderDashboard = () => {
     if (isCandidate) {
       return <CandidateDashboard />;
-    }
-
-    if (isChiefOfDivision) {
-      navigate('/chief-of-division');
-      return null;
     }
     
     if (isAdmin || isHR || isChiefHR) {
