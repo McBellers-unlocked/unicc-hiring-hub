@@ -2408,6 +2408,7 @@ export type Database = {
         Args: { p_duty_station: string; p_nature_of_position: string }
         Returns: string
       }
+      get_chief_for_division: { Args: { p_division: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]

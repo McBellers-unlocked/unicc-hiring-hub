@@ -29,6 +29,18 @@ export default function ChiefOfDivisionView() {
   const { data: requisitions, isLoading } = useQuery({
     queryKey: ["requisitions-chief-approval"],
     queryFn: async () => {
+      // Get current user's division
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { data: userData } = await supabase
+        .from("users")
+        .select("division")
+        .eq("id", user.id)
+        .single();
+
+      const userDivision = userData?.division;
+
       // Fetch both full PD approvals and initial requests
       const [fullPDResult, initialRequestsResult] = await Promise.all([
         // Full PD approvals
@@ -36,7 +48,7 @@ export default function ChiefOfDivisionView() {
           .from("job_requisitions")
           .select(`
             *,
-            creator:users!created_by(name, email)
+            creator:users!created_by(name, email, division)
           `)
           .eq("hr_final_review_completed", true)
           .eq("status", "chief_of_division_review")
@@ -47,7 +59,7 @@ export default function ChiefOfDivisionView() {
           .from("job_requisitions")
           .select(`
             *,
-            creator:users!created_by(name, email)
+            creator:users!created_by(name, email, division)
           `)
           .in("status", ["initial_request_submitted", "initial_request_chief_review"])
           .or("initial_request_approved.is.null,initial_request_approved.eq.false")
@@ -57,9 +69,19 @@ export default function ChiefOfDivisionView() {
       if (fullPDResult.error) throw fullPDResult.error;
       if (initialRequestsResult.error) throw initialRequestsResult.error;
       
+      // Filter requisitions based on hiring manager's division
+      // If user is chief of MS, also show OP requisitions
+      const divisionsToShow = userDivision === 'MS' ? ['MS', 'OP'] : [userDivision];
+      
+      const filterByDivision = (reqs: any[]) => 
+        reqs.filter(r => {
+          const creatorDivision = r.creator?.division;
+          return divisionsToShow.includes(creatorDivision);
+        });
+      
       // Combine and mark which are initial requests
-      const fullPDs = (fullPDResult.data || []).map(r => ({ ...r, isInitialRequest: false }));
-      const initialRequests = (initialRequestsResult.data || []).map(r => ({ ...r, isInitialRequest: true }));
+      const fullPDs = filterByDivision(fullPDResult.data || []).map(r => ({ ...r, isInitialRequest: false }));
+      const initialRequests = filterByDivision(initialRequestsResult.data || []).map(r => ({ ...r, isInitialRequest: true }));
       
       return [...initialRequests, ...fullPDs];
     },
