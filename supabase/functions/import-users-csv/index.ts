@@ -136,28 +136,47 @@ Deno.serve(async (req) => {
       const batch = usersToInsert.slice(i, i + batchSize);
       
       for (const user of batch) {
-        const { error } = await supabaseClient
+        // Check if user exists and has an admin-type role
+        const { data: existingUser } = await supabaseClient
           .from('users')
-          .upsert(user, { 
-            onConflict: 'email',
-            ignoreDuplicates: false 
-          });
+          .select('id, role')
+          .eq('email', user.email)
+          .single();
 
-        if (error) {
-          console.error('Error inserting user:', user.email, error);
-          errors++;
-        } else {
-          // Check if it was an insert or update
-          const { data: existing } = await supabaseClient
+        // Preserve Admin, HR Assistant, and Chief of HR roles
+        const adminRoles = ['Admin', 'HR Assistant', 'Chief of HR'];
+        if (existingUser && adminRoles.includes(existingUser.role)) {
+          // Update without changing the role
+          const { role, ...userWithoutRole } = user;
+          const { error } = await supabaseClient
             .from('users')
-            .select('id')
-            .eq('email', user.email)
-            .single();
-          
-          if (existing) {
-            updated++;
+            .update(userWithoutRole)
+            .eq('email', user.email);
+
+          if (error) {
+            console.error('Error updating user:', user.email, error);
+            errors++;
           } else {
-            inserted++;
+            updated++;
+          }
+        } else {
+          // Insert or update with Hiring Manager role
+          const { error } = await supabaseClient
+            .from('users')
+            .upsert(user, { 
+              onConflict: 'email',
+              ignoreDuplicates: false 
+            });
+
+          if (error) {
+            console.error('Error inserting user:', user.email, error);
+            errors++;
+          } else {
+            if (existingUser) {
+              updated++;
+            } else {
+              inserted++;
+            }
           }
         }
       }
