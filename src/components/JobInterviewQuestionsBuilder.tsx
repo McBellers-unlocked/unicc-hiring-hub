@@ -773,7 +773,11 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                                             )}
                                           />
                                           <div className="flex-1">
-                                            <div className="font-medium">{req.title}</div>
+                                            <div className="font-medium">
+                                              {req.description 
+                                                ? req.description.substring(0, 80) + (req.description.length > 80 ? '...' : '')
+                                                : req.title}
+                                            </div>
                                             <div className="text-xs text-muted-foreground">{req.category}</div>
                                           </div>
                                         </CommandItem>
@@ -837,7 +841,9 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                             const req = requirements.find(r => r.id === reqId);
                             return req ? (
                               <Badge key={reqId} variant="secondary" className="text-xs">
-                                {req.title}
+                                {req.description 
+                                  ? req.description.substring(0, 50) + (req.description.length > 50 ? '...' : '')
+                                  : req.title}
                               </Badge>
                             ) : null;
                           })}
