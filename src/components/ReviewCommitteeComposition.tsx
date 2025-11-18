@@ -73,7 +73,7 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
           id,
           role,
           created_at,
-          user:users(id, name, email, role, current_grade)
+          user:users(id, name, email, role, current_grade, gender, division)
         `)
         .eq("job_id", jobId)
         .order("created_at");
@@ -249,12 +249,45 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
     
     if (!committeeMembers) return errors;
 
+    // Check role eligibility
     committeeMembers.forEach((member) => {
       const error = validateRoleEligibility(member.user, member.role);
       if (error) {
         errors.push(`${member.user?.name} (${member.role}): ${error}`);
       }
     });
+
+    // Check gender balance (must be 2 men and 2 women)
+    const genderCounts = committeeMembers.reduce((acc, member) => {
+      const gender = member.user?.gender?.toLowerCase();
+      if (gender === 'male' || gender === 'female') {
+        acc[gender] = (acc[gender] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    if (committeeMembers.length === 4) {
+      if (genderCounts['male'] !== 2 || genderCounts['female'] !== 2) {
+        errors.push('Committee must be gender-balanced: 2 men and 2 women');
+      }
+    }
+
+    // Check division conflict (members should not be in same division as chair)
+    const chair = committeeMembers.find(m => m.role === 'Chair');
+    if (chair && chair.user?.division) {
+      const chairDivision = chair.user.division;
+      const membersInSameDivision = committeeMembers.filter(
+        m => m.role !== 'Chair' && m.user?.division === chairDivision
+      );
+      
+      if (membersInSameDivision.length > 0) {
+        membersInSameDivision.forEach(member => {
+          errors.push(
+            `${member.user?.name} (${member.role}) cannot be in the same division as the Chair (${chairDivision})`
+          );
+        });
+      }
+    }
 
     return errors;
   };
