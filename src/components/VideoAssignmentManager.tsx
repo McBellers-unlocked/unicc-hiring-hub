@@ -76,6 +76,7 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
       
       if (!appData) return;
       
+      console.log('[VideoAssignmentManager] Job data:', appData);
       setJobTitle(appData.jobs?.title || '');
       setJobId(appData.job_id);
       
@@ -86,8 +87,10 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
         .eq('job_id', appData.job_id)
         .limit(1);
       
+      console.log('[VideoAssignmentManager] Question sets found:', questionSets);
       const hasQuestions = questionSets && questionSets.length > 0;
       setJobHasQuestions(hasQuestions);
+      console.log('[VideoAssignmentManager] jobHasQuestions set to:', hasQuestions);
       
       if (!hasQuestions) {
         toast({
@@ -360,6 +363,7 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
   }
 
   if (!assignment) {
+    console.log('[VideoAssignmentManager] No assignment, jobHasQuestions:', jobHasQuestions, 'jobId:', jobId);
     return (
       <Card>
         <CardHeader>
