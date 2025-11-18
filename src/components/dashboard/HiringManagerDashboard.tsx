@@ -249,13 +249,23 @@ export default function HiringManagerDashboard() {
                       </span>
                     </div>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate(`/requisitions/${req.id}`)}
-                  >
-                    View
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => navigate(`/requisitions/${req.id}`)}
+                    >
+                      View
+                    </Button>
+                    {req.approvalType === 'Initial Request' && (
+                      <Button 
+                        size="sm"
+                        onClick={() => navigate(`/requisitions/${req.id}/form`)}
+                      >
+                        Create Full PD
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
