@@ -74,12 +74,27 @@ export default function DirectorView() {
           notice_no,
           review_committee_status,
           review_committee_sent_for_approval_at,
-          sender:users!review_committee_sent_by(name, email)
+          review_committee_sent_by
         `)
         .eq("review_committee_status", "pending_approval")
         .order("review_committee_sent_for_approval_at", { ascending: false });
 
       if (error) throw error;
+
+      // Fetch sender details for each job
+      if (data && data.length > 0) {
+        const senderIds = data.map(d => d.review_committee_sent_by).filter(Boolean);
+        const { data: senders } = await supabase
+          .from("users")
+          .select("id, name, email")
+          .in("id", senderIds);
+
+        return data.map(job => ({
+          ...job,
+          sender: senders?.find(s => s.id === job.review_committee_sent_by)
+        }));
+      }
+
       return data;
     },
   });
