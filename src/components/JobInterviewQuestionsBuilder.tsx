@@ -545,24 +545,24 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
               <div className="space-y-1">
                 <div className="text-sm font-medium mb-1">Nationalities</div>
                 <div className="text-sm text-muted-foreground">
-                  {panelValidation.summary.nationalities.length > 0 
-                    ? panelValidation.summary.nationalities.join(', ')
+                  {(panelValidation.summary.nationalities || []).length > 0 
+                    ? (panelValidation.summary.nationalities || []).join(', ')
                     : 'None'}
                 </div>
               </div>
               <div className="space-y-1">
                 <div className="text-sm font-medium mb-1">Duty Stations</div>
                 <div className="text-sm text-muted-foreground">
-                  {panelValidation.summary.duty_stations.length > 0 
-                    ? panelValidation.summary.duty_stations.join(', ')
+                  {(panelValidation.summary.duty_stations || []).length > 0 
+                    ? (panelValidation.summary.duty_stations || []).join(', ')
                     : 'None'}
                 </div>
               </div>
               <div className="space-y-1">
                 <div className="text-sm font-medium mb-1">Divisions</div>
                 <div className="text-sm text-muted-foreground">
-                  {panelValidation.summary.divisions.length > 0 
-                    ? panelValidation.summary.divisions.join(', ')
+                  {(panelValidation.summary.divisions || []).length > 0 
+                    ? (panelValidation.summary.divisions || []).join(', ')
                     : 'None'}
                 </div>
               </div>
