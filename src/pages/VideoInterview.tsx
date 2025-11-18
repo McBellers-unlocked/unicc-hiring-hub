@@ -249,6 +249,7 @@ export default function VideoInterview() {
             </div>
           </div>
           <VideoRecorder
+            key="practice-recorder"
             questions={[practiceQuestion]}
             applicationId={applicationId!}
             onComplete={() => {
@@ -511,6 +512,7 @@ export default function VideoInterview() {
         </div>
 
         <VideoRecorder
+          key="actual-interview-recorder"
           questions={questionSet.questions}
           applicationId={applicationId!}
           onComplete={handleInterviewComplete}
