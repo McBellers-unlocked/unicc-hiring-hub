@@ -2400,6 +2400,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_approve_as_chief: {
+        Args: { p_requisition_id: string; p_user_id: string }
+        Returns: boolean
+      }
       check_signup_rate_limit: {
         Args: { p_email: string; p_ip_address: string }
         Returns: boolean
