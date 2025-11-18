@@ -33,7 +33,7 @@ interface VideoRecorderProps {
   onComplete?: () => void;
 }
 
-type RecordingPhase = 'preparation' | 'recording' | 'review' | 'completed';
+type RecordingPhase = 'preparation' | 'recording' | 'review' | 'submitted' | 'completed';
 
 export const VideoRecorder: React.FC<VideoRecorderProps> = ({ 
   questions, 
@@ -281,16 +281,10 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
         description: "Your video answer has been uploaded",
       });
 
-      // Move to next question or complete
-      if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex(prev => prev + 1);
-        setPhase('preparation');
-        setRecordedBlob(null);
-        setRetakeCount(0);
-      } else {
-        setPhase('completed');
-        onComplete?.();
-      }
+      // Set to submitted phase to show next button
+      setPhase('submitted');
+      setRecordedBlob(null);
+      setRetakeCount(0);
     } catch (error) {
       console.error('Error uploading video:', error);
       toast({
@@ -323,6 +317,8 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
         return 'Recording Your Answer';
       case 'review':
         return 'Review Your Answer';
+      case 'submitted':
+        return 'Answer Submitted';
       case 'completed':
         return 'All Questions Completed';
       default:
@@ -338,8 +334,20 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
         return <Camera className="w-5 h-5 text-red-500" />;
       case 'review':
         return <Square className="w-5 h-5" />;
+      case 'submitted':
+        return <Upload className="w-5 h-5 text-green-500" />;
       default:
         return null;
+    }
+  };
+
+  const proceedToNext = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+      setPhase('preparation');
+    } else {
+      setPhase('completed');
+      onComplete?.();
     }
   };
 
@@ -493,11 +501,36 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
                 )}
               </div>
             )}
+
+            {phase === 'submitted' && (
+              <Button onClick={proceedToNext} size="lg">
+                {currentQuestionIndex < questions.length - 1 ? (
+                  <>
+                    <Play className="w-4 h-4 mr-2" />
+                    Proceed to Next Question
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Complete Interview
+                  </>
+                )}
+              </Button>
+            )}
           </div>
 
           {phase === 'preparation' && (
-            <div className="text-center text-muted-foreground">
+            <div className="text-center text-muted-foreground mt-4">
               Read the question carefully and prepare your answer. Click "Start Recording" when you're ready to answer.
+            </div>
+          )}
+
+          {phase === 'submitted' && (
+            <div className="text-center text-green-600 font-medium mt-4">
+              ✓ Your answer has been successfully submitted. 
+              {currentQuestionIndex < questions.length - 1 
+                ? ' Click the button to continue to the next question.' 
+                : ' Click the button to complete your interview.'}
             </div>
           )}
         </CardContent>
