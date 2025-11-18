@@ -88,8 +88,16 @@ export default function VideoInterview() {
       setApplicationId(assignment.application_id);
       setAssignmentStatus(assignment.status);
 
-      // Check if interview was already started
-      if (assignment.status === 'InProgress') {
+      // Check if candidate has actually recorded any real answers (not just completed practice)
+      const { data: realAnswers, error: answersCheckError } = await supabase
+        .from('video_answers')
+        .select('id')
+        .eq('application_id', assignment.application_id);
+
+      if (answersCheckError) throw answersCheckError;
+
+      // Only block if they have actually recorded answers
+      if (realAnswers && realAnswers.length > 0) {
         toast({
           title: "Interview Already Started",
           description: "You have already begun this interview. For fairness, you cannot restart after viewing the questions.",
@@ -178,16 +186,8 @@ export default function VideoInterview() {
   };
 
   const handleStartActualInterview = async () => {
-    // Mark interview as started in database
-    try {
-      await supabase.rpc('update_video_assignment_status', {
-        assignment_token: token,
-        new_status: 'InProgress'
-      });
-    } catch (error) {
-      console.error('Error updating interview status:', error);
-    }
-    
+    // Just transition to the actual interview
+    // Status will be updated when they start recording their first answer
     setShowPractice(false);
     setHasStarted(true);
   };
