@@ -73,7 +73,7 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
           id,
           role,
           created_at,
-          user:users(id, name, email, role)
+          user:users(id, name, email, role, current_grade)
         `)
         .eq("job_id", jobId)
         .order("created_at");
