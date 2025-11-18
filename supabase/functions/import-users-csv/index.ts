@@ -182,6 +182,16 @@ Deno.serve(async (req) => {
                   const existingAuthUser = authUsers?.users?.find(u => u.email === user.email);
                   if (existingAuthUser) {
                     authUserId = existingAuthUser.id;
+                  } else {
+                    // Fallback: resolve auth user id via existing users row by email
+                    const { data: existingUserByEmail } = await supabaseClient
+                      .from('users')
+                      .select('id')
+                      .eq('email', user.email)
+                      .single();
+                    if (existingUserByEmail) {
+                      authUserId = existingUserByEmail.id;
+                    }
                   }
                 } else {
                   console.error('Error creating auth user:', user.email, authError);
@@ -200,6 +210,19 @@ Deno.serve(async (req) => {
           }
 
           // Only proceed if we have an auth user ID
+          if (!authUserId) {
+            // Final fallback: try to resolve auth user id from existing users row
+            const { data: existingUserByEmail } = await supabaseClient
+              .from('users')
+              .select('id')
+              .eq('email', user.email)
+              .single();
+
+            if (existingUserByEmail) {
+              authUserId = existingUserByEmail.id;
+            }
+          }
+
           if (!authUserId) {
             console.error(`Could not get auth user ID for ${user.email}`);
             errors++;
