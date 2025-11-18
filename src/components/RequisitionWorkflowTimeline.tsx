@@ -67,9 +67,9 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
       label: 'Chief Approved Initial Request',
       shortLabel: 'Init Approved',
       description: 'Initial request approved, ready for full PD',
-      isCompleted: !!requisition.initial_request_approved,
+      isCompleted: !!requisition.initial_request_approved || !!requisition.chief_of_division_approval,
       isActive: false,
-      completedAt: requisition.initial_request_approved_at,
+      completedAt: requisition.initial_request_approved_at || requisition.chief_of_division_approved_at,
       icon: UserCheck
     },
     // Full PD Phase
