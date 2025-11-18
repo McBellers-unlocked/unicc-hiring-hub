@@ -365,10 +365,13 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
       // Insert requirement associations
       const requirementAssociations = insertedQuestions.flatMap((q: any, idx) => 
-        (questions[idx].requirement_ids || []).map(reqId => ({
-          question_id: q.id,
-          requirement_id: reqId
-        }))
+        (questions[idx].requirement_ids || []).map(compoundId => {
+          const [reqId] = compoundId.split(':');
+          return {
+            question_id: q.id,
+            requirement_id: reqId
+          };
+        })
       );
 
       if (requirementAssociations.length > 0) {
@@ -440,25 +443,60 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
   const getCoverageStats = () => {
     const coveredRequirements = new Set<string>();
+    const coveredBulletIds = new Set<string>();
     const coveredCompetencies = new Set<string>();
 
     questions.forEach(q => {
-      (q.requirement_ids || []).forEach(id => coveredRequirements.add(id));
+      (q.requirement_ids || []).forEach(id => {
+        const [reqId, bulletIdx] = id.split(':');
+        coveredRequirements.add(reqId);
+        if (bulletIdx !== undefined) {
+          coveredBulletIds.add(`${reqId}:${bulletIdx}`);
+        }
+      });
       (q.competency_ids || []).forEach(id => coveredCompetencies.add(id));
     });
 
-    const essentialRequirements = requirements.filter(r => r.category === 'Essential Criteria');
-    const desirableRequirements = requirements.filter(r => r.category === 'Desirable Criteria');
+    let essentialTotal = 0;
+    let desirableTotal = 0;
+    let essentialCovered = 0;
+    let desirableCovered = 0;
 
-    const coveredEssential = essentialRequirements.filter(r => coveredRequirements.has(r.id)).length;
-    const coveredDesirable = desirableRequirements.filter(r => coveredRequirements.has(r.id)).length;
+    requirements.forEach(r => {
+      if (r.category !== 'Essential Criteria' && r.category !== 'Desirable Criteria') return;
+      if (!r.description) return;
+
+      const rawLines = r.description
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+
+      const dashBullets = rawLines
+        .filter(line => line.startsWith('-'))
+        .map(line => line.substring(1).trim());
+
+      const bullets = dashBullets.length > 0 ? dashBullets : rawLines;
+
+      bullets.forEach((_, idx) => {
+        const bulletId = `${r.id}:${idx}`;
+        const isCovered = coveredBulletIds.has(bulletId) || coveredRequirements.has(r.id);
+
+        if (r.category === 'Essential Criteria') {
+          essentialTotal++;
+          if (isCovered) essentialCovered++;
+        } else if (r.category === 'Desirable Criteria') {
+          desirableTotal++;
+          if (isCovered) desirableCovered++;
+        }
+      });
+    });
 
     return {
       totalQuestions: questions.length,
-      essentialCovered: coveredEssential,
-      essentialTotal: essentialRequirements.length,
-      desirableCovered: coveredDesirable,
-      desirableTotal: desirableRequirements.length,
+      essentialCovered,
+      essentialTotal,
+      desirableCovered,
+      desirableTotal,
       competenciesCovered: coveredCompetencies.size,
       competenciesTotal: competencies.length
     };
@@ -764,13 +802,20 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                                          .flatMap(req => {
                                            // Parse bullet points from description
                                            if (req.description) {
-                                             const bulletPoints = req.description
+                                             let bulletPoints = req.description
                                                .split('\n')
                                                .map(line => line.trim())
+                                               .filter(line => line.length > 0);
+                                             
+                                             const dashBullets = bulletPoints
                                                .filter(line => line.startsWith('-'))
                                                .map(line => line.substring(1).trim());
                                              
-                                             // Create an option for each bullet point
+                                             // If no dash-style bullets, treat the whole description as one item
+                                             if (dashBullets.length > 0) {
+                                               bulletPoints = dashBullets;
+                                             }
+                                             
                                              return bulletPoints.map((bullet, idx) => ({
                                                id: `${req.id}:${idx}`,
                                                reqId: req.id,
@@ -864,12 +909,16 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                             const req = requirements.find(r => r.id === reqId);
                             if (!req || !req.description) return null;
                             
-                            // Extract the specific bullet point
-                            const bullets = req.description
+                            const rawLines = req.description
                               .split('\n')
                               .map(line => line.trim())
+                              .filter(line => line.length > 0);
+                            
+                            const dashBullets = rawLines
                               .filter(line => line.startsWith('-'))
                               .map(line => line.substring(1).trim());
+                            
+                            const bullets = dashBullets.length > 0 ? dashBullets : rawLines;
                             
                             const bullet = bullets[parseInt(bulletIdx)] || req.title;
                             
