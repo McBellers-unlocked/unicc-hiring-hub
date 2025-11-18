@@ -756,7 +756,9 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                                   <CommandList>
                                     <CommandEmpty>No skills found.</CommandEmpty>
                                     <CommandGroup>
-                                      {requirements.map(req => (
+                                      {requirements
+                                        .filter(req => req.category.toLowerCase().includes('experience'))
+                                        .map(req => (
                                         <CommandItem
                                           key={req.id}
                                           onSelect={() => {
