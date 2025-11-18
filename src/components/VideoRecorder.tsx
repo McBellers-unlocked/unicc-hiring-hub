@@ -56,6 +56,7 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const playbackVideoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -221,6 +222,11 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
         const blob = new Blob(chunksRef.current, { type: 'video/webm' });
         setRecordedBlob(blob);
         setPhase('review');
+        
+        // Stop the live stream when entering review phase
+        if (videoRef.current && videoRef.current.srcObject) {
+          videoRef.current.srcObject = null;
+        }
       };
 
       mediaRecorder.start(1000); // Collect data every second
@@ -410,11 +416,12 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
           <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
             {phase === 'review' || (phase === 'submitted' && isPractice && recordedBlob) ? (
               <video
-                ref={videoRef}
+                ref={playbackVideoRef}
                 src={recordedBlob ? URL.createObjectURL(recordedBlob) : undefined}
                 className="w-full h-full object-cover"
                 controls
                 autoPlay={phase === 'review'}
+                playsInline
               />
             ) : (
               <video
