@@ -458,7 +458,7 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
               </div>
             )}
 
-            {phase !== 'completed' && phase !== 'preparation' && (
+            {phase !== 'completed' && phase !== 'preparation' && phase !== 'review' && !(phase === 'submitted' && isPractice) && (
               <div className="absolute bottom-4 left-4 right-4">
                 <div className="bg-black/75 text-white p-3 rounded-lg">
                   <div className="flex items-center justify-between">
