@@ -105,12 +105,26 @@ export default function HiringManagerDashboard() {
             <CardTitle>Action Required</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex justify-between items-center">
+            <div className="space-y-3">
               <div>
                 <p className="font-semibold">Review Position Descriptions</p>
                 <p className="text-sm text-muted-foreground">{stats.pendingReview} PDs need your approval</p>
               </div>
-              <Button onClick={() => navigate('/requisitions')}>Review Now</Button>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => navigate('/requisitions')}
+                  className="flex-1"
+                >
+                  My PDs
+                </Button>
+                <Button 
+                  onClick={() => navigate('/chief-division-view')}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Chief View
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
