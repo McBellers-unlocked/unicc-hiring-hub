@@ -70,8 +70,22 @@ export default function ChiefOfDivisionView() {
       if (initialRequestsResult.error) throw initialRequestsResult.error;
       
       // Filter requisitions based on the requisition's unit/division
-      // If user is chief of MS, also show OP requisitions
-      const divisionsToShow = userDivision === 'MS' ? ['MS', 'OP'] : [userDivision];
+      // Allow division overrides for specific chiefs (e.g. Milena covers MS and OP)
+      const chiefDivisionOverrides: Record<string, string[]> = {
+        'grecuccio@unicc.org': ['MS', 'OP'],
+      };
+
+      const userEmail = user.email?.toLowerCase() || null;
+      let divisionsToShow: string[] = [];
+
+      if (userEmail && chiefDivisionOverrides[userEmail]) {
+        divisionsToShow = chiefDivisionOverrides[userEmail];
+      } else if (userDivision === 'MS') {
+        // Chiefs of MS also see OP requisitions
+        divisionsToShow = ['MS', 'OP'];
+      } else if (userDivision) {
+        divisionsToShow = [userDivision];
+      }
       
       // Helper to extract division from unit_section_division field
       const getDivisionFromUnit = (unitName: string | null): string | null => {
