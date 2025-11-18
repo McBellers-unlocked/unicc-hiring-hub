@@ -154,9 +154,16 @@ turndownService.addRule('listItemSpacing', {
 
 // Fix common markdown formatting issues
 const fixMarkdownFormatting = (text: string): string => {
+  if (!text) return text;
+
   // Fix bold formatting with spaces before closing markers
   // **text ** -> **text**
-  return text.replace(/(\*\*[^*]+?)\s+(\*\*)/g, '$1$2');
+  let fixed = text.replace(/(\*\*[^*]+?)\s+(\*\*)/g, "$1$2");
+
+  // Ensure a blank line between bullet items: "- a" then "- b" -> "- a\n\n- b"
+  fixed = fixed.replace(/(^\s*-\s+.*)(\n)(?=\s*-\s+)/gm, "$1\n\n");
+
+  return fixed;
 };
 
 // Handle paste events to convert HTML to Markdown
