@@ -36,11 +36,21 @@ export default function VideoInterview() {
   const [questionSet, setQuestionSet] = useState<VideoQuestionSet | null>(null);
   const [job, setJob] = useState<Job | null>(null);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [showPractice, setShowPractice] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isValidLink, setIsValidLink] = useState(false);
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const practiceQuestion: VideoQuestion = {
+    id: 'practice',
+    text: 'Please use this time to test your microphone and camera. Tell us a bit about yourself and why you are interested in this position. This is just for testing - your answer will not be evaluated or reviewed by the hiring team.',
+    prep_and_read_secs: 60,
+    answer_secs: 120,
+    allow_retakes: true,
+    max_retakes: 999
+  };
 
   useEffect(() => {
     console.log('VideoInterview - useEffect triggered, token:', token);
@@ -218,6 +228,40 @@ export default function VideoInterview() {
     );
   }
 
+  if (showPractice) {
+    return (
+      <div className="min-h-screen bg-background">
+        <VideoHeader />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto mb-6">
+            <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-primary mb-1">Practice Question</h3>
+                  <p className="text-sm text-muted-foreground">
+                    This is a practice question to help you test your camera and microphone setup. 
+                    <strong className="text-foreground"> Your answer will NOT be recorded or reviewed</strong> by the hiring team.
+                    When you are satisfied with your setup, you can proceed to the actual interview.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <VideoRecorder
+            questions={[practiceQuestion]}
+            applicationId={applicationId!}
+            onComplete={() => {
+              setShowPractice(false);
+              setHasStarted(true);
+            }}
+            isPractice={true}
+          />
+        </div>
+      </div>
+    );
+  }
+
   if (!hasStarted) {
     return (
       <div className="min-h-screen bg-background">
@@ -335,7 +379,7 @@ export default function VideoInterview() {
                     className="flex-1"
                     onClick={() => {
                       setShowInstructions(false);
-                      setHasStarted(true);
+                      setShowPractice(true);
                     }}
                   >
                     <Video className="mr-2 h-4 w-4" />

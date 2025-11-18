@@ -31,6 +31,7 @@ interface VideoRecorderProps {
   questions: VideoQuestion[];
   applicationId: string;
   onComplete?: () => void;
+  isPractice?: boolean;
 }
 
 type RecordingPhase = 'preparation' | 'recording' | 'review' | 'submitted' | 'completed';
@@ -38,7 +39,8 @@ type RecordingPhase = 'preparation' | 'recording' | 'review' | 'submitted' | 'co
 export const VideoRecorder: React.FC<VideoRecorderProps> = ({ 
   questions, 
   applicationId, 
-  onComplete 
+  onComplete,
+  isPractice = false 
 }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [phase, setPhase] = useState<RecordingPhase>('preparation');
@@ -261,6 +263,19 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
     try {
       setIsUploading(true);
       
+      // Skip upload for practice questions
+      if (isPractice) {
+        toast({
+          title: "Practice Complete",
+          description: "Great! Your camera and microphone are working. Ready to start the actual interview?",
+        });
+        setPhase('submitted');
+        setRecordedBlob(null);
+        setRetakeCount(0);
+        setIsUploading(false);
+        return;
+      }
+      
       // Convert blob to base64 for upload
       const base64 = await blobToBase64(recordedBlob);
       
@@ -312,13 +327,13 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
   const getPhaseTitle = () => {
     switch (phase) {
       case 'preparation':
-        return 'Reading and Preparation Time';
+        return isPractice ? 'Practice Question - Reading and Preparation Time' : 'Reading and Preparation Time';
       case 'recording':
-        return 'Recording Your Answer';
+        return isPractice ? 'Practice Question - Recording' : 'Recording Your Answer';
       case 'review':
-        return 'Review Your Answer';
+        return isPractice ? 'Practice Question - Review' : 'Review Your Answer';
       case 'submitted':
-        return 'Answer Submitted';
+        return isPractice ? 'Practice Complete' : 'Answer Submitted';
       case 'completed':
         return 'All Questions Completed';
       default:
@@ -504,7 +519,12 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
 
             {phase === 'submitted' && (
               <Button onClick={proceedToNext} size="lg">
-                {currentQuestionIndex < questions.length - 1 ? (
+                {isPractice ? (
+                  <>
+                    <Play className="w-4 h-4 mr-2" />
+                    Start Actual Interview
+                  </>
+                ) : currentQuestionIndex < questions.length - 1 ? (
                   <>
                     <Play className="w-4 h-4 mr-2" />
                     Proceed to Next Question
@@ -527,10 +547,12 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
 
           {phase === 'submitted' && (
             <div className="text-center text-green-600 font-medium mt-4">
-              ✓ Your answer has been successfully submitted. 
-              {currentQuestionIndex < questions.length - 1 
-                ? ' Click the button to continue to the next question.' 
-                : ' Click the button to complete your interview.'}
+              ✓ {isPractice 
+                ? 'Practice complete! Your camera and microphone are working properly. Click the button to start the actual interview.'
+                : `Your answer has been successfully submitted. ${currentQuestionIndex < questions.length - 1 
+                  ? 'Click the button to continue to the next question.' 
+                  : 'Click the button to complete your interview.'}`
+              }
             </div>
           )}
         </CardContent>
