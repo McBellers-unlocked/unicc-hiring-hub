@@ -46,6 +46,7 @@ import InitialRequestForm from "./pages/InitialRequestForm";
 import InitialRequestReview from "./pages/InitialRequestReview";
 import JobInterviewQuestions from "./pages/JobInterviewQuestions";
 import ReviewCommittee from "./pages/ReviewCommittee";
+import JobVideoAssignmentManager from "./pages/JobVideoAssignmentManager";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +79,7 @@ const App = () => (
             <Route path="/admin/jobs/:jobId/edit" element={<JobWizard />} />
             <Route path="/admin/jobs/:jobId/questions" element={<JobInterviewQuestions />} />
             <Route path="/admin/jobs/:jobId/review-committee" element={<ReviewCommittee />} />
+            <Route path="/admin/jobs/:jobId/video-assignment" element={<JobVideoAssignmentManager />} />
             <Route path="/admin/applications/:id" element={<ApplicationDetail />} />
             <Route path="/admin/video-test" element={<VideoTestInterface />} />
             <Route path="/admin/scoring" element={<ApplicationScoringTest />} />
