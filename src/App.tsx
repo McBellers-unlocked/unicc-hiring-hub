@@ -40,6 +40,7 @@ import AccountSecurity from "./pages/AccountSecurity";
 import VideoEmailTemplateSettings from "./pages/VideoEmailTemplateSettings";
 import TalentPool from "./pages/TalentPool";
 import ApplicationJobSelection from "./pages/ApplicationJobSelection";
+import ImportUsers from "./pages/ImportUsers";
 import NotFound from "./pages/NotFound";
 import InitialRequestForm from "./pages/InitialRequestForm";
 import InitialRequestReview from "./pages/InitialRequestReview";
@@ -98,6 +99,7 @@ const App = () => (
             <Route path="/account/security" element={<AccountSecurity />} />
             <Route path="/admin/video-email-template" element={<VideoEmailTemplateSettings />} />
             <Route path="/admin/talent-pool" element={<TalentPool />} />
+            <Route path="/admin/import-users" element={<ImportUsers />} />
             <Route path="/test/chief-view" element={<ChiefOfDivisionView />} />
             <Route path="/director-view" element={<DirectorView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
