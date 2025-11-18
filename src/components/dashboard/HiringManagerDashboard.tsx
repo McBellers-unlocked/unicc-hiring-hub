@@ -62,7 +62,7 @@ export default function HiringManagerDashboard() {
       .eq('created_by', user.id)
       .eq('status', 'hiring_manager_review');
     
-    // Get recently approved initial requests (last 30 days)
+    // Get recently approved initial requests (last 30 days) - only those without full PD approval
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
@@ -71,6 +71,7 @@ export default function HiringManagerDashboard() {
       .select('*', { count: 'exact' })
       .eq('created_by', user.id)
       .eq('initial_request_approved', true)
+      .is('chief_of_division_approval', null)
       .gte('initial_request_approved_at', thirtyDaysAgo.toISOString())
       .order('initial_request_approved_at', { ascending: false })
       .limit(5);
