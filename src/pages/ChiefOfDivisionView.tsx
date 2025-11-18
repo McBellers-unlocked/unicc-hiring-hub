@@ -105,11 +105,11 @@ export default function ChiefOfDivisionView() {
           return reqDivision && divisionsToShow.includes(reqDivision);
         });
       
-      // Combine and mark which are initial requests
+      // Combine and separate the two types
       const fullPDs = filterByDivision(fullPDResult.data || []).map(r => ({ ...r, isInitialRequest: false }));
       const initialRequests = filterByDivision(initialRequestsResult.data || []).map(r => ({ ...r, isInitialRequest: true }));
       
-      return [...initialRequests, ...fullPDs];
+      return { initialRequests, fullPDs };
     },
   });
 
@@ -154,7 +154,8 @@ export default function ChiefOfDivisionView() {
   };
 
   const handleViewDetails = async (requisitionId: string) => {
-    const requisition = requisitions?.find(r => r.id === requisitionId);
+    const requisition = requisitions?.initialRequests?.find((r: any) => r.id === requisitionId) || 
+                       requisitions?.fullPDs?.find((r: any) => r.id === requisitionId);
     if (requisition) {
       setPdfPreview({ 
         open: true, 
@@ -168,25 +169,28 @@ export default function ChiefOfDivisionView() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-6 max-w-7xl">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold">Chief of Division - Requisition Approvals</h1>
-          <Badge variant="secondary">Test View</Badge>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Chief of Division - Approvals</h1>
         </div>
 
         {isLoading ? (
           <div>Loading...</div>
         ) : (
-          <div className="grid gap-4">
-            {requisitions?.length === 0 ? (
-              <Card>
-                <CardContent className="p-6">
-                  <p className="text-center text-muted-foreground">
-                    No requisitions pending your approval
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              requisitions?.map((requisition: any) => (
+          <div className="space-y-8">
+            {/* Initial Request Approvals Section */}
+            <div>
+              <h2 className="text-2xl font-semibold mb-4">Requisition Approvals</h2>
+              <div className="grid gap-4">
+                {requisitions?.initialRequests?.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-6">
+                      <p className="text-center text-muted-foreground">
+                        No initial requisitions pending your approval
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  requisitions?.initialRequests?.map((requisition: any) => (
                 <Card key={requisition.id}>
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
@@ -597,8 +601,123 @@ export default function ChiefOfDivisionView() {
               ))
             )}
           </div>
-        )}
+        </div>
+
+        {/* Position Description Approvals Section */}
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">Position Description Approvals</h2>
+          <div className="grid gap-4">
+            {requisitions?.fullPDs?.length === 0 ? (
+              <Card>
+                <CardContent className="p-6">
+                  <p className="text-center text-muted-foreground">
+                    No position descriptions pending your approval
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              requisitions?.fullPDs?.map((requisition: any) => (
+                <Card key={requisition.id}>
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle>{requisition.position_title}</CardTitle>
+                        <div className="flex gap-2 mt-2">
+                          {requisition.grade && <Badge variant="outline">{requisition.grade}</Badge>}
+                          {requisition.nature_of_position && <Badge variant="outline">{requisition.nature_of_position}</Badge>}
+                          <Badge className="bg-blue-500">Full Position Description</Badge>
+                        </div>
+                      </div>
+                      <Badge variant="secondary">Pending Chief Approval</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                        <div>
+                          <p className="text-sm font-medium">Reference Number</p>
+                          <p className="text-sm text-muted-foreground">{requisition.reference_number}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Unit/Section/Division</p>
+                          <p className="text-sm text-muted-foreground">{requisition.unit_section_division}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Duty Station</p>
+                          <p className="text-sm text-muted-foreground">
+                            {(() => {
+                              try {
+                                if (typeof requisition.duty_station === 'string') {
+                                  const parsed = JSON.parse(requisition.duty_station);
+                                  return Array.isArray(parsed) ? parsed.join(', ') : String(parsed);
+                                } else if (Array.isArray(requisition.duty_station)) {
+                                  return (requisition.duty_station as string[]).join(', ');
+                                } else {
+                                  return String(requisition.duty_station || 'Not specified');
+                                }
+                              } catch {
+                                return String(requisition.duty_station || 'Not specified');
+                              }
+                            })()}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Created By</p>
+                          <p className="text-sm text-muted-foreground">
+                            {(requisition as any).creator?.name || (requisition as any).creator?.email || 'Unknown User'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Created Date</p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(requisition.created_at), "dd/MM/yyyy")}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">HR Reviewed</p>
+                          <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200">✓ Reviewed</Badge>
+                        </div>
+                      </div>
+
+                      {requisition.hr_change_summary && (
+                        <div className="mb-3 p-3 bg-blue-50 rounded-lg">
+                          <p className="text-sm font-medium text-blue-900">HR Review Note:</p>
+                          <p className="text-sm text-blue-800">{requisition.hr_change_summary}</p>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          onClick={() => handleApproval(requisition.id, true, false)}
+                          disabled={approveMutation.isPending}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={() => handleApproval(requisition.id, false, false)}
+                          disabled={approveMutation.isPending}
+                        >
+                          Reject
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handleViewDetails(requisition.id)}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          View Position Description
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </div>
       </div>
+    )}
+  </div>
 
       {/* Position Description View Dialog */}
       <Dialog open={pdfPreview.open} onOpenChange={(open) => setPdfPreview({ open, requisitionId: null, pdfUrl: null, loading: false })}>
@@ -611,7 +730,8 @@ export default function ChiefOfDivisionView() {
           </DialogHeader>
           <div className="flex-1 overflow-auto">
             {(() => {
-              const requisition = requisitions?.find(r => r.id === pdfPreview.requisitionId);
+              const requisition = requisitions?.initialRequests?.find((r: any) => r.id === pdfPreview.requisitionId) || 
+                             requisitions?.fullPDs?.find((r: any) => r.id === pdfPreview.requisitionId);
               if (!requisition) return null;
 
               return (
