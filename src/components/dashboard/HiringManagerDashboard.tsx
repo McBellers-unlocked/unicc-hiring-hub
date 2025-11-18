@@ -260,7 +260,7 @@ export default function HiringManagerDashboard() {
                     {req.approvalType === 'Initial Request' && (
                       <Button 
                         size="sm"
-                        onClick={() => navigate(`/requisitions/${req.id}/form`)}
+                        onClick={() => navigate(`/requisitions/${req.id}/edit`)}
                       >
                         Create Full PD
                       </Button>
