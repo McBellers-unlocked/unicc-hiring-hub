@@ -481,35 +481,6 @@ export default function VideoInterview() {
                 </CardContent>
               </Card>
 
-              {/* Question Preview */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Question Overview</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {questionSet.questions.map((question, index) => (
-                      <div key={question.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <Badge variant="outline">Q{index + 1}</Badge>
-                            <div className="text-sm">
-                              <div className="font-medium">{question.text.substring(0, 60)}...</div>
-                              <div className="text-muted-foreground">
-                                Reading & Prep: {question.prep_and_read_secs}s | Answer: {question.answer_secs}s
-                              </div>
-                            </div>
-                        </div>
-                        {question.allow_retakes && (
-                          <Badge variant="secondary">
-                            {question.max_retakes} retake{question.max_retakes !== 1 ? 's' : ''}
-                          </Badge>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* Start Button */}
               <div className="text-center">
                 <Button onClick={() => setShowInstructions(true)} size="lg" className="px-8">
