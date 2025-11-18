@@ -29,9 +29,12 @@ export const Layout = ({ children }: LayoutProps) => {
   const isPanelMember = userRoles.includes('Panel Member');
   const isCandidate = userRoles.includes('Candidate');
   const isChiefHR = userRoles.includes('Chief of HR');
+  const isDirector = userRoles.includes('Director');
   
   // Chief HR has same navigation access as Admin/HR
   const hasAdminAccess = isAdmin || isHR || isChiefHR;
+  // Directors have hiring manager access plus their own director functions
+  const hasHiringManagerAccess = isHiringManager || isDirector;
 
   return (
     <div className="min-h-screen bg-background">
@@ -57,7 +60,7 @@ export const Layout = ({ children }: LayoutProps) => {
                     My Profile
                   </Link>
                   
-                  {(isAdmin || isHR || isHiringManager || isChiefHR) && (
+                  {(hasAdminAccess || hasHiringManagerAccess) && (
                     <DropdownMenu>
                       <DropdownMenuTrigger className="flex items-center hover:text-accent transition-colors py-2 focus:outline-none">
                         <Building className="w-4 h-4 mr-1" />
@@ -65,7 +68,7 @@ export const Layout = ({ children }: LayoutProps) => {
                         <ChevronDown className="w-3 h-3 ml-1" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="bg-popover border border-border shadow-lg">
-                  {(isHiringManager || isAdmin || isHR) && (
+                  {(hasHiringManagerAccess || isAdmin || isHR) && (
                     <DropdownMenuItem asChild>
                       <Link to="/requisitions" className="flex items-center w-full">
                         <FileText className="w-4 h-4 mr-2" />
