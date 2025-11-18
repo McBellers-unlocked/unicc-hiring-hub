@@ -64,7 +64,7 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
   });
 
   // Fetch current review committee members
-  const { data: committeeMembers, isLoading } = useQuery({
+  const { data: rawCommitteeMembers, isLoading } = useQuery({
     queryKey: ["review-committee-members", jobId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -81,6 +81,12 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
       if (error) throw error;
       return data;
     },
+  });
+
+  // Sort committee members by role priority: Chair, Members, Staff Representative
+  const committeeMembers = rawCommitteeMembers?.sort((a, b) => {
+    const roleOrder = { "Chair": 1, "Member": 2, "Staff Representative": 3 };
+    return (roleOrder[a.role as keyof typeof roleOrder] || 99) - (roleOrder[b.role as keyof typeof roleOrder] || 99);
   });
 
   // Fetch job to check committee status
