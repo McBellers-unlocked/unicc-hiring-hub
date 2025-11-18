@@ -777,14 +777,12 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                                               (question.requirement_ids || []).includes(req.id) ? "opacity-100" : "opacity-0"
                                             )}
                                           />
-                                          <div className="flex-1">
-                                            <div className="font-medium">
-                                              {req.description 
-                                                ? req.description.substring(0, 80) + (req.description.length > 80 ? '...' : '')
-                                                : req.title}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">{req.category}</div>
-                                          </div>
+                                           <div className="flex-1">
+                                             <div className="font-medium">
+                                               {req.title}
+                                             </div>
+                                             <div className="text-xs text-muted-foreground">{req.category}</div>
+                                           </div>
                                         </CommandItem>
                                       ))}
                                     </CommandGroup>
@@ -846,10 +844,8 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                             const req = requirements.find(r => r.id === reqId);
                             return req ? (
                               <Badge key={reqId} variant="secondary" className="text-xs">
-                                {req.description 
-                                  ? req.description.substring(0, 50) + (req.description.length > 50 ? '...' : '')
-                                  : req.title}
-                              </Badge>
+                                 {req.title}
+                               </Badge>
                             ) : null;
                           })}
                           {(question.competency_ids || []).map(compId => {
