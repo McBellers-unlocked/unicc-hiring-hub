@@ -52,10 +52,10 @@ export default function ChiefOfDivisionView() {
           `)
           .eq("hr_final_review_completed", true)
           .eq("status", "chief_of_division_review")
-          .or("chief_of_division_approval.is.null,chief_of_division_approval.eq.false")
+          .is("chief_of_division_approval", null)
           .order("created_at", { ascending: false }),
         
-        // Initial requests pending approval
+        // Initial requests pending approval - exclude already approved ones
         supabase
           .from("job_requisitions")
           .select(`
@@ -63,7 +63,7 @@ export default function ChiefOfDivisionView() {
             creator:users!created_by(name, email, division)
           `)
           .in("status", ["initial_request_submitted", "initial_request_chief_review"])
-          .or("initial_request_approved.is.null,initial_request_approved.eq.false")
+          .is("initial_request_approved", null)
           .order("created_at", { ascending: false })
       ]);
 
