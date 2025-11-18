@@ -15,9 +15,12 @@ export default function HiringManagerDashboard() {
     myJobs: 0, 
     pendingReview: 0,
     recentApplications: 0,
-    activeJobs: 0
+    activeJobs: 0,
+    approvedInitialRequests: 0,
+    approvedPDs: 0
   });
   const [myJobIds, setMyJobIds] = useState<string[]>([]);
+  const [recentlyApproved, setRecentlyApproved] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) fetchData();
@@ -59,17 +62,54 @@ export default function HiringManagerDashboard() {
       .eq('created_by', user.id)
       .eq('status', 'hiring_manager_review');
     
+    // Get recently approved initial requests (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const { data: approvedInitial, count: approvedInitialCount } = await supabase
+      .from('job_requisitions')
+      .select('*', { count: 'exact' })
+      .eq('created_by', user.id)
+      .eq('initial_request_approved', true)
+      .gte('initial_request_approved_at', thirtyDaysAgo.toISOString())
+      .order('initial_request_approved_at', { ascending: false })
+      .limit(5);
+    
+    // Get recently approved full PDs (last 30 days)
+    const { data: approvedPDs, count: approvedPDsCount } = await supabase
+      .from('job_requisitions')
+      .select('*', { count: 'exact' })
+      .eq('created_by', user.id)
+      .eq('chief_of_division_approval', true)
+      .gte('chief_of_division_approved_at', thirtyDaysAgo.toISOString())
+      .order('chief_of_division_approved_at', { ascending: false })
+      .limit(5);
+    
+    // Combine and sort by approval date
+    const combined = [
+      ...(approvedInitial || []).map(r => ({ ...r, approvalType: 'Initial Request' })),
+      ...(approvedPDs || []).map(r => ({ ...r, approvalType: 'Full PD' }))
+    ].sort((a, b) => {
+      const dateA = new Date(a.initial_request_approved_at || a.chief_of_division_approved_at || 0);
+      const dateB = new Date(b.initial_request_approved_at || b.chief_of_division_approved_at || 0);
+      return dateB.getTime() - dateA.getTime();
+    }).slice(0, 5);
+    
+    setRecentlyApproved(combined);
+    
     setStats({ 
       myJobs: jobIds.length,
       activeJobs: activeJobsCount || 0,
       pendingReview: pdsCount || 0,
-      recentApplications: recentAppsCount || 0
+      recentApplications: recentAppsCount || 0,
+      approvedInitialRequests: approvedInitialCount || 0,
+      approvedPDs: approvedPDsCount || 0
     });
   };
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatsCard 
           title="Active Jobs" 
           value={stats.activeJobs}
@@ -94,6 +134,18 @@ export default function HiringManagerDashboard() {
           title="PDs Pending Review" 
           value={stats.pendingReview} 
           alert={stats.pendingReview > 0} 
+          icon={FileText}
+          onClick={() => navigate('/requisitions')}
+        />
+        <StatsCard 
+          title="Initial Requests Approved (30d)" 
+          value={stats.approvedInitialRequests}
+          icon={FileText}
+          onClick={() => navigate('/requisitions')}
+        />
+        <StatsCard 
+          title="Full PDs Approved (30d)" 
+          value={stats.approvedPDs}
           icon={FileText}
           onClick={() => navigate('/requisitions')}
         />
@@ -169,6 +221,39 @@ export default function HiringManagerDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {recentlyApproved.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recently Approved by Chief (Last 30 Days)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {recentlyApproved.map((req) => (
+                <div key={req.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div className="flex-1">
+                    <p className="font-semibold">{req.position_title}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="text-xs">{req.approvalType}</Badge>
+                      {req.grade && <Badge variant="secondary" className="text-xs">{req.grade}</Badge>}
+                      <span className="text-xs text-muted-foreground">
+                        Approved {new Date(req.initial_request_approved_at || req.chief_of_division_approved_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate(`/requisitions/${req.id}`)}
+                  >
+                    View
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
