@@ -222,7 +222,7 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
   const validateRoleEligibility = (user: any, role: string): string | null => {
     if (role === "Chair") {
       if (!EXCO_MEMBERS.includes(user.name)) {
-        return "Chair can only be occupied by ExCo members (Sameer Chauhan, Milena Grecuccio, Tima Soni, Anish Sethi, Marco Liuzzi)";
+        return "Chair can only be occupied by ExCo members";
       }
     } else if (role === "Member") {
       const grade = user.current_grade;
