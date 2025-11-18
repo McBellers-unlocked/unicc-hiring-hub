@@ -392,6 +392,23 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
               className="w-full h-full object-cover"
             />
             
+            {/* Preparation Phase Overlay */}
+            {phase === 'preparation' && (
+              <div className="absolute inset-0 bg-black flex flex-col items-center justify-center text-white p-8">
+                <div className="text-center space-y-6 max-w-2xl">
+                  <div className="text-6xl font-bold mb-4">
+                    {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+                  </div>
+                  <div className="text-2xl font-medium leading-relaxed">
+                    {currentQuestion.text}
+                  </div>
+                  <div className="text-sm text-white/70">
+                    Prepare your answer. Recording will begin when the timer ends or you can start early.
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {isRecording && (
               <div className="absolute top-4 right-4">
                 <Badge variant="destructive" className="animate-pulse">
@@ -401,7 +418,7 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
               </div>
             )}
 
-            {phase !== 'completed' && (
+            {phase !== 'completed' && phase !== 'preparation' && (
               <div className="absolute bottom-4 left-4 right-4">
                 <div className="bg-black/75 text-white p-3 rounded-lg">
                   <div className="flex items-center justify-between">
