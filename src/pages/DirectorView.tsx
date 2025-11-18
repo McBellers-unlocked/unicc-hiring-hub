@@ -26,24 +26,6 @@ export default function DirectorView() {
     setPdfPreview({ open: true, requisitionId });
   };
 
-  // Fetch initial requisition requests pending Director approval
-  const { data: initialRequests, isLoading: initialRequestsLoading } = useQuery({
-    queryKey: ["initial-requisitions-director-approval"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("job_requisitions")
-        .select(`
-          *,
-          creator:users!created_by(name, email)
-        `)
-        .eq("status", "initial_request_submitted")
-        .eq("initial_request_approved", false)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data;
-    },
-  });
 
   const { data: requisitions, isLoading } = useQuery({
     queryKey: ["requisitions-director-approval"],
@@ -185,10 +167,6 @@ export default function DirectorView() {
     },
   });
 
-  const handleInitialRequestApproval = (id: string, approved: boolean) => {
-    approveInitialRequestMutation.mutate({ id, approved });
-  };
-
   const handleApproval = (id: string, approved: boolean) => {
     approveMutation.mutate({ id, approved });
   };
@@ -200,116 +178,11 @@ export default function DirectorView() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Director Dashboard</h1>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">Director Approvals</h1>
           <p className="text-muted-foreground mt-2">
-            Manage approvals and access hiring manager functions
+            Review and approve position descriptions and review committees
           </p>
-        </div>
-
-        {/* Hiring Manager Quick Actions */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-4">Quick Actions</h2>
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">My Position Descriptions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Button asChild className="w-full">
-                  <a href="/requisitions">View My PDs</a>
-                </Button>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Create New PD</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Button asChild variant="outline" className="w-full">
-                  <a href="/initial-request">Create Position Description</a>
-                </Button>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Applications</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Button asChild variant="outline" className="w-full">
-                  <a href="/applications">View Applications</a>
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Director Approvals Section */}
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold">Pending Approvals</h2>
-        </div>
-
-        {/* Initial Requisition Requests Section */}
-        <div className="mb-8">
-          <h3 className="text-xl font-semibold mb-4">Initial Requisition Requests</h3>
-
-          {initialRequestsLoading ? (
-            <div>Loading...</div>
-          ) : (
-            <div className="grid gap-4">
-              {initialRequests?.length === 0 ? (
-                <Card>
-                  <CardContent className="p-6">
-                    <p className="text-center text-muted-foreground">
-                      No initial requisition requests pending your approval
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                initialRequests?.map((requisition) => (
-                  <Card key={requisition.id}>
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle>{requisition.position_title}</CardTitle>
-                          <div className="flex gap-2 mt-2">
-                            <Badge variant="outline">{requisition.grade}</Badge>
-                            <Badge variant="outline">{requisition.nature_of_position}</Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-2">
-                            Submitted: {format(new Date(requisition.created_at), "PPP")}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            By: {requisition.creator?.name}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            onClick={() => handleViewDetails(requisition.id)}
-                          >
-                            <FileText className="h-4 w-4 mr-2" />
-                            View Details
-                          </Button>
-                          <Button
-                            onClick={() => handleInitialRequestApproval(requisition.id, true)}
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            onClick={() => handleInitialRequestApproval(requisition.id, false)}
-                          >
-                            Reject
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                  </Card>
-                ))
-              )}
-            </div>
-          )}
         </div>
 
         {/* Position Description Approvals Section */}
