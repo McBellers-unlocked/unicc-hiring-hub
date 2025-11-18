@@ -102,6 +102,7 @@ const App = () => (
             <Route path="/admin/video-email-template" element={<VideoEmailTemplateSettings />} />
             <Route path="/admin/talent-pool" element={<TalentPool />} />
             <Route path="/admin/import-users" element={<ImportUsers />} />
+            <Route path="/import-users" element={<ImportUsers />} />
             <Route path="/test/chief-view" element={<ChiefOfDivisionView />} />
             <Route path="/director-view" element={<DirectorView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
