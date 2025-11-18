@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Users, UserPlus, X, Send } from "lucide-react";
+import { Users, UserPlus, X, Send, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -436,6 +436,17 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
               </Alert>
             )}
           </div>
+
+          {/* Validation Success */}
+          {isCommitteeComplete && !hasValidationErrors && !isPendingOrApproved && (
+            <Alert className="bg-green-50 border-green-200">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                <p className="font-semibold">Committee composition meets all policy requirements</p>
+                <p className="text-sm mt-1">All required roles are filled and validated. Ready to send for Director approval.</p>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Send for Approval Button */}
           {canSendForApproval && (
