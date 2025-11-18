@@ -62,7 +62,7 @@ export default function HiringManagerDashboard() {
       .eq('created_by', user.id)
       .eq('status', 'hiring_manager_review');
     
-    // Get recently approved initial requests (last 30 days) - only those without full PD approval
+    // Get recently approved initial requests (last 30 days) - only those that haven't moved beyond initial approval
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
@@ -71,7 +71,7 @@ export default function HiringManagerDashboard() {
       .select('*', { count: 'exact' })
       .eq('created_by', user.id)
       .eq('initial_request_approved', true)
-      .or('chief_of_division_approval.is.null,chief_of_division_approval.eq.false')
+      .eq('status', 'initial_request_approved')
       .gte('initial_request_approved_at', thirtyDaysAgo.toISOString())
       .order('initial_request_approved_at', { ascending: false })
       .limit(5);
@@ -82,6 +82,7 @@ export default function HiringManagerDashboard() {
       .select('*', { count: 'exact' })
       .eq('created_by', user.id)
       .eq('chief_of_division_approval', true)
+      .in('status', ['chief_division_review', 'deputy_director_review', 'director_review', 'finance_review', 'hr_review'])
       .gte('chief_of_division_approved_at', thirtyDaysAgo.toISOString())
       .order('chief_of_division_approved_at', { ascending: false })
       .limit(5);
