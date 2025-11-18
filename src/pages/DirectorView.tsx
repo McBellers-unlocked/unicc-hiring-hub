@@ -201,12 +201,57 @@ export default function DirectorView() {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Director - Approvals</h1>
+          <h1 className="text-3xl font-bold">Director Dashboard</h1>
+          <p className="text-muted-foreground mt-2">
+            Manage approvals and access hiring manager functions
+          </p>
+        </div>
+
+        {/* Hiring Manager Quick Actions */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4">Quick Actions</h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">My Position Descriptions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button asChild className="w-full">
+                  <a href="/requisitions">View My PDs</a>
+                </Button>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Create New PD</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button asChild variant="outline" className="w-full">
+                  <a href="/initial-request">Create Position Description</a>
+                </Button>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Applications</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button asChild variant="outline" className="w-full">
+                  <a href="/applications">View Applications</a>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Director Approvals Section */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold">Pending Approvals</h2>
         </div>
 
         {/* Initial Requisition Requests Section */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-4">Initial Requisition Requests</h2>
+          <h3 className="text-xl font-semibold mb-4">Initial Requisition Requests</h3>
 
           {initialRequestsLoading ? (
             <div>Loading...</div>
@@ -269,7 +314,7 @@ export default function DirectorView() {
 
         {/* Position Description Approvals Section */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-4">Position Description Approvals</h2>
+          <h3 className="text-xl font-semibold mb-4">Position Description Approvals</h3>
 
           {isLoading ? (
             <div>Loading...</div>
@@ -631,7 +676,7 @@ export default function DirectorView() {
 
         {/* Review Committee Approvals Section */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">Review Committee Approvals</h2>
+          <h3 className="text-xl font-semibold mb-4">Review Committee Approvals</h3>
           {committeesLoading ? (
             <div>Loading...</div>
           ) : pendingCommittees && pendingCommittees.length > 0 ? (
