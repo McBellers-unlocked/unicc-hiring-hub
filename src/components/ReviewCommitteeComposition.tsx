@@ -31,14 +31,14 @@ const EXCO_MEMBERS = [
 
 // Staff representatives eligible for Staff Representative role
 const STAFF_REPRESENTATIVES = [
-  "Victor BENET",
-  "Lyle MCFADYEN",
+  "Victor Manuel BENET ANCHEL",
+  "Lyle Gregory MCFADYEN",
   "Elena RIVAS RUZAFA",
   "Paloma BAHILO ALPUENTE",
   "Gabriella ANDRIUZZI",
   "Rosa ALIANELLI",
   "Daniela D'AMELIO",
-  "Nick HEDGES"
+  "Nicholas Hedges"
 ];
 
 export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeCompositionProps) {
@@ -360,7 +360,7 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
                           })
                           .map((user) => (
                             <SelectItem key={user.id} value={user.id}>
-                              {user.name} ({user.role}) {user.current_grade ? `- ${user.current_grade}` : ''}
+                              {user.name} ({user.role})
                             </SelectItem>
                           ))}
                       </SelectContent>
