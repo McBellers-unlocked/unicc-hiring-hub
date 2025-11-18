@@ -383,7 +383,7 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
               </div>
               <div className="flex gap-2 justify-center">
                 <Button 
-                  onClick={() => navigate(`/admin/jobs/${jobId}/edit?step=5`)}
+                  onClick={() => navigate(`/admin/jobs/${jobId}/video-assignment`)}
                   variant="default"
                 >
                   <Settings className="w-4 h-4 mr-2" />
