@@ -234,7 +234,13 @@ export default function HiringManagerDashboard() {
                   <div className="flex-1">
                     <p className="font-semibold">{req.position_title}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className="text-xs">{req.approvalType}</Badge>
+                      <Badge 
+                        variant="outline" 
+                        className="text-xs cursor-pointer hover:bg-primary/10 transition-colors" 
+                        onClick={() => navigate(`/requisitions/${req.id}`)}
+                      >
+                        {req.approvalType}
+                      </Badge>
                       {req.grade && <Badge variant="secondary" className="text-xs">{req.grade}</Badge>}
                       <span className="text-xs text-muted-foreground">
                         Approved {new Date(req.initial_request_approved_at || req.chief_of_division_approved_at).toLocaleDateString()}
