@@ -81,7 +81,7 @@ export default function DirectorView() {
 
       if (error) throw error;
 
-      // Fetch sender details for each job
+      // Fetch sender details and committee members for each job
       if (data && data.length > 0) {
         const senderIds = data.map(d => d.review_committee_sent_by).filter(Boolean);
         const { data: senders } = await supabase
@@ -89,9 +89,26 @@ export default function DirectorView() {
           .select("id, name, email")
           .in("id", senderIds);
 
+        // Fetch committee members for all jobs
+        const jobIds = data.map(d => d.id);
+        const { data: committeeMembers } = await supabase
+          .from("job_review_committee_members")
+          .select(`
+            job_id,
+            role,
+            user:users(id, name, email, current_grade)
+          `)
+          .in("job_id", jobIds);
+
+        // Sort committee members by role
+        const roleOrder = { "Chair": 1, "Member": 2, "Staff Representative": 3 };
+        
         return data.map(job => ({
           ...job,
-          sender: senders?.find(s => s.id === job.review_committee_sent_by)
+          sender: senders?.find(s => s.id === job.review_committee_sent_by),
+          committee_members: (committeeMembers || [])
+            .filter(m => m.job_id === job.id)
+            .sort((a, b) => (roleOrder[a.role as keyof typeof roleOrder] || 99) - (roleOrder[b.role as keyof typeof roleOrder] || 99))
         }));
       }
 
@@ -650,6 +667,33 @@ export default function DirectorView() {
                         </p>
                       </div>
                     </div>
+
+                    {/* Committee Members */}
+                    {(job as any).committee_members && (job as any).committee_members.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-sm font-medium mb-2">Committee Members</p>
+                        <div className="space-y-2">
+                          {(job as any).committee_members.map((member: any, idx: number) => (
+                            <div key={idx} className="flex items-center justify-between p-2 bg-muted rounded-md">
+                              <div>
+                                <p className="text-sm font-medium">{member.user?.name}</p>
+                                <p className="text-xs text-muted-foreground">{member.user?.email}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {member.user?.current_grade && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {member.user.current_grade}
+                                  </Badge>
+                                )}
+                                <Badge variant="secondary" className="text-xs">
+                                  {member.role}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex gap-2">
                       <Button
