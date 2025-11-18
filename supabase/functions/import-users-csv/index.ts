@@ -54,8 +54,9 @@ Deno.serve(async (req) => {
       .eq('id', user.id)
       .single();
 
-    if (roleError || userData?.role !== 'Admin') {
-      throw new Error('Only admins can import users');
+    const allowedRoles = ['Admin', 'Director', 'HR Assistant', 'Chief of HR'];
+    if (roleError || !allowedRoles.includes(userData?.role)) {
+      throw new Error('Only authorized personnel can import users');
     }
 
     const { csvData } = await req.json();
