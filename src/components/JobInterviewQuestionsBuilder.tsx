@@ -755,41 +755,55 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                                   <CommandInput placeholder="Search skills..." />
                                   <CommandList>
                                     <CommandEmpty>No skills found.</CommandEmpty>
-                                    <CommandGroup>
-                                      {requirements
-                                        .filter(req => 
-                                          req.category === 'Essential Criteria' || 
-                                          req.category === 'Desirable Criteria'
-                                        )
-                                        .map(req => (
-                                        <CommandItem
-                                          key={req.id}
-                                          onSelect={() => {
-                                            const ids = (question.requirement_ids || []).includes(req.id)
-                                              ? (question.requirement_ids || []).filter(id => id !== req.id)
-                                              : [...(question.requirement_ids || []), req.id];
-                                            updateQuestion(index, 'requirement_ids', ids);
-                                          }}
-                                        >
-                                          <Check
-                                            className={cn(
-                                              "mr-2 h-4 w-4",
-                                              (question.requirement_ids || []).includes(req.id) ? "opacity-100" : "opacity-0"
-                                            )}
-                                          />
-                                           <div className="flex-1">
-                                             <div className="font-medium">
-                                               {req.title}
-                                             </div>
-                                             {req.description && (
-                                               <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                                 {req.description}
-                                               </div>
+                                     <CommandGroup>
+                                       {requirements
+                                         .filter(req => 
+                                           req.category === 'Essential Criteria' || 
+                                           req.category === 'Desirable Criteria'
+                                         )
+                                         .flatMap(req => {
+                                           // Parse bullet points from description
+                                           if (req.description) {
+                                             const bulletPoints = req.description
+                                               .split('\n')
+                                               .map(line => line.trim())
+                                               .filter(line => line.startsWith('-'))
+                                               .map(line => line.substring(1).trim());
+                                             
+                                             // Create an option for each bullet point
+                                             return bulletPoints.map((bullet, idx) => ({
+                                               id: `${req.id}:${idx}`,
+                                               reqId: req.id,
+                                               title: req.title,
+                                               bullet: bullet,
+                                               category: req.category
+                                             }));
+                                           }
+                                           return [];
+                                         })
+                                         .map(item => (
+                                         <CommandItem
+                                           key={item.id}
+                                           onSelect={() => {
+                                             const ids = (question.requirement_ids || []).includes(item.id)
+                                               ? (question.requirement_ids || []).filter(id => id !== item.id)
+                                               : [...(question.requirement_ids || []), item.id];
+                                             updateQuestion(index, 'requirement_ids', ids);
+                                           }}
+                                         >
+                                           <Check
+                                             className={cn(
+                                               "mr-2 h-4 w-4",
+                                               (question.requirement_ids || []).includes(item.id) ? "opacity-100" : "opacity-0"
                                              )}
+                                           />
+                                           <div className="flex-1">
+                                             <div className="text-xs text-muted-foreground mb-1">{item.title}</div>
+                                             <div className="text-sm">{item.bullet}</div>
                                            </div>
-                                        </CommandItem>
-                                      ))}
-                                    </CommandGroup>
+                                         </CommandItem>
+                                       ))}
+                                     </CommandGroup>
                                   </CommandList>
                                 </Command>
                               </PopoverContent>
@@ -844,13 +858,26 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
                         {/* Display selected tags */}
                         <div className="flex flex-wrap gap-2">
-                          {(question.requirement_ids || []).map(reqId => {
+                          {(question.requirement_ids || []).map(id => {
+                            // Parse the compound ID (format: reqId:bulletIndex)
+                            const [reqId, bulletIdx] = id.split(':');
                             const req = requirements.find(r => r.id === reqId);
-                            return req ? (
-                              <Badge key={reqId} variant="secondary" className="text-xs">
-                                 {req.title}
-                               </Badge>
-                            ) : null;
+                            if (!req || !req.description) return null;
+                            
+                            // Extract the specific bullet point
+                            const bullets = req.description
+                              .split('\n')
+                              .map(line => line.trim())
+                              .filter(line => line.startsWith('-'))
+                              .map(line => line.substring(1).trim());
+                            
+                            const bullet = bullets[parseInt(bulletIdx)] || req.title;
+                            
+                            return (
+                              <Badge key={id} variant="secondary" className="text-xs">
+                                {bullet.length > 60 ? bullet.substring(0, 60) + '...' : bullet}
+                              </Badge>
+                            );
                           })}
                           {(question.competency_ids || []).map(compId => {
                             const comp = competencies.find(c => c.id === compId);
