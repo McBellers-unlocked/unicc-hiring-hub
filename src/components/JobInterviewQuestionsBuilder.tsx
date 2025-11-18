@@ -794,11 +794,17 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                                   <CommandList>
                                     <CommandEmpty>No skills found.</CommandEmpty>
                                      <CommandGroup>
-                                       {requirements
+                                      {requirements
                                          .filter(req => 
                                            req.category === 'Essential Criteria' || 
                                            req.category === 'Desirable Criteria'
                                          )
+                                         .sort((a, b) => {
+                                           // Essential comes before Desirable
+                                           if (a.category === 'Essential Criteria' && b.category === 'Desirable Criteria') return -1;
+                                           if (a.category === 'Desirable Criteria' && b.category === 'Essential Criteria') return 1;
+                                           return 0;
+                                         })
                                          .flatMap(req => {
                                            // Parse bullet points from description
                                            if (req.description) {
