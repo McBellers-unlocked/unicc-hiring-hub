@@ -29,7 +29,7 @@ export function MainDutiesTemplateModal({ open, onClose, onApply, currentContent
     let filledTemplate = '';
     
     if (isIntern) {
-      filledTemplate = `The incumbent(s) are expected to work ${numberOfDays} days per week ${numberOfHours} hours under the supervision of ${supervisorTitleIntern} and will be provided guidance and support to perform the responsibilities mentioned below.
+      filledTemplate = `The incumbent(s) will work ${numberOfDays} days per week for ${numberOfHours} hours under the supervision of the ${supervisorTitleIntern}, and will receive the guidance and support necessary to carry out the responsibilities outlined below.
 
 `;
     } else {
@@ -90,10 +90,10 @@ export function MainDutiesTemplateModal({ open, onClose, onApply, currentContent
                 <div className="p-3 bg-muted/50 rounded-lg">
                   <p className="text-sm text-muted-foreground mb-2">Preview:</p>
                   <p className="text-sm">
-                    The incumbent(s) are expected to work{' '}
-                    <span className="font-medium text-primary">{numberOfDays}</span> days per week{' '}
-                    <span className="font-medium text-primary">{numberOfHours}</span> hours under the supervision of{' '}
-                    <span className="font-medium text-primary">{supervisorTitleIntern}</span> and will be provided guidance and support to perform the responsibilities mentioned below.
+                    The incumbent(s) will work{' '}
+                    <span className="font-medium text-primary">{numberOfDays}</span> days per week for{' '}
+                    <span className="font-medium text-primary">{numberOfHours}</span> hours under the supervision of the{' '}
+                    <span className="font-medium text-primary">{supervisorTitleIntern}</span>, and will receive the guidance and support necessary to carry out the responsibilities outlined below.
                   </p>
                 </div>
               )}

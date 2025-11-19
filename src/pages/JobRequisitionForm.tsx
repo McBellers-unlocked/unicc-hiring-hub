@@ -331,7 +331,7 @@ export default function JobRequisitionForm() {
     if (isDefaultTemplate) {
       if (watchedNatureOfPosition === 'Intern') {
         form.setValue('main_duties_responsibilities', 
-          "The incumbent(s) are expected to work [number of days] days per week [number of hours] hours under the supervision of [title of the supervisor] and will be provided guidance and support to perform the responsibilities mentioned below.\n\n"
+          "The incumbent(s) will work [number of days] days per week for [number of hours] hours under the supervision of the [title of the supervisor], and will receive the guidance and support necessary to carry out the responsibilities outlined below.\n\n"
         );
       } else if (watchedNatureOfPosition && watchedNatureOfPosition !== 'Intern') {
         form.setValue('main_duties_responsibilities', 
@@ -435,7 +435,7 @@ export default function JobRequisitionForm() {
         let defaultMainDuties = "";
         if (!data.main_duties_responsibilities) {
           if (data.nature_of_position === 'Intern') {
-            defaultMainDuties = "The incumbent(s) are expected to work [number of days] days per week [number of hours] hours under the supervision of [title of the supervisor] and will be provided guidance and support to perform the responsibilities mentioned below.\n\n";
+            defaultMainDuties = "The incumbent(s) will work [number of days] days per week for [number of hours] hours under the supervision of the [title of the supervisor], and will receive the guidance and support necessary to carry out the responsibilities outlined below.\n\n";
           } else {
             defaultMainDuties = "The incumbent will work under the direct supervision and guidance of the [SUPERVISOR TITLE] within the [DIVISION NAME] and in close collaboration with the [SECTION NAME] team members. The incumbent will perform the following duties:\n\n";
           }
