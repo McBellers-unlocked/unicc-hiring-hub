@@ -358,10 +358,10 @@ export default function JobRequisitions() {
                           Finalize & Send to Chief
                         </Button>
                       )}
-                      {/* Convert to Job button - shown when requisition is approved */}
-                      {requisition.status === 'approved' && 
+                      {/* Convert to Job button - shown when requisition is approved by Director */}
+                      {requisition.director_approval &&
                        !requisition.converted_to_job_id &&
-                       (userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR') || userRoles.includes('Human Resources Officer')) && (
+                       (userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR')) && (
                         <Button
                           variant="default"
                           size="sm"
