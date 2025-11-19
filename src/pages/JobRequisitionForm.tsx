@@ -1813,162 +1813,190 @@ export default function JobRequisitionForm() {
                 </ul>
               </div>
 
-              <FormField
-                control={form.control}
-                name="core_competencies"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Core Competencies</FormLabel>
-                    <FormDescription>
-                      {watchedNatureOfPosition === 'Intern' 
-                        ? `Select core competencies (remaining slots: ${Math.max(0, 2 - selectedCoreCompetencies.length)})`
-                        : `Select core competencies (remaining slots: ${Math.max(0, 3 - (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length))})`
-                      }
-                    </FormDescription>
-                    <div className="space-y-2">
-                      {[
-                        'Knowing and managing yourself: Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.',
-                        'Producing results: Produces and delivers quality results. Is action oriented and committed to achieving outcomes.',
-                        'Moving forward in a changing environment: Is open to and proposes new approaches and ideas. Adapts and responds positively to change.',
-                        'Setting an example: Acts within UNICC\'s / WHO\'s professional, ethical and legal boundaries and encourages others to adhere to these. Behaves consistently in accordance with clear personal ethics and values.'
-                      ].map((competency) => {
-                        const key = competency.split(':')[0];
-                        const totalSelected = watchedNatureOfPosition === 'Intern' 
-                          ? selectedCoreCompetencies.length 
-                          : (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
-                        const maxSelectable = watchedNatureOfPosition === 'Intern' ? 2 : 3;
-                        const isDisabled = !field.value?.includes(key) && totalSelected >= maxSelectable;
-                        return (
-                          <div key={key} className="flex items-start space-x-2">
-                            <Checkbox
-                              id={key}
-                              checked={field.value?.includes(key) || false}
-                              onCheckedChange={(checked) => {
-                                const current = field.value || [];
-                                if (checked) {
-                                  const newValue = [...current, key];
-                                  field.onChange(newValue);
-                                  setSelectedCoreCompetencies(newValue);
-                                } else {
-                                  const newValue = current.filter(c => c !== key);
-                                  field.onChange(newValue);
-                                  setSelectedCoreCompetencies(newValue);
-                                }
-                              }}
-                              disabled={isDisabled}
-                              className={isDisabled ? "opacity-50" : ""}
-                            />
-                            <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>
-                              <span className="font-bold">{competency.split(':')[0]}:</span> {competency.split(':').slice(1).join(':').trim()}
-                            </label>
-                          </div>
-                        );
-                      })}
+              {watchedNatureOfPosition === 'Individual Consultant' ? (
+                <div>
+                  <FormLabel>Required Competencies for Consultants</FormLabel>
+                  <FormDescription className="mb-4">
+                    All consultants are required to demonstrate the following 5 competencies:
+                  </FormDescription>
+                  <div className="space-y-3 bg-muted/50 p-4 rounded-md">
+                    <div className="text-sm leading-relaxed">
+                      <span className="font-bold">Teamwork:</span> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.
                     </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    <div className="text-sm leading-relaxed">
+                      <span className="font-bold">Communicating:</span> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.
+                    </div>
+                    <div className="text-sm leading-relaxed">
+                      <span className="font-bold">Respecting and promoting individual and cultural differences:</span> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.
+                    </div>
+                    <div className="text-sm leading-relaxed">
+                      <span className="font-bold">Knowing and managing yourself:</span> Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.
+                    </div>
+                    <div className="text-sm leading-relaxed">
+                      <span className="font-bold">Producing results:</span> Produces and delivers quality results. Is action oriented and committed to achieving outcomes.
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="core_competencies"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Core Competencies</FormLabel>
+                        <FormDescription>
+                          {watchedNatureOfPosition === 'Intern' 
+                            ? `Select core competencies (remaining slots: ${Math.max(0, 2 - selectedCoreCompetencies.length)})`
+                            : `Select core competencies (remaining slots: ${Math.max(0, 3 - (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length))})`
+                          }
+                        </FormDescription>
+                        <div className="space-y-2">
+                          {[
+                            'Knowing and managing yourself: Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.',
+                            'Producing results: Produces and delivers quality results. Is action oriented and committed to achieving outcomes.',
+                            'Moving forward in a changing environment: Is open to and proposes new approaches and ideas. Adapts and responds positively to change.',
+                            'Setting an example: Acts within UNICC\'s / WHO\'s professional, ethical and legal boundaries and encourages others to adhere to these. Behaves consistently in accordance with clear personal ethics and values.'
+                          ].map((competency) => {
+                            const key = competency.split(':')[0];
+                            const totalSelected = watchedNatureOfPosition === 'Intern' 
+                              ? selectedCoreCompetencies.length 
+                              : (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
+                            const maxSelectable = watchedNatureOfPosition === 'Intern' ? 2 : 3;
+                            const isDisabled = !field.value?.includes(key) && totalSelected >= maxSelectable;
+                            return (
+                              <div key={key} className="flex items-start space-x-2">
+                                <Checkbox
+                                  id={key}
+                                  checked={field.value?.includes(key) || false}
+                                  onCheckedChange={(checked) => {
+                                    const current = field.value || [];
+                                    if (checked) {
+                                      const newValue = [...current, key];
+                                      field.onChange(newValue);
+                                      setSelectedCoreCompetencies(newValue);
+                                    } else {
+                                      const newValue = current.filter(c => c !== key);
+                                      field.onChange(newValue);
+                                      setSelectedCoreCompetencies(newValue);
+                                    }
+                                  }}
+                                  disabled={isDisabled}
+                                  className={isDisabled ? "opacity-50" : ""}
+                                />
+                                <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>
+                                  <span className="font-bold">{competency.split(':')[0]}:</span> {competency.split(':').slice(1).join(':').trim()}
+                                </label>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              {watchedNatureOfPosition !== 'Intern' && (
-                <FormField
-                  control={form.control}
-                  name="management_competencies"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Management Competencies</FormLabel>
-                      <FormDescription>Select management competencies</FormDescription>
-                      <div className="space-y-2">
-                        {[
-                          'Ensuring effective use of resources: Identifies priorities in accordance with UNICC\'s strategic directions. Develops and implements action plans, organizes the necessary resources and monitors outcomes.',
-                          'Building and promoting partnerships across the Organization and beyond: Develops and strengthens internal and external partnerships that can provide information, assistance and support to UNICC. Identifies and uses synergies across the Organization and with external partners.'
-                        ].map((competency) => {
-                          const key = competency.split(':')[0];
-                          const totalSelected = (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
-                          const maxSelectable = 3;
-                          const isDisabled = !field.value?.includes(key) && totalSelected >= maxSelectable;
-                          return (
-                            <div key={key} className="flex items-start space-x-2">
-                              <Checkbox
-                                id={key}
-                                checked={field.value?.includes(key) || false}
-                                onCheckedChange={(checked) => {
-                                  const current = field.value || [];
-                                  if (checked) {
-                                    const newValue = [...current, key];
-                                    field.onChange(newValue);
-                                    setSelectedManagementCompetencies(newValue);
-                                  } else {
-                                    const newValue = current.filter(c => c !== key);
-                                    field.onChange(newValue);
-                                    setSelectedManagementCompetencies(newValue);
-                                  }
-                                }}
-                                disabled={isDisabled}
-                                className={isDisabled ? "opacity-50" : ""}
-                              />
-                              <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>
-                                <span className="font-bold">{competency.split(':')[0]}:</span> {competency.split(':').slice(1).join(':').trim()}
-                              </label>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
+                  {watchedNatureOfPosition !== 'Intern' && (
+                    <FormField
+                      control={form.control}
+                      name="management_competencies"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Management Competencies</FormLabel>
+                          <FormDescription>Select management competencies</FormDescription>
+                          <div className="space-y-2">
+                            {[
+                              'Ensuring effective use of resources: Identifies priorities in accordance with UNICC\'s strategic directions. Develops and implements action plans, organizes the necessary resources and monitors outcomes.',
+                              'Building and promoting partnerships across the Organization and beyond: Develops and strengthens internal and external partnerships that can provide information, assistance and support to UNICC. Identifies and uses synergies across the Organization and with external partners.'
+                            ].map((competency) => {
+                              const key = competency.split(':')[0];
+                              const totalSelected = (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
+                              const maxSelectable = 3;
+                              const isDisabled = !field.value?.includes(key) && totalSelected >= maxSelectable;
+                              return (
+                                <div key={key} className="flex items-start space-x-2">
+                                  <Checkbox
+                                    id={key}
+                                    checked={field.value?.includes(key) || false}
+                                    onCheckedChange={(checked) => {
+                                      const current = field.value || [];
+                                      if (checked) {
+                                        const newValue = [...current, key];
+                                        field.onChange(newValue);
+                                        setSelectedManagementCompetencies(newValue);
+                                      } else {
+                                        const newValue = current.filter(c => c !== key);
+                                        field.onChange(newValue);
+                                        setSelectedManagementCompetencies(newValue);
+                                      }
+                                    }}
+                                    disabled={isDisabled}
+                                    className={isDisabled ? "opacity-50" : ""}
+                                  />
+                                  <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>
+                                    <span className="font-bold">{competency.split(':')[0]}:</span> {competency.split(':').slice(1).join(':').trim()}
+                                  </label>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
-                />
-              )}
 
-              {watchedNatureOfPosition !== 'Intern' && (
-                <FormField
-                  control={form.control}
-                  name="leadership_competencies"
-                  render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Leadership Competencies</FormLabel>
-                    <FormDescription>Select leadership competencies</FormDescription>
-                    <div className="space-y-2">
-                      {[
-                        'Driving UNICC to a successful future: Demonstrates a broad-based understanding of the growing complexities of ICT issues and activities. Creates a compelling vision of shared goals, and develops a roadmap for successfully achieving real progress in improving ICT services.',
-                        'Promoting innovation and Organizational learning: Invigorates the Organization by building a culture which encourages learning and development. Sponsors innovative approaches and solutions.',
-                        'Promoting UNICC\'s position: Positions UNICC as a leader in ICT services. Gains support for UNICC\'s mission. Coordinates plans and communicates in a way that attracts support from intended audiences.'
-                      ].map((competency) => {
-                        const key = competency.split(':')[0];
-                        const totalSelected = (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
-                        const maxSelectable = 3;
-                        const isDisabled = !field.value?.includes(key) && totalSelected >= maxSelectable;
-                        return (
-                          <div key={key} className="flex items-start space-x-2">
-                            <Checkbox
-                              id={key}
-                              checked={field.value?.includes(key) || false}
-                              onCheckedChange={(checked) => {
-                                const current = field.value || [];
-                                if (checked) {
-                                  const newValue = [...current, key];
-                                  field.onChange(newValue);
-                                  setSelectedLeadershipCompetencies(newValue);
-                                } else {
-                                  const newValue = current.filter(c => c !== key);
-                                  field.onChange(newValue);
-                                  setSelectedLeadershipCompetencies(newValue);
-                                }
-                              }}
-                              disabled={isDisabled}
-                              className={isDisabled ? "opacity-50" : ""}
-                            />
-                            <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>
-                              <span className="font-bold">{competency.split(':')[0]}:</span> {competency.split(':').slice(1).join(':').trim()}
-                            </label>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  {watchedNatureOfPosition !== 'Intern' && (
+                    <FormField
+                      control={form.control}
+                      name="leadership_competencies"
+                      render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Leadership Competencies</FormLabel>
+                        <FormDescription>Select leadership competencies</FormDescription>
+                        <div className="space-y-2">
+                          {[
+                            'Driving UNICC to a successful future: Demonstrates a broad-based understanding of the growing complexities of ICT issues and activities. Creates a compelling vision of shared goals, and develops a roadmap for successfully achieving real progress in improving ICT services.',
+                            'Promoting innovation and Organizational learning: Invigorates the Organization by building a culture which encourages learning and development. Sponsors innovative approaches and solutions.',
+                            'Promoting UNICC\'s position: Positions UNICC as a leader in ICT services. Gains support for UNICC\'s mission. Coordinates plans and communicates in a way that attracts support from intended audiences.'
+                          ].map((competency) => {
+                            const key = competency.split(':')[0];
+                            const totalSelected = (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
+                            const maxSelectable = 3;
+                            const isDisabled = !field.value?.includes(key) && totalSelected >= maxSelectable;
+                            return (
+                              <div key={key} className="flex items-start space-x-2">
+                                <Checkbox
+                                  id={key}
+                                  checked={field.value?.includes(key) || false}
+                                  onCheckedChange={(checked) => {
+                                    const current = field.value || [];
+                                    if (checked) {
+                                      const newValue = [...current, key];
+                                      field.onChange(newValue);
+                                      setSelectedLeadershipCompetencies(newValue);
+                                    } else {
+                                      const newValue = current.filter(c => c !== key);
+                                      field.onChange(newValue);
+                                      setSelectedLeadershipCompetencies(newValue);
+                                    }
+                                  }}
+                                  disabled={isDisabled}
+                                  className={isDisabled ? "opacity-50" : ""}
+                                />
+                                <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>
+                                  <span className="font-bold">{competency.split(':')[0]}:</span> {competency.split(':').slice(1).join(':').trim()}
+                                </label>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                      )}
+                    />
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
