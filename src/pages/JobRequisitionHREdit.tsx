@@ -522,13 +522,24 @@ export default function JobRequisitionHREdit() {
                 />
               </div>
               <div>
-                <Label htmlFor="grade">Grade</Label>
-                <Input
-                  id="grade"
-                  value={formData.grade || ''}
-                  onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
-                  className={changes.some(c => c.field === 'grade') ? 'border-amber-400 bg-amber-50' : ''}
-                />
+                {requisition.nature_of_position === 'Individual Consultant' ? (
+                  <>
+                    <Label className="text-muted-foreground">Band</Label>
+                    <p className="text-sm font-medium mt-1 p-2 bg-muted rounded-md">
+                      {requisition.comments?.consultancy_level || 'Not specified'}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Label htmlFor="grade">Grade</Label>
+                    <Input
+                      id="grade"
+                      value={formData.grade || ''}
+                      onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+                      className={changes.some(c => c.field === 'grade') ? 'border-amber-400 bg-amber-50' : ''}
+                    />
+                  </>
+                )}
               </div>
               <div>
                 <Label htmlFor="unit_section_division">Unit/Section/Division</Label>
@@ -543,7 +554,11 @@ export default function JobRequisitionHREdit() {
                 <Label htmlFor="duty_station">Duty Station</Label>
                 <Input
                   id="duty_station"
-                  value={formData.duty_station || ''}
+                  value={
+                    formData.duty_station === 'Remote' && requisition.comments?.remote_region
+                      ? `Remote (${requisition.comments.remote_region})`
+                      : formData.duty_station || ''
+                  }
                   onChange={(e) => setFormData({ ...formData, duty_station: e.target.value })}
                   className={changes.some(c => c.field === 'duty_station') ? 'border-amber-400 bg-amber-50' : ''}
                 />
@@ -569,21 +584,13 @@ export default function JobRequisitionHREdit() {
               </div>
             </div>
             
-            {/* Display consultant band and remote timezone if applicable */}
-            {requisition.comments && (
-              <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
-                {requisition.comments.consultancy_level && (
-                  <div>
-                    <Label className="text-muted-foreground">Consultancy Band</Label>
-                    <p className="text-sm font-medium mt-1">{requisition.comments.consultancy_level}</p>
-                  </div>
-                )}
-                {requisition.comments.remote_region && (
-                  <div>
-                    <Label className="text-muted-foreground">Remote Timezone</Label>
-                    <p className="text-sm font-medium mt-1">{requisition.comments.remote_region}</p>
-                  </div>
-                )}
+            {/* Display remote timezone if applicable and not already in duty station */}
+            {requisition.comments?.remote_region && formData.duty_station !== 'Remote' && (
+              <div className="mt-4 pt-4 border-t">
+                <div>
+                  <Label className="text-muted-foreground">Remote Timezone</Label>
+                  <p className="text-sm font-medium mt-1">{requisition.comments.remote_region}</p>
+                </div>
               </div>
             )}
           </CardContent>
@@ -871,7 +878,10 @@ export default function JobRequisitionHREdit() {
                     const getManagementCompetencyDefinition = (compName: string) => {
                       const managementCompetencies = [
                         'Ensuring effective use of resources: Identifies priorities in accordance with UNICC\'s strategic directions. Develops and implements action plans, organizes the necessary resources and monitors outcomes.',
-                        'Building and promoting partnerships across the Organization and beyond: Develops and strengthens internal and external partnerships that can provide information, assistance and support to UNICC. Identifies and uses synergies across the Organization and with external partners.'
+                        'Building and promoting partnerships across the Organization and beyond: Develops and strengthens internal and external partnerships that can provide information, assistance and support to UNICC. Identifies and uses synergies across the Organization and with external partners.',
+                        'Empowering others: Creates an enabling environment where staff can contribute their best and develop their potential.',
+                        'Building trust: Promotes shared values and creates an atmosphere of trust and honesty.',
+                        'Managing performance: Delegates appropriate responsibility, accountability and decision-making authority. Makes sure that roles, responsibilities and reporting lines are clear to each staff member.'
                       ];
                       return managementCompetencies.find(def => def.startsWith(compName)) || compName;
                     };
