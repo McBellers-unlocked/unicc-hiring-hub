@@ -1754,11 +1754,14 @@ export default function JobRequisitionForm() {
             <CardHeader>
               <CardTitle>Competencies</CardTitle>
               <CardDescription>
-                Select competencies for this position. Mandatory competencies ({isSupervisorRole ? '4' : '3'}) plus your selection (3) = {isSupervisorRole ? '7' : '6'} total.
+                {watchedNatureOfPosition === 'Individual Consultant' 
+                  ? 'All consultants are required to demonstrate the following 5 competencies.'
+                  : `Select competencies for this position. Mandatory competencies (${isSupervisorRole ? '4' : '3'}) plus your selection (3) = ${isSupervisorRole ? '7' : '6'} total.`
+                }
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {watchedNatureOfPosition !== 'Intern' && (
+              {watchedNatureOfPosition !== 'Intern' && watchedNatureOfPosition !== 'Individual Consultant' && (
                 <div>
                   <h4 className="font-medium mb-3">Role Type</h4>
                   <FormField
@@ -1789,29 +1792,31 @@ export default function JobRequisitionForm() {
                 </div>
               )}
 
-              <div>
-                <h4 className="font-medium mb-3">Mandatory Competencies</h4>
-                <p className="text-sm text-muted-foreground mb-2">These competencies are automatically included for all positions:</p>
-                <ul className="text-sm space-y-1">
-                  {watchedNatureOfPosition === 'Intern' ? (
-                    <>
-                      <li>• <span className="font-bold">Teamwork:</span> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.</li>
-                      <li>• <span className="font-bold">Communicating:</span> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.</li>
-                      <li>• <span className="font-bold">Respecting and promoting individual and cultural differences:</span> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.</li>
-                      <li>• <span className="font-bold">Overall attitude at work:</span> Maintains integrity and takes a clear ethical approach and stance; demonstrates commitment to the Organization's mandate and promotes the values of the Organization in daily work and behaviour; is accountable for work carried out in line with own role and responsibilities; is respectful towards, and trusted by, colleagues and counterparts.</li>
-                    </>
-                  ) : (
-                    <>
-                      <li>• <span className="font-bold">Teamwork:</span> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.</li>
-                      <li>• <span className="font-bold">Communicating:</span> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.</li>
-                      <li>• <span className="font-bold">Respecting and promoting individual and cultural differences:</span> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.</li>
-                      {(form.watch('is_supervisor_role') || isSupervisorRole) && (
-                        <li>• <span className="font-bold">Creating an empowering and motivating environment:</span> Guides and motivates staff towards meeting challenges and achieving objectives. Promotes ownership and responsibility for desired outcomes at all levels.</li>
-                      )}
-                    </>
-                  )}
-                </ul>
-              </div>
+              {watchedNatureOfPosition !== 'Individual Consultant' && (
+                <div>
+                  <h4 className="font-medium mb-3">Mandatory Competencies</h4>
+                  <p className="text-sm text-muted-foreground mb-2">These competencies are automatically included for all positions:</p>
+                  <ul className="text-sm space-y-1">
+                    {watchedNatureOfPosition === 'Intern' ? (
+                      <>
+                        <li>• <span className="font-bold">Teamwork:</span> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.</li>
+                        <li>• <span className="font-bold">Communicating:</span> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.</li>
+                        <li>• <span className="font-bold">Respecting and promoting individual and cultural differences:</span> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.</li>
+                        <li>• <span className="font-bold">Overall attitude at work:</span> Maintains integrity and takes a clear ethical approach and stance; demonstrates commitment to the Organization's mandate and promotes the values of the Organization in daily work and behaviour; is accountable for work carried out in line with own role and responsibilities; is respectful towards, and trusted by, colleagues and counterparts.</li>
+                      </>
+                    ) : (
+                      <>
+                        <li>• <span className="font-bold">Teamwork:</span> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.</li>
+                        <li>• <span className="font-bold">Communicating:</span> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.</li>
+                        <li>• <span className="font-bold">Respecting and promoting individual and cultural differences:</span> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.</li>
+                        {(form.watch('is_supervisor_role') || isSupervisorRole) && (
+                          <li>• <span className="font-bold">Creating an empowering and motivating environment:</span> Guides and motivates staff towards meeting challenges and achieving objectives. Promotes ownership and responsibility for desired outcomes at all levels.</li>
+                        )}
+                      </>
+                    )}
+                  </ul>
+                </div>
+              )}
 
               {watchedNatureOfPosition === 'Individual Consultant' ? (
                 <div>
