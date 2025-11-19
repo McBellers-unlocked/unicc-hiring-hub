@@ -1276,6 +1276,7 @@ export type Database = {
           initial_request_approved_at: string | null
           initial_request_approved_by: string | null
           initial_request_submitted: boolean | null
+          intern_modality: string | null
           language_requirements: Json | null
           leadership_competencies: Json | null
           main_duties_responsibilities: string | null
@@ -1353,6 +1354,7 @@ export type Database = {
           initial_request_approved_at?: string | null
           initial_request_approved_by?: string | null
           initial_request_submitted?: boolean | null
+          intern_modality?: string | null
           language_requirements?: Json | null
           leadership_competencies?: Json | null
           main_duties_responsibilities?: string | null
@@ -1430,6 +1432,7 @@ export type Database = {
           initial_request_approved_at?: string | null
           initial_request_approved_by?: string | null
           initial_request_submitted?: boolean | null
+          intern_modality?: string | null
           language_requirements?: Json | null
           leadership_competencies?: Json | null
           main_duties_responsibilities?: string | null
