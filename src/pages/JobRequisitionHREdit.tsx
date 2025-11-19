@@ -45,6 +45,11 @@ interface JobRequisition {
   hiring_manager_changes: any;
   hr_final_review_completed: boolean;
   final_clean_version: any;
+  comments: any;
+  core_competencies: any;
+  management_competencies: any;
+  leadership_competencies: any;
+  global_competencies: any;
 }
 
 interface FieldChange {
@@ -563,6 +568,24 @@ export default function JobRequisitionHREdit() {
                 />
               </div>
             </div>
+            
+            {/* Display consultant band and remote timezone if applicable */}
+            {requisition.comments && (
+              <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
+                {requisition.comments.consultancy_level && (
+                  <div>
+                    <Label className="text-muted-foreground">Consultancy Band</Label>
+                    <p className="text-sm font-medium mt-1">{requisition.comments.consultancy_level}</p>
+                  </div>
+                )}
+                {requisition.comments.remote_region && (
+                  <div>
+                    <Label className="text-muted-foreground">Remote Timezone</Label>
+                    <p className="text-sm font-medium mt-1">{requisition.comments.remote_region}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -661,25 +684,30 @@ export default function JobRequisitionHREdit() {
                   />
                 )}
               
-              {isSecondReview || isFinalCleanup ? (
-                <EditableTrackChangesFieldWithHighlight
-                  label="Desirable Experience"
-                  originalValue={originalData.desirable_experience || ''}
-                  currentValue={formData.desirable_experience || ''}
-                  onChange={(value) => setFormData({ ...formData, desirable_experience: value })}
-                  requisitionId={id}
-                  fieldName="desirable_experience"
-                  currentUserId={user?.id}
-                  canResolveComments={true}
-                />
-                ) : (
-                  <EditableTrackChangesField
-                    label="Desirable Experience"
-                    originalValue={originalData.desirable_experience || ''}
-                    currentValue={formData.desirable_experience || ''}
-                    onChange={(value) => setFormData({ ...formData, desirable_experience: value })}
-                  />
-                )}
+              {/* Only show desirable experience for non-intern positions */}
+              {requisition.nature_of_position !== 'Intern' && (
+                <>
+                  {isSecondReview || isFinalCleanup ? (
+                    <EditableTrackChangesFieldWithHighlight
+                      label="Desirable Experience"
+                      originalValue={originalData.desirable_experience || ''}
+                      currentValue={formData.desirable_experience || ''}
+                      onChange={(value) => setFormData({ ...formData, desirable_experience: value })}
+                      requisitionId={id}
+                      fieldName="desirable_experience"
+                      currentUserId={user?.id}
+                      canResolveComments={true}
+                    />
+                  ) : (
+                    <EditableTrackChangesField
+                      label="Desirable Experience"
+                      originalValue={originalData.desirable_experience || ''}
+                      currentValue={formData.desirable_experience || ''}
+                      onChange={(value) => setFormData({ ...formData, desirable_experience: value })}
+                    />
+                  )}
+                </>
+              )}
               
               {isSecondReview || isFinalCleanup ? (
                 <EditableTrackChangesFieldWithHighlight
@@ -701,28 +729,100 @@ export default function JobRequisitionHREdit() {
                   />
                 )}
               
-              {isSecondReview || isFinalCleanup ? (
-                <EditableTrackChangesFieldWithHighlight
-                  label="Desirable Education"
-                  originalValue={originalData.desirable_education || ''}
-                  currentValue={formData.desirable_education || ''}
-                  onChange={(value) => setFormData({ ...formData, desirable_education: value })}
-                  requisitionId={id}
-                  fieldName="desirable_education"
-                  currentUserId={user?.id}
-                  canResolveComments={true}
-                />
-                ) : (
-                  <EditableTrackChangesField
-                    label="Desirable Education"
-                    originalValue={originalData.desirable_education || ''}
-                    currentValue={formData.desirable_education || ''}
-                    onChange={(value) => setFormData({ ...formData, desirable_education: value })}
-                  />
-                )}
+              {/* Only show desirable education for non-intern positions */}
+              {requisition.nature_of_position !== 'Intern' && (
+                <>
+                  {isSecondReview || isFinalCleanup ? (
+                    <EditableTrackChangesFieldWithHighlight
+                      label="Desirable Education"
+                      originalValue={originalData.desirable_education || ''}
+                      currentValue={formData.desirable_education || ''}
+                      onChange={(value) => setFormData({ ...formData, desirable_education: value })}
+                      requisitionId={id}
+                      fieldName="desirable_education"
+                      currentUserId={user?.id}
+                      canResolveComments={true}
+                    />
+                  ) : (
+                    <EditableTrackChangesField
+                      label="Desirable Education"
+                      originalValue={originalData.desirable_education || ''}
+                      currentValue={formData.desirable_education || ''}
+                      onChange={(value) => setFormData({ ...formData, desirable_education: value })}
+                    />
+                  )}
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
+
+        {/* Competencies */}
+        {(requisition.core_competencies?.length > 0 || 
+          requisition.management_competencies?.length > 0 || 
+          requisition.leadership_competencies?.length > 0 ||
+          requisition.global_competencies?.length > 0) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Competencies</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {requisition.global_competencies?.length > 0 && (
+                  <div>
+                    <Label className="text-muted-foreground">Global Competencies</Label>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {requisition.global_competencies.map((comp: string, idx: number) => (
+                        <span key={idx} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-primary/10 text-primary">
+                          {comp}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {requisition.core_competencies?.length > 0 && (
+                  <div>
+                    <Label className="text-muted-foreground">Core Competencies</Label>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {requisition.core_competencies.map((comp: string, idx: number) => (
+                        <span key={idx} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700">
+                          {comp}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {requisition.management_competencies?.length > 0 && (
+                  <div>
+                    <Label className="text-muted-foreground">Management Competencies</Label>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {requisition.management_competencies.map((comp: string, idx: number) => (
+                        <span key={idx} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-700">
+                          {comp}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {requisition.leadership_competencies?.length > 0 && (
+                  <div>
+                    <Label className="text-muted-foreground">Leadership Competencies</Label>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {requisition.leadership_competencies.map((comp: string, idx: number) => (
+                        <span key={idx} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-700">
+                          {comp}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* HR Change Summary */}
         <Card>
