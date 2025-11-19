@@ -276,7 +276,7 @@ export default function JobRequisitionForm() {
       positions_available: 1,
       purpose_of_position: "",
       objectives_of_programme: "UNICC provides the digital foundations that support the digital transformation and future of the UN system and other international organizations.",
-      main_duties_responsibilities: "The incumbent will work under the direct supervision and guidance of the [SUPERVISOR TITLE] within the [DIVISION NAME] and in close collaboration with the [SECTION NAME] team members. The incumbent will perform the following duties:\n\n",
+      main_duties_responsibilities: "",
       essential_experience: "",
       desirable_experience: "",
       essential_education: "",
@@ -318,6 +318,28 @@ export default function JobRequisitionForm() {
     (watchedNatureOfPosition === 'Intern' || watchedNatureOfPosition === 'Individual Consultant') &&
     Array.isArray(watchedDutyStations) &&
     watchedDutyStations.includes('Remote');
+
+  // Update main duties template when nature of position changes
+  useEffect(() => {
+    const currentMainDuties = form.getValues('main_duties_responsibilities');
+    
+    // Only update if the field is empty or contains the default template
+    const isDefaultTemplate = !currentMainDuties || 
+      currentMainDuties.includes('[SUPERVISOR TITLE]') || 
+      currentMainDuties.includes('[title of the supervisor]');
+    
+    if (isDefaultTemplate) {
+      if (watchedNatureOfPosition === 'Intern') {
+        form.setValue('main_duties_responsibilities', 
+          "The incumbent(s) are expected to work [number of days] days per week [number of hours] hours under the supervision of [title of the supervisor] and will be provided guidance and support to perform the responsibilities mentioned below.\n\n"
+        );
+      } else if (watchedNatureOfPosition && watchedNatureOfPosition !== 'Intern') {
+        form.setValue('main_duties_responsibilities', 
+          "The incumbent will work under the direct supervision and guidance of the [SUPERVISOR TITLE] within the [DIVISION NAME] and in close collaboration with the [SECTION NAME] team members. The incumbent will perform the following duties:\n\n"
+        );
+      }
+    }
+  }, [watchedNatureOfPosition, form]);
 
   const addLanguage = () => {
     const newLanguage = { name: '', level: '' };
@@ -409,6 +431,16 @@ export default function JobRequisitionForm() {
           setRemoteTimezone(comments.remote_region);
         }
 
+        // Set appropriate main duties template based on nature of position
+        let defaultMainDuties = "";
+        if (!data.main_duties_responsibilities) {
+          if (data.nature_of_position === 'Intern') {
+            defaultMainDuties = "The incumbent(s) are expected to work [number of days] days per week [number of hours] hours under the supervision of [title of the supervisor] and will be provided guidance and support to perform the responsibilities mentioned below.\n\n";
+          } else {
+            defaultMainDuties = "The incumbent will work under the direct supervision and guidance of the [SUPERVISOR TITLE] within the [DIVISION NAME] and in close collaboration with the [SECTION NAME] team members. The incumbent will perform the following duties:\n\n";
+          }
+        }
+
         form.reset({
           position_title: data.position_title || "",
           nature_of_position: data.nature_of_position || "",
@@ -422,7 +454,7 @@ export default function JobRequisitionForm() {
           positions_available: data.positions_available || 1,
           purpose_of_position: data.purpose_of_position || data.brief_outline || "",
           objectives_of_programme: data.objectives_of_programme || "UNICC provides the digital foundations that support the digital transformation and future of the UN system and other international organizations.",
-          main_duties_responsibilities: data.main_duties_responsibilities || "The incumbent will work under the direct supervision and guidance of the [SUPERVISOR TITLE] within the [DIVISION NAME] and in close collaboration with the [SECTION NAME] team members. The incumbent will perform the following duties:\n\n",
+          main_duties_responsibilities: data.main_duties_responsibilities || defaultMainDuties,
           essential_experience: data.essential_experience || "",
           desirable_experience: data.desirable_experience || "",
           essential_education: data.essential_education || "",
