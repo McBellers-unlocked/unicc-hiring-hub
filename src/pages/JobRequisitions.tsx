@@ -66,7 +66,7 @@ export default function JobRequisitions() {
         .select('*');
 
       // Filter based on view preference or user role
-      const isHiringManagerOnly = userRoles.includes('Hiring Manager') && !userRoles.includes('Admin') && !userRoles.includes('HR Assistant');
+      const isHiringManagerOnly = (userRoles.includes('Hiring Manager') || userRoles.includes('Director')) && !userRoles.includes('Admin') && !userRoles.includes('HR Assistant') && !userRoles.includes('Chief of HR');
       
       if (isHiringManagerOnly || viewFilter === 'mine') {
         query = query.eq('created_by', user?.id);
@@ -220,7 +220,7 @@ export default function JobRequisitions() {
     );
   }
 
-  if (!userRoles.some(role => ['Admin', 'HR Assistant', 'Hiring Manager'].includes(role))) {
+  if (!userRoles.some(role => ['Admin', 'HR Assistant', 'Hiring Manager', 'Director', 'Chief of HR'].includes(role))) {
     return (
       <Layout>
         <div className="container mx-auto p-6">
@@ -263,7 +263,7 @@ export default function JobRequisitions() {
               New Position Description
             </Button>
           )}
-          {userRoles.includes('Hiring Manager') && !userRoles.some(role => ['Admin', 'HR Assistant', 'Chief of HR'].includes(role)) && (
+          {(userRoles.includes('Hiring Manager') || userRoles.includes('Director')) && !userRoles.some(role => ['Admin', 'HR Assistant', 'Chief of HR'].includes(role)) && (
             <Button onClick={() => navigate('/requisitions/initial/new')} className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               New Initial Request
@@ -304,7 +304,7 @@ export default function JobRequisitions() {
                   <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-lg font-semibold">No Position Descriptions Found</p>
                   <p className="text-muted-foreground mb-4">Get started by creating your first position description.</p>
-                  {userRoles.some(role => ['Admin', 'Hiring Manager'].includes(role)) && (
+                  {userRoles.some(role => ['Admin', 'Hiring Manager', 'Director'].includes(role)) && (
                     <Button onClick={() => navigate('/requisitions/new')}>
                       Create Position Description
                     </Button>
