@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { ArrowLeft, Save, Send } from 'lucide-react';
+import { ConsultancyLevelGuidance } from '@/components/ConsultancyLevelGuidance';
 
 const LOCATIONS = [
   'Valencia',
@@ -576,7 +577,10 @@ export default function InitialRequestForm() {
             {/* Consultancy Level */}
             {showConsultantDuration && (
               <div className="space-y-3">
-                <Label>Consultancy Level *</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Consultancy Level *</Label>
+                  <ConsultancyLevelGuidance />
+                </div>
                 <div className="grid grid-cols-2 gap-4 border rounded-lg p-4">
                   <div>
                     <h4 className="font-medium mb-3 text-sm">International consultancy</h4>
