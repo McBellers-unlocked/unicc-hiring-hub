@@ -92,10 +92,15 @@ export default function ChiefOfDivisionView() {
       const getDivisionFromUnit = (unitName: string | null): string | null => {
         if (!unitName) return null;
         const upper = unitName.toUpperCase();
+        // CS division - check first to avoid conflicts with CSA
+        if (upper.includes('CSI') || upper.includes('CSO') || upper.includes('CSA') || 
+            upper.includes('CSE') || upper.includes('CSN') || upper.includes('CSS') || 
+            upper.includes('CSR') || upper.includes('CISO') || upper.includes('CYBER')) return 'CS';
         if (upper.includes('MS') || upper.includes('MSHT')) return 'MS';
         if (upper.includes('DO') || upper.includes('DOP') || upper.includes('DDAM')) return 'DO';
         if (upper.includes('OP')) return 'OP';
-        if (upper.includes('DS') || upper.includes('CSA') || upper.includes('CYBER')) return 'DS';
+        if (upper.includes('DS')) return 'DS';
+        if (upper.includes('DD')) return 'DD';
         return null;
       };
       
