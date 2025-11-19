@@ -51,7 +51,7 @@ export default function ChiefOfDivisionView() {
             creator:users!created_by(name, email, division)
           `)
           .eq("hr_final_review_completed", true)
-          .eq("status", "chief_of_division_review")
+          .in("status", ["chief_of_division_review", "chief_division_review"])
           .or("chief_of_division_approval.is.null,chief_of_division_approval.eq.false")
           .order("created_at", { ascending: false }),
         

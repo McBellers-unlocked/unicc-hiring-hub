@@ -192,7 +192,7 @@ export default function AdminRequisitions() {
         .update({
           hiring_manager_confirmed_hr_changes: true,
           hiring_manager_confirmed_at: new Date().toISOString(),
-          status: 'chief_division_review'
+          status: 'chief_of_division_review'
         })
         .eq('id', requisitionId);
 
