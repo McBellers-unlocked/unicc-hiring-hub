@@ -323,6 +323,7 @@ export default function JobRequisitionForm() {
   useEffect(() => {
     const currentMainDuties = form.getValues('main_duties_responsibilities');
     const currentEssentialExperience = form.getValues('essential_experience');
+    const currentEssentialEducation = form.getValues('essential_education');
     
     // Only update if the field is empty or contains the default template
     const isDefaultTemplate = !currentMainDuties || 
@@ -353,6 +354,20 @@ export default function JobRequisitionForm() {
         );
       } else if (watchedNatureOfPosition && watchedNatureOfPosition !== 'Intern') {
         form.setValue('essential_experience', '');
+      }
+    }
+
+    // Update essential education for interns
+    const isDefaultEducation = !currentEssentialEducation || 
+      currentEssentialEducation.includes('Be currently enrolled in a University programme');
+    
+    if (isDefaultEducation) {
+      if (watchedNatureOfPosition === 'Intern') {
+        form.setValue('essential_education', 
+          "Be currently enrolled in a University programme (final year of a bachelor's degree, master's degree or equivalent) specializing in areas that are relevant to UNICC's line of business such as [areas of expertise].\n\nApplicants that have graduated in the last 6 months in one of the areas of expertise described above will also be considered."
+        );
+      } else if (watchedNatureOfPosition && watchedNatureOfPosition !== 'Intern') {
+        form.setValue('essential_education', '');
       }
     }
   }, [watchedNatureOfPosition, form]);
@@ -450,6 +465,7 @@ export default function JobRequisitionForm() {
         // Set appropriate main duties template based on nature of position
         let defaultMainDuties = "";
         let defaultEssentialExperience = "";
+        let defaultEssentialEducation = "";
         
         if (!data.main_duties_responsibilities) {
           if (data.nature_of_position === 'Intern') {
@@ -461,6 +477,10 @@ export default function JobRequisitionForm() {
 
         if (!data.essential_experience && data.nature_of_position === 'Intern') {
           defaultEssentialExperience = "Applicants are not required to have professional work experience to participate in the UNICC's internship program, but applicants should have the following functional and technical skills:\n\n";
+        }
+
+        if (!data.essential_education && data.nature_of_position === 'Intern') {
+          defaultEssentialEducation = "Be currently enrolled in a University programme (final year of a bachelor's degree, master's degree or equivalent) specializing in areas that are relevant to UNICC's line of business such as [areas of expertise].\n\nApplicants that have graduated in the last 6 months in one of the areas of expertise described above will also be considered.";
         }
 
         form.reset({
@@ -479,7 +499,7 @@ export default function JobRequisitionForm() {
           main_duties_responsibilities: data.main_duties_responsibilities || defaultMainDuties,
           essential_experience: data.essential_experience || defaultEssentialExperience,
           desirable_experience: data.desirable_experience || "",
-          essential_education: data.essential_education || "",
+          essential_education: data.essential_education || defaultEssentialEducation,
           essential_education_level: (data as any).essential_education_level || "",
           desirable_education: data.desirable_education || "",
           core_competencies: Array.isArray(data.core_competencies) ? data.core_competencies as string[] : [],
