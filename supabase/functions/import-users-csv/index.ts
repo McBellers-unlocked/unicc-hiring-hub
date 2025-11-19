@@ -175,7 +175,6 @@ Deno.serve(async (req) => {
 
           // Create auth account if it doesn't exist
           if (!authUserId) {
-          if (!authUserId) {
             console.log(`Creating auth account for ${user.email}`);
             try {
               const { data: newAuthUser, error: authError } = await supabaseClient.auth.admin.createUser({
