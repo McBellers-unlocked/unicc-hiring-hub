@@ -114,6 +114,16 @@ export default function ChiefOfDivisionView() {
       const fullPDs = filterByDivision(fullPDResult.data || []).map(r => ({ ...r, isInitialRequest: false }));
       const initialRequests = filterByDivision(initialRequestsResult.data || []).map(r => ({ ...r, isInitialRequest: true }));
       
+      // Debug: Log to check creator data structure
+      console.log('Initial Requests Data:', initialRequests.map(r => ({ 
+        id: r.id, 
+        title: r.position_title,
+        created_by: r.created_by,
+        creator: r.creator,
+        creatorType: typeof r.creator,
+        creatorIsArray: Array.isArray(r.creator)
+      })));
+      
       return { initialRequests, fullPDs };
     },
   });
