@@ -1310,8 +1310,9 @@ export default function JobRequisitionForm() {
                         variant="outline"
                         size="sm"
                         onClick={() => setShowTemplateModal(true)}
-                        className="text-xs"
+                        className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
                       >
+                        <FileText className="h-3 w-3 mr-1" />
                         Fill Template
                       </Button>
                     </div>
@@ -1502,6 +1503,7 @@ export default function JobRequisitionForm() {
                             variant="outline"
                             size="sm"
                             onClick={() => setShowEssentialEducationModal(true)}
+                            className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
                           >
                             <FileText className="h-3 w-3 mr-1" />
                             Fill Template
