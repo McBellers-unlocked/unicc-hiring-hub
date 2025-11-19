@@ -47,6 +47,13 @@ const Index = () => {
     }
   }, [user, userRoles, loading, navigate]);
 
+  // Redirect Director to their dashboard
+  useEffect(() => {
+    if (!loading && user && userRoles.includes('Director')) {
+      navigate('/director-view');
+    }
+  }, [user, userRoles, loading, navigate]);
+
   if (loading) {
     return (
       <Layout>
