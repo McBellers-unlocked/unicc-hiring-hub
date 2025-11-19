@@ -376,12 +376,12 @@ export default function JobRequisitions() {
 
                               toast({
                                 title: "Success",
-                                description: "Job created successfully. Redirecting to job page...",
+                                description: "Job created successfully. Redirecting to edit page...",
                               });
 
-                              // Navigate to the created job's detail page
+                              // Navigate to the created job's edit page
                               setTimeout(() => {
-                                navigate(`/admin/jobs`);
+                                navigate(`/admin/jobs/${data.jobId}/edit`);
                               }, 1500);
                             } catch (error) {
                               console.error('Error converting to job:', error);
