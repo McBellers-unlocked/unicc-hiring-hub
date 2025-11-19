@@ -361,7 +361,7 @@ export default function JobRequisitions() {
                       {/* Convert to Job button - shown when requisition is approved */}
                       {requisition.status === 'approved' && 
                        !requisition.converted_to_job_id &&
-                       (userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR')) && (
+                       (userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR') || userRoles.includes('Human Resources Officer')) && (
                         <Button
                           variant="default"
                           size="sm"
