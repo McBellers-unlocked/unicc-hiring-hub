@@ -322,6 +322,7 @@ export default function JobRequisitionForm() {
   // Update main duties template when nature of position changes
   useEffect(() => {
     const currentMainDuties = form.getValues('main_duties_responsibilities');
+    const currentEssentialExperience = form.getValues('essential_experience');
     
     // Only update if the field is empty or contains the default template
     const isDefaultTemplate = !currentMainDuties || 
@@ -337,6 +338,21 @@ export default function JobRequisitionForm() {
         form.setValue('main_duties_responsibilities', 
           "The incumbent will work under the direct supervision and guidance of the [SUPERVISOR TITLE] within the [DIVISION NAME] and in close collaboration with the [SECTION NAME] team members. The incumbent will perform the following duties:\n\n"
         );
+      }
+    }
+
+    // Update essential experience for interns
+    const isDefaultExperience = !currentEssentialExperience || 
+      currentEssentialExperience.includes('At least') ||
+      currentEssentialExperience.includes('Applicants are not required to have professional work experience');
+    
+    if (isDefaultExperience) {
+      if (watchedNatureOfPosition === 'Intern') {
+        form.setValue('essential_experience', 
+          "Applicants are not required to have professional work experience to participate in the UNICC's internship program, but applicants should have the following functional and technical skills:\n\n"
+        );
+      } else if (watchedNatureOfPosition && watchedNatureOfPosition !== 'Intern') {
+        form.setValue('essential_experience', '');
       }
     }
   }, [watchedNatureOfPosition, form]);
@@ -433,12 +449,18 @@ export default function JobRequisitionForm() {
 
         // Set appropriate main duties template based on nature of position
         let defaultMainDuties = "";
+        let defaultEssentialExperience = "";
+        
         if (!data.main_duties_responsibilities) {
           if (data.nature_of_position === 'Intern') {
             defaultMainDuties = "The incumbent(s) will work [number of days] days per week for [number of hours] hours under the supervision of the [title of the supervisor], and will receive the guidance and support necessary to carry out the responsibilities outlined below.\n\n";
           } else {
             defaultMainDuties = "The incumbent will work under the direct supervision and guidance of the [SUPERVISOR TITLE] within the [DIVISION NAME] and in close collaboration with the [SECTION NAME] team members. The incumbent will perform the following duties:\n\n";
           }
+        }
+
+        if (!data.essential_experience && data.nature_of_position === 'Intern') {
+          defaultEssentialExperience = "Applicants are not required to have professional work experience to participate in the UNICC's internship program, but applicants should have the following functional and technical skills:\n\n";
         }
 
         form.reset({
@@ -455,7 +477,7 @@ export default function JobRequisitionForm() {
           purpose_of_position: data.purpose_of_position || data.brief_outline || "",
           objectives_of_programme: data.objectives_of_programme || "UNICC provides the digital foundations that support the digital transformation and future of the UN system and other international organizations.",
           main_duties_responsibilities: data.main_duties_responsibilities || defaultMainDuties,
-          essential_experience: data.essential_experience || "",
+          essential_experience: data.essential_experience || defaultEssentialExperience,
           desirable_experience: data.desirable_experience || "",
           essential_education: data.essential_education || "",
           essential_education_level: (data as any).essential_education_level || "",
