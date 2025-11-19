@@ -82,7 +82,7 @@ export default function HiringManagerDashboard() {
       .select('*', { count: 'exact' })
       .eq('created_by', user.id)
       .eq('chief_of_division_approval', true)
-      .in('status', ['chief_division_review', 'deputy_director_review', 'director_review', 'finance_review', 'hr_review'])
+      .in('status', ['chief_division_review', 'deputy_director_review', 'director_review', 'finance_review', 'hr_review', 'approved'])
       .gte('chief_of_division_approved_at', thirtyDaysAgo.toISOString())
       .order('chief_of_division_approved_at', { ascending: false })
       .limit(5);
