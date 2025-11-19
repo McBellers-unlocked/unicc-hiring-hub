@@ -22,6 +22,7 @@ import { ArrowLeft, Save, Send, FileText, Briefcase, ChevronDown, CheckCircle2, 
 import MDEditor, { commands, ICommand } from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';
 import { MainDutiesTemplateModal } from '@/components/MainDutiesTemplateModal';
+import { EssentialEducationTemplateModal } from '@/components/EssentialEducationTemplateModal';
 import TurndownService from 'turndown';
 import { Label } from "@/components/ui/label";
 
@@ -260,6 +261,7 @@ export default function JobRequisitionForm() {
   const [additionalLanguages, setAdditionalLanguages] = useState<Array<{ name: string; level: string }>>([]);
   const [isSupervisorRole, setIsSupervisorRole] = useState<boolean>(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState<boolean>(false);
+  const [showEssentialEducationModal, setShowEssentialEducationModal] = useState(false);
 
   const form = useForm<RequisitionFormData>({
     resolver: zodResolver(requisitionSchema),
@@ -1499,13 +1501,7 @@ export default function JobRequisitionForm() {
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              const areasOfExpertise = prompt('Enter areas of expertise (e.g., Computer Science, Information Technology, Business Administration):');
-                              if (areasOfExpertise) {
-                                const updatedValue = field.value.replace('[areas of expertise]', areasOfExpertise);
-                                field.onChange(updatedValue);
-                              }
-                            }}
+                            onClick={() => setShowEssentialEducationModal(true)}
                           >
                             <FileText className="h-3 w-3 mr-1" />
                             Fill Template
@@ -2068,6 +2064,16 @@ export default function JobRequisitionForm() {
         }}
         currentContent={form.getValues('main_duties_responsibilities')}
         natureOfPosition={watchedNatureOfPosition}
+      />
+      
+      <EssentialEducationTemplateModal
+        open={showEssentialEducationModal}
+        onClose={() => setShowEssentialEducationModal(false)}
+        onApply={(areasOfExpertise) => {
+          const currentValue = form.getValues('essential_education');
+          const updatedValue = currentValue.replace('[areas of expertise]', areasOfExpertise);
+          form.setValue('essential_education', updatedValue);
+        }}
       />
     </div>
   );
