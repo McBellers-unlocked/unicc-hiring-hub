@@ -256,6 +256,7 @@ export default function JobRequisitionForm() {
   const [showEligibleGrades, setShowEligibleGrades] = useState<boolean>(false);
   const [remoteTimezone, setRemoteTimezone] = useState<string>("");
   const [consultancyLevel, setConsultancyLevel] = useState<string>("");
+  const [initialNatureOfPosition, setInitialNatureOfPosition] = useState<string>("");
   const [selectedCoreCompetencies, setSelectedCoreCompetencies] = useState<string[]>([]);
   const [selectedManagementCompetencies, setSelectedManagementCompetencies] = useState<string[]>([]);
   const [selectedLeadershipCompetencies, setSelectedLeadershipCompetencies] = useState<string[]>([]);
@@ -467,6 +468,9 @@ export default function JobRequisitionForm() {
           }
           if (comments.consultancy_level) {
             setConsultancyLevel(comments.consultancy_level);
+          }
+          if (comments.nature_of_position) {
+            setInitialNatureOfPosition(comments.nature_of_position);
           }
         }
 
@@ -899,7 +903,7 @@ export default function JobRequisitionForm() {
                       }
                     }} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger disabled={!!initialNatureOfPosition}>
                           <SelectValue placeholder="Select nature of position" />
                         </SelectTrigger>
                       </FormControl>
@@ -911,6 +915,11 @@ export default function JobRequisitionForm() {
                         <SelectItem value="Intern">Intern</SelectItem>
                       </SelectContent>
                     </Select>
+                    {initialNatureOfPosition && (
+                      <p className="text-xs text-muted-foreground">
+                        This was set in the initial request and cannot be changed.
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
