@@ -128,6 +128,7 @@ export default function InitialRequestForm() {
     grade: '',
     unit_section_division: '',
     duty_station: [] as string[],
+    remote_region: '',
     brief_outline: '',
     funding_status: '',
     funding_comments: '',
@@ -151,6 +152,12 @@ export default function InitialRequestForm() {
       if (error) throw error;
       
       if (data) {
+        // Try to extract remote_region from comments if it exists
+        let remoteRegion = '';
+        if (data.comments && typeof data.comments === 'object') {
+          remoteRegion = (data.comments as any).remote_region || '';
+        }
+        
         setFormData({
           position_title: data.position_title || '',
           nature_of_position: data.nature_of_position || '',
@@ -161,6 +168,7 @@ export default function InitialRequestForm() {
           grade: data.grade || '',
           unit_section_division: data.unit_section_division || '',
           duty_station: data.duty_station ? JSON.parse(data.duty_station) : [],
+          remote_region: remoteRegion,
           brief_outline: data.brief_outline || '',
           funding_status: data.funding_status || '',
           funding_comments: data.funding_comments || '',
@@ -255,6 +263,14 @@ export default function InitialRequestForm() {
       });
       return false;
     }
+    if (formData.duty_station.includes('Remote') && !formData.remote_region.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please specify the remote region",
+        variant: "destructive",
+      });
+      return false;
+    }
     if (!formData.brief_outline.trim()) {
       toast({
         title: "Validation Error",
@@ -297,6 +313,7 @@ export default function InitialRequestForm() {
         brief_outline: formData.brief_outline,
         funding_status: formData.funding_status,
         funding_comments: formData.funding_comments || null,
+        comments: formData.remote_region ? { remote_region: formData.remote_region } : null,
         initial_request_submitted: submit,
         status: submit ? 'initial_request_submitted' : 'initial_request_draft',
         updated_at: new Date().toISOString(),
@@ -575,6 +592,23 @@ export default function InitialRequestForm() {
                   </div>
                 ))}
               </div>
+              
+              {/* Remote Region Text Box */}
+              {formData.duty_station.includes('Remote') && (
+                <div className="mt-3">
+                  <Label htmlFor="remote-region">Remote Region *</Label>
+                  <Input
+                    id="remote-region"
+                    value={formData.remote_region}
+                    onChange={(e) => setFormData(prev => ({ ...prev, remote_region: e.target.value }))}
+                    placeholder="e.g., Europe, Asia-Pacific, Americas"
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Specify the geographic region for remote work
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Brief Outline */}
