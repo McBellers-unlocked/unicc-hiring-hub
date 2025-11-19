@@ -255,6 +255,14 @@ export default function DirectorView() {
                           })()}
                         </p>
                       </div>
+                      {requisition.nature_of_position === 'Individual Consultant' && (requisition as any).comments?.consultancy_level && (
+                        <div>
+                          <p className="text-sm font-medium">Consultancy Level</p>
+                          <p className="text-sm text-muted-foreground">
+                            {(requisition as any).comments.consultancy_level}
+                          </p>
+                        </div>
+                      )}
                       <div>
                         <p className="text-sm font-medium">Created By</p>
                         <p className="text-sm text-muted-foreground">

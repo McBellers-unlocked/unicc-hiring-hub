@@ -34,6 +34,7 @@ interface InitialRequest {
   created_at: string;
   created_by: string;
   creator_name?: string;
+  comments?: any;
 }
 
 export default function InitialRequestReview() {
@@ -245,6 +246,14 @@ export default function InitialRequestReview() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Consultancy Level */}
+                    {request.nature_of_position === 'Individual Consultant' && request.comments && typeof request.comments === 'object' && (request.comments as any).consultancy_level && (
+                      <div>
+                        <p className="text-sm font-medium mb-1">Consultancy Level</p>
+                        <Badge variant="outline">{(request.comments as any).consultancy_level}</Badge>
+                      </div>
+                    )}
 
                     {/* Brief Outline */}
                     <div>

@@ -183,6 +183,12 @@ export default function ChiefHRReview() {
                           })()}
                         </p>
                       </div>
+                      {(requisition as any).nature_of_position === 'Individual Consultant' && (requisition as any).comments?.consultancy_level && (
+                        <div>
+                          <span className="text-muted-foreground">Consultancy Level:</span>
+                          <p className="font-medium">{(requisition as any).comments.consultancy_level}</p>
+                        </div>
+                      )}
                       {requisition.hr_reviewed_at && (
                         <div>
                           <span className="text-muted-foreground">HR Reviewed:</span>
