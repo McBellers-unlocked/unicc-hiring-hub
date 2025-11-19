@@ -613,44 +613,23 @@ export default function InitialRequestForm() {
                   <Label>Consultancy Level *</Label>
                   <ConsultancyLevelGuidance />
                 </div>
-                <div className="grid grid-cols-2 gap-4 border rounded-lg p-4">
-                  <div>
-                    <h4 className="font-medium mb-3 text-sm">International consultancy</h4>
-                    <div className="space-y-2">
-                      {['Band level A', 'Band level B', 'Band level C', 'Band level D'].map((level) => (
-                        <div key={level} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={level}
-                            checked={consultancyLevel === level}
-                            onChange={() => setConsultancyLevel(level)}
-                            className="rounded border-input"
-                          />
-                          <label htmlFor={level} className="text-sm cursor-pointer">
-                            {level}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="font-medium mb-3 text-sm">Local consultancy</h4>
-                    <div className="space-y-2">
-                      {['NOA equivalent', 'NOB equivalent', 'NOC equivalent', 'NOD equivalent'].map((level) => (
-                        <div key={level} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={level}
-                            checked={consultancyLevel === level}
-                            onChange={() => setConsultancyLevel(level)}
-                            className="rounded border-input"
-                          />
-                          <label htmlFor={level} className="text-sm cursor-pointer">
-                            {level}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-medium mb-3 text-sm">International consultancy</h4>
+                  <div className="space-y-2">
+                    {['Band level A', 'Band level B', 'Band level C', 'Band level D'].map((level) => (
+                      <div key={level} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={level}
+                          checked={consultancyLevel === level}
+                          onChange={() => setConsultancyLevel(level)}
+                          className="rounded border-input"
+                        />
+                        <label htmlFor={level} className="text-sm cursor-pointer">
+                          {level}
+                        </label>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
