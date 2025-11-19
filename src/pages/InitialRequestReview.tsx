@@ -26,6 +26,7 @@ interface InitialRequest {
   nature_of_position: string;
   temporary_duration: string | null;
   consultant_duration: string | null;
+  intern_modality: string | null;
   grade: string | null;
   duty_station: string;
   brief_outline: string;
@@ -252,6 +253,14 @@ export default function InitialRequestReview() {
                       <div>
                         <p className="text-sm font-medium mb-1">Consultancy Level</p>
                         <Badge variant="outline">{(request.comments as any).consultancy_level}</Badge>
+                      </div>
+                    )}
+
+                    {/* Intern Modality */}
+                    {request.nature_of_position === 'Intern' && request.intern_modality && (
+                      <div>
+                        <p className="text-sm font-medium mb-1">Modality</p>
+                        <Badge variant="outline">{request.intern_modality}</Badge>
                       </div>
                     )}
 

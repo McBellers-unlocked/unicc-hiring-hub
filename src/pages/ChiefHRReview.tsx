@@ -189,6 +189,12 @@ export default function ChiefHRReview() {
                           <p className="font-medium">{(requisition as any).comments.consultancy_level}</p>
                         </div>
                       )}
+                      {(requisition as any).nature_of_position === 'Intern' && (requisition as any).intern_modality && (
+                        <div>
+                          <span className="text-muted-foreground">Modality:</span>
+                          <p className="font-medium">{(requisition as any).intern_modality}</p>
+                        </div>
+                      )}
                       {requisition.hr_reviewed_at && (
                         <div>
                           <span className="text-muted-foreground">HR Reviewed:</span>

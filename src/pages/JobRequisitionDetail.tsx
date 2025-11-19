@@ -19,6 +19,7 @@ interface JobRequisition {
   unit_section_division: string;
   duty_station: string;
   nature_of_position: string;
+  intern_modality: string;
   start_date: string;
   positions_available: number;
   purpose_of_position: string;
@@ -370,6 +371,12 @@ export default function JobRequisitionDetail() {
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Consultancy Level</label>
                   <p>{requisition.comments.consultancy_level}</p>
+                </div>
+              )}
+              {requisition.nature_of_position === 'Intern' && requisition.intern_modality && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Modality</label>
+                  <p>{requisition.intern_modality}</p>
                 </div>
               )}
               <div>
