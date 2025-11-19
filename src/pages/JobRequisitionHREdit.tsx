@@ -758,71 +758,139 @@ export default function JobRequisitionHREdit() {
         </Card>
 
         {/* Competencies */}
-        {(requisition.core_competencies?.length > 0 || 
-          requisition.management_competencies?.length > 0 || 
-          requisition.leadership_competencies?.length > 0 ||
-          requisition.global_competencies?.length > 0) && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Competencies</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {requisition.global_competencies?.length > 0 && (
-                  <div>
-                    <Label className="text-muted-foreground">Global Competencies</Label>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {requisition.global_competencies.map((comp: string, idx: number) => (
-                        <span key={idx} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-primary/10 text-primary">
-                          {comp}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {requisition.core_competencies?.length > 0 && (
-                  <div>
-                    <Label className="text-muted-foreground">Core Competencies</Label>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {requisition.core_competencies.map((comp: string, idx: number) => (
-                        <span key={idx} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-700">
-                          {comp}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {requisition.management_competencies?.length > 0 && (
-                  <div>
-                    <Label className="text-muted-foreground">Management Competencies</Label>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {requisition.management_competencies.map((comp: string, idx: number) => (
-                        <span key={idx} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-700">
-                          {comp}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {requisition.leadership_competencies?.length > 0 && (
-                  <div>
-                    <Label className="text-muted-foreground">Leadership Competencies</Label>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {requisition.leadership_competencies.map((comp: string, idx: number) => (
-                        <span key={idx} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-700">
-                          {comp}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Competencies</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Mandatory Competencies - Always shown */}
+            <div>
+              <Label className="text-muted-foreground">Mandatory Competencies</Label>
+              <p className="text-xs text-muted-foreground mb-2">These competencies are automatically included for all positions:</p>
+              <ul className="mt-1 space-y-1 text-sm">
+                <li>• <span className="font-bold">Teamwork:</span> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.</li>
+                <li>• <span className="font-bold">Communicating:</span> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.</li>
+                <li>• <span className="font-bold">Respecting and promoting individual and cultural differences:</span> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.</li>
+                <li>• <span className="font-bold">Creating an empowering and motivating environment</span> (for Supervisory positions only): Guides and motivates staff towards meeting challenges and achieving objectives. Promotes ownership and responsibility for desired outcomes at all levels.</li>
+              </ul>
+            </div>
+
+            {/* Global Competencies */}
+            {Array.isArray(requisition.global_competencies) && requisition.global_competencies.length > 0 && (
+              <div>
+                <Label className="text-muted-foreground">Global Competencies</Label>
+                <ul className="mt-1 space-y-1">
+                  {requisition.global_competencies.map((comp: any, index: number) => {
+                    const getCompetencyDefinition = (compName: string) => {
+                      const globalCompetencies = [
+                        'Integrity: Acts in accordance with organizational values. Takes responsibility for actions and decisions',
+                        'Customer orientation: Provides excellent service in a professional and caring manner'
+                      ];
+                      return globalCompetencies.find(def => def.startsWith(compName)) || compName;
+                    };
+                    
+                    const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                    const definition = getCompetencyDefinition(competencyName);
+                    const [name, ...description] = definition.split(':');
+                    
+                    return (
+                      <li key={index} className="text-sm">
+                        • <strong>{name}:</strong> {description.join(':').trim()}
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
+            
+            {/* Core Competencies */}
+            {Array.isArray(requisition.core_competencies) && requisition.core_competencies.length > 0 && (
+              <div>
+                <Label className="text-muted-foreground">Core Competencies</Label>
+                <ul className="mt-1 space-y-1">
+                  {requisition.core_competencies.map((comp: any, index: number) => {
+                    const getCoreCompetencyDefinition = (compName: string) => {
+                      const coreCompetencies = [
+                        'Knowing and managing yourself: Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.',
+                        'Producing results: Produces and delivers quality results. Is action oriented and committed to achieving outcomes.',
+                        'Moving forward in a changing environment: Is open to and proposes new approaches and ideas. Adapts and responds positively to change.',
+                        'Setting an example: Acts within UNICC\'s / WHO\'s professional, ethical and legal boundaries and encourages others to adhere to these. Behaves consistently in accordance with clear personal ethics and values.'
+                      ];
+                      return coreCompetencies.find(def => def.startsWith(compName)) || compName;
+                    };
+                    
+                    const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                    const definition = getCoreCompetencyDefinition(competencyName);
+                    const [name, ...description] = definition.split(':');
+                    
+                    return (
+                      <li key={index} className="text-sm">
+                        • <strong>{name}:</strong> {description.join(':').trim()}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+            
+            {/* Leadership Competencies */}
+            {Array.isArray(requisition.leadership_competencies) && requisition.leadership_competencies.length > 0 && (
+              <div>
+                <Label className="text-muted-foreground">Leadership Competencies</Label>
+                <ul className="mt-1 space-y-1">
+                  {requisition.leadership_competencies.map((comp: any, index: number) => {
+                    const getLeadershipCompetencyDefinition = (compName: string) => {
+                      const leadershipCompetencies = [
+                        'Driving UNICC to a successful future: Demonstrates a broad-based understanding of the growing complexities of ICT issues and activities. Creates a compelling vision of shared goals, and develops a roadmap for successfully achieving real progress in improving ICT services.',
+                        'Promoting innovation and Organizational learning: Invigorates the Organization by building a culture which encourages learning and development. Sponsors innovative approaches and solutions.',
+                        'Promoting UNICC\'s position: Positions UNICC as a leader in ICT services. Gains support for UNICC\'s mission. Coordinates plans and communicates in a way that attracts support from intended audiences.'
+                      ];
+                      return leadershipCompetencies.find(def => def.startsWith(compName)) || compName;
+                    };
+                    
+                    const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                    const definition = getLeadershipCompetencyDefinition(competencyName);
+                    const [name, ...description] = definition.split(':');
+                    
+                    return (
+                      <li key={index} className="text-sm">
+                        • <span className="font-bold">{name}:</span> {description.join(':').trim()}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+            
+            {/* Management Competencies */}
+            {Array.isArray(requisition.management_competencies) && requisition.management_competencies.length > 0 && (
+              <div>
+                <Label className="text-muted-foreground">Management Competencies</Label>
+                <ul className="mt-1 space-y-1">
+                  {requisition.management_competencies.map((comp: any, index: number) => {
+                    const getManagementCompetencyDefinition = (compName: string) => {
+                      const managementCompetencies = [
+                        'Ensuring effective use of resources: Identifies priorities in accordance with UNICC\'s strategic directions. Develops and implements action plans, organizes the necessary resources and monitors outcomes.',
+                        'Building and promoting partnerships across the Organization and beyond: Develops and strengthens internal and external partnerships that can provide information, assistance and support to UNICC. Identifies and uses synergies across the Organization and with external partners.'
+                      ];
+                      return managementCompetencies.find(def => def.startsWith(compName)) || compName;
+                    };
+                    
+                    const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                    const definition = getManagementCompetencyDefinition(competencyName);
+                    const [name, ...description] = definition.split(':');
+                    
+                    return (
+                      <li key={index} className="text-sm">
+                        • <strong>{name}:</strong> {description.join(':').trim()}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* HR Change Summary */}
         <Card>
