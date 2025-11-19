@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +23,7 @@ import MDEditor, { commands, ICommand } from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';
 import { MainDutiesTemplateModal } from '@/components/MainDutiesTemplateModal';
 import TurndownService from 'turndown';
+import { Label } from "@/components/ui/label";
 
 // Organizational structure
 const DIVISIONS = {
@@ -109,6 +111,7 @@ const requisitionSchema = z.object({
   unit_section_division: z.string().min(1, "Unit/Section/Division is required"),
   duty_station: z.array(z.string()).min(1, "At least one duty station is required"),
   temporary_duration: z.string().optional(),
+  intern_modality: z.string().optional(),
   start_date: z.string().min(1, "Start date is required"),
   positions_available: z.number().min(1, "At least 1 position required"),
   purpose_of_position: z.string().min(1, "Purpose of position is required"),
@@ -250,6 +253,7 @@ export default function JobRequisitionForm() {
   const [showTemporaryDuration, setShowTemporaryDuration] = useState<boolean>(false);
   const [showGrade, setShowGrade] = useState<boolean>(false);
   const [showEligibleGrades, setShowEligibleGrades] = useState<boolean>(false);
+  const [remoteTimezone, setRemoteTimezone] = useState<string>("");
   const [selectedCoreCompetencies, setSelectedCoreCompetencies] = useState<string[]>([]);
   const [selectedManagementCompetencies, setSelectedManagementCompetencies] = useState<string[]>([]);
   const [selectedLeadershipCompetencies, setSelectedLeadershipCompetencies] = useState<string[]>([]);
@@ -267,6 +271,7 @@ export default function JobRequisitionForm() {
       unit_section_division: "",
       duty_station: [],
       temporary_duration: "",
+      intern_modality: "",
       start_date: "",
       positions_available: 1,
       purpose_of_position: "",
@@ -390,6 +395,12 @@ export default function JobRequisitionForm() {
         setSelectedManagementCompetencies(Array.isArray(data.management_competencies) ? data.management_competencies as string[] : []);
         setSelectedLeadershipCompetencies(Array.isArray(data.leadership_competencies) ? data.leadership_competencies as string[] : []);
 
+        // Load remote timezone from comments if available
+        const comments = data.comments as any;
+        if (comments && typeof comments === 'object' && comments.remote_region) {
+          setRemoteTimezone(comments.remote_region);
+        }
+
         form.reset({
           position_title: data.position_title || "",
           nature_of_position: data.nature_of_position || "",
@@ -398,6 +409,7 @@ export default function JobRequisitionForm() {
           unit_section_division: data.unit_section_division || "",
           duty_station: Array.isArray(data.duty_station) ? data.duty_station : (data.duty_station ? JSON.parse(data.duty_station) : []),
           temporary_duration: (data as any).temporary_duration || "",
+          intern_modality: data.intern_modality || "",
           start_date: data.start_date || "",
           positions_available: data.positions_available || 1,
           purpose_of_position: data.purpose_of_position || data.brief_outline || "",

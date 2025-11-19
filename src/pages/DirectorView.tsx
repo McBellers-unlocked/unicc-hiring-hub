@@ -263,6 +263,14 @@ export default function DirectorView() {
                           </p>
                         </div>
                       )}
+                      {requisition.nature_of_position === 'Intern' && (requisition as any).intern_modality && (
+                        <div>
+                          <p className="text-sm font-medium">Modality</p>
+                          <p className="text-sm text-muted-foreground">
+                            {(requisition as any).intern_modality}
+                          </p>
+                        </div>
+                      )}
                       <div>
                         <p className="text-sm font-medium">Created By</p>
                         <p className="text-sm text-muted-foreground">

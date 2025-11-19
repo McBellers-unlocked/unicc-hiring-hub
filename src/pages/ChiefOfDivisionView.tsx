@@ -253,14 +253,22 @@ export default function ChiefOfDivisionView() {
                               })()}
                             </p>
                           </div>
-                          {requisition.nature_of_position === 'Individual Consultant' && (requisition as any).comments?.consultancy_level && (
-                            <div>
-                              <p className="text-sm font-medium">Consultancy Level</p>
-                              <p className="text-sm text-muted-foreground">
-                                {(requisition as any).comments.consultancy_level}
-                              </p>
-                            </div>
-                          )}
+                      {requisition.nature_of_position === 'Individual Consultant' && (requisition as any).comments?.consultancy_level && (
+                        <div>
+                          <p className="text-sm font-medium">Consultancy Level</p>
+                          <p className="text-sm text-muted-foreground">
+                            {(requisition as any).comments.consultancy_level}
+                          </p>
+                        </div>
+                      )}
+                      {requisition.nature_of_position === 'Intern' && requisition.intern_modality && (
+                        <div>
+                          <p className="text-sm font-medium">Modality</p>
+                          <p className="text-sm text-muted-foreground">
+                            {requisition.intern_modality}
+                          </p>
+                        </div>
+                      )}
                           <div>
                             <p className="text-sm font-medium">Created By</p>
                             <p className="text-sm text-muted-foreground">
