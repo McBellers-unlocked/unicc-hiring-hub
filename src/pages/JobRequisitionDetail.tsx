@@ -366,6 +366,12 @@ export default function JobRequisitionDetail() {
                   })()
                 }</p>
               </div>
+              {requisition.nature_of_position === 'Individual Consultant' && requisition.comments?.consultancy_level && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Consultancy Level</label>
+                  <p>{requisition.comments.consultancy_level}</p>
+                </div>
+              )}
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Nature of Position</label>
                 <p>{requisition.nature_of_position}</p>

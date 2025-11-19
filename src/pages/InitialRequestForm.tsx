@@ -118,6 +118,7 @@ export default function InitialRequestForm() {
   const [saving, setSaving] = useState(false);
   const [selectedDivision, setSelectedDivision] = useState('');
   const [selectedUnit, setSelectedUnit] = useState('');
+  const [consultancyLevel, setConsultancyLevel] = useState('');
   
   const [formData, setFormData] = useState({
     position_title: '',
@@ -152,10 +153,12 @@ export default function InitialRequestForm() {
       if (error) throw error;
       
       if (data) {
-        // Try to extract remote_region from comments if it exists
+        // Try to extract remote_region and consultancy_level from comments if it exists
         let remoteRegion = '';
+        let consultancy = '';
         if (data.comments && typeof data.comments === 'object') {
           remoteRegion = (data.comments as any).remote_region || '';
+          consultancy = (data.comments as any).consultancy_level || '';
         }
         
         setFormData({
@@ -173,6 +176,10 @@ export default function InitialRequestForm() {
           funding_status: data.funding_status || '',
           funding_comments: data.funding_comments || '',
         });
+        
+        if (consultancy) {
+          setConsultancyLevel(consultancy);
+        }
 
         // Parse existing unit_section_division to set division/unit dropdowns
         if (data.unit_section_division) {
@@ -247,6 +254,14 @@ export default function InitialRequestForm() {
       });
       return false;
     }
+    if (formData.nature_of_position === 'Individual Consultant' && !consultancyLevel) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a consultancy level",
+        variant: "destructive",
+      });
+      return false;
+    }
     if ((formData.nature_of_position === 'Staff' || formData.nature_of_position === 'STDA') && !formData.grade.trim()) {
       toast({
         title: "Validation Error",
@@ -313,7 +328,10 @@ export default function InitialRequestForm() {
         brief_outline: formData.brief_outline,
         funding_status: formData.funding_status,
         funding_comments: formData.funding_comments || null,
-        comments: formData.remote_region ? { remote_region: formData.remote_region } : null,
+        comments: {
+          ...(formData.remote_region && { remote_region: formData.remote_region }),
+          ...(consultancyLevel && formData.nature_of_position === 'Individual Consultant' && { consultancy_level: consultancyLevel })
+        },
         initial_request_submitted: submit,
         status: submit ? 'initial_request_submitted' : 'initial_request_draft',
         updated_at: new Date().toISOString(),
@@ -552,6 +570,53 @@ export default function InitialRequestForm() {
                     <Label htmlFor="cons11" className="font-normal">11 months</Label>
                   </div>
                 </RadioGroup>
+              </div>
+            )}
+
+            {/* Consultancy Level */}
+            {showConsultantDuration && (
+              <div className="space-y-3">
+                <Label>Consultancy Level *</Label>
+                <div className="grid grid-cols-2 gap-4 border rounded-lg p-4">
+                  <div>
+                    <h4 className="font-medium mb-3 text-sm">International consultancy</h4>
+                    <div className="space-y-2">
+                      {['Band level A', 'Band level B', 'Band level C', 'Band level D'].map((level) => (
+                        <div key={level} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={level}
+                            checked={consultancyLevel === level}
+                            onChange={() => setConsultancyLevel(level)}
+                            className="rounded border-input"
+                          />
+                          <label htmlFor={level} className="text-sm cursor-pointer">
+                            {level}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-medium mb-3 text-sm">Local consultancy</h4>
+                    <div className="space-y-2">
+                      {['NOA equivalent', 'NOB equivalent', 'NOC equivalent', 'NOD equivalent'].map((level) => (
+                        <div key={level} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={level}
+                            checked={consultancyLevel === level}
+                            onChange={() => setConsultancyLevel(level)}
+                            className="rounded border-input"
+                          />
+                          <label htmlFor={level} className="text-sm cursor-pointer">
+                            {level}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
