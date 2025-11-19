@@ -127,6 +127,7 @@ export default function InitialRequestForm() {
     staff_contract_type: '',
     temporary_duration: '',
     consultant_duration: '',
+    intern_modality: '',
     grade: '',
     unit_section_division: '',
     duty_station: [] as string[],
@@ -169,6 +170,7 @@ export default function InitialRequestForm() {
                                data.nature_of_position === 'Temporary' ? 'Temporary' : '',
           temporary_duration: data.temporary_duration || '',
           consultant_duration: data.consultant_duration || '',
+          intern_modality: data.intern_modality || '',
           grade: data.grade || '',
           unit_section_division: data.unit_section_division || '',
           duty_station: data.duty_station ? JSON.parse(data.duty_station) : [],
@@ -263,6 +265,14 @@ export default function InitialRequestForm() {
       });
       return false;
     }
+    if (formData.nature_of_position === 'Intern' && !formData.intern_modality) {
+      toast({
+        title: "Validation Error",
+        description: "Please select Full time or Part time for Intern positions",
+        variant: "destructive",
+      });
+      return false;
+    }
     if ((formData.nature_of_position === 'Staff' || formData.nature_of_position === 'STDA') && !formData.grade.trim()) {
       toast({
         title: "Validation Error",
@@ -323,6 +333,7 @@ export default function InitialRequestForm() {
         nature_of_position: finalNatureOfPosition,
         temporary_duration: formData.temporary_duration || null,
         consultant_duration: formData.consultant_duration || null,
+        intern_modality: formData.intern_modality || null,
         grade: formData.grade || null,
         unit_section_division: formData.unit_section_division || null,
         duty_station: JSON.stringify(formData.duty_station),
@@ -381,6 +392,7 @@ export default function InitialRequestForm() {
   const showStaffTypeSelection = formData.nature_of_position === 'Staff';
   const showTemporaryDuration = formData.staff_contract_type === 'Temporary';
   const showConsultantDuration = formData.nature_of_position === 'Individual Consultant';
+  const showInternModality = formData.nature_of_position === 'Intern';
 
   if (loading) {
     return (
@@ -569,6 +581,26 @@ export default function InitialRequestForm() {
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="11 months" id="cons11" />
                     <Label htmlFor="cons11" className="font-normal">11 months</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
+
+            {/* Intern Modality */}
+            {showInternModality && (
+              <div className="space-y-2">
+                <Label>Modality *</Label>
+                <RadioGroup 
+                  value={formData.intern_modality} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, intern_modality: value }))}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="Full time" id="fulltime" />
+                    <Label htmlFor="fulltime" className="font-normal">Full time</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="Part time" id="parttime" />
+                    <Label htmlFor="parttime" className="font-normal">Part time</Label>
                   </div>
                 </RadioGroup>
               </div>
