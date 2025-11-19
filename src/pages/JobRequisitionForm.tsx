@@ -120,7 +120,7 @@ const requisitionSchema = z.object({
   essential_experience: z.string().min(1, "Essential experience is required"),
   desirable_experience: z.string().optional(),
   essential_education: z.string().min(1, "Essential education is required"),
-  essential_education_level: z.string().min(1, "Essential education level is required"),
+  essential_education_level: z.string().optional(),
   desirable_education: z.string().optional(),
   core_competencies: z.array(z.string()).optional(),
   management_competencies: z.array(z.string()).optional(),
@@ -1370,7 +1370,7 @@ export default function JobRequisitionForm() {
               <CardDescription>Qualifications and experience needed for this position</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className={watchedNatureOfPosition === 'Intern' ? 'space-y-4' : 'grid grid-cols-2 gap-4'}>
                 <FormField
                   control={form.control}
                   name="essential_experience"
@@ -1455,41 +1455,43 @@ export default function JobRequisitionForm() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <FormField
-                    control={form.control}
-                    name="essential_education_level"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Essential Education Level *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="bg-background">
-                              <SelectValue placeholder="Select required education level" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="bg-background z-50">
-                            <SelectItem value="Secondary">Secondary Education</SelectItem>
-                            <SelectItem value="First Level University">First Level University Degree (Bachelor's or equivalent)</SelectItem>
-                            <SelectItem value="Advanced University">Advanced University Degree (Master's, PhD, or equivalent)</SelectItem>
-                            <SelectItem value="Professional">Professional Certification</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormDescription className="text-xs">
-                          This structured requirement will automatically check candidate eligibility
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+              <div className={watchedNatureOfPosition === 'Intern' ? 'space-y-4' : 'grid grid-cols-2 gap-4'}>
+                {watchedNatureOfPosition !== 'Intern' && (
+                  <div className="col-span-2">
+                    <FormField
+                      control={form.control}
+                      name="essential_education_level"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Essential Education Level *</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="bg-background">
+                                <SelectValue placeholder="Select required education level" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="bg-background z-50">
+                              <SelectItem value="Secondary">Secondary Education</SelectItem>
+                              <SelectItem value="First Level University">First Level University Degree (Bachelor's or equivalent)</SelectItem>
+                              <SelectItem value="Advanced University">Advanced University Degree (Master's, PhD, or equivalent)</SelectItem>
+                              <SelectItem value="Professional">Professional Certification</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormDescription className="text-xs">
+                            This structured requirement will automatically check candidate eligibility
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
 
                 <FormField
                   control={form.control}
                   name="essential_education"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className={watchedNatureOfPosition === 'Intern' ? '' : 'col-span-1'}>
                       <div className="flex items-center justify-between mb-2">
                         <FormLabel>Essential Education Details *</FormLabel>
                         {watchedNatureOfPosition === 'Intern' && field.value?.includes('[areas of expertise]') && (
@@ -1549,7 +1551,7 @@ export default function JobRequisitionForm() {
                     control={form.control}
                     name="desirable_education"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="col-span-1">
                         <FormLabel>Desirable Education</FormLabel>
                         <FormControl>
                           <MDEditor
