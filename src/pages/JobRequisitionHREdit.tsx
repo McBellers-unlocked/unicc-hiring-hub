@@ -776,11 +776,11 @@ export default function JobRequisitionHREdit() {
                 <Label className="text-muted-foreground">Standard Competencies for Consultants</Label>
                 <p className="text-xs text-muted-foreground mb-2">These competencies are automatically included for all consultant positions:</p>
                 <ul className="mt-1 space-y-1 text-sm">
-                  <li>• <strong>Integrity:</strong> Acts in accordance with organizational values. Takes responsibility for actions and decisions.</li>
-                  <li>• <strong>Customer orientation:</strong> Provides excellent service in a professional and caring manner.</li>
+                  <li>• <strong>Teamwork:</strong> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.</li>
+                  <li>• <strong>Communicating:</strong> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.</li>
+                  <li>• <strong>Respecting and promoting individual and cultural differences:</strong> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.</li>
                   <li>• <strong>Knowing and managing yourself:</strong> Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.</li>
                   <li>• <strong>Producing results:</strong> Produces and delivers quality results. Is action oriented and committed to achieving outcomes.</li>
-                  <li>• <strong>Moving forward in a changing environment:</strong> Is open to and proposes new approaches and ideas. Adapts and responds positively to change.</li>
                 </ul>
               </div>
             )}
