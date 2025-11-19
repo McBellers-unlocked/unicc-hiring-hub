@@ -255,6 +255,7 @@ export default function JobRequisitionForm() {
   const [showGrade, setShowGrade] = useState<boolean>(false);
   const [showEligibleGrades, setShowEligibleGrades] = useState<boolean>(false);
   const [remoteTimezone, setRemoteTimezone] = useState<string>("");
+  const [consultancyLevel, setConsultancyLevel] = useState<string>("");
   const [selectedCoreCompetencies, setSelectedCoreCompetencies] = useState<string[]>([]);
   const [selectedManagementCompetencies, setSelectedManagementCompetencies] = useState<string[]>([]);
   const [selectedLeadershipCompetencies, setSelectedLeadershipCompetencies] = useState<string[]>([]);
@@ -460,8 +461,13 @@ export default function JobRequisitionForm() {
 
         // Load remote timezone from comments if available
         const comments = data.comments as any;
-        if (comments && typeof comments === 'object' && comments.remote_region) {
-          setRemoteTimezone(comments.remote_region);
+        if (comments && typeof comments === 'object') {
+          if (comments.remote_region) {
+            setRemoteTimezone(comments.remote_region);
+          }
+          if (comments.consultancy_level) {
+            setConsultancyLevel(comments.consultancy_level);
+          }
         }
 
         // Set appropriate main duties template based on nature of position
@@ -1087,6 +1093,20 @@ export default function JobRequisitionForm() {
                   </FormItem>
                 )}
               />
+
+              {consultancyLevel && watchedNatureOfPosition === 'Individual Consultant' && (
+                <div className="space-y-2">
+                  <Label>Consultancy Band Level</Label>
+                  <Input
+                    value={consultancyLevel}
+                    disabled
+                    className="bg-muted"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This band level was set in the initial request and cannot be changed here.
+                  </p>
+                </div>
+              )}
 
               <FormField
                 control={form.control}
