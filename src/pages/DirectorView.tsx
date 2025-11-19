@@ -231,11 +231,21 @@ export default function DirectorView() {
                         <p className="text-sm text-muted-foreground">
                           {(() => {
                             try {
+                              const remoteRegion = (requisition as any).comments?.remote_region;
                               if (typeof requisition.duty_station === 'string') {
                                 const parsed = JSON.parse(requisition.duty_station);
-                                return Array.isArray(parsed) ? parsed.join(', ') : String(parsed);
+                                if (Array.isArray(parsed)) {
+                                  const formatted = parsed.map((station: string) => 
+                                    station === 'Remote' && remoteRegion ? `Remote (${remoteRegion})` : station
+                                  );
+                                  return formatted.join(', ');
+                                }
+                                return String(parsed);
                               } else if (Array.isArray(requisition.duty_station)) {
-                                return (requisition.duty_station as string[]).join(', ');
+                                const formatted = (requisition.duty_station as string[]).map((station: string) => 
+                                  station === 'Remote' && remoteRegion ? `Remote (${remoteRegion})` : station
+                                );
+                                return formatted.join(', ');
                               } else {
                                 return String(requisition.duty_station || 'Not specified');
                               }
@@ -677,11 +687,21 @@ export default function DirectorView() {
                         <span className="font-semibold">Duty Station:</span>{' '}
                         {(() => {
                           try {
+                            const remoteRegion = (requisition as any).comments?.remote_region;
                             if (typeof requisition.duty_station === 'string') {
                               const parsed = JSON.parse(requisition.duty_station);
-                              return Array.isArray(parsed) ? parsed.join(', ') : String(parsed);
+                              if (Array.isArray(parsed)) {
+                                const formatted = parsed.map((station: string) => 
+                                  station === 'Remote' && remoteRegion ? `Remote (${remoteRegion})` : station
+                                );
+                                return formatted.join(', ');
+                              }
+                              return String(parsed);
                             } else if (Array.isArray(requisition.duty_station)) {
-                              return (requisition.duty_station as string[]).join(', ');
+                              const formatted = (requisition.duty_station as string[]).map((station: string) => 
+                                station === 'Remote' && remoteRegion ? `Remote (${remoteRegion})` : station
+                              );
+                              return formatted.join(', ');
                             } else {
                               return String(requisition.duty_station || 'Not specified');
                             }

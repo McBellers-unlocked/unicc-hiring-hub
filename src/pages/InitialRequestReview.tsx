@@ -208,6 +208,7 @@ export default function InitialRequestReview() {
             {requests.map((request) => {
               const duration = getDurationDisplay(request);
               const locations = request.duty_station ? JSON.parse(request.duty_station) : [];
+              const remoteRegion = (request as any).comments?.remote_region;
               
               return (
                 <Card key={request.id}>
@@ -237,7 +238,9 @@ export default function InitialRequestReview() {
                         <p className="text-sm font-medium mb-1">Location</p>
                         <div className="flex flex-wrap gap-1">
                           {locations.map((loc: string) => (
-                            <Badge key={loc} variant="outline">{loc}</Badge>
+                            <Badge key={loc} variant="outline">
+                              {loc === 'Remote' && remoteRegion ? `Remote (${remoteRegion})` : loc}
+                            </Badge>
                           ))}
                         </div>
                       </div>

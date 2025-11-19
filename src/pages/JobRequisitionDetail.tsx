@@ -341,11 +341,22 @@ export default function JobRequisitionDetail() {
                 <p>{
                   (() => {
                     try {
+                      const remoteRegion = requisition.comments?.remote_region;
                       if (typeof requisition.duty_station === 'string') {
                         const parsed = JSON.parse(requisition.duty_station);
-                        return Array.isArray(parsed) ? parsed.join(', ') : String(parsed);
+                        if (Array.isArray(parsed)) {
+                          // Format "Remote" with region if available
+                          const formatted = parsed.map(station => 
+                            station === 'Remote' && remoteRegion ? `Remote (${remoteRegion})` : station
+                          );
+                          return formatted.join(', ');
+                        }
+                        return String(parsed);
                       } else if (Array.isArray(requisition.duty_station)) {
-                        return (requisition.duty_station as string[]).join(', ');
+                        const formatted = (requisition.duty_station as string[]).map(station => 
+                          station === 'Remote' && remoteRegion ? `Remote (${remoteRegion})` : station
+                        );
+                        return formatted.join(', ');
                       } else {
                         return String(requisition.duty_station || 'Not specified');
                       }
