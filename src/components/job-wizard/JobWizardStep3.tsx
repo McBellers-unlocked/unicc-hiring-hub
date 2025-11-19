@@ -121,6 +121,13 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
         </p>
       </CardHeader>
       <CardContent className="space-y-8">
+        {/* Show approval notice once at the top for converted requisitions */}
+        {isConvertedRequisition && (
+          <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm text-muted-foreground">
+            <p className="font-medium">📋 Approved at PD Phase</p>
+            <p className="text-xs mt-1">These requirements were approved during the Position Description phase and are displayed as reference.</p>
+          </div>
+        )}
         {/* Essential Criteria */}
         <RequirementsList
           requirements={essentialCriteria}

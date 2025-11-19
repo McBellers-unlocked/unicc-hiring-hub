@@ -59,12 +59,6 @@ export function RequirementsList({ requirements, onChange, title, category, read
 
   return (
     <div className="space-y-4">
-      {readOnly && (
-        <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm text-muted-foreground mb-4">
-          <p className="font-medium">📋 Approved at PD Phase</p>
-          <p className="text-xs mt-1">These requirements were approved during the Position Description phase and are displayed as reference.</p>
-        </div>
-      )}
       <div className="flex items-center justify-between">
         <Label className="text-base font-medium">{title}</Label>
         {!readOnly && (
@@ -109,26 +103,39 @@ export function RequirementsList({ requirements, onChange, title, category, read
                 )}
 
                 <div className="flex-1 space-y-3">
-                  <div>
-                    <Label className="text-sm">Title *</Label>
-                    <Input
-                      placeholder={category.includes('Education') ? 'e.g., Bachelor\'s in Computer Science' : 'e.g., 5 years of project management experience'}
-                      value={req.title}
-                      disabled={readOnly}
-                      className={`mt-1 ${readOnly ? 'bg-muted' : ''}`}
-                      onChange={(e) => updateRequirement(index, 'title', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm">Description (optional)</Label>
-                    <Textarea
-                      placeholder="Add details about this requirement..."
-                      value={req.description}
-                      onChange={(e) => updateRequirement(index, 'description', e.target.value)}
-                      disabled={readOnly}
-                      className={`mt-1 ${readOnly ? 'min-h-[150px] bg-muted' : 'min-h-[100px]'}`}
-                    />
-                  </div>
+                  {readOnly ? (
+                    <>
+                      <div>
+                        <p className="font-semibold text-foreground">{req.title}</p>
+                      </div>
+                      {req.description && (
+                        <div>
+                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{req.description}</p>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <Label className="text-sm">Title *</Label>
+                        <Input
+                          placeholder={category.includes('Education') ? 'e.g., Bachelor\'s in Computer Science' : 'e.g., 5 years of project management experience'}
+                          value={req.title}
+                          className="mt-1"
+                          onChange={(e) => updateRequirement(index, 'title', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm">Description (optional)</Label>
+                        <Textarea
+                          placeholder="Add details about this requirement..."
+                          value={req.description}
+                          onChange={(e) => updateRequirement(index, 'description', e.target.value)}
+                          className="mt-1 min-h-[100px]"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {!readOnly && (
