@@ -474,6 +474,11 @@ export default function JobRequisitionForm() {
           }
         }
 
+        // If the initial request was approved, lock the nature of position
+        if (data.initial_request_approved && !initialNatureOfPosition) {
+          setInitialNatureOfPosition(data.nature_of_position);
+        }
+
         // Set appropriate main duties template based on nature of position
         let defaultMainDuties = "";
         let defaultEssentialExperience = "";

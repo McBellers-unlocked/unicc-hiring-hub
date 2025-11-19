@@ -342,7 +342,8 @@ export default function InitialRequestForm() {
         funding_comments: formData.funding_comments || null,
         comments: {
           ...(formData.remote_region && { remote_region: formData.remote_region }),
-          ...(consultancyLevel && formData.nature_of_position === 'Individual Consultant' && { consultancy_level: consultancyLevel })
+          ...(consultancyLevel && formData.nature_of_position === 'Individual Consultant' && { consultancy_level: consultancyLevel }),
+          nature_of_position: finalNatureOfPosition
         },
         initial_request_submitted: submit,
         status: submit ? 'initial_request_submitted' : 'initial_request_draft',
