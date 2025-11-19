@@ -1129,6 +1129,20 @@ export default function JobRequisitionForm() {
                 }}
               />
 
+              {showRemoteTimezone && (
+                <div className="mt-4 space-y-2">
+                  <Label>Remote timezone</Label>
+                  <Input
+                    placeholder="e.g., Europe / Central European Time"
+                    value={remoteTimezone}
+                    onChange={(e) => setRemoteTimezone(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Specify the primary timezone for remote work.
+                  </p>
+                </div>
+              )}
+
               {showInternModality && (
                 <FormField
                   control={form.control}
@@ -1163,20 +1177,6 @@ export default function JobRequisitionForm() {
                     </FormItem>
                   )}
                 />
-              )}
-
-              {showRemoteTimezone && (
-                <div className="mt-4 space-y-2">
-                  <Label>Remote timezone</Label>
-                  <Input
-                    placeholder="e.g., Europe / Central European Time"
-                    value={remoteTimezone}
-                    onChange={(e) => setRemoteTimezone(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Specify the primary timezone for remote work.
-                  </p>
-                </div>
               )}
 
               <div className="grid grid-cols-2 gap-4">
