@@ -158,7 +158,7 @@ export const Layout = ({ children }: LayoutProps) => {
                     </DropdownMenu>
                   )}
                   
-                  {(hasAdminAccess || isHiringManager || isPanelMember) && (
+                  {(hasAdminAccess || hasHiringManagerAccess || isPanelMember) && (
                     <Link to="/applications" className="flex items-center hover:text-accent transition-colors py-2">
                       <UserCheck className="w-4 h-4 mr-1" />
                       Applications
