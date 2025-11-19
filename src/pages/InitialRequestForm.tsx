@@ -281,7 +281,7 @@ export default function InitialRequestForm() {
     if (formData.duty_station.includes('Remote') && !formData.remote_region.trim()) {
       toast({
         title: "Validation Error",
-        description: "Please specify the remote region",
+        description: "Please specify the remote timezone",
         variant: "destructive",
       });
       return false;
@@ -658,10 +658,10 @@ export default function InitialRequestForm() {
                 ))}
               </div>
               
-              {/* Remote Region Text Box */}
+              {/* Remote Timezone Text Box */}
               {formData.duty_station.includes('Remote') && (
                 <div className="mt-3">
-                  <Label htmlFor="remote-region">Remote Region *</Label>
+                  <Label htmlFor="remote-region">Remote Timezone *</Label>
                   <Input
                     id="remote-region"
                     value={formData.remote_region}
@@ -670,7 +670,7 @@ export default function InitialRequestForm() {
                     className="mt-1"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Specify the geographic region for remote work
+                    Specify the timezone for remote work
                   </p>
                 </div>
               )}
