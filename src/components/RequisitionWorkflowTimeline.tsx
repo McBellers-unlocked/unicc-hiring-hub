@@ -108,9 +108,9 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
       label: 'Chief of Division Approval',
       shortLabel: 'Chief Approval',
       description: 'Chief reviewing final PD for approval',
-      // Only treat Chief approval as completed once the requisition has actually
-      // reached or passed the Chief review stage in the full PD workflow.
-      isCompleted: ['chief_division_review', 'chief_of_division_review', 'director_review'].includes(requisition.status) ||
+      // Chief approval is completed if it was actually approved OR if the requisition has moved past that stage
+      isCompleted: !!requisition.chief_of_division_approval || 
+                   ['director_review', 'approved'].includes(requisition.status) ||
                    !!requisition.converted_to_job_id,
       isActive: (requisition.status === 'chief_of_division_review' || 
                 requisition.status === 'chief_division_review') &&
