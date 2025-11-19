@@ -1819,27 +1819,21 @@ export default function JobRequisitionForm() {
               )}
 
               {watchedNatureOfPosition === 'Individual Consultant' ? (
-                <div>
-                  <FormLabel>Required Competencies for Consultants</FormLabel>
-                  <FormDescription className="mb-4">
-                    All consultants are required to demonstrate the following 5 competencies:
-                  </FormDescription>
-                  <div className="space-y-3 bg-muted/50 p-4 rounded-md">
-                    <div className="text-sm leading-relaxed">
-                      <span className="font-bold">Teamwork:</span> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.
-                    </div>
-                    <div className="text-sm leading-relaxed">
-                      <span className="font-bold">Communicating:</span> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.
-                    </div>
-                    <div className="text-sm leading-relaxed">
-                      <span className="font-bold">Respecting and promoting individual and cultural differences:</span> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.
-                    </div>
-                    <div className="text-sm leading-relaxed">
-                      <span className="font-bold">Knowing and managing yourself:</span> Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.
-                    </div>
-                    <div className="text-sm leading-relaxed">
-                      <span className="font-bold">Producing results:</span> Produces and delivers quality results. Is action oriented and committed to achieving outcomes.
-                    </div>
+                <div className="space-y-3 bg-muted/50 p-4 rounded-md">
+                  <div className="text-sm leading-relaxed">
+                    <span className="font-bold">Teamwork:</span> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.
+                  </div>
+                  <div className="text-sm leading-relaxed">
+                    <span className="font-bold">Communicating:</span> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.
+                  </div>
+                  <div className="text-sm leading-relaxed">
+                    <span className="font-bold">Respecting and promoting individual and cultural differences:</span> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.
+                  </div>
+                  <div className="text-sm leading-relaxed">
+                    <span className="font-bold">Knowing and managing yourself:</span> Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.
+                  </div>
+                  <div className="text-sm leading-relaxed">
+                    <span className="font-bold">Producing results:</span> Produces and delivers quality results. Is action oriented and committed to achieving outcomes.
                   </div>
                 </div>
               ) : (
