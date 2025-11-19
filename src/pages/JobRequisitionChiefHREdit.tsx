@@ -224,6 +224,7 @@ export default function JobRequisitionChiefHREdit() {
         chief_hr_reviewed_by: user?.id,
         chief_hr_comments: chiefHRComments,
         hr_internal_status: 'ready_for_manager',
+        status: 'hiring_manager_review', // Move workflow to manager confirmation stage
       };
 
       const { error } = await supabase
