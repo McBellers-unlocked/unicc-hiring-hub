@@ -380,19 +380,19 @@ export default function JobRequisitionForm() {
   useEffect(() => {
     if (watchedNatureOfPosition === 'Individual Consultant' && consultancyLevel) {
       const consultantRequirements: Record<string, { education: string; experience: string }> = {
-        'A': {
+        'Band level A': {
           education: 'Minimum first university degree',
           experience: 'Up to 5 years of relevant experience'
         },
-        'B': {
+        'Band level B': {
           education: 'Minimum first university degree - essential, an advanced university degree desirable',
           experience: '5 to 10 years of relevant experience'
         },
-        'C': {
+        'Band level C': {
           education: 'Minimum an advanced university degree',
           experience: 'Over 10 years of relevant experience'
         },
-        'D': {
+        'Band level D': {
           education: 'Minimum an advanced university degree',
           experience: 'Over 15 years of relevant experience'
         }
