@@ -311,6 +311,14 @@ export default function JobRequisitionForm() {
     }
   }, [watchedGrade, form]);
 
+  const watchedNatureOfPosition = form.watch('nature_of_position');
+  const watchedDutyStations = form.watch('duty_station');
+  const showInternModality = watchedNatureOfPosition === 'Intern';
+  const showRemoteTimezone =
+    (watchedNatureOfPosition === 'Intern' || watchedNatureOfPosition === 'Individual Consultant') &&
+    Array.isArray(watchedDutyStations) &&
+    watchedDutyStations.includes('Remote');
+
   const addLanguage = () => {
     const newLanguage = { name: '', level: '' };
     const updatedLanguages = [...additionalLanguages, newLanguage];
@@ -454,6 +462,13 @@ export default function JobRequisitionForm() {
       // Remove confirmation fields before saving
       delete formData.confirmChiefApproval;
 
+      const existingComments = (currentRequisition?.comments as any) || {};
+      const updatedComments = { ...existingComments };
+
+      if (remoteTimezone && remoteTimezone.trim()) {
+        updatedComments.remote_region = remoteTimezone.trim();
+      }
+
       let currentRequisitionId = id;
 
       if (id && id !== 'new') {
@@ -496,6 +511,7 @@ export default function JobRequisitionForm() {
             ...cleanFormData,
             duty_station: JSON.stringify(formData.duty_station),
             language_requirements: updatedLanguageRequirements,
+            comments: updatedComments,
             status: newStatus,
           })
           .eq('id', id);
@@ -535,6 +551,7 @@ export default function JobRequisitionForm() {
             ...cleanFormData,
             duty_station: JSON.stringify(formData.duty_station),
             language_requirements: updatedLanguageRequirements,
+            comments: updatedComments,
             created_by: user?.id,
             status: submit ? 'hr_review' : 'draft',
           })
@@ -1036,6 +1053,55 @@ export default function JobRequisitionForm() {
                 }}
               />
 
+              {showInternModality && (
+                <FormField
+                  control={form.control}
+                  name="intern_modality"
+                  render={({ field }) => (
+                    <FormItem className="mt-4">
+                      <FormLabel>Modality</FormLabel>
+                      <FormDescription>
+                        Select whether the internship is full time or part time.
+                      </FormDescription>
+                      <FormControl>
+                        <RadioGroup
+                          className="flex flex-wrap gap-4 mt-2"
+                          onValueChange={field.onChange}
+                          value={field.value || ""}
+                        >
+                          <FormItem className="flex items-center space-x-2">
+                            <FormControl>
+                              <RadioGroupItem value="Full time" />
+                            </FormControl>
+                            <FormLabel className="font-normal">Full time</FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-2">
+                            <FormControl>
+                              <RadioGroupItem value="Part time" />
+                            </FormControl>
+                            <FormLabel className="font-normal">Part time</FormLabel>
+                          </FormItem>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {showRemoteTimezone && (
+                <div className="mt-4 space-y-2">
+                  <Label>Remote timezone</Label>
+                  <Input
+                    placeholder="e.g., Europe / Central European Time"
+                    value={remoteTimezone}
+                    onChange={(e) => setRemoteTimezone(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Specify the primary timezone for remote work.
+                  </p>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
