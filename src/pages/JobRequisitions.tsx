@@ -358,6 +358,42 @@ export default function JobRequisitions() {
                           Finalize & Send to Chief
                         </Button>
                       )}
+                      {/* Convert to Job button - shown when requisition is approved */}
+                      {requisition.status === 'approved' && 
+                       !requisition.converted_to_job_id &&
+                       (userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR')) && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={async () => {
+                            try {
+                              const { data, error } = await supabase.functions.invoke('convert-requisition-to-job', {
+                                body: { requisitionId: requisition.id }
+                              });
+
+                              if (error) throw error;
+
+                              toast({
+                                title: "Success",
+                                description: "Position description converted to job posting successfully",
+                              });
+
+                              fetchRequisitions();
+                            } catch (error) {
+                              console.error('Error converting to job:', error);
+                              toast({
+                                title: "Error",
+                                description: "Failed to convert to job posting",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Convert to Job
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
