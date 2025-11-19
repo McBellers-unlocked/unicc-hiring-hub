@@ -378,7 +378,7 @@ export default function JobRequisitionForm() {
 
   // Auto-populate education and experience for consultant bands
   useEffect(() => {
-    if (watchedNatureOfPosition === 'Individual Consultant' && watchedGrade) {
+    if (watchedNatureOfPosition === 'Individual Consultant' && consultancyLevel) {
       const consultantRequirements: Record<string, { education: string; experience: string }> = {
         'A': {
           education: 'Minimum first university degree',
@@ -398,7 +398,7 @@ export default function JobRequisitionForm() {
         }
       };
 
-      const requirements = consultantRequirements[watchedGrade];
+      const requirements = consultantRequirements[consultancyLevel];
       if (requirements) {
         // Only update if fields are empty or contain previous band requirements
         const currentEducation = form.getValues('essential_education');
@@ -417,7 +417,7 @@ export default function JobRequisitionForm() {
         }
       }
     }
-  }, [watchedNatureOfPosition, watchedGrade, form]);
+  }, [watchedNatureOfPosition, consultancyLevel, form]);
 
   const addLanguage = () => {
     const newLanguage = { name: '', level: '' };
