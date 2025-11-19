@@ -104,16 +104,12 @@ export function RequirementsList({ requirements, onChange, title, category, read
 
                 <div className="flex-1 space-y-3">
                   {readOnly ? (
-                    <>
-                      <div>
-                        <p className="font-semibold text-foreground">{req.title}</p>
-                      </div>
+                    <div>
+                      <p className="font-semibold text-foreground">{req.title}</p>
                       {req.description && (
-                        <div>
-                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{req.description}</p>
-                        </div>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap mt-2">{req.description}</p>
                       )}
-                    </>
+                    </div>
                   ) : (
                     <>
                       <div>
