@@ -376,10 +376,13 @@ export default function JobRequisitions() {
 
                               toast({
                                 title: "Success",
-                                description: "Position description converted to job posting successfully",
+                                description: "Job created successfully. Redirecting to job page...",
                               });
 
-                              fetchRequisitions();
+                              // Navigate to the created job's detail page
+                              setTimeout(() => {
+                                navigate(`/admin/jobs`);
+                              }, 1500);
                             } catch (error) {
                               console.error('Error converting to job:', error);
                               toast({
