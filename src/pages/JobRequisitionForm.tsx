@@ -376,6 +376,49 @@ export default function JobRequisitionForm() {
     }
   }, [watchedNatureOfPosition, form]);
 
+  // Auto-populate education and experience for consultant bands
+  useEffect(() => {
+    if (watchedNatureOfPosition === 'Individual Consultant' && watchedGrade) {
+      const consultantRequirements: Record<string, { education: string; experience: string }> = {
+        'A': {
+          education: 'Minimum first university degree',
+          experience: 'Up to 5 years of relevant experience'
+        },
+        'B': {
+          education: 'Minimum first university degree - essential, an advanced university degree desirable',
+          experience: '5 to 10 years of relevant experience'
+        },
+        'C': {
+          education: 'Minimum an advanced university degree',
+          experience: 'Over 10 years of relevant experience'
+        },
+        'D': {
+          education: 'Minimum an advanced university degree',
+          experience: 'Over 15 years of relevant experience'
+        }
+      };
+
+      const requirements = consultantRequirements[watchedGrade];
+      if (requirements) {
+        // Only update if fields are empty or contain previous band requirements
+        const currentEducation = form.getValues('essential_education');
+        const currentExperience = form.getValues('essential_experience');
+        
+        const isPreviousBandEducation = !currentEducation || 
+          Object.values(consultantRequirements).some(req => currentEducation.includes(req.education));
+        const isPreviousBandExperience = !currentExperience || 
+          Object.values(consultantRequirements).some(req => currentExperience.includes(req.experience));
+
+        if (isPreviousBandEducation) {
+          form.setValue('essential_education', requirements.education);
+        }
+        if (isPreviousBandExperience) {
+          form.setValue('essential_experience', requirements.experience);
+        }
+      }
+    }
+  }, [watchedNatureOfPosition, watchedGrade, form]);
+
   const addLanguage = () => {
     const newLanguage = { name: '', level: '' };
     const updatedLanguages = [...additionalLanguages, newLanguage];
