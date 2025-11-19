@@ -1411,46 +1411,48 @@ export default function JobRequisitionForm() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="desirable_experience"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Desirable Experience</FormLabel>
-                      <FormControl>
-                        <MDEditor
-                          value={field.value}
-                          onChange={(val) => field.onChange(fixMarkdownFormatting(val || ""))}
-                          preview="edit"
-                          hideToolbar={false}
-                          data-color-mode="light"
-                          textareaProps={{
-                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
-                          }}
-                          commands={[
-                            commands.group([commands.title1, commands.title2, commands.title3], {
-                              name: 'title',
-                              groupName: 'title',
-                              buttonProps: { 'aria-label': 'Insert title'}
-                            }),
-                            commands.divider,
-                            commands.bold,
-                            commands.italic,
-                            commands.divider,
-                            customUnorderedListCommand,
-                            commands.orderedListCommand,
-                            commands.divider,
-                            commands.link,
-                          ]}
-                        />
-                      </FormControl>
-                      <FormDescription className="text-xs">
-                        Tip: Remove empty lines before clicking the bullet button
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {watchedNatureOfPosition !== 'Intern' && (
+                  <FormField
+                    control={form.control}
+                    name="desirable_experience"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Desirable Experience</FormLabel>
+                        <FormControl>
+                          <MDEditor
+                            value={field.value}
+                            onChange={(val) => field.onChange(fixMarkdownFormatting(val || ""))}
+                            preview="edit"
+                            hideToolbar={false}
+                            data-color-mode="light"
+                            textareaProps={{
+                              onPaste: (e) => handlePaste(e, field.onChange, field.value)
+                            }}
+                            commands={[
+                              commands.group([commands.title1, commands.title2, commands.title3], {
+                                name: 'title',
+                                groupName: 'title',
+                                buttonProps: { 'aria-label': 'Insert title'}
+                              }),
+                              commands.divider,
+                              commands.bold,
+                              commands.italic,
+                              commands.divider,
+                              customUnorderedListCommand,
+                              commands.orderedListCommand,
+                              commands.divider,
+                              commands.link,
+                            ]}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          Tip: Remove empty lines before clicking the bullet button
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -1488,7 +1490,26 @@ export default function JobRequisitionForm() {
                   name="essential_education"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Essential Education Details *</FormLabel>
+                      <div className="flex items-center justify-between mb-2">
+                        <FormLabel>Essential Education Details *</FormLabel>
+                        {watchedNatureOfPosition === 'Intern' && field.value?.includes('[areas of expertise]') && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const areasOfExpertise = prompt('Enter areas of expertise (e.g., Computer Science, Information Technology, Business Administration):');
+                              if (areasOfExpertise) {
+                                const updatedValue = field.value.replace('[areas of expertise]', areasOfExpertise);
+                                field.onChange(updatedValue);
+                              }
+                            }}
+                          >
+                            <FileText className="h-3 w-3 mr-1" />
+                            Fill Template
+                          </Button>
+                        )}
+                      </div>
                       <FormControl>
                         <MDEditor
                           value={field.value}
@@ -1523,46 +1544,48 @@ export default function JobRequisitionForm() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="desirable_education"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Desirable Education</FormLabel>
-                      <FormControl>
-                        <MDEditor
-                          value={field.value}
-                          onChange={(val) => field.onChange(fixMarkdownFormatting(val || ""))}
-                          preview="edit"
-                          hideToolbar={false}
-                          data-color-mode="light"
-                          textareaProps={{
-                            onPaste: (e) => handlePaste(e, field.onChange, field.value)
-                          }}
-                          commands={[
-                            commands.group([commands.title1, commands.title2, commands.title3], {
-                              name: 'title',
-                              groupName: 'title',
-                              buttonProps: { 'aria-label': 'Insert title'}
-                            }),
-                            commands.divider,
-                            commands.bold,
-                            commands.italic,
-                            commands.divider,
-                            customUnorderedListCommand,
-                            commands.orderedListCommand,
-                            commands.divider,
-                            commands.link,
-                          ]}
-                        />
-                      </FormControl>
-                      <FormDescription className="text-xs">
-                        Tip: Remove empty lines before clicking the bullet button
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {watchedNatureOfPosition !== 'Intern' && (
+                  <FormField
+                    control={form.control}
+                    name="desirable_education"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Desirable Education</FormLabel>
+                        <FormControl>
+                          <MDEditor
+                            value={field.value}
+                            onChange={(val) => field.onChange(fixMarkdownFormatting(val || ""))}
+                            preview="edit"
+                            hideToolbar={false}
+                            data-color-mode="light"
+                            textareaProps={{
+                              onPaste: (e) => handlePaste(e, field.onChange, field.value)
+                            }}
+                            commands={[
+                              commands.group([commands.title1, commands.title2, commands.title3], {
+                                name: 'title',
+                                groupName: 'title',
+                                buttonProps: { 'aria-label': 'Insert title'}
+                              }),
+                              commands.divider,
+                              commands.bold,
+                              commands.italic,
+                              commands.divider,
+                              customUnorderedListCommand,
+                              commands.orderedListCommand,
+                              commands.divider,
+                              commands.link,
+                            ]}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          Tip: Remove empty lines before clicking the bullet button
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               </div>
             </CardContent>
           </Card>
