@@ -1724,44 +1724,57 @@ export default function JobRequisitionForm() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div>
-                <h4 className="font-medium mb-3">Role Type</h4>
-                <FormField
-                  control={form.control}
-                  name="is_supervisor_role"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={(checked) => {
-                            field.onChange(checked);
-                            setIsSupervisorRole(!!checked);
-                          }}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          This is a supervisor role
-                        </FormLabel>
-                        <FormDescription>
-                          Check this if the position involves supervising staff members
-                        </FormDescription>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </div>
+              {watchedNatureOfPosition !== 'Intern' && (
+                <div>
+                  <h4 className="font-medium mb-3">Role Type</h4>
+                  <FormField
+                    control={form.control}
+                    name="is_supervisor_role"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={(checked) => {
+                              field.onChange(checked);
+                              setIsSupervisorRole(!!checked);
+                            }}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            This is a supervisor role
+                          </FormLabel>
+                          <FormDescription>
+                            Check this if the position involves supervising staff members
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
 
               <div>
                 <h4 className="font-medium mb-3">Mandatory Competencies</h4>
                 <p className="text-sm text-muted-foreground mb-2">These competencies are automatically included for all positions:</p>
                 <ul className="text-sm space-y-1">
-                  <li>• <span className="font-bold">Teamwork:</span> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.</li>
-                  <li>• <span className="font-bold">Communicating:</span> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.</li>
-                  <li>• <span className="font-bold">Respecting and promoting individual and cultural differences:</span> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.</li>
-                  {(form.watch('is_supervisor_role') || isSupervisorRole) && (
-                    <li>• <span className="font-bold">Creating an empowering and motivating environment:</span> Guides and motivates staff towards meeting challenges and achieving objectives. Promotes ownership and responsibility for desired outcomes at all levels.</li>
+                  {watchedNatureOfPosition === 'Intern' ? (
+                    <>
+                      <li>• <span className="font-bold">Teamwork:</span> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.</li>
+                      <li>• <span className="font-bold">Communicating:</span> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.</li>
+                      <li>• <span className="font-bold">Respecting and promoting individual and cultural differences:</span> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.</li>
+                      <li>• <span className="font-bold">Overall attitude at work:</span> Maintains integrity and takes a clear ethical approach and stance; demonstrates commitment to the Organization's mandate and promotes the values of the Organization in daily work and behaviour; is accountable for work carried out in line with own role and responsibilities; is respectful towards, and trusted by, colleagues and counterparts.</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>• <span className="font-bold">Teamwork:</span> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.</li>
+                      <li>• <span className="font-bold">Communicating:</span> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.</li>
+                      <li>• <span className="font-bold">Respecting and promoting individual and cultural differences:</span> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.</li>
+                      {(form.watch('is_supervisor_role') || isSupervisorRole) && (
+                        <li>• <span className="font-bold">Creating an empowering and motivating environment:</span> Guides and motivates staff towards meeting challenges and achieving objectives. Promotes ownership and responsibility for desired outcomes at all levels.</li>
+                      )}
+                    </>
                   )}
                 </ul>
               </div>
@@ -1773,7 +1786,10 @@ export default function JobRequisitionForm() {
                   <FormItem>
                     <FormLabel>Core Competencies</FormLabel>
                     <FormDescription>
-                      Select core competencies (remaining slots: {Math.max(0, 3 - (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length))})
+                      {watchedNatureOfPosition === 'Intern' 
+                        ? `Select core competencies (remaining slots: ${Math.max(0, 2 - selectedCoreCompetencies.length)})`
+                        : `Select core competencies (remaining slots: ${Math.max(0, 3 - (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length))})`
+                      }
                     </FormDescription>
                     <div className="space-y-2">
                       {[
@@ -1783,8 +1799,10 @@ export default function JobRequisitionForm() {
                         'Setting an example: Acts within UNICC\'s / WHO\'s professional, ethical and legal boundaries and encourages others to adhere to these. Behaves consistently in accordance with clear personal ethics and values.'
                       ].map((competency) => {
                         const key = competency.split(':')[0];
-                        const totalSelected = (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
-                        const maxSelectable = 3;
+                        const totalSelected = watchedNatureOfPosition === 'Intern' 
+                          ? selectedCoreCompetencies.length 
+                          : (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
+                        const maxSelectable = watchedNatureOfPosition === 'Intern' ? 2 : 3;
                         const isDisabled = !field.value?.includes(key) && totalSelected >= maxSelectable;
                         return (
                           <div key={key} className="flex items-start space-x-2">
@@ -1818,58 +1836,61 @@ export default function JobRequisitionForm() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="management_competencies"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Management Competencies</FormLabel>
-                    <FormDescription>Select management competencies</FormDescription>
-                    <div className="space-y-2">
-                      {[
-                        'Ensuring effective use of resources: Identifies priorities in accordance with UNICC\'s strategic directions. Develops and implements action plans, organizes the necessary resources and monitors outcomes.',
-                        'Building and promoting partnerships across the Organization and beyond: Develops and strengthens internal and external partnerships that can provide information, assistance and support to UNICC. Identifies and uses synergies across the Organization and with external partners.'
-                      ].map((competency) => {
-                        const key = competency.split(':')[0];
-                        const totalSelected = (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
-                        const maxSelectable = 3;
-                        const isDisabled = !field.value?.includes(key) && totalSelected >= maxSelectable;
-                        return (
-                          <div key={key} className="flex items-start space-x-2">
-                            <Checkbox
-                              id={key}
-                              checked={field.value?.includes(key) || false}
-                              onCheckedChange={(checked) => {
-                                const current = field.value || [];
-                                if (checked) {
-                                  const newValue = [...current, key];
-                                  field.onChange(newValue);
-                                  setSelectedManagementCompetencies(newValue);
-                                } else {
-                                  const newValue = current.filter(c => c !== key);
-                                  field.onChange(newValue);
-                                  setSelectedManagementCompetencies(newValue);
-                                }
-                              }}
-                              disabled={isDisabled}
-                              className={isDisabled ? "opacity-50" : ""}
-                            />
-                            <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>
-                              <span className="font-bold">{competency.split(':')[0]}:</span> {competency.split(':').slice(1).join(':').trim()}
-                            </label>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {watchedNatureOfPosition !== 'Intern' && (
+                <FormField
+                  control={form.control}
+                  name="management_competencies"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Management Competencies</FormLabel>
+                      <FormDescription>Select management competencies</FormDescription>
+                      <div className="space-y-2">
+                        {[
+                          'Ensuring effective use of resources: Identifies priorities in accordance with UNICC\'s strategic directions. Develops and implements action plans, organizes the necessary resources and monitors outcomes.',
+                          'Building and promoting partnerships across the Organization and beyond: Develops and strengthens internal and external partnerships that can provide information, assistance and support to UNICC. Identifies and uses synergies across the Organization and with external partners.'
+                        ].map((competency) => {
+                          const key = competency.split(':')[0];
+                          const totalSelected = (selectedCoreCompetencies.length + selectedManagementCompetencies.length + selectedLeadershipCompetencies.length);
+                          const maxSelectable = 3;
+                          const isDisabled = !field.value?.includes(key) && totalSelected >= maxSelectable;
+                          return (
+                            <div key={key} className="flex items-start space-x-2">
+                              <Checkbox
+                                id={key}
+                                checked={field.value?.includes(key) || false}
+                                onCheckedChange={(checked) => {
+                                  const current = field.value || [];
+                                  if (checked) {
+                                    const newValue = [...current, key];
+                                    field.onChange(newValue);
+                                    setSelectedManagementCompetencies(newValue);
+                                  } else {
+                                    const newValue = current.filter(c => c !== key);
+                                    field.onChange(newValue);
+                                    setSelectedManagementCompetencies(newValue);
+                                  }
+                                }}
+                                disabled={isDisabled}
+                                className={isDisabled ? "opacity-50" : ""}
+                              />
+                              <label htmlFor={key} className={`text-sm leading-relaxed ${isDisabled ? "text-muted-foreground" : ""}`}>
+                                <span className="font-bold">{competency.split(':')[0]}:</span> {competency.split(':').slice(1).join(':').trim()}
+                              </label>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
-              <FormField
-                control={form.control}
-                name="leadership_competencies"
-                render={({ field }) => (
+              {watchedNatureOfPosition !== 'Intern' && (
+                <FormField
+                  control={form.control}
+                  name="leadership_competencies"
+                  render={({ field }) => (
                   <FormItem>
                     <FormLabel>Leadership Competencies</FormLabel>
                     <FormDescription>Select leadership competencies</FormDescription>
@@ -1914,6 +1935,7 @@ export default function JobRequisitionForm() {
                   </FormItem>
                 )}
               />
+              )}
             </CardContent>
           </Card>
 
