@@ -31,6 +31,10 @@ export const Layout = ({ children }: LayoutProps) => {
   const isChiefHR = userRoles.includes('Chief of HR');
   const isDirector = userRoles.includes('Director');
   
+  // Check if user is a designated Chief of Division
+  const chiefEmails = ['soni@unicc.org', 'liuzzi@unicc.org', 'sethi@unicc.org', 'negyesi@unicc.org', 'grecuccio@unicc.org'];
+  const isChiefOfDivision = user?.email && chiefEmails.includes(user.email.toLowerCase());
+  
   // Chief HR has same navigation access as Admin/HR
   const hasAdminAccess = isAdmin || isHR || isChiefHR;
   // Directors have hiring manager access plus their own director functions
@@ -73,6 +77,14 @@ export const Layout = ({ children }: LayoutProps) => {
                       <Link to="/requisitions" className="flex items-center w-full">
                         <FileText className="w-4 h-4 mr-2" />
                         PD Pipeline
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {isChiefOfDivision && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/chief-of-division" className="flex items-center w-full">
+                        <FileCheck className="w-4 h-4 mr-2" />
+                        Chief Approvals
                       </Link>
                     </DropdownMenuItem>
                   )}
