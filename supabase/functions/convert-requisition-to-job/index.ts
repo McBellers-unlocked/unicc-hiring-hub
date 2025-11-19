@@ -79,12 +79,29 @@ Deno.serve(async (req) => {
     const normalizedGrade = normalizeGrade(req_data.grade);
     const salaryEstimate = SALARY_RANGES[normalizedGrade] || SALARY_RANGES[req_data.grade] || req_data.grade || '';
 
+    // Format location with remote region if applicable
+    let formattedLocation = req_data.duty_station;
+    if (req_data.comments?.remote_region && req_data.duty_station) {
+      try {
+        const dutyStations = typeof req_data.duty_station === 'string' ? JSON.parse(req_data.duty_station) : req_data.duty_station;
+        if (Array.isArray(dutyStations) && dutyStations.includes('Remote')) {
+          // Replace "Remote" with "Remote (region)"
+          const updatedStations = dutyStations.map((station: string) => 
+            station === 'Remote' ? `Remote (${req_data.comments.remote_region})` : station
+          );
+          formattedLocation = JSON.stringify(updatedStations);
+        }
+      } catch (e) {
+        console.error('Error formatting location:', e);
+      }
+    }
+
     const { data: newJob, error: jobError } = await supabase.from('jobs').insert({
       title: req_data.position_title,
       notice_no: req_data.reference_number,
       grade: req_data.grade,
       type: jobType,
-      location: req_data.duty_station,
+      location: formattedLocation,
       org_unit: req_data.unit_section_division,
       positions: req_data.positions_available,
       essential_education_level: req_data.essential_education_level,
