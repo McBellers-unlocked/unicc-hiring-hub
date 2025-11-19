@@ -2000,6 +2000,7 @@ export default function JobRequisitionForm() {
           form.setValue('main_duties_responsibilities', filledTemplate);
         }}
         currentContent={form.getValues('main_duties_responsibilities')}
+        natureOfPosition={watchedNatureOfPosition}
       />
     </div>
   );
