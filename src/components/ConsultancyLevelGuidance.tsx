@@ -73,66 +73,6 @@ export function ConsultancyLevelGuidance() {
                 </div>
               </div>
             </div>
-
-            {/* Local Consultancies */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Local Consultancies</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Local consultancies requirements are aligned with the national officer category criteria as follows:
-              </p>
-              <div className="space-y-3">
-                <div className="border-l-4 border-secondary pl-4">
-                  <h4 className="font-semibold mb-1">NOA Equivalent</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Minimum 1 to 2 years of work experience
-                  </p>
-                </div>
-
-                <div className="border-l-4 border-secondary pl-4">
-                  <h4 className="font-semibold mb-1">NOB Equivalent</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Minimum 2 to 3 years of work experience
-                  </p>
-                </div>
-
-                <div className="border-l-4 border-secondary pl-4">
-                  <h4 className="font-semibold mb-1">NOC Equivalent</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Minimum 5 years of work experience
-                  </p>
-                </div>
-
-                <div className="border-l-4 border-secondary pl-4">
-                  <h4 className="font-semibold mb-1">NOD Equivalent</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Minimum 7 years of work experience (very rarely position)
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 p-4 bg-muted rounded-lg">
-                <p className="text-sm font-medium mb-2">Important Note:</p>
-                <p className="text-sm text-muted-foreground mb-2">
-                  The fees are established in alignment to the national officer category salary 
-                  scales and vary depending on the location.
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Please select the relevant scale by following the{" "}
-                  <a 
-                    href="https://icsc.un.org/Home/SalaryScales" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline font-medium"
-                  >
-                    UN Salaries - General Service and related categories
-                  </a>
-                  , corresponding to the location of the consultant (home-based) or their duty 
-                  station (office-based). Make sure to select the national officer category scale 
-                  for the chosen country, and not the general services scale. For countries without 
-                  National officer category, please refer to the band levels above.
-                </p>
-              </div>
-            </div>
           </div>
         </ScrollArea>
       </DialogContent>
