@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, Eye, FileCheck } from "lucide-react";
+import { ArrowLeft, Save, Eye, FileCheck, Check } from "lucide-react";
 import EditableTrackChangesField from "@/components/EditableTrackChangesField";
 import { FinalDocumentReviewDialog } from "@/components/FinalDocumentReviewDialog";
 
@@ -107,7 +107,25 @@ export default function JobRequisitionHiringManagerReview() {
   };
 
   const acceptHRChanges = (fieldKey: string) => {
+    const currentValue = (formData as any)[fieldKey];
+    
+    setOriginalData((prev: any) => ({
+      ...prev,
+      [fieldKey]: currentValue
+    }));
+    
     setAcceptedFields(prev => new Set(prev).add(fieldKey));
+    
+    toast({
+      title: "Changes Accepted",
+      description: "HR's changes have been accepted for this field",
+    });
+  };
+
+  const hasHRChanges = (fieldKey: string) => {
+    const hrOriginal = originalData?.[fieldKey] || '';
+    const currentValue = (formData as any)?.[fieldKey] || '';
+    return hrOriginal !== currentValue && !acceptedFields.has(fieldKey);
   };
 
   const validateRequiredFields = () => {
@@ -336,8 +354,22 @@ export default function JobRequisitionHiringManagerReview() {
               {validationErrors.has('purpose_of_position') && (
                 <p className="text-sm text-destructive font-semibold mb-2">⚠️ This field is required</p>
               )}
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Purpose of the Position</Label>
+                {hasHRChanges('purpose_of_position') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => acceptHRChanges('purpose_of_position')}
+                    className="h-8 gap-1"
+                  >
+                    <Check className="h-3 w-3" />
+                    Accept Changes
+                  </Button>
+                )}
+              </div>
               <EditableTrackChangesField
-                label="Purpose of the Position"
+                label=""
                 originalValue={originalData.purpose_of_position || ""}
                 currentValue={formData.purpose_of_position || ""}
                 onChange={(value) => {
@@ -361,8 +393,22 @@ export default function JobRequisitionHiringManagerReview() {
               {validationErrors.has('objectives_of_programme') && (
                 <p className="text-sm text-destructive font-semibold mb-2">⚠️ This field is required</p>
               )}
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Objectives of the Programme</Label>
+                {hasHRChanges('objectives_of_programme') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => acceptHRChanges('objectives_of_programme')}
+                    className="h-8 gap-1"
+                  >
+                    <Check className="h-3 w-3" />
+                    Accept Changes
+                  </Button>
+                )}
+              </div>
               <EditableTrackChangesField
-                label="Objectives of the Programme"
+                label=""
                 originalValue={originalData.objectives_of_programme || ""}
                 currentValue={formData.objectives_of_programme || ""}
                 onChange={(value) => {
@@ -386,8 +432,22 @@ export default function JobRequisitionHiringManagerReview() {
               {validationErrors.has('main_duties_responsibilities') && (
                 <p className="text-sm text-destructive font-semibold mb-2">⚠️ This field is required</p>
               )}
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Main Duties and Responsibilities</Label>
+                {hasHRChanges('main_duties_responsibilities') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => acceptHRChanges('main_duties_responsibilities')}
+                    className="h-8 gap-1"
+                  >
+                    <Check className="h-3 w-3" />
+                    Accept Changes
+                  </Button>
+                )}
+              </div>
               <EditableTrackChangesField
-                label="Main Duties and Responsibilities"
+                label=""
                 originalValue={originalData.main_duties_responsibilities || ""}
                 currentValue={formData.main_duties_responsibilities || ""}
                 onChange={(value) => {
@@ -418,8 +478,22 @@ export default function JobRequisitionHiringManagerReview() {
               {validationErrors.has('essential_experience') && (
                 <p className="text-sm text-destructive font-semibold mb-2">⚠️ This field is required</p>
               )}
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Essential Experience</Label>
+                {hasHRChanges('essential_experience') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => acceptHRChanges('essential_experience')}
+                    className="h-8 gap-1"
+                  >
+                    <Check className="h-3 w-3" />
+                    Accept Changes
+                  </Button>
+                )}
+              </div>
               <EditableTrackChangesField
-                label="Essential Experience"
+                label=""
                 originalValue={originalData.essential_experience || ""}
                 currentValue={formData.essential_experience || ""}
                 onChange={(value) => {
@@ -454,8 +528,22 @@ export default function JobRequisitionHiringManagerReview() {
               {validationErrors.has('essential_education') && (
                 <p className="text-sm text-destructive font-semibold mb-2">⚠️ This field is required</p>
               )}
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Essential Education</Label>
+                {hasHRChanges('essential_education') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => acceptHRChanges('essential_education')}
+                    className="h-8 gap-1"
+                  >
+                    <Check className="h-3 w-3" />
+                    Accept Changes
+                  </Button>
+                )}
+              </div>
               <EditableTrackChangesField
-                label="Essential Education"
+                label=""
                 originalValue={originalData.essential_education || ""}
                 currentValue={formData.essential_education || ""}
                 onChange={(value) => {
@@ -471,20 +559,36 @@ export default function JobRequisitionHiringManagerReview() {
                 requisitionId={id}
                 fieldName="essential_education"
                 currentUserId={user?.id}
-              canResolveComments={false}
-            />
+                canResolveComments={false}
+              />
             </div>
 
-            <EditableTrackChangesField
-              label="Desirable Education"
-              originalValue={originalData.desirable_education || ""}
-              currentValue={formData.desirable_education || ""}
-              onChange={(value) => setFormData({ ...formData, desirable_education: value })}
-              requisitionId={id}
-              fieldName="desirable_education"
-              currentUserId={user?.id}
-              canResolveComments={false}
-            />
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Desirable Education</Label>
+                {hasHRChanges('desirable_education') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => acceptHRChanges('desirable_education')}
+                    className="h-8 gap-1"
+                  >
+                    <Check className="h-3 w-3" />
+                    Accept Changes
+                  </Button>
+                )}
+              </div>
+              <EditableTrackChangesField
+                label=""
+                originalValue={originalData.desirable_education || ""}
+                currentValue={formData.desirable_education || ""}
+                onChange={(value) => setFormData({ ...formData, desirable_education: value })}
+                requisitionId={id}
+                fieldName="desirable_education"
+                currentUserId={user?.id}
+                canResolveComments={false}
+              />
+            </div>
           </CardContent>
         </Card>
       </div>
