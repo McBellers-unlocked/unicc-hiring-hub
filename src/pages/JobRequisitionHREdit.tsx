@@ -136,22 +136,12 @@ export default function JobRequisitionHREdit() {
       const isPendingFinalReview = data.hr_internal_status === 'pending_final_review';
       
       if (isFinalCleanup || isPendingFinalReview) {
-        // Final cleanup stage: start with current (HM modified) version
-        // HR will create a clean version for Division Chief
-        // Store the HR version to compare against manager changes
-        const hrVersionData = (typeof data.hr_changes === 'object' && data.hr_changes !== null)
-          ? {
-              ...(data.hr_changes as any),
-              duty_station: formatDutyStation((data.hr_changes as any).duty_station)
-            }
-          : (typeof data.hr_original_data === 'object' && data.hr_original_data !== null)
-          ? {
-              ...(data.hr_original_data as any),
-              duty_station: formatDutyStation((data.hr_original_data as any).duty_station)
-            }
-          : formattedData;
-        setManagerVersion(hrVersionData as Partial<JobRequisition>);
-        setOriginalData(hrVersionData as Partial<JobRequisition>); // HR's version is the baseline to show manager changes
+        // Final review stage: Manager has made changes
+        // Since we don't have HR's version stored separately (it was overwritten by manager's changes),
+        // we'll just use the current version as both original and current to avoid showing incorrect diffs
+        // The manager's actual changes should be visible through the hiring_manager_changes field if available
+        setManagerVersion(formattedData as Partial<JobRequisition>);
+        setOriginalData(formattedData as Partial<JobRequisition>); // Use current as baseline (no diff)
       } else if (isSecondReview) {
         // Second review: show Chief HR's changes compared to HR's version
         const hrVersionData = (typeof data.hr_original_data === 'object' && data.hr_original_data !== null) 
