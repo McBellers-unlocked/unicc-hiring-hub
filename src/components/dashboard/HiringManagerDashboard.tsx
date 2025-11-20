@@ -236,7 +236,7 @@ export default function HiringManagerDashboard() {
             </Button>
             
             <Button 
-              onClick={() => navigate('/profile')} 
+              onClick={() => navigate('/my-profile')} 
               variant="default"
               size="lg"
               className="h-auto py-4 flex-col items-start gap-2"
