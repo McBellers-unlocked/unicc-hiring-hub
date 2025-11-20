@@ -136,12 +136,20 @@ export default function JobRequisitionHREdit() {
       const isPendingFinalReview = data.hr_internal_status === 'pending_final_review';
       
       if (isFinalCleanup || isPendingFinalReview) {
-        // Final review stage: Manager has made changes
-        // Since we don't have HR's version stored separately (it was overwritten by manager's changes),
-        // we'll just use the current version as both original and current to avoid showing incorrect diffs
-        // The manager's actual changes should be visible through the hiring_manager_changes field if available
-        setManagerVersion(formattedData as Partial<JobRequisition>);
-        setOriginalData(formattedData as Partial<JobRequisition>); // Use current as baseline (no diff)
+        // Final review stage: Manager has made changes after reviewing HR's version
+        // We need to reconstruct HR's version from hiring_manager_changes
+        const managerChanges = Array.isArray(data.hiring_manager_changes) ? data.hiring_manager_changes : [];
+        const hrVersionBeforeManager = { ...formattedData };
+        
+        // Apply the originalValue from each manager change to reconstruct HR's version
+        managerChanges.forEach((change: any) => {
+          if (change.field && change.originalValue !== undefined) {
+            hrVersionBeforeManager[change.field] = change.originalValue;
+          }
+        });
+        
+        setManagerVersion(hrVersionBeforeManager as Partial<JobRequisition>);
+        setOriginalData(hrVersionBeforeManager as Partial<JobRequisition>); // HR's version is the baseline to show manager changes
       } else if (isSecondReview) {
         // Second review: show Chief HR's changes compared to HR's version
         const hrVersionData = (typeof data.hr_original_data === 'object' && data.hr_original_data !== null) 
@@ -634,7 +642,7 @@ export default function JobRequisitionHREdit() {
                   className="gap-2"
                 >
                   <Check className="h-4 w-4" />
-                  Accept Changes
+                  Accept Manager Changes
                 </Button>
               </div>
             )}
@@ -648,6 +656,7 @@ export default function JobRequisitionHREdit() {
                 fieldName="purpose_of_position"
                 currentUserId={user?.id}
                 canResolveComments={true}
+                isManagerChanges={isFinalReview}
               />
             ) : (
               <EditableTrackChangesFieldWithHighlight
@@ -671,7 +680,7 @@ export default function JobRequisitionHREdit() {
                   className="gap-2"
                 >
                   <Check className="h-4 w-4" />
-                  Accept Changes
+                  Accept Manager Changes
                 </Button>
               </div>
             )}
@@ -685,6 +694,7 @@ export default function JobRequisitionHREdit() {
                 fieldName="objectives_of_programme"
                 currentUserId={user?.id}
                 canResolveComments={true}
+                isManagerChanges={isFinalReview}
               />
             ) : (
               <EditableTrackChangesFieldWithHighlight
@@ -708,7 +718,7 @@ export default function JobRequisitionHREdit() {
                   className="gap-2"
                 >
                   <Check className="h-4 w-4" />
-                  Accept Changes
+                  Accept Manager Changes
                 </Button>
               </div>
             )}
@@ -722,6 +732,7 @@ export default function JobRequisitionHREdit() {
                 fieldName="main_duties_responsibilities"
                 currentUserId={user?.id}
                 canResolveComments={true}
+                isManagerChanges={isFinalReview}
               />
             ) : (
               <EditableTrackChangesFieldWithHighlight
@@ -768,6 +779,7 @@ export default function JobRequisitionHREdit() {
                   fieldName="essential_experience"
                   currentUserId={user?.id}
                   canResolveComments={true}
+                  isManagerChanges={isFinalReview}
                 />
                 ) : (
                   <EditableTrackChangesFieldWithHighlight
@@ -808,6 +820,7 @@ export default function JobRequisitionHREdit() {
                       fieldName="desirable_experience"
                       currentUserId={user?.id}
                       canResolveComments={true}
+                      isManagerChanges={isFinalReview}
                     />
                   ) : (
                     <EditableTrackChangesFieldWithHighlight
@@ -847,6 +860,7 @@ export default function JobRequisitionHREdit() {
                   fieldName="essential_education"
                   currentUserId={user?.id}
                   canResolveComments={true}
+                  isManagerChanges={isFinalReview}
                 />
                 ) : (
                   <EditableTrackChangesFieldWithHighlight
@@ -887,6 +901,7 @@ export default function JobRequisitionHREdit() {
                       fieldName="desirable_education"
                       currentUserId={user?.id}
                       canResolveComments={true}
+                      isManagerChanges={isFinalReview}
                     />
                   ) : (
                     <EditableTrackChangesFieldWithHighlight
