@@ -594,8 +594,8 @@ export default function JobRequisitionForm() {
           defaultEssentialEducation = "Be currently enrolled in a University programme (final year of a bachelor's degree, master's degree or equivalent) specializing in areas that are relevant to UNICC's line of business such as [areas of expertise].\n\nApplicants that have graduated in the last 6 months in one of the areas of expertise described above will also be considered.";
         }
 
-        // Set defaults for Staff positions based on grade
-        if (data.nature_of_position === 'Staff' && data.grade) {
+        // Set defaults for Staff positions (non-Intern, non-Consultant) based on grade
+        if (data.nature_of_position !== 'Intern' && data.nature_of_position !== 'Individual Consultant' && data.grade) {
           const gradeRequirements: Record<string, { yearsText: string; education: string; educationLevel: string; isGPosition?: boolean }> = {
             'G3': { yearsText: 'two (2) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
             'G4': { yearsText: 'three (3) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
