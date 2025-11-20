@@ -165,9 +165,10 @@ export default function JobRequisitionHREdit() {
   };
   
   // HR can finalize when manager has confirmed changes
+  const isFinalReview = requisition?.hr_internal_status === 'pending_final_review';
   const isFinalCleanup = requisition?.hiring_manager_confirmed_hr_changes && 
-    (requisition?.status === 'hr_final_review' || requisition?.status === 'hr_review');
-  const isSecondReview = requisition?.chief_hr_reviewed && !isFinalCleanup || false;
+    (requisition?.status === 'hr_final_review' || requisition?.status === 'hr_review') && isFinalReview;
+  const isSecondReview = requisition?.chief_hr_reviewed && !isFinalCleanup && !isFinalReview || false;
   
   const acceptChiefHRChanges = (fieldKey: string) => {
     setAcceptedChiefHRFields(prev => new Set([...prev, fieldKey]));
