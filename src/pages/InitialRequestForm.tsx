@@ -143,6 +143,16 @@ export default function InitialRequestForm() {
     }
   }, [id]);
 
+  // Clear multiple locations when switching to G grade
+  useEffect(() => {
+    if (formData.grade?.startsWith('G') && formData.duty_station.length > 1) {
+      setFormData(prev => ({
+        ...prev,
+        duty_station: [prev.duty_station[0]] // Keep only the first selected location
+      }));
+    }
+  }, [formData.grade]);
+
   const loadRequest = async () => {
     try {
       setLoading(true);
@@ -208,11 +218,15 @@ export default function InitialRequestForm() {
   };
 
   const handleLocationToggle = (location: string) => {
+    const isGPosition = formData.grade?.startsWith('G');
+    
     setFormData(prev => ({
       ...prev,
-      duty_station: prev.duty_station.includes(location)
-        ? prev.duty_station.filter(l => l !== location)
-        : [...prev.duty_station, location]
+      duty_station: isGPosition 
+        ? [location] // For G positions, only allow single selection
+        : prev.duty_station.includes(location)
+          ? prev.duty_station.filter(l => l !== location)
+          : [...prev.duty_station, location]
     }));
   };
 
@@ -640,18 +654,50 @@ export default function InitialRequestForm() {
             {showGradeField && (
               <div className="space-y-2">
                 <Label htmlFor="grade">Grade *</Label>
-                <Input
-                  id="grade"
-                  value={formData.grade}
-                  onChange={(e) => setFormData(prev => ({ ...prev, grade: e.target.value }))}
-                  placeholder="e.g., P3, G6"
-                />
+                {formData.nature_of_position === 'Staff' ? (
+                  <Select 
+                    value={formData.grade} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, grade: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select grade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="P1">P1</SelectItem>
+                      <SelectItem value="P2">P2</SelectItem>
+                      <SelectItem value="P3">P3</SelectItem>
+                      <SelectItem value="P4">P4</SelectItem>
+                      <SelectItem value="P5">P5</SelectItem>
+                      <SelectItem value="D1">D1</SelectItem>
+                      <SelectItem value="D2">D2</SelectItem>
+                      <SelectItem value="G3">G3</SelectItem>
+                      <SelectItem value="G4">G4</SelectItem>
+                      <SelectItem value="G5">G5</SelectItem>
+                      <SelectItem value="G6">G6</SelectItem>
+                      <SelectItem value="G7">G7</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id="grade"
+                    value={formData.grade}
+                    onChange={(e) => setFormData(prev => ({ ...prev, grade: e.target.value }))}
+                    placeholder="e.g., P3, G6"
+                  />
+                )}
               </div>
             )}
 
             {/* Location */}
             <div className="space-y-2">
-              <Label>Location (Duty Station) *</Label>
+              <Label>
+                Location (Duty Station) *
+                {formData.grade?.startsWith('G') && (
+                  <span className="text-xs text-muted-foreground ml-2">
+                    (Single location only for G positions)
+                  </span>
+                )}
+              </Label>
               <div className="space-y-2">
                 {LOCATIONS.filter(location => {
                   // Only show Remote for Consultant or Intern
@@ -660,18 +706,40 @@ export default function InitialRequestForm() {
                            formData.nature_of_position === 'Intern';
                   }
                   return true;
-                }).map((location) => (
-                  <div key={location} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`location-${location}`}
-                      checked={formData.duty_station.includes(location)}
-                      onCheckedChange={() => handleLocationToggle(location)}
-                    />
-                    <Label htmlFor={`location-${location}`} className="font-normal">
-                      {location}
-                    </Label>
-                  </div>
-                ))}
+                }).map((location) => {
+                  const isGPosition = formData.grade?.startsWith('G');
+                  
+                  return (
+                    <div key={location} className="flex items-center space-x-2">
+                      {isGPosition ? (
+                        <>
+                          <input
+                            type="radio"
+                            id={`location-${location}`}
+                            name="duty_station"
+                            checked={formData.duty_station.includes(location)}
+                            onChange={() => handleLocationToggle(location)}
+                            className="h-4 w-4"
+                          />
+                          <Label htmlFor={`location-${location}`} className="font-normal">
+                            {location}
+                          </Label>
+                        </>
+                      ) : (
+                        <>
+                          <Checkbox
+                            id={`location-${location}`}
+                            checked={formData.duty_station.includes(location)}
+                            onCheckedChange={() => handleLocationToggle(location)}
+                          />
+                          <Label htmlFor={`location-${location}`} className="font-normal">
+                            {location}
+                          </Label>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
               
               {/* Remote Timezone Text Box */}
