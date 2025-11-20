@@ -575,6 +575,7 @@ export default function JobRequisitionForm() {
         let defaultMainDuties = "";
         let defaultEssentialExperience = "";
         let defaultEssentialEducation = "";
+        let defaultEducationLevel = "";
         
         if (!data.main_duties_responsibilities) {
           if (data.nature_of_position === 'Intern') {
@@ -584,12 +585,46 @@ export default function JobRequisitionForm() {
           }
         }
 
+        // Set defaults for Interns
         if (!data.essential_experience && data.nature_of_position === 'Intern') {
           defaultEssentialExperience = "Applicants are not required to have professional work experience to participate in the UNICC's internship program, but applicants should have the following functional and technical skills:\n\n";
         }
 
         if (!data.essential_education && data.nature_of_position === 'Intern') {
           defaultEssentialEducation = "Be currently enrolled in a University programme (final year of a bachelor's degree, master's degree or equivalent) specializing in areas that are relevant to UNICC's line of business such as [areas of expertise].\n\nApplicants that have graduated in the last 6 months in one of the areas of expertise described above will also be considered.";
+        }
+
+        // Set defaults for Staff positions based on grade
+        if (data.nature_of_position === 'Staff' && data.grade) {
+          const gradeRequirements: Record<string, { yearsText: string; education: string; educationLevel: string; isGPosition?: boolean }> = {
+            'G3': { yearsText: 'two (2) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+            'G4': { yearsText: 'three (3) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+            'G5': { yearsText: 'five (5) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+            'G6': { yearsText: 'eight (8) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+            'G7': { yearsText: 'ten (10) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+            'P1': { yearsText: 'one (1) year', education: 'First Level University', educationLevel: 'First Level University' },
+            'P2': { yearsText: 'two (2) years', education: 'First Level University', educationLevel: 'First Level University' },
+            'P3': { yearsText: 'five (5) years', education: 'First Level University', educationLevel: 'First Level University' },
+            'P4': { yearsText: 'seven (7) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+            'P5': { yearsText: 'ten (10) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+            'D1': { yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+            'D2': { yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' }
+          };
+
+          const requirements = gradeRequirements[data.grade];
+          if (requirements) {
+            if (!data.essential_experience) {
+              defaultEssentialExperience = `- At least ${requirements.yearsText} of relevant experience in [specify field/area]`;
+            }
+            if (!data.essential_education) {
+              defaultEssentialEducation = requirements.isGPosition 
+                ? `- Completion of secondary school supplemented by technical training in [specify field/area]. A completed university degree from an accredited institution will be counted towards minimum work experience requirements`
+                : `- ${requirements.education} degree in [specify field/area]`;
+            }
+            if (!data.essential_education_level) {
+              defaultEducationLevel = requirements.educationLevel;
+            }
+          }
         }
 
         form.reset({
@@ -609,50 +644,13 @@ export default function JobRequisitionForm() {
           essential_experience: data.essential_experience || defaultEssentialExperience,
           desirable_experience: data.desirable_experience || "",
           essential_education: data.essential_education || defaultEssentialEducation,
-          essential_education_level: (data as any).essential_education_level || "",
+          essential_education_level: data.essential_education_level || defaultEducationLevel,
           desirable_education: data.desirable_education || "",
           core_competencies: Array.isArray(data.core_competencies) ? data.core_competencies as string[] : [],
           management_competencies: Array.isArray(data.management_competencies) ? data.management_competencies as string[] : [],
           leadership_competencies: Array.isArray(data.leadership_competencies) ? data.leadership_competencies as string[] : [],
           confirmChiefApproval: true,
         });
-        
-        // Auto-populate experience and education based on grade
-        const gradeRequirements: Record<string, { yearsText: string; education: string; educationLevel: string; isGPosition?: boolean }> = {
-          'P1': { yearsText: 'one (1) year', education: 'First Level University', educationLevel: 'First Level University' },
-          'P2': { yearsText: 'two (2) years', education: 'First Level University', educationLevel: 'First Level University' },
-          'P3': { yearsText: 'five (5) years', education: 'First Level University', educationLevel: 'First Level University' },
-          'P4': { yearsText: 'seven (7) years', education: 'Advanced University', educationLevel: 'Advanced University' },
-          'P5': { yearsText: 'ten (10) years', education: 'Advanced University', educationLevel: 'Advanced University' },
-          'D1': { yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' },
-          'D2': { yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' },
-          'G3': { yearsText: 'two (2) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
-          'G4': { yearsText: 'three (3) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
-          'G5': { yearsText: 'five (5) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
-          'G6': { yearsText: 'eight (8) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
-          'G7': { yearsText: 'ten (10) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true }
-        };
-
-        const requirements = gradeRequirements[data.grade || ''];
-        if (requirements && (data.nature_of_position !== 'Intern' && data.nature_of_position !== 'Individual Consultant')) {
-          // Auto-populate essential experience if empty
-          if (!data.essential_experience) {
-            form.setValue('essential_experience', `- At least ${requirements.yearsText} of relevant experience in [specify field/area]`);
-          }
-          
-          // Auto-populate essential education if empty
-          if (!data.essential_education) {
-            const eduText = requirements.isGPosition 
-              ? `- Completion of secondary school supplemented by technical training in [specify field/area]. A completed university degree from an accredited institution will be counted towards minimum work experience requirements`
-              : `- ${requirements.education} degree in [specify field/area]`;
-            form.setValue('essential_education', eduText);
-          }
-          
-          // Auto-populate education level if empty
-          if (!data.essential_education_level) {
-            form.setValue('essential_education_level', requirements.educationLevel);
-          }
-        }
         
         // Set language requirements separately
         form.setValue("un_language_advantage", (data.language_requirements as any)?.un_language_advantage || false);
