@@ -663,6 +663,12 @@ export default function JobRequisitionForm() {
           confirmChiefApproval: true,
         });
         
+        console.log('Form values after reset:', {
+          essential_experience: form.getValues('essential_experience'),
+          essential_education: form.getValues('essential_education'),
+          essential_education_level: form.getValues('essential_education_level')
+        });
+        
         // Set language requirements separately
         form.setValue("un_language_advantage", (data.language_requirements as any)?.un_language_advantage || false);
         form.setValue("local_language_advantage", (data.language_requirements as any)?.local_language_advantage || false);
