@@ -319,7 +319,7 @@ export default function JobRequisitionForm() {
 
       // Auto-populate experience and education for Staff positions when grade is set
       const currentNature = form.getValues('nature_of_position');
-      if (currentNature === 'Staff' && !form.getValues('essential_experience') && !form.getValues('essential_education')) {
+      if (currentNature === 'Staff') {
         const gradeRequirements: Record<string, { yearsText: string; education: string; educationLevel: string; isGPosition?: boolean }> = {
           'G3': { yearsText: 'two (2) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
           'G4': { yearsText: 'three (3) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
@@ -337,12 +337,26 @@ export default function JobRequisitionForm() {
 
         const requirements = gradeRequirements[watchedGrade];
         if (requirements) {
-          form.setValue('essential_experience', `- At least ${requirements.yearsText} of relevant experience in [specify field/area]`);
+          const currentExp = form.getValues('essential_experience');
+          const currentEdu = form.getValues('essential_education');
           
-          const eduText = requirements.isGPosition
-            ? `- Completion of secondary school supplemented by technical training in [specify field/area]. A completed university degree from an accredited institution will be counted towards minimum work experience requirements`
-            : `- ${requirements.education} degree in [specify field/area]`;
-          form.setValue('essential_education', eduText);
+          // Populate experience if empty or doesn't match the grade template
+          if (!currentExp || !currentExp.includes(`At least ${requirements.yearsText}`)) {
+            form.setValue('essential_experience', `- At least ${requirements.yearsText} of relevant experience in [specify field/area]`);
+          }
+          
+          // Populate education if empty or switching between G and P/D templates
+          const isGEducation = currentEdu?.includes('Completion of secondary school supplemented by technical training');
+          const shouldUpdateEducation = !currentEdu || 
+            (requirements.isGPosition && !isGEducation) || 
+            (!requirements.isGPosition && isGEducation);
+          
+          if (shouldUpdateEducation) {
+            const eduText = requirements.isGPosition
+              ? `- Completion of secondary school supplemented by technical training in [specify field/area]. A completed university degree from an accredited institution will be counted towards minimum work experience requirements`
+              : `- ${requirements.education} degree in [specify field/area]`;
+            form.setValue('essential_education', eduText);
+          }
           
           form.setValue('essential_education_level', requirements.educationLevel);
         }
