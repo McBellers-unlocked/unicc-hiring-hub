@@ -186,19 +186,30 @@ export default function JobRequisitionChiefHREdit() {
   };
 
   const acceptHRChanges = (fieldKey: string) => {
-    // Update accepted fields set
-    setAcceptedFields(prev => new Set([...prev, fieldKey]));
+    const currentValue = (formData as any)[fieldKey];
     
-    // Update working baseline to HR's version for this field
+    setOriginalData(prev => ({
+      ...prev,
+      [fieldKey]: currentValue
+    }));
+    
     setWorkingBaseline(prev => ({
       ...prev,
-      [fieldKey]: formData[fieldKey as keyof JobRequisition]
+      [fieldKey]: currentValue
     }));
-
+    
+    setAcceptedFields(prev => new Set(prev).add(fieldKey));
+    
     toast({
       title: "Changes Accepted",
-      description: `HR's changes to ${fieldKey.replace(/_/g, ' ')} have been accepted`,
+      description: `HR's changes have been accepted for this field`,
     });
+  };
+
+  const hasHRChanges = (fieldKey: string) => {
+    const hrOriginal = requisition?.hr_original_data?.[fieldKey] || '';
+    const currentValue = (formData as any)?.[fieldKey] || '';
+    return hrOriginal !== currentValue && !acceptedFields.has(fieldKey);
   };
 
   const getHRChangeForField = (fieldKey: string) => {
@@ -461,38 +472,86 @@ export default function JobRequisitionChiefHREdit() {
             <CardTitle>Position Description</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <EditableTrackChangesFieldWithHighlight
-              label="Purpose of the Position"
-              originalValue={originalData.purpose_of_position || ''}
-              currentValue={formData.purpose_of_position || ''}
-              onChange={(value) => setFormData({ ...formData, purpose_of_position: value })}
-              requisitionId={id}
-              fieldName="purpose_of_position"
-              currentUserId={user?.id}
-              canResolveComments={true}
-            />
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Purpose of the Position</Label>
+                {hasHRChanges('purpose_of_position') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => acceptHRChanges('purpose_of_position')}
+                    className="h-8 gap-1"
+                  >
+                    <Check className="h-3 w-3" />
+                    Accept Changes
+                  </Button>
+                )}
+              </div>
+              <EditableTrackChangesFieldWithHighlight
+                label=""
+                originalValue={originalData.purpose_of_position || ''}
+                currentValue={formData.purpose_of_position || ''}
+                onChange={(value) => setFormData({ ...formData, purpose_of_position: value })}
+                requisitionId={id}
+                fieldName="purpose_of_position"
+                currentUserId={user?.id}
+                canResolveComments={true}
+              />
+            </div>
             
-            <EditableTrackChangesFieldWithHighlight
-              label="Objectives of the Programme"
-              originalValue={originalData.objectives_of_programme || ''}
-              currentValue={formData.objectives_of_programme || ''}
-              onChange={(value) => setFormData({ ...formData, objectives_of_programme: value })}
-              requisitionId={id}
-              fieldName="objectives_of_programme"
-              currentUserId={user?.id}
-              canResolveComments={true}
-            />
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Objectives of the Programme</Label>
+                {hasHRChanges('objectives_of_programme') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => acceptHRChanges('objectives_of_programme')}
+                    className="h-8 gap-1"
+                  >
+                    <Check className="h-3 w-3" />
+                    Accept Changes
+                  </Button>
+                )}
+              </div>
+              <EditableTrackChangesFieldWithHighlight
+                label=""
+                originalValue={originalData.objectives_of_programme || ''}
+                currentValue={formData.objectives_of_programme || ''}
+                onChange={(value) => setFormData({ ...formData, objectives_of_programme: value })}
+                requisitionId={id}
+                fieldName="objectives_of_programme"
+                currentUserId={user?.id}
+                canResolveComments={true}
+              />
+            </div>
             
-            <EditableTrackChangesFieldWithHighlight
-              label="Main Duties and Responsibilities"
-              originalValue={originalData.main_duties_responsibilities || ''}
-              currentValue={formData.main_duties_responsibilities || ''}
-              onChange={(value) => setFormData({ ...formData, main_duties_responsibilities: value })}
-              requisitionId={id}
-              fieldName="main_duties_responsibilities"
-              currentUserId={user?.id}
-              canResolveComments={true}
-            />
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Main Duties and Responsibilities</Label>
+                {hasHRChanges('main_duties_responsibilities') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => acceptHRChanges('main_duties_responsibilities')}
+                    className="h-8 gap-1"
+                  >
+                    <Check className="h-3 w-3" />
+                    Accept Changes
+                  </Button>
+                )}
+              </div>
+              <EditableTrackChangesFieldWithHighlight
+                label=""
+                originalValue={originalData.main_duties_responsibilities || ''}
+                currentValue={formData.main_duties_responsibilities || ''}
+                onChange={(value) => setFormData({ ...formData, main_duties_responsibilities: value })}
+                requisitionId={id}
+                fieldName="main_duties_responsibilities"
+                currentUserId={user?.id}
+                canResolveComments={true}
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -503,49 +562,113 @@ export default function JobRequisitionChiefHREdit() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4">
-              <EditableTrackChangesFieldWithHighlight
-                label="Essential Experience"
-                originalValue={originalData.essential_experience || ''}
-                currentValue={formData.essential_experience || ''}
-                onChange={(value) => setFormData({ ...formData, essential_experience: value })}
-                requisitionId={id}
-                fieldName="essential_experience"
-                currentUserId={user?.id}
-                canResolveComments={true}
-              />
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium">Essential Experience</Label>
+                  {hasHRChanges('essential_experience') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => acceptHRChanges('essential_experience')}
+                      className="h-8 gap-1"
+                    >
+                      <Check className="h-3 w-3" />
+                      Accept Changes
+                    </Button>
+                  )}
+                </div>
+                <EditableTrackChangesFieldWithHighlight
+                  label=""
+                  originalValue={originalData.essential_experience || ''}
+                  currentValue={formData.essential_experience || ''}
+                  onChange={(value) => setFormData({ ...formData, essential_experience: value })}
+                  requisitionId={id}
+                  fieldName="essential_experience"
+                  currentUserId={user?.id}
+                  canResolveComments={true}
+                />
+              </div>
               
-              <EditableTrackChangesFieldWithHighlight
-                label="Desirable Experience"
-                originalValue={originalData.desirable_experience || ''}
-                currentValue={formData.desirable_experience || ''}
-                onChange={(value) => setFormData({ ...formData, desirable_experience: value })}
-                requisitionId={id}
-                fieldName="desirable_experience"
-                currentUserId={user?.id}
-                canResolveComments={true}
-              />
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium">Desirable Experience</Label>
+                  {hasHRChanges('desirable_experience') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => acceptHRChanges('desirable_experience')}
+                      className="h-8 gap-1"
+                    >
+                      <Check className="h-3 w-3" />
+                      Accept Changes
+                    </Button>
+                  )}
+                </div>
+                <EditableTrackChangesFieldWithHighlight
+                  label=""
+                  originalValue={originalData.desirable_experience || ''}
+                  currentValue={formData.desirable_experience || ''}
+                  onChange={(value) => setFormData({ ...formData, desirable_experience: value })}
+                  requisitionId={id}
+                  fieldName="desirable_experience"
+                  currentUserId={user?.id}
+                  canResolveComments={true}
+                />
+              </div>
               
-              <EditableTrackChangesFieldWithHighlight
-                label="Essential Education"
-                originalValue={originalData.essential_education || ''}
-                currentValue={formData.essential_education || ''}
-                onChange={(value) => setFormData({ ...formData, essential_education: value })}
-                requisitionId={id}
-                fieldName="essential_education"
-                currentUserId={user?.id}
-                canResolveComments={true}
-              />
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium">Essential Education</Label>
+                  {hasHRChanges('essential_education') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => acceptHRChanges('essential_education')}
+                      className="h-8 gap-1"
+                    >
+                      <Check className="h-3 w-3" />
+                      Accept Changes
+                    </Button>
+                  )}
+                </div>
+                <EditableTrackChangesFieldWithHighlight
+                  label=""
+                  originalValue={originalData.essential_education || ''}
+                  currentValue={formData.essential_education || ''}
+                  onChange={(value) => setFormData({ ...formData, essential_education: value })}
+                  requisitionId={id}
+                  fieldName="essential_education"
+                  currentUserId={user?.id}
+                  canResolveComments={true}
+                />
+              </div>
               
-              <EditableTrackChangesFieldWithHighlight
-                label="Desirable Education"
-                originalValue={originalData.desirable_education || ''}
-                currentValue={formData.desirable_education || ''}
-                onChange={(value) => setFormData({ ...formData, desirable_education: value })}
-                requisitionId={id}
-                fieldName="desirable_education"
-                currentUserId={user?.id}
-                canResolveComments={true}
-              />
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium">Desirable Education</Label>
+                  {hasHRChanges('desirable_education') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => acceptHRChanges('desirable_education')}
+                      className="h-8 gap-1"
+                    >
+                      <Check className="h-3 w-3" />
+                      Accept Changes
+                    </Button>
+                  )}
+                </div>
+                <EditableTrackChangesFieldWithHighlight
+                  label=""
+                  originalValue={originalData.desirable_education || ''}
+                  currentValue={formData.desirable_education || ''}
+                  onChange={(value) => setFormData({ ...formData, desirable_education: value })}
+                  requisitionId={id}
+                  fieldName="desirable_education"
+                  currentUserId={user?.id}
+                  canResolveComments={true}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
