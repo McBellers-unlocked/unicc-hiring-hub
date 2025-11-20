@@ -239,6 +239,7 @@ export default function JobRequisitionHiringManagerReview() {
           hiring_manager_confirmed_at: new Date().toISOString(),
           hiring_manager_changes: hmChanges,
           status: 'hr_review',
+          hr_internal_status: 'pending_final_review',
           updated_at: new Date().toISOString(),
         })
         .eq('id', requisition.id);

@@ -214,6 +214,37 @@ export default function AdminRequisitions() {
     }
   };
 
+  const handleSendToChief = async (requisitionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('job_requisitions')
+        .update({
+          status: 'chief_of_division_review',
+          hr_internal_status: 'sent_to_chief_for_pd_approval',
+          hr_final_review_completed: true,
+          hr_final_review_at: new Date().toISOString(),
+          hr_final_review_by: user?.id
+        })
+        .eq('id', requisitionId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Full position description sent to Chief of Division for final approval",
+      });
+
+      fetchRequisitions();
+    } catch (error) {
+      console.error('Error sending to Chief:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send to Chief of Division",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusInfo = (requisition: JobRequisition) => {
     // Check if converted to job (published)
     if ((requisition as any).converted_to_job_id) {
@@ -287,6 +318,10 @@ export default function AdminRequisitions() {
         return requisitions.filter(r => 
           r.status === 'hr_review' && r.hr_internal_status === 'ready_for_manager'
         );
+      case 'hr-final-review':
+        return requisitions.filter(r => 
+          r.status === 'hr_review' && r.hr_internal_status === 'pending_final_review'
+        );
       case 'amendments':
         return requisitions.filter(r => r.status === 'hr_amendments');
       case 'manager-confirmation':
@@ -351,6 +386,12 @@ export default function AdminRequisitions() {
                 {filterRequisitions('hr-ready').length}
               </Badge>
             </TabsTrigger>
+            <TabsTrigger value="hr-final-review">
+              Final HR Review
+              <Badge variant="secondary" className="ml-2">
+                {filterRequisitions('hr-final-review').length}
+              </Badge>
+            </TabsTrigger>
             <TabsTrigger value="amendments">
               Amendments Required
               <Badge variant="destructive" className="ml-2">
@@ -367,7 +408,7 @@ export default function AdminRequisitions() {
             <TabsTrigger value="completed">Completed</TabsTrigger>
           </TabsList>
 
-          {(['all', 'initial-requests', 'pending-hr', 'chief-hr-review', 'hr-ready', 'amendments', 'manager-confirmation', 'in-progress', 'completed'] as const).map(tabValue => (
+          {(['all', 'initial-requests', 'pending-hr', 'chief-hr-review', 'hr-ready', 'hr-final-review', 'amendments', 'manager-confirmation', 'in-progress', 'completed'] as const).map(tabValue => (
             <TabsContent key={tabValue} value={tabValue} className="space-y-4">
               {filterRequisitions(tabValue).length === 0 ? (
                 <Card>
@@ -468,6 +509,29 @@ export default function AdminRequisitions() {
                                 <CheckCircle2 className="h-4 w-4 mr-1" />
                                 Send to Manager
                               </Button>
+                            )}
+
+                            {/* Final HR Review - After Manager confirms */}
+                            {requisition.status === 'hr_review' && requisition.hr_internal_status === 'pending_final_review' && (isAdmin || isHR) && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => navigate(`/requisitions/${requisition.id}/hr-final-edit`)}
+                                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                >
+                                  <Edit2 className="h-4 w-4 mr-1" />
+                                  Final Review
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleSendToChief(requisition.id)}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                                  Send to Chief for Approval
+                                </Button>
+                              </>
                             )}
 
                             {requisition.status === 'hiring_manager_review' && (isAdmin || isHR) && (
