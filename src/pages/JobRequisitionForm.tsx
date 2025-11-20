@@ -669,6 +669,23 @@ export default function JobRequisitionForm() {
           essential_education_level: form.getValues('essential_education_level')
         });
         
+        // Force re-render of markdown editors by setting values again if they have defaults
+        if (defaultEssentialExperience) {
+          setTimeout(() => {
+            form.setValue('essential_experience', defaultEssentialExperience);
+          }, 0);
+        }
+        if (defaultEssentialEducation) {
+          setTimeout(() => {
+            form.setValue('essential_education', defaultEssentialEducation);
+          }, 0);
+        }
+        if (defaultEducationLevel) {
+          setTimeout(() => {
+            form.setValue('essential_education_level', defaultEducationLevel);
+          }, 0);
+        }
+        
         // Set language requirements separately
         form.setValue("un_language_advantage", (data.language_requirements as any)?.un_language_advantage || false);
         form.setValue("local_language_advantage", (data.language_requirements as any)?.local_language_advantage || false);
