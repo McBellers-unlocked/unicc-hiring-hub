@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, AlertTriangle, Eye } from "lucide-react";
+import { ArrowLeft, Save, AlertTriangle, Eye, Check } from "lucide-react";
 import { format } from "date-fns";
 import EditableTrackChangesFieldWithHighlight from "@/components/EditableTrackChangesFieldWithHighlight";
 import { FinalDocumentReviewDialog } from "@/components/FinalDocumentReviewDialog";
@@ -77,6 +77,8 @@ export default function JobRequisitionHREdit() {
   const [acceptedChiefHRFields, setAcceptedChiefHRFields] = useState<Set<string>>(new Set());
   const [hrVersion, setHrVersion] = useState<Partial<JobRequisition>>({});
   const [showFinalReviewDialog, setShowFinalReviewDialog] = useState(false);
+  const [acceptedManagerFields, setAcceptedManagerFields] = useState<Set<string>>(new Set());
+  const [managerVersion, setManagerVersion] = useState<Partial<JobRequisition>>({});
 
   const isHR = userRoles.includes('HR Assistant') || userRoles.includes('Admin');
 
@@ -131,11 +133,25 @@ export default function JobRequisitionHREdit() {
       // Determine the review stage
       const isFinalCleanup = data.status === 'hr_final_review' && data.hiring_manager_confirmed_hr_changes;
       const isSecondReview = data.chief_hr_reviewed && !isFinalCleanup;
+      const isPendingFinalReview = data.hr_internal_status === 'pending_final_review';
       
-      if (isFinalCleanup) {
+      if (isFinalCleanup || isPendingFinalReview) {
         // Final cleanup stage: start with current (HM modified) version
         // HR will create a clean version for Division Chief
-        setOriginalData(formattedData);
+        // Store the HR version to compare against manager changes
+        const hrVersionData = (typeof data.hr_changes === 'object' && data.hr_changes !== null)
+          ? {
+              ...(data.hr_changes as any),
+              duty_station: formatDutyStation((data.hr_changes as any).duty_station)
+            }
+          : (typeof data.hr_original_data === 'object' && data.hr_original_data !== null)
+          ? {
+              ...(data.hr_original_data as any),
+              duty_station: formatDutyStation((data.hr_original_data as any).duty_station)
+            }
+          : formattedData;
+        setManagerVersion(hrVersionData as Partial<JobRequisition>);
+        setOriginalData(hrVersionData as Partial<JobRequisition>); // HR's version is the baseline to show manager changes
       } else if (isSecondReview) {
         // Second review: show Chief HR's changes compared to HR's version
         const hrVersionData = (typeof data.hr_original_data === 'object' && data.hr_original_data !== null) 
@@ -172,6 +188,22 @@ export default function JobRequisitionHREdit() {
   
   const acceptChiefHRChanges = (fieldKey: string) => {
     setAcceptedChiefHRFields(prev => new Set([...prev, fieldKey]));
+  };
+
+  const acceptManagerChanges = (fieldKey: string) => {
+    // Accept the manager's changes by updating the originalData baseline
+    setOriginalData(prev => ({
+      ...prev,
+      [fieldKey]: (formData as any)?.[fieldKey] || ''
+    }));
+    setAcceptedManagerFields(prev => new Set([...prev, fieldKey]));
+  };
+
+  const hasManagerChanges = (fieldKey: string) => {
+    const hrOriginal = managerVersion?.[fieldKey] || '';
+    const currentValue = (formData as any)?.[fieldKey] || '';
+    // Only show accept button if Manager actually made changes (comparing HR version to current)
+    return hrOriginal !== currentValue && !acceptedManagerFields.has(fieldKey);
   };
 
   const detectChanges = (): FieldChange[] => {
@@ -352,6 +384,7 @@ export default function JobRequisitionHREdit() {
         hr_final_review_at: new Date().toISOString(),
         hr_final_review_by: user?.id,
         status: 'chief_of_division_review', // Ready for Division Chief
+        hr_internal_status: 'sent_to_chief_for_pd_approval', // Track that this is for PD approval, not initial request
         // Reset chief approval status when sending for new review
         chief_of_division_approval: false,
         chief_of_division_approved_at: null,
@@ -602,6 +635,19 @@ export default function JobRequisitionHREdit() {
             <CardTitle>Position Description</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {isFinalReview && hasManagerChanges('purpose_of_position') && (
+              <div className="flex justify-end mb-2">
+                <Button
+                  onClick={() => acceptManagerChanges('purpose_of_position')}
+                  size="sm"
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <Check className="h-4 w-4" />
+                  Accept Changes
+                </Button>
+              </div>
+            )}
             {isSecondReview || isFinalCleanup ? (
               <EditableTrackChangesFieldWithHighlight
                 label="Purpose of the Position"
@@ -626,6 +672,19 @@ export default function JobRequisitionHREdit() {
               />
             )}
             
+            {isFinalReview && hasManagerChanges('objectives_of_programme') && (
+              <div className="flex justify-end mb-2">
+                <Button
+                  onClick={() => acceptManagerChanges('objectives_of_programme')}
+                  size="sm"
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <Check className="h-4 w-4" />
+                  Accept Changes
+                </Button>
+              </div>
+            )}
             {isSecondReview || isFinalCleanup ? (
               <EditableTrackChangesFieldWithHighlight
                 label="Objectives of the Programme"
@@ -650,6 +709,19 @@ export default function JobRequisitionHREdit() {
               />
             )}
             
+            {isFinalReview && hasManagerChanges('main_duties_responsibilities') && (
+              <div className="flex justify-end mb-2">
+                <Button
+                  onClick={() => acceptManagerChanges('main_duties_responsibilities')}
+                  size="sm"
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <Check className="h-4 w-4" />
+                  Accept Changes
+                </Button>
+              </div>
+            )}
             {isSecondReview || isFinalCleanup ? (
               <EditableTrackChangesFieldWithHighlight
                 label="Main Duties and Responsibilities"
@@ -683,6 +755,19 @@ export default function JobRequisitionHREdit() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4">
+              {isFinalReview && hasManagerChanges('essential_experience') && (
+                <div className="flex justify-end mb-2">
+                  <Button
+                    onClick={() => acceptManagerChanges('essential_experience')}
+                    size="sm"
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Check className="h-4 w-4" />
+                    Accept Changes
+                  </Button>
+                </div>
+              )}
               {isSecondReview || isFinalCleanup ? (
                 <EditableTrackChangesFieldWithHighlight
                   label="Essential Experience"
@@ -710,6 +795,19 @@ export default function JobRequisitionHREdit() {
               {/* Only show desirable experience for non-intern positions */}
               {requisition.nature_of_position !== 'Intern' && (
                 <>
+                  {isFinalReview && hasManagerChanges('desirable_experience') && (
+                    <div className="flex justify-end mb-2">
+                      <Button
+                        onClick={() => acceptManagerChanges('desirable_experience')}
+                        size="sm"
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        <Check className="h-4 w-4" />
+                        Accept Changes
+                      </Button>
+                    </div>
+                  )}
                   {isSecondReview || isFinalCleanup ? (
                     <EditableTrackChangesFieldWithHighlight
                       label="Desirable Experience"
@@ -736,6 +834,19 @@ export default function JobRequisitionHREdit() {
                 </>
               )}
               
+              {isFinalReview && hasManagerChanges('essential_education') && (
+                <div className="flex justify-end mb-2">
+                  <Button
+                    onClick={() => acceptManagerChanges('essential_education')}
+                    size="sm"
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Check className="h-4 w-4" />
+                    Accept Changes
+                  </Button>
+                </div>
+              )}
               {isSecondReview || isFinalCleanup ? (
                 <EditableTrackChangesFieldWithHighlight
                   label="Essential Education"
@@ -763,6 +874,19 @@ export default function JobRequisitionHREdit() {
               {/* Only show desirable education for non-intern positions */}
               {requisition.nature_of_position !== 'Intern' && (
                 <>
+                  {isFinalReview && hasManagerChanges('desirable_education') && (
+                    <div className="flex justify-end mb-2">
+                      <Button
+                        onClick={() => acceptManagerChanges('desirable_education')}
+                        size="sm"
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        <Check className="h-4 w-4" />
+                        Accept Changes
+                      </Button>
+                    </div>
+                  )}
                   {isSecondReview || isFinalCleanup ? (
                     <EditableTrackChangesFieldWithHighlight
                       label="Desirable Education"
@@ -1022,6 +1146,26 @@ export default function JobRequisitionHREdit() {
             />
           </CardContent>
         </Card>
+
+        {/* Duplicate action buttons at bottom for better UX */}
+        <div className="flex gap-2 justify-end">
+          {!isFinalCleanup && !isSecondReview && (
+            <Button variant="outline" onClick={handleSaveDraft} disabled={saving}>
+              <Save className="h-4 w-4 mr-2" />
+              Save Draft
+            </Button>
+          )}
+          <Button onClick={handleSaveChanges} disabled={saving}>
+            <Save className="h-4 w-4 mr-2" />
+            {saving 
+              ? 'Saving...' 
+              : isFinalCleanup
+              ? 'Finalize & Send to Division Chief'
+              : isSecondReview 
+              ? 'Save & Send to Manager' 
+              : 'Save & Send to Chief HR'}
+          </Button>
+        </div>
       </div>
 
       <FinalDocumentReviewDialog
