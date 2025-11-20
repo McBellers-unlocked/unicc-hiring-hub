@@ -127,6 +127,11 @@ export default function JobRequisitionHREdit() {
         duty_station: formatDutyStation(data.duty_station)
       };
       
+      console.log('DEBUG - Grade:', formattedData.grade);
+      console.log('DEBUG - Essential Experience:', formattedData.essential_experience);
+      console.log('DEBUG - Essential Education:', formattedData.essential_education);
+      console.log('DEBUG - Essential Education Level:', formattedData.essential_education_level);
+      
       // Auto-populate experience and education based on grade if fields are empty or need template
       const gradeRequirements: Record<string, { yearsText: string; education: string; educationLevel: string }> = {
         'P1': { yearsText: 'one (1) year', education: 'First Level University', educationLevel: 'First Level University' },
@@ -139,10 +144,38 @@ export default function JobRequisitionHREdit() {
       };
 
       const requirements = gradeRequirements[formattedData.grade || ''];
-      if (requirements && (!formattedData.essential_experience || !formattedData.essential_education)) {
-        formattedData.essential_experience = formattedData.essential_experience || `- At least ${requirements.yearsText} of relevant experience in [specify field/area]`;
-        formattedData.essential_education = formattedData.essential_education || `- ${requirements.education} degree in [specify field/area]`;
+      console.log('DEBUG - Requirements found:', requirements);
+      
+      if (requirements) {
+        // Always add the first bullet if it's not there, regardless of other content
+        const expPrefix = `- At least ${requirements.yearsText} of relevant experience in`;
+        const eduPrefix = `- ${requirements.education} degree in`;
+        
+        const hasExpBullet = formattedData.essential_experience?.includes(expPrefix);
+        const hasEduBullet = formattedData.essential_education?.includes(eduPrefix);
+        
+        console.log('DEBUG - Has experience bullet:', hasExpBullet);
+        console.log('DEBUG - Has education bullet:', hasEduBullet);
+        
+        if (!hasExpBullet) {
+          const existingExp = formattedData.essential_experience || '';
+          formattedData.essential_experience = existingExp 
+            ? `${expPrefix} [specify field/area]\n${existingExp}`
+            : `${expPrefix} [specify field/area]`;
+        }
+        
+        if (!hasEduBullet) {
+          const existingEdu = formattedData.essential_education || '';
+          formattedData.essential_education = existingEdu
+            ? `${eduPrefix} [specify field/area]\n${existingEdu}`
+            : `${eduPrefix} [specify field/area]`;
+        }
+        
         formattedData.essential_education_level = requirements.educationLevel;
+        
+        console.log('DEBUG - Updated Essential Experience:', formattedData.essential_experience);
+        console.log('DEBUG - Updated Essential Education:', formattedData.essential_education);
+        console.log('DEBUG - Updated Education Level:', formattedData.essential_education_level);
       }
       
       setRequisition(formattedData);
