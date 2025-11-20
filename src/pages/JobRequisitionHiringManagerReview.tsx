@@ -124,8 +124,10 @@ export default function JobRequisitionHiringManagerReview() {
 
   const hasHRChanges = (fieldKey: string) => {
     const hrOriginal = originalData?.[fieldKey] || '';
-    const currentValue = (formData as any)?.[fieldKey] || '';
-    return hrOriginal !== currentValue && !acceptedFields.has(fieldKey);
+    const hrValue = hrData?.[fieldKey] || '';
+    // Only show accept button if HR actually made changes (comparing original to HR version)
+    // Don't show for manager's own edits
+    return hrOriginal !== hrValue && !acceptedFields.has(fieldKey);
   };
 
   const validateRequiredFields = () => {
