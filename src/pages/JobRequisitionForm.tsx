@@ -316,6 +316,37 @@ export default function JobRequisitionForm() {
       } else if (watchedGrade.startsWith('G')) {
         form.setValue('local_language_advantage', true);
       }
+
+      // Auto-populate experience and education for Staff positions when grade is set
+      const currentNature = form.getValues('nature_of_position');
+      if (currentNature === 'Staff' && !form.getValues('essential_experience') && !form.getValues('essential_education')) {
+        const gradeRequirements: Record<string, { yearsText: string; education: string; educationLevel: string; isGPosition?: boolean }> = {
+          'G3': { yearsText: 'two (2) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+          'G4': { yearsText: 'three (3) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+          'G5': { yearsText: 'five (5) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+          'G6': { yearsText: 'eight (8) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+          'G7': { yearsText: 'ten (10) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+          'P1': { yearsText: 'one (1) year', education: 'First Level University', educationLevel: 'First Level University' },
+          'P2': { yearsText: 'two (2) years', education: 'First Level University', educationLevel: 'First Level University' },
+          'P3': { yearsText: 'five (5) years', education: 'First Level University', educationLevel: 'First Level University' },
+          'P4': { yearsText: 'seven (7) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+          'P5': { yearsText: 'ten (10) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+          'D1': { yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+          'D2': { yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' }
+        };
+
+        const requirements = gradeRequirements[watchedGrade];
+        if (requirements) {
+          form.setValue('essential_experience', `- At least ${requirements.yearsText} of relevant experience in [specify field/area]`);
+          
+          const eduText = requirements.isGPosition
+            ? `- Completion of secondary school supplemented by technical training in [specify field/area]. A completed university degree from an accredited institution will be counted towards minimum work experience requirements`
+            : `- ${requirements.education} degree in [specify field/area]`;
+          form.setValue('essential_education', eduText);
+          
+          form.setValue('essential_education_level', requirements.educationLevel);
+        }
+      }
     }
   }, [watchedGrade, form]);
 
@@ -1082,27 +1113,13 @@ export default function JobRequisitionForm() {
                         
                         const requirements = gradeRequirements[value];
                         if (requirements) {
-                          const currentExperience = form.getValues('essential_experience');
-                          const currentEducation = form.getValues('essential_education');
+                          // Always update experience and education when grade changes
+                          form.setValue('essential_experience', `- At least ${requirements.yearsText} of relevant experience in [specify field/area]`);
                           
-                          // Auto-populate essential experience with template
-                          if (!currentExperience) {
-                            form.setValue('essential_experience', `- At least ${requirements.yearsText} of relevant experience in [specify field/area]`);
-                          }
-                          
-                          // Auto-populate essential education with template
-                          // Also update if switching between G and P/D positions (different template structures)
-                          const isGEducation = currentEducation?.includes('Completion of secondary school supplemented by technical training');
-                          const shouldUpdateEducation = !currentEducation || 
-                            (requirements.isGPosition && !isGEducation) || 
-                            (!requirements.isGPosition && isGEducation);
-                          
-                          if (shouldUpdateEducation) {
-                            const eduText = requirements.isGPosition
-                              ? `- Completion of secondary school supplemented by technical training in [specify field/area]. A completed university degree from an accredited institution will be counted towards minimum work experience requirements`
-                              : `- ${requirements.education} degree in [specify field/area]`;
-                            form.setValue('essential_education', eduText);
-                          }
+                          const eduText = requirements.isGPosition
+                            ? `- Completion of secondary school supplemented by technical training in [specify field/area]. A completed university degree from an accredited institution will be counted towards minimum work experience requirements`
+                            : `- ${requirements.education} degree in [specify field/area]`;
+                          form.setValue('essential_education', eduText);
                           
                           // Auto-populate education level dropdown
                           form.setValue('essential_education_level', requirements.educationLevel);
