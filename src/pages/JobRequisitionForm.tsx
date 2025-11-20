@@ -23,6 +23,8 @@ import MDEditor, { commands, ICommand } from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';
 import { MainDutiesTemplateModal } from '@/components/MainDutiesTemplateModal';
 import { EssentialEducationTemplateModal } from '@/components/EssentialEducationTemplateModal';
+import { EssentialExperienceTemplateModal } from '@/components/EssentialExperienceTemplateModal';
+import { StaffEssentialEducationTemplateModal } from '@/components/StaffEssentialEducationTemplateModal';
 import TurndownService from 'turndown';
 import { Label } from "@/components/ui/label";
 
@@ -264,6 +266,8 @@ export default function JobRequisitionForm() {
   const [isSupervisorRole, setIsSupervisorRole] = useState<boolean>(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState<boolean>(false);
   const [showEssentialEducationModal, setShowEssentialEducationModal] = useState(false);
+  const [showEssentialExperienceModal, setShowEssentialExperienceModal] = useState(false);
+  const [showStaffEssentialEducationModal, setShowStaffEssentialEducationModal] = useState(false);
 
   const form = useForm<RequisitionFormData>({
     resolver: zodResolver(requisitionSchema),
@@ -1513,7 +1517,23 @@ export default function JobRequisitionForm() {
                   name="essential_experience"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Essential Experience *</FormLabel>
+                      <div className="flex items-center justify-between mb-2">
+                        <FormLabel>Essential Experience *</FormLabel>
+                        {watchedNatureOfPosition !== 'Intern' && 
+                         watchedNatureOfPosition !== 'Individual Consultant' && 
+                         field.value?.includes('[specify field/area]') && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowEssentialExperienceModal(true)}
+                            className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
+                          >
+                            <FileText className="h-3 w-3 mr-1" />
+                            Fill Template
+                          </Button>
+                        )}
+                      </div>
                       <FormControl>
                         <MDEditor
                           value={field.value}
@@ -1637,6 +1657,20 @@ export default function JobRequisitionForm() {
                             variant="outline"
                             size="sm"
                             onClick={() => setShowEssentialEducationModal(true)}
+                            className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
+                          >
+                            <FileText className="h-3 w-3 mr-1" />
+                            Fill Template
+                          </Button>
+                        )}
+                        {watchedNatureOfPosition !== 'Intern' && 
+                         watchedNatureOfPosition !== 'Individual Consultant' && 
+                         field.value?.includes('[specify field/area]') && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowStaffEssentialEducationModal(true)}
                             className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
                           >
                             <FileText className="h-3 w-3 mr-1" />
@@ -2257,6 +2291,52 @@ export default function JobRequisitionForm() {
         onApply={(areasOfExpertise) => {
           const currentValue = form.getValues('essential_education');
           const updatedValue = currentValue.replace('[areas of expertise]', areasOfExpertise);
+          form.setValue('essential_education', updatedValue);
+        }}
+      />
+
+      <EssentialExperienceTemplateModal
+        open={showEssentialExperienceModal}
+        onClose={() => setShowEssentialExperienceModal(false)}
+        yearsText={(() => {
+          const gradeRequirements: Record<string, { yearsText: string }> = {
+            'P1': { yearsText: 'one (1) year' },
+            'P2': { yearsText: 'two (2) years' },
+            'P3': { yearsText: 'five (5) years' },
+            'P4': { yearsText: 'seven (7) years' },
+            'P5': { yearsText: 'ten (10) years' },
+            'D1': { yearsText: 'fifteen (15) years' },
+            'D2': { yearsText: 'fifteen (15) years' }
+          };
+          const grade = form.getValues('grade');
+          return gradeRequirements[grade]?.yearsText || 'X';
+        })()}
+        onApply={(fieldArea) => {
+          const currentValue = form.getValues('essential_experience');
+          const updatedValue = currentValue.replace('[specify field/area]', fieldArea);
+          form.setValue('essential_experience', updatedValue);
+        }}
+      />
+
+      <StaffEssentialEducationTemplateModal
+        open={showStaffEssentialEducationModal}
+        onClose={() => setShowStaffEssentialEducationModal(false)}
+        educationLevel={(() => {
+          const gradeRequirements: Record<string, { education: string }> = {
+            'P1': { education: 'First Level University' },
+            'P2': { education: 'First Level University' },
+            'P3': { education: 'First Level University' },
+            'P4': { education: 'Advanced University' },
+            'P5': { education: 'Advanced University' },
+            'D1': { education: 'Advanced University' },
+            'D2': { education: 'Advanced University' }
+          };
+          const grade = form.getValues('grade');
+          return gradeRequirements[grade]?.education || 'Advanced University';
+        })()}
+        onApply={(fieldArea) => {
+          const currentValue = form.getValues('essential_education');
+          const updatedValue = currentValue.replace('[specify field/area]', fieldArea);
           form.setValue('essential_education', updatedValue);
         }}
       />
