@@ -21,6 +21,7 @@ interface EditableTrackChangesFieldWithHighlightProps {
   fieldName?: string;
   currentUserId?: string;
   canResolveComments?: boolean;
+  isManagerChanges?: boolean; // If true, show manager changes in blue instead of green
 }
 
 const EditableTrackChangesFieldWithHighlight: React.FC<EditableTrackChangesFieldWithHighlightProps> = ({
@@ -34,6 +35,7 @@ const EditableTrackChangesFieldWithHighlight: React.FC<EditableTrackChangesField
   fieldName,
   currentUserId,
   canResolveComments = false,
+  isManagerChanges = false,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [commentsPanelOpen, setCommentsPanelOpen] = useState(false);
@@ -148,7 +150,11 @@ const EditableTrackChangesFieldWithHighlight: React.FC<EditableTrackChangesField
         if (part.removed) {
           html += `<span style="color: #dc2626; text-decoration: line-through; background-color: #fee2e2;" title="Removed">${text}</span>`;
         } else if (part.added) {
-          html += `<span style="color: #16a34a; text-decoration: underline; background-color: #f0fdf4;" title="Added">${text}</span>`;
+          // Manager changes are shown in blue, HR changes in green
+          const addedColor = isManagerChanges ? '#2563eb' : '#16a34a';
+          const addedBgColor = isManagerChanges ? '#eff6ff' : '#f0fdf4';
+          const addedTitle = isManagerChanges ? 'Added by Manager' : 'Added';
+          html += `<span style="color: ${addedColor}; text-decoration: underline; background-color: ${addedBgColor};" title="${addedTitle}">${text}</span>`;
         } else {
           html += text;
         }
