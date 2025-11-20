@@ -104,11 +104,25 @@ export default function ChiefOfDivisionView() {
         return null;
       };
       
-      const filterByDivision = (reqs: any[]) => 
-        reqs.filter(r => {
+      const filterByDivision = (reqs: any[]) => {
+        if (divisionsToShow.length === 0) return reqs;
+        
+        return reqs.filter(r => {
+          // First try to extract from unit_section_division
           const reqDivision = getDivisionFromUnit(r.unit_section_division);
-          return reqDivision && divisionsToShow.includes(reqDivision);
+          if (reqDivision && divisionsToShow.includes(reqDivision)) {
+            return true;
+          }
+          
+          // Fallback: check creator's division for consultant/temporary positions
+          const creatorDivision = r.creator?.division;
+          if (creatorDivision && divisionsToShow.includes(creatorDivision)) {
+            return true;
+          }
+          
+          return false;
         });
+      };
       
       // Combine and separate the two types
       const fullPDs = filterByDivision(fullPDResult.data || []).map(r => ({ ...r, isInitialRequest: false }));
