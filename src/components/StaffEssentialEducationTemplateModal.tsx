@@ -9,9 +9,10 @@ interface Props {
   onClose: () => void;
   onApply: (fieldArea: string) => void;
   educationLevel: string;
+  isGPosition?: boolean;
 }
 
-export function StaffEssentialEducationTemplateModal({ open, onClose, onApply, educationLevel }: Props) {
+export function StaffEssentialEducationTemplateModal({ open, onClose, onApply, educationLevel, isGPosition = false }: Props) {
   const [fieldArea, setFieldArea] = useState('');
 
   const handleApply = () => {
@@ -44,8 +45,18 @@ export function StaffEssentialEducationTemplateModal({ open, onClose, onApply, e
             <div className="p-3 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground mb-2">Preview:</p>
               <p className="text-sm">
-                - {educationLevel} degree in{' '}
-                <span className="font-medium text-primary">{fieldArea}</span>
+                {isGPosition ? (
+                  <>
+                    - Completion of secondary school supplemented by technical training in{' '}
+                    <span className="font-medium text-primary">{fieldArea}</span>
+                    . A completed university degree from an accredited institution will be counted towards minimum work experience requirements
+                  </>
+                ) : (
+                  <>
+                    - {educationLevel} degree in{' '}
+                    <span className="font-medium text-primary">{fieldArea}</span>
+                  </>
+                )}
               </p>
             </div>
           )}

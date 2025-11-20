@@ -573,26 +573,35 @@ export default function JobRequisitionForm() {
         });
         
         // Auto-populate experience and education based on grade
-        const gradeRequirements: Record<string, { yearsText: string; education: string; educationLevel: string }> = {
+        const gradeRequirements: Record<string, { yearsText: string; education: string; educationLevel: string; isGPosition?: boolean }> = {
           'P1': { yearsText: 'one (1) year', education: 'First Level University', educationLevel: 'First Level University' },
           'P2': { yearsText: 'two (2) years', education: 'First Level University', educationLevel: 'First Level University' },
           'P3': { yearsText: 'five (5) years', education: 'First Level University', educationLevel: 'First Level University' },
           'P4': { yearsText: 'seven (7) years', education: 'Advanced University', educationLevel: 'Advanced University' },
           'P5': { yearsText: 'ten (10) years', education: 'Advanced University', educationLevel: 'Advanced University' },
           'D1': { yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' },
-          'D2': { yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' }
+          'D2': { yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+          'G3': { yearsText: 'two (2) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+          'G4': { yearsText: 'three (3) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+          'G5': { yearsText: 'five (5) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+          'G6': { yearsText: 'eight (8) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+          'G7': { yearsText: 'ten (10) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true }
         };
 
         const requirements = gradeRequirements[data.grade || ''];
         if (requirements && (data.nature_of_position !== 'Intern' && data.nature_of_position !== 'Individual Consultant')) {
           const expPrefix = `- At least ${requirements.yearsText} of relevant experience in`;
-          const eduPrefix = `- ${requirements.education} degree in`;
+          const eduPrefix = requirements.isGPosition 
+            ? `- Completion of secondary school supplemented by technical training in [specify field/area]. A completed university degree from an accredited institution will be counted towards minimum work experience requirements`
+            : `- ${requirements.education} degree in`;
           
           const currentExp = form.getValues('essential_experience');
           const currentEdu = form.getValues('essential_education');
           
           const hasExpBullet = currentExp?.includes(expPrefix);
-          const hasEduBullet = currentEdu?.includes(eduPrefix);
+          const hasEduBullet = requirements.isGPosition 
+            ? currentEdu?.includes('Completion of secondary school supplemented by technical training in')
+            : currentEdu?.includes(eduPrefix);
           
           if (!hasExpBullet) {
             const existingExp = currentExp || '';
@@ -603,9 +612,12 @@ export default function JobRequisitionForm() {
           
           if (!hasEduBullet) {
             const existingEdu = currentEdu || '';
+            const eduText = requirements.isGPosition 
+              ? eduPrefix
+              : `${eduPrefix} [specify field/area]`;
             form.setValue('essential_education', existingEdu
-              ? `${eduPrefix} [specify field/area]\n\n${existingEdu}`
-              : `${eduPrefix} [specify field/area]`);
+              ? `${eduText}\n\n${existingEdu}`
+              : eduText);
           }
           
           if (!form.getValues('essential_education_level')) {
@@ -2306,7 +2318,12 @@ export default function JobRequisitionForm() {
             'P4': { yearsText: 'seven (7) years' },
             'P5': { yearsText: 'ten (10) years' },
             'D1': { yearsText: 'fifteen (15) years' },
-            'D2': { yearsText: 'fifteen (15) years' }
+            'D2': { yearsText: 'fifteen (15) years' },
+            'G3': { yearsText: 'two (2) years' },
+            'G4': { yearsText: 'three (3) years' },
+            'G5': { yearsText: 'five (5) years' },
+            'G6': { yearsText: 'eight (8) years' },
+            'G7': { yearsText: 'ten (10) years' }
           };
           const grade = form.getValues('grade');
           return gradeRequirements[grade]?.yearsText || 'X';
@@ -2329,10 +2346,19 @@ export default function JobRequisitionForm() {
             'P4': { education: 'Advanced University' },
             'P5': { education: 'Advanced University' },
             'D1': { education: 'Advanced University' },
-            'D2': { education: 'Advanced University' }
+            'D2': { education: 'Advanced University' },
+            'G3': { education: 'Secondary' },
+            'G4': { education: 'Secondary' },
+            'G5': { education: 'Secondary' },
+            'G6': { education: 'Secondary' },
+            'G7': { education: 'Secondary' }
           };
           const grade = form.getValues('grade');
           return gradeRequirements[grade]?.education || 'Advanced University';
+        })()}
+        isGPosition={(() => {
+          const grade = form.getValues('grade');
+          return grade?.startsWith('G') || false;
         })()}
         onApply={(fieldArea) => {
           const currentValue = form.getValues('essential_education');
