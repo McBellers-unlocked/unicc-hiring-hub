@@ -635,37 +635,21 @@ export default function JobRequisitionForm() {
 
         const requirements = gradeRequirements[data.grade || ''];
         if (requirements && (data.nature_of_position !== 'Intern' && data.nature_of_position !== 'Individual Consultant')) {
-          const expPrefix = `- At least ${requirements.yearsText} of relevant experience in`;
-          const eduPrefix = requirements.isGPosition 
-            ? `- Completion of secondary school supplemented by technical training in [specify field/area]. A completed university degree from an accredited institution will be counted towards minimum work experience requirements`
-            : `- ${requirements.education} degree in`;
-          
-          const currentExp = form.getValues('essential_experience');
-          const currentEdu = form.getValues('essential_education');
-          
-          const hasExpBullet = currentExp?.includes(expPrefix);
-          const hasEduBullet = requirements.isGPosition 
-            ? currentEdu?.includes('Completion of secondary school supplemented by technical training in')
-            : currentEdu?.includes(eduPrefix);
-          
-          if (!hasExpBullet) {
-            const existingExp = currentExp || '';
-            form.setValue('essential_experience', existingExp 
-              ? `${expPrefix} [specify field/area]\n\n${existingExp}`
-              : `${expPrefix} [specify field/area]`);
+          // Auto-populate essential experience if empty
+          if (!data.essential_experience) {
+            form.setValue('essential_experience', `- At least ${requirements.yearsText} of relevant experience in [specify field/area]`);
           }
           
-          if (!hasEduBullet) {
-            const existingEdu = currentEdu || '';
+          // Auto-populate essential education if empty
+          if (!data.essential_education) {
             const eduText = requirements.isGPosition 
-              ? eduPrefix
-              : `${eduPrefix} [specify field/area]`;
-            form.setValue('essential_education', existingEdu
-              ? `${eduText}\n\n${existingEdu}`
-              : eduText);
+              ? `- Completion of secondary school supplemented by technical training in [specify field/area]. A completed university degree from an accredited institution will be counted towards minimum work experience requirements`
+              : `- ${requirements.education} degree in [specify field/area]`;
+            form.setValue('essential_education', eduText);
           }
           
-          if (!form.getValues('essential_education_level')) {
+          // Auto-populate education level if empty
+          if (!data.essential_education_level) {
             form.setValue('essential_education_level', requirements.educationLevel);
           }
         }
