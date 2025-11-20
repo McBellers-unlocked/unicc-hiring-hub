@@ -1006,19 +1006,35 @@ export default function JobRequisitionForm() {
                       <FormLabel>Grade *</FormLabel>
                       <Select onValueChange={(value) => {
                         field.onChange(value);
-                        // Auto-populate minimum experience requirements
-                        const experienceMap = {
-                          'P1': 'At least 1 year of experience in relevant field',
-                          'P2': 'At least 2 years of experience in relevant field',
-                          'P3': 'At least 5 years of experience in relevant field',
-                          'P4': 'At least 7 years of experience in relevant field',
-                          'P5': 'At least 10 years of experience in relevant field'
+                        
+                        // Define grade requirements mapping
+                        const gradeRequirements: Record<string, { years: number; yearsText: string; education: string; educationLevel: string }> = {
+                          'P1': { years: 1, yearsText: 'one (1) year', education: 'First Level University', educationLevel: 'First Level University' },
+                          'P2': { years: 2, yearsText: 'two (2) years', education: 'First Level University', educationLevel: 'First Level University' },
+                          'P3': { years: 5, yearsText: 'five (5) years', education: 'First Level University', educationLevel: 'First Level University' },
+                          'P4': { years: 7, yearsText: 'seven (7) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+                          'P5': { years: 10, yearsText: 'ten (10) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+                          'D1': { years: 15, yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+                          'D2': { years: 15, yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' }
                         };
-                        if (experienceMap[value]) {
+                        
+                        const requirements = gradeRequirements[value];
+                        if (requirements) {
                           const currentExperience = form.getValues('essential_experience');
+                          const currentEducation = form.getValues('essential_education');
+                          
+                          // Auto-populate essential experience with template
                           if (!currentExperience) {
-                            form.setValue('essential_experience', experienceMap[value] + ' (minimum requirement - please expand as needed)');
+                            form.setValue('essential_experience', `- At least ${requirements.yearsText} of relevant experience in [specify field/area]`);
                           }
+                          
+                          // Auto-populate essential education with template
+                          if (!currentEducation) {
+                            form.setValue('essential_education', `- ${requirements.education} degree in [specify field/area]`);
+                          }
+                          
+                          // Auto-populate education level dropdown
+                          form.setValue('essential_education_level', requirements.educationLevel);
                         }
                       }} defaultValue={field.value}>
                         <FormControl>
@@ -1042,7 +1058,7 @@ export default function JobRequisitionForm() {
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Selecting a grade will auto-populate minimum experience requirements
+                        Selecting a grade will auto-populate minimum experience, education requirements, and education level
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
