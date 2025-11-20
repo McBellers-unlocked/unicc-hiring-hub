@@ -177,6 +177,35 @@ export default function JobRequisitionHREdit() {
       setLoading(false);
     }
   };
+
+  // Auto-populate experience and education based on grade when page loads
+  useEffect(() => {
+    if (!requisition || !formData) return;
+
+    const gradeRequirements: Record<string, { yearsText: string; education: string; educationLevel: string }> = {
+      'P1': { yearsText: 'one (1) year', education: 'First Level University', educationLevel: 'First Level University' },
+      'P2': { yearsText: 'two (2) years', education: 'First Level University', educationLevel: 'First Level University' },
+      'P3': { yearsText: 'five (5) years', education: 'First Level University', educationLevel: 'First Level University' },
+      'P4': { yearsText: 'seven (7) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+      'P5': { yearsText: 'ten (10) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+      'D1': { yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+      'D2': { yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' }
+    };
+
+    const requirements = gradeRequirements[formData.grade || ''];
+    if (requirements) {
+      const needsUpdate = !formData.essential_experience || !formData.essential_education;
+      
+      if (needsUpdate) {
+        setFormData(prev => ({
+          ...prev,
+          essential_experience: prev.essential_experience || `- At least ${requirements.yearsText} of relevant experience in [specify field/area]`,
+          essential_education: prev.essential_education || `- ${requirements.education} degree in [specify field/area]`,
+          essential_education_level: requirements.educationLevel
+        }));
+      }
+    }
+  }, [requisition?.grade]); // Only run when grade changes or on initial load
   
   // HR can finalize when manager has confirmed changes
   const isFinalReview = requisition?.hr_internal_status === 'pending_final_review';
