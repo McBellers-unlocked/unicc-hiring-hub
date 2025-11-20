@@ -168,9 +168,14 @@ export default function ChiefOfDivisionView() {
         .eq("id", id);
 
       if (error) throw error;
+      
+      return { id, approved, isInitialRequest };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["requisitions-chief-approval"] });
+    onSuccess: async (data) => {
+      // Immediately refetch to ensure UI updates
+      await queryClient.invalidateQueries({ queryKey: ["requisitions-chief-approval"] });
+      await queryClient.refetchQueries({ queryKey: ["requisitions-chief-approval"] });
+      
       toast.success("Requisition updated successfully");
     },
     onError: () => {
@@ -239,6 +244,14 @@ export default function ChiefOfDivisionView() {
                       // Initial Request View
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {requisition.unit_section_division && (
+                            <div>
+                              <p className="text-sm font-medium">Unit/Section/Division</p>
+                              <p className="text-sm text-muted-foreground">
+                                {requisition.unit_section_division}
+                              </p>
+                            </div>
+                          )}
                           <div>
                             <p className="text-sm font-medium">Duty Station</p>
                             <p className="text-sm text-muted-foreground">
