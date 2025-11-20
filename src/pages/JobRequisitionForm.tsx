@@ -612,17 +612,28 @@ export default function JobRequisitionForm() {
           };
 
           const requirements = gradeRequirements[data.grade];
+          console.log('Grade requirements check:', {
+            grade: data.grade,
+            requirements,
+            hasExperience: !!data.essential_experience,
+            hasEducation: !!data.essential_education,
+            hasEducationLevel: !!data.essential_education_level
+          });
+          
           if (requirements) {
             if (!data.essential_experience) {
               defaultEssentialExperience = `- At least ${requirements.yearsText} of relevant experience in [specify field/area]`;
+              console.log('Set defaultEssentialExperience:', defaultEssentialExperience);
             }
             if (!data.essential_education) {
               defaultEssentialEducation = requirements.isGPosition 
                 ? `- Completion of secondary school supplemented by technical training in [specify field/area]. A completed university degree from an accredited institution will be counted towards minimum work experience requirements`
                 : `- ${requirements.education} degree in [specify field/area]`;
+              console.log('Set defaultEssentialEducation:', defaultEssentialEducation);
             }
             if (!data.essential_education_level) {
               defaultEducationLevel = requirements.educationLevel;
+              console.log('Set defaultEducationLevel:', defaultEducationLevel);
             }
           }
         }
