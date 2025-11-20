@@ -1065,7 +1065,12 @@ export default function JobRequisitionForm() {
                         field.onChange(value);
                         
                         // Define grade requirements mapping
-                        const gradeRequirements: Record<string, { years: number; yearsText: string; education: string; educationLevel: string }> = {
+                        const gradeRequirements: Record<string, { years: number; yearsText: string; education: string; educationLevel: string; isGPosition?: boolean }> = {
+                          'G3': { years: 2, yearsText: 'two (2) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+                          'G4': { years: 3, yearsText: 'three (3) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+                          'G5': { years: 5, yearsText: 'five (5) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+                          'G6': { years: 8, yearsText: 'eight (8) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+                          'G7': { years: 10, yearsText: 'ten (10) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
                           'P1': { years: 1, yearsText: 'one (1) year', education: 'First Level University', educationLevel: 'First Level University' },
                           'P2': { years: 2, yearsText: 'two (2) years', education: 'First Level University', educationLevel: 'First Level University' },
                           'P3': { years: 5, yearsText: 'five (5) years', education: 'First Level University', educationLevel: 'First Level University' },
@@ -1086,8 +1091,17 @@ export default function JobRequisitionForm() {
                           }
                           
                           // Auto-populate essential education with template
-                          if (!currentEducation) {
-                            form.setValue('essential_education', `- ${requirements.education} degree in [specify field/area]`);
+                          // Also update if switching between G and P/D positions (different template structures)
+                          const isGEducation = currentEducation?.includes('Completion of secondary school supplemented by technical training');
+                          const shouldUpdateEducation = !currentEducation || 
+                            (requirements.isGPosition && !isGEducation) || 
+                            (!requirements.isGPosition && isGEducation);
+                          
+                          if (shouldUpdateEducation) {
+                            const eduText = requirements.isGPosition
+                              ? `- Completion of secondary school supplemented by technical training in [specify field/area]. A completed university degree from an accredited institution will be counted towards minimum work experience requirements`
+                              : `- ${requirements.education} degree in [specify field/area]`;
+                            form.setValue('essential_education', eduText);
                           }
                           
                           // Auto-populate education level dropdown
