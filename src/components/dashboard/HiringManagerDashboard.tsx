@@ -210,7 +210,7 @@ export default function HiringManagerDashboard() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Button 
-              onClick={() => navigate('/requisitions/new')} 
+              onClick={() => navigate('/requisitions/initial/new')} 
               variant="default"
               size="lg"
               className="h-auto py-4 flex-col items-start gap-2"
