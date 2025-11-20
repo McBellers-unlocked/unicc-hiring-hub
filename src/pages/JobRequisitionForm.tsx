@@ -568,6 +568,47 @@ export default function JobRequisitionForm() {
           confirmChiefApproval: true,
         });
         
+        // Auto-populate experience and education based on grade
+        const gradeRequirements: Record<string, { yearsText: string; education: string; educationLevel: string }> = {
+          'P1': { yearsText: 'one (1) year', education: 'First Level University', educationLevel: 'First Level University' },
+          'P2': { yearsText: 'two (2) years', education: 'First Level University', educationLevel: 'First Level University' },
+          'P3': { yearsText: 'five (5) years', education: 'First Level University', educationLevel: 'First Level University' },
+          'P4': { yearsText: 'seven (7) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+          'P5': { yearsText: 'ten (10) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+          'D1': { yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+          'D2': { yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' }
+        };
+
+        const requirements = gradeRequirements[data.grade || ''];
+        if (requirements && (data.nature_of_position !== 'Intern' && data.nature_of_position !== 'Individual Consultant')) {
+          const expPrefix = `- At least ${requirements.yearsText} of relevant experience in`;
+          const eduPrefix = `- ${requirements.education} degree in`;
+          
+          const currentExp = form.getValues('essential_experience');
+          const currentEdu = form.getValues('essential_education');
+          
+          const hasExpBullet = currentExp?.includes(expPrefix);
+          const hasEduBullet = currentEdu?.includes(eduPrefix);
+          
+          if (!hasExpBullet) {
+            const existingExp = currentExp || '';
+            form.setValue('essential_experience', existingExp 
+              ? `${expPrefix} [specify field/area]\n\n${existingExp}`
+              : `${expPrefix} [specify field/area]`);
+          }
+          
+          if (!hasEduBullet) {
+            const existingEdu = currentEdu || '';
+            form.setValue('essential_education', existingEdu
+              ? `${eduPrefix} [specify field/area]\n\n${existingEdu}`
+              : `${eduPrefix} [specify field/area]`);
+          }
+          
+          if (!form.getValues('essential_education_level')) {
+            form.setValue('essential_education_level', requirements.educationLevel);
+          }
+        }
+        
         // Set language requirements separately
         form.setValue("un_language_advantage", (data.language_requirements as any)?.un_language_advantage || false);
         form.setValue("local_language_advantage", (data.language_requirements as any)?.local_language_advantage || false);
