@@ -364,6 +364,17 @@ export default function JobRequisitionForm() {
     }
   }, [watchedGrade, form]);
 
+  // Clear multiple duty stations when grade changes to G position
+  useEffect(() => {
+    if (watchedGrade?.startsWith('G')) {
+      const currentDutyStations = form.getValues('duty_station');
+      if (currentDutyStations && currentDutyStations.length > 1) {
+        // Keep only the first selected location
+        form.setValue('duty_station', [currentDutyStations[0]]);
+      }
+    }
+  }, [watchedGrade, form]);
+
   const watchedNatureOfPosition = form.watch('nature_of_position');
   const watchedDutyStations = form.watch('duty_station');
   const showInternModality = watchedNatureOfPosition === 'Intern';
@@ -612,28 +623,18 @@ export default function JobRequisitionForm() {
           };
 
           const requirements = gradeRequirements[data.grade];
-          console.log('Grade requirements check:', {
-            grade: data.grade,
-            requirements,
-            hasExperience: !!data.essential_experience,
-            hasEducation: !!data.essential_education,
-            hasEducationLevel: !!data.essential_education_level
-          });
           
           if (requirements) {
             if (!data.essential_experience) {
               defaultEssentialExperience = `- At least ${requirements.yearsText} of relevant experience in [specify field/area]`;
-              console.log('Set defaultEssentialExperience:', defaultEssentialExperience);
             }
             if (!data.essential_education) {
               defaultEssentialEducation = requirements.isGPosition 
                 ? `- Completion of secondary school supplemented by technical training in [specify field/area]. A completed university degree from an accredited institution will be counted towards minimum work experience requirements`
                 : `- ${requirements.education} degree in [specify field/area]`;
-              console.log('Set defaultEssentialEducation:', defaultEssentialEducation);
             }
             if (!data.essential_education_level) {
               defaultEducationLevel = requirements.educationLevel;
-              console.log('Set defaultEducationLevel:', defaultEducationLevel);
             }
           }
         }
@@ -661,12 +662,6 @@ export default function JobRequisitionForm() {
           management_competencies: Array.isArray(data.management_competencies) ? data.management_competencies as string[] : [],
           leadership_competencies: Array.isArray(data.leadership_competencies) ? data.leadership_competencies as string[] : [],
           confirmChiefApproval: true,
-        });
-        
-        console.log('Form values after reset:', {
-          essential_experience: form.getValues('essential_experience'),
-          essential_education: form.getValues('essential_education'),
-          essential_education_level: form.getValues('essential_education_level')
         });
         
         // Force re-render of markdown editors by setting values again if they have defaults
@@ -1304,32 +1299,59 @@ export default function JobRequisitionForm() {
                 name="duty_station"
                 render={({ field }) => {
                   const natureOfPosition = form.watch("nature_of_position");
+                  const currentGrade = form.watch("grade");
+                  const isGPosition = currentGrade?.startsWith('G');
                   const baseStations = ['Brindisi', 'Geneva', 'New York', 'Rome', 'Valencia'];
                   const availableStations = (natureOfPosition === 'Intern' || natureOfPosition === 'Individual Consultant') 
                     ? [...baseStations, 'Remote'] 
                     : baseStations;
                   
+                  const handleLocationChange = (station: string, checked: boolean) => {
+                    if (isGPosition) {
+                      // For G positions, only allow single selection
+                      field.onChange(checked ? [station] : []);
+                    } else {
+                      // For other positions, allow multiple selections
+                      const current = field.value || [];
+                      if (checked) {
+                        field.onChange([...current, station]);
+                      } else {
+                        field.onChange(current.filter(s => s !== station));
+                      }
+                    }
+                  };
+                  
                   return (
                     <FormItem>
-                      <FormLabel>Duty Station *</FormLabel>
+                      <FormLabel>
+                        Duty Station * 
+                        {isGPosition && <span className="text-muted-foreground font-normal ml-2">(Single location only for G positions)</span>}
+                      </FormLabel>
                       <FormDescription>
-                        Select all applicable duty stations (multiple selection allowed)
+                        {isGPosition 
+                          ? "Select one duty station (single selection for G positions)"
+                          : "Select all applicable duty stations (multiple selection allowed)"
+                        }
                       </FormDescription>
                       <div className="grid grid-cols-3 gap-2 mt-2">
                         {availableStations.map((station) => (
                           <div key={station} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={station}
-                              checked={field.value?.includes(station) || false}
-                              onCheckedChange={(checked) => {
-                                const current = field.value || [];
-                                if (checked) {
-                                  field.onChange([...current, station]);
-                                } else {
-                                  field.onChange(current.filter(s => s !== station));
-                                }
-                              }}
-                            />
+                            {isGPosition ? (
+                              <input
+                                type="radio"
+                                id={station}
+                                name="duty_station_radio"
+                                checked={field.value?.includes(station) || false}
+                                onChange={(e) => handleLocationChange(station, e.target.checked)}
+                                className="h-4 w-4"
+                              />
+                            ) : (
+                              <Checkbox
+                                id={station}
+                                checked={field.value?.includes(station) || false}
+                                onCheckedChange={(checked) => handleLocationChange(station, !!checked)}
+                              />
+                            )}
                             <label htmlFor={station} className="text-sm">{station}</label>
                           </div>
                         ))}
