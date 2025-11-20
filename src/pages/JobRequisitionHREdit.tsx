@@ -919,6 +919,64 @@ export default function JobRequisitionHREdit() {
           </CardContent>
         </Card>
 
+        {/* Languages */}
+        {requisition.language_requirements && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Languages</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* English Language Requirement */}
+              {requisition.language_requirements.english && (
+                <div>
+                  <Label className="text-muted-foreground">English</Label>
+                  <p className="text-sm mt-1">{requisition.language_requirements.english}</p>
+                </div>
+              )}
+
+              {/* Additional Languages */}
+              {Array.isArray(requisition.language_requirements.additional_languages) && 
+               requisition.language_requirements.additional_languages.length > 0 && (
+                <div>
+                  <Label className="text-muted-foreground">Additional Languages</Label>
+                  <ul className="mt-1 space-y-1">
+                    {requisition.language_requirements.additional_languages.map((lang: any, index: number) => {
+                      if (typeof lang === 'string') {
+                        return <li key={index} className="text-sm">• {lang}</li>;
+                      } else if (lang.language && lang.level) {
+                        return (
+                          <li key={index} className="text-sm">
+                            • <strong>{lang.language}:</strong> {lang.level}
+                          </li>
+                        );
+                      }
+                      return null;
+                    })}
+                  </ul>
+                </div>
+              )}
+
+              {/* Local Language Advantage */}
+              {requisition.language_requirements.local_language_advantage && (
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    • Knowledge of the local language of the duty station is an advantage
+                  </p>
+                </div>
+              )}
+
+              {/* UN Language Advantage */}
+              {requisition.language_requirements.un_language_advantage && (
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    • Knowledge of another UN official language is an advantage
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* HR Change Summary */}
         <Card>
           <CardHeader>
