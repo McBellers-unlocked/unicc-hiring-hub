@@ -11,7 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, AlertTriangle, Eye } from "lucide-react";
 import { format } from "date-fns";
 import EditableTrackChangesFieldWithHighlight from "@/components/EditableTrackChangesFieldWithHighlight";
-import EditableTrackChangesField from "@/components/EditableTrackChangesField";
 import { FinalDocumentReviewDialog } from "@/components/FinalDocumentReviewDialog";
 
 interface JobRequisition {
@@ -614,11 +613,15 @@ export default function JobRequisitionHREdit() {
                 canResolveComments={true}
               />
             ) : (
-              <EditableTrackChangesField
+              <EditableTrackChangesFieldWithHighlight
                 label="Purpose of the Position"
                 originalValue={originalData.purpose_of_position || ''}
                 currentValue={formData.purpose_of_position || ''}
                 onChange={(value) => setFormData({ ...formData, purpose_of_position: value })}
+                requisitionId={id}
+                fieldName="purpose_of_position"
+                currentUserId={user?.id}
+                canResolveComments={true}
               />
             )}
             
@@ -634,11 +637,15 @@ export default function JobRequisitionHREdit() {
                 canResolveComments={true}
               />
             ) : (
-              <EditableTrackChangesField
+              <EditableTrackChangesFieldWithHighlight
                 label="Objectives of the Programme"
                 originalValue={originalData.objectives_of_programme || ''}
                 currentValue={formData.objectives_of_programme || ''}
                 onChange={(value) => setFormData({ ...formData, objectives_of_programme: value })}
+                requisitionId={id}
+                fieldName="objectives_of_programme"
+                currentUserId={user?.id}
+                canResolveComments={true}
               />
             )}
             
@@ -654,11 +661,15 @@ export default function JobRequisitionHREdit() {
                 canResolveComments={true}
               />
             ) : (
-              <EditableTrackChangesField
+              <EditableTrackChangesFieldWithHighlight
                 label="Main Duties and Responsibilities"
                 originalValue={originalData.main_duties_responsibilities || ''}
                 currentValue={formData.main_duties_responsibilities || ''}
                 onChange={(value) => setFormData({ ...formData, main_duties_responsibilities: value })}
+                requisitionId={id}
+                fieldName="main_duties_responsibilities"
+                currentUserId={user?.id}
+                canResolveComments={true}
               />
             )}
           </CardContent>
@@ -683,11 +694,15 @@ export default function JobRequisitionHREdit() {
                   canResolveComments={true}
                 />
                 ) : (
-                  <EditableTrackChangesField
+                  <EditableTrackChangesFieldWithHighlight
                     label="Essential Experience"
                     originalValue={originalData.essential_experience || ''}
                     currentValue={formData.essential_experience || ''}
                     onChange={(value) => setFormData({ ...formData, essential_experience: value })}
+                    requisitionId={id}
+                    fieldName="essential_experience"
+                    currentUserId={user?.id}
+                    canResolveComments={true}
                   />
                 )}
               
@@ -706,11 +721,15 @@ export default function JobRequisitionHREdit() {
                       canResolveComments={true}
                     />
                   ) : (
-                    <EditableTrackChangesField
+                    <EditableTrackChangesFieldWithHighlight
                       label="Desirable Experience"
                       originalValue={originalData.desirable_experience || ''}
                       currentValue={formData.desirable_experience || ''}
                       onChange={(value) => setFormData({ ...formData, desirable_experience: value })}
+                      requisitionId={id}
+                      fieldName="desirable_experience"
+                      currentUserId={user?.id}
+                      canResolveComments={true}
                     />
                   )}
                 </>
@@ -728,11 +747,15 @@ export default function JobRequisitionHREdit() {
                   canResolveComments={true}
                 />
                 ) : (
-                  <EditableTrackChangesField
+                  <EditableTrackChangesFieldWithHighlight
                     label="Essential Education"
                     originalValue={originalData.essential_education || ''}
                     currentValue={formData.essential_education || ''}
                     onChange={(value) => setFormData({ ...formData, essential_education: value })}
+                    requisitionId={id}
+                    fieldName="essential_education"
+                    currentUserId={user?.id}
+                    canResolveComments={true}
                   />
                 )}
               
@@ -751,11 +774,15 @@ export default function JobRequisitionHREdit() {
                       canResolveComments={true}
                     />
                   ) : (
-                    <EditableTrackChangesField
+                    <EditableTrackChangesFieldWithHighlight
                       label="Desirable Education"
                       originalValue={originalData.desirable_education || ''}
                       currentValue={formData.desirable_education || ''}
                       onChange={(value) => setFormData({ ...formData, desirable_education: value })}
+                      requisitionId={id}
+                      fieldName="desirable_education"
+                      currentUserId={user?.id}
+                      canResolveComments={true}
                     />
                   )}
                 </>
