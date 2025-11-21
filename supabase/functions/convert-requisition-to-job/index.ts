@@ -62,7 +62,13 @@ Deno.serve(async (req) => {
     let langReq = '# Language Requirements\n\n- English: Expert knowledge is required\n';
     if (req_data.language_requirements?.additional_languages) {
       req_data.language_requirements.additional_languages.forEach((l: any) => {
-        if (l.name && l.level) langReq += `- ${l.name}: ${l.level}\n`;
+        if (l.name && l.level) {
+          // For UN languages, use "Desirable / an advantage" instead of the level text
+          const levelText = (l.name === 'Any UN language' || l.name?.includes('UN language')) 
+            ? 'Desirable / an advantage' 
+            : l.level;
+          langReq += `- ${l.name}: ${levelText}\n`;
+        }
       });
     }
     // Add local language advantage for G positions
