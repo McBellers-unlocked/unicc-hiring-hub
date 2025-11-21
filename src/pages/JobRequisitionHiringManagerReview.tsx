@@ -549,16 +549,32 @@ export default function JobRequisitionHiringManagerReview() {
               />
             </div>
 
-            <EditableTrackChangesField
-              label="Desirable Experience"
-              originalValue={originalData.desirable_experience || ""}
-              currentValue={formData.desirable_experience || ""}
-              onChange={(value) => setFormData({ ...formData, desirable_experience: value })}
-              requisitionId={id}
-              fieldName="desirable_experience"
-              currentUserId={user?.id}
-              canResolveComments={false}
-            />
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Desirable Experience</Label>
+                {hasHRChanges('desirable_experience') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => acceptHRChanges('desirable_experience')}
+                    className="h-8 gap-1"
+                  >
+                    <Check className="h-3 w-3" />
+                    Accept Changes
+                  </Button>
+                )}
+              </div>
+              <EditableTrackChangesField
+                label=""
+                originalValue={originalData.desirable_experience || ""}
+                currentValue={formData.desirable_experience || ""}
+                onChange={(value) => setFormData({ ...formData, desirable_experience: value })}
+                requisitionId={id}
+                fieldName="desirable_experience"
+                currentUserId={user?.id}
+                canResolveComments={false}
+              />
+            </div>
 
             <div className={validationErrors.has('essential_education') ? 'border-2 border-destructive rounded-lg p-4' : ''}>
               {validationErrors.has('essential_education') && (
@@ -633,146 +649,87 @@ export default function JobRequisitionHiringManagerReview() {
             <CardTitle>Competencies</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Mandatory Competencies */}
             {requisition.global_competencies && Array.isArray(requisition.global_competencies) && requisition.global_competencies.length > 0 && (
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-medium">Global Competencies</Label>
-                  {hasHRChanges('global_competencies') && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => acceptHRChanges('global_competencies')}
-                      className="h-8 gap-1"
-                    >
-                      <Check className="h-3 w-3" />
-                      Accept Changes
-                    </Button>
-                  )}
-                </div>
-                <div className="rounded-md border p-4 bg-muted/30">
-                  <ul className="space-y-3 text-sm">
-                    {requisition.global_competencies.map((comp: any, index: number) => {
-                      if (typeof comp === 'string') {
-                        return <li key={index}>• <strong>{comp}</strong></li>;
-                      }
-                      const name = comp.name || comp.competency_name || '';
-                      const description = comp.description || '';
-                      return (
-                        <li key={index} className="space-y-1">
-                          <div><strong>{name}</strong></div>
-                          {description && <div className="text-muted-foreground pl-4">{description}</div>}
-                        </li>
-                      );
-                    })}
-                  </ul>
+                <h4 className="font-semibold text-primary mb-1">Mandatory Competencies</h4>
+                <p className="text-sm text-muted-foreground mb-3">These competencies are automatically included for all positions:</p>
+                <div className="space-y-3">
+                  {requisition.global_competencies.map((comp: any, index: number) => {
+                    if (typeof comp === 'string') {
+                      return <div key={index} className="text-sm">• <strong>{comp}</strong></div>;
+                    }
+                    const name = comp.name || comp.competency_name || '';
+                    const description = comp.description || '';
+                    return (
+                      <div key={index} className="text-sm">
+                        • <strong>{name}:</strong> {description}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
+            {/* Core Competencies */}
             {requisition.core_competencies && Array.isArray(requisition.core_competencies) && requisition.core_competencies.length > 0 && (
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-medium">Core Competencies</Label>
-                  {hasHRChanges('core_competencies') && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => acceptHRChanges('core_competencies')}
-                      className="h-8 gap-1"
-                    >
-                      <Check className="h-3 w-3" />
-                      Accept Changes
-                    </Button>
-                  )}
-                </div>
-                <div className="rounded-md border p-4 bg-muted/30">
-                  <ul className="space-y-3 text-sm">
-                    {requisition.core_competencies.map((comp: any, index: number) => {
-                      if (typeof comp === 'string') {
-                        return <li key={index}>• <strong>{comp}</strong></li>;
-                      }
-                      const name = comp.name || comp.competency_name || '';
-                      const description = comp.description || '';
-                      return (
-                        <li key={index} className="space-y-1">
-                          <div><strong>{name}</strong></div>
-                          {description && <div className="text-muted-foreground pl-4">{description}</div>}
-                        </li>
-                      );
-                    })}
-                  </ul>
+                <h4 className="font-semibold text-primary mb-3">Core Competencies</h4>
+                <div className="space-y-3">
+                  {requisition.core_competencies.map((comp: any, index: number) => {
+                    if (typeof comp === 'string') {
+                      return <div key={index} className="text-sm">• <strong>{comp}</strong></div>;
+                    }
+                    const name = comp.name || comp.competency_name || '';
+                    const description = comp.description || '';
+                    return (
+                      <div key={index} className="text-sm">
+                        • <strong>{name}:</strong> {description}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
+            {/* Management Competencies */}
             {requisition.management_competencies && Array.isArray(requisition.management_competencies) && requisition.management_competencies.length > 0 && (
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-medium">Management Competencies</Label>
-                  {hasHRChanges('management_competencies') && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => acceptHRChanges('management_competencies')}
-                      className="h-8 gap-1"
-                    >
-                      <Check className="h-3 w-3" />
-                      Accept Changes
-                    </Button>
-                  )}
-                </div>
-                <div className="rounded-md border p-4 bg-muted/30">
-                  <ul className="space-y-3 text-sm">
-                    {requisition.management_competencies.map((comp: any, index: number) => {
-                      if (typeof comp === 'string') {
-                        return <li key={index}>• <strong>{comp}</strong></li>;
-                      }
-                      const name = comp.name || comp.competency_name || '';
-                      const description = comp.description || '';
-                      return (
-                        <li key={index} className="space-y-1">
-                          <div><strong>{name}</strong></div>
-                          {description && <div className="text-muted-foreground pl-4">{description}</div>}
-                        </li>
-                      );
-                    })}
-                  </ul>
+                <h4 className="font-semibold text-primary mb-3">Management Competencies</h4>
+                <div className="space-y-3">
+                  {requisition.management_competencies.map((comp: any, index: number) => {
+                    if (typeof comp === 'string') {
+                      return <div key={index} className="text-sm">• <strong>{comp}</strong></div>;
+                    }
+                    const name = comp.name || comp.competency_name || '';
+                    const description = comp.description || '';
+                    return (
+                      <div key={index} className="text-sm">
+                        • <strong>{name}:</strong> {description}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
+            {/* Leadership Competencies */}
             {requisition.leadership_competencies && Array.isArray(requisition.leadership_competencies) && requisition.leadership_competencies.length > 0 && (
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-medium">Leadership Competencies</Label>
-                  {hasHRChanges('leadership_competencies') && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => acceptHRChanges('leadership_competencies')}
-                      className="h-8 gap-1"
-                    >
-                      <Check className="h-3 w-3" />
-                      Accept Changes
-                    </Button>
-                  )}
-                </div>
-                <div className="rounded-md border p-4 bg-muted/30">
-                  <ul className="space-y-3 text-sm">
-                    {requisition.leadership_competencies.map((comp: any, index: number) => {
-                      if (typeof comp === 'string') {
-                        return <li key={index}>• <strong>{comp}</strong></li>;
-                      }
-                      const name = comp.name || comp.competency_name || '';
-                      const description = comp.description || '';
-                      return (
-                        <li key={index} className="space-y-1">
-                          <div><strong>{name}</strong></div>
-                          {description && <div className="text-muted-foreground pl-4">{description}</div>}
-                        </li>
-                      );
-                    })}
-                  </ul>
+                <h4 className="font-semibold text-primary mb-3">Leadership Competencies</h4>
+                <div className="space-y-3">
+                  {requisition.leadership_competencies.map((comp: any, index: number) => {
+                    if (typeof comp === 'string') {
+                      return <div key={index} className="text-sm">• <strong>{comp}</strong></div>;
+                    }
+                    const name = comp.name || comp.competency_name || '';
+                    const description = comp.description || '';
+                    return (
+                      <div key={index} className="text-sm">
+                        • <strong>{name}:</strong> {description}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -783,64 +740,46 @@ export default function JobRequisitionHiringManagerReview() {
           <CardHeader>
             <CardTitle>Language Requirements</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label className="text-sm font-medium">Language Requirements</Label>
-                {hasHRChanges('language_requirements') && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => acceptHRChanges('language_requirements')}
-                    className="h-8 gap-1"
-                  >
-                    <Check className="h-3 w-3" />
-                    Accept Changes
-                  </Button>
-                )}
-              </div>
-              <div className="rounded-md border p-4 bg-muted/30">
-                {requisition.language_requirements && typeof requisition.language_requirements === 'object' ? (
-                  <div className="space-y-3 text-sm">
-                    {Object.entries(requisition.language_requirements).map(([lang, level]) => {
-                      // Skip technical fields
-                      if (lang === 'un_language_advantage' || lang === 'local_language_advantage' || lang === 'additional_languages') {
-                        return null;
-                      }
-                      return (
-                        <div key={lang}>
-                          <strong className="capitalize">{lang.replace(/_/g, ' ')}:</strong> {String(level)}
-                        </div>
-                      );
-                    })}
-                    {requisition.language_requirements.additional_languages && 
-                     Array.isArray(requisition.language_requirements.additional_languages) &&
-                     requisition.language_requirements.additional_languages.length > 0 && (
-                      <div className="mt-4 pt-3 border-t">
-                        <div className="font-semibold mb-2">Additional Languages:</div>
-                        {requisition.language_requirements.additional_languages.map((lang: any, idx: number) => (
-                          <div key={idx} className="pl-4">
-                            • <strong>{lang.name}:</strong> {lang.level}
-                          </div>
-                        ))}
+          <CardContent className="space-y-3">
+            {requisition.language_requirements && typeof requisition.language_requirements === 'object' ? (
+              <div className="space-y-3 text-sm">
+                {Object.entries(requisition.language_requirements).map(([lang, level]) => {
+                  // Skip technical fields
+                  if (lang === 'un_language_advantage' || lang === 'local_language_advantage' || lang === 'additional_languages') {
+                    return null;
+                  }
+                  return (
+                    <div key={lang}>
+                      • <strong className="capitalize">{lang.replace(/_/g, ' ')}:</strong> {String(level)}
+                    </div>
+                  );
+                })}
+                {requisition.language_requirements.additional_languages && 
+                 Array.isArray(requisition.language_requirements.additional_languages) &&
+                 requisition.language_requirements.additional_languages.length > 0 && (
+                  <div className="mt-4 pt-3 border-t">
+                    <div className="font-semibold mb-2">Additional Languages:</div>
+                    {requisition.language_requirements.additional_languages.map((lang: any, idx: number) => (
+                      <div key={idx} className="pl-4">
+                        • <strong>{lang.name}:</strong> {lang.level}
                       </div>
-                    )}
-                    {requisition.language_requirements.un_language_advantage && (
-                      <div className="mt-3 text-muted-foreground italic">
-                        Knowledge of another UN official language is an advantage
-                      </div>
-                    )}
-                    {requisition.language_requirements.local_language_advantage && (
-                      <div className="mt-2 text-muted-foreground italic">
-                        Knowledge of the local language is an advantage
-                      </div>
-                    )}
+                    ))}
                   </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No language requirements specified</p>
+                )}
+                {requisition.language_requirements.un_language_advantage && (
+                  <div className="mt-3 text-muted-foreground italic">
+                    Knowledge of another UN official language is an advantage
+                  </div>
+                )}
+                {requisition.language_requirements.local_language_advantage && (
+                  <div className="mt-2 text-muted-foreground italic">
+                    Knowledge of the local language is an advantage
+                  </div>
                 )}
               </div>
-            </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No language requirements specified</p>
+            )}
           </CardContent>
         </Card>
       </div>
