@@ -579,34 +579,98 @@ export default function JobRequisitionDetail() {
                   <p className="whitespace-pre-wrap">{requisition.language_requirements}</p>
                 ) : (
                   <div className="space-y-2">
-                    {Object.entries(requisition.language_requirements).map(([lang, req]: [string, any]) => {
-                      // Handle special case for UN language advantage
-                      if (lang === 'un_language_advantage' && req) {
-                        return (
-                          <div key={lang}>
+                    {(() => {
+                      const langReq = requisition.language_requirements as Record<string, any>;
+                      const languageLabels: Record<string, string> = {
+                        english: 'English',
+                        french: 'French',
+                        spanish: 'Spanish',
+                        arabic: 'Arabic',
+                        chinese: 'Chinese',
+                        russian: 'Russian',
+                      };
+
+                      const items: JSX.Element[] = [];
+
+                      // Main language entries (e.g. English)
+                      Object.entries(langReq)
+                        .filter(([key, value]) => {
+                          // Skip internal / special fields
+                          if (['additional_languages', 'un_language_advantage', 'local_language_advantage'].includes(key)) {
+                            return false;
+                          }
+                          if (typeof value === 'string') {
+                            const cleanValue = value.trim().toLowerCase();
+                            if (
+                              cleanValue === '' ||
+                              cleanValue === 'not specified' ||
+                              cleanValue.includes('not specified') ||
+                              cleanValue === key.toLowerCase() ||
+                              cleanValue.includes(key.toLowerCase())
+                            ) {
+                              return false;
+                            }
+                            return true;
+                          }
+                          return false;
+                        })
+                        .forEach(([lang, level]) => {
+                          const label =
+                            languageLabels[lang.toLowerCase() as keyof typeof languageLabels] ||
+                            lang.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+                          items.push(
+                            <div key={lang}>
+                              <span className="font-medium">{label}:</span>
+                              <span className="ml-2">{level}</span>
+                            </div>
+                          );
+                        });
+
+                      // Additional languages array
+                      const additional = Array.isArray((langReq as any).additional_languages)
+                        ? (langReq as any).additional_languages.filter((lang: any) => {
+                            if (typeof lang === 'object' && lang?.name) {
+                              const cleanName = String(lang.name).trim().toLowerCase();
+                              return cleanName !== '' && !cleanName.includes('not specified');
+                            }
+                            if (typeof lang === 'string') {
+                              const cleanLang = lang.trim().toLowerCase();
+                              return cleanLang !== '' && !cleanLang.includes('not specified');
+                            }
+                            return false;
+                          })
+                        : [];
+
+                      additional.forEach((lang: any, idx: number) => {
+                        const name = typeof lang === 'object' && lang.name ? lang.name : String(lang);
+                        const level = typeof lang === 'object' && lang.level ? lang.level : '';
+                        items.push(
+                          <div key={`additional-${idx}`}>
+                            <span className="font-medium">{name}:</span>
+                            <span className="ml-2">{level || 'Not specified'}</span>
+                          </div>
+                        );
+                      });
+
+                      // Advantage flags
+                      if ((langReq as any).un_language_advantage === true) {
+                        items.push(
+                          <div key="un_language_advantage">
                             <span className="ml-2">Knowledge of another UN language would be an advantage</span>
                           </div>
                         );
                       }
-                      
-                      // Skip if UN language advantage is false
-                      if (lang === 'un_language_advantage' && !req) {
-                        return null;
+
+                      if ((langReq as any).local_language_advantage === true) {
+                        items.push(
+                          <div key="local_language_advantage">
+                            <span className="ml-2">Knowledge of the local language of the Duty Station would be an advantage</span>
+                          </div>
+                        );
                       }
-                      
-                      // Handle other language requirements
-                      return (
-                        <div key={lang}>
-                          <span className="font-medium capitalize">{lang}:</span>
-                          <span className="ml-2">
-                            {typeof req === 'object' && req !== null 
-                              ? `${req.name || lang} - ${req.level || 'Not specified'}`
-                              : req
-                            }
-                          </span>
-                        </div>
-                      );
-                    })}
+
+                      return items;
+                    })()}
                   </div>
                 )}
               </div>
