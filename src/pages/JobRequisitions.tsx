@@ -327,6 +327,17 @@ export default function JobRequisitions() {
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">
+                      {/* View Request button - for viewing initial request form */}
+                      {(requisition.funding_status || requisition.brief_outline) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/requisitions/initial/${requisition.id}?view=true`)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Request
+                        </Button>
+                      )}
                       {/* Continue to Full PD button for approved initial requests */}
                       {requisition.initial_request_approved && 
                        requisition.status === 'initial_request_approved' &&

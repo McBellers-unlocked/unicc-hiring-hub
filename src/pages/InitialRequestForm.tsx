@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -111,10 +111,12 @@ const FUNDING_OPTIONS = [
 
 export default function InitialRequestForm() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   
+  const viewMode = searchParams.get('view') === 'true';
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedDivision, setSelectedDivision] = useState('');
@@ -547,6 +549,7 @@ export default function InitialRequestForm() {
                 value={formData.position_title}
                 onChange={(e) => setFormData(prev => ({ ...prev, position_title: e.target.value }))}
                 placeholder="e.g., Senior Software Developer"
+                disabled={viewMode}
               />
             </div>
 
@@ -563,6 +566,7 @@ export default function InitialRequestForm() {
                       setSelectedUnit("");
                       setFormData(prev => ({ ...prev, unit_section_division: "" }));
                     }}
+                    disabled={viewMode}
                   >
                     <SelectTrigger id="division">
                       <SelectValue placeholder="Select division..." />
@@ -586,6 +590,7 @@ export default function InitialRequestForm() {
                         setSelectedUnit(value);
                         setFormData(prev => ({ ...prev, unit_section_division: value }));
                       }}
+                      disabled={viewMode}
                     >
                       <SelectTrigger id="unit-section">
                         <SelectValue placeholder="Select unit/section..." />
@@ -624,6 +629,7 @@ export default function InitialRequestForm() {
                   consultant_duration: '',
                   grade: value === 'Staff' || value === 'STDA' ? prev.grade : '',
                 }))}
+                disabled={viewMode}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select contract type" />
@@ -648,6 +654,7 @@ export default function InitialRequestForm() {
                     staff_contract_type: value,
                     temporary_duration: value === 'Temporary' ? prev.temporary_duration : '',
                   }))}
+                  disabled={viewMode}
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="Fixed term" id="fixed" />
@@ -668,6 +675,7 @@ export default function InitialRequestForm() {
                 <RadioGroup 
                   value={formData.temporary_duration} 
                   onValueChange={(value) => setFormData(prev => ({ ...prev, temporary_duration: value }))}
+                  disabled={viewMode}
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="6 months" id="temp6" />
@@ -688,6 +696,7 @@ export default function InitialRequestForm() {
                 <RadioGroup 
                   value={formData.consultant_duration} 
                   onValueChange={(value) => setFormData(prev => ({ ...prev, consultant_duration: value }))}
+                  disabled={viewMode}
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="6 months" id="cons6" />
@@ -708,6 +717,7 @@ export default function InitialRequestForm() {
                 <RadioGroup 
                   value={formData.intern_modality} 
                   onValueChange={(value) => setFormData(prev => ({ ...prev, intern_modality: value }))}
+                  disabled={viewMode}
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="Full time" id="fulltime" />
@@ -739,6 +749,7 @@ export default function InitialRequestForm() {
                           checked={consultancyLevel === level}
                           onChange={() => setConsultancyLevel(level)}
                           className="rounded border-input"
+                          disabled={viewMode}
                         />
                         <label htmlFor={level} className="text-sm cursor-pointer">
                           {level}
@@ -759,6 +770,7 @@ export default function InitialRequestForm() {
                 <Select 
                   value={formData.grade} 
                   onValueChange={(value) => setFormData(prev => ({ ...prev, grade: value }))}
+                  disabled={viewMode}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select grade" />
@@ -801,6 +813,7 @@ export default function InitialRequestForm() {
                                 : prev.eligible_grades.filter(g => g !== grade)
                             }));
                           }}
+                          disabled={viewMode}
                         />
                         <Label htmlFor={`eligible-${grade}`} className="font-normal">
                           {grade}
@@ -816,6 +829,7 @@ export default function InitialRequestForm() {
                   <RadioGroup 
                     value={formData.stda_assignment_duration} 
                     onValueChange={(value) => setFormData(prev => ({ ...prev, stda_assignment_duration: value }))}
+                    disabled={viewMode}
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="3 months" id="stda3" />
@@ -852,6 +866,7 @@ export default function InitialRequestForm() {
                                 : prev.stda_reasons.filter(r => r !== reason)
                             }));
                           }}
+                          disabled={viewMode}
                         />
                         <Label htmlFor={`reason-${reason}`} className="font-normal">
                           {reason}
@@ -864,6 +879,7 @@ export default function InitialRequestForm() {
                         onChange={(e) => setFormData(prev => ({ ...prev, stda_other_reason: e.target.value }))}
                         placeholder="Please specify..."
                         className="ml-6 mt-2"
+                        disabled={viewMode}
                       />
                     )}
                   </div>
@@ -880,6 +896,7 @@ export default function InitialRequestForm() {
                       stda_percentage: value === 'Full time' ? '' : prev.stda_percentage,
                       stda_days_per_week: value === 'Full time' ? '' : prev.stda_days_per_week,
                     }))}
+                    disabled={viewMode}
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="Full time" id="fulltime-stda" />
@@ -902,6 +919,7 @@ export default function InitialRequestForm() {
                           className="w-20"
                           min="1"
                           max="99"
+                          disabled={viewMode}
                         />
                         <span className="text-sm">%</span>
                       </div>
@@ -914,6 +932,7 @@ export default function InitialRequestForm() {
                           className="w-20"
                           min="1"
                           max="5"
+                          disabled={viewMode}
                         />
                         <span className="text-sm">days/week</span>
                       </div>
@@ -929,6 +948,7 @@ export default function InitialRequestForm() {
                     id="start-date"
                     value={formData.stda_start_date}
                     onChange={(e) => setFormData(prev => ({ ...prev, stda_start_date: e.target.value }))}
+                    disabled={viewMode}
                   />
                 </div>
               </>
@@ -966,6 +986,7 @@ export default function InitialRequestForm() {
                             checked={formData.duty_station.includes(location)}
                             onChange={() => handleLocationToggle(location)}
                             className="h-4 w-4"
+                            disabled={viewMode}
                           />
                           <Label htmlFor={`location-${location}`} className="font-normal">
                             {location}
@@ -977,6 +998,7 @@ export default function InitialRequestForm() {
                             id={`location-${location}`}
                             checked={formData.duty_station.includes(location)}
                             onCheckedChange={() => handleLocationToggle(location)}
+                            disabled={viewMode}
                           />
                           <Label htmlFor={`location-${location}`} className="font-normal">
                             {location}
@@ -998,6 +1020,7 @@ export default function InitialRequestForm() {
                     onChange={(e) => setFormData(prev => ({ ...prev, remote_region: e.target.value }))}
                     placeholder="e.g., Europe, Asia-Pacific, Americas"
                     className="mt-1"
+                    disabled={viewMode}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Specify the timezone for remote work
@@ -1016,6 +1039,7 @@ export default function InitialRequestForm() {
                 placeholder="Provide a brief description of the role and its main responsibilities..."
                 rows={5}
                 maxLength={1000}
+                disabled={viewMode}
               />
               <p className="text-xs text-muted-foreground">
                 {formData.brief_outline.length}/1000 characters
@@ -1028,6 +1052,7 @@ export default function InitialRequestForm() {
               <Select 
                 value={formData.funding_status} 
                 onValueChange={(value) => setFormData(prev => ({ ...prev, funding_status: value }))}
+                disabled={viewMode}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select funding status" />
@@ -1051,27 +1076,30 @@ export default function InitialRequestForm() {
                 onChange={(e) => setFormData(prev => ({ ...prev, funding_comments: e.target.value }))}
                 placeholder="Add any additional details about funding..."
                 rows={3}
+                disabled={viewMode}
               />
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-between pt-6">
-              <Button
-                variant="outline"
-                onClick={() => handleSave(false)}
-                disabled={saving}
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save Draft
-              </Button>
-              <Button
-                onClick={() => handleSave(true)}
-                disabled={saving}
-              >
-                <Send className="w-4 h-4 mr-2" />
-                Submit for Approval
-              </Button>
-            </div>
+            {!viewMode && (
+              <div className="flex justify-between pt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => handleSave(false)}
+                  disabled={saving}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Draft
+                </Button>
+                <Button
+                  onClick={() => handleSave(true)}
+                  disabled={saving}
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  Submit for Approval
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
