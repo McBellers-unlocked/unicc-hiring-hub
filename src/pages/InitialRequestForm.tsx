@@ -1196,19 +1196,19 @@ export default function InitialRequestForm() {
             {showChiefActions && (
               <div className="flex justify-end gap-3 pt-6 border-t">
                 <Button
-                  variant="outline"
-                  onClick={() => handleApproval(false)}
-                  disabled={approveMutation.isPending}
-                >
-                  <XCircle className="w-4 h-4 mr-2" />
-                  Reject
-                </Button>
-                <Button
                   onClick={() => handleApproval(true)}
                   disabled={approveMutation.isPending}
+                  size="sm"
                 >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Approve
+                  Approve Initial Request
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleApproval(false)}
+                  disabled={approveMutation.isPending}
+                  size="sm"
+                >
+                  Reject
                 </Button>
               </div>
             )}
