@@ -52,6 +52,7 @@ interface JobRequisition {
   finance_controller_approval: boolean;
   finance_controller_approved_at: string | null;
   converted_to_job_id?: string;
+  initial_request_approved?: boolean;
 }
 
 export default function AdminRequisitions() {
@@ -458,7 +459,8 @@ export default function AdminRequisitions() {
                           
                           <div className="flex items-center gap-2">
                             {/* Continue PD Button for Drafts */}
-                            {requisition.status === 'initial_request_draft' && (
+                            {(requisition.status === 'initial_request_draft' || requisition.status === 'draft' || requisition.status === 'pd_draft') && 
+                             !requisition.initial_request_approved && (
                               <Button
                                 variant="default"
                                 size="sm"
