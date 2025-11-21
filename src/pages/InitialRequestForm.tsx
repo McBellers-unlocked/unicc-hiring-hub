@@ -756,37 +756,28 @@ export default function InitialRequestForm() {
                 <Label htmlFor="grade">
                   {formData.nature_of_position === 'STDA' ? 'Proposed Grade *' : 'Grade *'}
                 </Label>
-                {formData.nature_of_position === 'Staff' ? (
-                  <Select 
-                    value={formData.grade} 
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, grade: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select grade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="P1">P1</SelectItem>
-                      <SelectItem value="P2">P2</SelectItem>
-                      <SelectItem value="P3">P3</SelectItem>
-                      <SelectItem value="P4">P4</SelectItem>
-                      <SelectItem value="P5">P5</SelectItem>
-                      <SelectItem value="D1">D1</SelectItem>
-                      <SelectItem value="D2">D2</SelectItem>
-                      <SelectItem value="G3">G3</SelectItem>
-                      <SelectItem value="G4">G4</SelectItem>
-                      <SelectItem value="G5">G5</SelectItem>
-                      <SelectItem value="G6">G6</SelectItem>
-                      <SelectItem value="G7">G7</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    id="grade"
-                    value={formData.grade}
-                    onChange={(e) => setFormData(prev => ({ ...prev, grade: e.target.value }))}
-                    placeholder="Select grade"
-                  />
-                )}
+                <Select 
+                  value={formData.grade} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, grade: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="P1">P1</SelectItem>
+                    <SelectItem value="P2">P2</SelectItem>
+                    <SelectItem value="P3">P3</SelectItem>
+                    <SelectItem value="P4">P4</SelectItem>
+                    <SelectItem value="P5">P5</SelectItem>
+                    <SelectItem value="D1">D1</SelectItem>
+                    <SelectItem value="D2">D2</SelectItem>
+                    <SelectItem value="G3">G3</SelectItem>
+                    <SelectItem value="G4">G4</SelectItem>
+                    <SelectItem value="G5">G5</SelectItem>
+                    <SelectItem value="G6">G6</SelectItem>
+                    <SelectItem value="G7">G7</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
