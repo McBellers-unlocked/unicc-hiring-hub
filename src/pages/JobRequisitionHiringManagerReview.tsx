@@ -649,13 +649,22 @@ export default function JobRequisitionHiringManagerReview() {
                     </Button>
                   )}
                 </div>
-                <div className="rounded-md border p-4 space-y-2">
-                  {requisition.global_competencies.map((comp: any, index: number) => (
-                    <div key={index} className="text-sm">
-                      <strong>{typeof comp === 'string' ? comp : comp.name || comp.competency_name}:</strong>{' '}
-                      {typeof comp === 'object' && comp.description}
-                    </div>
-                  ))}
+                <div className="rounded-md border p-4 bg-muted/30">
+                  <ul className="space-y-3 text-sm">
+                    {requisition.global_competencies.map((comp: any, index: number) => {
+                      if (typeof comp === 'string') {
+                        return <li key={index}>• <strong>{comp}</strong></li>;
+                      }
+                      const name = comp.name || comp.competency_name || '';
+                      const description = comp.description || '';
+                      return (
+                        <li key={index} className="space-y-1">
+                          <div><strong>{name}</strong></div>
+                          {description && <div className="text-muted-foreground pl-4">{description}</div>}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
               </div>
             )}
@@ -676,13 +685,22 @@ export default function JobRequisitionHiringManagerReview() {
                     </Button>
                   )}
                 </div>
-                <div className="rounded-md border p-4 space-y-2">
-                  {requisition.core_competencies.map((comp: any, index: number) => (
-                    <div key={index} className="text-sm">
-                      <strong>{typeof comp === 'string' ? comp : comp.name || comp.competency_name}:</strong>{' '}
-                      {typeof comp === 'object' && comp.description}
-                    </div>
-                  ))}
+                <div className="rounded-md border p-4 bg-muted/30">
+                  <ul className="space-y-3 text-sm">
+                    {requisition.core_competencies.map((comp: any, index: number) => {
+                      if (typeof comp === 'string') {
+                        return <li key={index}>• <strong>{comp}</strong></li>;
+                      }
+                      const name = comp.name || comp.competency_name || '';
+                      const description = comp.description || '';
+                      return (
+                        <li key={index} className="space-y-1">
+                          <div><strong>{name}</strong></div>
+                          {description && <div className="text-muted-foreground pl-4">{description}</div>}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
               </div>
             )}
@@ -703,13 +721,22 @@ export default function JobRequisitionHiringManagerReview() {
                     </Button>
                   )}
                 </div>
-                <div className="rounded-md border p-4 space-y-2">
-                  {requisition.management_competencies.map((comp: any, index: number) => (
-                    <div key={index} className="text-sm">
-                      <strong>{typeof comp === 'string' ? comp : comp.name || comp.competency_name}:</strong>{' '}
-                      {typeof comp === 'object' && comp.description}
-                    </div>
-                  ))}
+                <div className="rounded-md border p-4 bg-muted/30">
+                  <ul className="space-y-3 text-sm">
+                    {requisition.management_competencies.map((comp: any, index: number) => {
+                      if (typeof comp === 'string') {
+                        return <li key={index}>• <strong>{comp}</strong></li>;
+                      }
+                      const name = comp.name || comp.competency_name || '';
+                      const description = comp.description || '';
+                      return (
+                        <li key={index} className="space-y-1">
+                          <div><strong>{name}</strong></div>
+                          {description && <div className="text-muted-foreground pl-4">{description}</div>}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
               </div>
             )}
@@ -730,13 +757,22 @@ export default function JobRequisitionHiringManagerReview() {
                     </Button>
                   )}
                 </div>
-                <div className="rounded-md border p-4 space-y-2">
-                  {requisition.leadership_competencies.map((comp: any, index: number) => (
-                    <div key={index} className="text-sm">
-                      <strong>{typeof comp === 'string' ? comp : comp.name || comp.competency_name}:</strong>{' '}
-                      {typeof comp === 'object' && comp.description}
-                    </div>
-                  ))}
+                <div className="rounded-md border p-4 bg-muted/30">
+                  <ul className="space-y-3 text-sm">
+                    {requisition.leadership_competencies.map((comp: any, index: number) => {
+                      if (typeof comp === 'string') {
+                        return <li key={index}>• <strong>{comp}</strong></li>;
+                      }
+                      const name = comp.name || comp.competency_name || '';
+                      const description = comp.description || '';
+                      return (
+                        <li key={index} className="space-y-1">
+                          <div><strong>{name}</strong></div>
+                          {description && <div className="text-muted-foreground pl-4">{description}</div>}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
               </div>
             )}
@@ -763,14 +799,42 @@ export default function JobRequisitionHiringManagerReview() {
                   </Button>
                 )}
               </div>
-              <div className="rounded-md border p-4">
+              <div className="rounded-md border p-4 bg-muted/30">
                 {requisition.language_requirements && typeof requisition.language_requirements === 'object' ? (
-                  <div className="space-y-2 text-sm">
-                    {Object.entries(requisition.language_requirements).map(([lang, level]) => (
-                      <div key={lang}>
-                        <strong className="capitalize">{lang}:</strong> {String(level)}
+                  <div className="space-y-3 text-sm">
+                    {Object.entries(requisition.language_requirements).map(([lang, level]) => {
+                      // Skip technical fields
+                      if (lang === 'un_language_advantage' || lang === 'local_language_advantage' || lang === 'additional_languages') {
+                        return null;
+                      }
+                      return (
+                        <div key={lang}>
+                          <strong className="capitalize">{lang.replace(/_/g, ' ')}:</strong> {String(level)}
+                        </div>
+                      );
+                    })}
+                    {requisition.language_requirements.additional_languages && 
+                     Array.isArray(requisition.language_requirements.additional_languages) &&
+                     requisition.language_requirements.additional_languages.length > 0 && (
+                      <div className="mt-4 pt-3 border-t">
+                        <div className="font-semibold mb-2">Additional Languages:</div>
+                        {requisition.language_requirements.additional_languages.map((lang: any, idx: number) => (
+                          <div key={idx} className="pl-4">
+                            • <strong>{lang.name}:</strong> {lang.level}
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
+                    {requisition.language_requirements.un_language_advantage && (
+                      <div className="mt-3 text-muted-foreground italic">
+                        Knowledge of another UN official language is an advantage
+                      </div>
+                    )}
+                    {requisition.language_requirements.local_language_advantage && (
+                      <div className="mt-2 text-muted-foreground italic">
+                        Knowledge of the local language is an advantage
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">No language requirements specified</p>
