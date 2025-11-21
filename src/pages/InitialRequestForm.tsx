@@ -1196,10 +1196,9 @@ export default function InitialRequestForm() {
                   <Label htmlFor="internal-only" className="font-medium cursor-pointer">
                     Restrict to internal staff only
                   </Label>
-                  <p className="text-xs text-muted-foreground">
-                    This position will only be visible to authenticated users with @unicc.org email addresses. 
-                    External candidates will not be able to see or apply for this position.
-                  </p>
+            <p className="text-xs text-muted-foreground">
+              This position will only be visible to UNICC staff. External candidates will not be able to see or apply for this position.
+            </p>
                 </div>
               </div>
             </div>
