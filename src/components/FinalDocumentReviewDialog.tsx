@@ -198,9 +198,18 @@ export function FinalDocumentReviewDialog({
                 <div>
                   <h4 className="text-sm font-semibold mb-2 text-muted-foreground">Global Competencies</h4>
                   <ul className="space-y-1 text-sm">
-                    {formData.global_competencies.map((comp: any, index: number) => (
-                      <li key={index}>• <strong>{typeof comp === 'string' ? comp : comp.name || comp}</strong></li>
-                    ))}
+                    {formData.global_competencies.map((comp: any, index: number) => {
+                      if (typeof comp === 'string') {
+                        return <li key={index}>• <strong>{comp}</strong></li>;
+                      }
+                      const name = comp.name || comp.competency_name || comp;
+                      const description = comp.description || '';
+                      return (
+                        <li key={index}>
+                          • <strong>{name}:</strong> {description}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}
@@ -210,9 +219,18 @@ export function FinalDocumentReviewDialog({
                 <div>
                   <h4 className="text-sm font-semibold mb-2 text-muted-foreground">Core Competencies</h4>
                   <ul className="space-y-1 text-sm">
-                    {formData.core_competencies.map((comp: any, index: number) => (
-                      <li key={index}>• <strong>{typeof comp === 'string' ? comp : comp.name || comp}</strong></li>
-                    ))}
+                    {formData.core_competencies.map((comp: any, index: number) => {
+                      if (typeof comp === 'string') {
+                        return <li key={index}>• <strong>{comp}</strong></li>;
+                      }
+                      const name = comp.name || comp.competency_name || comp;
+                      const description = comp.description || '';
+                      return (
+                        <li key={index}>
+                          • <strong>{name}:</strong> {description}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}
@@ -222,9 +240,18 @@ export function FinalDocumentReviewDialog({
                 <div>
                   <h4 className="text-sm font-semibold mb-2 text-muted-foreground">Leadership Competencies</h4>
                   <ul className="space-y-1 text-sm">
-                    {formData.leadership_competencies.map((comp: any, index: number) => (
-                      <li key={index}>• <strong>{typeof comp === 'string' ? comp : comp.name || comp}</strong></li>
-                    ))}
+                    {formData.leadership_competencies.map((comp: any, index: number) => {
+                      if (typeof comp === 'string') {
+                        return <li key={index}>• <strong>{comp}</strong></li>;
+                      }
+                      const name = comp.name || comp.competency_name || comp;
+                      const description = comp.description || '';
+                      return (
+                        <li key={index}>
+                          • <strong>{name}:</strong> {description}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}
@@ -234,9 +261,18 @@ export function FinalDocumentReviewDialog({
                 <div>
                   <h4 className="text-sm font-semibold mb-2 text-muted-foreground">Management Competencies</h4>
                   <ul className="space-y-1 text-sm">
-                    {formData.management_competencies.map((comp: any, index: number) => (
-                      <li key={index}>• <strong>{typeof comp === 'string' ? comp : comp.name || comp}</strong></li>
-                    ))}
+                    {formData.management_competencies.map((comp: any, index: number) => {
+                      if (typeof comp === 'string') {
+                        return <li key={index}>• <strong>{comp}</strong></li>;
+                      }
+                      const name = comp.name || comp.competency_name || comp;
+                      const description = comp.description || '';
+                      return (
+                        <li key={index}>
+                          • <strong>{name}:</strong> {description}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}
