@@ -91,16 +91,20 @@ export function LanguageRequirementsList({ languages, onChange, readOnly = false
                       {lang.language}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {lang.level === 'Expert'
-                        ? 'Expert knowledge is required'
-                        : lang.level === 'Working'
-                        ? 'Working knowledge is required'
-                        : 'Basic knowledge is required'}
+                      {lang.is_essential 
+                        ? (lang.level === 'Expert'
+                          ? 'Expert knowledge is required'
+                          : lang.level === 'Working'
+                          ? 'Working knowledge is required'
+                          : 'Basic knowledge is required')
+                        : 'Desirable / an advantage'}
                     </div>
                   </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {lang.is_essential ? 'Essential requirement' : 'Desirable / an advantage'}
-                  </p>
+                  {lang.is_essential && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Essential requirement
+                    </p>
+                  )}
                 </div>
               ))}
           </div>

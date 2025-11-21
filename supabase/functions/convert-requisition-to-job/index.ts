@@ -248,11 +248,16 @@ Deno.serve(async (req) => {
     if (req_data.language_requirements?.additional_languages) {
       req_data.language_requirements.additional_languages.forEach((l: any) => {
         if (l.name && l.level) {
+          // UN languages should always be non-essential (desirable/advantage)
+          const isUnLanguage = l.name === 'Any UN language' || 
+                               l.name?.toLowerCase().includes('un language') ||
+                               l.name?.includes('French, Spanish, Arabic, Chinese, Russian');
+          
           langRequirements.push({
             job_id: newJob.id,
             language: l.name,
             level: l.level,
-            is_essential: l.is_essential || false,
+            is_essential: isUnLanguage ? false : (l.is_essential || false),
             order_index: langIdx++
           });
         }
