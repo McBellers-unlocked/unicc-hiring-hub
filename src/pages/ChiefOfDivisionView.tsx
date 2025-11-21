@@ -127,15 +127,9 @@ export default function ChiefOfDivisionView() {
         if (divisionsToShow.length === 0) return reqs;
         
         return reqs.filter(r => {
-          // First try to extract from unit_section_division
+          // Extract division from unit_section_division field
           const reqDivision = getDivisionFromUnit(r.unit_section_division);
           if (reqDivision && divisionsToShow.includes(reqDivision)) {
-            return true;
-          }
-          
-          // Fallback: check creator's division for consultant/temporary positions
-          const creatorDivision = r.creator?.division;
-          if (creatorDivision && divisionsToShow.includes(creatorDivision)) {
             return true;
           }
           
