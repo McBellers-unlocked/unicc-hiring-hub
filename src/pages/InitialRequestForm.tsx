@@ -135,6 +135,15 @@ export default function InitialRequestForm() {
     brief_outline: '',
     funding_status: '',
     funding_comments: '',
+    // STDA-specific fields
+    eligible_grades: '',
+    stda_assignment_duration: '',
+    stda_reasons: [] as string[],
+    stda_other_reason: '',
+    stda_working_time: '',
+    stda_percentage: '',
+    stda_days_per_week: '',
+    stda_start_date: '',
   });
 
   useEffect(() => {
@@ -168,9 +177,11 @@ export default function InitialRequestForm() {
         // Try to extract remote_region and consultancy_level from comments if it exists
         let remoteRegion = '';
         let consultancy = '';
+        let stdaData: any = {};
         if (data.comments && typeof data.comments === 'object') {
           remoteRegion = (data.comments as any).remote_region || '';
           consultancy = (data.comments as any).consultancy_level || '';
+          stdaData = (data.comments as any).stda_data || {};
         }
         
         setFormData({
@@ -188,6 +199,15 @@ export default function InitialRequestForm() {
           brief_outline: data.brief_outline || '',
           funding_status: data.funding_status || '',
           funding_comments: data.funding_comments || '',
+          // STDA-specific fields
+          eligible_grades: stdaData.eligible_grades || '',
+          stda_assignment_duration: stdaData.assignment_duration || '',
+          stda_reasons: stdaData.reasons || [],
+          stda_other_reason: stdaData.other_reason || '',
+          stda_working_time: stdaData.working_time || '',
+          stda_percentage: stdaData.percentage || '',
+          stda_days_per_week: stdaData.days_per_week || '',
+          stda_start_date: stdaData.start_date || '',
         });
         
         if (consultancy) {
@@ -295,6 +315,74 @@ export default function InitialRequestForm() {
       });
       return false;
     }
+    if (formData.nature_of_position === 'STDA') {
+      if (!formData.eligible_grades.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Eligible grades is required for STDA positions",
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (!formData.stda_assignment_duration) {
+        toast({
+          title: "Validation Error",
+          description: "Assignment duration is required for STDA positions",
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (formData.stda_reasons.length === 0) {
+        toast({
+          title: "Validation Error",
+          description: "Please select at least one reason for the opportunity",
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (formData.stda_reasons.includes('Other') && !formData.stda_other_reason.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Please specify the other reason",
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (!formData.stda_working_time) {
+        toast({
+          title: "Validation Error",
+          description: "Working time is required for STDA positions",
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (formData.stda_working_time === 'Part time') {
+        if (!formData.stda_percentage.trim()) {
+          toast({
+            title: "Validation Error",
+            description: "Percentage is required for Part time positions",
+            variant: "destructive",
+          });
+          return false;
+        }
+        if (!formData.stda_days_per_week.trim()) {
+          toast({
+            title: "Validation Error",
+            description: "Days per week is required for Part time positions",
+            variant: "destructive",
+          });
+          return false;
+        }
+      }
+      if (!formData.stda_start_date) {
+        toast({
+          title: "Validation Error",
+          description: "Targeted start date is required for STDA positions",
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
     if (formData.duty_station.length === 0) {
       toast({
         title: "Validation Error",
@@ -357,6 +445,18 @@ export default function InitialRequestForm() {
         comments: {
           ...(formData.remote_region && { remote_region: formData.remote_region }),
           ...(consultancyLevel && formData.nature_of_position === 'Individual Consultant' && { consultancy_level: consultancyLevel }),
+          ...(formData.nature_of_position === 'STDA' && {
+            stda_data: {
+              eligible_grades: formData.eligible_grades,
+              assignment_duration: formData.stda_assignment_duration,
+              reasons: formData.stda_reasons,
+              other_reason: formData.stda_other_reason,
+              working_time: formData.stda_working_time,
+              percentage: formData.stda_percentage,
+              days_per_week: formData.stda_days_per_week,
+              start_date: formData.stda_start_date,
+            }
+          }),
           nature_of_position: finalNatureOfPosition
         },
         initial_request_submitted: submit,
@@ -686,6 +786,160 @@ export default function InitialRequestForm() {
                   />
                 )}
               </div>
+            )}
+
+            {/* STDA-specific fields */}
+            {formData.nature_of_position === 'STDA' && (
+              <>
+                {/* Eligible Grades */}
+                <div className="space-y-2">
+                  <Label htmlFor="eligible-grades">Eligible Grades *</Label>
+                  <Select 
+                    value={formData.eligible_grades} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, eligible_grades: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select eligible grades" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="P1">P1</SelectItem>
+                      <SelectItem value="P2">P2</SelectItem>
+                      <SelectItem value="P3">P3</SelectItem>
+                      <SelectItem value="P4">P4</SelectItem>
+                      <SelectItem value="P5">P5</SelectItem>
+                      <SelectItem value="D1">D1</SelectItem>
+                      <SelectItem value="D2">D2</SelectItem>
+                      <SelectItem value="G3">G3</SelectItem>
+                      <SelectItem value="G4">G4</SelectItem>
+                      <SelectItem value="G5">G5</SelectItem>
+                      <SelectItem value="G6">G6</SelectItem>
+                      <SelectItem value="G7">G7</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Assignment Duration */}
+                <div className="space-y-2">
+                  <Label>Assignment Duration *</Label>
+                  <RadioGroup 
+                    value={formData.stda_assignment_duration} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, stda_assignment_duration: value }))}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="3 months" id="stda3" />
+                      <Label htmlFor="stda3" className="font-normal">3 months</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="6 months" id="stda6" />
+                      <Label htmlFor="stda6" className="font-normal">6 months</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {/* Reason for the opportunity */}
+                <div className="space-y-3">
+                  <Label>Reason for the opportunity *</Label>
+                  <div className="space-y-2">
+                    {[
+                      'Vacant position',
+                      'Surge in workload',
+                      'Project work',
+                      'Support staff in their development',
+                      'Replacement (extended sick leave/maternity leave)',
+                      'Other'
+                    ].map((reason) => (
+                      <div key={reason} className="flex items-start space-x-2">
+                        <Checkbox
+                          id={`reason-${reason}`}
+                          checked={formData.stda_reasons.includes(reason)}
+                          onCheckedChange={(checked) => {
+                            setFormData(prev => ({
+                              ...prev,
+                              stda_reasons: checked
+                                ? [...prev.stda_reasons, reason]
+                                : prev.stda_reasons.filter(r => r !== reason)
+                            }));
+                          }}
+                        />
+                        <Label htmlFor={`reason-${reason}`} className="font-normal">
+                          {reason}
+                        </Label>
+                      </div>
+                    ))}
+                    {formData.stda_reasons.includes('Other') && (
+                      <Input
+                        value={formData.stda_other_reason}
+                        onChange={(e) => setFormData(prev => ({ ...prev, stda_other_reason: e.target.value }))}
+                        placeholder="Please specify..."
+                        className="ml-6 mt-2"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Working Time */}
+                <div className="space-y-3">
+                  <Label>Percentage working time *</Label>
+                  <RadioGroup 
+                    value={formData.stda_working_time} 
+                    onValueChange={(value) => setFormData(prev => ({ 
+                      ...prev, 
+                      stda_working_time: value,
+                      stda_percentage: value === 'Full time' ? '' : prev.stda_percentage,
+                      stda_days_per_week: value === 'Full time' ? '' : prev.stda_days_per_week,
+                    }))}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Full time" id="fulltime-stda" />
+                      <Label htmlFor="fulltime-stda" className="font-normal">Full time</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Part time" id="parttime-stda" />
+                      <Label htmlFor="parttime-stda" className="font-normal">Part time</Label>
+                    </div>
+                  </RadioGroup>
+
+                  {formData.stda_working_time === 'Part time' && (
+                    <div className="ml-6 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={formData.stda_percentage}
+                          onChange={(e) => setFormData(prev => ({ ...prev, stda_percentage: e.target.value }))}
+                          placeholder="0"
+                          className="w-20"
+                          min="1"
+                          max="99"
+                        />
+                        <span className="text-sm">%</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={formData.stda_days_per_week}
+                          onChange={(e) => setFormData(prev => ({ ...prev, stda_days_per_week: e.target.value }))}
+                          placeholder="0"
+                          className="w-20"
+                          min="1"
+                          max="5"
+                        />
+                        <span className="text-sm">days/week</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Targeted Start Date */}
+                <div className="space-y-2">
+                  <Label htmlFor="start-date">Targeted start date *</Label>
+                  <Input
+                    type="date"
+                    id="start-date"
+                    value={formData.stda_start_date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, stda_start_date: e.target.value }))}
+                  />
+                </div>
+              </>
             )}
 
             {/* Location */}
