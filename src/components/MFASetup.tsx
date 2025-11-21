@@ -3,12 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Shield, Copy, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import QRCode from 'qrcode';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
 interface MFASetupProps {
   onComplete?: () => void;
@@ -20,11 +20,13 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [totpCode, setTotpCode] = useState('');
   const [factorId, setFactorId] = useState<string>('');
+  const [totpSecret, setTotpSecret] = useState<string>('');
   const [challengeId, setChallengeId] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [copiedCodes, setCopiedCodes] = useState(false);
+  const [copiedSecret, setCopiedSecret] = useState(false);
   const { toast } = useToast();
 
   const startMFASetup = async () => {
@@ -63,33 +65,39 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
 
       if (error) throw error;
 
-      // Debug the URI length and content
+      // Extract the TOTP secret from the URI
       const qrCodeUri = data.totp.qr_code;
-      console.log('TOTP URI length:', qrCodeUri.length);
-      console.log('TOTP URI:', qrCodeUri.substring(0, 100) + '...');
+      const uri = new URL(qrCodeUri);
+      const secret = uri.searchParams.get('secret') || '';
+      setTotpSecret(secret);
       
+      // Try to generate QR code with multiple strategies
+      let qrCodeGenerated = false;
+      
+      // Strategy 1: Try compact QR code
       try {
-        // Try with most aggressive settings first
         const qrCode = await QRCode.toDataURL(qrCodeUri, {
-          errorCorrectionLevel: 'L', // Lowest error correction
-          margin: 0, // No margin
-          scale: 1, // Smallest scale
-          width: 150, // Very compact size
-          color: {
-            dark: '#000000',
-            light: '#FFFFFF'
-          }
+          errorCorrectionLevel: 'L',
+          margin: 1,
+          width: 200
         });
         setQrCodeUrl(qrCode);
+        qrCodeGenerated = true;
       } catch (qrError) {
-        console.error('QR Code generation error:', qrError);
-        // If QR code fails, show manual entry only
-        setStep('verify');
-        toast({
-          title: "QR Code Too Large",
-          description: "Please enter the setup key manually in your authenticator app.",
-          variant: "destructive",
-        });
+        console.log('Compact QR failed, trying larger size...');
+        
+        // Strategy 2: Try slightly larger
+        try {
+          const qrCode = await QRCode.toDataURL(qrCodeUri, {
+            errorCorrectionLevel: 'M',
+            margin: 2,
+            width: 256
+          });
+          setQrCodeUrl(qrCode);
+          qrCodeGenerated = true;
+        } catch (qrError2) {
+          console.log('QR code generation failed, using manual entry only');
+        }
       }
 
       setFactorId(data.id);
@@ -157,6 +165,20 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
     });
   };
 
+  const copySecret = () => {
+    navigator.clipboard.writeText(totpSecret);
+    setCopiedSecret(true);
+    setTimeout(() => setCopiedSecret(false), 2000);
+    toast({
+      title: "Secret copied",
+      description: "Paste this into your authenticator app.",
+    });
+  };
+
+  const formatSecret = (secret: string) => {
+    return secret.match(/.{1,4}/g)?.join(' ') || secret;
+  };
+
   if (step === 'start') {
     return (
       <Card className="w-full max-w-md mx-auto">
@@ -203,54 +225,84 @@ export const MFASetup: React.FC<MFASetupProps> = ({ onComplete }) => {
     return (
       <Card className="w-full max-w-md mx-auto">
         <CardHeader>
-          <CardTitle>Scan QR Code</CardTitle>
+          <CardTitle>Set Up Authenticator App</CardTitle>
           <CardDescription>
-            Scan this QR code with your authenticator app, then enter the 6-digit code.
+            Choose either QR code scanning or manual entry to add your account to an authenticator app.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           {qrCodeUrl ? (
-            <>
-              <div className="flex justify-center">
-                <img src={qrCodeUrl} alt="QR Code for MFA setup" className="w-48 h-48 border rounded" />
-              </div>
-              
-              <div className="text-center text-sm text-muted-foreground">
-                <p>Scan this QR code with your authenticator app</p>
-                <p className="text-xs mt-1">
-                  Compatible with Google Authenticator, Microsoft Authenticator, Authy, and 1Password
-                </p>
-              </div>
-            </>
-          ) : (
-            <div className="text-center">
-              <div className="bg-muted p-4 rounded-lg border">
-                <p className="text-sm text-muted-foreground">
-                  QR code too large - use manual setup below
-                </p>
-              </div>
-              <div className="mt-4 text-center">
-                <p className="text-sm font-medium mb-2">Manual Setup Key:</p>
-                <div className="bg-muted p-3 rounded border break-all text-sm font-mono">
-                  {factorId}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium mb-2">Option 1: Scan QR Code</h3>
+                <div className="flex justify-center p-4 bg-muted rounded-lg">
+                  <img src={qrCodeUrl} alt="QR Code for MFA setup" className="w-48 h-48 border-2 border-border rounded" />
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Enter this key manually in your authenticator app
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  Scan with Google Authenticator, Microsoft Authenticator, Authy, or 1Password
                 </p>
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">Or</span>
+                </div>
               </div>
             </div>
+          ) : (
+            <Alert>
+              <AlertDescription>
+                QR code generation failed. Please use manual entry below.
+              </AlertDescription>
+            </Alert>
           )}
 
+          <div>
+            <h3 className="text-sm font-medium mb-2">
+              {qrCodeUrl ? 'Option 2: Manual Entry' : 'Manual Entry'}
+            </h3>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">
+                Enter this secret key in your authenticator app:
+              </Label>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-muted p-3 rounded-lg border font-mono text-sm break-all">
+                  {formatSecret(totpSecret)}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={copySecret}
+                >
+                  {copiedSecret ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="totp-code">Authentication Code</Label>
-            <Input
-              id="totp-code"
-              type="text"
-              placeholder="000000"
-              value={totpCode}
-              onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            <Label>Enter 6-Digit Code</Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Enter the code from your authenticator app to verify the setup
+            </p>
+            <InputOTP
               maxLength={6}
-            />
+              value={totpCode}
+              onChange={(value) => setTotpCode(value)}
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
           </div>
 
           {error && (
