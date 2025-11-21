@@ -357,7 +357,13 @@ export default function JobRequisitions() {
                         <Button
                           variant="default"
                           size="sm"
-                          onClick={() => navigate(`/requisitions/initial-request/${requisition.id}`)}
+                          onClick={() => {
+                            if (requisition.status === 'initial_request_draft') {
+                              navigate(`/requisitions/initial/${requisition.id}`);
+                            } else {
+                              navigate(`/requisitions/${requisition.id}/edit`);
+                            }
+                          }}
                         >
                           <FileText className="h-4 w-4 mr-1" />
                           Continue PD

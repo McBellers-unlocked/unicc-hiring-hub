@@ -278,8 +278,15 @@ export default function JobRequisitionDetail() {
           </Button>
           <div className="flex gap-2">
           {/* Continue PD Button for Incomplete Drafts */}
-          {requisition.status === 'initial_request_draft' && user?.id === requisition.created_by && (
-            <Button onClick={() => navigate(`/requisitions/initial-request/${requisition.id}`)}>
+          {(requisition.status === 'initial_request_draft' || requisition.status === 'draft' || requisition.status === 'pd_draft') &&
+           user?.id === requisition.created_by && (
+            <Button onClick={() => {
+              if (requisition.status === 'initial_request_draft') {
+                navigate(`/requisitions/initial/${requisition.id}`);
+              } else {
+                navigate(`/requisitions/${requisition.id}/edit`);
+              }
+            }}>
               <FileText className="h-4 w-4 mr-2" />
               Continue PD
             </Button>
