@@ -199,14 +199,21 @@ export function FinalDocumentReviewDialog({
                   <h4 className="text-sm font-semibold mb-2 text-muted-foreground">Global Competencies</h4>
                   <ul className="space-y-1 text-sm">
                     {formData.global_competencies.map((comp: any, index: number) => {
-                      if (typeof comp === 'string') {
-                        return <li key={index}>• <strong>{comp}</strong></li>;
-                      }
-                      const name = comp.name || comp.competency_name || comp;
-                      const description = comp.description || '';
+                      const getCompetencyDefinition = (compName: string) => {
+                        const globalCompetencies = [
+                          'Integrity: Acts in accordance with organizational values. Takes responsibility for actions and decisions',
+                          'Customer orientation: Provides excellent service in a professional and caring manner'
+                        ];
+                        return globalCompetencies.find(def => def.startsWith(compName)) || compName;
+                      };
+
+                      const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                      const definition = getCompetencyDefinition(competencyName);
+                      const [name, ...description] = definition.split(':');
+
                       return (
-                        <li key={index}>
-                          • <strong>{name}:</strong> {description}
+                        <li key={index} className="text-sm">
+                          • <strong>{name}:</strong> {description.join(':').trim()}
                         </li>
                       );
                     })}
@@ -220,14 +227,23 @@ export function FinalDocumentReviewDialog({
                   <h4 className="text-sm font-semibold mb-2 text-muted-foreground">Core Competencies</h4>
                   <ul className="space-y-1 text-sm">
                     {formData.core_competencies.map((comp: any, index: number) => {
-                      if (typeof comp === 'string') {
-                        return <li key={index}>• <strong>{comp}</strong></li>;
-                      }
-                      const name = comp.name || comp.competency_name || comp;
-                      const description = comp.description || '';
+                      const getCoreCompetencyDefinition = (compName: string) => {
+                        const coreCompetencies = [
+                          'Knowing and managing yourself: Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.',
+                          'Producing results: Produces and delivers quality results. Is action oriented and committed to achieving outcomes.',
+                          'Moving forward in a changing environment: Is open to and proposes new approaches and ideas. Adapts and responds positively to change.',
+                          "Setting an example: Acts within UNICC's / WHO's professional, ethical and legal boundaries and encourages others to adhere to these. Behaves consistently in accordance with clear personal ethics and values."
+                        ];
+                        return coreCompetencies.find(def => def.startsWith(compName)) || compName;
+                      };
+
+                      const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                      const definition = getCoreCompetencyDefinition(competencyName);
+                      const [name, ...description] = definition.split(':');
+
                       return (
-                        <li key={index}>
-                          • <strong>{name}:</strong> {description}
+                        <li key={index} className="text-sm">
+                          • <strong>{name}:</strong> {description.join(':').trim()}
                         </li>
                       );
                     })}
@@ -241,14 +257,22 @@ export function FinalDocumentReviewDialog({
                   <h4 className="text-sm font-semibold mb-2 text-muted-foreground">Leadership Competencies</h4>
                   <ul className="space-y-1 text-sm">
                     {formData.leadership_competencies.map((comp: any, index: number) => {
-                      if (typeof comp === 'string') {
-                        return <li key={index}>• <strong>{comp}</strong></li>;
-                      }
-                      const name = comp.name || comp.competency_name || comp;
-                      const description = comp.description || '';
+                      const getLeadershipCompetencyDefinition = (compName: string) => {
+                        const leadershipCompetencies = [
+                          'Driving UNICC to a successful future: Demonstrates a broad-based understanding of the growing complexities of ICT issues and activities. Creates a compelling vision of shared goals, and develops a roadmap for successfully achieving real progress in improving ICT services.',
+                          "Promoting innovation and Organizational learning: Invigorates the Organization by building a culture which encourages learning and development. Sponsors innovative approaches and solutions.",
+                          "Promoting UNICC's position: Positions UNICC as a leader in ICT services. Gains support for UNICC's mission. Coordinates plans and communicates in a way that attracts support from intended audiences."
+                        ];
+                        return leadershipCompetencies.find(def => def.startsWith(compName)) || compName;
+                      };
+
+                      const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                      const definition = getLeadershipCompetencyDefinition(competencyName);
+                      const [name, ...description] = definition.split(':');
+
                       return (
-                        <li key={index}>
-                          • <strong>{name}:</strong> {description}
+                        <li key={index} className="text-sm">
+                          • <strong>{name}:</strong> {description.join(':').trim()}
                         </li>
                       );
                     })}
@@ -262,14 +286,21 @@ export function FinalDocumentReviewDialog({
                   <h4 className="text-sm font-semibold mb-2 text-muted-foreground">Management Competencies</h4>
                   <ul className="space-y-1 text-sm">
                     {formData.management_competencies.map((comp: any, index: number) => {
-                      if (typeof comp === 'string') {
-                        return <li key={index}>• <strong>{comp}</strong></li>;
-                      }
-                      const name = comp.name || comp.competency_name || comp;
-                      const description = comp.description || '';
+                      const getManagementCompetencyDefinition = (compName: string) => {
+                        const managementCompetencies = [
+                          "Ensuring effective use of resources: Identifies priorities in accordance with UNICC's strategic directions. Develops and implements action plans, organizes the necessary resources and monitors outcomes.",
+                          "Building and promoting partnerships across the Organization and beyond: Develops and strengthens internal and external partnerships that can provide information, assistance and support to UNICC. Identifies and uses synergies across the Organization and with external partners."
+                        ];
+                        return managementCompetencies.find(def => def.startsWith(compName)) || compName;
+                      };
+
+                      const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                      const definition = getManagementCompetencyDefinition(competencyName);
+                      const [name, ...description] = definition.split(':');
+
                       return (
-                        <li key={index}>
-                          • <strong>{name}:</strong> {description}
+                        <li key={index} className="text-sm">
+                          • <strong>{name}:</strong> {description.join(':').trim()}
                         </li>
                       );
                     })}
