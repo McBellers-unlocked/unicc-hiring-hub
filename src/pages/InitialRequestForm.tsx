@@ -16,6 +16,7 @@ import { ArrowLeft, Save, Send, CheckCircle, XCircle } from 'lucide-react';
 import { ConsultancyLevelGuidance } from '@/components/ConsultancyLevelGuidance';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast as sonnerToast } from 'sonner';
+import { format } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -1034,13 +1035,21 @@ export default function InitialRequestForm() {
                 {/* Targeted Start Date */}
                 <div className="space-y-2">
                   <Label htmlFor="start-date">Targeted start date *</Label>
-                  <Input
-                    type="date"
-                    id="start-date"
-                    value={formData.stda_start_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, stda_start_date: e.target.value }))}
-                    disabled={viewMode}
-                  />
+                  {viewMode && formData.stda_start_date ? (
+                    <Input
+                      id="start-date"
+                      value={format(new Date(formData.stda_start_date), 'dd/MM/yy')}
+                      disabled={true}
+                    />
+                  ) : (
+                    <Input
+                      type="date"
+                      id="start-date"
+                      value={formData.stda_start_date}
+                      onChange={(e) => setFormData(prev => ({ ...prev, stda_start_date: e.target.value }))}
+                      disabled={viewMode}
+                    />
+                  )}
                 </div>
               </>
             )}
