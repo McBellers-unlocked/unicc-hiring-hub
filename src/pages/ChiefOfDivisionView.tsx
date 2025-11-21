@@ -1114,13 +1114,28 @@ export default function ChiefOfDivisionView() {
                       <h3 className="text-lg font-semibold mb-2">Language Requirements</h3>
                       <ul className="list-disc ml-5 space-y-1">
                         {(requisition.language_requirements as any).english && (
-                          <li className="text-sm">English: {(requisition.language_requirements as any).english}</li>
+                          <li className="text-sm"><strong>English:</strong> {(requisition.language_requirements as any).english}</li>
                         )}
                         {Array.isArray((requisition.language_requirements as any).additional_languages) &&
                           (requisition.language_requirements as any).additional_languages.length > 0 &&
-                          (requisition.language_requirements as any).additional_languages.map((lang: string, idx: number) => (
-                            <li key={idx} className="text-sm">{lang}</li>
-                          ))}
+                          (requisition.language_requirements as any).additional_languages.map((lang: any, idx: number) => {
+                            if (typeof lang === 'string') {
+                              return <li key={idx} className="text-sm">{lang}</li>;
+                            } else if (typeof lang === 'object' && lang !== null) {
+                              const languageName = lang.name || lang.language || '';
+                              const level = lang.level || '';
+                              if (languageName && level) {
+                                return <li key={idx} className="text-sm"><strong>{languageName}:</strong> {level}</li>;
+                              }
+                            }
+                            return null;
+                          })}
+                        {(requisition.language_requirements as any).un_language_advantage && (
+                          <li className="text-sm">Knowledge of another UN language is an advantage</li>
+                        )}
+                        {(requisition.language_requirements as any).local_language_advantage && (
+                          <li className="text-sm">Knowledge of the local language of the duty station is an advantage</li>
+                        )}
                       </ul>
                     </div>
                   )}
