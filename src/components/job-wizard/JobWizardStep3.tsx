@@ -16,6 +16,58 @@ interface Props {
   onPrev: () => void;
 }
 
+// Fallback parser to derive structured language requirements from markdown text
+const parseLanguageMarkdown = (markdown: string): LanguageRequirement[] => {
+  if (!markdown) return [];
+
+  const lines = markdown.split("\n");
+  const results: LanguageRequirement[] = [];
+  let orderIndex = 0;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line.startsWith("-")) continue;
+
+    const content = line.replace(/^-+\s*/, "");
+
+    // Handle generic UN language advantage bullet
+    if (/another UN language/i.test(content) && !content.includes(":")) {
+      results.push({
+        id: `parsed-${Date.now()}-${orderIndex}`,
+        language: "Any UN language",
+        level: "Working",
+        is_essential: false,
+        order_index: orderIndex++,
+      });
+      continue;
+    }
+
+    const [rawLang, ...rest] = content.split(":");
+    if (!rawLang || rest.length === 0) continue;
+
+    const lang = rawLang.replace(/\*\*/g, "").trim();
+    const levelText = rest.join(":").trim();
+    const lower = levelText.toLowerCase();
+
+    let level: LanguageRequirement["level"] = "Working";
+    if (lower.includes("expert")) level = "Expert";
+    else if (lower.includes("basic") || lower.includes("beginner")) level = "Basic";
+    else if (lower.includes("intermediate") || lower.includes("working")) level = "Working";
+
+    const isEssential = /required/i.test(levelText) && !/advantage/i.test(levelText);
+
+    results.push({
+      id: `parsed-${Date.now()}-${orderIndex}`,
+      language: lang,
+      level,
+      is_essential: isEssential,
+      order_index: orderIndex++,
+    });
+  }
+
+  return results;
+};
+
 export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
   const { toast } = useToast();
   
@@ -35,7 +87,7 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
   const [competencies, setCompetencies] = useState<Competency[]>([]);
   const [languages, setLanguages] = useState<LanguageRequirement[]>([]);
 
-  // Load any existing structured data from job data
+  // Load any existing structured data from job data or fall back to markdown parsing
   useEffect(() => {
     if (data.structuredRequirements) {
       setEssentialCriteria(data.structuredRequirements.essentialCriteria || []);
@@ -43,7 +95,18 @@ export function JobWizardStep3({ data, onUpdate, onNext, onPrev }: Props) {
       setEssentialEducation(data.structuredRequirements.essentialEducation || []);
       setDesirableEducation(data.structuredRequirements.desirableEducation || []);
       setCompetencies(data.structuredRequirements.competencies || []);
-      setLanguages(data.structuredRequirements.languages || []);
+
+      const existingLanguages = data.structuredRequirements.languages || [];
+      if (existingLanguages.length > 0) {
+        setLanguages(existingLanguages as LanguageRequirement[]);
+        return;
+      }
+    }
+
+    // Fallback for converted jobs where structured language rows might be missing
+    const parsedFromMarkdown = parseLanguageMarkdown(data.language_requirements || "");
+    if (parsedFromMarkdown.length > 0) {
+      setLanguages(parsedFromMarkdown);
     }
   }, []);
 
