@@ -1037,14 +1037,36 @@ export default function ChiefOfDivisionView() {
                   {((requisition.final_clean_version as any)?.essential_education || requisition.essential_education) && (
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Essential Education</h3>
-                      <p className="text-sm">{(requisition.final_clean_version as any)?.essential_education || requisition.essential_education}</p>
+                      <div className="prose prose-sm max-w-none">
+                        <ReactMarkdown
+                          components={{
+                            ul: ({ children }) => <ul className="list-disc ml-5 space-y-1 my-2">{children}</ul>,
+                            li: ({ children }) => <li className="text-sm">{children}</li>,
+                            p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                            strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                          }}
+                        >
+                          {fixMarkdownFormatting((requisition.final_clean_version as any)?.essential_education || requisition.essential_education || '')}
+                        </ReactMarkdown>
+                      </div>
                     </div>
                   )}
 
                   {((requisition.final_clean_version as any)?.desirable_education || requisition.desirable_education) && (
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Desirable Education</h3>
-                      <p className="text-sm">{(requisition.final_clean_version as any)?.desirable_education || requisition.desirable_education}</p>
+                      <div className="prose prose-sm max-w-none">
+                        <ReactMarkdown
+                          components={{
+                            ul: ({ children }) => <ul className="list-disc ml-5 space-y-1 my-2">{children}</ul>,
+                            li: ({ children }) => <li className="text-sm">{children}</li>,
+                            p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                            strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                          }}
+                        >
+                          {fixMarkdownFormatting((requisition.final_clean_version as any)?.desirable_education || requisition.desirable_education || '')}
+                        </ReactMarkdown>
+                      </div>
                     </div>
                   )}
 
@@ -1065,9 +1087,25 @@ export default function ChiefOfDivisionView() {
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Global Competencies</h3>
                       <ul className="list-disc ml-5 space-y-1">
-                        {(requisition.global_competencies as any[]).map((comp, idx) => (
-                          <li key={`global-${idx}`} className="text-sm">{comp}</li>
-                        ))}
+                        {(requisition.global_competencies as any[]).map((comp, idx) => {
+                          const getDefinition = (compName: string) => {
+                            const globalCompetencies = [
+                              'Integrity: Acts in accordance with organizational values. Takes responsibility for actions and decisions',
+                              'Customer orientation: Provides excellent service in a professional and caring manner',
+                            ];
+                            return globalCompetencies.find((def) => def.startsWith(compName)) || compName;
+                          };
+
+                          const competencyName = typeof comp === 'string' ? comp : comp.name || comp.competency_name || comp;
+                          const definition = getDefinition(competencyName);
+                          const [name, ...description] = definition.split(':');
+
+                          return (
+                            <li key={`global-${idx}`} className="text-sm">
+                              <strong className="font-semibold">{name}:</strong> {description.join(':').trim()}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
@@ -1077,9 +1115,27 @@ export default function ChiefOfDivisionView() {
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Core Competencies</h3>
                       <ul className="list-disc ml-5 space-y-1">
-                        {(requisition.core_competencies as any[]).map((comp, idx) => (
-                          <li key={`core-${idx}`} className="text-sm">{comp}</li>
-                        ))}
+                        {(requisition.core_competencies as any[]).map((comp, idx) => {
+                          const getDefinition = (compName: string) => {
+                            const coreCompetencies = [
+                              'Knowing and managing yourself: Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.',
+                              'Producing results: Produces and delivers quality results. Is action oriented and committed to achieving outcomes.',
+                              'Moving forward in a changing environment: Is open to and proposes new approaches and ideas. Adapts and responds positively to change.',
+                              "Setting an example: Acts within UNICC's / WHO's professional, ethical and legal boundaries and encourages others to adhere to these. Behaves consistently in accordance with clear personal ethics and values.",
+                            ];
+                            return coreCompetencies.find((def) => def.startsWith(compName)) || compName;
+                          };
+
+                          const competencyName = typeof comp === 'string' ? comp : comp.name || comp.competency_name || comp;
+                          const definition = getDefinition(competencyName);
+                          const [name, ...description] = definition.split(':');
+
+                          return (
+                            <li key={`core-${idx}`} className="text-sm">
+                              <strong className="font-semibold">{name}:</strong> {description.join(':').trim()}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
@@ -1089,9 +1145,25 @@ export default function ChiefOfDivisionView() {
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Management Competencies</h3>
                       <ul className="list-disc ml-5 space-y-1">
-                        {(requisition.management_competencies as any[]).map((comp, idx) => (
-                          <li key={`mgmt-${idx}`} className="text-sm">{comp}</li>
-                        ))}
+                        {(requisition.management_competencies as any[]).map((comp, idx) => {
+                          const getDefinition = (compName: string) => {
+                            const managementCompetencies = [
+                              "Ensuring effective use of resources: Identifies priorities in accordance with UNICC's strategic directions. Develops and implements action plans, organizes the necessary resources and monitors outcomes.",
+                              "Building and promoting partnerships across the Organization and beyond: Develops and strengthens internal and external partnerships that can provide information, assistance and support to UNICC. Identifies and uses synergies across the Organization and with external partners.",
+                            ];
+                            return managementCompetencies.find((def) => def.startsWith(compName)) || compName;
+                          };
+
+                          const competencyName = typeof comp === 'string' ? comp : comp.name || comp.competency_name || comp;
+                          const definition = getDefinition(competencyName);
+                          const [name, ...description] = definition.split(':');
+
+                          return (
+                            <li key={`mgmt-${idx}`} className="text-sm">
+                              <strong className="font-semibold">{name}:</strong> {description.join(':').trim()}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
@@ -1101,9 +1173,26 @@ export default function ChiefOfDivisionView() {
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Leadership Competencies</h3>
                       <ul className="list-disc ml-5 space-y-1">
-                        {(requisition.leadership_competencies as any[]).map((comp, idx) => (
-                          <li key={`lead-${idx}`} className="text-sm">{comp}</li>
-                        ))}
+                        {(requisition.leadership_competencies as any[]).map((comp, idx) => {
+                          const getDefinition = (compName: string) => {
+                            const leadershipCompetencies = [
+                              'Driving UNICC to a successful future: Demonstrates a broad-based understanding of the growing complexities of ICT issues and activities. Creates a compelling vision of shared goals, and develops a roadmap for successfully achieving real progress in improving ICT services.',
+                              'Promoting innovation and Organizational learning: Invigorates the Organization by building a culture which encourages learning and development. Sponsors innovative approaches and solutions.',
+                              "Promoting UNICC's position: Positions UNICC as a leader in ICT services. Gains support for UNICC's mission. Coordinates plans and communicates in a way that attracts support from intended audiences.",
+                            ];
+                            return leadershipCompetencies.find((def) => def.startsWith(compName)) || compName;
+                          };
+
+                          const competencyName = typeof comp === 'string' ? comp : comp.name || comp.competency_name || comp;
+                          const definition = getDefinition(competencyName);
+                          const [name, ...description] = definition.split(':');
+
+                          return (
+                            <li key={`lead-${idx}`} className="text-sm">
+                              <strong className="font-semibold">{name}:</strong> {description.join(':').trim()}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
