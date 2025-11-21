@@ -39,10 +39,19 @@ interface Job {
   internal_only: boolean;
 }
 
+interface JobCompetency {
+  id: string;
+  competency_name: string;
+  competency_type: string;
+  description: string;
+  order_index: number;
+}
+
 export default function JobDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [job, setJob] = useState<Job | null>(null);
+  const [competencies, setCompetencies] = useState<JobCompetency[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -77,6 +86,19 @@ export default function JobDetail() {
         });
       } else {
         setJob(data);
+      }
+
+      // Fetch competencies for this job
+      if (data?.id) {
+        const { data: compData, error: compError } = await supabase
+          .from('job_competencies')
+          .select('*')
+          .eq('job_id', data.id)
+          .order('order_index', { ascending: true });
+        
+        if (!compError && compData) {
+          setCompetencies(compData);
+        }
       }
     } catch (error) {
       console.error('Error fetching job:', error);
@@ -475,6 +497,50 @@ export default function JobDetail() {
                 </Card>
               )}
 
+              {/* Competencies */}
+              {competencies.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Competencies</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {(() => {
+                        // Group competencies by type
+                        const grouped = competencies.reduce((acc, comp) => {
+                          if (!acc[comp.competency_type]) {
+                            acc[comp.competency_type] = [];
+                          }
+                          acc[comp.competency_type].push(comp);
+                          return acc;
+                        }, {} as Record<string, JobCompetency[]>);
+
+                        // Define order for competency types
+                        const typeOrder = ['Core', 'Management', 'Leadership'];
+                        
+                        return typeOrder
+                          .filter(type => grouped[type])
+                          .map(type => (
+                            <div key={type}>
+                              <h3 className="text-base font-semibold mb-3 border-b pb-1">{type} Competencies</h3>
+                              <ul className="space-y-2">
+                                {grouped[type].map(comp => (
+                                  <li key={comp.id} className="text-sm">
+                                    <strong>{comp.competency_name}</strong>
+                                    {comp.description && (
+                                      <span className="text-muted-foreground">: {comp.description}</span>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ));
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {job.language_requirements && (
                 <Card>
                   <CardHeader>
@@ -551,29 +617,6 @@ export default function JobDetail() {
                         );
                       })()}
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {job.competencies && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Competencies</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div 
-                      className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ 
-                        __html: job.competencies
-                          .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline; display: block; margin: 16px 0 12px 0;">$1</strong>')
-                          .replace(/^-\s*/gm, '• ')
-                          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                          // Make competency names (text before colon) bold
-                          .replace(/([•\s]*)([\w\s&(),'-]+):/g, '$1<strong>$2</strong>:')
-                          .replace(/\n\n/g, '<br>')
-                          .replace(/\n/g, '<br>') 
-                      }}
-                    />
                   </CardContent>
                 </Card>
               )}
