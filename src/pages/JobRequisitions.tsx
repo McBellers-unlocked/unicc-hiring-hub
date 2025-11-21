@@ -6,16 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, FileText, CheckCircle, Clock, AlertCircle, Eye } from "lucide-react";
+import { Plus, FileText, CheckCircle, Clock, AlertCircle, Eye, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { RequisitionWorkflowTimeline } from "@/components/RequisitionWorkflowTimeline";
 import { Layout } from "@/components/Layout";
+import { getAssignedChief } from "@/lib/chiefAssignment";
 
 interface JobRequisition {
   id: string;
   reference_number: string;
   position_title: string;
+  unit_section_division: string | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -313,11 +315,15 @@ export default function JobRequisitions() {
               </CardContent>
             </Card>
           ) : (
-            requisitions.map((requisition) => (
+            requisitions.map((requisition) => {
+              const assignedChief = getAssignedChief(requisition.unit_section_division);
+              const showChiefIndicator = requisition.funding_status || requisition.brief_outline; // Show for initial requests
+              
+              return (
               <Card key={requisition.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <div>
+                    <div className="flex-1">
                       <CardTitle className="flex items-center gap-2">
                         {requisition.position_title || 'Untitled Position'}
                         {getStatusBadge(requisition)}
@@ -325,6 +331,13 @@ export default function JobRequisitions() {
                       <CardDescription>
                         Ref: {requisition.reference_number} • Created {format(new Date(requisition.created_at), 'MMM dd, yyyy')}
                       </CardDescription>
+                      {showChiefIndicator && assignedChief && (
+                        <div className="flex items-center gap-1 text-sm mt-2 text-muted-foreground">
+                          <UserCheck className="w-4 h-4 text-primary" />
+                          <span className="font-medium">Assigned Chief:</span>
+                          <span>{assignedChief.name}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       {/* View Request button - for viewing initial request form */}
@@ -458,7 +471,8 @@ export default function JobRequisitions() {
                   </div>
                 </CardContent>
               </Card>
-            ))
+            );
+            })
           )}
         </div>
       )}
