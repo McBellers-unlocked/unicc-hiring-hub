@@ -60,11 +60,18 @@ Deno.serve(async (req) => {
     const jobType = { 'Fixed term': 'Fixed-term', 'Fixed Term': 'Fixed-term', 'Individual Consultant': 'Consultant' }[req_data.nature_of_position] || req_data.nature_of_position;
     
     let langReq = '# Language Requirements\n\n- English: Expert knowledge is required\n';
-    if (req_data.language_requirements?.un_language_advantage) langReq += '- Knowledge of another UN language would be an advantage\n';
     if (req_data.language_requirements?.additional_languages) {
       req_data.language_requirements.additional_languages.forEach((l: any) => {
         if (l.name && l.level) langReq += `- ${l.name}: ${l.level}\n`;
       });
+    }
+    // Add local language advantage for G positions
+    if (req_data.language_requirements?.local_language_advantage && req_data.grade?.match(/^G[-\s]?\d+$/i)) {
+      langReq += '- Knowledge of the local language of the Duty Station would be an advantage\n';
+    }
+    // Add UN language advantage for P positions
+    if (req_data.language_requirements?.un_language_advantage) {
+      langReq += '- Knowledge of another UN language would be an advantage\n';
     }
 
     // Normalize grade format for salary lookup (handle both "P3" and "P-3" formats)
