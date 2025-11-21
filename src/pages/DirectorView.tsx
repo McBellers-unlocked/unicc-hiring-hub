@@ -568,7 +568,11 @@ export default function DirectorView() {
                               {Object.entries(requisition.language_requirements as Record<string, any>)
                                 .filter(([key, value]) => {
                                   if (key === 'additional_languages') return false;
-                                  if (typeof value === 'string' && value.trim() !== '') return true;
+                                  if (typeof value === 'string') {
+                                    const cleanValue = value.trim().toLowerCase();
+                                    if (cleanValue === '' || cleanValue === 'not specified' || cleanValue.includes(key.toLowerCase())) return false;
+                                    return true;
+                                  }
                                   if (typeof value === 'boolean' && value === true) return true;
                                   return false;
                                 })
@@ -581,16 +585,35 @@ export default function DirectorView() {
                                       return <li key={lang} className="text-sm">Knowledge of the local language is an advantage</li>;
                                     }
                                   }
+                                  const languageLabels: Record<string, string> = {
+                                    'english': 'English',
+                                    'french': 'French',
+                                    'spanish': 'Spanish',
+                                    'arabic': 'Arabic',
+                                    'chinese': 'Chinese',
+                                    'russian': 'Russian'
+                                  };
+                                  const label = languageLabels[lang.toLowerCase()] || lang.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                                   return (
                                     <li key={lang} className="text-sm">
-                                      <strong className="font-semibold">{lang.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> {level}
+                                      <strong className="font-semibold">{label}:</strong> {level}
                                     </li>
                                   );
                                 })}
                               {(requisition.language_requirements as any).additional_languages && 
                                Array.isArray((requisition.language_requirements as any).additional_languages) &&
                                (requisition.language_requirements as any).additional_languages.length > 0 &&
-                               (requisition.language_requirements as any).additional_languages.map((lang: any, idx: number) => (
+                               (requisition.language_requirements as any).additional_languages.filter((lang: any) => {
+                                 if (typeof lang === 'object' && lang.name) {
+                                   const cleanName = lang.name.trim().toLowerCase();
+                                   return cleanName !== 'not specified' && cleanName !== '';
+                                 }
+                                 if (typeof lang === 'string') {
+                                   const cleanLang = lang.trim().toLowerCase();
+                                   return cleanLang !== 'not specified' && cleanLang !== '';
+                                 }
+                                 return false;
+                               }).map((lang: any, idx: number) => (
                                  <li key={`additional-${idx}`} className="text-sm">
                                    {typeof lang === 'object' && lang.name ? (
                                      <><strong className="font-semibold">{lang.name}:</strong> {lang.level}</>
@@ -1024,7 +1047,11 @@ export default function DirectorView() {
                         {Object.entries(requisition.language_requirements as Record<string, any>)
                           .filter(([key, value]) => {
                             if (key === 'additional_languages') return false;
-                            if (typeof value === 'string' && value.trim() !== '') return true;
+                            if (typeof value === 'string') {
+                              const cleanValue = value.trim().toLowerCase();
+                              if (cleanValue === '' || cleanValue === 'not specified' || cleanValue.includes(key.toLowerCase())) return false;
+                              return true;
+                            }
                             if (typeof value === 'boolean' && value === true) return true;
                             return false;
                           })
@@ -1037,16 +1064,35 @@ export default function DirectorView() {
                                 return <li key={lang} className="text-sm">Knowledge of the local language is an advantage</li>;
                               }
                             }
+                            const languageLabels: Record<string, string> = {
+                              'english': 'English',
+                              'french': 'French',
+                              'spanish': 'Spanish',
+                              'arabic': 'Arabic',
+                              'chinese': 'Chinese',
+                              'russian': 'Russian'
+                            };
+                            const label = languageLabels[lang.toLowerCase()] || lang.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                             return (
                               <li key={lang} className="text-sm">
-                                <strong className="font-semibold">{lang.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> {level}
+                                <strong className="font-semibold">{label}:</strong> {level}
                               </li>
                             );
                           })}
                         {(requisition.language_requirements as any).additional_languages && 
                          Array.isArray((requisition.language_requirements as any).additional_languages) &&
                          (requisition.language_requirements as any).additional_languages.length > 0 &&
-                         (requisition.language_requirements as any).additional_languages.map((lang: any, idx: number) => (
+                         (requisition.language_requirements as any).additional_languages.filter((lang: any) => {
+                           if (typeof lang === 'object' && lang.name) {
+                             const cleanName = lang.name.trim().toLowerCase();
+                             return cleanName !== 'not specified' && cleanName !== '';
+                           }
+                           if (typeof lang === 'string') {
+                             const cleanLang = lang.trim().toLowerCase();
+                             return cleanLang !== 'not specified' && cleanLang !== '';
+                           }
+                           return false;
+                         }).map((lang: any, idx: number) => (
                            <li key={`additional-${idx}`} className="text-sm">
                              {typeof lang === 'object' && lang.name ? (
                                <><strong className="font-semibold">{lang.name}:</strong> {lang.level}</>
