@@ -567,24 +567,26 @@ export default function DirectorView() {
                             <ul className="list-disc ml-5 space-y-1 my-2">
                               {Object.entries(requisition.language_requirements as Record<string, any>)
                                 .filter(([key, value]) => {
-                                  if (key === 'additional_languages') return false;
+                                  // Skip internal fields
+                                  if (['additional_languages', 'local_language_advantage', 'un_language_advantage'].includes(key)) {
+                                    return false;
+                                  }
+                                  // Only show if value is a non-empty string
                                   if (typeof value === 'string') {
                                     const cleanValue = value.trim().toLowerCase();
-                                    if (cleanValue === '' || cleanValue === 'not specified' || cleanValue.includes(key.toLowerCase())) return false;
+                                    // Skip empty, placeholder, or self-referencing values
+                                    if (cleanValue === '' || 
+                                        cleanValue === 'not specified' || 
+                                        cleanValue.includes('not specified') ||
+                                        cleanValue === key.toLowerCase() ||
+                                        cleanValue.includes(key.toLowerCase())) {
+                                      return false;
+                                    }
                                     return true;
                                   }
-                                  if (typeof value === 'boolean' && value === true) return true;
                                   return false;
                                 })
                                 .map(([lang, level]) => {
-                                  if (typeof level === 'boolean') {
-                                    if (lang === 'un_language_advantage') {
-                                      return <li key={lang} className="text-sm">Knowledge of another UN language is an advantage</li>;
-                                    }
-                                    if (lang === 'local_language_advantage') {
-                                      return <li key={lang} className="text-sm">Knowledge of the local language is an advantage</li>;
-                                    }
-                                  }
                                   const languageLabels: Record<string, string> = {
                                     'english': 'English',
                                     'french': 'French',
@@ -606,11 +608,11 @@ export default function DirectorView() {
                                (requisition.language_requirements as any).additional_languages.filter((lang: any) => {
                                  if (typeof lang === 'object' && lang.name) {
                                    const cleanName = lang.name.trim().toLowerCase();
-                                   return cleanName !== 'not specified' && cleanName !== '';
+                                   return cleanName !== 'not specified' && cleanName !== '' && !cleanName.includes('not specified');
                                  }
                                  if (typeof lang === 'string') {
                                    const cleanLang = lang.trim().toLowerCase();
-                                   return cleanLang !== 'not specified' && cleanLang !== '';
+                                   return cleanLang !== 'not specified' && cleanLang !== '' && !cleanLang.includes('not specified');
                                  }
                                  return false;
                                }).map((lang: any, idx: number) => (
@@ -622,6 +624,12 @@ export default function DirectorView() {
                                    )}
                                  </li>
                                ))}
+                              {(requisition.language_requirements as any).un_language_advantage === true && (
+                                <li className="text-sm">Knowledge of another UN language is an advantage</li>
+                              )}
+                              {(requisition.language_requirements as any).local_language_advantage === true && (
+                                <li className="text-sm">Knowledge of the local language is an advantage</li>
+                              )}
                             </ul>
                           </div>
                         )}
@@ -1046,24 +1054,26 @@ export default function DirectorView() {
                       <ul className="list-disc ml-5 space-y-1 my-2">
                         {Object.entries(requisition.language_requirements as Record<string, any>)
                           .filter(([key, value]) => {
-                            if (key === 'additional_languages') return false;
+                            // Skip internal fields
+                            if (['additional_languages', 'local_language_advantage', 'un_language_advantage'].includes(key)) {
+                              return false;
+                            }
+                            // Only show if value is a non-empty string
                             if (typeof value === 'string') {
                               const cleanValue = value.trim().toLowerCase();
-                              if (cleanValue === '' || cleanValue === 'not specified' || cleanValue.includes(key.toLowerCase())) return false;
+                              // Skip empty, placeholder, or self-referencing values
+                              if (cleanValue === '' || 
+                                  cleanValue === 'not specified' || 
+                                  cleanValue.includes('not specified') ||
+                                  cleanValue === key.toLowerCase() ||
+                                  cleanValue.includes(key.toLowerCase())) {
+                                return false;
+                              }
                               return true;
                             }
-                            if (typeof value === 'boolean' && value === true) return true;
                             return false;
                           })
                           .map(([lang, level]) => {
-                            if (typeof level === 'boolean') {
-                              if (lang === 'un_language_advantage') {
-                                return <li key={lang} className="text-sm">Knowledge of another UN language is an advantage</li>;
-                              }
-                              if (lang === 'local_language_advantage') {
-                                return <li key={lang} className="text-sm">Knowledge of the local language is an advantage</li>;
-                              }
-                            }
                             const languageLabels: Record<string, string> = {
                               'english': 'English',
                               'french': 'French',
@@ -1085,11 +1095,11 @@ export default function DirectorView() {
                          (requisition.language_requirements as any).additional_languages.filter((lang: any) => {
                            if (typeof lang === 'object' && lang.name) {
                              const cleanName = lang.name.trim().toLowerCase();
-                             return cleanName !== 'not specified' && cleanName !== '';
+                             return cleanName !== 'not specified' && cleanName !== '' && !cleanName.includes('not specified');
                            }
                            if (typeof lang === 'string') {
                              const cleanLang = lang.trim().toLowerCase();
-                             return cleanLang !== 'not specified' && cleanLang !== '';
+                             return cleanLang !== 'not specified' && cleanLang !== '' && !cleanLang.includes('not specified');
                            }
                            return false;
                          }).map((lang: any, idx: number) => (
@@ -1101,6 +1111,12 @@ export default function DirectorView() {
                              )}
                            </li>
                          ))}
+                        {(requisition.language_requirements as any).un_language_advantage === true && (
+                          <li className="text-sm">Knowledge of another UN language is an advantage</li>
+                        )}
+                        {(requisition.language_requirements as any).local_language_advantage === true && (
+                          <li className="text-sm">Knowledge of the local language is an advantage</li>
+                        )}
                       </ul>
                     </div>
                   )}
