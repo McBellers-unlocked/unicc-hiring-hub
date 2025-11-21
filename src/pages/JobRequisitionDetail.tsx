@@ -443,14 +443,7 @@ export default function JobRequisitionDetail() {
                   const hrChange = Array.isArray(requisition.hr_changes) && 
                     requisition.hr_changes.find((c: any) => c.field === 'objectives_of_programme');
                   return hrChange ? (
-                    <div className="mt-1">
-                      <InlineTrackChanges
-                        fieldLabel=""
-                        originalValue={hrChange.originalValue}
-                        newValue={hrChange.newValue}
-                        showToggle={false}
-                      />
-                    </div>
+                    <p className="mt-1 whitespace-pre-wrap">{hrChange.newValue}</p>
                   ) : (
                     <p className="mt-1 whitespace-pre-wrap">{requisition.objectives_of_programme}</p>
                   );
@@ -464,14 +457,7 @@ export default function JobRequisitionDetail() {
                 const hrChange = Array.isArray(requisition.hr_changes) && 
                   requisition.hr_changes.find((c: any) => c.field === 'main_duties_responsibilities');
                 return hrChange ? (
-                  <div className="mt-1">
-                    <InlineTrackChanges
-                      fieldLabel=""
-                      originalValue={hrChange.originalValue}
-                      newValue={hrChange.newValue}
-                      showToggle={false}
-                    />
-                  </div>
+                  <p className="mt-1 whitespace-pre-wrap">{hrChange.newValue}</p>
                 ) : (
                   <p className="mt-1 whitespace-pre-wrap">{requisition.main_duties_responsibilities}</p>
                 );
@@ -493,14 +479,7 @@ export default function JobRequisitionDetail() {
                   const hrChange = Array.isArray(requisition.hr_changes) && 
                     requisition.hr_changes.find((c: any) => c.field === 'essential_experience');
                   return hrChange ? (
-                    <div className="mt-1">
-                      <InlineTrackChanges
-                        fieldLabel=""
-                        originalValue={hrChange.originalValue}
-                        newValue={hrChange.newValue}
-                        showToggle={false}
-                      />
-                    </div>
+                    <p className="mt-1 whitespace-pre-wrap">{hrChange.newValue}</p>
                   ) : (
                     <p className="mt-1 whitespace-pre-wrap">{requisition.essential_experience}</p>
                   );
@@ -512,14 +491,7 @@ export default function JobRequisitionDetail() {
                   const hrChange = Array.isArray(requisition.hr_changes) && 
                     requisition.hr_changes.find((c: any) => c.field === 'desirable_experience');
                   return hrChange ? (
-                    <div className="mt-1">
-                      <InlineTrackChanges
-                        fieldLabel=""
-                        originalValue={hrChange.originalValue}
-                        newValue={hrChange.newValue}
-                        showToggle={false}
-                      />
-                    </div>
+                    <p className="mt-1 whitespace-pre-wrap">{hrChange.newValue}</p>
                   ) : (
                     <p className="mt-1 whitespace-pre-wrap">{requisition.desirable_experience || 'None specified'}</p>
                   );
@@ -531,14 +503,7 @@ export default function JobRequisitionDetail() {
                   const hrChange = Array.isArray(requisition.hr_changes) && 
                     requisition.hr_changes.find((c: any) => c.field === 'essential_education');
                   return hrChange ? (
-                    <div className="mt-1">
-                      <InlineTrackChanges
-                        fieldLabel=""
-                        originalValue={hrChange.originalValue}
-                        newValue={hrChange.newValue}
-                        showToggle={false}
-                      />
-                    </div>
+                    <p className="mt-1 whitespace-pre-wrap">{hrChange.newValue}</p>
                   ) : (
                     <p className="mt-1 whitespace-pre-wrap">{requisition.essential_education}</p>
                   );
@@ -550,14 +515,7 @@ export default function JobRequisitionDetail() {
                   const hrChange = Array.isArray(requisition.hr_changes) && 
                     requisition.hr_changes.find((c: any) => c.field === 'desirable_education');
                   return hrChange ? (
-                    <div className="mt-1">
-                      <InlineTrackChanges
-                        fieldLabel=""
-                        originalValue={hrChange.originalValue}
-                        newValue={hrChange.newValue}
-                        showToggle={false}
-                      />
-                    </div>
+                    <p className="mt-1 whitespace-pre-wrap">{hrChange.newValue}</p>
                   ) : (
                     <p className="mt-1 whitespace-pre-wrap">{requisition.desirable_education || 'None specified'}</p>
                   );
