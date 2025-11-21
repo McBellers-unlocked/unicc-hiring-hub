@@ -36,6 +36,7 @@ interface Job {
   branding: any;
   attachments_required: any;
   created_at: string;
+  internal_only: boolean;
 }
 
 export default function JobDetail() {
@@ -53,6 +54,10 @@ export default function JobDetail() {
 
   const fetchJob = async () => {
     try {
+      // Check if user is authenticated and get their email
+      const { data: { user } } = await supabase.auth.getUser();
+      const isInternalUser = user?.email?.endsWith('@unicc.org');
+
       const { data, error } = await supabase
         .from('jobs')
         .select('*')
@@ -61,7 +66,18 @@ export default function JobDetail() {
         .maybeSingle();
 
       if (error) throw error;
-      setJob(data);
+      
+      // If job is internal-only and user is not internal, show access restricted
+      if (data && data.internal_only && !isInternalUser) {
+        setJob(data);
+        toast({
+          title: "Internal Position",
+          description: "This position is only open to internal UNICC staff. Sign in with your @unicc.org email to apply.",
+          variant: "default"
+        });
+      } else {
+        setJob(data);
+      }
     } catch (error) {
       console.error('Error fetching job:', error);
       toast({
@@ -370,7 +386,7 @@ export default function JobDetail() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 mt-4">
-                  
+                  {job.internal_only && <Badge variant="default">Internal Only</Badge>}
                   {job.type && <Badge variant="outline">{job.type}</Badge>}
                   {job.grade && <Badge variant="outline">{job.grade}</Badge>}
                   {isClosingSoon && !isClosed && <Badge variant="destructive">Closing Soon</Badge>}
@@ -379,6 +395,14 @@ export default function JobDetail() {
               </CardHeader>
 
               <CardContent>
+                {job.internal_only && (
+                  <div className="bg-muted p-4 rounded-lg mb-4">
+                    <p className="text-sm text-muted-foreground">
+                      <strong>Internal Position:</strong> This position is only open to UNICC staff members. 
+                      You must sign in with your @unicc.org email address to apply.
+                    </p>
+                  </div>
+                )}
                 {!isClosed && (
                   <Button 
                     size="lg" 
