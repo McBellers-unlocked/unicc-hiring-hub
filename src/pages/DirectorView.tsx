@@ -602,28 +602,42 @@ export default function DirectorView() {
                                     </li>
                                   );
                                 })}
-                              {(requisition.language_requirements as any).additional_languages && 
-                               Array.isArray((requisition.language_requirements as any).additional_languages) &&
-                               (requisition.language_requirements as any).additional_languages.length > 0 &&
-                               (requisition.language_requirements as any).additional_languages.filter((lang: any) => {
-                                 if (typeof lang === 'object' && lang.name) {
-                                   const cleanName = lang.name.trim().toLowerCase();
-                                   return cleanName !== 'not specified' && cleanName !== '' && !cleanName.includes('not specified');
-                                 }
-                                 if (typeof lang === 'string') {
-                                   const cleanLang = lang.trim().toLowerCase();
-                                   return cleanLang !== 'not specified' && cleanLang !== '' && !cleanLang.includes('not specified');
-                                 }
-                                 return false;
-                               }).map((lang: any, idx: number) => (
-                                 <li key={`additional-${idx}`} className="text-sm">
-                                   {typeof lang === 'object' && lang.name ? (
-                                     <><strong className="font-semibold">{lang.name}:</strong> {lang.level}</>
-                                   ) : (
-                                     lang
-                                   )}
-                                 </li>
-                               ))}
+                               {(requisition.language_requirements as any).additional_languages && 
+                                Array.isArray((requisition.language_requirements as any).additional_languages) &&
+                                (requisition.language_requirements as any).additional_languages.length > 0 &&
+                                (requisition.language_requirements as any).additional_languages.filter((lang: any) => {
+                                  if (typeof lang === 'object' && lang.name) {
+                                    const cleanName = lang.name.trim().toLowerCase();
+                                    return cleanName !== 'not specified' && cleanName !== '' && !cleanName.includes('not specified');
+                                  }
+                                  if (typeof lang === 'string') {
+                                    const cleanLang = lang.trim().toLowerCase();
+                                    return cleanLang !== 'not specified' && cleanLang !== '' && !cleanLang.includes('not specified');
+                                  }
+                                  return false;
+                                }).map((lang: any, idx: number) => {
+                                  const name = typeof lang === 'object' && lang.name ? lang.name : String(lang);
+                                  const level = typeof lang === 'object' && lang.level ? lang.level : '';
+                                  
+                                  // Format level text to match English formatting
+                                  let formattedLevel = level;
+                                  if (level) {
+                                    const levelLower = level.toLowerCase();
+                                    if (levelLower === 'expert') {
+                                      formattedLevel = 'Expert knowledge is required';
+                                    } else if (levelLower === 'intermediate') {
+                                      formattedLevel = 'Intermediate knowledge is required';
+                                    } else if (levelLower === 'beginner') {
+                                      formattedLevel = 'Beginner knowledge is required';
+                                    }
+                                  }
+                                  
+                                  return (
+                                    <li key={`additional-${idx}`} className="text-sm">
+                                      <strong className="font-semibold">{name}:</strong> {formattedLevel}
+                                    </li>
+                                  );
+                                })}
                               {(requisition.language_requirements as any).un_language_advantage === true && (
                                 <li className="text-sm">Knowledge of another UN language is an advantage</li>
                               )}
@@ -1102,15 +1116,29 @@ export default function DirectorView() {
                              return cleanLang !== 'not specified' && cleanLang !== '' && !cleanLang.includes('not specified');
                            }
                            return false;
-                         }).map((lang: any, idx: number) => (
-                           <li key={`additional-${idx}`} className="text-sm">
-                             {typeof lang === 'object' && lang.name ? (
-                               <><strong className="font-semibold">{lang.name}:</strong> {lang.level}</>
-                             ) : (
-                               lang
-                             )}
-                           </li>
-                         ))}
+                         }).map((lang: any, idx: number) => {
+                           const name = typeof lang === 'object' && lang.name ? lang.name : String(lang);
+                           const level = typeof lang === 'object' && lang.level ? lang.level : '';
+                           
+                           // Format level text to match English formatting
+                           let formattedLevel = level;
+                           if (level) {
+                             const levelLower = level.toLowerCase();
+                             if (levelLower === 'expert') {
+                               formattedLevel = 'Expert knowledge is required';
+                             } else if (levelLower === 'intermediate') {
+                               formattedLevel = 'Intermediate knowledge is required';
+                             } else if (levelLower === 'beginner') {
+                               formattedLevel = 'Beginner knowledge is required';
+                             }
+                           }
+                           
+                           return (
+                             <li key={`additional-${idx}`} className="text-sm">
+                               <strong className="font-semibold">{name}:</strong> {formattedLevel}
+                             </li>
+                           );
+                         })}
                         {(requisition.language_requirements as any).un_language_advantage === true && (
                           <li className="text-sm">Knowledge of another UN language is an advantage</li>
                         )}
