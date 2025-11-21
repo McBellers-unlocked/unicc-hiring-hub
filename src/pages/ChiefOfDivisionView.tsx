@@ -15,7 +15,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, FileText } from "lucide-react";
+import { Loader2, FileText, UserCheck } from "lucide-react";
+import { getAssignedChief } from "@/lib/chiefAssignment";
 
 export default function ChiefOfDivisionView() {
   const queryClient = useQueryClient();
@@ -203,8 +204,11 @@ export default function ChiefOfDivisionView() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-6 max-w-7xl">
-        <div className="flex justify-between items-center mb-6">
+        <div className="mb-6">
           <h1 className="text-3xl font-bold">Chief of Division - Approvals</h1>
+          <p className="text-muted-foreground mt-2">
+            Review and approve initial requisitions and full position descriptions for your division
+          </p>
         </div>
 
         {isLoading ? (
@@ -224,17 +228,27 @@ export default function ChiefOfDivisionView() {
                     </CardContent>
                   </Card>
                 ) : (
-                  requisitions?.initialRequests?.map((requisition: any) => (
+                  requisitions?.initialRequests?.map((requisition: any) => {
+                    const assignedChief = getAssignedChief(requisition.unit_section_division);
+                    
+                    return (
                 <Card key={requisition.id}>
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
-                      <div>
+                      <div className="flex-1">
                         <CardTitle>{requisition.position_title}</CardTitle>
-                        <div className="flex gap-2 mt-2">
+                        <div className="flex gap-2 mt-2 flex-wrap">
                           {requisition.grade && <Badge variant="outline">{requisition.grade}</Badge>}
                           {requisition.nature_of_position && <Badge variant="outline">{requisition.nature_of_position}</Badge>}
                           {requisition.isInitialRequest && <Badge className="bg-yellow-500">Initial Request</Badge>}
                         </div>
+                        {assignedChief && (
+                          <div className="flex items-center gap-1 text-sm mt-2 text-muted-foreground">
+                            <UserCheck className="w-4 h-4 text-primary" />
+                            <span className="font-medium">Assigned to:</span>
+                            <span>{assignedChief.name} ({assignedChief.division})</span>
+                          </div>
+                        )}
                       </div>
                       <Badge variant="secondary">Pending Chief Approval</Badge>
                     </div>
@@ -674,9 +688,10 @@ export default function ChiefOfDivisionView() {
                        </div>
                      </div>
                    )}
-                 </CardContent>
-                </Card>
-              ))
+                  </CardContent>
+                 </Card>
+              );
+              })
             )}
           </div>
         </div>
