@@ -33,6 +33,7 @@ interface JobRequisition {
   status: string;
   created_at: string;
   created_by: string;
+  hiring_manager_name?: string;
   hr_reviewed: boolean;
   hr_reviewed_at: string | null;
   hr_reviewed_by: string | null;
@@ -78,11 +79,23 @@ export default function AdminRequisitions() {
     try {
       const { data, error } = await supabase
         .from('job_requisitions')
-        .select('*')
+        .select(`
+          *,
+          users!job_requisitions_created_by_fkey (
+            name
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setRequisitions(data || []);
+      
+      // Map the data to include hiring manager name
+      const mappedData = data?.map(req => ({
+        ...req,
+        hiring_manager_name: (req as any).users?.name
+      })) || [];
+      
+      setRequisitions(mappedData);
     } catch (error) {
       console.error('Error fetching requisitions:', error);
       toast({
@@ -450,6 +463,12 @@ export default function AdminRequisitions() {
                                 <Building className="h-4 w-4" />
                                 {requisition.grade}
                               </span>
+                              {requisition.hiring_manager_name && (
+                                <span className="flex items-center gap-1">
+                                  <User className="h-4 w-4" />
+                                  {requisition.hiring_manager_name}
+                                </span>
+                              )}
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-4 w-4" />
                                 {new Date(requisition.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
