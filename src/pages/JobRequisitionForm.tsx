@@ -385,54 +385,30 @@ export default function JobRequisitionForm() {
 
   // Update main duties template when nature of position changes
   useEffect(() => {
-    const currentMainDuties = form.getValues('main_duties_responsibilities');
     const currentEssentialExperience = form.getValues('essential_experience');
     const currentEssentialEducation = form.getValues('essential_education');
     
-    // Only update if the field is empty or contains the default template
-    const isDefaultTemplate = !currentMainDuties || 
-      currentMainDuties.includes('[SUPERVISOR TITLE]') || 
-      currentMainDuties.includes('[title of the supervisor]');
-    
-    if (isDefaultTemplate) {
-      if (watchedNatureOfPosition === 'Intern') {
-        form.setValue('main_duties_responsibilities', 
-          "The incumbent(s) will work [number of days] days per week for [number of hours] hours under the supervision of the [title of the supervisor], and will receive the guidance and support necessary to carry out the responsibilities outlined below.\n\n"
-        );
-      } else if (watchedNatureOfPosition && watchedNatureOfPosition !== 'Intern') {
-        form.setValue('main_duties_responsibilities', 
-          "The incumbent will work under the direct supervision and guidance of the [SUPERVISOR TITLE] within the [DIVISION NAME] and in close collaboration with the [SECTION NAME] team members. The incumbent will perform the following duties:\n\n"
-        );
-      }
-    }
-
-    // Update essential experience for interns
+    // Only auto-set experience/education for Intern positions when the fields
+    // are effectively still using a default/template value. For non‑Intern
+    // positions we never clear existing values.
     const isDefaultExperience = !currentEssentialExperience || 
       currentEssentialExperience.includes('At least') ||
       currentEssentialExperience.includes('Applicants are not required to have professional work experience');
     
-    if (isDefaultExperience) {
-      if (watchedNatureOfPosition === 'Intern') {
-        form.setValue('essential_experience', 
-          "Applicants are not required to have professional work experience to participate in the UNICC's internship program, but applicants should have the following functional and technical skills:\n\n"
-        );
-      } else if (watchedNatureOfPosition && watchedNatureOfPosition !== 'Intern') {
-        form.setValue('essential_experience', '');
-      }
+    if (watchedNatureOfPosition === 'Intern' && isDefaultExperience) {
+      form.setValue('essential_experience', 
+        "Applicants are not required to have professional work experience to participate in the UNICC's internship program, but applicants should have the following functional and technical skills:\n\n"
+      );
     }
-
+ 
     // Update essential education for interns
     const isDefaultEducation = !currentEssentialEducation || 
       currentEssentialEducation.includes('Be currently enrolled in a University programme');
     
-    if (isDefaultEducation) {
-      if (watchedNatureOfPosition === 'Intern') {
-        form.setValue('essential_education', 
-          "Be currently enrolled in a University programme (final year of a bachelor's degree, master's degree or equivalent) specializing in areas that are relevant to UNICC's line of business such as [areas of expertise].\n\nApplicants that have graduated in the last 6 months in one of the areas of expertise described above will also be considered."
-        );
-      } else if (watchedNatureOfPosition && watchedNatureOfPosition !== 'Intern') {
-        form.setValue('essential_education', '');
-      }
+    if (watchedNatureOfPosition === 'Intern' && isDefaultEducation) {
+      form.setValue('essential_education', 
+        "Be currently enrolled in a University programme (final year of a bachelor's degree, master's degree or equivalent) specializing in areas that are relevant to UNICC's line of business such as [areas of expertise].\n\nApplicants that have graduated in the last 6 months in one of the areas of expertise described above will also be considered."
+      );
     }
   }, [watchedNatureOfPosition, form]);
 
