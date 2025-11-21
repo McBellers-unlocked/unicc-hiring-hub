@@ -136,7 +136,7 @@ export default function InitialRequestForm() {
     funding_status: '',
     funding_comments: '',
     // STDA-specific fields
-    eligible_grades: '',
+    eligible_grades: [] as string[],
     stda_assignment_duration: '',
     stda_reasons: [] as string[],
     stda_other_reason: '',
@@ -200,7 +200,7 @@ export default function InitialRequestForm() {
           funding_status: data.funding_status || '',
           funding_comments: data.funding_comments || '',
           // STDA-specific fields
-          eligible_grades: stdaData.eligible_grades || '',
+          eligible_grades: stdaData.eligible_grades || [],
           stda_assignment_duration: stdaData.assignment_duration || '',
           stda_reasons: stdaData.reasons || [],
           stda_other_reason: stdaData.other_reason || '',
@@ -316,10 +316,10 @@ export default function InitialRequestForm() {
       return false;
     }
     if (formData.nature_of_position === 'STDA') {
-      if (!formData.eligible_grades.trim()) {
+      if (formData.eligible_grades.length === 0) {
         toast({
           title: "Validation Error",
-          description: "Eligible grades is required for STDA positions",
+          description: "At least one eligible grade is required for STDA positions",
           variant: "destructive",
         });
         return false;
@@ -753,7 +753,9 @@ export default function InitialRequestForm() {
             {/* Grade */}
             {showGradeField && (
               <div className="space-y-2">
-                <Label htmlFor="grade">Grade *</Label>
+                <Label htmlFor="grade">
+                  {formData.nature_of_position === 'STDA' ? 'Proposed Grade *' : 'Grade *'}
+                </Label>
                 {formData.nature_of_position === 'Staff' ? (
                   <Select 
                     value={formData.grade} 
@@ -782,7 +784,7 @@ export default function InitialRequestForm() {
                     id="grade"
                     value={formData.grade}
                     onChange={(e) => setFormData(prev => ({ ...prev, grade: e.target.value }))}
-                    placeholder="e.g., P3, G6"
+                    placeholder="Select grade"
                   />
                 )}
               </div>
@@ -792,30 +794,29 @@ export default function InitialRequestForm() {
             {formData.nature_of_position === 'STDA' && (
               <>
                 {/* Eligible Grades */}
-                <div className="space-y-2">
-                  <Label htmlFor="eligible-grades">Eligible Grades *</Label>
-                  <Select 
-                    value={formData.eligible_grades} 
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, eligible_grades: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select eligible grades" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="P1">P1</SelectItem>
-                      <SelectItem value="P2">P2</SelectItem>
-                      <SelectItem value="P3">P3</SelectItem>
-                      <SelectItem value="P4">P4</SelectItem>
-                      <SelectItem value="P5">P5</SelectItem>
-                      <SelectItem value="D1">D1</SelectItem>
-                      <SelectItem value="D2">D2</SelectItem>
-                      <SelectItem value="G3">G3</SelectItem>
-                      <SelectItem value="G4">G4</SelectItem>
-                      <SelectItem value="G5">G5</SelectItem>
-                      <SelectItem value="G6">G6</SelectItem>
-                      <SelectItem value="G7">G7</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-3">
+                  <Label>Eligible Grades *</Label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {['P1', 'P2', 'P3', 'P4', 'P5', 'D1', 'D2', 'G3', 'G4', 'G5', 'G6', 'G7'].map((grade) => (
+                      <div key={grade} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`eligible-${grade}`}
+                          checked={formData.eligible_grades.includes(grade)}
+                          onCheckedChange={(checked) => {
+                            setFormData(prev => ({
+                              ...prev,
+                              eligible_grades: checked
+                                ? [...prev.eligible_grades, grade]
+                                : prev.eligible_grades.filter(g => g !== grade)
+                            }));
+                          }}
+                        />
+                        <Label htmlFor={`eligible-${grade}`} className="font-normal">
+                          {grade}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Assignment Duration */}
