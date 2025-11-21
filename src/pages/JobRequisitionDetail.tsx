@@ -277,6 +277,14 @@ export default function JobRequisitionDetail() {
             Back to Requisitions
           </Button>
           <div className="flex gap-2">
+          {/* Continue PD Button for Incomplete Drafts */}
+          {requisition.status === 'initial_request_draft' && user?.id === requisition.created_by && (
+            <Button onClick={() => navigate(`/requisitions/initial-request/${requisition.id}`)}>
+              <FileText className="h-4 w-4 mr-2" />
+              Continue PD
+            </Button>
+          )}
+          
           {/* HR Final Review button - for HR to review after hiring manager approval */}
           {requisition.status === 'hr_final_review' && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
             <Button
@@ -583,7 +591,12 @@ export default function JobRequisitionDetail() {
                       return (
                         <div key={lang}>
                           <span className="font-medium capitalize">{lang}:</span>
-                          <span className="ml-2">{req}</span>
+                          <span className="ml-2">
+                            {typeof req === 'object' && req !== null 
+                              ? `${req.name || lang} - ${req.level || 'Not specified'}`
+                              : req
+                            }
+                          </span>
                         </div>
                       );
                     })}
