@@ -458,9 +458,8 @@ export default function AdminRequisitions() {
                           </div>
                           
                           <div className="flex items-center gap-2">
-                            {/* Continue PD Button for Drafts */}
-                            {(requisition.status === 'initial_request_draft' || requisition.status === 'draft' || requisition.status === 'pd_draft') && 
-                             !requisition.initial_request_approved && (
+                            {/* Continue PD Button for Drafts and PD Drafts */}
+                            {(requisition.status === 'initial_request_draft' || requisition.status === 'draft' || requisition.status === 'pd_draft') && (
                               <Button
                                 variant="default"
                                 size="sm"
