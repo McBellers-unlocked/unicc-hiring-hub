@@ -644,10 +644,24 @@ export default function JobRequisitionDetail() {
                       additional.forEach((lang: any, idx: number) => {
                         const name = typeof lang === 'object' && lang.name ? lang.name : String(lang);
                         const level = typeof lang === 'object' && lang.level ? lang.level : '';
+                        
+                        // Format level text to match English formatting
+                        let formattedLevel = level;
+                        if (level) {
+                          const levelLower = level.toLowerCase();
+                          if (levelLower === 'expert') {
+                            formattedLevel = 'Expert knowledge is required';
+                          } else if (levelLower === 'intermediate') {
+                            formattedLevel = 'Intermediate knowledge is required';
+                          } else if (levelLower === 'beginner') {
+                            formattedLevel = 'Beginner knowledge is required';
+                          }
+                        }
+                        
                         items.push(
                           <div key={`additional-${idx}`}>
                             <span className="font-medium">{name}:</span>
-                            <span className="ml-2">{level || 'Not specified'}</span>
+                            <span className="ml-2">{formattedLevel || 'Not specified'}</span>
                           </div>
                         );
                       });
