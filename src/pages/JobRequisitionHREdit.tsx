@@ -1100,10 +1100,11 @@ export default function JobRequisitionHREdit() {
                     {requisition.language_requirements.additional_languages.map((lang: any, index: number) => {
                       if (typeof lang === 'string') {
                         return <li key={index} className="text-sm">• {lang}</li>;
-                      } else if (lang.language && lang.level) {
+                      } else if ((lang.name || lang.language) && lang.level) {
+                        const languageName = lang.name || lang.language;
                         return (
                           <li key={index} className="text-sm">
-                            • <strong>{lang.language}:</strong> {lang.level}
+                            • <strong>{languageName}:</strong> {lang.level}
                           </li>
                         );
                       }
