@@ -12,8 +12,18 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { ArrowLeft, Save, Send } from 'lucide-react';
+import { ArrowLeft, Save, Send, CheckCircle, XCircle } from 'lucide-react';
 import { ConsultancyLevelGuidance } from '@/components/ConsultancyLevelGuidance';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast as sonnerToast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 const LOCATIONS = [
   'Valencia',
@@ -115,15 +125,28 @@ export default function InitialRequestForm() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, userRoles } = useAuth();
+  const queryClient = useQueryClient();
   
   // Admins viewing existing requests should always be in view mode
   const isAdmin = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR');
+  const isChiefOfDivision = userRoles.includes('Chief of Division');
   const viewMode = searchParams.get('view') === 'true' || (id && isAdmin);
+  const showChiefActions = viewMode && isChiefOfDivision && id;
+  
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedDivision, setSelectedDivision] = useState('');
   const [selectedUnit, setSelectedUnit] = useState('');
   const [consultancyLevel, setConsultancyLevel] = useState('');
+  const [approvalDialog, setApprovalDialog] = useState<{
+    open: boolean;
+    action: 'approve' | 'reject' | null;
+    comments: string;
+  }>({
+    open: false,
+    action: null,
+    comments: ''
+  });
   
   const [formData, setFormData] = useState({
     position_title: '',
@@ -507,6 +530,72 @@ export default function InitialRequestForm() {
     }
   };
 
+  const approveMutation = useMutation({
+    mutationFn: async ({ approved, comments }: { approved: boolean; comments?: string }) => {
+      if (!id) throw new Error("No requisition ID");
+      
+      const updateData: any = {
+        chief_of_division_approval: approved,
+        initial_request_approved: approved,
+        initial_request_approved_by: user?.id,
+        initial_request_approved_at: new Date().toISOString(),
+        chief_of_division_approved_at: new Date().toISOString(),
+        chief_of_division_approved_by: user?.id,
+        status: approved ? 'initial_request_approved' : 'initial_request_rejected',
+      };
+      
+      if (comments) {
+        updateData.comments = JSON.stringify([
+          {
+            user_id: user?.id,
+            comment: comments,
+            timestamp: new Date().toISOString(),
+            action: approved ? 'approved_initial_request' : 'rejected_initial_request',
+          }
+        ]);
+      }
+
+      const { error } = await supabase
+        .from("job_requisitions")
+        .update(updateData)
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["requisitions-chief-approval"] });
+      sonnerToast.success("Requisition updated successfully");
+      navigate('/');
+    },
+    onError: () => {
+      sonnerToast.error("Failed to update requisition");
+    },
+  });
+
+  const handleApproval = (approved: boolean) => {
+    setApprovalDialog({
+      open: true,
+      action: approved ? 'approve' : 'reject',
+      comments: ''
+    });
+  };
+
+  const confirmApproval = () => {
+    if (!approvalDialog.action) return;
+    
+    if (approvalDialog.action === 'reject' && !approvalDialog.comments.trim()) {
+      sonnerToast.error("Comments are required for rejection");
+      return;
+    }
+    
+    approveMutation.mutate({
+      approved: approvalDialog.action === 'approve',
+      comments: approvalDialog.comments
+    });
+    
+    setApprovalDialog({ open: false, action: null, comments: '' });
+  };
+
   const showGradeField = formData.nature_of_position === 'Staff' || formData.nature_of_position === 'STDA';
   const showStaffTypeSelection = formData.nature_of_position === 'Staff';
   const showTemporaryDuration = formData.staff_contract_type === 'Temporary';
@@ -528,11 +617,11 @@ export default function InitialRequestForm() {
       <div className="container mx-auto py-8 max-w-4xl">
         <Button
           variant="ghost"
-          onClick={() => navigate('/requisitions')}
+          onClick={() => navigate('/')}
           className="mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Requisitions
+          Back to Dashboard
         </Button>
 
         <Card>
@@ -1102,9 +1191,73 @@ export default function InitialRequestForm() {
                 </Button>
               </div>
             )}
+
+            {/* Chief of Division Approval Buttons */}
+            {showChiefActions && (
+              <div className="flex justify-end gap-3 pt-6 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => handleApproval(false)}
+                  disabled={approveMutation.isPending}
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Reject
+                </Button>
+                <Button
+                  onClick={() => handleApproval(true)}
+                  disabled={approveMutation.isPending}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Approve
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Approval/Rejection Dialog */}
+      <Dialog open={approvalDialog.open} onOpenChange={(open) => setApprovalDialog(prev => ({ ...prev, open }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {approvalDialog.action === 'approve' ? 'Approve Request' : 'Reject Request'}
+            </DialogTitle>
+            <DialogDescription>
+              {approvalDialog.action === 'approve' 
+                ? 'Add any comments about your approval (optional).'
+                : 'Please provide a reason for rejection (required).'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="comments">Comments {approvalDialog.action === 'reject' && '*'}</Label>
+              <Textarea
+                id="comments"
+                value={approvalDialog.comments}
+                onChange={(e) => setApprovalDialog(prev => ({ ...prev, comments: e.target.value }))}
+                placeholder="Enter your comments..."
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setApprovalDialog({ open: false, action: null, comments: '' })}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmApproval}
+              disabled={approveMutation.isPending}
+              variant={approvalDialog.action === 'reject' ? 'destructive' : 'default'}
+            >
+              {approveMutation.isPending ? 'Processing...' : `Confirm ${approvalDialog.action === 'approve' ? 'Approval' : 'Rejection'}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
