@@ -457,41 +457,76 @@ export default function JobDetail() {
                     <CardTitle>Language Requirements</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div 
-                      className="prose prose-sm max-w-none"
-                       dangerouslySetInnerHTML={{ 
-                        __html: job.language_requirements
-                          // First split by any line break (both <br> and \n)
+                    <div className="prose prose-sm max-w-none">
+                      {(() => {
+                        const lines = job.language_requirements
                           .replace(/<br\s*\/?>/gi, '\n')
                           .split('\n')
                           .map(line => line.trim())
                           .filter(line => {
                             if (!line) return false;
-                            const cleanLine = line.replace(/^[•\-\s]+/, '').toLowerCase().trim();
-                            // Filter out internal field names, boolean values, and duplicated headers
+                            const cleanLine = line.replace(/^[•\-#\s]+/, '').toLowerCase().trim();
+                            // Filter out internal field names, boolean values, headers, and section labels
                             return !cleanLine.includes('additional_languages') &&
                                    !cleanLine.includes('local_language_advantage') &&
                                    !cleanLine.includes('un_language_advantage') &&
                                    !cleanLine.match(/^(true|false)$/i) &&
                                    cleanLine !== 'language requirements' &&
-                                   cleanLine !== 'language requirements:';
+                                   cleanLine !== 'language requirements:' &&
+                                   cleanLine !== 'required language skills' &&
+                                   cleanLine !== 'additional language skills';
                           })
                           .map(line => {
-                            // Remove any markdown headers
-                            line = line.replace(/^#+\s*/, '');
-                            // Ensure it starts with a bullet if it doesn't already
-                            if (!line.trim().startsWith('•') && !line.trim().startsWith('-')) {
-                              return '• ' + line;
+                            // Remove markdown headers and ensure bullet
+                            line = line.replace(/^#+\s*/, '').replace(/^-\s*/, '').trim();
+                            
+                            // Format language entries: convert "Language: level" to "Language: Level knowledge is required"
+                            const langMatch = line.match(/^([^:]+):\s*(.+)$/);
+                            if (langMatch) {
+                              const [, lang, level] = langMatch;
+                              const langName = lang.replace(/\*\*/g, '').trim();
+                              const levelText = level.trim().toLowerCase();
+                              
+                              // Check if already formatted
+                              if (levelText.includes('knowledge is required') || levelText.includes('would be an advantage')) {
+                                return `• ${langName}: ${level.trim().charAt(0).toUpperCase() + level.trim().slice(1)}`;
+                              }
+                              
+                              // Format the level
+                              let formattedLevel = '';
+                              if (levelText === 'expert') {
+                                formattedLevel = 'Expert knowledge is required';
+                              } else if (levelText === 'intermediate' || levelText === 'working') {
+                                formattedLevel = 'Intermediate knowledge is required';
+                              } else if (levelText === 'basic' || levelText === 'beginner') {
+                                formattedLevel = 'Basic knowledge is required';
+                              } else {
+                                formattedLevel = level.trim().charAt(0).toUpperCase() + level.trim().slice(1);
+                              }
+                              
+                              return `• ${langName}: ${formattedLevel}`;
                             }
-                            return line.replace(/^-\s*/, '• ');
-                          })
-                          .join('<br>')
-                          // Format bold text
-                          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                          // Clean up
-                          .replace(/(<br>\s*){3,}/g, '<br><br>')
-                      }}
-                    />
+                            
+                            return line.startsWith('•') ? line : `• ${line}`;
+                          });
+
+                        // Add duty station language requirement for G positions
+                        if (job.grade && job.grade.match(/^G[-\s]?\d+$/i)) {
+                          lines.push('• Knowledge of the language of the duty station');
+                        }
+
+                        return (
+                          <div 
+                            dangerouslySetInnerHTML={{ 
+                              __html: lines
+                                .join('<br>')
+                                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                                .replace(/(<br>\s*){3,}/g, '<br><br>')
+                            }}
+                          />
+                        );
+                      })()}
+                    </div>
                   </CardContent>
                 </Card>
               )}
