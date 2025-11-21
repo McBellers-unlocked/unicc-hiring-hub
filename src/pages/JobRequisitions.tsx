@@ -351,9 +351,8 @@ export default function JobRequisitions() {
                           View Request
                         </Button>
                       )}
-                      {/* Continue PD button for draft initial requests */}
+                      {/* Continue PD button for draft and PD draft requests */}
                       {(requisition.status === 'initial_request_draft' || requisition.status === 'draft' || requisition.status === 'pd_draft') && 
-                       !requisition.initial_request_approved &&
                        requisition.created_by === user?.id && (
                         <Button
                           variant="default"
