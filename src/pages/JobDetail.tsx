@@ -510,10 +510,6 @@ export default function JobDetail() {
                             return line.startsWith('•') ? line : `• ${line}`;
                           });
 
-                        // Add duty station language requirement for G positions
-                        if (job.grade && job.grade.match(/^G[-\s]?\d+$/i)) {
-                          lines.push('• Knowledge of the language of the duty station');
-                        }
 
                         return (
                           <div 
