@@ -478,8 +478,14 @@ export default function DirectorView() {
                               {(requisition.language_requirements as any).additional_languages && 
                                Array.isArray((requisition.language_requirements as any).additional_languages) &&
                                (requisition.language_requirements as any).additional_languages.length > 0 &&
-                               (requisition.language_requirements as any).additional_languages.map((lang: string, idx: number) => (
-                                 <li key={`additional-${idx}`} className="text-sm">{lang}</li>
+                               (requisition.language_requirements as any).additional_languages.map((lang: any, idx: number) => (
+                                 <li key={`additional-${idx}`} className="text-sm">
+                                   {typeof lang === 'object' && lang.name ? (
+                                     <><strong className="font-semibold">{lang.name}:</strong> {lang.level}</>
+                                   ) : (
+                                     lang
+                                   )}
+                                 </li>
                                ))}
                             </ul>
                           </div>
@@ -953,8 +959,14 @@ export default function DirectorView() {
                         {(requisition.language_requirements as any).additional_languages && 
                          Array.isArray((requisition.language_requirements as any).additional_languages) &&
                          (requisition.language_requirements as any).additional_languages.length > 0 &&
-                         (requisition.language_requirements as any).additional_languages.map((lang: string, idx: number) => (
-                           <li key={`additional-${idx}`} className="text-sm">{lang}</li>
+                         (requisition.language_requirements as any).additional_languages.map((lang: any, idx: number) => (
+                           <li key={`additional-${idx}`} className="text-sm">
+                             {typeof lang === 'object' && lang.name ? (
+                               <><strong className="font-semibold">{lang.name}:</strong> {lang.level}</>
+                             ) : (
+                               lang
+                             )}
+                           </li>
                          ))}
                       </ul>
                     </div>
