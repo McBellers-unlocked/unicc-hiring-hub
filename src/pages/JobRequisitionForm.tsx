@@ -2237,17 +2237,13 @@ export default function JobRequisitionForm() {
 
           <div className="flex justify-between items-center pt-6">
             <div className="flex gap-2">
-              {id && id !== 'new' && (
-                <>
-                  <Button type="button" variant="outline" onClick={generatePDF}>
-                    <FileText className="h-4 w-4 mr-2" />
-                    Generate PDF
-                  </Button>
-                  <Button type="button" variant="outline" onClick={convertToJob}>
-                    <Briefcase className="h-4 w-4 mr-2" />
-                    Convert to Job
-                  </Button>
-                </>
+              {id && id !== 'new' && currentRequisition?.director_approval && 
+               !currentRequisition?.converted_to_job_id &&
+               (userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR')) && (
+                <Button type="button" variant="outline" onClick={convertToJob}>
+                  <Briefcase className="h-4 w-4 mr-2" />
+                  Convert to Job
+                </Button>
               )}
             </div>
             <div className="flex gap-2">
