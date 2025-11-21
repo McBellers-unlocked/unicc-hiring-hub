@@ -114,9 +114,11 @@ export default function InitialRequestForm() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, userRoles } = useAuth();
   
-  const viewMode = searchParams.get('view') === 'true';
+  // Admins viewing existing requests should always be in view mode
+  const isAdmin = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR');
+  const viewMode = searchParams.get('view') === 'true' || (id && isAdmin);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedDivision, setSelectedDivision] = useState('');
