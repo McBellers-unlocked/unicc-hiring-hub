@@ -23,6 +23,7 @@ interface Job {
   grade: string;
   notice_no: string;
   positions: number;
+  salary_estimate: string;
   created_at: string;
 }
 
@@ -42,7 +43,7 @@ export default function Jobs() {
     try {
       const { data, error } = await supabase
         .from('jobs')
-        .select('id, title, slug, location, closing_date, category, type, grade, notice_no, positions, created_at')
+        .select('id, title, slug, location, closing_date, category, type, grade, notice_no, positions, salary_estimate, created_at')
         .eq('status', 'active')
         .order('created_at', { ascending: false });
 
@@ -389,18 +390,38 @@ export default function Jobs() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {filteredJobs.map((job) => (
                       <Card key={job.id} className="hover:shadow-lg transition-shadow">
-                        <CardHeader>
-                          <div className="flex justify-between items-start">
-                            <CardTitle className="text-lg leading-tight">{job.title}</CardTitle>
-                            {job.positions > 1 && (
-                              <Badge variant="secondary">{job.positions} positions</Badge>
+                        <CardHeader className="pb-3">
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-start gap-2">
+                              <CardTitle className="text-lg leading-tight">{job.title}</CardTitle>
+                              {job.positions > 1 && (
+                                <Badge variant="secondary" className="shrink-0">{job.positions} positions</Badge>
+                              )}
+                            </div>
+                            
+                            {job.notice_no && (
+                              <p className="text-sm text-muted-foreground">Notice No: {job.notice_no}</p>
+                            )}
+                            
+                            {/* Contract Type and Grade - prominently displayed */}
+                            <div className="flex flex-wrap gap-2">
+                              {job.type && (
+                                <Badge variant="default" className="bg-primary text-primary-foreground">
+                                  {getDisplayType(job.type)}
+                                </Badge>
+                              )}
+                              {job.grade && <Badge variant="outline">{job.grade}</Badge>}
+                            </div>
+                            
+                            {/* Salary */}
+                            {job.salary_estimate && (
+                              <div className="text-sm font-semibold text-foreground">
+                                {job.salary_estimate}
+                              </div>
                             )}
                           </div>
-                          {job.notice_no && (
-                            <p className="text-sm text-muted-foreground">Notice No: {job.notice_no}</p>
-                          )}
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="pt-0">
                           <div className="space-y-3">
                             {job.location && (
                               <div className="space-y-1">
@@ -524,16 +545,6 @@ export default function Jobs() {
                                 Closes {new Date(job.closing_date).toLocaleDateString('en-GB')}
                               </div>
                             )}
-
-                            <div className="flex flex-wrap gap-2">
-                              {job.type && (
-                                <Badge variant="default" className="bg-primary text-primary-foreground">
-                                  {getDisplayType(job.type)}
-                                </Badge>
-                              )}
-                              
-                              {job.grade && <Badge variant="outline">{job.grade}</Badge>}
-                            </div>
 
                             <Link to={`/jobs/${job.slug || job.id}`} className="block mt-4">
                               <Button className="w-full">
