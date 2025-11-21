@@ -29,6 +29,11 @@ interface JobRequisition {
   desirable_experience: string;
   essential_education: string;
   desirable_education: string;
+  global_competencies: any;
+  core_competencies: any;
+  management_competencies: any;
+  leadership_competencies: any;
+  language_requirements: any;
   status: string;
   created_by: string;
   hr_original_data: any;
@@ -75,7 +80,23 @@ export default function JobRequisitionHiringManagerReview() {
       setRequisition(data);
       
       // Set original data (before HR changes)
-      const original = data.hr_original_data || {};
+      const original: any = data.hr_original_data || {};
+      // Ensure competencies and languages are included
+      if (!original.global_competencies && data.global_competencies) {
+        original.global_competencies = data.global_competencies;
+      }
+      if (!original.core_competencies && data.core_competencies) {
+        original.core_competencies = data.core_competencies;
+      }
+      if (!original.management_competencies && data.management_competencies) {
+        original.management_competencies = data.management_competencies;
+      }
+      if (!original.leadership_competencies && data.leadership_competencies) {
+        original.leadership_competencies = data.leadership_competencies;
+      }
+      if (!original.language_requirements && data.language_requirements) {
+        original.language_requirements = data.language_requirements;
+      }
       setOriginalData(original);
       
       // Set HR data (after HR changes)
@@ -87,6 +108,11 @@ export default function JobRequisitionHiringManagerReview() {
         desirable_experience: data.desirable_experience,
         essential_education: data.essential_education,
         desirable_education: data.desirable_education,
+        global_competencies: data.global_competencies || [],
+        core_competencies: data.core_competencies || [],
+        management_competencies: data.management_competencies || [],
+        leadership_competencies: data.leadership_competencies || [],
+        language_requirements: data.language_requirements || {},
       };
       setHrData(hrVersion);
       
@@ -214,10 +240,17 @@ export default function JobRequisitionHiringManagerReview() {
         { field: 'desirable_experience', label: 'Desirable Experience' },
         { field: 'essential_education', label: 'Essential Education' },
         { field: 'desirable_education', label: 'Desirable Education' },
+        { field: 'global_competencies', label: 'Global Competencies' },
+        { field: 'core_competencies', label: 'Core Competencies' },
+        { field: 'management_competencies', label: 'Management Competencies' },
+        { field: 'leadership_competencies', label: 'Leadership Competencies' },
+        { field: 'language_requirements', label: 'Language Requirements' },
       ];
 
       for (const { field, label } of fields) {
-        if (formData[field] !== hrData[field]) {
+        const currentVal = JSON.stringify(formData[field] || '');
+        const hrVal = JSON.stringify(hrData[field] || '');
+        if (currentVal !== hrVal) {
           hmChanges.push({
             field,
             label,
@@ -594,6 +627,158 @@ export default function JobRequisitionHiringManagerReview() {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Competencies</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {requisition.global_competencies && Array.isArray(requisition.global_competencies) && requisition.global_competencies.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium">Global Competencies</Label>
+                  {hasHRChanges('global_competencies') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => acceptHRChanges('global_competencies')}
+                      className="h-8 gap-1"
+                    >
+                      <Check className="h-3 w-3" />
+                      Accept Changes
+                    </Button>
+                  )}
+                </div>
+                <div className="rounded-md border p-4 space-y-2">
+                  {requisition.global_competencies.map((comp: any, index: number) => (
+                    <div key={index} className="text-sm">
+                      <strong>{typeof comp === 'string' ? comp : comp.name || comp.competency_name}:</strong>{' '}
+                      {typeof comp === 'object' && comp.description}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {requisition.core_competencies && Array.isArray(requisition.core_competencies) && requisition.core_competencies.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium">Core Competencies</Label>
+                  {hasHRChanges('core_competencies') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => acceptHRChanges('core_competencies')}
+                      className="h-8 gap-1"
+                    >
+                      <Check className="h-3 w-3" />
+                      Accept Changes
+                    </Button>
+                  )}
+                </div>
+                <div className="rounded-md border p-4 space-y-2">
+                  {requisition.core_competencies.map((comp: any, index: number) => (
+                    <div key={index} className="text-sm">
+                      <strong>{typeof comp === 'string' ? comp : comp.name || comp.competency_name}:</strong>{' '}
+                      {typeof comp === 'object' && comp.description}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {requisition.management_competencies && Array.isArray(requisition.management_competencies) && requisition.management_competencies.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium">Management Competencies</Label>
+                  {hasHRChanges('management_competencies') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => acceptHRChanges('management_competencies')}
+                      className="h-8 gap-1"
+                    >
+                      <Check className="h-3 w-3" />
+                      Accept Changes
+                    </Button>
+                  )}
+                </div>
+                <div className="rounded-md border p-4 space-y-2">
+                  {requisition.management_competencies.map((comp: any, index: number) => (
+                    <div key={index} className="text-sm">
+                      <strong>{typeof comp === 'string' ? comp : comp.name || comp.competency_name}:</strong>{' '}
+                      {typeof comp === 'object' && comp.description}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {requisition.leadership_competencies && Array.isArray(requisition.leadership_competencies) && requisition.leadership_competencies.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium">Leadership Competencies</Label>
+                  {hasHRChanges('leadership_competencies') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => acceptHRChanges('leadership_competencies')}
+                      className="h-8 gap-1"
+                    >
+                      <Check className="h-3 w-3" />
+                      Accept Changes
+                    </Button>
+                  )}
+                </div>
+                <div className="rounded-md border p-4 space-y-2">
+                  {requisition.leadership_competencies.map((comp: any, index: number) => (
+                    <div key={index} className="text-sm">
+                      <strong>{typeof comp === 'string' ? comp : comp.name || comp.competency_name}:</strong>{' '}
+                      {typeof comp === 'object' && comp.description}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Language Requirements</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Language Requirements</Label>
+                {hasHRChanges('language_requirements') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => acceptHRChanges('language_requirements')}
+                    className="h-8 gap-1"
+                  >
+                    <Check className="h-3 w-3" />
+                    Accept Changes
+                  </Button>
+                )}
+              </div>
+              <div className="rounded-md border p-4">
+                {requisition.language_requirements && typeof requisition.language_requirements === 'object' ? (
+                  <div className="space-y-2 text-sm">
+                    {Object.entries(requisition.language_requirements).map(([lang, level]) => (
+                      <div key={lang}>
+                        <strong className="capitalize">{lang}:</strong> {String(level)}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No language requirements specified</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Final Document Review Dialog */}
@@ -607,6 +792,11 @@ export default function JobRequisitionHiringManagerReview() {
           duty_station: requisition.duty_station,
           nature_of_position: requisition.nature_of_position,
           positions_available: requisition.positions_available,
+          global_competencies: formData.global_competencies || requisition.global_competencies || [],
+          core_competencies: formData.core_competencies || requisition.core_competencies || [],
+          management_competencies: formData.management_competencies || requisition.management_competencies || [],
+          leadership_competencies: formData.leadership_competencies || requisition.leadership_competencies || [],
+          language_requirements: formData.language_requirements || requisition.language_requirements || {},
           ...formData
         }}
         onProceed={() => {
