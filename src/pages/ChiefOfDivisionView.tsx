@@ -37,11 +37,13 @@ export default function ChiefOfDivisionView() {
     requisitionId: string | null;
     action: 'approve' | 'reject' | null;
     comments: string;
+    isInitialRequest: boolean;
   }>({
     open: false,
     requisitionId: null,
     action: null,
-    comments: ''
+    comments: '',
+    isInitialRequest: false,
   });
 
   const { data: requisitions, isLoading } = useQuery({
@@ -218,7 +220,8 @@ export default function ChiefOfDivisionView() {
       open: true,
       requisitionId: id,
       action: approved ? 'approve' : 'reject',
-      comments: ''
+      comments: '',
+      isInitialRequest: !!isInitialRequest,
     });
   };
   
@@ -228,11 +231,11 @@ export default function ChiefOfDivisionView() {
     approveMutation.mutate({
       id: approvalDialog.requisitionId,
       approved: approvalDialog.action === 'approve',
-      isInitialRequest: true,
+      isInitialRequest: approvalDialog.isInitialRequest,
       comments: approvalDialog.comments
     });
     
-    setApprovalDialog({ open: false, requisitionId: null, action: null, comments: '' });
+    setApprovalDialog({ open: false, requisitionId: null, action: null, comments: '', isInitialRequest: false });
   };
 
   const handleViewDetails = async (requisitionId: string) => {
@@ -1256,16 +1259,22 @@ export default function ChiefOfDivisionView() {
       </Dialog>
 
       {/* Approval/Rejection Dialog */}
-      <Dialog open={approvalDialog.open} onOpenChange={(open) => !open && setApprovalDialog({ open: false, requisitionId: null, action: null, comments: '' })}>
+      <Dialog open={approvalDialog.open} onOpenChange={(open) => !open && setApprovalDialog({ open: false, requisitionId: null, action: null, comments: '', isInitialRequest: false })}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {approvalDialog.action === 'approve' ? 'Approve Initial Request' : 'Reject Initial Request'}
+              {approvalDialog.isInitialRequest 
+                ? (approvalDialog.action === 'approve' ? 'Approve Initial Request' : 'Reject Initial Request')
+                : (approvalDialog.action === 'approve' ? 'Approve Position Description' : 'Reject Position Description')}
             </DialogTitle>
             <DialogDescription>
-              {approvalDialog.action === 'approve' 
-                ? 'Please provide any comments for this approval. HR will notify the hiring manager to proceed with creating the full position description.'
-                : 'Please explain why this request is being rejected. The hiring manager will be notified with your feedback.'}
+              {approvalDialog.isInitialRequest
+                ? (approvalDialog.action === 'approve' 
+                  ? 'Please provide any comments for this approval. HR will notify the hiring manager to proceed with creating the full position description.'
+                  : 'Please explain why this request is being rejected. The hiring manager will be notified with your feedback.')
+                : (approvalDialog.action === 'approve'
+                  ? 'Please provide any comments for this approval. The position description will proceed to the Director for final approval.'
+                  : 'Please explain why this position description is being rejected. HR and the hiring manager will be notified with your feedback.')}
             </DialogDescription>
           </DialogHeader>
           
@@ -1290,7 +1299,7 @@ export default function ChiefOfDivisionView() {
           <DialogFooter>
             <Button 
               variant="outline" 
-              onClick={() => setApprovalDialog({ open: false, requisitionId: null, action: null, comments: '' })}
+              onClick={() => setApprovalDialog({ open: false, requisitionId: null, action: null, comments: '', isInitialRequest: false })}
               disabled={approveMutation.isPending}
             >
               Cancel
