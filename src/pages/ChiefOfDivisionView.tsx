@@ -98,10 +98,11 @@ export default function ChiefOfDivisionView() {
             upper.includes('CSE') || upper.includes('CSN') || upper.includes('CSS') || 
             upper.includes('CSR') || upper.includes('CISO') || upper.includes('CYBER')) return 'CS';
         if (upper.includes('MS') || upper.includes('MSHT')) return 'MS';
+        // DD before DO to avoid matching "Development" as DO
+        if (upper.includes('DD') || upper.includes('DDC') || upper.includes('DIGITAL DEVELOPMENT')) return 'DD';
         if (upper.includes('DO') || upper.includes('DOP') || upper.includes('DDAM')) return 'DO';
         if (upper.includes('OP')) return 'OP';
         if (upper.includes('DS')) return 'DS';
-        if (upper.includes('DD')) return 'DD';
         return null;
       };
       
