@@ -371,9 +371,12 @@ export function FinalDocumentReviewDialog({
         </div>
 
         <DialogFooter className="border-t pt-4">
-          <Button onClick={() => onOpenChange(false)}>
-            <CheckCircle2 className="h-4 w-4 mr-2" />
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close Review
+          </Button>
+          <Button onClick={onProceed}>
+            <CheckCircle2 className="h-4 w-4 mr-2" />
+            Send to Chief of Division
           </Button>
         </DialogFooter>
       </DialogContent>
