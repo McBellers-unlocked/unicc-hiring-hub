@@ -829,6 +829,25 @@ export default function JobRequisitionHiringManagerReview() {
         </Card>
       </div>
 
+      {/* Bottom Action Buttons */}
+      <div className="flex justify-end gap-2 mt-6 pt-6 border-t">
+        <Button 
+          variant="outline" 
+          onClick={() => setShowReviewDialog(true)}
+        >
+          <Eye className="h-4 w-4 mr-2" />
+          View Final Version
+        </Button>
+        <Button variant="outline" onClick={handleSaveDraft} disabled={saving}>
+          <Save className="h-4 w-4 mr-2" />
+          Save Draft
+        </Button>
+        <Button onClick={handleReturnToHR} disabled={saving}>
+          <FileCheck className="h-4 w-4 mr-2" />
+          {saving ? "Saving..." : "Save & Return to HR"}
+        </Button>
+      </div>
+
       {/* Final Document Review Dialog */}
       <FinalDocumentReviewDialog
         open={showReviewDialog}
