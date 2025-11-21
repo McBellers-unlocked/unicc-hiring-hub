@@ -31,6 +31,7 @@ export interface JobFormData {
   privacy_notice_url: string;
   eligibility_note: string;
   branding: Record<string, any>;
+  internal_only: boolean;
 
   // Step 2: Description & Requirements
   description_md: string;
@@ -167,6 +168,7 @@ export default function JobWizard() {
     privacy_notice_url: 'https://www.unicc.org/unicc-privacy-notice-for-applicants/',
     eligibility_note: '',
     branding: { preset: 'UNICC' },
+    internal_only: false,
     description_md: '',
     requirements_md: '',
     essential_education_level: '',
@@ -308,6 +310,7 @@ export default function JobWizard() {
             privacy_notice_url: 'https://www.unicc.org/unicc-privacy-notice-for-applicants/',
             eligibility_note: '',
             branding: { preset: 'UNICC' },
+            internal_only: requisition.internal_only || false,
             description_md: `
 # Purpose of the Position
 
@@ -572,6 +575,7 @@ ${requisition.desirable_education || ''}
           privacy_notice_url: jobData.privacy_notice_url || 'https://www.unicc.org/unicc-privacy-notice-for-applicants/',
           eligibility_note: jobData.eligibility_note || '',
           branding: (jobData.branding as Record<string, any>) || { preset: 'UNICC' },
+          internal_only: jobData.internal_only || false,
           description_md: jobData.description_md || '',
           requirements_md: jobData.requirements_md || '',
           essential_education_level: jobData.essential_education_level || '',

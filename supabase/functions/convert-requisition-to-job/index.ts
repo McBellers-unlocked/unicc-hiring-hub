@@ -120,7 +120,8 @@ Deno.serve(async (req) => {
       category: 'Professional',
       salary_estimate: salaryEstimate,
       timezone: 'Europe/Zurich',
-      privacy_notice_url: 'https://www.unicc.org/unicc-privacy-notice-for-applicants/'
+      privacy_notice_url: 'https://www.unicc.org/unicc-privacy-notice-for-applicants/',
+      internal_only: req_data.internal_only || false
     }).select().single();
 
     if (jobError) {

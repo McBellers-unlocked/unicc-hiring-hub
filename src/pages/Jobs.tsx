@@ -25,6 +25,7 @@ interface Job {
   positions: number;
   salary_estimate: string;
   created_at: string;
+  internal_only: boolean;
 }
 
 export default function Jobs() {
@@ -41,11 +42,22 @@ export default function Jobs() {
 
   const fetchJobs = async () => {
     try {
-      const { data, error } = await supabase
+      // Check if user is authenticated and get their email
+      const { data: { user } } = await supabase.auth.getUser();
+      const isInternalUser = user?.email?.endsWith('@unicc.org');
+
+      let query = supabase
         .from('jobs')
-        .select('id, title, slug, location, closing_date, category, type, grade, notice_no, positions, salary_estimate, created_at')
+        .select('id, title, slug, location, closing_date, category, type, grade, notice_no, positions, salary_estimate, created_at, internal_only')
         .eq('status', 'active')
         .order('created_at', { ascending: false });
+
+      // If not an internal user, filter out internal-only jobs
+      if (!isInternalUser) {
+        query = query.or('internal_only.is.null,internal_only.eq.false');
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setJobs(data || []);
@@ -405,6 +417,7 @@ export default function Jobs() {
                             
                             {/* Contract Type and Grade - prominently displayed */}
                             <div className="flex flex-wrap gap-2">
+                              {job.internal_only && <Badge variant="default">Internal Only</Badge>}
                               {job.type && (
                                 <Badge variant="default" className="bg-primary text-primary-foreground">
                                   {getDisplayType(job.type)}

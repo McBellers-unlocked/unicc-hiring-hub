@@ -25,10 +25,11 @@ interface KillerQuestion {
 interface Job {
   id: string;
   title: string;
-  location?: string;
-  closing_date?: string;
-  org_unit?: string;
-  timezone?: string;
+  location: string;
+  closing_date: string;
+  org_unit: string;
+  timezone: string;
+  internal_only: boolean;
 }
 
 type ApplicationStep = 'phf' | 'success';
@@ -101,6 +102,10 @@ export default function JobApplication() {
 
   const fetchJobAndQuestions = async () => {
     try {
+      // Check if user is authenticated and get their email
+      const { data: { user } } = await supabase.auth.getUser();
+      const isInternalUser = user?.email?.endsWith('@unicc.org');
+
       const [jobResponse, questionsResponse] = await Promise.all([
         supabase
           .from('jobs')
@@ -125,6 +130,17 @@ export default function JobApplication() {
 
       if (!jobResponse.data) {
         navigate('/404');
+        return;
+      }
+
+      // Check if job is internal-only and user is not internal
+      if (jobResponse.data.internal_only && !isInternalUser) {
+        toast({
+          title: "Access Restricted",
+          description: "This position is only open to internal UNICC staff.",
+          variant: "destructive"
+        });
+        navigate(`/job/${jobResponse.data.slug || jobId}`);
         return;
       }
 

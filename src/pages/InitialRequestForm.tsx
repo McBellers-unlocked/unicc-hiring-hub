@@ -163,6 +163,7 @@ export default function InitialRequestForm() {
     brief_outline: '',
     funding_status: '',
     funding_comments: '',
+    internal_only: false,
     // STDA-specific fields
     eligible_grades: [] as string[],
     stda_assignment_duration: '',
@@ -227,6 +228,7 @@ export default function InitialRequestForm() {
           brief_outline: data.brief_outline || '',
           funding_status: data.funding_status || '',
           funding_comments: data.funding_comments || '',
+          internal_only: data.internal_only || false,
           // STDA-specific fields
           eligible_grades: stdaData.eligible_grades || [],
           stda_assignment_duration: stdaData.assignment_duration || '',
@@ -470,6 +472,7 @@ export default function InitialRequestForm() {
         brief_outline: formData.brief_outline,
         funding_status: formData.funding_status,
         funding_comments: formData.funding_comments || null,
+        internal_only: formData.internal_only,
         comments: {
           ...(formData.remote_region && { remote_region: formData.remote_region }),
           ...(consultancyLevel && formData.nature_of_position === 'Individual Consultant' && { consultancy_level: consultancyLevel }),
@@ -1178,6 +1181,27 @@ export default function InitialRequestForm() {
                 rows={3}
                 disabled={viewMode}
               />
+            </div>
+
+            {/* Internal Only */}
+            <div className="space-y-2 border-t pt-4">
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  id="internal-only"
+                  checked={formData.internal_only}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, internal_only: !!checked }))}
+                  disabled={viewMode}
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="internal-only" className="font-medium cursor-pointer">
+                    Restrict to internal staff only
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    This position will only be visible to authenticated users with @unicc.org email addresses. 
+                    External candidates will not be able to see or apply for this position.
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Action Buttons */}

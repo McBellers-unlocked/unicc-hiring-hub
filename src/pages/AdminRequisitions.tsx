@@ -34,6 +34,7 @@ interface JobRequisition {
   created_at: string;
   created_by: string;
   hiring_manager_name?: string;
+  internal_only: boolean;
   hr_reviewed: boolean;
   hr_reviewed_at: string | null;
   hr_reviewed_by: string | null;
@@ -463,16 +464,19 @@ export default function AdminRequisitions() {
                                 <Building className="h-4 w-4" />
                                 {requisition.grade}
                               </span>
-                              {requisition.hiring_manager_name && (
-                                <span className="flex items-center gap-1">
-                                  <User className="h-4 w-4" />
-                                  {requisition.hiring_manager_name}
-                                </span>
-                              )}
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-4 w-4" />
-                                {new Date(requisition.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                              </span>
+              {requisition.hiring_manager_name && (
+                <span className="flex items-center gap-1">
+                  <User className="h-4 w-4" />
+                  {requisition.hiring_manager_name}
+                </span>
+              )}
+              {requisition.internal_only && (
+                <Badge variant="default" className="ml-2">Internal Only</Badge>
+              )}
+              <span className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                {new Date(requisition.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </span>
                             </CardDescription>
                           </div>
                           

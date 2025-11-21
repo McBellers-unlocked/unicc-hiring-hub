@@ -1277,6 +1277,7 @@ export type Database = {
           initial_request_approved_by: string | null
           initial_request_submitted: boolean | null
           intern_modality: string | null
+          internal_only: boolean | null
           language_requirements: Json | null
           leadership_competencies: Json | null
           main_duties_responsibilities: string | null
@@ -1355,6 +1356,7 @@ export type Database = {
           initial_request_approved_by?: string | null
           initial_request_submitted?: boolean | null
           intern_modality?: string | null
+          internal_only?: boolean | null
           language_requirements?: Json | null
           leadership_competencies?: Json | null
           main_duties_responsibilities?: string | null
@@ -1433,6 +1435,7 @@ export type Database = {
           initial_request_approved_by?: string | null
           initial_request_submitted?: boolean | null
           intern_modality?: string | null
+          internal_only?: boolean | null
           language_requirements?: Json | null
           leadership_competencies?: Json | null
           main_duties_responsibilities?: string | null
@@ -1522,6 +1525,7 @@ export type Database = {
           essential_education_level: string | null
           grade: string | null
           id: string
+          internal_only: boolean | null
           issue_date: string | null
           language_requirements: string | null
           location: string | null
@@ -1556,6 +1560,7 @@ export type Database = {
           essential_education_level?: string | null
           grade?: string | null
           id?: string
+          internal_only?: boolean | null
           issue_date?: string | null
           language_requirements?: string | null
           location?: string | null
@@ -1590,6 +1595,7 @@ export type Database = {
           essential_education_level?: string | null
           grade?: string | null
           id?: string
+          internal_only?: boolean | null
           issue_date?: string | null
           language_requirements?: string | null
           location?: string | null
