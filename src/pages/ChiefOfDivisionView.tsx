@@ -14,17 +14,34 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { Loader2, FileText, UserCheck } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Loader2, FileText, UserCheck, Eye } from "lucide-react";
 import { getAssignedChief } from "@/lib/chiefAssignment";
+import { useNavigate } from "react-router-dom";
 
 export default function ChiefOfDivisionView() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [pdfPreview, setPdfPreview] = useState<{ open: boolean; requisitionId: string | null; pdfUrl: string | null; loading: boolean }>({
     open: false,
     requisitionId: null,
     pdfUrl: null,
     loading: false
+  });
+  const [approvalDialog, setApprovalDialog] = useState<{
+    open: boolean;
+    requisitionId: string | null;
+    action: 'approve' | 'reject' | null;
+    comments: string;
+  }>({
+    open: false,
+    requisitionId: null,
+    action: null,
+    comments: ''
   });
 
   const { data: requisitions, isLoading } = useQuery({
@@ -145,23 +162,40 @@ export default function ChiefOfDivisionView() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: async ({ id, approved, isInitialRequest }: { id: string; approved: boolean; isInitialRequest?: boolean }) => {
+    mutationFn: async ({ id, approved, isInitialRequest, comments }: { id: string; approved: boolean; isInitialRequest?: boolean; comments?: string }) => {
+      const user = (await supabase.auth.getUser()).data.user;
       const updateData: any = {
         chief_of_division_approved_at: new Date().toISOString(),
-        chief_of_division_approved_by: (await supabase.auth.getUser()).data.user?.id,
+        chief_of_division_approved_by: user?.id,
       };
 
       if (isInitialRequest) {
         // For initial requests
         updateData.chief_of_division_approval = approved;
         updateData.initial_request_approved = approved;
-        updateData.initial_request_approved_by = (await supabase.auth.getUser()).data.user?.id;
+        updateData.initial_request_approved_by = user?.id;
         updateData.initial_request_approved_at = new Date().toISOString();
         updateData.status = approved ? 'initial_request_approved' : 'initial_request_rejected';
+        
+        // Add comments if provided
+        if (comments) {
+          updateData.comments = JSON.stringify([
+            {
+              user_id: user?.id,
+              comment: comments,
+              timestamp: new Date().toISOString(),
+              action: approved ? 'approved_initial_request' : 'rejected_initial_request',
+            }
+          ]);
+        }
       } else {
         // For full PD approvals
         updateData.chief_of_division_approval = approved;
         updateData.status = approved ? 'director_review' : 'rejected';
+        
+        if (comments) {
+          updateData.chief_hr_comments = comments;
+        }
       }
 
       const { error } = await supabase
@@ -186,7 +220,25 @@ export default function ChiefOfDivisionView() {
   });
 
   const handleApproval = (id: string, approved: boolean, isInitialRequest?: boolean) => {
-    approveMutation.mutate({ id, approved, isInitialRequest });
+    setApprovalDialog({
+      open: true,
+      requisitionId: id,
+      action: approved ? 'approve' : 'reject',
+      comments: ''
+    });
+  };
+  
+  const confirmApproval = () => {
+    if (!approvalDialog.requisitionId || !approvalDialog.action) return;
+    
+    approveMutation.mutate({
+      id: approvalDialog.requisitionId,
+      approved: approvalDialog.action === 'approve',
+      isInitialRequest: true,
+      comments: approvalDialog.comments
+    });
+    
+    setApprovalDialog({ open: false, requisitionId: null, action: null, comments: '' });
   };
 
   const handleViewDetails = async (requisitionId: string) => {
@@ -343,6 +395,14 @@ export default function ChiefOfDivisionView() {
                         )}
                         
                         <div className="flex gap-2 pt-2">
+                          <Button
+                            onClick={() => navigate(`/requisitions/initial/${requisition.id}?view=true`)}
+                            variant="outline"
+                            size="sm"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Full Request
+                          </Button>
                           <Button
                             onClick={() => handleApproval(requisition.id, true, true)}
                             disabled={approveMutation.isPending}
@@ -1094,6 +1154,64 @@ export default function ChiefOfDivisionView() {
               </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Approval/Rejection Dialog */}
+      <Dialog open={approvalDialog.open} onOpenChange={(open) => !open && setApprovalDialog({ open: false, requisitionId: null, action: null, comments: '' })}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {approvalDialog.action === 'approve' ? 'Approve Initial Request' : 'Reject Initial Request'}
+            </DialogTitle>
+            <DialogDescription>
+              {approvalDialog.action === 'approve' 
+                ? 'Please provide any comments for this approval. HR will notify the hiring manager to proceed with creating the full position description.'
+                : 'Please explain why this request is being rejected. The hiring manager will be notified with your feedback.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="approval-comments">
+                Comments {approvalDialog.action === 'reject' && '*'}
+              </Label>
+              <Textarea
+                id="approval-comments"
+                value={approvalDialog.comments}
+                onChange={(e) => setApprovalDialog(prev => ({ ...prev, comments: e.target.value }))}
+                placeholder={approvalDialog.action === 'approve' 
+                  ? "Add any comments or instructions (optional)..." 
+                  : "Explain why this request is being rejected..."}
+                rows={4}
+                className="resize-none"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setApprovalDialog({ open: false, requisitionId: null, action: null, comments: '' })}
+              disabled={approveMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmApproval}
+              disabled={approveMutation.isPending || (approvalDialog.action === 'reject' && !approvalDialog.comments.trim())}
+              variant={approvalDialog.action === 'approve' ? 'default' : 'destructive'}
+            >
+              {approveMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                approvalDialog.action === 'approve' ? 'Approve' : 'Reject'
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Layout>
