@@ -457,6 +457,18 @@ export default function AdminRequisitions() {
                           </div>
                           
                           <div className="flex items-center gap-2">
+                            {/* Continue PD Button for Drafts */}
+                            {requisition.status === 'initial_request_draft' && (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => navigate(`/requisitions/initial-request/${requisition.id}`)}
+                              >
+                                <Edit2 className="h-4 w-4 mr-1" />
+                                Continue PD
+                              </Button>
+                            )}
+                            
                             <Button
                               variant="outline"
                               size="sm"

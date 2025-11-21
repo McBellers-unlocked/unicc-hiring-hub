@@ -351,6 +351,18 @@ export default function JobRequisitions() {
                           View Request
                         </Button>
                       )}
+                      {/* Continue PD button for draft initial requests */}
+                      {requisition.status === 'initial_request_draft' && 
+                       requisition.created_by === user?.id && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => navigate(`/requisitions/initial-request/${requisition.id}`)}
+                        >
+                          <FileText className="h-4 w-4 mr-1" />
+                          Continue PD
+                        </Button>
+                      )}
                       {/* Continue to Full PD button for approved initial requests */}
                       {requisition.initial_request_approved && 
                        requisition.status === 'initial_request_approved' &&
