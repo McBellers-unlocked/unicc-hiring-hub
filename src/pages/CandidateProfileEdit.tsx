@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -563,28 +564,33 @@ export default function CandidateProfileEdit() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-muted rounded"></div>
-          <div className="h-96 bg-muted rounded"></div>
+      <Layout>
+        <div className="container mx-auto py-8">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-muted rounded"></div>
+            <div className="h-96 bg-muted rounded"></div>
+          </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   if (!profile) {
     return (
-      <div className="container mx-auto py-8 text-center">
-        <h1 className="text-2xl font-bold">Profile not found</h1>
-        <Button onClick={() => navigate("/")} className="mt-4">
-          Go Home
-        </Button>
-      </div>
+      <Layout>
+        <div className="container mx-auto py-8 text-center">
+          <h1 className="text-2xl font-bold">Profile not found</h1>
+          <Button onClick={() => navigate("/")} className="mt-4">
+            Go Home
+          </Button>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="container mx-auto py-8 max-w-7xl">
+    <Layout>
+      <div className="container mx-auto py-8 max-w-7xl">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Edit Profile</h1>
         <div className="space-x-2">
@@ -887,6 +893,7 @@ export default function CandidateProfileEdit() {
           </Card>
         </div>
       </div>
-    </div>
+      </div>
+    </Layout>
   );
 }
