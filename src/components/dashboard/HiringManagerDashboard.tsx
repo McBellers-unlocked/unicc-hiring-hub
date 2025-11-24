@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-import { Briefcase, FileText } from "lucide-react";
+import { Briefcase, FileText, User, ListChecks } from "lucide-react";
 import StatsCard from "./StatsCard";
 
 export default function HiringManagerDashboard() {
@@ -14,13 +14,13 @@ export default function HiringManagerDashboard() {
   const [stats, setStats] = useState({ 
     myJobs: 0, 
     pendingReview: 0,
-    recentApplications: 0,
     activeJobs: 0,
     approvedInitialRequests: 0,
     approvedPDs: 0
   });
   const [myJobIds, setMyJobIds] = useState<string[]>([]);
   const [recentlyApproved, setRecentlyApproved] = useState<any[]>([]);
+  const [hasShortlistingJobs, setHasShortlistingJobs] = useState(false);
 
   useEffect(() => {
     if (user) fetchData();
@@ -45,15 +45,48 @@ export default function HiringManagerDashboard() {
       .in('id', jobIds)
       .eq('status', 'active');
     
-    // Get recent applications (last 7 days) for my jobs
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    // Check if any jobs are in shortlisting stage
+    const { data: jobsData } = await supabase
+      .from('jobs')
+      .select(`
+        id,
+        closing_date,
+        status,
+        applications (
+          status
+        )
+      `)
+      .in('id', jobIds)
+      .eq('status', 'active');
     
-    const { count: recentAppsCount } = await supabase
-      .from('applications')
-      .select('id', { count: 'exact', head: true })
-      .in('job_id', jobIds)
-      .gte('submitted_at', sevenDaysAgo.toISOString());
+    // Determine if any jobs are in HM shortlisting stage
+    let hasJobsInShortlisting = false;
+    if (jobsData && jobsData.length > 0) {
+      const now = new Date();
+      for (const job of jobsData) {
+        const closingDate = job.closing_date ? new Date(job.closing_date) : null;
+        const closingDatePassed = closingDate && closingDate <= now;
+        
+        if (closingDatePassed && job.applications && job.applications.length > 0) {
+          const statuses = job.applications.reduce((acc: any, app: any) => {
+            acc[app.status] = (acc[app.status] || 0) + 1;
+            return acc;
+          }, {});
+          
+          const inApplication = statuses['Application'] || 0;
+          const inLonglist = statuses['Longlist'] || 0;
+          const inShortlist = statuses['Shortlist'] || 0;
+          
+          // HM Shortlisting - only if ALL applications moved out of "Application" status
+          if (inApplication === 0 && (inLonglist > 0 || inShortlist > 0)) {
+            hasJobsInShortlisting = true;
+            break;
+          }
+        }
+      }
+    }
+    
+    setHasShortlistingJobs(hasJobsInShortlisting);
     
     // Get pending PDs
     const { count: pdsCount } = await supabase
@@ -103,7 +136,6 @@ export default function HiringManagerDashboard() {
       myJobs: jobIds.length,
       activeJobs: activeJobsCount || 0,
       pendingReview: pdsCount || 0,
-      recentApplications: recentAppsCount || 0,
       approvedInitialRequests: approvedInitialCount || 0,
       approvedPDs: approvedPDsCount || 0
     });
@@ -111,26 +143,13 @@ export default function HiringManagerDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard 
           title="Active Jobs" 
           value={stats.activeJobs}
           subtitle={`${stats.myJobs} total jobs`}
           icon={Briefcase}
           onClick={() => navigate('/admin/jobs')}
-        />
-        <StatsCard 
-          title="New Applications (7d)" 
-          value={stats.recentApplications}
-          icon={FileText}
-          alert={stats.recentApplications > 10}
-          onClick={() => {
-            if (myJobIds.length > 0) {
-              navigate(`/applications/manage?job=${myJobIds[0]}`);
-            } else {
-              navigate('/applications');
-            }
-          }}
         />
         <StatsCard 
           title="PDs Pending Review" 
@@ -189,36 +208,66 @@ export default function HiringManagerDashboard() {
           <CardTitle>Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Button 
-              onClick={() => {
-                if (myJobIds.length > 0) {
-                  navigate(`/applications/manage?job=${myJobIds[0]}`);
-                } else {
-                  navigate('/applications');
-                }
-              }}
-              variant="outline" 
-              className="w-full justify-start"
+              onClick={() => navigate('/requisitions/initial/new')} 
+              variant="default"
+              size="lg"
+              className="h-auto py-4 flex-col items-start gap-2"
             >
-              <FileText className="h-4 w-4 mr-2" />
-              View Applications for My Jobs
+              <div className="flex items-center gap-2 w-full">
+                <Briefcase className="h-5 w-5" />
+                <span className="font-semibold">Create Initial Request</span>
+              </div>
+              <span className="text-xs opacity-90 text-left">Start a new position description</span>
             </Button>
+            
             <Button 
               onClick={() => navigate('/requisitions')} 
-              variant="outline" 
-              className="w-full justify-start"
+              variant="default"
+              size="lg"
+              className="h-auto py-4 flex-col items-start gap-2"
             >
-              <FileText className="h-4 w-4 mr-2" />
-              Manage Position Descriptions
+              <div className="flex items-center gap-2 w-full">
+                <ListChecks className="h-5 w-5" />
+                <span className="font-semibold">Go to PD Pipeline</span>
+              </div>
+              <span className="text-xs opacity-90 text-left">Manage position descriptions</span>
             </Button>
+            
             <Button 
-              onClick={() => navigate('/requisitions/new')} 
-              variant="outline" 
-              className="w-full justify-start"
+              onClick={() => navigate('/my-profile')} 
+              variant="default"
+              size="lg"
+              className="h-auto py-4 flex-col items-start gap-2"
             >
-              <Briefcase className="h-4 w-4 mr-2" />
-              Create New Position Description
+              <div className="flex items-center gap-2 w-full">
+                <User className="h-5 w-5" />
+                <span className="font-semibold">Go to My Profile</span>
+              </div>
+              <span className="text-xs opacity-90 text-left">View and edit your profile</span>
+            </Button>
+            
+            <Button 
+              onClick={() => {
+                if (hasShortlistingJobs && myJobIds.length > 0) {
+                  navigate(`/applications/manage?job=${myJobIds[0]}`);
+                }
+              }}
+              disabled={!hasShortlistingJobs}
+              variant={hasShortlistingJobs ? "default" : "secondary"}
+              size="lg"
+              className="h-auto py-4 flex-col items-start gap-2"
+            >
+              <div className="flex items-center gap-2 w-full">
+                <FileText className="h-5 w-5" />
+                <span className="font-semibold">Go to Applications</span>
+              </div>
+              <span className="text-xs opacity-90 text-left">
+                {hasShortlistingJobs 
+                  ? "Review applications in shortlisting" 
+                  : "Available when jobs reach shortlist stage"}
+              </span>
             </Button>
           </div>
         </CardContent>

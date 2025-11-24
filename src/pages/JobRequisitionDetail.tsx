@@ -277,6 +277,21 @@ export default function JobRequisitionDetail() {
             Back to Requisitions
           </Button>
           <div className="flex gap-2">
+          {/* Continue PD Button for Incomplete Drafts */}
+          {(requisition.status === 'initial_request_draft' || requisition.status === 'draft' || requisition.status === 'pd_draft') &&
+           user?.id === requisition.created_by && (
+            <Button onClick={() => {
+              if (requisition.status === 'initial_request_draft') {
+                navigate(`/requisitions/initial/${requisition.id}`);
+              } else {
+                navigate(`/requisitions/${requisition.id}/edit`);
+              }
+            }}>
+              <FileText className="h-4 w-4 mr-2" />
+              Continue PD
+            </Button>
+          )}
+          
           {/* HR Final Review button - for HR to review after hiring manager approval */}
           {requisition.status === 'hr_final_review' && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
             <Button
@@ -428,14 +443,7 @@ export default function JobRequisitionDetail() {
                   const hrChange = Array.isArray(requisition.hr_changes) && 
                     requisition.hr_changes.find((c: any) => c.field === 'objectives_of_programme');
                   return hrChange ? (
-                    <div className="mt-1">
-                      <InlineTrackChanges
-                        fieldLabel=""
-                        originalValue={hrChange.originalValue}
-                        newValue={hrChange.newValue}
-                        showToggle={false}
-                      />
-                    </div>
+                    <p className="mt-1 whitespace-pre-wrap">{hrChange.newValue}</p>
                   ) : (
                     <p className="mt-1 whitespace-pre-wrap">{requisition.objectives_of_programme}</p>
                   );
@@ -449,14 +457,7 @@ export default function JobRequisitionDetail() {
                 const hrChange = Array.isArray(requisition.hr_changes) && 
                   requisition.hr_changes.find((c: any) => c.field === 'main_duties_responsibilities');
                 return hrChange ? (
-                  <div className="mt-1">
-                    <InlineTrackChanges
-                      fieldLabel=""
-                      originalValue={hrChange.originalValue}
-                      newValue={hrChange.newValue}
-                      showToggle={false}
-                    />
-                  </div>
+                  <p className="mt-1 whitespace-pre-wrap">{hrChange.newValue}</p>
                 ) : (
                   <p className="mt-1 whitespace-pre-wrap">{requisition.main_duties_responsibilities}</p>
                 );
@@ -478,14 +479,7 @@ export default function JobRequisitionDetail() {
                   const hrChange = Array.isArray(requisition.hr_changes) && 
                     requisition.hr_changes.find((c: any) => c.field === 'essential_experience');
                   return hrChange ? (
-                    <div className="mt-1">
-                      <InlineTrackChanges
-                        fieldLabel=""
-                        originalValue={hrChange.originalValue}
-                        newValue={hrChange.newValue}
-                        showToggle={false}
-                      />
-                    </div>
+                    <p className="mt-1 whitespace-pre-wrap">{hrChange.newValue}</p>
                   ) : (
                     <p className="mt-1 whitespace-pre-wrap">{requisition.essential_experience}</p>
                   );
@@ -497,14 +491,7 @@ export default function JobRequisitionDetail() {
                   const hrChange = Array.isArray(requisition.hr_changes) && 
                     requisition.hr_changes.find((c: any) => c.field === 'desirable_experience');
                   return hrChange ? (
-                    <div className="mt-1">
-                      <InlineTrackChanges
-                        fieldLabel=""
-                        originalValue={hrChange.originalValue}
-                        newValue={hrChange.newValue}
-                        showToggle={false}
-                      />
-                    </div>
+                    <p className="mt-1 whitespace-pre-wrap">{hrChange.newValue}</p>
                   ) : (
                     <p className="mt-1 whitespace-pre-wrap">{requisition.desirable_experience || 'None specified'}</p>
                   );
@@ -516,14 +503,7 @@ export default function JobRequisitionDetail() {
                   const hrChange = Array.isArray(requisition.hr_changes) && 
                     requisition.hr_changes.find((c: any) => c.field === 'essential_education');
                   return hrChange ? (
-                    <div className="mt-1">
-                      <InlineTrackChanges
-                        fieldLabel=""
-                        originalValue={hrChange.originalValue}
-                        newValue={hrChange.newValue}
-                        showToggle={false}
-                      />
-                    </div>
+                    <p className="mt-1 whitespace-pre-wrap">{hrChange.newValue}</p>
                   ) : (
                     <p className="mt-1 whitespace-pre-wrap">{requisition.essential_education}</p>
                   );
@@ -535,14 +515,7 @@ export default function JobRequisitionDetail() {
                   const hrChange = Array.isArray(requisition.hr_changes) && 
                     requisition.hr_changes.find((c: any) => c.field === 'desirable_education');
                   return hrChange ? (
-                    <div className="mt-1">
-                      <InlineTrackChanges
-                        fieldLabel=""
-                        originalValue={hrChange.originalValue}
-                        newValue={hrChange.newValue}
-                        showToggle={false}
-                      />
-                    </div>
+                    <p className="mt-1 whitespace-pre-wrap">{hrChange.newValue}</p>
                   ) : (
                     <p className="mt-1 whitespace-pre-wrap">{requisition.desirable_education || 'None specified'}</p>
                   );
@@ -564,29 +537,112 @@ export default function JobRequisitionDetail() {
                   <p className="whitespace-pre-wrap">{requisition.language_requirements}</p>
                 ) : (
                   <div className="space-y-2">
-                    {Object.entries(requisition.language_requirements).map(([lang, req]: [string, any]) => {
-                      // Handle special case for UN language advantage
-                      if (lang === 'un_language_advantage' && req) {
-                        return (
-                          <div key={lang}>
+                    {(() => {
+                      const langReq = requisition.language_requirements as Record<string, any>;
+                      const languageLabels: Record<string, string> = {
+                        english: 'English',
+                        french: 'French',
+                        spanish: 'Spanish',
+                        arabic: 'Arabic',
+                        chinese: 'Chinese',
+                        russian: 'Russian',
+                      };
+
+                      const items: JSX.Element[] = [];
+
+                      // Main language entries (e.g. English)
+                      Object.entries(langReq)
+                        .filter(([key, value]) => {
+                          // Skip internal / special fields
+                          if (['additional_languages', 'un_language_advantage', 'local_language_advantage'].includes(key)) {
+                            return false;
+                          }
+                          if (typeof value === 'string') {
+                            const cleanValue = value.trim().toLowerCase();
+                            if (
+                              cleanValue === '' ||
+                              cleanValue === 'not specified' ||
+                              cleanValue.includes('not specified') ||
+                              cleanValue === key.toLowerCase() ||
+                              cleanValue.includes(key.toLowerCase())
+                            ) {
+                              return false;
+                            }
+                            return true;
+                          }
+                          return false;
+                        })
+                        .forEach(([lang, level]) => {
+                          const label =
+                            languageLabels[lang.toLowerCase() as keyof typeof languageLabels] ||
+                            lang.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+                          items.push(
+                            <div key={lang}>
+                              <span className="font-medium">{label}:</span>
+                              <span className="ml-2">{level}</span>
+                            </div>
+                          );
+                        });
+
+                      // Additional languages array
+                      const additional = Array.isArray((langReq as any).additional_languages)
+                        ? (langReq as any).additional_languages.filter((lang: any) => {
+                            if (typeof lang === 'object' && lang?.name) {
+                              const cleanName = String(lang.name).trim().toLowerCase();
+                              return cleanName !== '' && !cleanName.includes('not specified');
+                            }
+                            if (typeof lang === 'string') {
+                              const cleanLang = lang.trim().toLowerCase();
+                              return cleanLang !== '' && !cleanLang.includes('not specified');
+                            }
+                            return false;
+                          })
+                        : [];
+
+                      additional.forEach((lang: any, idx: number) => {
+                        const name = typeof lang === 'object' && lang.name ? lang.name : String(lang);
+                        const level = typeof lang === 'object' && lang.level ? lang.level : '';
+                        
+                        // Format level text to match English formatting
+                        let formattedLevel = level;
+                        if (level) {
+                          const levelLower = level.toLowerCase();
+                          if (levelLower === 'expert') {
+                            formattedLevel = 'Expert knowledge is required';
+                          } else if (levelLower === 'intermediate') {
+                            formattedLevel = 'Intermediate knowledge is required';
+                          } else if (levelLower === 'beginner') {
+                            formattedLevel = 'Beginner knowledge is required';
+                          }
+                        }
+                        
+                        items.push(
+                          <div key={`additional-${idx}`}>
+                            <span className="font-medium">{name}:</span>
+                            <span className="ml-2">{formattedLevel || 'Not specified'}</span>
+                          </div>
+                        );
+                      });
+
+                      // Advantage flags
+                      if ((langReq as any).un_language_advantage === true) {
+                        items.push(
+                          <div key="un_language_advantage">
                             <span className="ml-2">Knowledge of another UN language would be an advantage</span>
                           </div>
                         );
                       }
-                      
-                      // Skip if UN language advantage is false
-                      if (lang === 'un_language_advantage' && !req) {
-                        return null;
+
+                      if ((langReq as any).local_language_advantage === true) {
+                        items.push(
+                          <div key="local_language_advantage">
+                            <span className="ml-2">Knowledge of the local language of the Duty Station would be an advantage</span>
+                          </div>
+                        );
                       }
-                      
-                      // Handle other language requirements
-                      return (
-                        <div key={lang}>
-                          <span className="font-medium capitalize">{lang}:</span>
-                          <span className="ml-2">{req}</span>
-                        </div>
-                      );
-                    })}
+
+                      return items;
+                    })()}
                   </div>
                 )}
               </div>

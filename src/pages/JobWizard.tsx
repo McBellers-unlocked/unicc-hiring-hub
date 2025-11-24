@@ -31,6 +31,7 @@ export interface JobFormData {
   privacy_notice_url: string;
   eligibility_note: string;
   branding: Record<string, any>;
+  internal_only: boolean;
 
   // Step 2: Description & Requirements
   description_md: string;
@@ -167,6 +168,7 @@ export default function JobWizard() {
     privacy_notice_url: 'https://www.unicc.org/unicc-privacy-notice-for-applicants/',
     eligibility_note: '',
     branding: { preset: 'UNICC' },
+    internal_only: false,
     description_md: '',
     requirements_md: '',
     essential_education_level: '',
@@ -198,11 +200,12 @@ export default function JobWizard() {
       try {
         setLoading(true);
         
-        // Helper function to format salary based on grade
-        const formatSalaryFromGrade = (grade: string | null): string => {
+        // Helper function to format salary based on grade and duty station
+        const formatSalaryFromGrade = async (grade: string | null, locations: string[]): Promise<string> => {
           if (!grade) return '';
           
-          const salaryTable: { [key: string]: { stepI: number; stepXIII: number } } = {
+          // P-staff salaries (USD, not location-dependent)
+          const pStaffSalaryTable: { [key: string]: { stepI: number; stepXIII: number } } = {
             'D-2': { stepI: 171094, stepXIII: 205942 },
             'D-1': { stepI: 152417, stepXIII: 193215 },
             'D1': { stepI: 152417, stepXIII: 193215 },
@@ -213,9 +216,52 @@ export default function JobWizard() {
             'P-1': { stepI: 52163, stepXIII: 67495 },
           };
           
-          const salaryData = salaryTable[grade];
-          if (salaryData) {
-            return `USD ${salaryData.stepI.toLocaleString()} - USD ${salaryData.stepXIII.toLocaleString()}`;
+          const pStaffData = pStaffSalaryTable[grade];
+          if (pStaffData) {
+            return `USD ${pStaffData.stepI.toLocaleString()} - USD ${pStaffData.stepXIII.toLocaleString()}`;
+          }
+          
+          // G-staff salaries (location-dependent)
+          const gStaffGrades = ['G3', 'G4', 'G5', 'G6', 'G7', 'G-3', 'G-4', 'G-5', 'G-6', 'G-7'];
+          const normalizedGrade = grade.replace('-', '').toUpperCase();
+          
+          if (gStaffGrades.some(g => g.replace('-', '').toUpperCase() === normalizedGrade)) {
+            // Determine duty station from locations array
+            const locationMap: { [key: string]: string } = {
+              'Valencia': 'valencia',
+              'Brindisi': 'brindisi',
+              'Rome': 'rome',
+              'New York': 'new_york',
+              'Geneva': 'geneva'
+            };
+            
+            let dutyStation = '';
+            for (const loc of locations) {
+              if (locationMap[loc]) {
+                dutyStation = locationMap[loc];
+                break;
+              }
+            }
+            
+            if (dutyStation) {
+              // Fetch G-staff salary from system_settings
+              const settingKey = `g_salary_${dutyStation}_${normalizedGrade.toLowerCase()}`;
+              const { data: setting } = await supabase
+                .from('system_settings')
+                .select('value')
+                .eq('key', settingKey)
+                .single();
+              
+              if (setting) {
+                try {
+                  const salaryData = JSON.parse(setting.value);
+                  const { min, max, currency } = salaryData;
+                  return `${currency} ${min.toLocaleString()} - ${currency} ${max.toLocaleString()}`;
+                } catch (e) {
+                  console.error('Error parsing G-staff salary data:', e);
+                }
+              }
+            }
           }
           
           return '';
@@ -246,6 +292,8 @@ export default function JobWizard() {
             mappedGrade = 'Intern';
           }
 
+          const salaryEstimate = await formatSalaryFromGrade(mappedGrade, locationArray);
+          
           setFormData({
             title: requisition.position_title || '',
             category: 'Professional', // Default category
@@ -253,7 +301,7 @@ export default function JobWizard() {
             type: requisition.nature_of_position || '',
             positions: requisition.positions_available || 1,
             grade: mappedGrade,
-            salary_estimate: '',
+            salary_estimate: salaryEstimate,
             location: locationArray,
             org_unit: requisition.unit_section_division || '',
             issue_date: null, // Removed as requested
@@ -262,6 +310,7 @@ export default function JobWizard() {
             privacy_notice_url: 'https://www.unicc.org/unicc-privacy-notice-for-applicants/',
             eligibility_note: '',
             branding: { preset: 'UNICC' },
+            internal_only: requisition.internal_only || false,
             description_md: `
 # Purpose of the Position
 
@@ -504,6 +553,11 @@ ${requisition.desirable_education || ''}
           }
         }
 
+        // Calculate salary estimate if not already set
+        const salaryEstimate = jobData.salary_estimate && jobData.salary_estimate !== jobData.grade 
+          ? jobData.salary_estimate 
+          : await formatSalaryFromGrade(jobData.grade || '', locationArray);
+
         // Update form data with loaded data
         setFormData({
           title: jobData.title || '',
@@ -512,9 +566,7 @@ ${requisition.desirable_education || ''}
           type: jobData.type || '',
           positions: jobData.positions || 1,
           grade: jobData.grade || '',
-          salary_estimate: jobData.salary_estimate && jobData.salary_estimate !== jobData.grade 
-            ? jobData.salary_estimate 
-            : formatSalaryFromGrade(jobData.grade),
+          salary_estimate: salaryEstimate,
           location: locationArray,
           org_unit: jobData.org_unit || '',
           issue_date: jobData.issue_date ? new Date(jobData.issue_date) : null,
@@ -523,6 +575,7 @@ ${requisition.desirable_education || ''}
           privacy_notice_url: jobData.privacy_notice_url || 'https://www.unicc.org/unicc-privacy-notice-for-applicants/',
           eligibility_note: jobData.eligibility_note || '',
           branding: (jobData.branding as Record<string, any>) || { preset: 'UNICC' },
+          internal_only: jobData.internal_only || false,
           description_md: jobData.description_md || '',
           requirements_md: jobData.requirements_md || '',
           essential_education_level: jobData.essential_education_level || '',
@@ -563,6 +616,84 @@ ${requisition.desirable_education || ''}
 
     loadJobData();
   }, [jobId, requisitionId, hasAccess, toast, navigate, userRoles]);
+  
+  // Update salary estimate when grade or location changes
+  useEffect(() => {
+    const updateSalary = async () => {
+      if (formData.grade && formData.location.length > 0) {
+        // Helper function to format salary (duplicated for use in this effect)
+        const formatSalaryFromGrade = async (grade: string, locations: string[]): Promise<string> => {
+          if (!grade) return '';
+          
+          // P-staff salaries (USD, not location-dependent)
+          const pStaffSalaryTable: { [key: string]: { stepI: number; stepXIII: number } } = {
+            'D-2': { stepI: 171094, stepXIII: 205942 },
+            'D-1': { stepI: 152417, stepXIII: 193215 },
+            'D1': { stepI: 152417, stepXIII: 193215 },
+            'P-5': { stepI: 131486, stepXIII: 165076 },
+            'P-4': { stepI: 107389, stepXIII: 131071 },
+            'P-3': { stepI: 87779, stepXIII: 108653 },
+            'P-2': { stepI: 67978, stepXIII: 86037 },
+            'P-1': { stepI: 52163, stepXIII: 67495 },
+          };
+          
+          const pStaffData = pStaffSalaryTable[grade];
+          if (pStaffData) {
+            return `USD ${pStaffData.stepI.toLocaleString()} - USD ${pStaffData.stepXIII.toLocaleString()}`;
+          }
+          
+          // G-staff salaries (location-dependent)
+          const gStaffGrades = ['G3', 'G4', 'G5', 'G6', 'G7', 'G-3', 'G-4', 'G-5', 'G-6', 'G-7'];
+          const normalizedGrade = grade.replace('-', '').toUpperCase();
+          
+          if (gStaffGrades.some(g => g.replace('-', '').toUpperCase() === normalizedGrade)) {
+            const locationMap: { [key: string]: string } = {
+              'Valencia': 'valencia',
+              'Brindisi': 'brindisi',
+              'Rome': 'rome',
+              'New York': 'new_york',
+              'Geneva': 'geneva'
+            };
+            
+            let dutyStation = '';
+            for (const loc of locations) {
+              if (locationMap[loc]) {
+                dutyStation = locationMap[loc];
+                break;
+              }
+            }
+            
+            if (dutyStation) {
+              const settingKey = `g_salary_${dutyStation}_${normalizedGrade.toLowerCase()}`;
+              const { data: setting } = await supabase
+                .from('system_settings')
+                .select('value')
+                .eq('key', settingKey)
+                .single();
+              
+              if (setting) {
+                try {
+                  const salaryData = JSON.parse(setting.value);
+                  const { min, max, currency } = salaryData;
+                  return `${currency} ${min.toLocaleString()} - ${currency} ${max.toLocaleString()}`;
+                } catch (e) {
+                  console.error('Error parsing G-staff salary data:', e);
+                }
+              }
+            }
+          }
+          
+          return '';
+        };
+        
+        const salary = await formatSalaryFromGrade(formData.grade, formData.location);
+        if (salary && salary !== formData.salary_estimate) {
+          setFormData(prev => ({ ...prev, salary_estimate: salary }));
+        }
+      }
+    };
+    updateSalary();
+  }, [formData.grade, formData.location]);
   
   if (!hasAccess) {
     return (

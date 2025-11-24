@@ -437,6 +437,25 @@ export function JobWizardStep1({ data, onUpdate, onNext, isConvertingFromRequisi
           />
         </div>
 
+        {/* Internal Only */}
+        <div className="space-y-2 border-t pt-4">
+          <div className="flex items-start space-x-3">
+            <Checkbox
+              id="internal-only"
+              checked={formData.internal_only || false}
+              onCheckedChange={(checked) => updateField('internal_only', !!checked)}
+            />
+            <div className="space-y-1">
+              <Label htmlFor="internal-only" className="font-medium cursor-pointer">
+                Restrict to internal staff only
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                This position will only be visible to UNICC staff. External candidates will not be able to see or apply for this position.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Navigation */}
         <div className="flex justify-end pt-6">
           <Button onClick={validateAndProceed}>

@@ -60,11 +60,24 @@ Deno.serve(async (req) => {
     const jobType = { 'Fixed term': 'Fixed-term', 'Fixed Term': 'Fixed-term', 'Individual Consultant': 'Consultant' }[req_data.nature_of_position] || req_data.nature_of_position;
     
     let langReq = '# Language Requirements\n\n- English: Expert knowledge is required\n';
-    if (req_data.language_requirements?.un_language_advantage) langReq += '- Knowledge of another UN language would be an advantage\n';
     if (req_data.language_requirements?.additional_languages) {
       req_data.language_requirements.additional_languages.forEach((l: any) => {
-        if (l.name && l.level) langReq += `- ${l.name}: ${l.level}\n`;
+        if (l.name && l.level) {
+          // For UN languages, use "Desirable / an advantage" instead of the level text
+          const levelText = (l.name === 'Any UN language' || l.name?.includes('UN language')) 
+            ? 'Desirable / an advantage' 
+            : l.level;
+          langReq += `- ${l.name}: ${levelText}\n`;
+        }
       });
+    }
+    // Add local language advantage for G positions
+    if (req_data.language_requirements?.local_language_advantage && req_data.grade?.match(/^G[-\s]?\d+$/i)) {
+      langReq += '- Knowledge of the local language of the Duty Station would be an advantage\n';
+    }
+    // Add UN language advantage for P positions
+    if (req_data.language_requirements?.un_language_advantage) {
+      langReq += '- Knowledge of another UN language would be an advantage\n';
     }
 
     // Normalize grade format for salary lookup (handle both "P3" and "P-3" formats)
@@ -113,7 +126,8 @@ Deno.serve(async (req) => {
       category: 'Professional',
       salary_estimate: salaryEstimate,
       timezone: 'Europe/Zurich',
-      privacy_notice_url: 'https://www.unicc.org/unicc-privacy-notice-for-applicants/'
+      privacy_notice_url: 'https://www.unicc.org/unicc-privacy-notice-for-applicants/',
+      internal_only: req_data.internal_only || false
     }).select().single();
 
     if (jobError) {
@@ -234,11 +248,16 @@ Deno.serve(async (req) => {
     if (req_data.language_requirements?.additional_languages) {
       req_data.language_requirements.additional_languages.forEach((l: any) => {
         if (l.name && l.level) {
+          // UN languages should always be non-essential (desirable/advantage)
+          const isUnLanguage = l.name === 'Any UN language' || 
+                               l.name?.toLowerCase().includes('un language') ||
+                               l.name?.includes('French, Spanish, Arabic, Chinese, Russian');
+          
           langRequirements.push({
             job_id: newJob.id,
             language: l.name,
             level: l.level,
-            is_essential: l.is_essential || false,
+            is_essential: isUnLanguage ? false : (l.is_essential || false),
             order_index: langIdx++
           });
         }

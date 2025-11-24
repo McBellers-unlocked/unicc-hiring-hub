@@ -17,8 +17,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { CheckCircle2, XCircle, Eye, Calendar, MapPin, Briefcase } from 'lucide-react';
+import { CheckCircle2, XCircle, Eye, Calendar, MapPin, Briefcase, UserCheck } from 'lucide-react';
 import { format } from 'date-fns';
+import { getAssignedChief } from '@/lib/chiefAssignment';
 
 interface InitialRequest {
   id: string;
@@ -29,6 +30,7 @@ interface InitialRequest {
   intern_modality: string | null;
   grade: string | null;
   duty_station: string;
+  unit_section_division: string | null;
   brief_outline: string;
   funding_status: string;
   funding_comments: string | null;
@@ -211,6 +213,7 @@ export default function InitialRequestReview() {
               const duration = getDurationDisplay(request);
               const locations = request.duty_station ? JSON.parse(request.duty_station) : [];
               const remoteRegion = (request as any).comments?.remote_region;
+              const assignedChief = getAssignedChief(request.unit_section_division);
               
               return (
                 <Card key={request.id}>
@@ -228,6 +231,13 @@ export default function InitialRequestReview() {
                             <Badge variant="outline">Grade {request.grade}</Badge>
                           )}
                         </div>
+                        {assignedChief && (
+                          <div className="flex items-center gap-1 text-sm mt-2">
+                            <UserCheck className="w-4 h-4 text-primary" />
+                            <span className="font-medium">Assigned to:</span>
+                            <span className="text-muted-foreground">{assignedChief.name} ({assignedChief.division})</span>
+                          </div>
+                        )}
                       </div>
                       <Badge variant="secondary">Pending Review</Badge>
                     </div>

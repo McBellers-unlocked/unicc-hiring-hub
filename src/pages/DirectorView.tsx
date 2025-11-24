@@ -12,6 +12,33 @@ import { FileText } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { fixMarkdownFormatting } from "@/lib/utils";
 
+const CORE_COMPETENCY_DEFINITIONS = [
+  "Knowing and managing yourself: Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.",
+  "Producing results: Produces and delivers quality results. Is action oriented and committed to achieving outcomes.",
+  "Moving forward in a changing environment: Is open to and proposes new approaches and ideas. Adapts and responds positively to change.",
+  "Setting an example: Acts within UNICC's / WHO's professional, ethical and legal boundaries and encourages others to adhere to these. Behaves consistently in accordance with clear personal ethics and values."
+];
+
+const MANAGEMENT_COMPETENCY_DEFINITIONS = [
+  "Ensuring effective use of resources: Identifies priorities in accordance with UNICC's strategic directions. Develops and implements action plans, organizes the necessary resources and monitors outcomes.",
+  "Building and promoting partnerships across the Organization and beyond: Develops and strengthens internal and external partnerships that can provide information, assistance and support to UNICC. Identifies and uses synergies across the Organization and with external partners."
+];
+
+const LEADERSHIP_COMPETENCY_DEFINITIONS = [
+  "Driving UNICC to a successful future: Demonstrates a broad-based understanding of the growing complexities of ICT issues and activities. Creates a compelling vision of shared goals, and develops a roadmap for successfully achieving real progress in improving ICT services.",
+  "Promoting innovation and Organizational learning: Invigorates the Organization by building a culture which encourages learning and development. Sponsors innovative approaches and solutions.",
+  "Promoting UNICC's position: Positions UNICC as a leader in ICT services. Gains support for UNICC's mission. Coordinates plans and communicates in a way that attracts support from intended audiences."
+];
+
+const getCoreCompetencyDefinition = (compName: string) =>
+  CORE_COMPETENCY_DEFINITIONS.find(def => def.startsWith(compName)) || compName;
+
+const getManagementCompetencyDefinition = (compName: string) =>
+  MANAGEMENT_COMPETENCY_DEFINITIONS.find(def => def.startsWith(compName)) || compName;
+
+const getLeadershipCompetencyDefinition = (compName: string) =>
+  LEADERSHIP_COMPETENCY_DEFINITIONS.find(def => def.startsWith(compName)) || compName;
+
 export default function DirectorView() {
   const queryClient = useQueryClient();
   const [pdfPreview, setPdfPreview] = useState<{
@@ -449,42 +476,6 @@ export default function DirectorView() {
                           </div>
                         )}
 
-                        {requisition.language_requirements && Object.keys(requisition.language_requirements).length > 0 && (
-                          <div className="prose prose-sm max-w-none">
-                            <h4 className="text-base font-semibold mb-2">Language Requirements:</h4>
-                            <ul className="list-disc ml-5 space-y-1 my-2">
-                              {Object.entries(requisition.language_requirements as Record<string, any>)
-                                .filter(([key, value]) => {
-                                  if (key === 'additional_languages') return false;
-                                  if (typeof value === 'string' && value.trim() !== '') return true;
-                                  if (typeof value === 'boolean' && value === true) return true;
-                                  return false;
-                                })
-                                .map(([lang, level]) => {
-                                  if (typeof level === 'boolean') {
-                                    if (lang === 'un_language_advantage') {
-                                      return <li key={lang} className="text-sm">Knowledge of another UN language is an advantage</li>;
-                                    }
-                                    if (lang === 'local_language_advantage') {
-                                      return <li key={lang} className="text-sm">Knowledge of the local language is an advantage</li>;
-                                    }
-                                  }
-                                  return (
-                                    <li key={lang} className="text-sm">
-                                      <strong className="font-semibold">{lang.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> {level}
-                                    </li>
-                                  );
-                                })}
-                              {(requisition.language_requirements as any).additional_languages && 
-                               Array.isArray((requisition.language_requirements as any).additional_languages) &&
-                               (requisition.language_requirements as any).additional_languages.length > 0 &&
-                               (requisition.language_requirements as any).additional_languages.map((lang: string, idx: number) => (
-                                 <li key={`additional-${idx}`} className="text-sm">{lang}</li>
-                               ))}
-                            </ul>
-                          </div>
-                        )}
-
                         <div className="prose prose-sm max-w-none">
                           <h4 className="text-base font-semibold mb-2">Mandatory Competencies:</h4>
                           <p className="text-sm text-muted-foreground mb-2">These competencies are automatically included for all positions:</p>
@@ -511,9 +502,19 @@ export default function DirectorView() {
                           <div className="prose prose-sm max-w-none">
                             <h4 className="text-base font-semibold mb-2">Core Competencies:</h4>
                             <ul className="list-disc ml-5 space-y-1 my-2">
-                              {(requisition.core_competencies as any[]).map((comp, idx) => (
-                                <li key={idx} className="text-sm">{comp}</li>
-                              ))}
+                              {(requisition.core_competencies as any[]).map((comp, idx) => {
+                                const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                                const definition = (typeof comp === 'object' && comp.description)
+                                  ? `${competencyName}: ${comp.description}`
+                                  : getCoreCompetencyDefinition(competencyName);
+                                const [name, ...description] = definition.split(':');
+
+                                return (
+                                  <li key={idx} className="text-sm">
+                                    <strong className="font-semibold">{name}:</strong> {description.join(':').trim()}
+                                  </li>
+                                );
+                              })}
                             </ul>
                           </div>
                         )}
@@ -522,9 +523,19 @@ export default function DirectorView() {
                           <div className="prose prose-sm max-w-none">
                             <h4 className="text-base font-semibold mb-2">Management Competencies:</h4>
                             <ul className="list-disc ml-5 space-y-1 my-2">
-                              {(requisition.management_competencies as any[]).map((comp, idx) => (
-                                <li key={idx} className="text-sm">{comp}</li>
-                              ))}
+                              {(requisition.management_competencies as any[]).map((comp, idx) => {
+                                const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                                const definition = (typeof comp === 'object' && comp.description)
+                                  ? `${competencyName}: ${comp.description}`
+                                  : getManagementCompetencyDefinition(competencyName);
+                                const [name, ...description] = definition.split(':');
+
+                                return (
+                                  <li key={idx} className="text-sm">
+                                    <strong className="font-semibold">{name}:</strong> {description.join(':').trim()}
+                                  </li>
+                                );
+                              })}
                             </ul>
                           </div>
                         )}
@@ -533,9 +544,106 @@ export default function DirectorView() {
                           <div className="prose prose-sm max-w-none">
                             <h4 className="text-base font-semibold mb-2">Leadership Competencies:</h4>
                             <ul className="list-disc ml-5 space-y-1 my-2">
-                              {(requisition.leadership_competencies as any[]).map((comp, idx) => (
-                                <li key={idx} className="text-sm">{comp}</li>
-                              ))}
+                              {(requisition.leadership_competencies as any[]).map((comp, idx) => {
+                                const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                                const definition = (typeof comp === 'object' && comp.description)
+                                  ? `${competencyName}: ${comp.description}`
+                                  : getLeadershipCompetencyDefinition(competencyName);
+                                const [name, ...description] = definition.split(':');
+
+                                return (
+                                  <li key={idx} className="text-sm">
+                                    <strong className="font-semibold">{name}:</strong> {description.join(':').trim()}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        )}
+
+                        {requisition.language_requirements && Object.keys(requisition.language_requirements).length > 0 && (
+                          <div className="prose prose-sm max-w-none">
+                            <h4 className="text-base font-semibold mb-2">Language Requirements:</h4>
+                            <ul className="list-disc ml-5 space-y-1 my-2">
+                              {Object.entries(requisition.language_requirements as Record<string, any>)
+                                .filter(([key, value]) => {
+                                  // Skip internal fields
+                                  if (['additional_languages', 'local_language_advantage', 'un_language_advantage'].includes(key)) {
+                                    return false;
+                                  }
+                                  // Only show if value is a non-empty string
+                                  if (typeof value === 'string') {
+                                    const cleanValue = value.trim().toLowerCase();
+                                    // Skip empty, placeholder, or self-referencing values
+                                    if (cleanValue === '' || 
+                                        cleanValue === 'not specified' || 
+                                        cleanValue.includes('not specified') ||
+                                        cleanValue === key.toLowerCase() ||
+                                        cleanValue.includes(key.toLowerCase())) {
+                                      return false;
+                                    }
+                                    return true;
+                                  }
+                                  return false;
+                                })
+                                .map(([lang, level]) => {
+                                  const languageLabels: Record<string, string> = {
+                                    'english': 'English',
+                                    'french': 'French',
+                                    'spanish': 'Spanish',
+                                    'arabic': 'Arabic',
+                                    'chinese': 'Chinese',
+                                    'russian': 'Russian'
+                                  };
+                                  const label = languageLabels[lang.toLowerCase()] || lang.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                                  return (
+                                    <li key={lang} className="text-sm">
+                                      <strong className="font-semibold">{label}:</strong> {level}
+                                    </li>
+                                  );
+                                })}
+                               {(requisition.language_requirements as any).additional_languages && 
+                                Array.isArray((requisition.language_requirements as any).additional_languages) &&
+                                (requisition.language_requirements as any).additional_languages.length > 0 &&
+                                (requisition.language_requirements as any).additional_languages.filter((lang: any) => {
+                                  if (typeof lang === 'object' && lang.name) {
+                                    const cleanName = lang.name.trim().toLowerCase();
+                                    return cleanName !== 'not specified' && cleanName !== '' && !cleanName.includes('not specified');
+                                  }
+                                  if (typeof lang === 'string') {
+                                    const cleanLang = lang.trim().toLowerCase();
+                                    return cleanLang !== 'not specified' && cleanLang !== '' && !cleanLang.includes('not specified');
+                                  }
+                                  return false;
+                                }).map((lang: any, idx: number) => {
+                                  const name = typeof lang === 'object' && lang.name ? lang.name : String(lang);
+                                  const level = typeof lang === 'object' && lang.level ? lang.level : '';
+                                  
+                                  // Format level text to match English formatting
+                                  let formattedLevel = level;
+                                  if (level) {
+                                    const levelLower = level.toLowerCase();
+                                    if (levelLower === 'expert') {
+                                      formattedLevel = 'Expert knowledge is required';
+                                    } else if (levelLower === 'intermediate') {
+                                      formattedLevel = 'Intermediate knowledge is required';
+                                    } else if (levelLower === 'beginner') {
+                                      formattedLevel = 'Beginner knowledge is required';
+                                    }
+                                  }
+                                  
+                                  return (
+                                    <li key={`additional-${idx}`} className="text-sm">
+                                      <strong className="font-semibold">{name}:</strong> {formattedLevel}
+                                    </li>
+                                  );
+                                })}
+                              {(requisition.language_requirements as any).un_language_advantage === true && (
+                                <li className="text-sm">Knowledge of another UN language is an advantage</li>
+                              )}
+                              {(requisition.language_requirements as any).local_language_advantage === true && (
+                                <li className="text-sm">Knowledge of the local language is an advantage</li>
+                              )}
                             </ul>
                           </div>
                         )}
@@ -892,9 +1000,19 @@ export default function DirectorView() {
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Core Competencies</h3>
                       <ul className="list-disc ml-5 space-y-1 my-2">
-                        {(requisition.core_competencies as any[]).map((comp, idx) => (
-                          <li key={`core-${idx}`} className="text-sm">{comp}</li>
-                        ))}
+                        {(requisition.core_competencies as any[]).map((comp, idx) => {
+                          const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                          const definition = (typeof comp === 'object' && comp.description)
+                            ? `${competencyName}: ${comp.description}`
+                            : getCoreCompetencyDefinition(competencyName);
+                          const [name, ...description] = definition.split(':');
+
+                          return (
+                            <li key={`core-${idx}`} className="text-sm">
+                              <strong className="font-semibold">{name}:</strong> {description.join(':').trim()}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
@@ -904,9 +1022,19 @@ export default function DirectorView() {
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Management Competencies</h3>
                       <ul className="list-disc ml-5 space-y-1 my-2">
-                        {(requisition.management_competencies as any[]).map((comp, idx) => (
-                          <li key={`mgmt-${idx}`} className="text-sm">{comp}</li>
-                        ))}
+                        {(requisition.management_competencies as any[]).map((comp, idx) => {
+                          const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                          const definition = (typeof comp === 'object' && comp.description)
+                            ? `${competencyName}: ${comp.description}`
+                            : getManagementCompetencyDefinition(competencyName);
+                          const [name, ...description] = definition.split(':');
+
+                          return (
+                            <li key={`mgmt-${idx}`} className="text-sm">
+                              <strong className="font-semibold">{name}:</strong> {description.join(':').trim()}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
@@ -916,9 +1044,19 @@ export default function DirectorView() {
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Leadership Competencies</h3>
                       <ul className="list-disc ml-5 space-y-1 my-2">
-                        {(requisition.leadership_competencies as any[]).map((comp, idx) => (
-                          <li key={`lead-${idx}`} className="text-sm">{comp}</li>
-                        ))}
+                        {(requisition.leadership_competencies as any[]).map((comp, idx) => {
+                          const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                          const definition = (typeof comp === 'object' && comp.description)
+                            ? `${competencyName}: ${comp.description}`
+                            : getLeadershipCompetencyDefinition(competencyName);
+                          const [name, ...description] = definition.split(':');
+
+                          return (
+                            <li key={`lead-${idx}`} className="text-sm">
+                              <strong className="font-semibold">{name}:</strong> {description.join(':').trim()}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
@@ -930,32 +1068,83 @@ export default function DirectorView() {
                       <ul className="list-disc ml-5 space-y-1 my-2">
                         {Object.entries(requisition.language_requirements as Record<string, any>)
                           .filter(([key, value]) => {
-                            if (key === 'additional_languages') return false;
-                            if (typeof value === 'string' && value.trim() !== '') return true;
-                            if (typeof value === 'boolean' && value === true) return true;
+                            // Skip internal fields
+                            if (['additional_languages', 'local_language_advantage', 'un_language_advantage'].includes(key)) {
+                              return false;
+                            }
+                            // Only show if value is a non-empty string
+                            if (typeof value === 'string') {
+                              const cleanValue = value.trim().toLowerCase();
+                              // Skip empty, placeholder, or self-referencing values
+                              if (cleanValue === '' || 
+                                  cleanValue === 'not specified' || 
+                                  cleanValue.includes('not specified') ||
+                                  cleanValue === key.toLowerCase() ||
+                                  cleanValue.includes(key.toLowerCase())) {
+                                return false;
+                              }
+                              return true;
+                            }
                             return false;
                           })
                           .map(([lang, level]) => {
-                            if (typeof level === 'boolean') {
-                              if (lang === 'un_language_advantage') {
-                                return <li key={lang} className="text-sm">Knowledge of another UN language is an advantage</li>;
-                              }
-                              if (lang === 'local_language_advantage') {
-                                return <li key={lang} className="text-sm">Knowledge of the local language is an advantage</li>;
-                              }
-                            }
+                            const languageLabels: Record<string, string> = {
+                              'english': 'English',
+                              'french': 'French',
+                              'spanish': 'Spanish',
+                              'arabic': 'Arabic',
+                              'chinese': 'Chinese',
+                              'russian': 'Russian'
+                            };
+                            const label = languageLabels[lang.toLowerCase()] || lang.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                             return (
                               <li key={lang} className="text-sm">
-                                <strong className="font-semibold">{lang.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> {level}
+                                <strong className="font-semibold">{label}:</strong> {level}
                               </li>
                             );
                           })}
                         {(requisition.language_requirements as any).additional_languages && 
                          Array.isArray((requisition.language_requirements as any).additional_languages) &&
                          (requisition.language_requirements as any).additional_languages.length > 0 &&
-                         (requisition.language_requirements as any).additional_languages.map((lang: string, idx: number) => (
-                           <li key={`additional-${idx}`} className="text-sm">{lang}</li>
-                         ))}
+                         (requisition.language_requirements as any).additional_languages.filter((lang: any) => {
+                           if (typeof lang === 'object' && lang.name) {
+                             const cleanName = lang.name.trim().toLowerCase();
+                             return cleanName !== 'not specified' && cleanName !== '' && !cleanName.includes('not specified');
+                           }
+                           if (typeof lang === 'string') {
+                             const cleanLang = lang.trim().toLowerCase();
+                             return cleanLang !== 'not specified' && cleanLang !== '' && !cleanLang.includes('not specified');
+                           }
+                           return false;
+                         }).map((lang: any, idx: number) => {
+                           const name = typeof lang === 'object' && lang.name ? lang.name : String(lang);
+                           const level = typeof lang === 'object' && lang.level ? lang.level : '';
+                           
+                           // Format level text to match English formatting
+                           let formattedLevel = level;
+                           if (level) {
+                             const levelLower = level.toLowerCase();
+                             if (levelLower === 'expert') {
+                               formattedLevel = 'Expert knowledge is required';
+                             } else if (levelLower === 'intermediate') {
+                               formattedLevel = 'Intermediate knowledge is required';
+                             } else if (levelLower === 'beginner') {
+                               formattedLevel = 'Beginner knowledge is required';
+                             }
+                           }
+                           
+                           return (
+                             <li key={`additional-${idx}`} className="text-sm">
+                               <strong className="font-semibold">{name}:</strong> {formattedLevel}
+                             </li>
+                           );
+                         })}
+                        {(requisition.language_requirements as any).un_language_advantage === true && (
+                          <li className="text-sm">Knowledge of another UN language is an advantage</li>
+                        )}
+                        {(requisition.language_requirements as any).local_language_advantage === true && (
+                          <li className="text-sm">Knowledge of the local language is an advantage</li>
+                        )}
                       </ul>
                     </div>
                   )}

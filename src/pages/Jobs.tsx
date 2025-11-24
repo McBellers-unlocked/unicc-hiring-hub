@@ -23,7 +23,9 @@ interface Job {
   grade: string;
   notice_no: string;
   positions: number;
+  salary_estimate: string;
   created_at: string;
+  internal_only: boolean;
 }
 
 export default function Jobs() {
@@ -40,11 +42,22 @@ export default function Jobs() {
 
   const fetchJobs = async () => {
     try {
-      const { data, error } = await supabase
+      // Check if user is authenticated and get their email
+      const { data: { user } } = await supabase.auth.getUser();
+      const isInternalUser = user?.email?.endsWith('@unicc.org');
+
+      let query = supabase
         .from('jobs')
-        .select('id, title, slug, location, closing_date, category, type, grade, notice_no, positions, created_at')
+        .select('id, title, slug, location, closing_date, category, type, grade, notice_no, positions, salary_estimate, created_at, internal_only')
         .eq('status', 'active')
         .order('created_at', { ascending: false });
+
+      // If not an internal user, filter out internal-only jobs
+      if (!isInternalUser) {
+        query = query.or('internal_only.is.null,internal_only.eq.false');
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setJobs(data || []);
@@ -389,18 +402,39 @@ export default function Jobs() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {filteredJobs.map((job) => (
                       <Card key={job.id} className="hover:shadow-lg transition-shadow">
-                        <CardHeader>
-                          <div className="flex justify-between items-start">
-                            <CardTitle className="text-lg leading-tight">{job.title}</CardTitle>
-                            {job.positions > 1 && (
-                              <Badge variant="secondary">{job.positions} positions</Badge>
+                        <CardHeader className="pb-3">
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-start gap-2">
+                              <CardTitle className="text-lg leading-tight">{job.title}</CardTitle>
+                              {job.positions > 1 && (
+                                <Badge variant="secondary" className="shrink-0">{job.positions} positions</Badge>
+                              )}
+                            </div>
+                            
+                            {job.notice_no && (
+                              <p className="text-sm text-muted-foreground">Notice No: {job.notice_no}</p>
+                            )}
+                            
+                            {/* Contract Type and Grade - prominently displayed */}
+                            <div className="flex flex-wrap gap-2">
+                              {job.internal_only && <Badge variant="default">Internal Only</Badge>}
+                              {job.type && (
+                                <Badge variant="default" className="bg-primary text-primary-foreground">
+                                  {getDisplayType(job.type)}
+                                </Badge>
+                              )}
+                              {job.grade && <Badge variant="outline">{job.grade}</Badge>}
+                            </div>
+                            
+                            {/* Salary */}
+                            {job.salary_estimate && (
+                              <div className="text-sm font-semibold text-foreground">
+                                {job.salary_estimate}
+                              </div>
                             )}
                           </div>
-                          {job.notice_no && (
-                            <p className="text-sm text-muted-foreground">Notice No: {job.notice_no}</p>
-                          )}
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="pt-0">
                           <div className="space-y-3">
                             {job.location && (
                               <div className="space-y-1">
@@ -524,16 +558,6 @@ export default function Jobs() {
                                 Closes {new Date(job.closing_date).toLocaleDateString('en-GB')}
                               </div>
                             )}
-
-                            <div className="flex flex-wrap gap-2">
-                              {job.type && (
-                                <Badge variant="default" className="bg-primary text-primary-foreground">
-                                  {getDisplayType(job.type)}
-                                </Badge>
-                              )}
-                              
-                              {job.grade && <Badge variant="outline">{job.grade}</Badge>}
-                            </div>
 
                             <Link to={`/jobs/${job.slug || job.id}`} className="block mt-4">
                               <Button className="w-full">

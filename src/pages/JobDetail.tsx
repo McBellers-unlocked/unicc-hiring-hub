@@ -36,12 +36,22 @@ interface Job {
   branding: any;
   attachments_required: any;
   created_at: string;
+  internal_only: boolean;
+}
+
+interface JobCompetency {
+  id: string;
+  competency_name: string;
+  competency_type: string;
+  description: string;
+  order_index: number;
 }
 
 export default function JobDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [job, setJob] = useState<Job | null>(null);
+  const [competencies, setCompetencies] = useState<JobCompetency[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -53,6 +63,10 @@ export default function JobDetail() {
 
   const fetchJob = async () => {
     try {
+      // Check if user is authenticated and get their email
+      const { data: { user } } = await supabase.auth.getUser();
+      const isInternalUser = user?.email?.endsWith('@unicc.org');
+
       const { data, error } = await supabase
         .from('jobs')
         .select('*')
@@ -61,7 +75,31 @@ export default function JobDetail() {
         .maybeSingle();
 
       if (error) throw error;
-      setJob(data);
+      
+      // If job is internal-only and user is not internal, show access restricted
+      if (data && data.internal_only && !isInternalUser) {
+        setJob(data);
+        toast({
+          title: "Internal Position",
+          description: "This position is only open to internal UNICC staff. Sign in with your @unicc.org email to apply.",
+          variant: "default"
+        });
+      } else {
+        setJob(data);
+      }
+
+      // Fetch competencies for this job
+      if (data?.id) {
+        const { data: compData, error: compError } = await supabase
+          .from('job_competencies')
+          .select('*')
+          .eq('job_id', data.id)
+          .order('order_index', { ascending: true });
+        
+        if (!compError && compData) {
+          setCompetencies(compData);
+        }
+      }
     } catch (error) {
       console.error('Error fetching job:', error);
       toast({
@@ -370,7 +408,7 @@ export default function JobDetail() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 mt-4">
-                  
+                  {job.internal_only && <Badge variant="default">Internal Only</Badge>}
                   {job.type && <Badge variant="outline">{job.type}</Badge>}
                   {job.grade && <Badge variant="outline">{job.grade}</Badge>}
                   {isClosingSoon && !isClosed && <Badge variant="destructive">Closing Soon</Badge>}
@@ -379,6 +417,14 @@ export default function JobDetail() {
               </CardHeader>
 
               <CardContent>
+                {job.internal_only && (
+                  <div className="bg-muted p-4 rounded-lg mb-4">
+                    <p className="text-sm text-muted-foreground">
+                      <strong>Internal Position:</strong> This position is only open to UNICC staff members. 
+                      You must sign in with your @unicc.org email address to apply.
+                    </p>
+                  </div>
+                )}
                 {!isClosed && (
                   <Button 
                     size="lg" 
@@ -451,70 +497,126 @@ export default function JobDetail() {
                 </Card>
               )}
 
+              {/* Competencies */}
+              {competencies.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Competencies</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {(() => {
+                        // Group competencies by type
+                        const grouped = competencies.reduce((acc, comp) => {
+                          if (!acc[comp.competency_type]) {
+                            acc[comp.competency_type] = [];
+                          }
+                          acc[comp.competency_type].push(comp);
+                          return acc;
+                        }, {} as Record<string, JobCompetency[]>);
+
+                        // Define order for competency types
+                        const typeOrder = ['Core', 'Management', 'Leadership'];
+                        
+                        return typeOrder
+                          .filter(type => grouped[type])
+                          .map(type => (
+                            <div key={type}>
+                              <h3 className="text-base font-semibold mb-3 border-b pb-1">{type} Competencies</h3>
+                              <ul className="space-y-2">
+                                {grouped[type].map(comp => (
+                                  <li key={comp.id} className="text-sm">
+                                    <strong>{comp.competency_name}</strong>
+                                    {comp.description && (
+                                      <span className="text-muted-foreground">: {comp.description}</span>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ));
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {job.language_requirements && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Language Requirements</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div 
-                      className="prose prose-sm max-w-none"
-                       dangerouslySetInnerHTML={{ 
-                        __html: job.language_requirements
-                          // First split by any line break (both <br> and \n)
+                    <div className="prose prose-sm max-w-none">
+                      {(() => {
+                        const lines = job.language_requirements
                           .replace(/<br\s*\/?>/gi, '\n')
                           .split('\n')
                           .map(line => line.trim())
                           .filter(line => {
                             if (!line) return false;
-                            const cleanLine = line.replace(/^[•\-\s]+/, '').toLowerCase().trim();
-                            // Filter out internal field names, boolean values, and duplicated headers
+                            const cleanLine = line.replace(/^[•\-#\s]+/, '').toLowerCase().trim();
+                            // Filter out internal field names, boolean values, headers, and section labels
                             return !cleanLine.includes('additional_languages') &&
                                    !cleanLine.includes('local_language_advantage') &&
                                    !cleanLine.includes('un_language_advantage') &&
                                    !cleanLine.match(/^(true|false)$/i) &&
                                    cleanLine !== 'language requirements' &&
-                                   cleanLine !== 'language requirements:';
+                                   cleanLine !== 'language requirements:' &&
+                                   cleanLine !== 'required language skills' &&
+                                   cleanLine !== 'additional language skills';
                           })
                           .map(line => {
-                            // Remove any markdown headers
-                            line = line.replace(/^#+\s*/, '');
-                            // Ensure it starts with a bullet if it doesn't already
-                            if (!line.trim().startsWith('•') && !line.trim().startsWith('-')) {
-                              return '• ' + line;
+                            // Remove markdown headers and ensure bullet
+                            line = line.replace(/^#+\s*/, '').replace(/^-\s*/, '').trim();
+                            
+                            // Format language entries: convert "Language: level" to "Language: Level knowledge is required"
+                            const langMatch = line.match(/^([^:]+):\s*(.+)$/);
+                            if (langMatch) {
+                              const [, lang, level] = langMatch;
+                              const langName = lang.replace(/\*\*/g, '').trim();
+                              const levelText = level.trim().toLowerCase();
+                              
+                              // Check if already formatted
+                              if (levelText.includes('knowledge is required') || levelText.includes('would be an advantage')) {
+                                return `• ${langName}: ${level.trim().charAt(0).toUpperCase() + level.trim().slice(1)}`;
+                              }
+                              
+                              // Format the level
+                              let formattedLevel = '';
+                              if (levelText === 'expert') {
+                                formattedLevel = 'Expert knowledge is required';
+                              } else if (levelText === 'intermediate' || levelText === 'working') {
+                                formattedLevel = 'Intermediate knowledge is required';
+                              } else if (levelText === 'basic' || levelText === 'beginner') {
+                                formattedLevel = 'Basic knowledge is required';
+                              } else {
+                                formattedLevel = level.trim().charAt(0).toUpperCase() + level.trim().slice(1);
+                              }
+                              
+                              return `• ${langName}: ${formattedLevel}`;
                             }
-                            return line.replace(/^-\s*/, '• ');
-                          })
-                          .join('<br>')
-                          // Format bold text
-                          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                          // Clean up
-                          .replace(/(<br>\s*){3,}/g, '<br><br>')
-                      }}
-                    />
-                  </CardContent>
-                </Card>
-              )}
+                            
+                            return line.startsWith('•') ? line : `• ${line}`;
+                          });
 
-              {job.competencies && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Competencies</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div 
-                      className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ 
-                        __html: job.competencies
-                          .replace(/^#+\s*(.+)$/gm, '<strong style="text-decoration: underline; display: block; margin: 16px 0 12px 0;">$1</strong>')
-                          .replace(/^-\s*/gm, '• ')
-                          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                          // Make competency names (text before colon) bold
-                          .replace(/([•\s]*)([\w\s&(),'-]+):/g, '$1<strong>$2</strong>:')
-                          .replace(/\n\n/g, '<br>')
-                          .replace(/\n/g, '<br>') 
-                      }}
-                    />
+                        // Add duty station language requirement for G positions
+                        if (job.grade && job.grade.match(/^G[-\s]?\d+$/i)) {
+                          lines.push('• Knowledge of the local language of the Duty Station would be an advantage');
+                        }
+
+                        return (
+                          <div 
+                            dangerouslySetInnerHTML={{ 
+                              __html: lines
+                                .join('<br>')
+                                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                                .replace(/(<br>\s*){3,}/g, '<br><br>')
+                            }}
+                          />
+                        );
+                      })()}
+                    </div>
                   </CardContent>
                 </Card>
               )}

@@ -32,7 +32,13 @@ interface JobRequisition {
   essential_education: string;
   desirable_education: string;
   language_requirements: any;
+  // Competency groups
+  global_competencies?: any;
+  core_competencies?: any;
+  management_competencies?: any;
+  leadership_competencies?: any;
   status: string;
+
   created_at: string;
   hr_original_data: any;
   hr_changes: any;
@@ -40,6 +46,7 @@ interface JobRequisition {
   hr_comments: string;
   chief_hr_comments: string;
 }
+
 
 interface FieldChange {
   field: string;
@@ -186,19 +193,30 @@ export default function JobRequisitionChiefHREdit() {
   };
 
   const acceptHRChanges = (fieldKey: string) => {
-    // Update accepted fields set
-    setAcceptedFields(prev => new Set([...prev, fieldKey]));
+    const currentValue = (formData as any)[fieldKey];
     
-    // Update working baseline to HR's version for this field
+    setOriginalData(prev => ({
+      ...prev,
+      [fieldKey]: currentValue
+    }));
+    
     setWorkingBaseline(prev => ({
       ...prev,
-      [fieldKey]: formData[fieldKey as keyof JobRequisition]
+      [fieldKey]: currentValue
     }));
-
+    
+    setAcceptedFields(prev => new Set(prev).add(fieldKey));
+    
     toast({
       title: "Changes Accepted",
-      description: `HR's changes to ${fieldKey.replace(/_/g, ' ')} have been accepted`,
+      description: `HR's changes have been accepted for this field`,
     });
+  };
+
+  const hasHRChanges = (fieldKey: string) => {
+    const hrOriginal = requisition?.hr_original_data?.[fieldKey] || '';
+    const currentValue = (formData as any)?.[fieldKey] || '';
+    return hrOriginal !== currentValue && !acceptedFields.has(fieldKey);
   };
 
   const getHRChangeForField = (fieldKey: string) => {
@@ -461,38 +479,86 @@ export default function JobRequisitionChiefHREdit() {
             <CardTitle>Position Description</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <EditableTrackChangesFieldWithHighlight
-              label="Purpose of the Position"
-              originalValue={originalData.purpose_of_position || ''}
-              currentValue={formData.purpose_of_position || ''}
-              onChange={(value) => setFormData({ ...formData, purpose_of_position: value })}
-              requisitionId={id}
-              fieldName="purpose_of_position"
-              currentUserId={user?.id}
-              canResolveComments={true}
-            />
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Purpose of the Position</Label>
+                {hasHRChanges('purpose_of_position') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => acceptHRChanges('purpose_of_position')}
+                    className="h-8 gap-1"
+                  >
+                    <Check className="h-3 w-3" />
+                    Accept Changes
+                  </Button>
+                )}
+              </div>
+              <EditableTrackChangesFieldWithHighlight
+                label=""
+                originalValue={originalData.purpose_of_position || ''}
+                currentValue={formData.purpose_of_position || ''}
+                onChange={(value) => setFormData({ ...formData, purpose_of_position: value })}
+                requisitionId={id}
+                fieldName="purpose_of_position"
+                currentUserId={user?.id}
+                canResolveComments={true}
+              />
+            </div>
             
-            <EditableTrackChangesFieldWithHighlight
-              label="Objectives of the Programme"
-              originalValue={originalData.objectives_of_programme || ''}
-              currentValue={formData.objectives_of_programme || ''}
-              onChange={(value) => setFormData({ ...formData, objectives_of_programme: value })}
-              requisitionId={id}
-              fieldName="objectives_of_programme"
-              currentUserId={user?.id}
-              canResolveComments={true}
-            />
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Objectives of the Programme</Label>
+                {hasHRChanges('objectives_of_programme') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => acceptHRChanges('objectives_of_programme')}
+                    className="h-8 gap-1"
+                  >
+                    <Check className="h-3 w-3" />
+                    Accept Changes
+                  </Button>
+                )}
+              </div>
+              <EditableTrackChangesFieldWithHighlight
+                label=""
+                originalValue={originalData.objectives_of_programme || ''}
+                currentValue={formData.objectives_of_programme || ''}
+                onChange={(value) => setFormData({ ...formData, objectives_of_programme: value })}
+                requisitionId={id}
+                fieldName="objectives_of_programme"
+                currentUserId={user?.id}
+                canResolveComments={true}
+              />
+            </div>
             
-            <EditableTrackChangesFieldWithHighlight
-              label="Main Duties and Responsibilities"
-              originalValue={originalData.main_duties_responsibilities || ''}
-              currentValue={formData.main_duties_responsibilities || ''}
-              onChange={(value) => setFormData({ ...formData, main_duties_responsibilities: value })}
-              requisitionId={id}
-              fieldName="main_duties_responsibilities"
-              currentUserId={user?.id}
-              canResolveComments={true}
-            />
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Main Duties and Responsibilities</Label>
+                {hasHRChanges('main_duties_responsibilities') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => acceptHRChanges('main_duties_responsibilities')}
+                    className="h-8 gap-1"
+                  >
+                    <Check className="h-3 w-3" />
+                    Accept Changes
+                  </Button>
+                )}
+              </div>
+              <EditableTrackChangesFieldWithHighlight
+                label=""
+                originalValue={originalData.main_duties_responsibilities || ''}
+                currentValue={formData.main_duties_responsibilities || ''}
+                onChange={(value) => setFormData({ ...formData, main_duties_responsibilities: value })}
+                requisitionId={id}
+                fieldName="main_duties_responsibilities"
+                currentUserId={user?.id}
+                canResolveComments={true}
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -503,52 +569,330 @@ export default function JobRequisitionChiefHREdit() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4">
-              <EditableTrackChangesFieldWithHighlight
-                label="Essential Experience"
-                originalValue={originalData.essential_experience || ''}
-                currentValue={formData.essential_experience || ''}
-                onChange={(value) => setFormData({ ...formData, essential_experience: value })}
-                requisitionId={id}
-                fieldName="essential_experience"
-                currentUserId={user?.id}
-                canResolveComments={true}
-              />
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium">Essential Experience</Label>
+                  {hasHRChanges('essential_experience') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => acceptHRChanges('essential_experience')}
+                      className="h-8 gap-1"
+                    >
+                      <Check className="h-3 w-3" />
+                      Accept Changes
+                    </Button>
+                  )}
+                </div>
+                <EditableTrackChangesFieldWithHighlight
+                  label=""
+                  originalValue={originalData.essential_experience || ''}
+                  currentValue={formData.essential_experience || ''}
+                  onChange={(value) => setFormData({ ...formData, essential_experience: value })}
+                  requisitionId={id}
+                  fieldName="essential_experience"
+                  currentUserId={user?.id}
+                  canResolveComments={true}
+                />
+              </div>
               
-              <EditableTrackChangesFieldWithHighlight
-                label="Desirable Experience"
-                originalValue={originalData.desirable_experience || ''}
-                currentValue={formData.desirable_experience || ''}
-                onChange={(value) => setFormData({ ...formData, desirable_experience: value })}
-                requisitionId={id}
-                fieldName="desirable_experience"
-                currentUserId={user?.id}
-                canResolveComments={true}
-              />
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium">Desirable Experience</Label>
+                  {hasHRChanges('desirable_experience') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => acceptHRChanges('desirable_experience')}
+                      className="h-8 gap-1"
+                    >
+                      <Check className="h-3 w-3" />
+                      Accept Changes
+                    </Button>
+                  )}
+                </div>
+                <EditableTrackChangesFieldWithHighlight
+                  label=""
+                  originalValue={originalData.desirable_experience || ''}
+                  currentValue={formData.desirable_experience || ''}
+                  onChange={(value) => setFormData({ ...formData, desirable_experience: value })}
+                  requisitionId={id}
+                  fieldName="desirable_experience"
+                  currentUserId={user?.id}
+                  canResolveComments={true}
+                />
+              </div>
               
-              <EditableTrackChangesFieldWithHighlight
-                label="Essential Education"
-                originalValue={originalData.essential_education || ''}
-                currentValue={formData.essential_education || ''}
-                onChange={(value) => setFormData({ ...formData, essential_education: value })}
-                requisitionId={id}
-                fieldName="essential_education"
-                currentUserId={user?.id}
-                canResolveComments={true}
-              />
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium">Essential Education</Label>
+                  {hasHRChanges('essential_education') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => acceptHRChanges('essential_education')}
+                      className="h-8 gap-1"
+                    >
+                      <Check className="h-3 w-3" />
+                      Accept Changes
+                    </Button>
+                  )}
+                </div>
+                <EditableTrackChangesFieldWithHighlight
+                  label=""
+                  originalValue={originalData.essential_education || ''}
+                  currentValue={formData.essential_education || ''}
+                  onChange={(value) => setFormData({ ...formData, essential_education: value })}
+                  requisitionId={id}
+                  fieldName="essential_education"
+                  currentUserId={user?.id}
+                  canResolveComments={true}
+                />
+              </div>
               
-              <EditableTrackChangesFieldWithHighlight
-                label="Desirable Education"
-                originalValue={originalData.desirable_education || ''}
-                currentValue={formData.desirable_education || ''}
-                onChange={(value) => setFormData({ ...formData, desirable_education: value })}
-                requisitionId={id}
-                fieldName="desirable_education"
-                currentUserId={user?.id}
-                canResolveComments={true}
-              />
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium">Desirable Education</Label>
+                  {hasHRChanges('desirable_education') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => acceptHRChanges('desirable_education')}
+                      className="h-8 gap-1"
+                    >
+                      <Check className="h-3 w-3" />
+                      Accept Changes
+                    </Button>
+                  )}
+                </div>
+                <EditableTrackChangesFieldWithHighlight
+                  label=""
+                  originalValue={originalData.desirable_education || ''}
+                  currentValue={formData.desirable_education || ''}
+                  onChange={(value) => setFormData({ ...formData, desirable_education: value })}
+                  requisitionId={id}
+                  fieldName="desirable_education"
+                  currentUserId={user?.id}
+                  canResolveComments={true}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Competencies (read-only, same as HR view) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Competencies</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Consultant Standard Competencies */}
+            {requisition.nature_of_position === 'Individual Consultant' && (
+              <div>
+                <Label className="text-muted-foreground">Standard Competencies for Consultants</Label>
+                <p className="text-xs text-muted-foreground mb-2">These competencies are automatically included for all consultant positions:</p>
+                <ul className="mt-1 space-y-1 text-sm">
+                  <li>• <strong>Teamwork:</strong> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.</li>
+                  <li>• <strong>Communicating:</strong> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.</li>
+                  <li>• <strong>Respecting and promoting individual and cultural differences:</strong> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.</li>
+                  <li>• <strong>Knowing and managing yourself:</strong> Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.</li>
+                  <li>• <strong>Producing results:</strong> Produces and delivers quality results. Is action oriented and committed to achieving outcomes.</li>
+                </ul>
+              </div>
+            )}
+            
+            {/* Mandatory Competencies - For non-consultant positions */}
+            {requisition.nature_of_position !== 'Individual Consultant' && (
+              <div>
+                <Label className="text-muted-foreground">Mandatory Competencies</Label>
+                <p className="text-xs text-muted-foreground mb-2">These competencies are automatically included for all positions:</p>
+                <ul className="mt-1 space-y-1 text-sm">
+                  <li>• <strong>Teamwork:</strong> Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.</li>
+                  <li>• <strong>Communicating:</strong> Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.</li>
+                  <li>• <strong>Respecting and promoting individual and cultural differences:</strong> Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.</li>
+                  <li>• <strong>Creating an empowering and motivating environment</strong> (for Supervisory positions only): Guides and motivates staff towards meeting challenges and achieving objectives. Promotes ownership and responsibility for desired outcomes at all levels.</li>
+                </ul>
+              </div>
+            )}
+
+            {/* Global Competencies */}
+            {Array.isArray(requisition.global_competencies) && requisition.global_competencies.length > 0 && (
+              <div>
+                <Label className="text-muted-foreground">Global Competencies</Label>
+                <ul className="mt-1 space-y-1">
+                  {requisition.global_competencies.map((comp: any, index: number) => {
+                    const getCompetencyDefinition = (compName: string) => {
+                      const globalCompetencies = [
+                        'Integrity: Acts in accordance with organizational values. Takes responsibility for actions and decisions',
+                        'Customer orientation: Provides excellent service in a professional and caring manner'
+                      ];
+                      return globalCompetencies.find(def => def.startsWith(compName)) || compName;
+                    };
+                    
+                    const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                    const definition = getCompetencyDefinition(competencyName);
+                    const [name, ...description] = definition.split(':');
+                    
+                    return (
+                      <li key={index} className="text-sm">
+                        • <strong>{name}:</strong> {description.join(':').trim()}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+            
+            {/* Core Competencies */}
+            {Array.isArray(requisition.core_competencies) && requisition.core_competencies.length > 0 && (
+              <div>
+                <Label className="text-muted-foreground">Core Competencies</Label>
+                <ul className="mt-1 space-y-1">
+                  {requisition.core_competencies.map((comp: any, index: number) => {
+                    const getCoreCompetencyDefinition = (compName: string) => {
+                      const coreCompetencies = [
+                        'Knowing and managing yourself: Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.',
+                        'Producing results: Produces and delivers quality results. Is action oriented and committed to achieving outcomes.',
+                        'Moving forward in a changing environment: Is open to and proposes new approaches and ideas. Adapts and responds positively to change.',
+                        'Setting an example: Acts within UNICC\'s / WHO\'s professional, ethical and legal boundaries and encourages others to adhere to these. Behaves consistently in accordance with clear personal ethics and values.'
+                      ];
+                      return coreCompetencies.find(def => def.startsWith(compName)) || compName;
+                    };
+                    
+                    const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                    const definition = getCoreCompetencyDefinition(competencyName);
+                    const [name, ...description] = definition.split(':');
+                    
+                    return (
+                      <li key={index} className="text-sm">
+                        • <strong>{name}:</strong> {description.join(':').trim()}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+            
+            {/* Leadership Competencies */}
+            {Array.isArray(requisition.leadership_competencies) && requisition.leadership_competencies.length > 0 && (
+              <div>
+                <Label className="text-muted-foreground">Leadership Competencies</Label>
+                <ul className="mt-1 space-y-1">
+                  {requisition.leadership_competencies.map((comp: any, index: number) => {
+                    const getLeadershipCompetencyDefinition = (compName: string) => {
+                      const leadershipCompetencies = [
+                        'Driving UNICC to a successful future: Demonstrates a broad-based understanding of the growing complexities of ICT issues and activities. Creates a compelling vision of shared goals, and develops a roadmap for successfully achieving real progress in improving ICT services.',
+                        'Promoting innovation and Organizational learning: Invigorates the Organization by building a culture which encourages learning and development. Sponsors innovative approaches and solutions.',
+                        'Promoting UNICC\'s position: Positions UNICC as a leader in ICT services. Gains support for UNICC\'s mission. Coordinates plans and communicates in a way that attracts support from intended audiences.'
+                      ];
+                      return leadershipCompetencies.find(def => def.startsWith(compName)) || compName;
+                    };
+                    
+                    const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                    const definition = getLeadershipCompetencyDefinition(competencyName);
+                    const [name, ...description] = definition.split(':');
+                    
+                    return (
+                      <li key={index} className="text-sm">
+                        • <span className="font-bold">{name}:</span> {description.join(':').trim()}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+            
+            {/* Management Competencies */}
+            {Array.isArray(requisition.management_competencies) && requisition.management_competencies.length > 0 && (
+              <div>
+                <Label className="text-muted-foreground">Management Competencies</Label>
+                <ul className="mt-1 space-y-1">
+                  {requisition.management_competencies.map((comp: any, index: number) => {
+                    const getManagementCompetencyDefinition = (compName: string) => {
+                      const managementCompetencies = [
+                        'Ensuring effective use of resources: Identifies priorities in accordance with UNICC\'s strategic directions. Develops and implements action plans, organizes the necessary resources and monitors outcomes.',
+                        'Building and promoting partnerships across the Organization and beyond: Develops and strengthens internal and external partnerships that can provide information, assistance and support to UNICC. Identifies and uses synergies across the Organization and with external partners.',
+                        'Empowering others: Creates an enabling environment where staff can contribute their best and develop their potential.',
+                        'Building trust: Promotes shared values and creates an atmosphere of trust and honesty.',
+                        'Managing performance: Delegates appropriate responsibility, accountability and decision-making authority. Makes sure that roles, responsibilities and reporting lines are clear to each staff member.'
+                      ];
+                      return managementCompetencies.find(def => def.startsWith(compName)) || compName;
+                    };
+                    
+                    const competencyName = typeof comp === 'string' ? comp : comp.name || comp;
+                    const definition = getManagementCompetencyDefinition(competencyName);
+                    const [name, ...description] = definition.split(':');
+                    
+                    return (
+                      <li key={index} className="text-sm">
+                        • <strong>{name}:</strong> {description.join(':').trim()}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Languages (read-only, same as HR view) */}
+        {requisition.language_requirements && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Languages</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* English Language Requirement */}
+              {requisition.language_requirements.english && (
+                <div>
+                  <Label className="text-muted-foreground">English</Label>
+                  <p className="text-sm mt-1">{requisition.language_requirements.english}</p>
+                </div>
+              )}
+
+              {/* Additional Languages */}
+              {Array.isArray(requisition.language_requirements.additional_languages) && 
+               requisition.language_requirements.additional_languages.length > 0 && (
+                <div>
+                  <Label className="text-muted-foreground">Additional Languages</Label>
+                  <ul className="mt-1 space-y-1">
+                    {requisition.language_requirements.additional_languages.map((lang: any, index: number) => {
+                      if (typeof lang === 'string') {
+                        return <li key={index} className="text-sm">• {lang}</li>;
+                      } else if ((lang.name || lang.language) && lang.level) {
+                        const languageName = lang.name || lang.language;
+                        return (
+                          <li key={index} className="text-sm">
+                            • <strong>{languageName}:</strong> {lang.level}
+                          </li>
+                        );
+                      }
+                      return null;
+                    })}
+                  </ul>
+                </div>
+              )}
+
+              {/* Local Language Advantage */}
+              {requisition.language_requirements.local_language_advantage && (
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    • Knowledge of the local language of the duty station is an advantage
+                  </p>
+                </div>
+              )}
+
+              {/* UN Language Advantage */}
+              {requisition.language_requirements.un_language_advantage && (
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    • Knowledge of another UN official language is an advantage
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Chief HR Comments */}
         <Card>
@@ -567,6 +911,7 @@ export default function JobRequisitionChiefHREdit() {
             />
           </CardContent>
         </Card>
+
 
         {/* Action Buttons */}
         <Card>
@@ -615,6 +960,7 @@ export default function JobRequisitionChiefHREdit() {
             description: "Click 'Approve & Finalize' or 'Return to HR' to complete your review",
           });
         }}
+        requisitionId={id}
       />
     </div>
   );

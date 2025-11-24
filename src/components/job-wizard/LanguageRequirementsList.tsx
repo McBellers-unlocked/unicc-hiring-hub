@@ -75,7 +75,41 @@ export function LanguageRequirementsList({ languages, onChange, readOnly = false
         )}
       </div>
 
-      {languages.length === 0 ? (
+      {readOnly ? (
+        languages.length === 0 ? (
+          <div className="border border-dashed rounded-lg p-8 text-center text-muted-foreground">
+            <p>No language requirements specified.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {[...languages]
+              .sort((a, b) => a.order_index - b.order_index)
+              .map((lang) => (
+                <div key={lang.id} className="border rounded-lg p-4 bg-muted/30">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="font-medium text-foreground">
+                      {lang.language}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {lang.is_essential 
+                        ? (lang.level === 'Expert'
+                          ? 'Expert knowledge is required'
+                          : lang.level === 'Working'
+                          ? 'Working knowledge is required'
+                          : 'Basic knowledge is required')
+                        : 'Desirable / an advantage'}
+                    </div>
+                  </div>
+                  {lang.is_essential && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Essential requirement
+                    </p>
+                  )}
+                </div>
+              ))}
+          </div>
+        )
+      ) : languages.length === 0 ? (
         <div className="border border-dashed rounded-lg p-8 text-center text-muted-foreground">
           <p>No language requirements specified. {!readOnly && 'Click "Add Language" to create one.'}</p>
         </div>

@@ -24,6 +24,44 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Unauthorized: Authentication required');
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      console.error('Authentication error:', authError);
+      throw new Error('Unauthorized: Invalid authentication');
+    }
+
+    // Verify user owns this application
+    const { data: application, error: appError } = await supabase
+      .from('applications')
+      .select('candidate_id, candidates!inner(email)')
+      .eq('id', applicationId)
+      .single();
+
+    if (appError || !application) {
+      console.error('Application verification error:', appError);
+      throw new Error('Application not found');
+    }
+
+    if (application.candidates.email !== user.email) {
+      console.warn('Unauthorized upload attempt', {
+        userId: user.id,
+        userEmail: user.email,
+        applicationId,
+        applicationEmail: application.candidates.email
+      });
+      throw new Error('Unauthorized: You can only upload videos for your own applications');
+    }
+
+    console.log('Video upload authorized for user:', user.email, 'application:', applicationId);
+
     // Convert base64 to blob for storage
     const binaryString = atob(videoData);
     const bytes = new Uint8Array(binaryString.length);

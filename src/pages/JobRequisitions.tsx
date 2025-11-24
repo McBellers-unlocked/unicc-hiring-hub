@@ -6,16 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, FileText, CheckCircle, Clock, AlertCircle, Eye } from "lucide-react";
+import { Plus, FileText, CheckCircle, Clock, AlertCircle, Eye, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { RequisitionWorkflowTimeline } from "@/components/RequisitionWorkflowTimeline";
 import { Layout } from "@/components/Layout";
+import { getAssignedChief } from "@/lib/chiefAssignment";
 
 interface JobRequisition {
   id: string;
   reference_number: string;
   position_title: string;
+  unit_section_division: string | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -258,10 +260,16 @@ export default function JobRequisitions() {
             </Button>
           )}
           {userRoles.some(role => ['Admin', 'HR Assistant', 'Chief of HR'].includes(role)) && (
-            <Button onClick={() => navigate('/requisitions/new')} className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              New Position Description
-            </Button>
+            <>
+              <Button onClick={() => navigate('/requisitions/initial/new')} variant="outline" className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                New Initial Request
+              </Button>
+              <Button onClick={() => navigate('/requisitions/new')} className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                New Position Description
+              </Button>
+            </>
           )}
           {(userRoles.includes('Hiring Manager') || userRoles.includes('Director')) && !userRoles.some(role => ['Admin', 'HR Assistant', 'Chief of HR'].includes(role)) && (
             <Button onClick={() => navigate('/requisitions/initial/new')} className="flex items-center gap-2">
@@ -313,11 +321,15 @@ export default function JobRequisitions() {
               </CardContent>
             </Card>
           ) : (
-            requisitions.map((requisition) => (
+            requisitions.map((requisition) => {
+              const assignedChief = getAssignedChief(requisition.unit_section_division);
+              const showChiefIndicator = requisition.funding_status || requisition.brief_outline; // Show for initial requests
+              
+              return (
               <Card key={requisition.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <div>
+                    <div className="flex-1">
                       <CardTitle className="flex items-center gap-2">
                         {requisition.position_title || 'Untitled Position'}
                         {getStatusBadge(requisition)}
@@ -325,8 +337,44 @@ export default function JobRequisitions() {
                       <CardDescription>
                         Ref: {requisition.reference_number} • Created {format(new Date(requisition.created_at), 'MMM dd, yyyy')}
                       </CardDescription>
+                      {showChiefIndicator && assignedChief && (
+                        <div className="flex items-center gap-1 text-sm mt-2 text-muted-foreground">
+                          <UserCheck className="w-4 h-4 text-primary" />
+                          <span className="font-medium">Assigned Chief:</span>
+                          <span>{assignedChief.name}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2">
+                      {/* View Request button - for viewing initial request form */}
+                      {(requisition.funding_status || requisition.brief_outline) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/requisitions/initial/${requisition.id}?view=true`)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Request
+                        </Button>
+                      )}
+                      {/* Continue PD button for draft and PD draft requests */}
+                      {(requisition.status === 'initial_request_draft' || requisition.status === 'draft' || requisition.status === 'pd_draft') && 
+                       requisition.created_by === user?.id && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => {
+                            if (requisition.status === 'initial_request_draft') {
+                              navigate(`/requisitions/initial/${requisition.id}`);
+                            } else {
+                              navigate(`/requisitions/${requisition.id}/edit`);
+                            }
+                          }}
+                        >
+                          <FileText className="h-4 w-4 mr-1" />
+                          Continue PD
+                        </Button>
+                      )}
                       {/* Continue to Full PD button for approved initial requests */}
                       {requisition.initial_request_approved && 
                        requisition.status === 'initial_request_approved' &&
@@ -447,7 +495,8 @@ export default function JobRequisitions() {
                   </div>
                 </CardContent>
               </Card>
-            ))
+            );
+            })
           )}
         </div>
       )}

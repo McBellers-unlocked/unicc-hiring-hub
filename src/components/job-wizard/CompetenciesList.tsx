@@ -214,16 +214,55 @@ export function CompetenciesList({ competencies, onChange, readOnly = false }: C
     );
   };
 
+  // Render all competencies in a simple list for read-only mode
+  if (readOnly) {
+    const allCompetencies = competencies.sort((a, b) => {
+      // Sort by type first (Core -> Management -> Leadership), then by order_index
+      const typeOrder = { 'Core': 0, 'Management': 1, 'Leadership': 2 };
+      if (typeOrder[a.competency_type] !== typeOrder[b.competency_type]) {
+        return typeOrder[a.competency_type] - typeOrder[b.competency_type];
+      }
+      return a.order_index - b.order_index;
+    });
+
+    return (
+      <div className="space-y-4">
+        <Label className="text-base font-medium">Competencies</Label>
+        {allCompetencies.length === 0 ? (
+          <div className="border border-dashed rounded-lg p-4 text-center text-sm text-muted-foreground">
+            No competencies from approved PD
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {allCompetencies.map(comp => (
+              <div key={comp.id} className="border rounded-lg p-4 bg-muted/30">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 text-xs font-medium text-muted-foreground uppercase tracking-wide min-w-[100px]">
+                    {comp.competency_type}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <div className="font-medium text-foreground">
+                      {comp.competency_name}
+                    </div>
+                    {comp.description && (
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {comp.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      {readOnly && (
-        <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm text-muted-foreground mb-4">
-          <p className="font-medium">📋 Approved at PD Phase</p>
-          <p className="text-xs mt-1">These competencies were approved during the Position Description phase and are displayed as reference.</p>
-        </div>
-      )}
       <Label className="text-base font-medium">Competencies</Label>
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className={readOnly ? 'pointer-events-none opacity-80' : ''}>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="Core">
             Core ({getCompetenciesByType('Core').length})

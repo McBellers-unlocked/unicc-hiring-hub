@@ -93,6 +93,7 @@ const App = () => (
             <Route path="/requisitions/:id" element={<JobRequisitionDetail />} />
             <Route path="/requisitions/:id/edit" element={<JobRequisitionForm />} />
             <Route path="/requisitions/:id/hr-edit" element={<JobRequisitionHREdit />} />
+            <Route path="/requisitions/:id/hr-final-edit" element={<JobRequisitionHREdit />} />
             <Route path="/requisitions/:id/chief-hr-edit" element={<JobRequisitionChiefHREdit />} />
             <Route path="/requisitions/:id/hm-review" element={<JobRequisitionHiringManagerReview />} />
             <Route path="/admin/phf-import" element={<PHFImport />} />

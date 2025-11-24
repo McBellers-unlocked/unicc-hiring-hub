@@ -33,6 +33,8 @@ interface JobRequisition {
   status: string;
   created_at: string;
   created_by: string;
+  hiring_manager_name?: string;
+  internal_only: boolean;
   hr_reviewed: boolean;
   hr_reviewed_at: string | null;
   hr_reviewed_by: string | null;
@@ -52,6 +54,7 @@ interface JobRequisition {
   finance_controller_approval: boolean;
   finance_controller_approved_at: string | null;
   converted_to_job_id?: string;
+  initial_request_approved?: boolean;
 }
 
 export default function AdminRequisitions() {
@@ -77,11 +80,23 @@ export default function AdminRequisitions() {
     try {
       const { data, error } = await supabase
         .from('job_requisitions')
-        .select('*')
+        .select(`
+          *,
+          users!job_requisitions_created_by_fkey (
+            name
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setRequisitions(data || []);
+      
+      // Map the data to include hiring manager name
+      const mappedData = data?.map(req => ({
+        ...req,
+        hiring_manager_name: (req as any).users?.name
+      })) || [];
+      
+      setRequisitions(mappedData);
     } catch (error) {
       console.error('Error fetching requisitions:', error);
       toast({
@@ -214,6 +229,37 @@ export default function AdminRequisitions() {
     }
   };
 
+  const handleSendToChief = async (requisitionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('job_requisitions')
+        .update({
+          status: 'chief_of_division_review',
+          hr_internal_status: 'sent_to_chief_for_pd_approval',
+          hr_final_review_completed: true,
+          hr_final_review_at: new Date().toISOString(),
+          hr_final_review_by: user?.id
+        })
+        .eq('id', requisitionId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Full position description sent to Chief of Division for final approval",
+      });
+
+      fetchRequisitions();
+    } catch (error) {
+      console.error('Error sending to Chief:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send to Chief of Division",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusInfo = (requisition: JobRequisition) => {
     // Check if converted to job (published)
     if ((requisition as any).converted_to_job_id) {
@@ -287,6 +333,10 @@ export default function AdminRequisitions() {
         return requisitions.filter(r => 
           r.status === 'hr_review' && r.hr_internal_status === 'ready_for_manager'
         );
+      case 'hr-final-review':
+        return requisitions.filter(r => 
+          r.status === 'hr_review' && r.hr_internal_status === 'pending_final_review'
+        );
       case 'amendments':
         return requisitions.filter(r => r.status === 'hr_amendments');
       case 'manager-confirmation':
@@ -319,9 +369,14 @@ export default function AdminRequisitions() {
   return (
     <Layout>
       <div className="container mx-auto p-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Manage PD Pipeline</h1>
-          <p className="text-muted-foreground">Review and approve position descriptions</p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Manage PD Pipeline</h1>
+            <p className="text-muted-foreground">Review and approve position descriptions</p>
+          </div>
+          <Button onClick={() => navigate('/requisitions/initial/new')}>
+            Create Initial Request
+          </Button>
         </div>
 
         <Tabs defaultValue="all" className="space-y-6">
@@ -351,6 +406,12 @@ export default function AdminRequisitions() {
                 {filterRequisitions('hr-ready').length}
               </Badge>
             </TabsTrigger>
+            <TabsTrigger value="hr-final-review">
+              Final HR Review
+              <Badge variant="secondary" className="ml-2">
+                {filterRequisitions('hr-final-review').length}
+              </Badge>
+            </TabsTrigger>
             <TabsTrigger value="amendments">
               Amendments Required
               <Badge variant="destructive" className="ml-2">
@@ -367,7 +428,7 @@ export default function AdminRequisitions() {
             <TabsTrigger value="completed">Completed</TabsTrigger>
           </TabsList>
 
-          {(['all', 'initial-requests', 'pending-hr', 'chief-hr-review', 'hr-ready', 'amendments', 'manager-confirmation', 'in-progress', 'completed'] as const).map(tabValue => (
+          {(['all', 'initial-requests', 'pending-hr', 'chief-hr-review', 'hr-ready', 'hr-final-review', 'amendments', 'manager-confirmation', 'in-progress', 'completed'] as const).map(tabValue => (
             <TabsContent key={tabValue} value={tabValue} className="space-y-4">
               {filterRequisitions(tabValue).length === 0 ? (
                 <Card>
@@ -408,14 +469,41 @@ export default function AdminRequisitions() {
                                 <Building className="h-4 w-4" />
                                 {requisition.grade}
                               </span>
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-4 w-4" />
-                                {new Date(requisition.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                              </span>
+              {requisition.hiring_manager_name && (
+                <span className="flex items-center gap-1">
+                  <User className="h-4 w-4" />
+                  {requisition.hiring_manager_name}
+                </span>
+              )}
+              {requisition.internal_only && (
+                <Badge variant="default" className="ml-2">Internal Only</Badge>
+              )}
+              <span className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                {new Date(requisition.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </span>
                             </CardDescription>
                           </div>
                           
                           <div className="flex items-center gap-2">
+                            {/* Continue PD Button for Drafts and PD Drafts */}
+                            {(requisition.status === 'initial_request_draft' || requisition.status === 'draft' || requisition.status === 'pd_draft') && (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => {
+                                  if (requisition.status === 'initial_request_draft') {
+                                    navigate(`/requisitions/initial/${requisition.id}`);
+                                  } else {
+                                    navigate(`/requisitions/${requisition.id}/edit`);
+                                  }
+                                }}
+                              >
+                                <Edit2 className="h-4 w-4 mr-1" />
+                                Continue PD
+                              </Button>
+                            )}
+                            
                             <Button
                               variant="outline"
                               size="sm"
@@ -468,6 +556,29 @@ export default function AdminRequisitions() {
                                 <CheckCircle2 className="h-4 w-4 mr-1" />
                                 Send to Manager
                               </Button>
+                            )}
+
+                            {/* Final HR Review - After Manager confirms */}
+                            {requisition.status === 'hr_review' && requisition.hr_internal_status === 'pending_final_review' && (isAdmin || isHR) && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => navigate(`/requisitions/${requisition.id}/hr-final-edit`)}
+                                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                >
+                                  <Edit2 className="h-4 w-4 mr-1" />
+                                  Final Review
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleSendToChief(requisition.id)}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                                  Send to Chief for Approval
+                                </Button>
+                              </>
                             )}
 
                             {requisition.status === 'hiring_manager_review' && (isAdmin || isHR) && (

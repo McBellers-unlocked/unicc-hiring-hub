@@ -14,16 +14,36 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { Loader2, FileText } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Loader2, FileText, UserCheck, Eye } from "lucide-react";
+import { getAssignedChief } from "@/lib/chiefAssignment";
+import { useNavigate } from "react-router-dom";
 
 export default function ChiefOfDivisionView() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [pdfPreview, setPdfPreview] = useState<{ open: boolean; requisitionId: string | null; pdfUrl: string | null; loading: boolean }>({
     open: false,
     requisitionId: null,
     pdfUrl: null,
     loading: false
+  });
+  const [approvalDialog, setApprovalDialog] = useState<{
+    open: boolean;
+    requisitionId: string | null;
+    action: 'approve' | 'reject' | null;
+    comments: string;
+    isInitialRequest: boolean;
+  }>({
+    open: false,
+    requisitionId: null,
+    action: null,
+    comments: '',
+    isInitialRequest: false,
   });
 
   const { data: requisitions, isLoading } = useQuery({
@@ -97,18 +117,27 @@ export default function ChiefOfDivisionView() {
             upper.includes('CSE') || upper.includes('CSN') || upper.includes('CSS') || 
             upper.includes('CSR') || upper.includes('CISO') || upper.includes('CYBER')) return 'CS';
         if (upper.includes('MS') || upper.includes('MSHT')) return 'MS';
+        // DD before DO to avoid matching "Development" as DO
+        if (upper.includes('DD') || upper.includes('DDC') || upper.includes('DIGITAL DEVELOPMENT')) return 'DD';
         if (upper.includes('DO') || upper.includes('DOP') || upper.includes('DDAM')) return 'DO';
         if (upper.includes('OP')) return 'OP';
         if (upper.includes('DS')) return 'DS';
-        if (upper.includes('DD')) return 'DD';
         return null;
       };
       
-      const filterByDivision = (reqs: any[]) => 
-        reqs.filter(r => {
+      const filterByDivision = (reqs: any[]) => {
+        if (divisionsToShow.length === 0) return reqs;
+        
+        return reqs.filter(r => {
+          // Extract division from unit_section_division field
           const reqDivision = getDivisionFromUnit(r.unit_section_division);
-          return reqDivision && divisionsToShow.includes(reqDivision);
+          if (reqDivision && divisionsToShow.includes(reqDivision)) {
+            return true;
+          }
+          
+          return false;
         });
+      };
       
       // Combine and separate the two types
       const fullPDs = filterByDivision(fullPDResult.data || []).map(r => ({ ...r, isInitialRequest: false }));
@@ -129,23 +158,40 @@ export default function ChiefOfDivisionView() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: async ({ id, approved, isInitialRequest }: { id: string; approved: boolean; isInitialRequest?: boolean }) => {
+    mutationFn: async ({ id, approved, isInitialRequest, comments }: { id: string; approved: boolean; isInitialRequest?: boolean; comments?: string }) => {
+      const user = (await supabase.auth.getUser()).data.user;
       const updateData: any = {
         chief_of_division_approved_at: new Date().toISOString(),
-        chief_of_division_approved_by: (await supabase.auth.getUser()).data.user?.id,
+        chief_of_division_approved_by: user?.id,
       };
 
       if (isInitialRequest) {
         // For initial requests
         updateData.chief_of_division_approval = approved;
         updateData.initial_request_approved = approved;
-        updateData.initial_request_approved_by = (await supabase.auth.getUser()).data.user?.id;
+        updateData.initial_request_approved_by = user?.id;
         updateData.initial_request_approved_at = new Date().toISOString();
         updateData.status = approved ? 'initial_request_approved' : 'initial_request_rejected';
+        
+        // Add comments if provided
+        if (comments) {
+          updateData.comments = JSON.stringify([
+            {
+              user_id: user?.id,
+              comment: comments,
+              timestamp: new Date().toISOString(),
+              action: approved ? 'approved_initial_request' : 'rejected_initial_request',
+            }
+          ]);
+        }
       } else {
         // For full PD approvals
         updateData.chief_of_division_approval = approved;
         updateData.status = approved ? 'director_review' : 'rejected';
+        
+        if (comments) {
+          updateData.chief_hr_comments = comments;
+        }
       }
 
       const { error } = await supabase
@@ -154,9 +200,14 @@ export default function ChiefOfDivisionView() {
         .eq("id", id);
 
       if (error) throw error;
+      
+      return { id, approved, isInitialRequest };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["requisitions-chief-approval"] });
+    onSuccess: async (data) => {
+      // Immediately refetch to ensure UI updates
+      await queryClient.invalidateQueries({ queryKey: ["requisitions-chief-approval"] });
+      await queryClient.refetchQueries({ queryKey: ["requisitions-chief-approval"] });
+      
       toast.success("Requisition updated successfully");
     },
     onError: () => {
@@ -165,7 +216,26 @@ export default function ChiefOfDivisionView() {
   });
 
   const handleApproval = (id: string, approved: boolean, isInitialRequest?: boolean) => {
-    approveMutation.mutate({ id, approved, isInitialRequest });
+    setApprovalDialog({
+      open: true,
+      requisitionId: id,
+      action: approved ? 'approve' : 'reject',
+      comments: '',
+      isInitialRequest: !!isInitialRequest,
+    });
+  };
+  
+  const confirmApproval = () => {
+    if (!approvalDialog.requisitionId || !approvalDialog.action) return;
+    
+    approveMutation.mutate({
+      id: approvalDialog.requisitionId,
+      approved: approvalDialog.action === 'approve',
+      isInitialRequest: approvalDialog.isInitialRequest,
+      comments: approvalDialog.comments
+    });
+    
+    setApprovalDialog({ open: false, requisitionId: null, action: null, comments: '', isInitialRequest: false });
   };
 
   const handleViewDetails = async (requisitionId: string) => {
@@ -184,8 +254,11 @@ export default function ChiefOfDivisionView() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-6 max-w-7xl">
-        <div className="flex justify-between items-center mb-6">
+        <div className="mb-6">
           <h1 className="text-3xl font-bold">Chief of Division - Approvals</h1>
+          <p className="text-muted-foreground mt-2">
+            Review and approve initial requisitions and full position descriptions for your division
+          </p>
         </div>
 
         {isLoading ? (
@@ -205,17 +278,27 @@ export default function ChiefOfDivisionView() {
                     </CardContent>
                   </Card>
                 ) : (
-                  requisitions?.initialRequests?.map((requisition: any) => (
+                  requisitions?.initialRequests?.map((requisition: any) => {
+                    const assignedChief = getAssignedChief(requisition.unit_section_division);
+                    
+                    return (
                 <Card key={requisition.id}>
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
-                      <div>
+                      <div className="flex-1">
                         <CardTitle>{requisition.position_title}</CardTitle>
-                        <div className="flex gap-2 mt-2">
+                        <div className="flex gap-2 mt-2 flex-wrap">
                           {requisition.grade && <Badge variant="outline">{requisition.grade}</Badge>}
                           {requisition.nature_of_position && <Badge variant="outline">{requisition.nature_of_position}</Badge>}
                           {requisition.isInitialRequest && <Badge className="bg-yellow-500">Initial Request</Badge>}
                         </div>
+                        {assignedChief && (
+                          <div className="flex items-center gap-1 text-sm mt-2 text-muted-foreground">
+                            <UserCheck className="w-4 h-4 text-primary" />
+                            <span className="font-medium">Assigned to:</span>
+                            <span>{assignedChief.name} ({assignedChief.division})</span>
+                          </div>
+                        )}
                       </div>
                       <Badge variant="secondary">Pending Chief Approval</Badge>
                     </div>
@@ -225,6 +308,14 @@ export default function ChiefOfDivisionView() {
                       // Initial Request View
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {requisition.unit_section_division && (
+                            <div>
+                              <p className="text-sm font-medium">Unit/Section/Division</p>
+                              <p className="text-sm text-muted-foreground">
+                                {requisition.unit_section_division}
+                              </p>
+                            </div>
+                          )}
                           <div>
                             <p className="text-sm font-medium">Duty Station</p>
                             <p className="text-sm text-muted-foreground">
@@ -301,6 +392,14 @@ export default function ChiefOfDivisionView() {
                         )}
                         
                         <div className="flex gap-2 pt-2">
+                          <Button
+                            onClick={() => navigate(`/requisitions/initial/${requisition.id}?view=true`)}
+                            variant="outline"
+                            size="sm"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Full Request
+                          </Button>
                           <Button
                             onClick={() => handleApproval(requisition.id, true, true)}
                             disabled={approveMutation.isPending}
@@ -647,9 +746,10 @@ export default function ChiefOfDivisionView() {
                        </div>
                      </div>
                    )}
-                 </CardContent>
-                </Card>
-              ))
+                  </CardContent>
+                 </Card>
+              );
+              })
             )}
           </div>
         </div>
@@ -934,14 +1034,36 @@ export default function ChiefOfDivisionView() {
                   {((requisition.final_clean_version as any)?.essential_education || requisition.essential_education) && (
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Essential Education</h3>
-                      <p className="text-sm">{(requisition.final_clean_version as any)?.essential_education || requisition.essential_education}</p>
+                      <div className="prose prose-sm max-w-none">
+                        <ReactMarkdown
+                          components={{
+                            ul: ({ children }) => <ul className="list-disc ml-5 space-y-1 my-2">{children}</ul>,
+                            li: ({ children }) => <li className="text-sm">{children}</li>,
+                            p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                            strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                          }}
+                        >
+                          {fixMarkdownFormatting((requisition.final_clean_version as any)?.essential_education || requisition.essential_education || '')}
+                        </ReactMarkdown>
+                      </div>
                     </div>
                   )}
 
                   {((requisition.final_clean_version as any)?.desirable_education || requisition.desirable_education) && (
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Desirable Education</h3>
-                      <p className="text-sm">{(requisition.final_clean_version as any)?.desirable_education || requisition.desirable_education}</p>
+                      <div className="prose prose-sm max-w-none">
+                        <ReactMarkdown
+                          components={{
+                            ul: ({ children }) => <ul className="list-disc ml-5 space-y-1 my-2">{children}</ul>,
+                            li: ({ children }) => <li className="text-sm">{children}</li>,
+                            p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                            strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                          }}
+                        >
+                          {fixMarkdownFormatting((requisition.final_clean_version as any)?.desirable_education || requisition.desirable_education || '')}
+                        </ReactMarkdown>
+                      </div>
                     </div>
                   )}
 
@@ -962,9 +1084,25 @@ export default function ChiefOfDivisionView() {
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Global Competencies</h3>
                       <ul className="list-disc ml-5 space-y-1">
-                        {(requisition.global_competencies as any[]).map((comp, idx) => (
-                          <li key={`global-${idx}`} className="text-sm">{comp}</li>
-                        ))}
+                        {(requisition.global_competencies as any[]).map((comp, idx) => {
+                          const getDefinition = (compName: string) => {
+                            const globalCompetencies = [
+                              'Integrity: Acts in accordance with organizational values. Takes responsibility for actions and decisions',
+                              'Customer orientation: Provides excellent service in a professional and caring manner',
+                            ];
+                            return globalCompetencies.find((def) => def.startsWith(compName)) || compName;
+                          };
+
+                          const competencyName = typeof comp === 'string' ? comp : comp.name || comp.competency_name || comp;
+                          const definition = getDefinition(competencyName);
+                          const [name, ...description] = definition.split(':');
+
+                          return (
+                            <li key={`global-${idx}`} className="text-sm">
+                              <strong className="font-semibold">{name}:</strong> {description.join(':').trim()}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
@@ -974,9 +1112,27 @@ export default function ChiefOfDivisionView() {
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Core Competencies</h3>
                       <ul className="list-disc ml-5 space-y-1">
-                        {(requisition.core_competencies as any[]).map((comp, idx) => (
-                          <li key={`core-${idx}`} className="text-sm">{comp}</li>
-                        ))}
+                        {(requisition.core_competencies as any[]).map((comp, idx) => {
+                          const getDefinition = (compName: string) => {
+                            const coreCompetencies = [
+                              'Knowing and managing yourself: Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.',
+                              'Producing results: Produces and delivers quality results. Is action oriented and committed to achieving outcomes.',
+                              'Moving forward in a changing environment: Is open to and proposes new approaches and ideas. Adapts and responds positively to change.',
+                              "Setting an example: Acts within UNICC's / WHO's professional, ethical and legal boundaries and encourages others to adhere to these. Behaves consistently in accordance with clear personal ethics and values.",
+                            ];
+                            return coreCompetencies.find((def) => def.startsWith(compName)) || compName;
+                          };
+
+                          const competencyName = typeof comp === 'string' ? comp : comp.name || comp.competency_name || comp;
+                          const definition = getDefinition(competencyName);
+                          const [name, ...description] = definition.split(':');
+
+                          return (
+                            <li key={`core-${idx}`} className="text-sm">
+                              <strong className="font-semibold">{name}:</strong> {description.join(':').trim()}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
@@ -986,9 +1142,25 @@ export default function ChiefOfDivisionView() {
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Management Competencies</h3>
                       <ul className="list-disc ml-5 space-y-1">
-                        {(requisition.management_competencies as any[]).map((comp, idx) => (
-                          <li key={`mgmt-${idx}`} className="text-sm">{comp}</li>
-                        ))}
+                        {(requisition.management_competencies as any[]).map((comp, idx) => {
+                          const getDefinition = (compName: string) => {
+                            const managementCompetencies = [
+                              "Ensuring effective use of resources: Identifies priorities in accordance with UNICC's strategic directions. Develops and implements action plans, organizes the necessary resources and monitors outcomes.",
+                              "Building and promoting partnerships across the Organization and beyond: Develops and strengthens internal and external partnerships that can provide information, assistance and support to UNICC. Identifies and uses synergies across the Organization and with external partners.",
+                            ];
+                            return managementCompetencies.find((def) => def.startsWith(compName)) || compName;
+                          };
+
+                          const competencyName = typeof comp === 'string' ? comp : comp.name || comp.competency_name || comp;
+                          const definition = getDefinition(competencyName);
+                          const [name, ...description] = definition.split(':');
+
+                          return (
+                            <li key={`mgmt-${idx}`} className="text-sm">
+                              <strong className="font-semibold">{name}:</strong> {description.join(':').trim()}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
@@ -998,9 +1170,26 @@ export default function ChiefOfDivisionView() {
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Leadership Competencies</h3>
                       <ul className="list-disc ml-5 space-y-1">
-                        {(requisition.leadership_competencies as any[]).map((comp, idx) => (
-                          <li key={`lead-${idx}`} className="text-sm">{comp}</li>
-                        ))}
+                        {(requisition.leadership_competencies as any[]).map((comp, idx) => {
+                          const getDefinition = (compName: string) => {
+                            const leadershipCompetencies = [
+                              'Driving UNICC to a successful future: Demonstrates a broad-based understanding of the growing complexities of ICT issues and activities. Creates a compelling vision of shared goals, and develops a roadmap for successfully achieving real progress in improving ICT services.',
+                              'Promoting innovation and Organizational learning: Invigorates the Organization by building a culture which encourages learning and development. Sponsors innovative approaches and solutions.',
+                              "Promoting UNICC's position: Positions UNICC as a leader in ICT services. Gains support for UNICC's mission. Coordinates plans and communicates in a way that attracts support from intended audiences.",
+                            ];
+                            return leadershipCompetencies.find((def) => def.startsWith(compName)) || compName;
+                          };
+
+                          const competencyName = typeof comp === 'string' ? comp : comp.name || comp.competency_name || comp;
+                          const definition = getDefinition(competencyName);
+                          const [name, ...description] = definition.split(':');
+
+                          return (
+                            <li key={`lead-${idx}`} className="text-sm">
+                              <strong className="font-semibold">{name}:</strong> {description.join(':').trim()}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
@@ -1011,13 +1200,28 @@ export default function ChiefOfDivisionView() {
                       <h3 className="text-lg font-semibold mb-2">Language Requirements</h3>
                       <ul className="list-disc ml-5 space-y-1">
                         {(requisition.language_requirements as any).english && (
-                          <li className="text-sm">English: {(requisition.language_requirements as any).english}</li>
+                          <li className="text-sm"><strong>English:</strong> {(requisition.language_requirements as any).english}</li>
                         )}
                         {Array.isArray((requisition.language_requirements as any).additional_languages) &&
                           (requisition.language_requirements as any).additional_languages.length > 0 &&
-                          (requisition.language_requirements as any).additional_languages.map((lang: string, idx: number) => (
-                            <li key={idx} className="text-sm">{lang}</li>
-                          ))}
+                          (requisition.language_requirements as any).additional_languages.map((lang: any, idx: number) => {
+                            if (typeof lang === 'string') {
+                              return <li key={idx} className="text-sm">{lang}</li>;
+                            } else if (typeof lang === 'object' && lang !== null) {
+                              const languageName = lang.name || lang.language || '';
+                              const level = lang.level || '';
+                              if (languageName && level) {
+                                return <li key={idx} className="text-sm"><strong>{languageName}:</strong> {level}</li>;
+                              }
+                            }
+                            return null;
+                          })}
+                        {(requisition.language_requirements as any).un_language_advantage && (
+                          <li className="text-sm">Knowledge of another UN language is an advantage</li>
+                        )}
+                        {(requisition.language_requirements as any).local_language_advantage && (
+                          <li className="text-sm">Knowledge of the local language of the duty station is an advantage</li>
+                        )}
                       </ul>
                     </div>
                   )}
@@ -1051,6 +1255,70 @@ export default function ChiefOfDivisionView() {
               </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Approval/Rejection Dialog */}
+      <Dialog open={approvalDialog.open} onOpenChange={(open) => !open && setApprovalDialog({ open: false, requisitionId: null, action: null, comments: '', isInitialRequest: false })}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {approvalDialog.isInitialRequest 
+                ? (approvalDialog.action === 'approve' ? 'Approve Initial Request' : 'Reject Initial Request')
+                : (approvalDialog.action === 'approve' ? 'Approve Position Description' : 'Reject Position Description')}
+            </DialogTitle>
+            <DialogDescription>
+              {approvalDialog.isInitialRequest
+                ? (approvalDialog.action === 'approve' 
+                  ? 'Please provide any comments for this approval. HR will notify the hiring manager to proceed with creating the full position description.'
+                  : 'Please explain why this request is being rejected. The hiring manager will be notified with your feedback.')
+                : (approvalDialog.action === 'approve'
+                  ? 'Please provide any comments for this approval. The position description will proceed to the Director for final approval.'
+                  : 'Please explain why this position description is being rejected. HR and the hiring manager will be notified with your feedback.')}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="approval-comments">
+                Comments {approvalDialog.action === 'reject' && '*'}
+              </Label>
+              <Textarea
+                id="approval-comments"
+                value={approvalDialog.comments}
+                onChange={(e) => setApprovalDialog(prev => ({ ...prev, comments: e.target.value }))}
+                placeholder={approvalDialog.action === 'approve' 
+                  ? "Add any comments or instructions (optional)..." 
+                  : "Explain why this request is being rejected..."}
+                rows={4}
+                className="resize-none"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setApprovalDialog({ open: false, requisitionId: null, action: null, comments: '', isInitialRequest: false })}
+              disabled={approveMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmApproval}
+              disabled={approveMutation.isPending || (approvalDialog.action === 'reject' && !approvalDialog.comments.trim())}
+              variant={approvalDialog.action === 'approve' ? 'default' : 'destructive'}
+            >
+              {approveMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                approvalDialog.action === 'approve' ? 'Approve' : 'Reject'
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Layout>

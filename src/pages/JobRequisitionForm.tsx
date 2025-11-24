@@ -23,6 +23,8 @@ import MDEditor, { commands, ICommand } from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';
 import { MainDutiesTemplateModal } from '@/components/MainDutiesTemplateModal';
 import { EssentialEducationTemplateModal } from '@/components/EssentialEducationTemplateModal';
+import { EssentialExperienceTemplateModal } from '@/components/EssentialExperienceTemplateModal';
+import { StaffEssentialEducationTemplateModal } from '@/components/StaffEssentialEducationTemplateModal';
 import TurndownService from 'turndown';
 import { Label } from "@/components/ui/label";
 
@@ -264,6 +266,8 @@ export default function JobRequisitionForm() {
   const [isSupervisorRole, setIsSupervisorRole] = useState<boolean>(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState<boolean>(false);
   const [showEssentialEducationModal, setShowEssentialEducationModal] = useState(false);
+  const [showEssentialExperienceModal, setShowEssentialExperienceModal] = useState(false);
+  const [showStaffEssentialEducationModal, setShowStaffEssentialEducationModal] = useState(false);
 
   const form = useForm<RequisitionFormData>({
     resolver: zodResolver(requisitionSchema),
@@ -312,6 +316,62 @@ export default function JobRequisitionForm() {
       } else if (watchedGrade.startsWith('G')) {
         form.setValue('local_language_advantage', true);
       }
+
+      // Auto-populate experience and education for Staff positions when grade is set
+      const currentNature = form.getValues('nature_of_position');
+      if (currentNature === 'Staff') {
+        const gradeRequirements: Record<string, { yearsText: string; education: string; educationLevel: string; isGPosition?: boolean }> = {
+          'G3': { yearsText: 'two (2) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+          'G4': { yearsText: 'three (3) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+          'G5': { yearsText: 'five (5) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+          'G6': { yearsText: 'eight (8) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+          'G7': { yearsText: 'ten (10) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+          'P1': { yearsText: 'one (1) year', education: 'First Level University', educationLevel: 'First Level University' },
+          'P2': { yearsText: 'two (2) years', education: 'First Level University', educationLevel: 'First Level University' },
+          'P3': { yearsText: 'five (5) years', education: 'First Level University', educationLevel: 'First Level University' },
+          'P4': { yearsText: 'seven (7) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+          'P5': { yearsText: 'ten (10) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+          'D1': { yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+          'D2': { yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' }
+        };
+
+        const requirements = gradeRequirements[watchedGrade];
+        if (requirements) {
+          const currentExp = form.getValues('essential_experience');
+          const currentEdu = form.getValues('essential_education');
+          
+          // Populate experience if empty or doesn't match the grade template
+          if (!currentExp || !currentExp.includes(`At least ${requirements.yearsText}`)) {
+            form.setValue('essential_experience', `- At least ${requirements.yearsText} of relevant experience in [specify field/area]`);
+          }
+          
+          // Populate education if empty or switching between G and P/D templates
+          const isGEducation = currentEdu?.includes('Completion of secondary school supplemented by technical training');
+          const shouldUpdateEducation = !currentEdu || 
+            (requirements.isGPosition && !isGEducation) || 
+            (!requirements.isGPosition && isGEducation);
+          
+          if (shouldUpdateEducation) {
+            const eduText = requirements.isGPosition
+              ? `- Completion of secondary school supplemented by technical training in [specify field/area]. A completed university degree from an accredited institution will be counted towards minimum work experience requirements`
+              : `- ${requirements.education} degree in [specify field/area]`;
+            form.setValue('essential_education', eduText);
+          }
+          
+          form.setValue('essential_education_level', requirements.educationLevel);
+        }
+      }
+    }
+  }, [watchedGrade, form]);
+
+  // Clear multiple duty stations when grade changes to G position
+  useEffect(() => {
+    if (watchedGrade?.startsWith('G')) {
+      const currentDutyStations = form.getValues('duty_station');
+      if (currentDutyStations && currentDutyStations.length > 1) {
+        // Keep only the first selected location
+        form.setValue('duty_station', [currentDutyStations[0]]);
+      }
     }
   }, [watchedGrade, form]);
 
@@ -325,54 +385,30 @@ export default function JobRequisitionForm() {
 
   // Update main duties template when nature of position changes
   useEffect(() => {
-    const currentMainDuties = form.getValues('main_duties_responsibilities');
     const currentEssentialExperience = form.getValues('essential_experience');
     const currentEssentialEducation = form.getValues('essential_education');
     
-    // Only update if the field is empty or contains the default template
-    const isDefaultTemplate = !currentMainDuties || 
-      currentMainDuties.includes('[SUPERVISOR TITLE]') || 
-      currentMainDuties.includes('[title of the supervisor]');
-    
-    if (isDefaultTemplate) {
-      if (watchedNatureOfPosition === 'Intern') {
-        form.setValue('main_duties_responsibilities', 
-          "The incumbent(s) will work [number of days] days per week for [number of hours] hours under the supervision of the [title of the supervisor], and will receive the guidance and support necessary to carry out the responsibilities outlined below.\n\n"
-        );
-      } else if (watchedNatureOfPosition && watchedNatureOfPosition !== 'Intern') {
-        form.setValue('main_duties_responsibilities', 
-          "The incumbent will work under the direct supervision and guidance of the [SUPERVISOR TITLE] within the [DIVISION NAME] and in close collaboration with the [SECTION NAME] team members. The incumbent will perform the following duties:\n\n"
-        );
-      }
-    }
-
-    // Update essential experience for interns
+    // Only auto-set experience/education for Intern positions when the fields
+    // are effectively still using a default/template value. For non‑Intern
+    // positions we never clear existing values.
     const isDefaultExperience = !currentEssentialExperience || 
       currentEssentialExperience.includes('At least') ||
       currentEssentialExperience.includes('Applicants are not required to have professional work experience');
     
-    if (isDefaultExperience) {
-      if (watchedNatureOfPosition === 'Intern') {
-        form.setValue('essential_experience', 
-          "Applicants are not required to have professional work experience to participate in the UNICC's internship program, but applicants should have the following functional and technical skills:\n\n"
-        );
-      } else if (watchedNatureOfPosition && watchedNatureOfPosition !== 'Intern') {
-        form.setValue('essential_experience', '');
-      }
+    if (watchedNatureOfPosition === 'Intern' && isDefaultExperience) {
+      form.setValue('essential_experience', 
+        "Applicants are not required to have professional work experience to participate in the UNICC's internship program, but applicants should have the following functional and technical skills:\n\n"
+      );
     }
-
+ 
     // Update essential education for interns
     const isDefaultEducation = !currentEssentialEducation || 
       currentEssentialEducation.includes('Be currently enrolled in a University programme');
     
-    if (isDefaultEducation) {
-      if (watchedNatureOfPosition === 'Intern') {
-        form.setValue('essential_education', 
-          "Be currently enrolled in a University programme (final year of a bachelor's degree, master's degree or equivalent) specializing in areas that are relevant to UNICC's line of business such as [areas of expertise].\n\nApplicants that have graduated in the last 6 months in one of the areas of expertise described above will also be considered."
-        );
-      } else if (watchedNatureOfPosition && watchedNatureOfPosition !== 'Intern') {
-        form.setValue('essential_education', '');
-      }
+    if (watchedNatureOfPosition === 'Intern' && isDefaultEducation) {
+      form.setValue('essential_education', 
+        "Be currently enrolled in a University programme (final year of a bachelor's degree, master's degree or equivalent) specializing in areas that are relevant to UNICC's line of business such as [areas of expertise].\n\nApplicants that have graduated in the last 6 months in one of the areas of expertise described above will also be considered."
+      );
     }
   }, [watchedNatureOfPosition, form]);
 
@@ -526,6 +562,7 @@ export default function JobRequisitionForm() {
         let defaultMainDuties = "";
         let defaultEssentialExperience = "";
         let defaultEssentialEducation = "";
+        let defaultEducationLevel = "";
         
         if (!data.main_duties_responsibilities) {
           if (data.nature_of_position === 'Intern') {
@@ -535,12 +572,47 @@ export default function JobRequisitionForm() {
           }
         }
 
+        // Set defaults for Interns
         if (!data.essential_experience && data.nature_of_position === 'Intern') {
           defaultEssentialExperience = "Applicants are not required to have professional work experience to participate in the UNICC's internship program, but applicants should have the following functional and technical skills:\n\n";
         }
 
         if (!data.essential_education && data.nature_of_position === 'Intern') {
           defaultEssentialEducation = "Be currently enrolled in a University programme (final year of a bachelor's degree, master's degree or equivalent) specializing in areas that are relevant to UNICC's line of business such as [areas of expertise].\n\nApplicants that have graduated in the last 6 months in one of the areas of expertise described above will also be considered.";
+        }
+
+        // Set defaults for Staff positions (non-Intern, non-Consultant) based on grade
+        if (data.nature_of_position !== 'Intern' && data.nature_of_position !== 'Individual Consultant' && data.grade) {
+          const gradeRequirements: Record<string, { yearsText: string; education: string; educationLevel: string; isGPosition?: boolean }> = {
+            'G3': { yearsText: 'two (2) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+            'G4': { yearsText: 'three (3) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+            'G5': { yearsText: 'five (5) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+            'G6': { yearsText: 'eight (8) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+            'G7': { yearsText: 'ten (10) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+            'P1': { yearsText: 'one (1) year', education: 'First Level University', educationLevel: 'First Level University' },
+            'P2': { yearsText: 'two (2) years', education: 'First Level University', educationLevel: 'First Level University' },
+            'P3': { yearsText: 'five (5) years', education: 'First Level University', educationLevel: 'First Level University' },
+            'P4': { yearsText: 'seven (7) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+            'P5': { yearsText: 'ten (10) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+            'D1': { yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+            'D2': { yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' }
+          };
+
+          const requirements = gradeRequirements[data.grade];
+          
+          if (requirements) {
+            if (!data.essential_experience) {
+              defaultEssentialExperience = `- At least ${requirements.yearsText} of relevant experience in [specify field/area]`;
+            }
+            if (!data.essential_education) {
+              defaultEssentialEducation = requirements.isGPosition 
+                ? `- Completion of secondary school supplemented by technical training in [specify field/area]. A completed university degree from an accredited institution will be counted towards minimum work experience requirements`
+                : `- ${requirements.education} degree in [specify field/area]`;
+            }
+            if (!data.essential_education_level) {
+              defaultEducationLevel = requirements.educationLevel;
+            }
+          }
         }
 
         form.reset({
@@ -560,13 +632,30 @@ export default function JobRequisitionForm() {
           essential_experience: data.essential_experience || defaultEssentialExperience,
           desirable_experience: data.desirable_experience || "",
           essential_education: data.essential_education || defaultEssentialEducation,
-          essential_education_level: (data as any).essential_education_level || "",
+          essential_education_level: data.essential_education_level || defaultEducationLevel,
           desirable_education: data.desirable_education || "",
           core_competencies: Array.isArray(data.core_competencies) ? data.core_competencies as string[] : [],
           management_competencies: Array.isArray(data.management_competencies) ? data.management_competencies as string[] : [],
           leadership_competencies: Array.isArray(data.leadership_competencies) ? data.leadership_competencies as string[] : [],
           confirmChiefApproval: true,
         });
+        
+        // Force re-render of markdown editors by setting values again if they have defaults
+        if (defaultEssentialExperience) {
+          setTimeout(() => {
+            form.setValue('essential_experience', defaultEssentialExperience);
+          }, 0);
+        }
+        if (defaultEssentialEducation) {
+          setTimeout(() => {
+            form.setValue('essential_education', defaultEssentialEducation);
+          }, 0);
+        }
+        if (defaultEducationLevel) {
+          setTimeout(() => {
+            form.setValue('essential_education_level', defaultEducationLevel);
+          }, 0);
+        }
         
         // Set language requirements separately
         form.setValue("un_language_advantage", (data.language_requirements as any)?.un_language_advantage || false);
@@ -1006,19 +1095,35 @@ export default function JobRequisitionForm() {
                       <FormLabel>Grade *</FormLabel>
                       <Select onValueChange={(value) => {
                         field.onChange(value);
-                        // Auto-populate minimum experience requirements
-                        const experienceMap = {
-                          'P1': 'At least 1 year of experience in relevant field',
-                          'P2': 'At least 2 years of experience in relevant field',
-                          'P3': 'At least 5 years of experience in relevant field',
-                          'P4': 'At least 7 years of experience in relevant field',
-                          'P5': 'At least 10 years of experience in relevant field'
+                        
+                        // Define grade requirements mapping
+                        const gradeRequirements: Record<string, { years: number; yearsText: string; education: string; educationLevel: string; isGPosition?: boolean }> = {
+                          'G3': { years: 2, yearsText: 'two (2) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+                          'G4': { years: 3, yearsText: 'three (3) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+                          'G5': { years: 5, yearsText: 'five (5) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+                          'G6': { years: 8, yearsText: 'eight (8) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+                          'G7': { years: 10, yearsText: 'ten (10) years', education: 'Secondary', educationLevel: 'Secondary', isGPosition: true },
+                          'P1': { years: 1, yearsText: 'one (1) year', education: 'First Level University', educationLevel: 'First Level University' },
+                          'P2': { years: 2, yearsText: 'two (2) years', education: 'First Level University', educationLevel: 'First Level University' },
+                          'P3': { years: 5, yearsText: 'five (5) years', education: 'First Level University', educationLevel: 'First Level University' },
+                          'P4': { years: 7, yearsText: 'seven (7) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+                          'P5': { years: 10, yearsText: 'ten (10) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+                          'D1': { years: 15, yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' },
+                          'D2': { years: 15, yearsText: 'fifteen (15) years', education: 'Advanced University', educationLevel: 'Advanced University' }
                         };
-                        if (experienceMap[value]) {
-                          const currentExperience = form.getValues('essential_experience');
-                          if (!currentExperience) {
-                            form.setValue('essential_experience', experienceMap[value] + ' (minimum requirement - please expand as needed)');
-                          }
+                        
+                        const requirements = gradeRequirements[value];
+                        if (requirements) {
+                          // Always update experience and education when grade changes
+                          form.setValue('essential_experience', `- At least ${requirements.yearsText} of relevant experience in [specify field/area]`);
+                          
+                          const eduText = requirements.isGPosition
+                            ? `- Completion of secondary school supplemented by technical training in [specify field/area]. A completed university degree from an accredited institution will be counted towards minimum work experience requirements`
+                            : `- ${requirements.education} degree in [specify field/area]`;
+                          form.setValue('essential_education', eduText);
+                          
+                          // Auto-populate education level dropdown
+                          form.setValue('essential_education_level', requirements.educationLevel);
                         }
                       }} defaultValue={field.value}>
                         <FormControl>
@@ -1042,7 +1147,7 @@ export default function JobRequisitionForm() {
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Selecting a grade will auto-populate minimum experience requirements
+                        Selecting a grade will auto-populate minimum experience, education requirements, and education level
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1170,32 +1275,59 @@ export default function JobRequisitionForm() {
                 name="duty_station"
                 render={({ field }) => {
                   const natureOfPosition = form.watch("nature_of_position");
+                  const currentGrade = form.watch("grade");
+                  const isGPosition = currentGrade?.startsWith('G');
                   const baseStations = ['Brindisi', 'Geneva', 'New York', 'Rome', 'Valencia'];
                   const availableStations = (natureOfPosition === 'Intern' || natureOfPosition === 'Individual Consultant') 
                     ? [...baseStations, 'Remote'] 
                     : baseStations;
                   
+                  const handleLocationChange = (station: string, checked: boolean) => {
+                    if (isGPosition) {
+                      // For G positions, only allow single selection
+                      field.onChange(checked ? [station] : []);
+                    } else {
+                      // For other positions, allow multiple selections
+                      const current = field.value || [];
+                      if (checked) {
+                        field.onChange([...current, station]);
+                      } else {
+                        field.onChange(current.filter(s => s !== station));
+                      }
+                    }
+                  };
+                  
                   return (
                     <FormItem>
-                      <FormLabel>Duty Station *</FormLabel>
+                      <FormLabel>
+                        Duty Station * 
+                        {isGPosition && <span className="text-muted-foreground font-normal ml-2">(Single location only for G positions)</span>}
+                      </FormLabel>
                       <FormDescription>
-                        Select all applicable duty stations (multiple selection allowed)
+                        {isGPosition 
+                          ? "Select one duty station (single selection for G positions)"
+                          : "Select all applicable duty stations (multiple selection allowed)"
+                        }
                       </FormDescription>
                       <div className="grid grid-cols-3 gap-2 mt-2">
                         {availableStations.map((station) => (
                           <div key={station} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={station}
-                              checked={field.value?.includes(station) || false}
-                              onCheckedChange={(checked) => {
-                                const current = field.value || [];
-                                if (checked) {
-                                  field.onChange([...current, station]);
-                                } else {
-                                  field.onChange(current.filter(s => s !== station));
-                                }
-                              }}
-                            />
+                            {isGPosition ? (
+                              <input
+                                type="radio"
+                                id={station}
+                                name="duty_station_radio"
+                                checked={field.value?.includes(station) || false}
+                                onChange={(e) => handleLocationChange(station, e.target.checked)}
+                                className="h-4 w-4"
+                              />
+                            ) : (
+                              <Checkbox
+                                id={station}
+                                checked={field.value?.includes(station) || false}
+                                onCheckedChange={(checked) => handleLocationChange(station, !!checked)}
+                              />
+                            )}
                             <label htmlFor={station} className="text-sm">{station}</label>
                           </div>
                         ))}
@@ -1456,7 +1588,23 @@ export default function JobRequisitionForm() {
                   name="essential_experience"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Essential Experience *</FormLabel>
+                      <div className="flex items-center justify-between mb-2">
+                        <FormLabel>Essential Experience *</FormLabel>
+                        {watchedNatureOfPosition !== 'Intern' && 
+                         watchedNatureOfPosition !== 'Individual Consultant' && 
+                         field.value?.includes('[specify field/area]') && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowEssentialExperienceModal(true)}
+                            className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
+                          >
+                            <FileText className="h-3 w-3 mr-1" />
+                            Fill Template
+                          </Button>
+                        )}
+                      </div>
                       <FormControl>
                         <MDEditor
                           value={field.value}
@@ -1580,6 +1728,20 @@ export default function JobRequisitionForm() {
                             variant="outline"
                             size="sm"
                             onClick={() => setShowEssentialEducationModal(true)}
+                            className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
+                          >
+                            <FileText className="h-3 w-3 mr-1" />
+                            Fill Template
+                          </Button>
+                        )}
+                        {watchedNatureOfPosition !== 'Intern' && 
+                         watchedNatureOfPosition !== 'Individual Consultant' && 
+                         field.value?.includes('[specify field/area]') && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowStaffEssentialEducationModal(true)}
                             className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
                           >
                             <FileText className="h-3 w-3 mr-1" />
@@ -2075,17 +2237,13 @@ export default function JobRequisitionForm() {
 
           <div className="flex justify-between items-center pt-6">
             <div className="flex gap-2">
-              {id && id !== 'new' && (
-                <>
-                  <Button type="button" variant="outline" onClick={generatePDF}>
-                    <FileText className="h-4 w-4 mr-2" />
-                    Generate PDF
-                  </Button>
-                  <Button type="button" variant="outline" onClick={convertToJob}>
-                    <Briefcase className="h-4 w-4 mr-2" />
-                    Convert to Job
-                  </Button>
-                </>
+              {id && id !== 'new' && currentRequisition?.director_approval && 
+               !currentRequisition?.converted_to_job_id &&
+               (userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR')) && (
+                <Button type="button" variant="outline" onClick={convertToJob}>
+                  <Briefcase className="h-4 w-4 mr-2" />
+                  Convert to Job
+                </Button>
               )}
             </div>
             <div className="flex gap-2">
@@ -2200,6 +2358,66 @@ export default function JobRequisitionForm() {
         onApply={(areasOfExpertise) => {
           const currentValue = form.getValues('essential_education');
           const updatedValue = currentValue.replace('[areas of expertise]', areasOfExpertise);
+          form.setValue('essential_education', updatedValue);
+        }}
+      />
+
+      <EssentialExperienceTemplateModal
+        open={showEssentialExperienceModal}
+        onClose={() => setShowEssentialExperienceModal(false)}
+        yearsText={(() => {
+          const gradeRequirements: Record<string, { yearsText: string }> = {
+            'P1': { yearsText: 'one (1) year' },
+            'P2': { yearsText: 'two (2) years' },
+            'P3': { yearsText: 'five (5) years' },
+            'P4': { yearsText: 'seven (7) years' },
+            'P5': { yearsText: 'ten (10) years' },
+            'D1': { yearsText: 'fifteen (15) years' },
+            'D2': { yearsText: 'fifteen (15) years' },
+            'G3': { yearsText: 'two (2) years' },
+            'G4': { yearsText: 'three (3) years' },
+            'G5': { yearsText: 'five (5) years' },
+            'G6': { yearsText: 'eight (8) years' },
+            'G7': { yearsText: 'ten (10) years' }
+          };
+          const grade = form.getValues('grade');
+          return gradeRequirements[grade]?.yearsText || 'X';
+        })()}
+        onApply={(fieldArea) => {
+          const currentValue = form.getValues('essential_experience');
+          const updatedValue = currentValue.replace('[specify field/area]', fieldArea);
+          form.setValue('essential_experience', updatedValue);
+        }}
+      />
+
+      <StaffEssentialEducationTemplateModal
+        open={showStaffEssentialEducationModal}
+        onClose={() => setShowStaffEssentialEducationModal(false)}
+        educationLevel={(() => {
+          const gradeRequirements: Record<string, { education: string }> = {
+            'P1': { education: 'First Level University' },
+            'P2': { education: 'First Level University' },
+            'P3': { education: 'First Level University' },
+            'P4': { education: 'Advanced University' },
+            'P5': { education: 'Advanced University' },
+            'D1': { education: 'Advanced University' },
+            'D2': { education: 'Advanced University' },
+            'G3': { education: 'Secondary' },
+            'G4': { education: 'Secondary' },
+            'G5': { education: 'Secondary' },
+            'G6': { education: 'Secondary' },
+            'G7': { education: 'Secondary' }
+          };
+          const grade = form.getValues('grade');
+          return gradeRequirements[grade]?.education || 'Advanced University';
+        })()}
+        isGPosition={(() => {
+          const grade = form.getValues('grade');
+          return grade?.startsWith('G') || false;
+        })()}
+        onApply={(fieldArea) => {
+          const currentValue = form.getValues('essential_education');
+          const updatedValue = currentValue.replace('[specify field/area]', fieldArea);
           form.setValue('essential_education', updatedValue);
         }}
       />
