@@ -7,7 +7,6 @@ interface UNICCLogoProps {
 export const UNICCLogo = ({
   className = '',
   size = 'md',
-  variant = 'white',
 }: UNICCLogoProps) => {
   const sizeClasses: Record<'sm' | 'md' | 'lg', string> = {
     sm: 'h-6 w-6',
@@ -15,11 +14,8 @@ export const UNICCLogo = ({
     lg: 'h-16 w-16',
   };
 
-  // Use your new assets instead of the deleted lovable-uploads paths
-  const logoSrc =
-    variant === 'blue'
-      ? '/assets/favicon_unicc.jpg' // blue-background version
-      : '/assets/unicc_logo.jpg';   // default logo
+  // Always use the new clean PNG logo
+  const logoSrc = '/assets/UNICC_logo.png';
 
   return (
     <div className={`${sizeClasses[size]} ${className}`}>
