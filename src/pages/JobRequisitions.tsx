@@ -260,10 +260,16 @@ export default function JobRequisitions() {
             </Button>
           )}
           {userRoles.some(role => ['Admin', 'HR Assistant', 'Chief of HR'].includes(role)) && (
-            <Button onClick={() => navigate('/requisitions/new')} className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              New Position Description
-            </Button>
+            <>
+              <Button onClick={() => navigate('/requisitions/initial/new')} variant="outline" className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                New Initial Request
+              </Button>
+              <Button onClick={() => navigate('/requisitions/new')} className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                New Position Description
+              </Button>
+            </>
           )}
           {(userRoles.includes('Hiring Manager') || userRoles.includes('Director')) && !userRoles.some(role => ['Admin', 'HR Assistant', 'Chief of HR'].includes(role)) && (
             <Button onClick={() => navigate('/requisitions/initial/new')} className="flex items-center gap-2">

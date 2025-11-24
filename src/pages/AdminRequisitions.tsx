@@ -369,9 +369,14 @@ export default function AdminRequisitions() {
   return (
     <Layout>
       <div className="container mx-auto p-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Manage PD Pipeline</h1>
-          <p className="text-muted-foreground">Review and approve position descriptions</p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Manage PD Pipeline</h1>
+            <p className="text-muted-foreground">Review and approve position descriptions</p>
+          </div>
+          <Button onClick={() => navigate('/requisitions/initial/new')}>
+            Create Initial Request
+          </Button>
         </div>
 
         <Tabs defaultValue="all" className="space-y-6">
