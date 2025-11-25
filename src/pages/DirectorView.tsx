@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { FileText } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { fixMarkdownFormatting } from "@/lib/utils";
+import { getDivisionCode } from "@/lib/chiefAssignment";
 
 const CORE_COMPETENCY_DEFINITIONS = [
   "Knowing and managing yourself: Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.",
@@ -68,6 +69,43 @@ export default function DirectorView() {
 
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: initialRequisitions, isLoading: initialLoading } = useQuery({
+    queryKey: ["initial-requisitions-director-approval"],
+    queryFn: async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+      if (!user) throw new Error("Not authenticated");
+
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("division")
+        .eq("id", user.id)
+        .single();
+
+      if (userError) throw userError;
+
+      const userDivision = (userData?.division as string | null) || null;
+
+      const { data, error } = await supabase
+        .from("job_requisitions")
+        .select(`
+          *,
+          creator:users!created_by(name, email, division)
+        `)
+        .in("status", ["initial_request_submitted", "initial_request_chief_review"])
+        .or("initial_request_approved.is.null,initial_request_approved.eq.false")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      if (!userDivision) return data || [];
+
+      return (data || []).filter((r) => {
+        const reqDivisionCode = getDivisionCode(r.unit_section_division as string | null);
+        return reqDivisionCode === userDivision;
+      });
     },
   });
 
@@ -208,8 +246,119 @@ export default function DirectorView() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Director Approvals</h1>
           <p className="text-muted-foreground mt-2">
-            Review and approve position descriptions and review committees
+            Review and approve initial requisitions, position descriptions and review committees
           </p>
+        </div>
+
+        {/* Initial Requisition Approvals Section */}
+        <div className="mb-8">
+          <h3 className="text-xl font-semibold mb-4">Initial Requisition Approvals</h3>
+
+          {initialLoading ? (
+            <div>Loading...</div>
+          ) : (
+            <div className="grid gap-4">
+              {initialRequisitions?.length === 0 ? (
+                <Card>
+                  <CardContent className="p-6">
+                    <p className="text-center text-muted-foreground">
+                      No initial requisitions pending your approval
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                initialRequisitions?.map((requisition: any) => (
+                  <Card key={requisition.id}>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle>{requisition.position_title}</CardTitle>
+                          <div className="flex gap-2 mt-2 flex-wrap">
+                            {requisition.grade && (
+                              <Badge variant="outline">{requisition.grade}</Badge>
+                            )}
+                            {requisition.nature_of_position && (
+                              <Badge variant="outline">{requisition.nature_of_position}</Badge>
+                            )}
+                            <Badge variant="secondary">Initial Request</Badge>
+                          </div>
+                        </div>
+                        <Badge variant="secondary">Pending Chief Approval</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        {requisition.unit_section_division && (
+                          <div>
+                            <p className="text-sm font-medium">Unit/Section/Division</p>
+                            <p className="text-sm text-muted-foreground">
+                              {requisition.unit_section_division}
+                            </p>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-sm font-medium">Duty Station</p>
+                          <p className="text-sm text-muted-foreground">
+                            {requisition.duty_station || "Not specified"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Created By</p>
+                          <p className="text-sm text-muted-foreground">
+                            {requisition.creator?.name ||
+                              requisition.creator?.email ||
+                              "Unknown User"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Created Date</p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(requisition.created_at), "dd/MM/yyyy")}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center gap-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewDetails(requisition.id)}
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          View Details
+                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              approveInitialRequestMutation.mutate({
+                                id: requisition.id,
+                                approved: true,
+                              })
+                            }
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              approveInitialRequestMutation.mutate({
+                                id: requisition.id,
+                                approved: false,
+                              })
+                            }
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          )}
         </div>
 
         {/* Position Description Approvals Section */}
