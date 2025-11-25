@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Star, Play, Pause, Volume2, VolumeX, Download } from 'lucide-react';
+import { Star, Play, Pause, Volume2, VolumeX, Download, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -34,13 +34,17 @@ interface VideoRatingInterfaceProps {
   questions: VideoQuestion[];
   videoAnswers: VideoAnswer[];
   onRatingUpdate?: () => void;
+  onSubmitFeedback?: () => void;
+  showSubmitButton?: boolean;
 }
 
 export const VideoRatingInterface: React.FC<VideoRatingInterfaceProps> = ({
   applicationId,
   questions,
   videoAnswers,
-  onRatingUpdate
+  onRatingUpdate,
+  onSubmitFeedback,
+  showSubmitButton = true
 }) => {
   const [ratings, setRatings] = useState<Record<string, VideoRating>>({});
   const [comments, setComments] = useState<Record<string, string>>({});
@@ -48,6 +52,7 @@ export const VideoRatingInterface: React.FC<VideoRatingInterfaceProps> = ({
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
   const [videoProgress, setVideoProgress] = useState<Record<string, number>>({});
   const [isMuted, setIsMuted] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -193,6 +198,57 @@ export const VideoRatingInterface: React.FC<VideoRatingInterfaceProps> = ({
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+
+  const handleSubmitFeedback = async () => {
+    // Check if all videos are rated
+    const allRated = videoAnswers.every(va => ratings[va.id]?.rating);
+    
+    if (!allRated) {
+      toast({
+        title: "Incomplete Evaluation",
+        description: "Please rate all video answers before submitting feedback",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Update video assignment to mark feedback as submitted
+      const { data: assignment } = await supabase
+        .from('video_assignments')
+        .select('id')
+        .eq('application_id', applicationId)
+        .single();
+
+      if (assignment) {
+        const { error } = await supabase
+          .from('video_assignments')
+          .update({ feedback_submitted_at: new Date().toISOString() })
+          .eq('id', assignment.id);
+
+        if (error) throw error;
+      }
+
+      setFeedbackSubmitted(true);
+      
+      toast({
+        title: "Feedback Submitted",
+        description: "Video interview evaluation has been submitted successfully",
+      });
+
+      onSubmitFeedback?.();
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit feedback",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const allVideosRated = videoAnswers.length > 0 && videoAnswers.every(va => ratings[va.id]?.rating);
+  const ratedCount = Object.keys(ratings).length;
 
   if (isLoading) {
     return (
@@ -364,6 +420,31 @@ export const VideoRatingInterface: React.FC<VideoRatingInterfaceProps> = ({
           </Card>
         );
       })}
+
+      {/* Submit Feedback Button */}
+      {showSubmitButton && videoAnswers.length > 0 && (
+        <Card className="border-t-4 border-t-primary">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Video Interview Evaluation</p>
+                <p className="text-sm text-muted-foreground">
+                  {allVideosRated 
+                    ? `All ${videoAnswers.length} videos rated. Ready to submit.`
+                    : `Rate all videos to submit feedback (${ratedCount}/${videoAnswers.length})`}
+                </p>
+              </div>
+              <Button 
+                onClick={handleSubmitFeedback}
+                disabled={!allVideosRated || feedbackSubmitted}
+              >
+                <Send className="w-4 h-4 mr-2" />
+                {feedbackSubmitted ? 'Feedback Submitted' : 'Submit Feedback'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

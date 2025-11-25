@@ -19,7 +19,8 @@ import {
   X,
   Video,
   FileText,
-  RotateCcw
+  RotateCcw,
+  Star
 } from 'lucide-react';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
 
@@ -329,6 +330,19 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
 
           {/* Center - Match info with AI Screening badges */}
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Video Score Badge for Pre-Recorded Video status */}
+            {application.status === 'Pre-Recorded Video' && (
+              <Badge 
+                variant={application.videoScore ? 'default' : 'outline'}
+                className="whitespace-nowrap font-semibold gap-1"
+              >
+                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                {application.videoScore 
+                  ? `${application.videoScore.toFixed(1)}/5.0`
+                  : 'Not Rated'}
+              </Badge>
+            )}
+
             {/* Main Match Score Badge */}
             {aiScore !== null && aiScore !== undefined ? (
               <Badge 

@@ -53,6 +53,8 @@ interface Application {
     created_at: string;
     rubric_breakdown?: any;
   }[];
+  videoScore?: number | null;
+  videoRatingsCount?: number;
 }
 
 export default function AdminApplications() {
@@ -284,6 +286,45 @@ export default function AdminApplications() {
         }
       } else {
         setApplications([]);
+      }
+
+      // Fetch video scores for all applications
+      if (data && data.length > 0) {
+        const { data: videoData } = await supabase
+          .from('video_answers')
+          .select(`
+            application_id,
+            video_ratings(rating)
+          `)
+          .in('application_id', data.map(app => app.id));
+
+        if (videoData) {
+          // Calculate average rating per application
+          const scoresByApp: Record<string, { total: number; count: number }> = {};
+          
+          videoData.forEach((va: any) => {
+            if (va.video_ratings && va.video_ratings.length > 0) {
+              va.video_ratings.forEach((rating: any) => {
+                if (!scoresByApp[va.application_id]) {
+                  scoresByApp[va.application_id] = { total: 0, count: 0 };
+                }
+                scoresByApp[va.application_id].total += rating.rating;
+                scoresByApp[va.application_id].count += 1;
+              });
+            }
+          });
+
+          // Merge scores into applications
+          const updatedApps = (data || []).map(app => ({
+            ...app,
+            videoScore: scoresByApp[app.id] 
+              ? scoresByApp[app.id].total / scoresByApp[app.id].count 
+              : null,
+            videoRatingsCount: scoresByApp[app.id]?.count || 0
+          }));
+
+          setApplications(updatedApps);
+        }
       }
 
       // Force fresh check for video questions (bypass cache)
@@ -740,10 +781,23 @@ export default function AdminApplications() {
         const scoreA = a.screening_scores?.[0]?.ai_score || 0;
         const scoreB = b.screening_scores?.[0]?.ai_score || 0;
         return scoreB - scoreA; // Higher scores first
+      case 'video_score':
+        const videoA = a.videoScore || 0;
+        const videoB = b.videoScore || 0;
+        return videoB - videoA; // Higher scores first
       default:
         return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
     }
   });
+
+  // Auto-sort Pre-Recorded Video phase by video score
+  if (statusFilter === 'Pre-Recorded Video') {
+    filteredApplications.sort((a, b) => {
+      const videoA = a.videoScore || 0;
+      const videoB = b.videoScore || 0;
+      return videoB - videoA; // Higher scores first
+    });
+  }
 
   // Define status phases in the correct order
   const statusPhases = [

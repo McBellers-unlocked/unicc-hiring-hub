@@ -2188,6 +2188,7 @@ export type Database = {
           deadline_at: string
           extended_by: string | null
           extension_reason: string | null
+          feedback_submitted_at: string | null
           id: string
           last_activity_at: string | null
           opened_at: string | null
@@ -2207,6 +2208,7 @@ export type Database = {
           deadline_at?: string
           extended_by?: string | null
           extension_reason?: string | null
+          feedback_submitted_at?: string | null
           id?: string
           last_activity_at?: string | null
           opened_at?: string | null
@@ -2226,6 +2228,7 @@ export type Database = {
           deadline_at?: string
           extended_by?: string | null
           extension_reason?: string | null
+          feedback_submitted_at?: string | null
           id?: string
           last_activity_at?: string | null
           opened_at?: string | null
