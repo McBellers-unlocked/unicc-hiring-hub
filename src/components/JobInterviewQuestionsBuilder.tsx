@@ -703,7 +703,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
       </Card>
 
       {/* Interview Slot Manager */}
-      {panelMembers.length > 0 && (
+      {panelValidation?.valid && panelValidation?.issues.length === 0 && (
         <PanelInterviewSlotManager jobId={jobId} panelMembers={panelMembers} />
       )}
 

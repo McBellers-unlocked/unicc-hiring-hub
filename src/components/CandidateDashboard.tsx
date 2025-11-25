@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { User, AlertCircle, FileText, Search, Video, Clock, AlertTriangle } from 'lucide-react';
+import { User, AlertCircle, FileText, Search, Video, Clock, AlertTriangle, Calendar } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import ProfileHero from './profile/ProfileHero';
 import ProfileStatsCards from './profile/ProfileStatsCards';
@@ -155,6 +155,26 @@ export default function CandidateDashboard() {
         .in('status', ['NotStarted', 'LinkOpened', 'InProgress'])
         .order('deadline_at', { ascending: true });
 
+      // Fetch panel interview invitations that are pending
+      const { data: interviewInvitations } = await supabase
+        .from('panel_interview_invitations')
+        .select(`
+          id,
+          status,
+          deadline_at,
+          application_id,
+          job_id,
+          applications!inner(
+            id,
+            jobs!inner(
+              title,
+              notice_no
+            )
+          )
+        `)
+        .eq('status', 'pending')
+        .order('deadline_at', { ascending: true });
+
       const tasks = [];
 
       if (videoTasks && videoTasks.length > 0) {
@@ -167,6 +187,20 @@ export default function CandidateDashboard() {
           status: task.status,
           applicationId: task.application_id,
           priority: new Date(task.deadline_at) < new Date(Date.now() + 24 * 60 * 60 * 1000) ? 'high' : 'medium'
+        })));
+      }
+
+      if (interviewInvitations && interviewInvitations.length > 0) {
+        tasks.push(...interviewInvitations.map((invitation: any) => ({
+          id: invitation.id,
+          type: 'panel_interview_booking',
+          title: `Book Interview - ${invitation.applications.jobs.title}`,
+          description: `Select your preferred interview time for ${invitation.applications.jobs.notice_no}`,
+          deadline: invitation.deadline_at,
+          status: invitation.status,
+          applicationId: invitation.application_id,
+          jobId: invitation.job_id,
+          priority: new Date(invitation.deadline_at) < new Date(Date.now() + 24 * 60 * 60 * 1000) ? 'high' : 'medium'
         })));
       }
 
@@ -366,7 +400,11 @@ export default function CandidateDashboard() {
                 className="flex items-center justify-between p-4 bg-white rounded-lg border border-orange-200"
               >
                 <div className="flex items-start gap-3 flex-1">
-                  <Video className="h-5 w-5 text-orange-600 mt-0.5" />
+                  {task.type === 'video_interview' ? (
+                    <Video className="h-5 w-5 text-orange-600 mt-0.5" />
+                  ) : (
+                    <Calendar className="h-5 w-5 text-orange-600 mt-0.5" />
+                  )}
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-semibold text-gray-900">{task.title}</h4>
@@ -388,9 +426,18 @@ export default function CandidateDashboard() {
                 <Button
                   size="sm"
                   variant={task.priority === 'high' ? 'default' : 'outline'}
-                  onClick={() => navigate(`/my-applications`)}
+                  onClick={() => {
+                    if (task.type === 'panel_interview_booking') {
+                      navigate(`/book-interview/${task.applicationId}`);
+                    } else {
+                      navigate(`/my-applications`);
+                    }
+                  }}
                 >
-                  {task.status === 'NotStarted' ? 'Start' : 'Continue'}
+                  {task.type === 'panel_interview_booking' 
+                    ? 'Book Slot' 
+                    : (task.status === 'NotStarted' ? 'Start' : 'Continue')
+                  }
                 </Button>
               </div>
             ))}
