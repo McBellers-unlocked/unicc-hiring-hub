@@ -33,12 +33,12 @@ Deno.serve(async (req) => {
     const questions = questionSet.questions as any[];
     console.log(`Found ${questions.length} questions`);
 
-    // Get all applications with video assignments for this job
+    // Get all applications in Pre-Recorded Video status for this job
     const { data: applications, error: appsError } = await supabase
       .from('applications')
       .select(`
         id,
-        candidate:candidates(name),
+        candidate:candidates(name, email),
         video_assignments(id)
       `)
       .eq('job_id', jobId)
@@ -47,6 +47,43 @@ Deno.serve(async (req) => {
     if (appsError) throw appsError;
 
     console.log(`Found ${applications?.length || 0} applications`);
+
+    // Create video assignments for applications that don't have them
+    const appsNeedingAssignments = applications?.filter(app => 
+      !app.video_assignments || app.video_assignments.length === 0
+    ) || [];
+
+    if (appsNeedingAssignments.length > 0) {
+      console.log(`Creating video assignments for ${appsNeedingAssignments.length} applications`);
+      
+      // Create video assignments
+      const assignmentsToCreate = appsNeedingAssignments.map(app => ({
+        application_id: app.id,
+        question_set_id: questionSet.id,
+        status: 'Sent',
+        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+        token: crypto.randomUUID(),
+      }));
+
+      const { data: newAssignments, error: assignError } = await supabase
+        .from('video_assignments')
+        .insert(assignmentsToCreate)
+        .select('id, application_id');
+
+      if (assignError) {
+        console.error('Error creating assignments:', assignError);
+        throw assignError;
+      }
+
+      console.log(`Created ${newAssignments?.length || 0} video assignments`);
+
+      // Update applications array to include new assignments
+      appsNeedingAssignments.forEach((app, index) => {
+        if (newAssignments && newAssignments[index]) {
+          app.video_assignments = [{ id: newAssignments[index].id }];
+        }
+      });
+    }
 
     // Sample transcripts for variety
     const sampleTranscripts = [
