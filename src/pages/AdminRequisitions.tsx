@@ -70,15 +70,16 @@ export default function AdminRequisitions() {
   const isHR = userRoles.includes('HR Assistant');
   const isChiefHR = userRoles.includes('Chief of HR');
   const isHiringManager = userRoles.includes('Hiring Manager');
+  const isDirector = userRoles.includes('Director');
 
   useEffect(() => {
-    if (!isAdmin && !isHR && !isChiefHR && !isHiringManager) {
+    if (!isAdmin && !isHR && !isChiefHR && !isHiringManager && !isDirector) {
       navigate('/');
       return;
     }
     fetchUserDivision();
     fetchRequisitions();
-  }, [isAdmin, isHR, isChiefHR, isHiringManager, navigate]);
+  }, [isAdmin, isHR, isChiefHR, isHiringManager, isDirector, navigate]);
 
   const fetchUserDivision = async () => {
     if (!user?.id) return;
@@ -410,10 +411,10 @@ export default function AdminRequisitions() {
           </Button>
         </div>
 
-        <Tabs defaultValue={isHiringManager && !isAdmin && !isHR ? "my-division-initial" : "all"} className="space-y-6">
+        <Tabs defaultValue={(isHiringManager || isDirector) && !isAdmin && !isHR ? "my-division-initial" : "all"} className="space-y-6">
           <TabsList>
             <TabsTrigger value="all">All Position Descriptions</TabsTrigger>
-            {isHiringManager && userDivision && (
+            {(isHiringManager || isDirector) && userDivision && (
               <TabsTrigger value="my-division-initial">
                 My Division - Initial Review
                 <Badge variant="secondary" className="ml-2">
