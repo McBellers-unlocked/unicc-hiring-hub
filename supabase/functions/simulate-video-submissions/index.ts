@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
         application_id: app.id,
         question_set_id: questionSet.id,
         status: 'Sent',
-        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+        deadline_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
         token: crypto.randomUUID(),
       }));
 
