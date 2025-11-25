@@ -51,6 +51,10 @@ export default function DirectorView() {
   });
 
   const handleViewDetails = (requisitionId: string) => {
+    window.location.href = `/requisitions/${requisitionId}`;
+  };
+
+  const handleViewPositionDescription = (requisitionId: string) => {
     setPdfPreview({ open: true, requisitionId });
   };
 
@@ -814,7 +818,7 @@ export default function DirectorView() {
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={() => handleViewDetails(requisition.id)}
+                        onClick={() => handleViewPositionDescription(requisition.id)}
                       >
                         <FileText className="h-4 w-4 mr-2" />
                         View Position Description
