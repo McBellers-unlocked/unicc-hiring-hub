@@ -132,8 +132,6 @@ export const VideoRatingInterface: React.FC<VideoRatingInterfaceProps> = ({
           rating
         }
       }));
-
-      onRatingUpdate?.();
       
       toast({
         title: "Rating Saved",
