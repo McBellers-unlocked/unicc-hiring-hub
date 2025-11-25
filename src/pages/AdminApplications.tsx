@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Filter, User, FileText, Calendar, AlertCircle, Trash2, Eye, ChevronDown, ChevronRight, GraduationCap, Briefcase, Languages, Plus, Check, X, Edit, Users, ArrowLeft } from 'lucide-react';
+import { Search, Filter, User, FileText, Calendar, AlertCircle, Trash2, Eye, ChevronDown, ChevronRight, GraduationCap, Briefcase, Languages, Plus, Check, X, Edit, Users, ArrowLeft, Video } from 'lucide-react';
 import { format } from 'date-fns';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
 import { CandidateApplicationCard } from '@/components/CandidateApplicationCard';
@@ -618,6 +618,43 @@ export default function AdminApplications() {
       toast({
         title: "Error",
         description: error.message || "Failed to delete applications",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingTestData(false);
+    }
+  };
+
+  const simulateVideoSubmissions = async () => {
+    if (!selectedJobId) {
+      toast({
+        title: "Error",
+        description: "Please select a job first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGeneratingTestData(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('simulate-video-submissions', {
+        body: { jobId: selectedJobId }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: data.message || "Video submissions simulated successfully",
+      });
+
+      // Refresh applications list
+      fetchApplications(selectedJobId);
+    } catch (error: any) {
+      console.error('Error simulating videos:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to simulate video submissions",
         variant: "destructive",
       });
     } finally {
@@ -1404,6 +1441,14 @@ export default function AdminApplications() {
               >
                 <Users className="h-4 w-4 mr-2" />
                 {generatingTestData ? 'Generating...' : 'Generate 40 Test Applicants'}
+              </Button>
+              <Button
+                onClick={simulateVideoSubmissions}
+                disabled={generatingTestData}
+                variant="outline"
+              >
+                <Video className="h-4 w-4 mr-2" />
+                {generatingTestData ? 'Simulating...' : 'Simulate Video Interviews'}
               </Button>
             </div>
           )}
