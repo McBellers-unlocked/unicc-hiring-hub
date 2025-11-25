@@ -551,6 +551,43 @@ export default function AdminApplications() {
     }
   };
 
+  const updateUNExperience = async () => {
+    if (!selectedJobId) {
+      toast({
+        title: "Error",
+        description: "Please select a job first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGeneratingTestData(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('update-candidates-un-experience', {
+        body: { jobId: selectedJobId }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Updated ${data.updated} of ${data.total_candidates} candidates (${data.percentage}) to have UN experience`,
+      });
+
+      // Refresh applications list
+      fetchApplications(selectedJobId);
+    } catch (error: any) {
+      console.error('Error updating UN experience:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update UN experience",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingTestData(false);
+    }
+  };
+
   const getExperienceSummary = (workExp: any, yearsExp: number | null) => {
     const currentJob = getCurrentJobDetails(workExp);
     return currentJob.title;
@@ -1330,6 +1367,14 @@ export default function AdminApplications() {
               >
                 <Users className="h-4 w-4 mr-2" />
                 {generatingTestData ? 'Generating...' : 'Generate 40 Test Applicants'}
+              </Button>
+              <Button
+                onClick={updateUNExperience}
+                disabled={generatingTestData}
+                variant="outline"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                {generatingTestData ? 'Updating...' : 'Add 40% UN Experience'}
               </Button>
             </div>
           )}
