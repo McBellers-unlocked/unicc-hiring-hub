@@ -1329,7 +1329,7 @@ export default function AdminApplications() {
                 variant="outline"
               >
                 <Users className="h-4 w-4 mr-2" />
-                {generatingTestData ? 'Generating...' : 'Generate 200 Test Applicants'}
+                {generatingTestData ? 'Generating...' : 'Generate 40 Test Applicants'}
               </Button>
             </div>
           )}

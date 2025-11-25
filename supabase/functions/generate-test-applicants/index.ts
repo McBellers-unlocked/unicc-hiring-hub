@@ -7,27 +7,32 @@ const corsHeaders = {
 };
 
 // Data arrays for realistic generation
-const firstNames = [
-  "James", "Maria", "David", "Sophie", "Michael", "Emma", "Alexander", "Olivia",
-  "William", "Isabella", "Chen", "Fatima", "Raj", "Yuki", "Ahmed", "Ana",
-  "Lucas", "Priya", "Mohammed", "Elena", "John", "Sarah", "Robert", "Jennifer",
-  "Daniel", "Amanda", "Thomas", "Jessica", "Christopher", "Ashley", "Matthew", "Emily",
-  "Andrew", "Samantha", "Ryan", "Nicole", "Brandon", "Rachel", "Jonathan", "Laura",
-  "Kevin", "Stephanie", "Eric", "Michelle", "Brian", "Kimberly", "Jason", "Rebecca",
-  "Jacob", "Angela", "Nicholas", "Melissa", "Nathan", "Amy", "Tyler", "Christina",
-  "Aaron", "Elizabeth", "Adam", "Katherine", "Justin", "Lauren", "Patrick", "Victoria",
-  "Sean", "Hannah", "Mark", "Grace", "Steven", "Natalie", "Peter", "Diana",
-  "Carlos", "Anna", "Luis", "Sofia", "Diego", "Valentina", "Antonio", "Camila",
-  "Juan", "Isabella", "Pablo", "Lucia", "Miguel", "Gabriela", "Rafael", "Daniela",
-  "Wei", "Xin", "Ming", "Ling", "Jian", "Mei", "Tao", "Yan",
-  "Hiroshi", "Sakura", "Takeshi", "Akiko", "Kenji", "Haruka", "Ryo", "Yui",
-  "Hassan", "Aisha", "Omar", "Layla", "Ali", "Zara", "Ibrahim", "Noor",
-  "Arjun", "Anjali", "Vikram", "Kavita", "Rohan", "Neha", "Aditya", "Pooja",
-  "Luca", "Francesca", "Marco", "Giulia", "Alessandro", "Chiara", "Matteo", "Valentina",
-  "Felix", "Charlotte", "Maximilian", "Amelie", "Leon", "Mia", "Lukas", "Hannah",
-  "Henrik", "Astrid", "Lars", "Ingrid", "Erik", "Freya", "Anders", "Elsa",
-  "Pierre", "Camille", "Antoine", "Aurelie", "Julien", "Marie", "Nicolas", "Chloe",
-  "Oliver", "Amelia", "Harry", "Isla", "George", "Poppy", "Oscar", "Lily"
+// Male first names (52% of applicants)
+const maleFirstNames = [
+  "James", "David", "Michael", "Alexander", "William", "Chen", "Raj", "Ahmed",
+  "Lucas", "Mohammed", "John", "Robert", "Daniel", "Thomas", "Christopher", "Matthew",
+  "Andrew", "Ryan", "Brandon", "Jonathan", "Kevin", "Eric", "Brian", "Jason",
+  "Jacob", "Nicholas", "Nathan", "Tyler", "Aaron", "Adam", "Justin", "Patrick",
+  "Sean", "Mark", "Steven", "Peter", "Carlos", "Luis", "Diego", "Antonio",
+  "Juan", "Pablo", "Miguel", "Rafael", "Wei", "Ming", "Jian", "Tao",
+  "Hiroshi", "Takeshi", "Kenji", "Ryo", "Hassan", "Omar", "Ali", "Ibrahim",
+  "Arjun", "Vikram", "Rohan", "Aditya", "Luca", "Marco", "Alessandro", "Matteo",
+  "Felix", "Maximilian", "Leon", "Lukas", "Henrik", "Lars", "Erik", "Anders",
+  "Pierre", "Antoine", "Julien", "Nicolas", "Oliver", "Harry", "George", "Oscar"
+];
+
+// Female first names (48% of applicants)
+const femaleFirstNames = [
+  "Maria", "Sophie", "Emma", "Olivia", "Isabella", "Fatima", "Yuki", "Ana",
+  "Priya", "Elena", "Sarah", "Jennifer", "Amanda", "Jessica", "Ashley", "Emily",
+  "Samantha", "Nicole", "Rachel", "Laura", "Stephanie", "Michelle", "Kimberly", "Rebecca",
+  "Angela", "Melissa", "Amy", "Christina", "Elizabeth", "Katherine", "Lauren", "Victoria",
+  "Hannah", "Grace", "Natalie", "Diana", "Anna", "Sofia", "Valentina", "Camila",
+  "Isabella", "Lucia", "Gabriela", "Daniela", "Xin", "Ling", "Mei", "Yan",
+  "Sakura", "Akiko", "Haruka", "Yui", "Aisha", "Layla", "Zara", "Noor",
+  "Anjali", "Kavita", "Neha", "Pooja", "Francesca", "Giulia", "Chiara", "Valentina",
+  "Charlotte", "Amelie", "Mia", "Hannah", "Astrid", "Ingrid", "Freya", "Elsa",
+  "Camille", "Aurelie", "Marie", "Chloe", "Amelia", "Isla", "Poppy", "Lily"
 ];
 
 const lastNames = [
@@ -310,11 +315,19 @@ function generateLanguages(): any {
 }
 
 function determineQuality(index: number): string {
-  const rand = Math.random();
-  if (index < 50) return 'strong'; // First 50 are strong
-  if (index < 130) return 'good'; // Next 80 are good
-  if (index < 180) return 'average'; // Next 50 are average
-  return 'weak'; // Last 20 are weak
+  // 20% meet 100% criteria (8 applicants)
+  if (index < 8) return 'strong';
+  // 15% have 75% criteria (6 applicants)
+  if (index < 14) return 'good';
+  // 40% have 50% criteria (16 applicants)
+  if (index < 30) return 'average';
+  // Rest below 50% (10 applicants)
+  return 'weak';
+}
+
+function determineGender(index: number): 'male' | 'female' {
+  // 52% men (21 applicants), 48% women (19 applicants)
+  return index < 21 ? 'male' : 'female';
 }
 
 function determineStage(index: number): string {
@@ -338,17 +351,18 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("jobId is required");
     }
 
-    console.log(`Starting generation of 200 test applicants for job: ${jobId}`);
+    console.log(`Starting generation of 40 test applicants for job: ${jobId}`);
 
     const candidatesToCreate = [];
     const applicationsToCreate = [];
 
-    // Generate 200 candidates and applications
-    for (let i = 0; i < 200; i++) {
+    // Generate 40 candidates and applications
+    for (let i = 0; i < 40; i++) {
       const quality = determineQuality(i);
       const stage = determineStage(i);
+      const gender = determineGender(i);
       
-      const firstName = randomItem(firstNames);
+      const firstName = gender === 'male' ? randomItem(maleFirstNames) : randomItem(femaleFirstNames);
       const lastName = randomItem(lastNames);
       const email = `test.${firstName.toLowerCase()}.${lastName.toLowerCase()}.${i}@example.com`;
       
