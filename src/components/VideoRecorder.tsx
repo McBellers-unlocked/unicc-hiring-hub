@@ -368,7 +368,7 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
     }
   };
 
-  const proceedToNext = () => {
+  const proceedToNext = async () => {
     if (currentQuestionIndex < questions.length - 1) {
       // Clear previous question's recording and reset state
       setRecordedBlob(null);
@@ -382,6 +382,17 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({
       setCurrentQuestionIndex(prev => prev + 1);
       setPhase('preparation');
     } else {
+      // All questions completed - ensure status is updated
+      if (!isPractice) {
+        await supabase
+          .from('video_assignments')
+          .update({ 
+            status: 'Completed', 
+            completed_at: new Date().toISOString() 
+          })
+          .eq('application_id', applicationId);
+      }
+      
       setPhase('completed');
       onComplete?.();
     }

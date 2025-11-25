@@ -148,14 +148,14 @@ Deno.serve(async (req) => {
 
     if (!assignmentError && assignment) {
       // Count how many answers exist for this application
-      const { data: answerCount, error: countError } = await supabase
+      const { count: answerCount, error: countError } = await supabase
         .from('video_answers')
         .select('id', { count: 'exact', head: true })
         .eq('application_id', applicationId);
 
       if (!countError) {
         const totalQuestions = assignment.video_question_sets?.questions?.length || 0;
-        const answeredQuestions = answerCount?.length || 0;
+        const answeredQuestions = answerCount || 0;
 
         // Update assignment status based on completion
         let newStatus = 'InProgress';
