@@ -2483,6 +2483,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      book_interview_slot: {
+        Args: { p_application_id: string; p_slot_id: string }
+        Returns: Json
+      }
       can_approve_as_chief: {
         Args: { p_requisition_id: string; p_user_id: string }
         Returns: boolean
