@@ -202,7 +202,7 @@ function generateEducation(quality: string): any[] {
   return education;
 }
 
-function generateWorkExperience(quality: string, education: any[]): any[] {
+function generateWorkExperience(quality: string, education: any[], shouldHaveUNExp: boolean): any[] {
   const currentYear = new Date().getFullYear();
   const workExperience = [];
   
@@ -229,13 +229,8 @@ function generateWorkExperience(quality: string, education: any[]): any[] {
   const latestEducation = education.sort((a, b) => b.year - a.year)[0];
   const careerStartYear = latestEducation.year;
   
-  // Determine if candidate has UN experience (30% chance for strong, 15% for good, 5% for others)
-  const hasUNExperience = (quality === 'strong' && Math.random() < 0.3) || 
-                          (quality === 'good' && Math.random() < 0.15) ||
-                          (Math.random() < 0.05);
-  
-  // If they have UN experience, add 1-2 UN positions
-  const unJobCount = hasUNExperience ? (Math.random() > 0.6 ? 2 : 1) : 0;
+  // Determine UN experience based on parameter
+  const unJobCount = shouldHaveUNExp ? (Math.random() > 0.6 ? 2 : 1) : 0;
   
   for (let i = 0; i < numJobs; i++) {
     const isRecent = i === numJobs - 1;
@@ -330,6 +325,11 @@ function determineGender(index: number): 'male' | 'female' {
   return index < 21 ? 'male' : 'female';
 }
 
+function shouldHaveUNExperience(index: number): boolean {
+  // 40% of candidates have UN experience (16 out of 40)
+  return index < 16;
+}
+
 function determineStage(index: number): string {
   // Put all applicants in Application stage for testing the full workflow
   return 'Application';
@@ -361,13 +361,14 @@ const handler = async (req: Request): Promise<Response> => {
       const quality = determineQuality(i);
       const stage = determineStage(i);
       const gender = determineGender(i);
+      const hasUNExp = shouldHaveUNExperience(i);
       
       const firstName = gender === 'male' ? randomItem(maleFirstNames) : randomItem(femaleFirstNames);
       const lastName = randomItem(lastNames);
       const email = `test.${firstName.toLowerCase()}.${lastName.toLowerCase()}.${i}@example.com`;
       
       const education = generateEducation(quality);
-      const workExperience = generateWorkExperience(quality, education);
+      const workExperience = generateWorkExperience(quality, education, hasUNExp);
       const skills = generateSkills(quality);
       const certifications = generateCertifications(quality);
       const languagesData = generateLanguages();
