@@ -588,6 +588,43 @@ export default function AdminApplications() {
     }
   };
 
+  const deleteJobApplications = async () => {
+    if (!selectedJobId) {
+      toast({
+        title: "Error",
+        description: "Please select a job first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGeneratingTestData(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-job-applications', {
+        body: { jobId: selectedJobId }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Deleted ${data.deleted_applications} applications and ${data.deleted_candidates} test candidates`,
+      });
+
+      // Refresh applications list
+      fetchApplications(selectedJobId);
+    } catch (error: any) {
+      console.error('Error deleting applications:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete applications",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingTestData(false);
+    }
+  };
+
   const getExperienceSummary = (workExp: any, yearsExp: number | null) => {
     const currentJob = getCurrentJobDetails(workExp);
     return currentJob.title;
@@ -1375,6 +1412,14 @@ export default function AdminApplications() {
               >
                 <Users className="h-4 w-4 mr-2" />
                 {generatingTestData ? 'Updating...' : 'Add 40% UN Experience'}
+              </Button>
+              <Button
+                onClick={deleteJobApplications}
+                disabled={generatingTestData}
+                variant="destructive"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                {generatingTestData ? 'Deleting...' : 'Delete All Applications'}
               </Button>
             </div>
           )}
