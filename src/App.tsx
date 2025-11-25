@@ -48,6 +48,7 @@ import JobInterviewQuestions from "./pages/JobInterviewQuestions";
 import ReviewCommittee from "./pages/ReviewCommittee";
 import JobVideoAssignmentManager from "./pages/JobVideoAssignmentManager";
 import GenerateFakeVideoResponses from "./pages/GenerateFakeVideoResponses";
+import BookInterviewSlot from "./pages/BookInterviewSlot";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/apply/:jobId" element={<JobApplication />} />
             <Route path="/video-interview/:token" element={<VideoInterview />} />
             <Route path="/panel-interview/:interviewId/feedback" element={<PanelInterviewFeedback />} />
+            <Route path="/book-interview/:applicationId" element={<BookInterviewSlot />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/applications" element={<ApplicationJobSelection />} />
             <Route path="/applications/manage" element={<AdminApplications />} />

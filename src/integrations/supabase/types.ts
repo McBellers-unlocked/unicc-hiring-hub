@@ -1661,6 +1661,77 @@ export type Database = {
           },
         ]
       }
+      panel_interview_invitations: {
+        Row: {
+          application_id: string
+          booked_at: string | null
+          booked_slot_id: string | null
+          created_at: string
+          created_by: string | null
+          deadline_at: string | null
+          id: string
+          invited_at: string
+          job_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          booked_at?: string | null
+          booked_slot_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deadline_at?: string | null
+          id?: string
+          invited_at?: string
+          job_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          booked_at?: string | null
+          booked_slot_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deadline_at?: string | null
+          id?: string
+          invited_at?: string
+          job_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "panel_interview_invitations_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "panel_interview_invitations_booked_slot_id_fkey"
+            columns: ["booked_slot_id"]
+            isOneToOne: false
+            referencedRelation: "panel_interview_time_slots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "panel_interview_invitations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "panel_interview_invitations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       panel_interview_participants: {
         Row: {
           confirmed: boolean | null

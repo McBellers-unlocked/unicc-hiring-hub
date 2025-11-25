@@ -167,6 +167,20 @@ export function PanelInterviewSlotManager({ jobId, panelMembers }: PanelIntervie
     }
 
     try {
+      // First, get applications that are at the Panel Interview stage for this job
+      const { data: applications, error: appsError } = await supabase
+        .from('applications')
+        .select('id, candidate_id, candidates(name, email)')
+        .eq('job_id', jobId)
+        .eq('status', 'Panel Interview');
+
+      if (appsError) throw appsError;
+
+      if (!applications || applications.length === 0) {
+        toast.error('No candidates at Panel Interview stage for this job');
+        return;
+      }
+
       const allPanelMemberIds = panelMembers.map(pm => pm.user_id);
       
       // Insert all suggested slots into database
@@ -184,7 +198,26 @@ export function PanelInterviewSlotManager({ jobId, panelMembers }: PanelIntervie
 
       if (error) throw error;
 
-      toast.success('Slots published to candidates - first come, first served!');
+      // Create invitations for all candidates at Panel Interview stage
+      const deadline = new Date();
+      deadline.setDate(deadline.getDate() + 7); // 7 days to book
+
+      const { data: userData } = await supabase.auth.getUser();
+      
+      const invitations = applications.map(app => ({
+        application_id: app.id,
+        job_id: jobId,
+        deadline_at: deadline.toISOString(),
+        created_by: userData.user?.id
+      }));
+
+      const { error: invitationsError } = await supabase
+        .from('panel_interview_invitations' as any)
+        .insert(invitations);
+
+      if (invitationsError) throw invitationsError;
+
+      toast.success(`${suggestedSlots.length} slots published and ${applications.length} candidates invited!`);
       setSuggestedSlots([]);
       fetchSlots();
       
