@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Layout } from "@/components/Layout";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { FileText } from "lucide-react";
+import { FileText, Eye } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { fixMarkdownFormatting } from "@/lib/utils";
 import { getDivisionCode } from "@/lib/chiefAssignment";
@@ -269,9 +269,9 @@ export default function DirectorView() {
               ) : (
                 initialRequisitions?.map((requisition: any) => (
                   <Card key={requisition.id}>
-                    <CardHeader>
+                    <CardHeader className="pb-3">
                       <div className="flex justify-between items-start">
-                        <div>
+                        <div className="flex-1">
                           <CardTitle>{requisition.position_title}</CardTitle>
                           <div className="flex gap-2 mt-2 flex-wrap">
                             {requisition.grade && (
@@ -318,40 +318,38 @@ export default function DirectorView() {
                         </div>
                       </div>
 
-                      <div className="flex justify-between items-center gap-4">
+                      <div className="flex gap-2 pt-2">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleViewDetails(requisition.id)}
                         >
-                          <FileText className="w-4 h-4 mr-2" />
-                          View Details
+                          <Eye className="w-4 h-4 mr-2" />
+                          View Full Request
                         </Button>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() =>
-                              approveInitialRequestMutation.mutate({
-                                id: requisition.id,
-                                approved: true,
-                              })
-                            }
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                              approveInitialRequestMutation.mutate({
-                                id: requisition.id,
-                                approved: false,
-                              })
-                            }
-                          >
-                            Reject
-                          </Button>
-                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            approveInitialRequestMutation.mutate({
+                              id: requisition.id,
+                              approved: true,
+                            })
+                          }
+                        >
+                          Approve Initial Request
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() =>
+                            approveInitialRequestMutation.mutate({
+                              id: requisition.id,
+                              approved: false,
+                            })
+                          }
+                        >
+                          Reject
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
