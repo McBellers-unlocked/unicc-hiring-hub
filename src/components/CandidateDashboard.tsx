@@ -56,6 +56,7 @@ export default function CandidateDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('profile');
   const [outstandingTasks, setOutstandingTasks] = useState<any[]>([]);
+  const [upcomingInterviews, setUpcomingInterviews] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -205,6 +206,44 @@ export default function CandidateDashboard() {
       }
 
       setOutstandingTasks(tasks);
+
+      // Fetch booked interviews for upcoming reminders
+      const { data: bookedInterviews } = await supabase
+        .from('panel_interview_invitations')
+        .select(`
+          id,
+          status,
+          booked_at,
+          booked_slot_id,
+          panel_interview_time_slots!inner(
+            slot_datetime,
+            duration_minutes
+          ),
+          applications!inner(
+            id,
+            jobs!inner(
+              title,
+              notice_no,
+              location
+            )
+          )
+        `)
+        .eq('applications.candidate_id', candidateData.id)
+        .eq('status', 'booked')
+        .gte('panel_interview_time_slots.slot_datetime', new Date().toISOString())
+        .order('panel_interview_time_slots.slot_datetime', { ascending: true });
+
+      if (bookedInterviews && bookedInterviews.length > 0) {
+        setUpcomingInterviews(bookedInterviews.map((interview: any) => ({
+          id: interview.id,
+          datetime: interview.panel_interview_time_slots.slot_datetime,
+          duration: interview.panel_interview_time_slots.duration_minutes,
+          jobTitle: interview.applications.jobs.title,
+          noticeNo: interview.applications.jobs.notice_no,
+          location: interview.applications.jobs.location,
+          bookedAt: interview.booked_at
+        })));
+      }
     } catch (error) {
       console.error('Error fetching outstanding tasks:', error);
     }
@@ -380,6 +419,65 @@ export default function CandidateDashboard() {
         skillsCount={profile.skills?.length || 0}
         certificationsCount={profile.certifications?.length || 0}
       />
+
+      {/* Upcoming Interviews */}
+      {upcomingInterviews.length > 0 && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Upcoming Interviews
+            </CardTitle>
+            <CardDescription>
+              You have {upcomingInterviews.length} scheduled {upcomingInterviews.length === 1 ? 'interview' : 'interviews'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {upcomingInterviews.map((interview) => (
+              <div
+                key={interview.id}
+                className="flex items-center justify-between p-4 bg-background rounded-lg border"
+              >
+                <div className="flex items-start gap-3 flex-1">
+                  <Calendar className="h-5 w-5 text-primary mt-0.5" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold mb-1">{interview.jobTitle}</h4>
+                    <p className="text-sm text-muted-foreground mb-2">{interview.noticeNo}</p>
+                    <div className="flex flex-col gap-1 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>
+                          {new Date(interview.datetime).toLocaleDateString('en-GB', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })} at {new Date(interview.datetime).toLocaleTimeString('en-GB', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <span>Duration: {interview.duration} minutes</span>
+                        {interview.location && (
+                          <>
+                            <span>•</span>
+                            <span>{interview.location}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <Badge variant="secondary">
+                  Confirmed
+                </Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Outstanding Tasks */}
       {outstandingTasks.length > 0 && (
