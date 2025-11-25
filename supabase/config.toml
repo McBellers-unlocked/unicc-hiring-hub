@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.update-candidates-un-experience]
 verify_jwt = false
+
+[functions.delete-job-applications]
+verify_jwt = false
