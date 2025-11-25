@@ -102,7 +102,7 @@ UNICCConnect is a non-trivial, production-grade system with:
 - **React Query** for server state and caching
 - **React Hook Form + Zod** for typed form handling and validation
 
-Key domains are grouped under feature folders, for example:
+Key domains are grouped under feature folders, e.g.:
 
 - `components/dashboard` – HR, Chief, Hiring Manager, Panel Member, Candidate dashboards.
 - `components/profile` – candidate profile sections, analytics, and completion widgets.
