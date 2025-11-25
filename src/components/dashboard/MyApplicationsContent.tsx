@@ -20,6 +20,18 @@ interface VideoAssignment {
   completed_at: string | null;
 }
 
+interface PanelInterviewInvitation {
+  id: string;
+  status: string;
+  booked_at: string | null;
+  booked_slot_id: string | null;
+  deadline_at: string | null;
+  panel_interview_time_slots: {
+    slot_datetime: string;
+    duration_minutes: number;
+  } | null;
+}
+
 interface Application {
   id: string;
   status: string;
@@ -34,6 +46,7 @@ interface Application {
     notice_no: string;
   };
   video_assignment?: VideoAssignment | null;
+  panel_interview_invitation?: PanelInterviewInvitation | null;
 }
 
 export default function MyApplicationsContent() {
@@ -65,7 +78,7 @@ export default function MyApplicationsContent() {
           return;
         }
 
-        // Then get applications for this candidate with video assignments
+        // Then get applications for this candidate with video assignments and panel interviews
         const { data: applicationsData, error: applicationsError } = await supabase
           .from('applications')
           .select(`
@@ -89,6 +102,17 @@ export default function MyApplicationsContent() {
               opened_at,
               started_at,
               completed_at
+            ),
+            panel_interview_invitations (
+              id,
+              status,
+              booked_at,
+              booked_slot_id,
+              deadline_at,
+              panel_interview_time_slots:booked_slot_id (
+                slot_datetime,
+                duration_minutes
+              )
             )
           `)
           .eq('candidate_id', candidate.id)
@@ -102,7 +126,8 @@ export default function MyApplicationsContent() {
             ...app.jobs,
             id: app.job_id
           },
-          video_assignment: app.video_assignments?.[0] || null
+          video_assignment: app.video_assignments?.[0] || null,
+          panel_interview_invitation: app.panel_interview_invitations?.[0] || null
         })) || []);
       } else {
         // For non-authenticated users, get from localStorage
@@ -205,12 +230,19 @@ export default function MyApplicationsContent() {
     return { statusText, statusColor, icon, daysUntilDeadline, isUrgent, isExpired };
   };
 
-  const getStageProgress = (status: string, hasVideoAssignment: boolean) => {
+  const getStageProgress = (
+    status: string, 
+    hasVideoAssignment: boolean, 
+    panelInvitation: PanelInterviewInvitation | null
+  ) => {
+    const hasPanelInterview = panelInvitation?.booked_slot_id != null;
+    const videoCompleted = hasVideoAssignment && hasPanelInterview;
+    
     const stages = [
       { name: 'Application', status: 'completed' },
       { name: 'Screening', status: status === 'Application' ? 'pending' : 'completed' },
-      { name: 'Video Interview', status: hasVideoAssignment ? 'current' : 'pending' },
-      { name: 'Panel Interview', status: 'pending' },
+      { name: 'Video Interview', status: videoCompleted ? 'completed' : hasVideoAssignment ? 'current' : 'pending' },
+      { name: 'Panel Interview', status: hasPanelInterview ? 'current' : 'pending' },
       { name: 'Offer', status: 'pending' }
     ];
 
@@ -263,7 +295,11 @@ export default function MyApplicationsContent() {
       {/* Applications List */}
       {applications.map((application) => {
         const videoStatus = getVideoAssignmentStatus(application.video_assignment);
-        const stages = getStageProgress(application.status, !!application.video_assignment);
+        const stages = getStageProgress(
+          application.status, 
+          !!application.video_assignment, 
+          application.panel_interview_invitation || null
+        );
         
         return (
           <Card key={application.id} className="hover:shadow-md transition-shadow">
@@ -387,6 +423,40 @@ export default function MyApplicationsContent() {
                           Expired
                         </Button>
                       )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Panel Interview Section */}
+              {application.panel_interview_invitation?.booked_slot_id && 
+               application.panel_interview_invitation.panel_interview_time_slots && (
+                <div className="p-4 rounded-lg border-2 border-blue-300 bg-blue-50">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <Calendar className="h-5 w-5 text-blue-600 mt-0.5" />
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-1">Panel Interview Scheduled</h4>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                            <CheckCircle2 className="h-4 w-4" />
+                            Booked
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {new Date(application.panel_interview_invitation.panel_interview_time_slots.slot_datetime).toLocaleString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Duration: {application.panel_interview_invitation.panel_interview_time_slots.duration_minutes} minutes
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
