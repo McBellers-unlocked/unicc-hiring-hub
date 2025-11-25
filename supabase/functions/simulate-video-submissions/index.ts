@@ -77,10 +77,16 @@ Deno.serve(async (req) => {
 
       console.log(`Created ${newAssignments?.length || 0} video assignments`);
 
-      // Update applications array to include new assignments
-      appsNeedingAssignments.forEach((app, index) => {
-        if (newAssignments && newAssignments[index]) {
-          app.video_assignments = [{ id: newAssignments[index].id }];
+      // Create a map of application_id to assignment_id
+      const assignmentMap = new Map(
+        newAssignments?.map(a => [a.application_id, a.id]) || []
+      );
+
+      // Update all applications to include their video assignments
+      applications?.forEach(app => {
+        const assignmentId = assignmentMap.get(app.id);
+        if (assignmentId) {
+          app.video_assignments = [{ id: assignmentId }];
         }
       });
     }
