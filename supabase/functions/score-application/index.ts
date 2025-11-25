@@ -275,7 +275,7 @@ const mapAnalysisToScores = (
     let evidence = 'Analysis pending';
     
     // Map criterion to relevant analysis dimension
-    const label = criterion.label.toLowerCase();
+    const label = (criterion.label || criterion.title || '').toLowerCase();
     
     if (label.includes('technical') || label.includes('software') || label.includes('tool')) {
       score = analysis.technical_match;
