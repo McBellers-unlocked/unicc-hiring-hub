@@ -23,6 +23,7 @@ import {
 import { format } from "date-fns";
 import { ChiefHRReviewDialog } from "@/components/ChiefHRReviewDialog";
 import { RequisitionWorkflowTimeline } from "@/components/RequisitionWorkflowTimeline";
+import { getDivisionCode } from "@/lib/chiefAssignment";
 
 interface JobRequisition {
   id: string;
@@ -60,6 +61,7 @@ interface JobRequisition {
 export default function AdminRequisitions() {
   const [requisitions, setRequisitions] = useState<JobRequisition[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userDivision, setUserDivision] = useState<string | null>(null);
   const { user, userRoles } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -67,14 +69,33 @@ export default function AdminRequisitions() {
   const isAdmin = userRoles.includes('Admin');
   const isHR = userRoles.includes('HR Assistant');
   const isChiefHR = userRoles.includes('Chief of HR');
+  const isHiringManager = userRoles.includes('Hiring Manager');
 
   useEffect(() => {
-    if (!isAdmin && !isHR && !isChiefHR) {
+    if (!isAdmin && !isHR && !isChiefHR && !isHiringManager) {
       navigate('/');
       return;
     }
+    fetchUserDivision();
     fetchRequisitions();
-  }, [isAdmin, isHR, isChiefHR, navigate]);
+  }, [isAdmin, isHR, isChiefHR, isHiringManager, navigate]);
+
+  const fetchUserDivision = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('division')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      setUserDivision(data?.division || null);
+    } catch (error) {
+      console.error('Error fetching user division:', error);
+    }
+  };
 
   const fetchRequisitions = async () => {
     try {
@@ -317,6 +338,16 @@ export default function AdminRequisitions() {
 
   const filterRequisitions = (status: string) => {
     switch (status) {
+      case 'my-division-initial':
+        // Filter initial requests for the user's division
+        return requisitions.filter(r => {
+          if (!r.status.includes('initial_request') || r.initial_request_approved) return false;
+          if (!userDivision) return false;
+          
+          // Get the division code for this requisition
+          const reqDivisionCode = getDivisionCode(r.unit_section_division);
+          return reqDivisionCode === userDivision;
+        });
       case 'initial-requests':
         return requisitions.filter(r => 
           r.status.includes('initial_request')
@@ -379,9 +410,17 @@ export default function AdminRequisitions() {
           </Button>
         </div>
 
-        <Tabs defaultValue="all" className="space-y-6">
+        <Tabs defaultValue={isHiringManager && !isAdmin && !isHR ? "my-division-initial" : "all"} className="space-y-6">
           <TabsList>
             <TabsTrigger value="all">All Position Descriptions</TabsTrigger>
+            {isHiringManager && userDivision && (
+              <TabsTrigger value="my-division-initial">
+                My Division - Initial Review
+                <Badge variant="secondary" className="ml-2">
+                  {filterRequisitions('my-division-initial').length}
+                </Badge>
+              </TabsTrigger>
+            )}
             <TabsTrigger value="initial-requests">
               Initial Requests
               <Badge variant="secondary" className="ml-2">
@@ -428,7 +467,7 @@ export default function AdminRequisitions() {
             <TabsTrigger value="completed">Completed</TabsTrigger>
           </TabsList>
 
-          {(['all', 'initial-requests', 'pending-hr', 'chief-hr-review', 'hr-ready', 'hr-final-review', 'amendments', 'manager-confirmation', 'in-progress', 'completed'] as const).map(tabValue => (
+          {(['all', 'my-division-initial', 'initial-requests', 'pending-hr', 'chief-hr-review', 'hr-ready', 'hr-final-review', 'amendments', 'manager-confirmation', 'in-progress', 'completed'] as const).map(tabValue => (
             <TabsContent key={tabValue} value={tabValue} className="space-y-4">
               {filterRequisitions(tabValue).length === 0 ? (
                 <Card>
