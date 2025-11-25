@@ -215,13 +215,14 @@ export default function CandidateDashboard() {
           status,
           booked_at,
           booked_slot_id,
-          panel_interview_time_slots!inner(
+          panel_interview_time_slots:booked_slot_id(
             slot_datetime,
             duration_minutes
           ),
-          applications!inner(
+          applications:application_id!inner(
             id,
-            jobs!inner(
+            candidate_id,
+            jobs:job_id(
               title,
               notice_no,
               location
@@ -229,12 +230,21 @@ export default function CandidateDashboard() {
           )
         `)
         .eq('applications.candidate_id', candidateData.id)
-        .eq('status', 'booked')
-        .gte('panel_interview_time_slots.slot_datetime', new Date().toISOString())
-        .order('panel_interview_time_slots.slot_datetime', { ascending: true });
+        .eq('status', 'booked');
 
       if (bookedInterviews && bookedInterviews.length > 0) {
-        setUpcomingInterviews(bookedInterviews.map((interview: any) => ({
+        // Filter for future interviews and sort by datetime
+        const futureInterviews = bookedInterviews
+          .filter((interview: any) => 
+            interview.panel_interview_time_slots && 
+            new Date(interview.panel_interview_time_slots.slot_datetime) > new Date()
+          )
+          .sort((a: any, b: any) => 
+            new Date(a.panel_interview_time_slots.slot_datetime).getTime() - 
+            new Date(b.panel_interview_time_slots.slot_datetime).getTime()
+          );
+
+        setUpcomingInterviews(futureInterviews.map((interview: any) => ({
           id: interview.id,
           datetime: interview.panel_interview_time_slots.slot_datetime,
           duration: interview.panel_interview_time_slots.duration_minutes,
