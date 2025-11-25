@@ -102,6 +102,7 @@ export default function ApplicationDetail() {
   const [showScheduler, setShowScheduler] = useState(false);
   const [videoQuestions, setVideoQuestions] = useState<any[]>([]);
   const [videoAnswers, setVideoAnswers] = useState<any[]>([]);
+  const [hasVideoAssignment, setHasVideoAssignment] = useState(false);
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
@@ -161,6 +162,15 @@ export default function ApplicationDetail() {
 
   const fetchVideoData = async () => {
     try {
+      // Check if video assignment exists for this application
+      const { data: assignmentData } = await supabase
+        .from('video_assignments')
+        .select('id')
+        .eq('application_id', id)
+        .maybeSingle();
+      
+      setHasVideoAssignment(!!assignmentData);
+
       // Fetch video answers
       const { data: answers, error: answersError } = await supabase
         .from('video_answers')
@@ -957,16 +967,18 @@ export default function ApplicationDetail() {
                 {/* Video Assignment Manager */}
                 <VideoAssignmentManager applicationId={application.id} />
                 
-                {/* Video Rating Interface */}
-                <VideoRatingInterface
-                  applicationId={application.id}
-                  questions={videoQuestions} 
-                  videoAnswers={videoAnswers} 
-                  onRatingUpdate={() => {
-                    fetchApplication();
-                    fetchVideoData();
-                  }}
-                />
+                {/* Video Rating Interface - only shown when assignment exists */}
+                {hasVideoAssignment && (
+                  <VideoRatingInterface
+                    applicationId={application.id}
+                    questions={videoQuestions} 
+                    videoAnswers={videoAnswers} 
+                    onRatingUpdate={() => {
+                      fetchApplication();
+                      fetchVideoData();
+                    }}
+                  />
+                )}
 
                 {/* Action buttons when videos are completed */}
                 {application.status === 'Pre-Recorded Video' && 
