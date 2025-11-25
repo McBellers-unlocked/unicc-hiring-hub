@@ -47,6 +47,7 @@ import InitialRequestReview from "./pages/InitialRequestReview";
 import JobInterviewQuestions from "./pages/JobInterviewQuestions";
 import ReviewCommittee from "./pages/ReviewCommittee";
 import JobVideoAssignmentManager from "./pages/JobVideoAssignmentManager";
+import GenerateFakeVideoResponses from "./pages/GenerateFakeVideoResponses";
 
 const queryClient = new QueryClient();
 
@@ -80,6 +81,7 @@ const App = () => (
             <Route path="/admin/jobs/:jobId/questions" element={<JobInterviewQuestions />} />
             <Route path="/admin/jobs/:jobId/review-committee" element={<ReviewCommittee />} />
             <Route path="/admin/jobs/:jobId/video-assignment" element={<JobVideoAssignmentManager />} />
+            <Route path="/admin/generate-fake-video-responses" element={<GenerateFakeVideoResponses />} />
             <Route path="/admin/applications/:id" element={<ApplicationDetail />} />
             <Route path="/admin/video-test" element={<VideoTestInterface />} />
             <Route path="/admin/scoring" element={<ApplicationScoringTest />} />
