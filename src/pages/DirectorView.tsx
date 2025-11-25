@@ -8,10 +8,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Layout } from "@/components/Layout";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { FileText, Eye } from "lucide-react";
+import { FileText, Eye, UserCheck } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { fixMarkdownFormatting } from "@/lib/utils";
-import { getDivisionCode } from "@/lib/chiefAssignment";
+import { getDivisionCode, getAssignedChief } from "@/lib/chiefAssignment";
+import { useNavigate } from "react-router-dom";
 
 const CORE_COMPETENCY_DEFINITIONS = [
   "Knowing and managing yourself: Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.",
@@ -42,6 +43,7 @@ const getLeadershipCompetencyDefinition = (compName: string) =>
 
 export default function DirectorView() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [pdfPreview, setPdfPreview] = useState<{
     open: boolean;
     requisitionId: string | null;
@@ -49,10 +51,6 @@ export default function DirectorView() {
     open: false,
     requisitionId: null
   });
-
-  const handleViewDetails = (requisitionId: string) => {
-    window.location.href = `/requisitions/${requisitionId}`;
-  };
 
   const handleViewPositionDescription = (requisitionId: string) => {
     setPdfPreview({ open: true, requisitionId });
@@ -256,7 +254,7 @@ export default function DirectorView() {
 
         {/* Initial Requisition Approvals Section */}
         <div className="mb-8">
-          <h3 className="text-xl font-semibold mb-4">Initial Requisition Approvals</h3>
+          <h2 className="text-2xl font-semibold mb-4">Requisition Approvals</h2>
 
           {initialLoading ? (
             <div>Loading...</div>
@@ -271,7 +269,10 @@ export default function DirectorView() {
                   </CardContent>
                 </Card>
               ) : (
-                initialRequisitions?.map((requisition: any) => (
+                initialRequisitions?.map((requisition: any) => {
+                  const assignedChief = getAssignedChief(requisition.unit_section_division);
+                  
+                  return (
                   <Card key={requisition.id}>
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start">
@@ -284,80 +285,145 @@ export default function DirectorView() {
                             {requisition.nature_of_position && (
                               <Badge variant="outline">{requisition.nature_of_position}</Badge>
                             )}
-                            <Badge variant="secondary">Initial Request</Badge>
+                            <Badge className="bg-yellow-500">Initial Request</Badge>
                           </div>
+                          {assignedChief && (
+                            <div className="flex items-center gap-1 text-sm mt-2 text-muted-foreground">
+                              <UserCheck className="w-4 h-4 text-primary" />
+                              <span className="font-medium">Assigned to:</span>
+                              <span>{assignedChief.name} ({assignedChief.division})</span>
+                            </div>
+                          )}
                         </div>
                         <Badge variant="secondary">Pending Chief Approval</Badge>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        {requisition.unit_section_division && (
+                    <CardContent className="pt-0">
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {requisition.unit_section_division && (
+                            <div>
+                              <p className="text-sm font-medium">Unit/Section/Division</p>
+                              <p className="text-sm text-muted-foreground">
+                                {requisition.unit_section_division}
+                              </p>
+                            </div>
+                          )}
                           <div>
-                            <p className="text-sm font-medium">Unit/Section/Division</p>
+                            <p className="text-sm font-medium">Duty Station</p>
                             <p className="text-sm text-muted-foreground">
-                              {requisition.unit_section_division}
+                              {(() => {
+                                try {
+                                  const remoteRegion = requisition.comments?.remote_region;
+                                  if (typeof requisition.duty_station === 'string') {
+                                    const parsed = JSON.parse(requisition.duty_station);
+                                    if (Array.isArray(parsed)) {
+                                      const formatted = parsed.map((station: string) => 
+                                        station === 'Remote' && remoteRegion ? `Remote (${remoteRegion})` : station
+                                      );
+                                      return formatted.join(', ');
+                                    }
+                                    return String(parsed);
+                                  } else if (Array.isArray(requisition.duty_station)) {
+                                    const formatted = requisition.duty_station.map((station: string) => 
+                                      station === 'Remote' && remoteRegion ? `Remote (${remoteRegion})` : station
+                                    );
+                                    return formatted.join(', ');
+                                  }
+                                  return 'Not specified';
+                                } catch {
+                                  return 'Not specified';
+                                }
+                              })()}
                             </p>
                           </div>
-                        )}
-                        <div>
-                          <p className="text-sm font-medium">Duty Station</p>
-                          <p className="text-sm text-muted-foreground">
-                            {requisition.duty_station || "Not specified"}
-                          </p>
+                          {requisition.nature_of_position === 'Individual Consultant' && requisition.comments?.consultancy_level && (
+                            <div>
+                              <p className="text-sm font-medium">Consultancy Level</p>
+                              <p className="text-sm text-muted-foreground">
+                                {requisition.comments.consultancy_level}
+                              </p>
+                            </div>
+                          )}
+                          {requisition.nature_of_position === 'Intern' && requisition.intern_modality && (
+                            <div>
+                              <p className="text-sm font-medium">Modality</p>
+                              <p className="text-sm text-muted-foreground">
+                                {requisition.intern_modality}
+                              </p>
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-sm font-medium">Created By</p>
+                            <p className="text-sm text-muted-foreground">
+                              {requisition.creator?.name ||
+                                requisition.creator?.email ||
+                                "Unknown User"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">Created Date</p>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(requisition.created_at), "dd/MM/yyyy")}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium">Created By</p>
-                          <p className="text-sm text-muted-foreground">
-                            {requisition.creator?.name ||
-                              requisition.creator?.email ||
-                              "Unknown User"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">Created Date</p>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(requisition.created_at), "dd/MM/yyyy")}
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewDetails(requisition.id)}
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Full Request
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() =>
-                            approveInitialRequestMutation.mutate({
-                              id: requisition.id,
-                              approved: true,
-                            })
-                          }
-                        >
-                          Approve Initial Request
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() =>
-                            approveInitialRequestMutation.mutate({
-                              id: requisition.id,
-                              approved: false,
-                            })
-                          }
-                        >
-                          Reject
-                        </Button>
+                        {requisition.brief_outline && (
+                          <div className="p-3 bg-muted rounded-lg">
+                            <p className="text-sm font-medium mb-2">Brief Outline:</p>
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{requisition.brief_outline}</p>
+                          </div>
+                        )}
+                        
+                        {requisition.funding_status && (
+                          <div className="p-3 bg-muted rounded-lg">
+                            <p className="text-sm font-medium mb-2">Funding Status:</p>
+                            <p className="text-sm text-muted-foreground">{requisition.funding_status}</p>
+                            {requisition.funding_comments && (
+                              <p className="text-sm text-muted-foreground mt-1 italic">{requisition.funding_comments}</p>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            onClick={() => navigate(`/requisitions/initial/${requisition.id}?view=true`)}
+                            variant="outline"
+                            size="sm"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Full Request
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              approveInitialRequestMutation.mutate({
+                                id: requisition.id,
+                                approved: true,
+                              })
+                            }
+                          >
+                            Approve Initial Request
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() =>
+                              approveInitialRequestMutation.mutate({
+                                id: requisition.id,
+                                approved: false,
+                              })
+                            }
+                          >
+                            Reject
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
-                ))
+                  );
+                })
               )}
             </div>
           )}
