@@ -1405,22 +1405,6 @@ export default function AdminApplications() {
                 <Users className="h-4 w-4 mr-2" />
                 {generatingTestData ? 'Generating...' : 'Generate 40 Test Applicants'}
               </Button>
-              <Button
-                onClick={updateUNExperience}
-                disabled={generatingTestData}
-                variant="outline"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                {generatingTestData ? 'Updating...' : 'Add 40% UN Experience'}
-              </Button>
-              <Button
-                onClick={deleteJobApplications}
-                disabled={generatingTestData}
-                variant="destructive"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                {generatingTestData ? 'Deleting...' : 'Delete All Applications'}
-              </Button>
             </div>
           )}
         </div>
