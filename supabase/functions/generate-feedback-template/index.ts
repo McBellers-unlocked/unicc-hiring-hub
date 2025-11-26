@@ -55,6 +55,17 @@ Deno.serve(async (req) => {
 
     if (questionsError) throw questionsError;
 
+    // Helper function to parse bullet points from description
+    const parseBulletPoints = (description: string): string[] => {
+      if (!description) return [];
+      return description
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.startsWith('- ') || line.startsWith('• '))
+        .map(line => line.replace(/^[-•]\s*/, '').trim())
+        .filter(line => line.length > 0);
+    };
+
     // Helper function to get linked questions for a criterion
     const getLinkedQuestions = (requirementId?: string, competencyId?: string) => {
       return questions
@@ -86,26 +97,48 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Section 2: ESSENTIAL CRITERIA (40% weight)
-    const essentialReqs = requirements?.filter(r => 
-      r.category.includes('Essential') && r.category !== 'Overall Assessment'
+    // Section 2: ESSENTIAL CRITERIA (40% weight) - Only Essential Experience, not Education
+    const essentialExperienceReqs = requirements?.filter(r => 
+      r.category === 'Essential Criteria'
     ) || [];
 
-    if (essentialReqs.length > 0) {
-      const essentialCriteria = essentialReqs.map(req => ({
-        id: req.id,
-        name: req.title,
-        description: req.description || '',
-        weight: req.weight || 1,
-        is_essential: true,
-        linked_questions: getLinkedQuestions(req.id)
-      }));
-
-      sections.push({
-        title: "ESSENTIAL CRITERIA",
-        weight: 40,
-        criteria: essentialCriteria
+    if (essentialExperienceReqs.length > 0) {
+      const essentialCriteria: any[] = [];
+      
+      essentialExperienceReqs.forEach(req => {
+        const bullets = parseBulletPoints(req.description);
+        if (bullets.length > 0) {
+          // Create a criterion for each bullet point
+          bullets.forEach((bullet, index) => {
+            essentialCriteria.push({
+              id: `${req.id}-${index}`,
+              name: bullet,
+              description: '',
+              weight: 1,
+              is_essential: true,
+              linked_questions: getLinkedQuestions(req.id)
+            });
+          });
+        } else if (req.title) {
+          // Fallback: use title if no bullets found
+          essentialCriteria.push({
+            id: req.id,
+            name: req.title,
+            description: req.description || '',
+            weight: req.weight || 1,
+            is_essential: true,
+            linked_questions: getLinkedQuestions(req.id)
+          });
+        }
       });
+
+      if (essentialCriteria.length > 0) {
+        sections.push({
+          title: "ESSENTIAL CRITERIA",
+          weight: 40,
+          criteria: essentialCriteria
+        });
+      }
     }
 
     // Section 3: OVERALL FIT (20% weight)
