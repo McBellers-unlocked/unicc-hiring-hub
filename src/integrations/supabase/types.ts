@@ -1008,18 +1008,21 @@ export type Database = {
       }
       job_interview_question_requirements: {
         Row: {
+          bullet_index: number | null
           created_at: string
           id: string
           question_id: string
           requirement_id: string
         }
         Insert: {
+          bullet_index?: number | null
           created_at?: string
           id?: string
           question_id: string
           requirement_id: string
         }
         Update: {
+          bullet_index?: number | null
           created_at?: string
           id?: string
           question_id?: string

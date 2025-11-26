@@ -140,7 +140,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
         const [reqData, compData] = await Promise.all([
           supabase
             .from('job_interview_question_requirements' as any)
-            .select('requirement_id')
+            .select('requirement_id, bullet_index')
             .eq('question_id', q.id),
           supabase
             .from('job_interview_question_competencies' as any)
@@ -153,7 +153,9 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
           question_text: q.question_text,
           order_index: q.order_index,
           assigned_to: q.assigned_to,
-          requirement_ids: reqData.data?.map((r: any) => r.requirement_id) || [],
+          requirement_ids: reqData.data?.map((r: any) => 
+            r.bullet_index !== null ? `${r.requirement_id}:${r.bullet_index}` : r.requirement_id
+          ) || [],
           competency_ids: compData.data?.map((c: any) => c.competency_id) || []
         };
       })
@@ -356,23 +358,31 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
         created_by: user?.id
       }));
 
-      const { data: insertedQuestions, error: insertError } = await supabase
-        .from('job_interview_questions')
-        .insert(questionsToInsert)
-        .select();
+    const { data: insertedQuestions, error: insertError } = await supabase
+      .from('job_interview_questions')
+      .insert(questionsToInsert)
+      .select();
 
-      if (insertError) throw insertError;
+    if (insertError) throw insertError;
 
-      // Insert requirement associations
-      const requirementAssociations = insertedQuestions.flatMap((q: any, idx) => 
-        (questions[idx].requirement_ids || []).map(compoundId => {
-          const [reqId] = compoundId.split(':');
-          return {
-            question_id: q.id,
-            requirement_id: reqId
-          };
-        })
-      );
+    // Sort insertedQuestions by order_index to ensure correct mapping to original questions array
+    const sortedInsertedQuestions = [...(insertedQuestions || [])].sort(
+      (a: any, b: any) => a.order_index - b.order_index
+    );
+
+    // Insert requirement associations with bullet_index
+    const requirementAssociations = sortedInsertedQuestions.flatMap((q: any, idx) => 
+      (questions[idx].requirement_ids || []).map(compoundId => {
+        const parts = compoundId.split(':');
+        const reqId = parts[0];
+        const bulletIdx = parts[1] !== undefined ? parseInt(parts[1]) : null;
+        return {
+          question_id: q.id,
+          requirement_id: reqId,
+          bullet_index: bulletIdx
+        };
+      })
+    );
 
       if (requirementAssociations.length > 0) {
         const { error: reqError } = await supabase
@@ -382,13 +392,13 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
         if (reqError) throw reqError;
       }
 
-      // Insert competency associations
-      const competencyAssociations = insertedQuestions.flatMap((q: any, idx) => 
-        (questions[idx].competency_ids || []).map(compId => ({
-          question_id: q.id,
-          competency_id: compId
-        }))
-      );
+    // Insert competency associations
+    const competencyAssociations = sortedInsertedQuestions.flatMap((q: any, idx) => 
+      (questions[idx].competency_ids || []).map(compId => ({
+        question_id: q.id,
+        competency_id: compId
+      }))
+    );
 
       if (competencyAssociations.length > 0) {
         const { error: compError } = await supabase
