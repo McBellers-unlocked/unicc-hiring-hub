@@ -429,8 +429,7 @@ export default function MyApplicationsContent() {
               )}
 
               {/* Panel Interview Section */}
-              {application.panel_interview_invitation?.booked_slot_id && 
-               application.panel_interview_invitation.panel_interview_time_slots && (
+              {application.panel_interview_invitation?.booked_slot_id && (
                 <div className="p-4 rounded-lg border-2 border-blue-300 bg-blue-50">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
@@ -443,19 +442,27 @@ export default function MyApplicationsContent() {
                             Booked
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-600">
-                          {new Date(application.panel_interview_invitation.panel_interview_time_slots.slot_datetime).toLocaleString('en-US', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
-                        <p className="text-sm text-gray-600 mt-1">
-                          Duration: {application.panel_interview_invitation.panel_interview_time_slots.duration_minutes} minutes
-                        </p>
+                        {application.panel_interview_invitation.panel_interview_time_slots ? (
+                          <>
+                            <p className="text-sm text-gray-600">
+                              {new Date(application.panel_interview_invitation.panel_interview_time_slots.slot_datetime).toLocaleString('en-US', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                            <p className="text-sm text-gray-600 mt-1">
+                              Duration: {application.panel_interview_invitation.panel_interview_time_slots.duration_minutes} minutes
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-sm text-gray-600">
+                            Interview details will be confirmed shortly
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
