@@ -141,27 +141,29 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Section 3: OVERALL FIT (20% weight)
-    const overallAssessment = requirements?.filter(r => 
-      r.category === 'Overall Assessment'
-    ) || [];
-
-    if (overallAssessment.length > 0) {
-      const overallCriteria = overallAssessment.map(req => ({
-        id: req.id,
-        name: req.title,
-        description: req.description || 'Holistic assessment of cultural fit, values alignment, and long-term potential',
-        weight: req.weight || 1,
-        is_essential: true,
-        linked_questions: []
-      }));
-
-      sections.push({
-        title: "OVERALL FIT",
-        weight: 20,
-        criteria: overallCriteria
-      });
-    }
+    // Section 3: OVERALL FIT (20% weight) - Always include
+    sections.push({
+      title: "OVERALL FIT",
+      weight: 20,
+      criteria: [
+        {
+          id: 'overall_fit',
+          name: 'Overall Fit',
+          description: 'Holistic assessment of cultural fit, values alignment, and suitability for the role',
+          weight: 1,
+          is_essential: true,
+          linked_questions: []
+        },
+        {
+          id: 'potential',
+          name: 'Potential',
+          description: 'Assessment of long-term potential and growth capacity',
+          weight: 1,
+          is_essential: true,
+          linked_questions: []
+        }
+      ]
+    });
 
     if (sections.length === 0) {
       return new Response(

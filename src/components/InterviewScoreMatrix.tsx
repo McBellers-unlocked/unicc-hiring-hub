@@ -47,6 +47,39 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
       if (templateError) throw templateError;
       setTemplate(templateData);
 
+      // Fetch scheduled panel members from the interview slot
+      const { data: invitationData } = await supabase
+        .from('panel_interview_invitations')
+        .select(`
+          booked_slot_id,
+          panel_interview_time_slots!inner(panel_member_ids)
+        `)
+        .eq('application_id', applicationId)
+        .eq('status', 'booked')
+        .maybeSingle();
+
+      let scheduledPanelists: PanelistScore[] = [];
+      
+      if (invitationData?.panel_interview_time_slots?.panel_member_ids) {
+        const memberIds = invitationData.panel_interview_time_slots.panel_member_ids as string[];
+        
+        // Fetch panel member details
+        const { data: panelMembers } = await supabase
+          .from('users')
+          .select('id, name')
+          .in('id', memberIds);
+
+        if (panelMembers) {
+          scheduledPanelists = panelMembers.map(member => ({
+            panelist_id: member.id,
+            panelist_name: member.name,
+            responses: {},
+            overall: 0,
+            recommendation: '-'
+          }));
+        }
+      }
+
       // Fetch interview questions for this job
       const { data: questionsData, error: questionsError } = await supabase
         .from('job_interview_questions')
@@ -103,6 +136,7 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
 
       if (responsesError) throw responsesError;
 
+      // Merge scheduled panelists with those who have submitted feedback
       const panelistScores: PanelistScore[] = responses.map((r: any) => {
         // Map question scores to criterion scores
         const criterionScores: Record<string, number[]> = {};
@@ -165,7 +199,18 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
         };
       });
 
-      setScores(panelistScores);
+      // Merge: show all scheduled panelists, update with actual scores where available
+      const allPanelists = [...scheduledPanelists];
+      panelistScores.forEach(scored => {
+        const existingIndex = allPanelists.findIndex(p => p.panelist_id === scored.panelist_id);
+        if (existingIndex >= 0) {
+          allPanelists[existingIndex] = scored; // Replace with actual scores
+        } else {
+          allPanelists.push(scored); // Add if not in scheduled list
+        }
+      });
+
+      setScores(allPanelists);
     } catch (error) {
       console.error('Error loading score matrix:', error);
       toast({
@@ -195,12 +240,11 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
   };
 
   const calculateOverallPercentage = (overall: number) => {
-    // Calculate total possible points: (number of criteria + 2 for overall_fit and potential) * 5
+    // Calculate total possible points: number of criteria * 5
     let totalCriteria = 0;
     template?.sections.forEach((section: any) => {
       totalCriteria += section.criteria.length;
     });
-    totalCriteria += 2; // Add 2 for overall_fit and potential
     
     const maxPossible = totalCriteria * 5;
     return maxPossible > 0 ? Math.round((overall / maxPossible) * 100) : 0;
@@ -330,19 +374,19 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[300px]">Criteria</TableHead>
-                {hasFeedback && scores.map(s => (
+                {scores.length > 0 && scores.map(s => (
                   <TableHead key={s.panelist_id} className="text-center">
                     {s.panelist_name}
                   </TableHead>
                 ))}
-                {hasFeedback && <TableHead className="text-center font-bold">Avg</TableHead>}
+                {scores.length > 0 && <TableHead className="text-center font-bold">Avg</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {template.sections.map((section: any) => (
                 <React.Fragment key={section.title}>
                   <TableRow className="bg-muted/50">
-                    <TableCell colSpan={hasFeedback ? scores.length + 2 : 1} className="font-bold">
+                    <TableCell colSpan={scores.length > 0 ? scores.length + 2 : 1} className="font-bold">
                       {section.title}
                     </TableCell>
                   </TableRow>
@@ -351,11 +395,11 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
                       <TableCell className="font-medium text-sm">
                         {criterion.name}
                       </TableCell>
-                      {hasFeedback && scores.map(s => {
+                      {scores.length > 0 && scores.map(s => {
                         const score = s.responses[criterion.id];
                         return (
                           <TableCell key={s.panelist_id} className="text-center">
-                            {typeof score === 'number' ? (
+                            {typeof score === 'number' && score > 0 ? (
                               <span className={cn("px-2 py-1 rounded font-medium", getScoreColor(score))}>
                                 {score}
                               </span>
@@ -365,7 +409,7 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
                           </TableCell>
                         );
                       })}
-                      {hasFeedback && (
+                      {scores.length > 0 && (
                         <TableCell className="text-center font-bold">
                           {calculateAverage(criterion.id)}
                         </TableCell>
@@ -375,50 +419,8 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
                 </React.Fragment>
               ))}
               
-              {hasFeedback && (
+              {scores.length > 0 && (
                 <>
-                  <TableRow className="bg-accent/10 font-bold">
-                    <TableCell colSpan={2}>Overall Fit</TableCell>
-                    {scores.map(s => {
-                      const overallFit = s.responses['overall_fit'];
-                      return (
-                        <TableCell key={s.panelist_id} className="text-center">
-                          {typeof overallFit === 'number' ? (
-                            <span className={cn("px-2 py-1 rounded font-medium", getScoreColor(overallFit))}>
-                              {overallFit}
-                            </span>
-                          ) : (
-                            '-'
-                          )}
-                        </TableCell>
-                      );
-                    })}
-                    <TableCell className="text-center">
-                      {calculateAverage('overall_fit')}
-                    </TableCell>
-                  </TableRow>
-
-                  <TableRow className="bg-accent/10 font-bold">
-                    <TableCell colSpan={2}>Potential</TableCell>
-                    {scores.map(s => {
-                      const potential = s.responses['potential'];
-                      return (
-                        <TableCell key={s.panelist_id} className="text-center">
-                          {typeof potential === 'number' ? (
-                            <span className={cn("px-2 py-1 rounded font-medium", getScoreColor(potential))}>
-                              {potential}
-                            </span>
-                          ) : (
-                            '-'
-                          )}
-                        </TableCell>
-                      );
-                    })}
-                    <TableCell className="text-center">
-                      {calculateAverage('potential')}
-                    </TableCell>
-                  </TableRow>
-
                   <TableRow className="bg-primary/10 font-bold">
                     <TableCell colSpan={2}>Overall Mark (Total)</TableCell>
                     {scores.map(s => (
