@@ -410,10 +410,21 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
       toast({
         title: "Success",
-        description: "Interview questions saved successfully",
+        description: "Interview questions saved and feedback template updated",
       });
 
       await fetchQuestions();
+      
+      // Auto-generate feedback template for Score Matrix
+      try {
+        await supabase.functions.invoke('generate-feedback-template', {
+          body: { jobId }
+        });
+        console.log('Feedback template auto-generated');
+      } catch (error) {
+        console.error('Error auto-generating template:', error);
+        // Don't show error - not critical, can be done manually
+      }
     } catch (error) {
       console.error('Error saving questions:', error);
       toast({
