@@ -343,7 +343,7 @@ export function InterviewScoreMatrix({ applicationId, jobId }: InterviewScoreMat
                 <React.Fragment key={section.title}>
                   <TableRow className="bg-muted/50">
                     <TableCell colSpan={hasFeedback ? scores.length + 2 : 1} className="font-bold">
-                      {section.title} ({section.weight}% weight)
+                      {section.title}
                     </TableCell>
                   </TableRow>
                   {section.criteria.map((criterion: any) => (
