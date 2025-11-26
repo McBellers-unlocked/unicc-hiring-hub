@@ -120,15 +120,22 @@ export default function MyApplicationsContent() {
 
         if (applicationsError) throw applicationsError;
 
-        setApplications(applicationsData?.map(app => ({
-          ...app,
-          job: {
-            ...app.jobs,
-            id: app.job_id
-          },
-          video_assignment: app.video_assignments?.[0] || null,
-          panel_interview_invitation: app.panel_interview_invitations?.[0] || null
-        })) || []);
+        setApplications(applicationsData?.map(app => {
+          const rawPanelInvitation = (app as any).panel_interview_invitations;
+          const panelInvitation: PanelInterviewInvitation | null = Array.isArray(rawPanelInvitation)
+            ? (rawPanelInvitation[0] || null)
+            : (rawPanelInvitation || null);
+
+          return {
+            ...app,
+            job: {
+              ...app.jobs,
+              id: app.job_id
+            },
+            video_assignment: app.video_assignments?.[0] || null,
+            panel_interview_invitation: panelInvitation
+          };
+        }) || []);
       } else {
         // For non-authenticated users, get from localStorage
         const savedApplications = localStorage.getItem('savedApplications');
