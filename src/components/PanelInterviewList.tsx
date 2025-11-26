@@ -68,8 +68,8 @@ export const PanelInterviewList: React.FC<PanelInterviewListProps> = ({
 
       if (appError) throw appError;
 
-      // Then get interviews
-      const { data, error } = await supabase
+      // Get manually scheduled interviews from panel_interviews
+      const { data: manualInterviews, error: manualError } = await supabase
         .from('panel_interviews')
         .select(`
           *,
@@ -85,15 +85,76 @@ export const PanelInterviewList: React.FC<PanelInterviewListProps> = ({
         .eq('application_id', applicationId)
         .order('scheduled_at', { ascending: true });
 
-      if (error) throw error;
+      if (manualError) throw manualError;
+
+      // Get slot-booked interviews from panel_interview_invitations
+      const { data: invitationData, error: invitationError } = await supabase
+        .from('panel_interview_invitations')
+        .select(`
+          id,
+          status,
+          booked_at,
+          booked_slot_id,
+          panel_interview_time_slots:booked_slot_id (
+            id,
+            slot_datetime,
+            duration_minutes,
+            panel_member_ids,
+            status
+          )
+        `)
+        .eq('application_id', applicationId)
+        .eq('status', 'booked');
+
+      if (invitationError) throw invitationError;
+
+      // Process slot-booked interviews
+      const slotInterviews: PanelInterview[] = [];
+      if (invitationData && invitationData.length > 0) {
+        for (const invitation of invitationData) {
+          const slot = invitation.panel_interview_time_slots;
+          if (slot && slot.panel_member_ids && slot.panel_member_ids.length > 0) {
+            // Fetch panel member details
+            const { data: panelMembers, error: membersError } = await supabase
+              .from('users')
+              .select('id, name, email')
+              .in('id', slot.panel_member_ids);
+
+            if (!membersError && panelMembers) {
+              // Convert to PanelInterview format
+              slotInterviews.push({
+                id: slot.id,
+                title: 'Panel Interview (Booked Slot)',
+                scheduled_at: slot.slot_datetime,
+                duration_minutes: slot.duration_minutes,
+                status: slot.status,
+                applications: { job_id: appData.job_id },
+                participants: panelMembers.map(member => ({
+                  id: member.id,
+                  panelist_id: member.id,
+                  external_panelist_id: null,
+                  confirmed: true, // Slot is booked, so members are confirmed
+                  users: { name: member.name, email: member.email },
+                  external_panel_members: null
+                }))
+              });
+            }
+          }
+        }
+      }
+
+      // Merge and sort all interviews by date
+      const allInterviews = [
+        ...(manualInterviews || []).map(interview => ({
+          ...interview,
+          applications: { job_id: appData.job_id }
+        })),
+        ...slotInterviews
+      ].sort((a, b) => 
+        new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()
+      );
       
-      // Add job_id to each interview
-      const interviewsWithJobId = (data || []).map(interview => ({
-        ...interview,
-        applications: { job_id: appData.job_id }
-      }));
-      
-      setInterviews(interviewsWithJobId as any);
+      setInterviews(allInterviews as any);
     } catch (error) {
       console.error('Error fetching interviews:', error);
       toast({
