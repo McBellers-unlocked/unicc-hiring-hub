@@ -1051,6 +1051,7 @@ export type Database = {
           competency_id: string | null
           created_at: string | null
           created_by: string | null
+          estimated_minutes: number | null
           id: string
           job_id: string | null
           language_requirement_id: string | null
@@ -1064,6 +1065,7 @@ export type Database = {
           competency_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          estimated_minutes?: number | null
           id?: string
           job_id?: string | null
           language_requirement_id?: string | null
@@ -1077,6 +1079,7 @@ export type Database = {
           competency_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          estimated_minutes?: number | null
           id?: string
           job_id?: string | null
           language_requirement_id?: string | null
