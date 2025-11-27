@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.send-chief-hr-review-notification]
 verify_jwt = false
 
+[functions.send-hm-review-reminder]
+verify_jwt = false
+
 [functions.convert-requisition-to-job]
 verify_jwt = false
 

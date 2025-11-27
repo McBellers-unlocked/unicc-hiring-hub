@@ -66,7 +66,9 @@ export default function AdminRequisitions() {
   const [loading, setLoading] = useState(true);
   const [userDivision, setUserDivision] = useState<string | null>(null);
   const [remindersSent, setRemindersSent] = useState<Set<string>>(new Set());
+  const [hmReviewRemindersSent, setHmReviewRemindersSent] = useState<Set<string>>(new Set());
   const [sendingReminder, setSendingReminder] = useState<string | null>(null);
+  const [sendingHMReviewReminder, setSendingHMReviewReminder] = useState<string | null>(null);
   const { user, userRoles } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -85,6 +87,7 @@ export default function AdminRequisitions() {
     fetchUserDivision();
     fetchRequisitions();
     fetchRemindersSent();
+    fetchHMReviewRemindersSent();
   }, [isAdmin, isHR, isChiefHR, isHiringManager, isDirector, navigate]);
 
   const fetchUserDivision = async () => {
@@ -121,6 +124,23 @@ export default function AdminRequisitions() {
     }
   };
 
+  const fetchHMReviewRemindersSent = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('email_send_log')
+        .select('requisition_id')
+        .eq('template_slug', 'hm_review_reminder')
+        .eq('status', 'sent');
+
+      if (error) throw error;
+      
+      const sentIds = new Set(data?.map(log => log.requisition_id).filter(Boolean) || []);
+      setHmReviewRemindersSent(sentIds);
+    } catch (error) {
+      console.error('Error fetching HM review reminders sent:', error);
+    }
+  };
+
   const handleSendReminder = async (requisitionId: string) => {
     if (!confirm('Send a reminder email to the hiring manager to complete their Position Description?')) {
       return;
@@ -150,6 +170,38 @@ export default function AdminRequisitions() {
       });
     } finally {
       setSendingReminder(null);
+    }
+  };
+
+  const handleSendHMReviewReminder = async (requisitionId: string) => {
+    if (!confirm('Send a reminder email to the hiring manager to review and finalize the Position Description?')) {
+      return;
+    }
+
+    setSendingHMReviewReminder(requisitionId);
+    try {
+      const { error } = await supabase.functions.invoke('send-hm-review-reminder', {
+        body: { requisitionId }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Reminder Sent",
+        description: "The hiring manager has been reminded to review and finalize the Position Description.",
+      });
+
+      // Refresh the HM review reminders list
+      await fetchHMReviewRemindersSent();
+    } catch (error: any) {
+      console.error('Error sending HM review reminder:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send reminder email",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingHMReviewReminder(null);
     }
   };
 
@@ -722,10 +774,33 @@ export default function AdminRequisitions() {
                                     Send to Chief Review
                                   </Button>
                                 ) : (
-                                  <Badge variant="secondary" className="flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    Waiting for Manager Confirmation
-                                  </Badge>
+                                  <>
+                                    {/* Show reminder button and badge only when Chief HR has reviewed */}
+                                    {requisition.chief_hr_reviewed && (
+                                      <>
+                                        {hmReviewRemindersSent.has(requisition.id) && (
+                                          <Badge variant="secondary" className="flex items-center gap-1">
+                                            <Mail className="h-3 w-3" />
+                                            Reminder Sent
+                                          </Badge>
+                                        )}
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => handleSendHMReviewReminder(requisition.id)}
+                                          disabled={sendingHMReviewReminder === requisition.id}
+                                          className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                        >
+                                          <Mail className="h-4 w-4 mr-1" />
+                                          {sendingHMReviewReminder === requisition.id ? 'Sending...' : 'Send Review Reminder'}
+                                        </Button>
+                                      </>
+                                    )}
+                                    <Badge variant="secondary" className="flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      Waiting for Manager Confirmation
+                                    </Badge>
+                                  </>
                                 )}
                               </>
                             )}
