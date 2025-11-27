@@ -115,6 +115,7 @@ const handler = async (req: Request): Promise<Response> => {
       from: `${template.from_name} <${template.from_email}>`,
       to: [requisition.creator?.email || ""],
       cc: ["valente@unicc.org", "mattvalente85@gmail.com"],
+      reply_to: "recruitment@unicconnect.org",
       subject: subject,
       html: htmlBody,
       text: textBody,
