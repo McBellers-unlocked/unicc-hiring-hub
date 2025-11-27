@@ -526,6 +526,76 @@ export type Database = {
         }
         Relationships: []
       }
+      email_send_log: {
+        Row: {
+          application_id: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          recipient_email: string
+          recipient_name: string | null
+          requisition_id: string | null
+          sent_at: string | null
+          sent_by: string | null
+          status: string
+          subject: string
+          template_slug: string
+          variables: Json | null
+        }
+        Insert: {
+          application_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          recipient_email: string
+          recipient_name?: string | null
+          requisition_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          subject: string
+          template_slug: string
+          variables?: Json | null
+        }
+        Update: {
+          application_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          recipient_email?: string
+          recipient_name?: string | null
+          requisition_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          subject?: string
+          template_slug?: string
+          variables?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_send_log_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_send_log_requisition_id_fkey"
+            columns: ["requisition_id"]
+            isOneToOne: false
+            referencedRelation: "job_requisitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_send_log_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_threads: {
         Row: {
           application_id: string
