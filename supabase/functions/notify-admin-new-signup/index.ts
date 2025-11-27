@@ -30,7 +30,7 @@ const handler = async (req: Request): Promise<Response> => {
     const adminEmails = ["admin@unicc.org"]; // Replace with actual admin emails
 
     const emailResponse = await resend.emails.send({
-      from: "UNICCConnect <noreply@unicc.org>",
+      from: "UNICCConnect <recruitment@unicconnect.org>",
       to: adminEmails,
       cc: ["valente@unicc.org"],
       subject: "New User Signup - UNICCConnect",
@@ -48,7 +48,21 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Admin notification sent:", emailResponse);
+    if (emailResponse.error) {
+      console.error("Resend error:", emailResponse.error);
+      return new Response(
+        JSON.stringify({ 
+          error: emailResponse.error.message || "Failed to send email",
+          details: emailResponse.error 
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log("Admin notification sent:", emailResponse.data);
 
     return new Response(
       JSON.stringify({ success: true, message: "Admin notification sent" }),

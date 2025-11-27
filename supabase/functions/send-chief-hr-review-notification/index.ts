@@ -74,7 +74,7 @@ const handler = async (req: Request): Promise<Response> => {
       : "";
 
     const emailResponse = await resend.emails.send({
-      from: "UNICC Jobs <noreply@unicc.org>",
+      from: "UNICC Recruitment <recruitment@unicconnect.org>",
       to: [hiringManager.email],
       cc: ["valente@unicc.org"],
       subject: `Action Required: Review Position Description for ${requisition.position_title}`,
@@ -118,7 +118,21 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    if (emailResponse.error) {
+      console.error("Resend error:", emailResponse.error);
+      return new Response(
+        JSON.stringify({ 
+          error: emailResponse.error.message || "Failed to send email",
+          details: emailResponse.error 
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log("Email sent successfully:", emailResponse.data);
 
     // Log the email send to email_send_log
     const { error: logError } = await supabase

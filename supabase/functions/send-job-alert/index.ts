@@ -65,7 +65,7 @@ const handler = async (req: Request): Promise<Response> => {
     const unsubscribeUrl = `https://66a1e0bc-1a9e-4295-8718-83774fc48d72.sandbox.lovable.dev/unsubscribe?alert_id=${alert_id}`;
 
     const emailResponse = await resend.emails.send({
-      from: "UNICC Jobs <onboarding@resend.dev>",
+      from: "UNICC Jobs <recruitment@unicconnect.org>",
       to: [email],
       cc: ["valente@unicc.org"],
       subject: `New Job Alert: ${job.title}`,
@@ -101,7 +101,21 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Job alert email sent successfully:", emailResponse);
+    if (emailResponse.error) {
+      console.error("Resend error:", emailResponse.error);
+      return new Response(
+        JSON.stringify({ 
+          error: emailResponse.error.message || "Failed to send email",
+          details: emailResponse.error 
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log("Job alert email sent successfully:", emailResponse.data);
 
     return new Response(JSON.stringify(emailResponse), {
       status: 200,
