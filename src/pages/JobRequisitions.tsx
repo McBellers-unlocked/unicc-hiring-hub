@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, FileText, CheckCircle, Clock, AlertCircle, Eye, UserCheck } from "lucide-react";
+import { Plus, FileText, CheckCircle, Clock, AlertCircle, Eye, UserCheck, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { RequisitionWorkflowTimeline } from "@/components/RequisitionWorkflowTimeline";
@@ -51,6 +51,8 @@ export default function JobRequisitions() {
   const [requisitions, setRequisitions] = useState<JobRequisition[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewFilter, setViewFilter] = useState<'all' | 'mine'>('all');
+  const [remindersSent, setRemindersSent] = useState<Record<string, boolean>>({});
+  const [sendingReminder, setSendingReminder] = useState<string | null>(null);
   const { user, userRoles } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -58,6 +60,7 @@ export default function JobRequisitions() {
   useEffect(() => {
     if (user) {
       fetchRequisitions();
+      fetchRemindersSent();
     }
   }, [user, viewFilter]);
 
@@ -87,6 +90,56 @@ export default function JobRequisitions() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRemindersSent = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('email_send_log')
+        .select('requisition_id')
+        .eq('template_slug', 'pd_reminder')
+        .eq('status', 'sent');
+
+      if (error) throw error;
+
+      const reminderMap: Record<string, boolean> = {};
+      data?.forEach((log) => {
+        if (log.requisition_id) {
+          reminderMap[log.requisition_id] = true;
+        }
+      });
+      setRemindersSent(reminderMap);
+    } catch (error) {
+      console.error('Error fetching reminder status:', error);
+    }
+  };
+
+  const handleSendReminder = async (requisitionId: string) => {
+    setSendingReminder(requisitionId);
+    try {
+      const { error } = await supabase.functions.invoke('send-pd-reminder', {
+        body: { requisitionId }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Reminder Sent",
+        description: "PD reminder email sent to hiring manager successfully",
+      });
+
+      // Refresh reminder status
+      await fetchRemindersSent();
+    } catch (error) {
+      console.error('Error sending reminder:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send reminder email",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingReminder(null);
     }
   };
 
@@ -382,15 +435,40 @@ export default function JobRequisitions() {
                         userRoles.includes('Admin') || 
                         userRoles.includes('HR Assistant')
                        ) && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700"
-                          onClick={() => navigate(`/requisitions/${requisition.id}/edit`)}
-                        >
-                          <FileText className="h-4 w-4 mr-1" />
-                          Continue to Full PD
-                        </Button>
+                        <>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() => navigate(`/requisitions/${requisition.id}/edit`)}
+                          >
+                            <FileText className="h-4 w-4 mr-1" />
+                            Continue to Full PD
+                          </Button>
+                          {/* Send PD Reminder button - only for Admin/HR */}
+                          {(userRoles.includes('Admin') || 
+                            userRoles.includes('HR Assistant') || 
+                            userRoles.includes('Chief of HR')) && (
+                            <>
+                              {remindersSent[requisition.id] ? (
+                                <Badge variant="secondary" className="h-9 px-3">
+                                  <Mail className="h-4 w-4 mr-1" />
+                                  Reminder Sent
+                                </Badge>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleSendReminder(requisition.id)}
+                                  disabled={sendingReminder === requisition.id}
+                                >
+                                  <Mail className="h-4 w-4 mr-1" />
+                                  {sendingReminder === requisition.id ? 'Sending...' : 'Send PD Reminder'}
+                                </Button>
+                              )}
+                            </>
+                          )}
+                        </>
                       )}
                       {/* HR Final Review button - shown when manager has confirmed changes */}
                       {(requisition.status === 'hr_final_review' || 
