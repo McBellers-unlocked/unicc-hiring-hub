@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Clock, User, MessageSquare, CheckCircle } from "lucide-react";
 
 interface InterviewTimingOverviewProps {
@@ -57,16 +56,17 @@ export const InterviewTimingOverview = ({
               {Math.round(percentageOfTarget)}%
             </span>
           </div>
-          <div className="relative w-full h-3 bg-secondary rounded-full overflow-hidden">
+          <div className="relative w-full h-3 bg-muted rounded-full overflow-hidden">
             <div 
-              className="h-full transition-all"
-              style={{
-                width: `${Math.min(percentageOfTarget, 100)}%`,
-                backgroundColor: totalMinutes <= targetMinutes 
-                  ? 'hsl(var(--chart-2))' 
+              className={
+                totalMinutes <= targetMinutes 
+                  ? 'h-full bg-green-500 transition-all' 
                   : totalMinutes <= targetMinutes + 5 
-                    ? 'hsl(var(--chart-3))' 
-                    : 'hsl(var(--destructive))'
+                    ? 'h-full bg-amber-500 transition-all' 
+                    : 'h-full bg-red-500 transition-all'
+              }
+              style={{
+                width: `${Math.min(percentageOfTarget, 100)}%`
               }}
             />
           </div>
