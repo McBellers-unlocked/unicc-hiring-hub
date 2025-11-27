@@ -88,9 +88,8 @@ const handler = async (req: Request): Promise<Response> => {
       day: "numeric"
     });
 
-    // Use the production app URL from environment or fall back to Lovable deployed URL
-    const appUrl = Deno.env.get("APP_URL") || "https://unicc-hireflow.lovable.app";
-    const pdLink = `${appUrl}/requisitions/${requisitionId}`;
+    // Direct link to edit form on staging
+    const pdLink = `https://staging.unicconnect.org/requisitions/${requisitionId}/edit`;
 
     const variables = {
       hiringManagerName: requisition.creator?.name || "Hiring Manager",
