@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, Save, Wand2, Users, CheckCircle2, AlertCircle, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Save, Wand2, Users, CheckCircle2, AlertCircle, GripVertical, Clock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,6 +16,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
 import { InterviewCoverageTracker } from '@/components/InterviewCoverageTracker';
+import { InterviewTimingOverview } from '@/components/InterviewTimingOverview';
+import { StandardInterviewIntro } from '@/components/StandardInterviewIntro';
+import { StandardInterviewWrapUp } from '@/components/StandardInterviewWrapUp';
+import { Slider } from '@/components/ui/slider';
 
 interface InterviewQuestion {
   id?: string;
@@ -24,6 +28,7 @@ interface InterviewQuestion {
   assigned_to?: string | null;
   requirement_ids: string[];
   competency_ids: string[];
+  estimated_minutes: number;
 }
 
 interface PanelMember {
@@ -156,7 +161,8 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
           requirement_ids: reqData.data?.map((r: any) => 
             r.bullet_index !== null ? `${r.requirement_id}:${r.bullet_index}` : r.requirement_id
           ) || [],
-          competency_ids: compData.data?.map((c: any) => c.competency_id) || []
+          competency_ids: compData.data?.map((c: any) => c.competency_id) || [],
+          estimated_minutes: q.estimated_minutes || 4.0
         };
       })
     );
@@ -320,7 +326,8 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
       order_index: questions.length,
       assigned_to: null,
       requirement_ids: [],
-      competency_ids: []
+      competency_ids: [],
+      estimated_minutes: 4.0
     };
     setQuestions([...questions, newQuestion]);
   };
@@ -355,6 +362,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
         question_text: q.question_text,
         order_index: q.order_index,
         assigned_to: q.assigned_to,
+        estimated_minutes: q.estimated_minutes,
         created_by: user?.id
       }));
 
@@ -526,6 +534,11 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
     };
   };
 
+  const calculateTotalTime = () => {
+    const questionTime = questions.reduce((sum, q) => sum + (q.estimated_minutes || 4), 0);
+    return questionTime;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -542,6 +555,15 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
         <h1 className="text-3xl font-bold mb-2">Interview Management</h1>
         <p className="text-muted-foreground">{jobTitle}</p>
       </div>
+
+      {/* Interview Duration Calculator */}
+      <InterviewTimingOverview
+        questionCount={questions.length}
+        totalQuestionMinutes={calculateTotalTime()}
+        introMinutes={5}
+        wrapUpMinutes={5}
+        targetMinutes={45}
+      />
 
       {/* Panel Composition Section */}
       <Card>
@@ -731,6 +753,9 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
       {/* Coverage Tracker */}
       <InterviewCoverageTracker stats={stats} />
 
+      {/* Standard Introduction */}
+      <StandardInterviewIntro />
+
       {/* Interview Questions */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -782,7 +807,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                           className="min-h-[80px]"
                         />
 
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-4 gap-3">
                           <div className="space-y-2">
                             <label className="text-sm font-medium">Assigned To</label>
                             <Select
@@ -929,6 +954,28 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                               </PopoverContent>
                             </Popover>
                           </div>
+
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5" />
+                              Time (min)
+                            </label>
+                            <div className="space-y-2">
+                              <Slider
+                                min={3.5}
+                                max={5}
+                                step={0.5}
+                                value={[question.estimated_minutes]}
+                                onValueChange={([value]) => updateQuestion(index, 'estimated_minutes', value)}
+                                className="w-full"
+                              />
+                              <div className="text-center">
+                                <Badge variant="secondary" className="text-xs">
+                                  ⏱️ {question.estimated_minutes} min
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
                         </div>
 
                         {/* Display selected tags */}
@@ -976,6 +1023,9 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
           )}
         </CardContent>
       </Card>
+
+      {/* Standard Wrap-up */}
+      <StandardInterviewWrapUp />
     </div>
   );
 }
