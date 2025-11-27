@@ -18,7 +18,8 @@ import {
   Calendar,
   User,
   Building,
-  Edit2
+  Edit2,
+  Mail
 } from "lucide-react";
 import { format } from "date-fns";
 import { ChiefHRReviewDialog } from "@/components/ChiefHRReviewDialog";
@@ -62,6 +63,8 @@ export default function AdminRequisitions() {
   const [requisitions, setRequisitions] = useState<JobRequisition[]>([]);
   const [loading, setLoading] = useState(true);
   const [userDivision, setUserDivision] = useState<string | null>(null);
+  const [remindersSent, setRemindersSent] = useState<Set<string>>(new Set());
+  const [sendingReminder, setSendingReminder] = useState<string | null>(null);
   const { user, userRoles } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -79,6 +82,7 @@ export default function AdminRequisitions() {
     }
     fetchUserDivision();
     fetchRequisitions();
+    fetchRemindersSent();
   }, [isAdmin, isHR, isChiefHR, isHiringManager, isDirector, navigate]);
 
   const fetchUserDivision = async () => {
@@ -95,6 +99,55 @@ export default function AdminRequisitions() {
       setUserDivision(data?.division || null);
     } catch (error) {
       console.error('Error fetching user division:', error);
+    }
+  };
+
+  const fetchRemindersSent = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('email_send_log')
+        .select('requisition_id')
+        .eq('template_slug', 'pd_reminder')
+        .eq('status', 'sent');
+
+      if (error) throw error;
+      
+      const sentIds = new Set(data?.map(log => log.requisition_id).filter(Boolean) || []);
+      setRemindersSent(sentIds);
+    } catch (error) {
+      console.error('Error fetching reminders sent:', error);
+    }
+  };
+
+  const handleSendReminder = async (requisitionId: string) => {
+    if (!confirm('Send a reminder email to the hiring manager to complete their Position Description?')) {
+      return;
+    }
+
+    setSendingReminder(requisitionId);
+    try {
+      const { error } = await supabase.functions.invoke('send-pd-reminder', {
+        body: { requisitionId }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Reminder Sent",
+        description: "The hiring manager has been notified to complete their Position Description.",
+      });
+
+      // Refresh the reminders list
+      await fetchRemindersSent();
+    } catch (error: any) {
+      console.error('Error sending reminder:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send reminder email",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingReminder(null);
     }
   };
 
@@ -542,6 +595,28 @@ export default function AdminRequisitions() {
                                 <Edit2 className="h-4 w-4 mr-1" />
                                 Continue PD
                               </Button>
+                            )}
+
+                            {/* Send PD Reminder for Approved Initial Requests */}
+                            {requisition.status === 'initial_request_approved' && requisition.initial_request_approved && (isAdmin || isHR) && (
+                              <>
+                                {remindersSent.has(requisition.id) && (
+                                  <Badge variant="secondary" className="flex items-center gap-1">
+                                    <Mail className="h-3 w-3" />
+                                    Reminder Sent
+                                  </Badge>
+                                )}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleSendReminder(requisition.id)}
+                                  disabled={sendingReminder === requisition.id}
+                                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                >
+                                  <Mail className="h-4 w-4 mr-1" />
+                                  {sendingReminder === requisition.id ? 'Sending...' : 'Send PD Reminder'}
+                                </Button>
+                              </>
                             )}
                             
                             <Button
