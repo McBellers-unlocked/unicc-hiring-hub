@@ -88,7 +88,7 @@ const handler = async (req: Request): Promise<Response> => {
       day: "numeric"
     });
 
-    const pdLink = `${Deno.env.get("SUPABASE_URL")?.replace("supabase.co", "lovable.app")}/job-requisition/${requisitionId}`;
+    const pdLink = `${Deno.env.get("SUPABASE_URL")?.replace("supabase.co", "lovable.app")}/requisitions/${requisitionId}`;
 
     const variables = {
       hiringManagerName: requisition.creator?.name || "Hiring Manager",
