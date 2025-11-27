@@ -114,6 +114,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: `${template.from_name} <${template.from_email}>`,
       to: [requisition.creator?.email || ""],
+      cc: ["valente@unicc.org"],
       subject: subject,
       html: htmlBody,
       text: textBody,

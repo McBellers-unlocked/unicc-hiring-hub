@@ -150,6 +150,7 @@ serve(async (req) => {
     const { error } = await resend.emails.send({
       from: `${fromName} <${fromEmail}>`,
       to: [data.candidateEmail],
+      cc: ["valente@unicc.org"],
       subject: subject,
       html: emailHtml,
     });

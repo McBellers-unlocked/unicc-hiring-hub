@@ -32,6 +32,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "UNICCConnect <noreply@unicc.org>",
       to: adminEmails,
+      cc: ["valente@unicc.org"],
       subject: "New User Signup - UNICCConnect",
       html: `
         <h2>New User Registration</h2>
