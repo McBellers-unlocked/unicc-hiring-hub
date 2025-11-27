@@ -556,15 +556,6 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
         <p className="text-muted-foreground">{jobTitle}</p>
       </div>
 
-      {/* Interview Duration Calculator */}
-      <InterviewTimingOverview
-        questionCount={questions.length}
-        totalQuestionMinutes={calculateTotalTime()}
-        introMinutes={5}
-        wrapUpMinutes={5}
-        targetMinutes={45}
-      />
-
       {/* Panel Composition Section */}
       <Card>
         <CardHeader>
@@ -752,6 +743,15 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
       {/* Coverage Tracker */}
       <InterviewCoverageTracker stats={stats} />
+
+      {/* Interview Duration Calculator */}
+      <InterviewTimingOverview 
+        questionCount={questions.length}
+        totalQuestionMinutes={calculateTotalTime()}
+        introMinutes={5}
+        wrapUpMinutes={5}
+        targetMinutes={45}
+      />
 
       {/* Standard Introduction */}
       <StandardInterviewIntro />
