@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { HiringFunnelDashboard } from '@/components/HiringFunnelDashboard';
-import { AuditLogViewer } from '@/components/AuditLogViewer';
+import { UnifiedActivityViewer } from '@/components/UnifiedActivityViewer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart3, Activity, TrendingUp } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -58,7 +58,7 @@ export const Analytics: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="audit">
-            <AuditLogViewer />
+            <UnifiedActivityViewer filters={filters} />
           </TabsContent>
         </Tabs>
       </div>
