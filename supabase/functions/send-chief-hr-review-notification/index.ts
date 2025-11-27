@@ -61,7 +61,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Hiring manager information not found");
     }
 
-    const reviewLink = `https://cxpnvbphjpntrvvgjhli.supabase.co/requisitions/${requisitionId}`;
+    const reviewLink = `https://staging.unicconnect.org/requisitions/${requisitionId}/hm-review`;
     
     // Prepare email content
     const chiefHRCommentsSection = requisition.chief_hr_comments
@@ -80,6 +80,9 @@ const handler = async (req: Request): Promise<Response> => {
       subject: `Action Required: Review Position Description for ${requisition.position_title}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <img src="https://cxpnvbphjpntrvvgjhli.supabase.co/storage/v1/object/public/application-files/unicc_logo.jpg" 
+               alt="UNICC Logo" 
+               style="max-width: 200px; margin-bottom: 20px;" />
           <h1 style="color: #0066cc;">Action Required: Position Description Review</h1>
           
           <p>Dear ${hiringManager.name},</p>
@@ -111,7 +114,11 @@ const handler = async (req: Request): Promise<Response> => {
             Review Position Description →
           </a>
           
-          <p style="margin-top: 30px; color: #666; font-size: 12px;">
+          <p style="margin-top: 30px; color: #333;">
+            Best regards,<br><br>
+            <strong>UNICC Talent Acquisition team</strong>
+          </p>
+          <p style="margin-top: 20px; color: #666; font-size: 12px;">
             This is an automated notification from the UNICC Job Management System.
           </p>
         </div>
