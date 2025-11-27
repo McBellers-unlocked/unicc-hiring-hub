@@ -27,7 +27,7 @@ const handler = async (req: Request): Promise<Response> => {
     const { candidateName, candidateEmail, jobTitle, jobNoticeNo, closingDate }: ApplicationConfirmationRequest = await req.json();
 
     const emailResponse = await resend.emails.send({
-      from: "UNICC Recruitment <recruitment@unicc.org>",
+      from: "UNICC Recruitment <recruitment@unicconnect.org>",
       to: [candidateEmail],
       cc: ["valente@unicc.org"],
       subject: `Application Confirmation - ${jobTitle} (${jobNoticeNo})`,
@@ -69,7 +69,21 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Application confirmation email sent successfully:", emailResponse);
+    if (emailResponse.error) {
+      console.error("Resend error:", emailResponse.error);
+      return new Response(
+        JSON.stringify({ 
+          error: emailResponse.error.message || "Failed to send email",
+          details: emailResponse.error 
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log("Application confirmation email sent successfully:", emailResponse.data);
 
     return new Response(JSON.stringify(emailResponse), {
       status: 200,

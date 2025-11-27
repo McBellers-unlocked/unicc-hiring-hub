@@ -130,7 +130,7 @@ serve(async (req) => {
 
     let emailHtml = generateVideoInviteHtml(data);
     let fromName = 'UNICC HR Team';
-    let fromEmail = 'hr@notifications.unicc.org';
+    let fromEmail = 'recruitment@unicconnect.org';
     let subject = `Your next step for ${data.jobTitle}: Pre-Recorded Video Interview`;
 
     // Use custom template if available
@@ -147,7 +147,7 @@ serve(async (req) => {
       }
     }
 
-    const { error } = await resend.emails.send({
+    const emailResponse = await resend.emails.send({
       from: `${fromName} <${fromEmail}>`,
       to: [data.candidateEmail],
       cc: ["valente@unicc.org"],
@@ -155,8 +155,18 @@ serve(async (req) => {
       html: emailHtml,
     });
 
-    if (error) {
-      throw error;
+    if (emailResponse.error) {
+      console.error("Resend error:", emailResponse.error);
+      return new Response(
+        JSON.stringify({ 
+          error: emailResponse.error.message || "Failed to send email",
+          details: emailResponse.error 
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     // Log the email sent event

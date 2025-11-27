@@ -120,7 +120,21 @@ const handler = async (req: Request): Promise<Response> => {
       text: textBody,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    if (emailResponse.error) {
+      console.error("Resend error:", emailResponse.error);
+      return new Response(
+        JSON.stringify({ 
+          error: emailResponse.error.message || "Failed to send email",
+          details: emailResponse.error 
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log("Email sent successfully:", emailResponse.data);
 
     // Log the email send
     const { error: logError } = await supabase
