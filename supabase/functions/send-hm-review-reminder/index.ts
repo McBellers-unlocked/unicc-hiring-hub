@@ -70,7 +70,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email
     const emailResponse = await resend.emails.send({
-      from: "UNICC Recruitment <onboarding@resend.dev>",
+      from: "UNICC Recruitment <recruitment@unicconnect.org>",
       to: [hiringManager.email],
       cc: ["mattvalente85@gmail.com"],
       subject: `Reminder: Please Review and Finalize Position Description - ${requisition.position_title}`,
