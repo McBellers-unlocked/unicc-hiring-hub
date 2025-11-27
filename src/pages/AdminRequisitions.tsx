@@ -57,6 +57,8 @@ interface JobRequisition {
   finance_controller_approved_at: string | null;
   converted_to_job_id?: string;
   initial_request_approved?: boolean;
+  funding_status?: string;
+  brief_outline?: string;
 }
 
 export default function AdminRequisitions() {
@@ -579,6 +581,18 @@ export default function AdminRequisitions() {
                           </div>
                           
                           <div className="flex items-center gap-2">
+                            {/* View Request button - for viewing initial request form */}
+                            {(requisition.funding_status || requisition.brief_outline) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/requisitions/initial/${requisition.id}?view=true`)}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                View Request
+                              </Button>
+                            )}
+
                             {/* Continue PD Button for Drafts and PD Drafts */}
                             {(requisition.status === 'initial_request_draft' || requisition.status === 'draft' || requisition.status === 'pd_draft') && (
                               <Button
