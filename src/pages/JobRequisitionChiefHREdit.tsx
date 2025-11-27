@@ -252,10 +252,34 @@ export default function JobRequisitionChiefHREdit() {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Position description approved by Chief HR",
-      });
+      // Send email notification to hiring manager
+      try {
+        const { error: emailError } = await supabase.functions.invoke(
+          'send-chief-hr-review-notification',
+          {
+            body: { requisitionId: requisition.id }
+          }
+        );
+
+        if (emailError) {
+          console.error('Error sending email notification:', emailError);
+          toast({
+            title: "Success",
+            description: "Position description approved. Note: Email notification could not be sent.",
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: "Position description approved and hiring manager notified",
+          });
+        }
+      } catch (emailError) {
+        console.error('Error sending email:', emailError);
+        toast({
+          title: "Success",
+          description: "Position description approved. Note: Email notification could not be sent.",
+        });
+      }
 
       navigate('/admin/chief-hr-review');
     } catch (error) {
