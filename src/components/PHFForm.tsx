@@ -3139,7 +3139,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                   const validationStatus = getSectionValidationStatus(index);
                   const hasWarning = validationStatus === 'warning';
                   const isValid = validationStatus === 'valid';
-                  const isCompleted = completedTabs.has(index) && index !== currentSection;
+                  const showGreen = isValid && !hasWarning && index !== currentSection;
                   return (
                     <TabsTrigger 
                       key={index} 
@@ -3148,14 +3148,14 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                      className={cn(
                        "text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-1",
                        !isAccessible && "opacity-50 cursor-not-allowed bg-muted text-muted-foreground",
-                       isCompleted && isValid && !hasWarning && "bg-green-100 text-green-700",
+                       showGreen && "bg-green-100 text-green-700",
                        hasWarning && "bg-amber-50 text-amber-700 border-amber-200"
                      )}
                      title={section}
                    >
                      <span>{index + 1}. {section}</span>
                      {!isAccessible && <span>🔒</span>}
-                     {isCompleted && isValid && !hasWarning && <span>✓</span>}
+                     {showGreen && <span>✓</span>}
                      {hasWarning && <AlertTriangle className="h-3 w-3" />}
                    </TabsTrigger>
                  );
@@ -3170,7 +3170,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                   const validationStatus = getSectionValidationStatus(tabIndex);
                   const hasWarning = validationStatus === 'warning';
                   const isValid = validationStatus === 'valid';
-                  const isCompleted = completedTabs.has(tabIndex) && tabIndex !== currentSection;
+                  const showGreen = isValid && !hasWarning && tabIndex !== currentSection;
                   return (
                     <TabsTrigger 
                       key={tabIndex} 
@@ -3179,14 +3179,14 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                      className={cn(
                        "text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-1",
                        !isAccessible && "opacity-50 cursor-not-allowed bg-muted text-muted-foreground",
-                       isCompleted && isValid && !hasWarning && "bg-green-100 text-green-700",
+                       showGreen && "bg-green-100 text-green-700",
                        hasWarning && "bg-amber-50 text-amber-700 border-amber-200"
                      )}
                      title={section}
                    >
                      <span>{tabIndex + 1}. {section}</span>
                      {!isAccessible && <span>🔒</span>}
-                     {isCompleted && isValid && !hasWarning && <span>✓</span>}
+                     {showGreen && <span>✓</span>}
                      {hasWarning && <AlertTriangle className="h-3 w-3" />}
                    </TabsTrigger>
                  );
@@ -3201,7 +3201,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                   const validationStatus = getSectionValidationStatus(tabIndex);
                   const hasWarning = validationStatus === 'warning';
                   const isValid = validationStatus === 'valid';
-                  const isCompleted = completedTabs.has(tabIndex) && tabIndex !== currentSection;
+                  const showGreen = isValid && !hasWarning && tabIndex !== currentSection;
                   return (
                     <TabsTrigger 
                       key={tabIndex} 
@@ -3210,14 +3210,14 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                      className={cn(
                        "text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-1",
                        !isAccessible && "opacity-50 cursor-not-allowed bg-muted text-muted-foreground",
-                       isCompleted && isValid && !hasWarning && "bg-green-100 text-green-700",
+                       showGreen && "bg-green-100 text-green-700",
                        hasWarning && "bg-amber-50 text-amber-700 border-amber-200"
                      )}
                      title={section}
                    >
                      <span>{tabIndex + 1}. {section}</span>
                      {!isAccessible && <span>🔒</span>}
-                     {isCompleted && isValid && !hasWarning && <span>✓</span>}
+                     {showGreen && <span>✓</span>}
                      {hasWarning && <AlertTriangle className="h-3 w-3" />}
                    </TabsTrigger>
                  );
