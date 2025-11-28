@@ -1,20 +1,16 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "npm:resend@4.0.0";
+import { corsHeaders } from "../_shared/cors.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
 interface ApplicationConfirmationRequest {
-  candidateName: string;
   candidateEmail: string;
-  jobTitle: string;
-  jobNoticeNo: string;
-  closingDate: string;
+  candidateFirstName: string;
+  positionTitle: string;
+  applicationId: string;
+  jobId: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -24,47 +20,50 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { candidateName, candidateEmail, jobTitle, jobNoticeNo, closingDate }: ApplicationConfirmationRequest = await req.json();
+    const { candidateEmail, candidateFirstName, positionTitle, applicationId, jobId }: ApplicationConfirmationRequest = await req.json();
+
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const candidatePortalLink = "https://staging.unicconnect.org/my-applications";
 
     const emailResponse = await resend.emails.send({
       from: "UNICC Recruitment <recruitment@unicconnect.org>",
       to: [candidateEmail],
-      cc: ["valente@unicc.org"],
-      subject: `Application Confirmation - ${jobTitle} (${jobNoticeNo})`,
+      subject: `Thank You for Applying to ${positionTitle}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background-color: #0066cc; padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">UNICC</h1>
-            <p style="color: white; margin: 5px 0 0 0;">United Nations International Computing Centre</p>
-          </div>
+          <img src="https://cxpnvbphjpntrvvgjhli.supabase.co/storage/v1/object/public/application-files/unicc_logo.jpg" 
+               alt="UNICC Logo" 
+               style="max-width: 200px; margin-bottom: 20px;" />
           
-          <div style="padding: 30px 20px;">
-            <h2 style="color: #333;">Application Received</h2>
-            
-            <p>Dear ${candidateName},</p>
-            
-            <p>Thank you for your interest in joining UNICC. We have successfully received your application for the following position:</p>
-            
-            <div style="background-color: #f8f9fa; border-left: 4px solid #0066cc; padding: 15px; margin: 20px 0;">
-              <strong>Position:</strong> ${jobTitle}<br>
-              <strong>Notice No:</strong> ${jobNoticeNo}<br>
-              <strong>Closing Date:</strong> ${closingDate}
-            </div>
-            
-            <p>Your application will be reviewed by our recruitment team. We will contact you if your profile matches our requirements and you are selected for the next stage of the selection process.</p>
-            
-            <p>Please note that due to the high volume of applications we receive, we are only able to contact candidates who are selected for further consideration.</p>
-            
-            <p>Thank you for your interest in UNICC and we wish you all the best with your application.</p>
-            
-            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
-              <p style="color: #666; font-size: 14px;">
-                Best regards,<br>
-                UNICC Recruitment Team<br>
-                <a href="https://www.unicc.org" style="color: #0066cc;">www.unicc.org</a>
-              </p>
-            </div>
-          </div>
+          <h1 style="color: #0066cc;">Thank You for Applying</h1>
+          
+          <p>Hi ${candidateFirstName},</p>
+          
+          <p>Thank you for your interest in the <strong>${positionTitle}</strong> position at UNICC. We're happy to confirm that we've received your application.</p>
+          
+          <p>Our team will now review your materials carefully. If your profile aligns with what we're looking for, we'll be in touch about the next steps in the selection process. Either way, you'll hear from us as soon as we have an update.</p>
+          
+          <p>In the meantime, you can log into your candidate portal anytime to view the status of your application:</p>
+          
+          <a href="${candidatePortalLink}" 
+             style="display: inline-block; margin: 20px 0; padding: 12px 24px; background-color: #0066cc; color: white; text-decoration: none; border-radius: 5px;">
+            View My Applications →
+          </a>
+          
+          <p>Thank you again for taking the time to apply – we appreciate it.</p>
+          
+          <p style="margin-top: 30px; color: #333;">
+            Wishing you all the best,<br><br>
+            <strong>UNICC Talent Acquisition Team</strong>
+          </p>
+          
+          <p style="margin-top: 20px; color: #666; font-size: 12px;">
+            This is an automated notification from the UNICC Recruitment System.
+          </p>
         </div>
       `,
     });
@@ -84,6 +83,23 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log("Application confirmation email sent successfully:", emailResponse.data);
+
+    // Log the email send event
+    await supabase.from("email_send_log").insert({
+      application_id: applicationId,
+      recipient_email: candidateEmail,
+      recipient_name: candidateFirstName,
+      subject: `Thank You for Applying to ${positionTitle}`,
+      template_slug: "application_confirmation",
+      status: "sent",
+      sent_at: new Date().toISOString(),
+      variables: {
+        application_id: applicationId,
+        job_id: jobId,
+        position_title: positionTitle,
+        candidate_first_name: candidateFirstName,
+      },
+    });
 
     return new Response(JSON.stringify(emailResponse), {
       status: 200,
