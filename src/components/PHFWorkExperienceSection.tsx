@@ -192,15 +192,17 @@ export default function PHFWorkExperienceSection({
   // Use edited experiences if available, otherwise use profile work experience
   const displayExperiences = editedExperiences || profileWorkExperience;
 
-  // Sort work experience by start date (most recent first)
-  const sortedExperiences = [...displayExperiences].sort((a, b) => {
-    const getStartDate = (exp: any) => {
-      const dateStr = exp.startDate || exp.start_date || '';
-      if (!dateStr) return new Date(0);
-      return new Date(dateStr);
-    };
-    return getStartDate(b).getTime() - getStartDate(a).getTime();
-  });
+  // Sort work experience by start date (most recent first) while preserving original indices
+  const sortedExperiences = [...displayExperiences]
+    .map((exp, originalIndex) => ({ ...exp, _originalIndex: originalIndex }))
+    .sort((a, b) => {
+      const getStartDate = (exp: any) => {
+        const dateStr = exp.startDate || exp.start_date || '';
+        if (!dateStr) return new Date(0);
+        return new Date(dateStr);
+      };
+      return getStartDate(b).getTime() - getStartDate(a).getTime();
+    });
 
   return (
     <Card>
@@ -255,7 +257,7 @@ export default function PHFWorkExperienceSection({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleEditExperience(index)}
+                    onClick={() => handleEditExperience((experience as any)._originalIndex)}
                     className="ml-2 h-8 w-8 p-0"
                   >
                     <Edit2 className="h-4 w-4" />
