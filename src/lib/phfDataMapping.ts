@@ -87,7 +87,11 @@ export function convertPHFToWorkExperience(phfWork: any[]): any[] {
         location: work.location || '',
         description: work.description || '',
         isUNExperience: work.isUNExperience || false,
-        isCurrent: work.isCurrent || false
+        isCurrent: work.isCurrent || false,
+        supervisor_name: work.supervisor_name || '',
+        supervisor_title: work.supervisor_title || '',
+        supervisor_phone: work.supervisor_phone || '',
+        supervisor_email: work.supervisor_email || ''
       };
     }
     
@@ -106,7 +110,11 @@ export function convertPHFToWorkExperience(phfWork: any[]): any[] {
       location: work.employer_address || '',
       description: work.duties_and_responsibilities || '',
       isUNExperience: work.is_un_system_post || false,
-      isCurrent: work.is_present || false
+      isCurrent: work.is_present || false,
+      supervisor_name: work.supervisor_name || '',
+      supervisor_title: work.supervisor_title || '',
+      supervisor_phone: work.supervisor_phone || '',
+      supervisor_email: work.supervisor_email || ''
     };
   });
 }
