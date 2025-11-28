@@ -817,17 +817,23 @@ export default function ApplicationDetail() {
                 {application.phf_data?.languages && (Object.keys(application.phf_data.languages.un_languages || {}).length > 0 || (application.phf_data.languages.other_languages && application.phf_data.languages.other_languages.length > 0)) ? (
                   <div className="space-y-3">
                     {/* UN Languages */}
-                    {application.phf_data.languages.un_languages && Object.entries(application.phf_data.languages.un_languages).map(([lang, proficiency]: [string, any]) => (
-                      <div key={lang} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                        <div>
-                          <span className="font-medium capitalize">{lang}</span>
-                          <Badge variant="secondary" className="ml-2 text-xs">UN Language</Badge>
+                    {application.phf_data.languages.un_languages && Object.entries(application.phf_data.languages.un_languages).map(([lang, proficiency]: [string, any]) => {
+                      const profLevel = typeof proficiency === 'string' && proficiency
+                        ? proficiency 
+                        : (proficiency?.english || proficiency?.level || 'Not specified');
+                      
+                      return (
+                        <div key={lang} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                          <div>
+                            <span className="font-medium capitalize">{lang}</span>
+                            <Badge variant="secondary" className="ml-2 text-xs">UN Language</Badge>
+                          </div>
+                          <Badge variant="outline" className="capitalize">
+                            {profLevel}
+                          </Badge>
                         </div>
-                        <Badge variant="outline" className="capitalize">
-                          {typeof proficiency === 'string' ? proficiency : (proficiency.english || 'N/A')}
-                        </Badge>
-                      </div>
-                    ))}
+                      );
+                    })}
                     
                     {/* Other Languages */}
                     {application.phf_data.languages.other_languages && application.phf_data.languages.other_languages.length > 0 && 
