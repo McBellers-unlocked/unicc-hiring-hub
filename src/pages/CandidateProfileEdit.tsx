@@ -21,7 +21,7 @@ import LanguageSection from "@/components/profile/LanguageSection";
 import ProfilePhotoSection from "@/components/profile/ProfilePhotoSection";
 import ProfileCompletionWidget from "@/components/profile/ProfileCompletionWidget";
 import PortfolioSection from "@/components/profile/PortfolioSection";
-import ProfileAnalyticsSection from "@/components/profile/ProfileAnalyticsSection";
+
 import JobRecommendationsSection from "@/components/profile/JobRecommendationsSection";
 import { PersonalDetailsSection } from "@/components/profile/PersonalDetailsSection";
 import { convertPHFToWorkExperience, convertWorkExperienceToPHF } from "@/lib/phfDataMapping";
@@ -632,10 +632,6 @@ export default function CandidateProfileEdit() {
           <ProfileCompletionWidget 
             completionData={getCompletionData()}
             overallPercentage={calculateCompletionPercentage()}
-          />
-          <ProfileAnalyticsSection
-            profileId={profile.id || "new"}
-            completionPercentage={calculateCompletionPercentage()}
           />
           <JobRecommendationsSection
             candidateProfile={profile}
