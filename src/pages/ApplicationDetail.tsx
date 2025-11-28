@@ -113,6 +113,36 @@ export default function ApplicationDetail() {
   
   const canMoveToLonglist = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR');
 
+  // Helper function to deduplicate work experience based on key fields
+  const deduplicateWorkExperience = (experiences: any[]) => {
+    const seen = new Set();
+    return experiences.filter((exp) => {
+      const company = (exp.company || exp.employer_name || '').toLowerCase().trim();
+      const position = (exp.position || exp.exact_title_of_post || exp.position_title || '').toLowerCase().trim();
+      const startYear = exp.startDate || exp.period_from_year || exp.from_year || '';
+      const key = `${company}|${position}|${startYear}`;
+      
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
+  // Helper function to deduplicate education based on key fields
+  const deduplicateEducation = (education: any[]) => {
+    const seen = new Set();
+    return education.filter((edu) => {
+      const institution = (edu.institution || edu.institution_name || '').toLowerCase().trim();
+      const degree = (edu.degree || edu.degree_type || edu.degree_or_certificate_title || '').toLowerCase().trim();
+      const startYear = edu.startDate || edu.from_year || '';
+      const key = `${institution}|${degree}|${startYear}`;
+      
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
   useEffect(() => {
     if (id && hasAccess) {
       fetchApplication();
@@ -749,10 +779,10 @@ export default function ApplicationDetail() {
 
             {/* Work Experience Section */}
             {(() => {
-              const allWorkExperience = [
+              const allWorkExperience = deduplicateWorkExperience([
                 ...(application.phf_data?.employment || []),
                 ...(application.phf_data?._workExperiences || [])
-              ];
+              ]);
               
               if (allWorkExperience.length === 0) return null;
               
@@ -846,10 +876,10 @@ export default function ApplicationDetail() {
 
             {/* Education Section */}
             {(() => {
-              const allEducation = [
+              const allEducation = deduplicateEducation([
                 ...(application.phf_data?.education || []),
                 ...(application.phf_data?._education || [])
-              ];
+              ]);
               
               if (allEducation.length === 0) return null;
               
