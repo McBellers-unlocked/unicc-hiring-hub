@@ -298,6 +298,7 @@ interface PHFFormProps {
   onTabCompleted?: (tabIndex: number) => void;
   initialTab?: number;
   candidateProfile?: any;
+  onProgressChange?: (currentTab: number) => void;
 }
 
 const SECTIONS = [
@@ -361,7 +362,7 @@ I acknowledge that my application and all supporting documents will be held in c
 
 I confirm that I have read and agree to the Privacy Notice for Applicants and understand how my personal data will be processed.`;
 
-export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = [], killerAnswers = {}, onKillerAnswerChange, disqualified = false, completedTabs = new Set([0]), onTabCompleted, initialTab = 0, candidateProfile }: PHFFormProps) {
+export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = [], killerAnswers = {}, onKillerAnswerChange, disqualified = false, completedTabs = new Set([0]), onTabCompleted, initialTab = 0, candidateProfile, onProgressChange }: PHFFormProps) {
   const [currentSection, setCurrentSection] = useState(initialTab);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [visitedSections, setVisitedSections] = useState<Set<number>>(new Set([initialTab])); // Track which sections user has visited
@@ -370,6 +371,11 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
   const [applicationSkills, setApplicationSkills] = useState<string[]>([]);
   const [applicationCertifications, setApplicationCertifications] = useState<any[]>([]);
   const [newSkill, setNewSkill] = useState('');
+  
+  // Notify parent when current section changes
+  useEffect(() => {
+    onProgressChange?.(currentSection);
+  }, [currentSection, onProgressChange]);
   const [isAddCertDialogOpen, setIsAddCertDialogOpen] = useState(false);
   const [newCertification, setNewCertification] = useState({
     name: '',
