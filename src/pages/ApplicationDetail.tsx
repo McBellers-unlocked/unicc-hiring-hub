@@ -1118,17 +1118,26 @@ export default function ApplicationDetail() {
                   
                   return allCertifications.length > 0 ? (
                     <div className="space-y-3">
-                      {allCertifications.map((cert: any, index: number) => (
-                        <div key={index} className="p-3 bg-muted/50 rounded-lg">
-                          <h5 className="font-medium">{cert.name || cert.title}</h5>
-                          {cert.issuer && <p className="text-sm text-muted-foreground">{cert.issuer}</p>}
-                          {cert.date && (
-                            <p className="text-xs text-muted-foreground">
-                              Issued: {format(new Date(cert.date), 'dd/MM/yyyy')}
-                            </p>
-                          )}
-                        </div>
-                      ))}
+                      {allCertifications.map((cert: any, index: number) => {
+                        const issuer = cert.issuer || cert.issuing_organization;
+                        const issueDate = cert.date || cert.issue_date || cert.issueDate;
+                        const expiryDate = cert.expiry_date || cert.expiryDate;
+                        
+                        return (
+                          <div key={index} className="p-3 bg-muted/50 rounded-lg">
+                            <h5 className="font-medium">{cert.name || cert.title}</h5>
+                            {issuer && <p className="text-sm text-muted-foreground">{issuer}</p>}
+                            <div className="flex flex-wrap gap-x-4 text-xs text-muted-foreground mt-1">
+                              {issueDate && (
+                                <span>Issued: {format(new Date(issueDate), 'MM/yyyy')}</span>
+                              )}
+                              {expiryDate && (
+                                <span>Expires: {format(new Date(expiryDate), 'MM/yyyy')}</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="text-center py-6 text-muted-foreground">
