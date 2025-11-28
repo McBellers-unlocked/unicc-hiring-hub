@@ -393,6 +393,41 @@ export default function ApplicationDetail() {
     return String(value);
   };
 
+  // Helper function to format work experience dates as MM/YYYY
+  const formatWorkExperienceDate = (job: any, type: 'start' | 'end'): string => {
+    // Handle current/present for end dates
+    if (type === 'end' && (job.isCurrent || job.is_present)) {
+      return 'Present';
+    }
+    
+    // Handle ISO date format (e.g., "2024-10" or "2024-10-01")
+    const isoDate = type === 'start' ? job.startDate : job.endDate;
+    if (isoDate && typeof isoDate === 'string' && isoDate.includes('-')) {
+      const parts = isoDate.split('-');
+      if (parts.length >= 2) {
+        return `${parts[1].padStart(2, '0')}/${parts[0]}`; // MM/YYYY
+      }
+    }
+    
+    // Handle separate month/year fields
+    const month = type === 'start' 
+      ? (job.period_from_month || job.from_month) 
+      : (job.period_to_month || job.to_month);
+    const year = type === 'start' 
+      ? (job.period_from_year || job.from_year) 
+      : (job.period_to_year || job.to_year);
+    
+    if (month && year) {
+      return `${String(month).padStart(2, '0')}/${year}`;
+    }
+    
+    if (year) {
+      return String(year);
+    }
+    
+    return type === 'end' ? 'Present' : 'Unknown';
+  };
+
   // Helper function to calculate total UN experience
   const calculateUNExperience = (employment: any[]) => {
     if (!Array.isArray(employment) || employment.length === 0) {
@@ -883,15 +918,6 @@ export default function ApplicationDetail() {
                   <CardContent>
                     <div className="space-y-6">
                       {sortedWorkExperience.map((job: any, index: number) => {
-                        const startDate = job.startDate || (job.period_from_month && job.period_from_year 
-                          ? `${job.period_from_month}/${job.period_from_year}`
-                          : job.from_year || 'Start');
-                        const endDate = job.isCurrent || job.is_present 
-                          ? 'Present' 
-                          : (job.endDate || (job.period_to_month && job.period_to_year 
-                            ? `${job.period_to_month}/${job.period_to_year}`
-                            : job.to_year || 'End'));
-                      
                         return (
                           <div key={index} className="border-l-2 border-primary pl-4 space-y-2">
                             <div className="flex items-start justify-between">
@@ -904,7 +930,7 @@ export default function ApplicationDetail() {
                               </div>
                               <div className="text-right">
                                 <p className="text-sm font-medium">
-                                  {startDate} - {endDate}
+                                  {formatWorkExperienceDate(job, 'start')} - {formatWorkExperienceDate(job, 'end')}
                                 </p>
                                 {(job.isCurrent || job.is_present) && (
                                   <Badge variant="secondary" className="mt-1">Current Position</Badge>
