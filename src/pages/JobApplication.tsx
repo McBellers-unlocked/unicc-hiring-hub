@@ -348,18 +348,36 @@ export default function JobApplication() {
     try {
       setSubmitting(true);
 
+      // Extract special fields and merge edited data
+      const { _editedData, _markTabCompleted, ...corePhfData } = phfData;
+      
+      // Merge edited education and work experiences into the main data if present
+      const mergedPhfData = {
+        ...corePhfData,
+        // Store edited education in phf_data
+        _education: _editedData?.education || corePhfData._education,
+        _workExperiences: _editedData?.workExperiences || corePhfData._workExperiences,
+      };
+
       // For partial saves (progress), save to localStorage for persistence
       if (!isComplete) {
+        // If a tab should be marked as completed, add it before saving
+        let tabsToSave = completedTabs;
+        if (_markTabCompleted !== undefined) {
+          tabsToSave = new Set([...completedTabs, _markTabCompleted]);
+          setCompletedTabs(tabsToSave); // Update local state too
+        }
+        
         const progressKey = `phf_progress_${jobId}`;
         const progressData = {
-          phfData,
+          phfData: mergedPhfData,
           killerAnswers,
-          completedTabs: Array.from(completedTabs),
+          completedTabs: Array.from(tabsToSave),
           timestamp: new Date().toISOString()
         };
         localStorage.setItem(progressKey, JSON.stringify(progressData));
         
-        setPHFData(phfData);
+        setPHFData(mergedPhfData);
         
         // For authenticated users, also save to database as Draft
         const { data: { user } } = await supabase.auth.getUser();
@@ -367,9 +385,9 @@ export default function JobApplication() {
           try {
             // Add progress metadata to phf_data
             const phfDataWithProgress = {
-              ...phfData,
+              ...mergedPhfData,
               _progress: {
-                completedTabs: Array.from(completedTabs),
+                completedTabs: Array.from(tabsToSave),
                 currentTab: currentTab
               }
             };
@@ -404,7 +422,7 @@ export default function JobApplication() {
           
           // Sync PHF data back to candidate profile on every save
           try {
-            const profileUpdates = updateProfileFromPHF(phfData);
+            const profileUpdates = updateProfileFromPHF(mergedPhfData);
             
             await supabase
               .from('candidates')
