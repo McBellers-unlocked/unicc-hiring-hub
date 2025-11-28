@@ -221,9 +221,9 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                       {edu.institution}
                     </div>
                   )}
-                  {edu.year && (
+                  {(edu.dateRange || edu.year) && (
                     <div className="text-xs text-muted-foreground font-medium">
-                      {edu.year}
+                      {edu.dateRange || edu.year}
                     </div>
                   )}
                 </div>
@@ -264,10 +264,15 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                         {job.organization}
                       </div>
                     )}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {(job.startDate || job.endDate) && (
+                        <span className="text-xs text-muted-foreground">
+                          {job.startDate}{job.endDate ? ` - ${job.endDate}` : ''}
+                        </span>
+                      )}
                       {job.length && (
                         <span className="text-xs text-muted-foreground font-medium">
-                          {job.length}
+                          ({job.length})
                         </span>
                       )}
                       {isUNJob && (

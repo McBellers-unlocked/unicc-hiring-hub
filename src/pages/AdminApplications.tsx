@@ -397,13 +397,20 @@ export default function AdminApplications() {
     const educationArray = Array.isArray(education) ? education : (education.length ? education : []);
     if (educationArray.length === 0) return [];
     
-    return educationArray.map((edu: any) => ({
-      degree: edu.degree || edu.degree_type || 'Not specified',
-      fieldOfStudy: edu.field_of_study || edu.field || edu.main_course_of_study || edu.major || edu.subject || '',
-      institution: edu.institution || edu.institution_name || edu.university || '',
-      year: edu.end_date ? new Date(edu.end_date).getFullYear().toString() : 
-            (edu.to_year || edu.year_awarded || '')
-    }));
+    return educationArray.map((edu: any) => {
+      const startYear = edu.start_date ? new Date(edu.start_date).getFullYear().toString() : (edu.from_year || '');
+      const endYear = edu.end_date ? new Date(edu.end_date).getFullYear().toString() : (edu.to_year || edu.year_awarded || '');
+      const dateRange = startYear && endYear ? `${startYear} - ${endYear}` : (endYear || '');
+      
+      return {
+        degree: edu.degree || edu.degree_type || 'Not specified',
+        fieldOfStudy: edu.field_of_study || edu.field || edu.main_course_of_study || edu.major || edu.subject || '',
+        institution: edu.institution || edu.institution_name || edu.university || '',
+        year: endYear,
+        startYear,
+        dateRange
+      };
+    });
   };
 
   const getEducationDetails = (education: any) => {
@@ -466,20 +473,33 @@ export default function AdminApplications() {
 
   const getRecentWorkExperience = (workExp: any) => {
     const workExpArray = Array.isArray(workExp) ? workExp : (workExp?.length ? workExp : []);
-    if (workExpArray.length === 0) return [{ title: 'Not specified', organization: '', length: '' }];
+    if (workExpArray.length === 0) return [{ title: 'Not specified', organization: '', length: '', startDate: '', endDate: '', isCurrent: false }];
+    
+    // Sort by start date (most recent first)
+    const sortedExp = [...workExpArray].sort((a, b) => {
+      const aDate = a.startDate || a.start_date || a.period_from_year || '';
+      const bDate = b.startDate || b.start_date || b.period_from_year || '';
+      if (!aDate || !bDate) return 0;
+      return new Date(bDate).getTime() - new Date(aDate).getTime();
+    });
     
     // Get all work experience positions
-    return workExpArray.map((exp: any) => {
+    return sortedExp.map((exp: any) => {
       const title = exp.position || exp.exact_title_of_post || exp.title || 'Not specified';
       const organization = exp.company || exp.employer_name || exp.employer || '';
+      const isCurrent = exp.isCurrent || exp.is_present;
       
       // Calculate length in position
-      const startDate = exp.startDate || exp.start_date || exp.period_from_year;
+      const rawStartDate = exp.startDate || exp.start_date || exp.period_from_year;
+      const rawEndDate = exp.endDate || exp.end_date || exp.period_to_year;
       let length = '';
-      if (startDate) {
-        const start = new Date(startDate);
-        const end = exp.isCurrent || exp.is_present ? new Date() : 
-                    (exp.endDate || exp.end_date ? new Date(exp.endDate || exp.end_date) : new Date());
+      let formattedStartDate = '';
+      let formattedEndDate = '';
+      
+      if (rawStartDate) {
+        const start = new Date(rawStartDate);
+        const end = isCurrent ? new Date() : 
+                    (rawEndDate ? new Date(rawEndDate) : new Date());
         const years = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
         const months = Math.floor(((end.getTime() - start.getTime()) % (1000 * 60 * 60 * 24 * 365.25)) / (1000 * 60 * 60 * 24 * 30.44));
         
@@ -490,9 +510,20 @@ export default function AdminApplications() {
         } else {
           length = 'New';
         }
+        
+        // Format dates for display
+        formattedStartDate = format(start, 'MMM yyyy');
+        formattedEndDate = isCurrent ? 'Present' : (rawEndDate ? format(new Date(rawEndDate), 'MMM yyyy') : '');
       }
       
-      return { title, organization, length };
+      return { 
+        title, 
+        organization, 
+        length, 
+        startDate: formattedStartDate,
+        endDate: formattedEndDate,
+        isCurrent
+      };
     });
   };
 
