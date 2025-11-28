@@ -146,7 +146,7 @@ export default function PHFWorkExperienceSection({
     const position = exp?.position || exp?.exact_title_of_post || '';
     const startDate = exp?.startDate || exp?.start_date || (exp?.period_from_year && exp?.period_from_month ? `${exp.period_from_year}-${String(exp.period_from_month).padStart(2, '0')}` : '');
     const endDate = exp?.endDate || exp?.end_date || (exp?.period_to_year && exp?.period_to_month ? `${exp.period_to_year}-${String(exp.period_to_month).padStart(2, '0')}` : '');
-    const isCurrent = exp?.isCurrent ?? exp?.is_present ?? exp?.ongoing ?? false;
+    const isCurrent = exp?.isCurrent ?? exp?.is_present ?? exp?.ongoing ?? exp?.current ?? false;
     const isUNExperience = exp?.isUNExperience ?? exp?.is_un_system_post ?? false;
 
     setEditingIndex(index);
