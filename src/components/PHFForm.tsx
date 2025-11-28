@@ -321,7 +321,7 @@ I confirm that I have read and agree to the Privacy Notice for Applicants and un
 export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = [], killerAnswers = {}, onKillerAnswerChange, disqualified = false, completedTabs = new Set([0]), onTabCompleted, initialTab = 0, candidateProfile }: PHFFormProps) {
   const [currentSection, setCurrentSection] = useState(initialTab);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [visitedSections, setVisitedSections] = useState<Set<number>>(new Set([0])); // Track which sections user has visited
+  const [visitedSections, setVisitedSections] = useState<Set<number>>(new Set([initialTab])); // Track which sections user has visited
   const [editedWorkExperiences, setEditedWorkExperiences] = useState<any[]>([]);
   const [applicationSkills, setApplicationSkills] = useState<string[]>([]);
   const [applicationCertifications, setApplicationCertifications] = useState<any[]>([]);
@@ -365,6 +365,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     
     switch (sectionIndex) {
       case 0: // Eligibility Questions
+        if (!visitedSections.has(0)) return null;
         // Check killer question answers
         if (killerQuestions.length > 0) {
           const hasUnanswered = killerQuestions.some(q => 
@@ -375,6 +376,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         return 'valid';
         
       case 1: // Personal Details
+        if (!visitedSections.has(1)) return null;
         const personalRequired = ['familyName', 'firstNames', 'sex', 'dateOfBirth', 'placeOfBirth', 'countryOfBirth', 'presentNationality', 'maritalStatus', 'permanentAddress', 'presentAddress', 'telephone', 'email'];
         const personalMissing = personalRequired.some(field => 
           !formValues.personalDetails?.[field] || formValues.personalDetails?.[field] === ''
@@ -391,6 +393,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         return visitedSections.has(4) ? 'valid' : null; // Optional - show valid only after visited
         
       case 5: // Education
+        if (!visitedSections.has(5)) return null;
         // Check if we have education data either in form or from candidate profile
         const hasEducationInForm = formValues.education && formValues.education.length > 0;
         const hasEducationInProfile = candidateProfile?.education && candidateProfile.education.length > 0;
@@ -420,6 +423,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         return 'valid';
         
       case 6: // Employment Record
+        if (!visitedSections.has(6)) return null;
         // PRIORITY 1: Check editedWorkExperiences first (user edits from dialog)
         const hasEditedWorkExperiences = editedWorkExperiences && editedWorkExperiences.length > 0;
         
@@ -536,15 +540,19 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         return 'valid';
         
       case 7: // Additional Information
+        if (!visitedSections.has(7)) return null;
         return 'valid'; // Optional section
         
       case 8: // Consent to Send
+        if (!visitedSections.has(8)) return null;
         return 'valid'; // Optional section
         
       case 9: // Mobility/Medical
+        if (!visitedSections.has(9)) return null;
         return 'valid'; // Optional section
         
       case 10: // References
+        if (!visitedSections.has(10)) return null;
         const hasThreeRefs = formValues.references && formValues.references.length === 3;
         if (!hasThreeRefs) return 'warning';
         const refsIncomplete = formValues.references.some(ref => 
@@ -553,19 +561,23 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         return refsIncomplete || formErrors.references ? 'warning' : 'valid';
         
       case 11: // Employer Contact & Status
+        if (!visitedSections.has(11)) return null;
         const employerContactMissing = formValues.employerContact?.objection_to_contact_present_employer === undefined || 
                                       formValues.employerContact?.presently_in_government_employ === undefined;
         return employerContactMissing || formErrors.employerContact ? 'warning' : 'valid';
         
       case 12: // Availability
+        if (!visitedSections.has(12)) return null;
         return 'valid'; // Optional section
         
       case 13: // Motivation Letter
+        if (!visitedSections.has(13)) return null;
         const motivationMissing = !formValues.motivationLetter?.motivation_letter_content || 
                                  formValues.motivationLetter?.motivation_letter_content?.trim() === '';
         return motivationMissing || formErrors.motivationLetter ? 'warning' : 'valid';
         
       case 14: // Certification & Signature
+        if (!visitedSections.has(14)) return null;
         const certificationMissing = !formValues.certification?.certify_true_complete_correct || 
                                     !formValues.certification?.signature_place ||
                                     !formValues.certification?.signature_date;
