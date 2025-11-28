@@ -865,7 +865,15 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     setIsSubmitting(true);
     try {
       const formData = form.getValues();
-      await onSave(formData, false);
+      // Include edited education and work experiences in saved data
+      const dataToSave = {
+        ...formData,
+        _editedData: {
+          education: editedEducation.length > 0 ? editedEducation : undefined,
+          workExperiences: editedWorkExperiences.length > 0 ? editedWorkExperiences : undefined,
+        }
+      };
+      await onSave(dataToSave, false);
       toast({
         title: 'Progress Saved',
         description: 'Your progress has been saved.',
@@ -940,9 +948,21 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     setIsSubmitting(true);
     try {
       const formData = form.getValues();
-      await onSave(formData, false);
       
-      // Mark current tab as completed and move to next
+      // Include edited education and work experiences in saved data
+      const dataToSave = {
+        ...formData,
+        _editedData: {
+          education: editedEducation.length > 0 ? editedEducation : undefined,
+          workExperiences: editedWorkExperiences.length > 0 ? editedWorkExperiences : undefined,
+        },
+        // Include the current tab to be marked as completed
+        _markTabCompleted: currentSection
+      };
+      
+      await onSave(dataToSave, false);
+      
+      // Still call onTabCompleted for local state update
       onTabCompleted?.(currentSection);
       const nextSection = Math.min(SECTIONS.length - 1, currentSection + 1);
       setVisitedSections(prev => new Set([...prev, currentSection, nextSection]));
