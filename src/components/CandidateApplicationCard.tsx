@@ -277,7 +277,7 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                       )}
                       {isUNJob && (
                         <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-700 border-blue-200">
-                          UN
+                          UN Experience
                         </Badge>
                       )}
                     </div>
