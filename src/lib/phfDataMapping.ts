@@ -73,6 +73,25 @@ export function convertPHFToWorkExperience(phfWork: any[]): any[] {
   if (!Array.isArray(phfWork)) return [];
   
   return phfWork.map(work => {
+    // Detect format: new format has 'company' directly, old format has 'employer_name'
+    const isNewFormat = work.company !== undefined || work.startDate !== undefined;
+    
+    if (isNewFormat) {
+      // Data is already in the correct format, just ensure all fields exist
+      return {
+        company: work.company || '',
+        position: work.position || '',
+        type: work.type || 'Full-time',
+        startDate: work.startDate || '',
+        endDate: work.endDate || '',
+        location: work.location || '',
+        description: work.description || '',
+        isUNExperience: work.isUNExperience || false,
+        isCurrent: work.isCurrent || false
+      };
+    }
+    
+    // Handle old PHF format (employer_name, exact_title_of_post, period_from_month, etc.)
     const formatDate = (month: string, year: string) => {
       if (!month || !year) return '';
       return `${year}-${month.padStart(2, '0')}`;
