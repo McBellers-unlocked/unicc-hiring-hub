@@ -424,6 +424,20 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     if (workExperienceInitialized.current) return;
     
     // Priority 1: Check initialData.employment (saved PHF session data in old format)
+    // Priority 1: Check _workExperiences FIRST (most recent edits including newly added entries)
+    const savedWorkExperiences = (initialData as any)?._workExperiences;
+    if (savedWorkExperiences && savedWorkExperiences.length > 0) {
+      const hasValidData = savedWorkExperiences.some((exp: any) => 
+        exp.company || exp.position
+      );
+      if (hasValidData) {
+        setEditedWorkExperiences(savedWorkExperiences);
+        workExperienceInitialized.current = true;
+        return;
+      }
+    }
+    
+    // Priority 2: Fall back to employment (old PHF format) if no _workExperiences
     const savedEmployment = (initialData as any)?.employment;
     if (savedEmployment && savedEmployment.length > 0) {
       // Check if entries have actual data (not empty placeholders)
@@ -451,19 +465,6 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
           supervisor_email: emp.supervisor_email || '',
         }));
         setEditedWorkExperiences(convertedExperiences);
-        workExperienceInitialized.current = true;
-        return;
-      }
-    }
-    
-    // Priority 2: Check _workExperiences if it has valid data
-    const savedWorkExperiences = (initialData as any)?._workExperiences;
-    if (savedWorkExperiences && savedWorkExperiences.length > 0) {
-      const hasValidData = savedWorkExperiences.some((exp: any) => 
-        exp.company || exp.position
-      );
-      if (hasValidData) {
-        setEditedWorkExperiences(savedWorkExperiences);
         workExperienceInitialized.current = true;
         return;
       }
