@@ -376,6 +376,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
   const [editedWorkExperiences, setEditedWorkExperiences] = useState<any[]>([]);
   const [editedEducation, setEditedEducation] = useState<any[]>([]);
   const educationInitialized = useRef(false);
+  const workExperienceInitialized = useRef(false);
   const [applicationSkills, setApplicationSkills] = useState<string[]>([]);
   const [applicationCertifications, setApplicationCertifications] = useState<any[]>([]);
   const [newSkill, setNewSkill] = useState('');
@@ -417,16 +418,63 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     }
   }, [completedTabs, initialTab]);
 
-  // Initialize edited work experiences from candidate profile on first load
+  // Initialize edited work experiences from initialData.employment or candidate profile on first load
   useEffect(() => {
-    if (
-      candidateProfile?.work_experience &&
-      candidateProfile.work_experience.length > 0 &&
-      editedWorkExperiences.length === 0
-    ) {
-      setEditedWorkExperiences(candidateProfile.work_experience);
+    // Only run initialization once per component mount
+    if (workExperienceInitialized.current) return;
+    
+    // Priority 1: Check initialData.employment (saved PHF session data in old format)
+    const savedEmployment = (initialData as any)?.employment;
+    if (savedEmployment && savedEmployment.length > 0) {
+      // Check if entries have actual data (not empty placeholders)
+      const hasValidData = savedEmployment.some((emp: any) => 
+        emp.employer_name || emp.company || emp.exact_title_of_post || emp.position
+      );
+      if (hasValidData) {
+        // Convert old PHF format to edited format for display
+        const convertedExperiences = savedEmployment.map((emp: any) => ({
+          company: emp.employer_name || emp.company || '',
+          position: emp.exact_title_of_post || emp.position || '',
+          type: emp.type_of_business || emp.type || 'Full-time',
+          startDate: emp.startDate || (emp.period_from_month && emp.period_from_year 
+            ? `${emp.period_from_year}-${emp.period_from_month.padStart(2, '0')}` : ''),
+          endDate: emp.is_present ? '' : (emp.endDate || (emp.period_to_month && emp.period_to_year 
+            ? `${emp.period_to_year}-${emp.period_to_month.padStart(2, '0')}` : '')),
+          location: emp.employer_address || emp.location || '',
+          description: emp.duties_and_responsibilities || emp.description || '',
+          isUNExperience: emp.is_un_system_post || emp.isUNExperience || false,
+          isCurrent: emp.is_present || emp.isCurrent || false,
+          // Preserve supervisor details for display
+          supervisor_name: emp.supervisor_name || '',
+          supervisor_title: emp.supervisor_title || '',
+          supervisor_phone: emp.supervisor_phone || '',
+          supervisor_email: emp.supervisor_email || '',
+        }));
+        setEditedWorkExperiences(convertedExperiences);
+        workExperienceInitialized.current = true;
+        return;
+      }
     }
-  }, [candidateProfile?.work_experience, editedWorkExperiences.length]);
+    
+    // Priority 2: Check _workExperiences if it has valid data
+    const savedWorkExperiences = (initialData as any)?._workExperiences;
+    if (savedWorkExperiences && savedWorkExperiences.length > 0) {
+      const hasValidData = savedWorkExperiences.some((exp: any) => 
+        exp.company || exp.position
+      );
+      if (hasValidData) {
+        setEditedWorkExperiences(savedWorkExperiences);
+        workExperienceInitialized.current = true;
+        return;
+      }
+    }
+    
+    // Priority 3: Initialize from candidate profile if no saved edits
+    if (candidateProfile?.work_experience && candidateProfile.work_experience.length > 0) {
+      setEditedWorkExperiences(candidateProfile.work_experience);
+      workExperienceInitialized.current = true;
+    }
+  }, [initialData, candidateProfile?.work_experience]);
 
   // Initialize edited education from initialData._education or candidate profile on first load
   useEffect(() => {
