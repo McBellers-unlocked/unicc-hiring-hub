@@ -443,7 +443,14 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
             
             const hasDuties = emp.description || emp.duties_and_responsibilities;
             
-            return !hasEmployer || !hasTitle || !hasValidDate || !hasDuties;
+            // Supervisor validation (check all possible field name variants)
+            const hasSupervisorName = emp.supervisor_name || emp.name_of_supervisor;
+            const hasSupervisorTitle = emp.supervisor_title;
+            const hasSupervisorPhone = emp.supervisor_phone;
+            const hasSupervisorEmail = emp.supervisor_email;
+            const hasSupervisorDetails = hasSupervisorName && hasSupervisorTitle && hasSupervisorPhone && hasSupervisorEmail;
+            
+            return !hasEmployer || !hasTitle || !hasValidDate || !hasDuties || !hasSupervisorDetails;
           });
           return editedIncomplete ? 'warning' : 'valid';
         }
@@ -476,7 +483,14 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
             
             const hasDuties = emp.duties_and_responsibilities || empAny.description;
             
-            return !hasEmployer || !hasTitle || !hasValidDate || !hasDuties;
+            // Supervisor validation (check all possible field name variants)
+            const hasSupervisorName = emp.supervisor_name || empAny.name_of_supervisor;
+            const hasSupervisorTitle = emp.supervisor_title;
+            const hasSupervisorPhone = emp.supervisor_phone;
+            const hasSupervisorEmail = emp.supervisor_email;
+            const hasSupervisorDetails = hasSupervisorName && hasSupervisorTitle && hasSupervisorPhone && hasSupervisorEmail;
+            
+            return !hasEmployer || !hasTitle || !hasValidDate || !hasDuties || !hasSupervisorDetails;
           });
           
           return employmentIncomplete || formErrors.employment ? 'warning' : 'valid';
@@ -484,23 +498,37 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         
         // PRIORITY 3: Check profile work_experience data
         if (hasEmploymentInProfile) {
-          const profileEmploymentIncomplete = candidateProfile.work_experience.some((emp: any) => 
-            (!emp.company && !emp.employer_name) ||
-            (!emp.position && !emp.exact_title_of_post) ||
-            (!emp.startDate && !emp.start_date && !emp.period_from_year) ||
-            (!emp.description && !emp.duties_and_responsibilities)
-          );
+          const profileEmploymentIncomplete = candidateProfile.work_experience.some((emp: any) => {
+            const hasSupervisorName = emp.supervisor_name || emp.name_of_supervisor;
+            const hasSupervisorTitle = emp.supervisor_title;
+            const hasSupervisorPhone = emp.supervisor_phone;
+            const hasSupervisorEmail = emp.supervisor_email;
+            const hasSupervisorDetails = hasSupervisorName && hasSupervisorTitle && hasSupervisorPhone && hasSupervisorEmail;
+            
+            return (!emp.company && !emp.employer_name) ||
+              (!emp.position && !emp.exact_title_of_post) ||
+              (!emp.startDate && !emp.start_date && !emp.period_from_year) ||
+              (!emp.description && !emp.duties_and_responsibilities) ||
+              !hasSupervisorDetails;
+          });
           return profileEmploymentIncomplete ? 'warning' : 'valid';
         }
         
         // PRIORITY 4: Check profile phf_work_experience data
         if (hasPHFEmploymentInProfile) {
-          const phfEmploymentIncomplete = candidateProfile.phf_work_experience.some((emp: any) => 
-            (!emp.employer_name && !emp.company) ||
-            (!emp.exact_title_of_post && !emp.position) ||
-            (!emp.period_from_year && !emp.startDate && !emp.start_date) ||
-            (!emp.duties_and_responsibilities && !emp.description)
-          );
+          const phfEmploymentIncomplete = candidateProfile.phf_work_experience.some((emp: any) => {
+            const hasSupervisorName = emp.supervisor_name || emp.name_of_supervisor;
+            const hasSupervisorTitle = emp.supervisor_title;
+            const hasSupervisorPhone = emp.supervisor_phone;
+            const hasSupervisorEmail = emp.supervisor_email;
+            const hasSupervisorDetails = hasSupervisorName && hasSupervisorTitle && hasSupervisorPhone && hasSupervisorEmail;
+            
+            return (!emp.employer_name && !emp.company) ||
+              (!emp.exact_title_of_post && !emp.position) ||
+              (!emp.period_from_year && !emp.startDate && !emp.start_date) ||
+              (!emp.duties_and_responsibilities && !emp.description) ||
+              !hasSupervisorDetails;
+          });
           return phfEmploymentIncomplete ? 'warning' : 'valid';
         }
         
@@ -3169,9 +3197,9 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                       return;
                     }
 
-                    // Check each employment entry for required duties field
-                    // Support both field naming conventions (duties_and_responsibilities/description)
-                    const incompleteDuties = employmentToValidate.some((emp: any) => {
+                    // Check each employment entry for required fields (duties, dates, and supervisor details)
+                    // Support both field naming conventions (duties_and_responsibilities/description, supervisor_name/name_of_supervisor)
+                    const incompleteEmployment = employmentToValidate.some((emp: any) => {
                       const isCurrentPosition =
                         emp.isCurrent === true ||
                         emp.is_present === true ||
@@ -3196,14 +3224,21 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
 
                       const hasDuties = typeof duties === 'string' && duties.trim() !== '';
 
-                      // Incomplete if missing duties or dates
-                      return !hasDuties || !hasStartDate || !hasEndDate;
+                      // Supervisor validation (check all possible field name variants)
+                      const hasSupervisorName = emp.supervisor_name || emp.name_of_supervisor;
+                      const hasSupervisorTitle = emp.supervisor_title;
+                      const hasSupervisorPhone = emp.supervisor_phone;
+                      const hasSupervisorEmail = emp.supervisor_email;
+                      const hasSupervisorDetails = hasSupervisorName && hasSupervisorTitle && hasSupervisorPhone && hasSupervisorEmail;
+
+                      // Incomplete if missing duties, dates, or supervisor details
+                      return !hasDuties || !hasStartDate || !hasEndDate || !hasSupervisorDetails;
                     });
 
-                    if (incompleteDuties) {
+                    if (incompleteEmployment) {
                       toast({
                         title: 'Incomplete Employment Record',
-                        description: 'Please complete the Employment Record (dates and duties) for all employment entries.',
+                        description: 'Please complete all required fields (dates, duties, and supervisor details) for each employment entry.',
                         variant: 'destructive',
                       });
                       setIsManualNavigation(true);
