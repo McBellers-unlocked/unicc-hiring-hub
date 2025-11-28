@@ -447,6 +447,25 @@ export default function JobApplication() {
         description: "Thank you for your application. We will review it and get back to you."
       });
 
+      // Send application confirmation email
+      try {
+        const firstName = phfData.personalDetails?.firstNames?.split(' ')[0] || 
+                         phfData.personalDetails?.familyName || 'Candidate';
+        
+        await supabase.functions.invoke('send-application-confirmation', {
+          body: {
+            candidateEmail: userEmail,
+            candidateFirstName: firstName,
+            positionTitle: job?.title || 'the position',
+            applicationId: applicationId || candidate.id,
+            jobId: jobId
+          }
+        });
+      } catch (emailError) {
+        // Don't fail the submission if email fails
+        console.error('Failed to send confirmation email:', emailError);
+      }
+
     } catch (error) {
       console.error('Error submitting application:', error);
       toast({
