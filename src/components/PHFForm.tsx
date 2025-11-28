@@ -366,6 +366,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [visitedSections, setVisitedSections] = useState<Set<number>>(new Set([initialTab])); // Track which sections user has visited
   const [editedWorkExperiences, setEditedWorkExperiences] = useState<any[]>([]);
+  const [editedEducation, setEditedEducation] = useState<any[]>([]);
   const [applicationSkills, setApplicationSkills] = useState<string[]>([]);
   const [applicationCertifications, setApplicationCertifications] = useState<any[]>([]);
   const [newSkill, setNewSkill] = useState('');
@@ -1846,9 +1847,25 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     );
   };
 
+  const handleAddEducation = (education: any) => {
+    const newEntries = [...(editedEducation.length > 0 ? editedEducation : candidateProfile?.education || []), education];
+    setEditedEducation(newEntries);
+  };
+
+  const handleEditEducation = (index: number, education: any) => {
+    const entries = editedEducation.length > 0 ? [...editedEducation] : [...(candidateProfile?.education || [])];
+    entries[index] = education;
+    setEditedEducation(entries);
+  };
+
   const renderEducation = () => (
     <div className="space-y-6">
-      <PHFEducationSection profileEducation={candidateProfile?.education || []} />
+      <PHFEducationSection 
+        profileEducation={candidateProfile?.education || []} 
+        onAddEducation={handleAddEducation}
+        onEditEducation={handleEditEducation}
+        editedEducation={editedEducation.length > 0 ? editedEducation : undefined}
+      />
     </div>
   );
 
