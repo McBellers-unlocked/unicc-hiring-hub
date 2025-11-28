@@ -427,6 +427,26 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     }
   }, [candidateProfile?.work_experience, editedWorkExperiences.length]);
 
+  // Initialize edited education from initialData._education or candidate profile on first load
+  useEffect(() => {
+    // Cast initialData to access _education field (saved state, not part of form schema)
+    const savedEducation = (initialData as any)?._education;
+    
+    // Priority 1: Restore from saved _education (edited entries from previous session)
+    if (savedEducation && savedEducation.length > 0 && editedEducation.length === 0) {
+      setEditedEducation(savedEducation);
+    }
+    // Priority 2: Initialize from candidate profile if no saved edits
+    else if (
+      candidateProfile?.education &&
+      candidateProfile.education.length > 0 &&
+      editedEducation.length === 0 &&
+      !savedEducation
+    ) {
+      setEditedEducation(candidateProfile.education);
+    }
+  }, [initialData, candidateProfile?.education, editedEducation.length]);
+
   // Validation status helper function
   const getSectionValidationStatus = (sectionIndex: number) => {
     const formValues = form.getValues();
