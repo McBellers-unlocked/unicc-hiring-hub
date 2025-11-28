@@ -397,9 +397,30 @@ export default function AdminApplications() {
     const educationArray = Array.isArray(education) ? education : (education.length ? education : []);
     if (educationArray.length === 0) return [];
     
+    // Helper to extract year from various formats
+    const extractYear = (value: any): string => {
+      if (!value) return '';
+      // If it's already a 4-digit year (number or string)
+      if (typeof value === 'number' && value > 1900 && value < 2100) {
+        return value.toString();
+      }
+      if (typeof value === 'string') {
+        // Check if it's just a 4-digit year string
+        if (/^\d{4}$/.test(value)) {
+          return value;
+        }
+        // Otherwise try to parse as a full date
+        const date = new Date(value);
+        if (!isNaN(date.getTime())) {
+          return date.getFullYear().toString();
+        }
+      }
+      return '';
+    };
+    
     return educationArray.map((edu: any) => {
-      const startYear = edu.start_date ? new Date(edu.start_date).getFullYear().toString() : (edu.from_year || '');
-      const endYear = edu.end_date ? new Date(edu.end_date).getFullYear().toString() : (edu.to_year || edu.year_awarded || '');
+      const startYear = extractYear(edu.start_date) || edu.from_year || '';
+      const endYear = extractYear(edu.end_date) || edu.to_year || edu.year_awarded || '';
       const dateRange = startYear && endYear ? `${startYear} - ${endYear}` : (endYear || '');
       
       return {
