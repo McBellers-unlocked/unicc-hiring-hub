@@ -103,6 +103,8 @@ export default function ApplicationDetail() {
   const [videoQuestions, setVideoQuestions] = useState<any[]>([]);
   const [videoAnswers, setVideoAnswers] = useState<any[]>([]);
   const [hasVideoAssignment, setHasVideoAssignment] = useState(false);
+  const [emailLogs, setEmailLogs] = useState<any[]>([]);
+  const [emailsLoading, setEmailsLoading] = useState(false);
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
@@ -115,6 +117,7 @@ export default function ApplicationDetail() {
     if (id && hasAccess) {
       fetchApplication();
       fetchVideoData();
+      fetchEmailLogs();
     }
   }, [id, hasAccess]);
 
@@ -201,6 +204,26 @@ export default function ApplicationDetail() {
       setVideoQuestions(Array.isArray(questionSet?.questions) ? questionSet.questions : []);
     } catch (error) {
       console.error('Error fetching video data:', error);
+    }
+  };
+
+  const fetchEmailLogs = async () => {
+    if (!id) return;
+    
+    setEmailsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('email_send_log')
+        .select('*')
+        .eq('application_id', id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setEmailLogs(data || []);
+    } catch (error) {
+      console.error('Error fetching email logs:', error);
+    } finally {
+      setEmailsLoading(false);
     }
   };
 
@@ -953,10 +976,66 @@ export default function ApplicationDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p>Email integration coming soon</p>
-                </div>
+                {emailsLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="text-muted-foreground mt-2">Loading emails...</p>
+                  </div>
+                ) : emailLogs.length > 0 ? (
+                  <div className="space-y-4">
+                    {emailLogs.map((email) => (
+                      <div key={email.id} className="border rounded-lg p-4 space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant={email.status === 'sent' ? 'default' : 'destructive'}>
+                                {email.status}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(email.sent_at || email.created_at), 'PPpp')}
+                              </span>
+                            </div>
+                            <h4 className="font-semibold">{email.subject}</h4>
+                            <p className="text-sm text-muted-foreground">To: {email.recipient_email}</p>
+                            {email.recipient_name && (
+                              <p className="text-sm text-muted-foreground">
+                                Recipient: {email.recipient_name}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {email.template_slug && (
+                          <div className="text-xs text-muted-foreground">
+                            Template: <code className="bg-muted px-1 py-0.5 rounded">{email.template_slug}</code>
+                          </div>
+                        )}
+                        
+                        {email.error_message && (
+                          <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
+                            Error: {email.error_message}
+                          </div>
+                        )}
+                        
+                        {email.variables && Object.keys(email.variables).length > 0 && (
+                          <details className="text-xs">
+                            <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                              View email variables
+                            </summary>
+                            <pre className="mt-2 bg-muted p-2 rounded overflow-x-auto">
+                              {JSON.stringify(email.variables, null, 2)}
+                            </pre>
+                          </details>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p>No emails sent for this application yet</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
