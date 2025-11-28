@@ -655,7 +655,20 @@ export default function CandidateProfileEdit() {
               email: profile.email,
               phone: profile.phone,
               maiden_name: profile.maiden_name,
-              date_of_birth: profile.date_of_birth ? new Date(profile.date_of_birth) : undefined,
+              date_of_birth: (() => {
+                if (!profile.date_of_birth) return undefined;
+                const val = profile.date_of_birth;
+                if (val instanceof Date) return val;
+                if (typeof val === 'string') {
+                  // Parse date string as local date to avoid timezone shift
+                  const datePart = val.includes('T') ? val.split('T')[0] : val;
+                  const parts = datePart.split('-');
+                  if (parts.length === 3) {
+                    return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                  }
+                }
+                return undefined;
+              })(),
               place_of_birth: profile.place_of_birth,
               country_of_birth: profile.country_of_birth,
               present_nationality: profile.present_nationality,

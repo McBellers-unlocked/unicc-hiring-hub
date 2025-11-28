@@ -95,7 +95,10 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
       date_of_birth: (() => {
         if (!initialData?.date_of_birth) return null;
         const val = initialData.date_of_birth;
-        if (val instanceof Date) return val;
+        if (val instanceof Date) {
+          // Create a new date using local components to ensure we have local midnight
+          return new Date(val.getFullYear(), val.getMonth(), val.getDate());
+        }
         if (typeof val === 'string') {
           const strVal = val as string;
           // Parse ISO string as local date to avoid timezone shift
