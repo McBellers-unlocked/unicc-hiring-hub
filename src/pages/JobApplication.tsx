@@ -52,6 +52,8 @@ export default function JobApplication() {
   const [candidateProfile, setCandidateProfile] = useState<any>(null);
   const [profileIncomplete, setProfileIncomplete] = useState(false);
   const [candidateId, setCandidateId] = useState<string | null>(null);
+  const [initialTab, setInitialTab] = useState<number>(0);
+  const [currentTab, setCurrentTab] = useState<number>(0);
   
   // Validation states
   const [disqualified, setDisqualified] = useState(false);
@@ -233,10 +235,22 @@ export default function JobApplication() {
         }
         
         if (existingApplication.phf_data && typeof existingApplication.phf_data === 'object') {
+          const existingData = existingApplication.phf_data as any;
+          
+          // Restore completedTabs from saved progress
+          if (existingData._progress?.completedTabs && Array.isArray(existingData._progress.completedTabs)) {
+            setCompletedTabs(new Set(existingData._progress.completedTabs));
+          }
+          
+          // Restore initial tab from saved progress
+          if (existingData._progress?.currentTab !== undefined) {
+            setInitialTab(existingData._progress.currentTab);
+            setCurrentTab(existingData._progress.currentTab);
+          }
+          
           // For Draft applications, merge latest profile personal details
           if (existingApplication.status === 'Draft' && candidate) {
             const freshProfileData = createPHFDataFromProfile(candidate);
-            const existingData = existingApplication.phf_data as any;
             const mergedData = {
               ...existingData,
               personalDetails: {
@@ -260,11 +274,13 @@ export default function JobApplication() {
             };
             setPHFData(mergedData);
             
-            // Clear stale localStorage for this job
-            const progressKey = `phf_progress_${jobId}`;
-            localStorage.removeItem(progressKey);
+            // Only clear localStorage if we successfully restored progress from database
+            if (existingData._progress?.completedTabs?.length > 0) {
+              const progressKey = `phf_progress_${jobId}`;
+              localStorage.removeItem(progressKey);
+            }
           } else {
-            setPHFData(existingApplication.phf_data);
+            setPHFData(existingData);
           }
         }
 
@@ -349,10 +365,19 @@ export default function JobApplication() {
         const { data: { user } } = await supabase.auth.getUser();
         if (user?.email && candidateId) {
           try {
+            // Add progress metadata to phf_data
+            const phfDataWithProgress = {
+              ...phfData,
+              _progress: {
+                completedTabs: Array.from(completedTabs),
+                currentTab: currentTab
+              }
+            };
+            
             if (applicationId) {
               // Update existing draft
               await supabase.from('applications').update({
-                phf_data: phfData,
+                phf_data: phfDataWithProgress,
                 answers: killerAnswers,
                 updated_at: new Date().toISOString()
               }).eq('id', applicationId);
@@ -362,7 +387,7 @@ export default function JobApplication() {
                 job_id: jobId,
                 candidate_id: candidateId,
                 status: 'Draft',
-                phf_data: phfData,
+                phf_data: phfDataWithProgress,
                 answers: killerAnswers,
                 phf_completed: false,
                 submitted_at: new Date().toISOString()
@@ -750,8 +775,9 @@ export default function JobApplication() {
                   disqualified={disqualified}
                   completedTabs={completedTabs}
                   onTabCompleted={markTabCompleted}
-                  initialTab={0}
+                  initialTab={initialTab}
                   candidateProfile={candidateProfile}
+                  onProgressChange={(tab) => setCurrentTab(tab)}
                 />
               </CardContent>
             </Card>
