@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, AlertCircle, FileText, Check, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PHFForm } from '@/components/PHFForm';
-import { createPHFDataFromProfile } from '@/lib/phfDataMapping';
+import { createPHFDataFromProfile, updateProfileFromPHF } from '@/lib/phfDataMapping';
 
 interface KillerQuestion {
   id: string;
@@ -474,6 +474,28 @@ export default function JobApplication() {
         if (applicationError) throw applicationError;
         finalApplicationId = application.id;
         setApplicationId(application.id);
+      }
+
+      // Sync PHF data back to candidate profile
+      try {
+        const profileUpdates = updateProfileFromPHF(mergedPHFData);
+        
+        const { error: profileSyncError } = await supabase
+          .from('candidates')
+          .update({
+            ...profileUpdates,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', candidate.id);
+        
+        if (profileSyncError) {
+          console.error('Error syncing PHF to profile:', profileSyncError);
+          // Don't fail the submission, just log the error
+        } else {
+          console.log('Profile updated from PHF data successfully');
+        }
+      } catch (syncError) {
+        console.error('Failed to sync PHF to profile:', syncError);
       }
 
       // Clear saved progress since application is now submitted
