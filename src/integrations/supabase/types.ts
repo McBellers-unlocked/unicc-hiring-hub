@@ -2632,6 +2632,7 @@ export type Database = {
     }
     Enums: {
       application_status:
+        | "Draft"
         | "Application"
         | "Screening"
         | "Longlist"
@@ -2803,6 +2804,7 @@ export const Constants = {
   public: {
     Enums: {
       application_status: [
+        "Draft",
         "Application",
         "Screening",
         "Longlist",

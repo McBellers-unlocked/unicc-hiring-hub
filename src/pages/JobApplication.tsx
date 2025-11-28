@@ -312,6 +312,40 @@ export default function JobApplication() {
         localStorage.setItem(progressKey, JSON.stringify(progressData));
         
         setPHFData(phfData);
+        
+        // For authenticated users, also save to database as Draft
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email && candidateId) {
+          try {
+            if (applicationId) {
+              // Update existing draft
+              await supabase.from('applications').update({
+                phf_data: phfData,
+                answers: killerAnswers,
+                updated_at: new Date().toISOString()
+              }).eq('id', applicationId);
+            } else {
+              // Create new draft application
+              const { data: newApp } = await supabase.from('applications').insert({
+                job_id: jobId,
+                candidate_id: candidateId,
+                status: 'Draft',
+                phf_data: phfData,
+                answers: killerAnswers,
+                phf_completed: false,
+                submitted_at: new Date().toISOString()
+              }).select().single();
+              
+              if (newApp) {
+                setApplicationId(newApp.id);
+              }
+            }
+          } catch (dbError) {
+            console.error('Error saving draft to database:', dbError);
+            // Don't fail if DB save fails, localStorage is the backup
+          }
+        }
+        
         toast({
           title: "Progress saved",
           description: "Your progress has been saved.",
