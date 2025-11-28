@@ -51,7 +51,14 @@ export default function WorkExperienceTimeline({ workExperience }: WorkExperienc
 
               <div className="space-y-2">
                 <div>
-                  <h4 className="font-semibold text-lg">{exp.position || exp.position_title}</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-semibold text-lg">{exp.position || exp.position_title}</h4>
+                    {(exp.isUNExperience || exp.is_un_system_post) && (
+                      <Badge variant="default" className="text-xs bg-blue-100 text-blue-700 hover:bg-blue-100">
+                        UN Experience
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-muted-foreground font-medium">
                     {exp.organization || exp.company}
                   </p>
