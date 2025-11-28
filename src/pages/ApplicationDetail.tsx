@@ -909,6 +909,37 @@ export default function ApplicationDetail() {
               
               if (allEducation.length === 0) return null;
               
+              // Helper function to format education dates as MM/YYYY
+              const formatEducationDate = (edu: any, type: 'start' | 'end'): string => {
+                // Check if current education for end date
+                if (type === 'end' && (edu.isCurrent || edu.is_present)) {
+                  return 'Present';
+                }
+                
+                // Handle ISO date format (e.g., "2023-07" or "2023-07-01")
+                const isoDate = type === 'start' ? edu.startDate : edu.endDate;
+                if (isoDate && typeof isoDate === 'string' && isoDate.includes('-')) {
+                  const parts = isoDate.split('-');
+                  if (parts.length >= 2) {
+                    return `${parts[1]}/${parts[0]}`; // MM/YYYY
+                  }
+                }
+                
+                // Handle separate month/year fields
+                const month = type === 'start' ? edu.from_month : edu.to_month;
+                const year = type === 'start' ? edu.from_year : edu.to_year;
+                if (month && year) {
+                  return `${String(month).padStart(2, '0')}/${year}`;
+                }
+                
+                // Fallback to just year if available
+                if (year) {
+                  return String(year);
+                }
+                
+                return type === 'end' ? 'Present' : 'Unknown';
+              };
+              
               return (
                 <Card>
                   <CardHeader>
@@ -922,10 +953,10 @@ export default function ApplicationDetail() {
                       {allEducation.map((edu: any, index: number) => (
                         <div key={index} className="border-l-2 border-secondary pl-4 space-y-1">
                           <h4 className="font-semibold">{edu.degree || edu.degree_type || edu.degree_or_certificate_title || 'Degree/Certificate'}</h4>
-                          <p className="text-muted-foreground">{edu.fieldOfStudy || edu.main_course_of_study || 'Field of Study'}</p>
+                          <p className="text-muted-foreground">{edu.fieldOfStudy || edu.field || edu.main_course_of_study || 'Field of Study'}</p>
                           <p className="font-medium text-sm">{edu.institution || edu.institution_name || 'Institution'}</p>
                           <p className="text-sm text-muted-foreground">
-                            {edu.location || edu.institution_country || edu.institution_place || edu.place_country || 'Location'} • {edu.startDate || (edu.from_month && edu.from_year ? `${edu.from_month}/${edu.from_year}` : edu.from_year || 'Year')} - {edu.endDate || (edu.to_month && edu.to_year ? `${edu.to_month}/${edu.to_year}` : edu.to_year || 'Year')}
+                            {edu.location || edu.institution_country || edu.institution_place || edu.place_country || 'Location'} • {formatEducationDate(edu, 'start')} - {formatEducationDate(edu, 'end')}
                           </p>
                           {edu.distinguish_honors_obtained && (
                             <p className="text-sm">
