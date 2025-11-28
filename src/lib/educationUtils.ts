@@ -15,7 +15,16 @@ export const DEGREE_TYPE_LEVELS: Record<string, EducationLevel> = {
   'Professional Certificate': 'Professional',
   'Technical Diploma': 'Professional',
   'Professional License': 'Professional',
-  'Other': 'Other'
+  'Other': 'Other',
+  // Legacy values for backward compatibility
+  'Bachelor\'s': 'First Level University',
+  'Master\'s': 'Advanced University',
+  'Associate': 'Professional',
+  'Certificate': 'Professional',
+  'Diploma': 'Professional',
+  'JD': 'Advanced University',
+  'LLB': 'First Level University',
+  'LLM': 'Advanced University',
 };
 
 export function getEducationLevel(degreeType: string): EducationLevel {

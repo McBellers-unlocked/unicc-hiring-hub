@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, User, GraduationCap, Briefcase, Save, Plus, Minus, FileUp } from 'lucide-react';
 import { z } from 'zod';
+import { EDUCATION_LEVELS } from '@/lib/educationLevels';
 
 const educationSchema = z.object({
   degreeType: z.string().min(1, "Degree type is required"),
@@ -472,22 +473,20 @@ export default function ManualApplicationForm() {
                   <h4 className="font-medium text-foreground">Education {index + 1}</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor={`degreeType-${index}`}>Degree Type *</Label>
+                      <Label htmlFor={`degreeType-${index}`}>Level of Education *</Label>
                       <Select 
                         value={edu.degreeType} 
                         onValueChange={(value) => updateEducationEntry(index, 'degreeType', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select degree type" />
+                          <SelectValue placeholder="Select level of education" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Bachelor's">Bachelor's</SelectItem>
-                          <SelectItem value="Master's">Master's</SelectItem>
-                          <SelectItem value="PhD">PhD</SelectItem>
-                          <SelectItem value="JD">JD (Juris Doctor)</SelectItem>
-                          <SelectItem value="LLB">LLB (Bachelor of Laws)</SelectItem>
-                          <SelectItem value="LLM">LLM (Master of Laws)</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
+                          {EDUCATION_LEVELS.map(level => (
+                            <SelectItem key={level.value} value={level.value}>
+                              {level.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>

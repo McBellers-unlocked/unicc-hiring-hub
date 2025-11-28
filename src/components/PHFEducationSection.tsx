@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { GraduationCap, Info, Plus, Edit2 } from 'lucide-react';
+import { EDUCATION_LEVELS } from '@/lib/educationLevels';
 
 interface EducationEntry {
   institution: string;
@@ -267,28 +268,20 @@ export default function PHFEducationSection({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="degree_type">Degree Type *</Label>
+                      <Label htmlFor="degree_type">Level of Education *</Label>
                       <Select 
                         value={newEducation.degree_type} 
                         onValueChange={(value) => setNewEducation(prev => ({ ...prev, degree_type: value }))}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select degree type" />
+                          <SelectValue placeholder="Select level of education" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="High School Diploma">High School Diploma</SelectItem>
-                          <SelectItem value="Secondary Education Certificate">Secondary Education Certificate</SelectItem>
-                          <SelectItem value="A-Levels">A-Levels</SelectItem>
-                          <SelectItem value="International Baccalaureate">International Baccalaureate</SelectItem>
-                          <SelectItem value="Bachelor's Degree">Bachelor's Degree</SelectItem>
-                          <SelectItem value="Bachelor's Degree (Honors)">Bachelor's Degree (Honors)</SelectItem>
-                          <SelectItem value="Master's Degree">Master's Degree</SelectItem>
-                          <SelectItem value="PhD">PhD</SelectItem>
-                          <SelectItem value="Post-Doctoral">Post-Doctoral</SelectItem>
-                          <SelectItem value="Professional Certificate">Professional Certificate</SelectItem>
-                          <SelectItem value="Technical Diploma">Technical Diploma</SelectItem>
-                          <SelectItem value="Professional License">Professional License</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
+                          {EDUCATION_LEVELS.map(level => (
+                            <SelectItem key={level.value} value={level.value}>
+                              {level.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -398,28 +391,20 @@ export default function PHFEducationSection({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="edit_degree_type">Degree Type *</Label>
+                  <Label htmlFor="edit_degree_type">Level of Education *</Label>
                   <Select 
                     value={editingEducation.degree_type} 
                     onValueChange={(value) => setEditingEducation(prev => ({ ...prev, degree_type: value }))}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select degree type" />
+                      <SelectValue placeholder="Select level of education" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="High School Diploma">High School Diploma</SelectItem>
-                      <SelectItem value="Secondary Education Certificate">Secondary Education Certificate</SelectItem>
-                      <SelectItem value="A-Levels">A-Levels</SelectItem>
-                      <SelectItem value="International Baccalaureate">International Baccalaureate</SelectItem>
-                      <SelectItem value="Bachelor's Degree">Bachelor's Degree</SelectItem>
-                      <SelectItem value="Bachelor's Degree (Honors)">Bachelor's Degree (Honors)</SelectItem>
-                      <SelectItem value="Master's Degree">Master's Degree</SelectItem>
-                      <SelectItem value="PhD">PhD</SelectItem>
-                      <SelectItem value="Post-Doctoral">Post-Doctoral</SelectItem>
-                      <SelectItem value="Professional Certificate">Professional Certificate</SelectItem>
-                      <SelectItem value="Technical Diploma">Technical Diploma</SelectItem>
-                      <SelectItem value="Professional License">Professional License</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
+                      {EDUCATION_LEVELS.map(level => (
+                        <SelectItem key={level.value} value={level.value}>
+                          {level.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
