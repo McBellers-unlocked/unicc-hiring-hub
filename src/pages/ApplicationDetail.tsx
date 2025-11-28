@@ -400,12 +400,34 @@ export default function ApplicationDetail() {
     }
     
     const unYears = employment
-      .filter((job: any) => job.is_un_system_post === true)
+      .filter((job: any) => job.is_un_system_post === true || job.isUNExperience === true)
       .reduce((total: number, job: any) => {
-        const fromYear = parseInt(job.period_from_year || job.from_year || '0');
-        const fromMonth = parseInt(job.period_from_month || job.from_month || '1');
-        const toYear = job.is_present ? new Date().getFullYear() : parseInt(job.period_to_year || job.to_year || new Date().getFullYear().toString());
-        const toMonth = job.is_present ? new Date().getMonth() + 1 : parseInt(job.period_to_month || job.to_month || '12');
+        let fromYear: number, fromMonth: number, toYear: number, toMonth: number;
+        
+        // Handle ISO date format (startDate: "2024-10" or "2024-10-01")
+        if (job.startDate && String(job.startDate).includes('-')) {
+          const parts = String(job.startDate).split('-');
+          fromYear = parseInt(parts[0]) || 0;
+          fromMonth = parseInt(parts[1]) || 1;
+        } else {
+          fromYear = parseInt(job.period_from_year || job.from_year || '0');
+          fromMonth = parseInt(job.period_from_month || job.from_month || '1');
+        }
+        
+        // Check both isCurrent and is_present flags
+        const isCurrent = job.isCurrent || job.is_present;
+        
+        if (isCurrent) {
+          toYear = new Date().getFullYear();
+          toMonth = new Date().getMonth() + 1;
+        } else if (job.endDate && String(job.endDate).includes('-')) {
+          const parts = String(job.endDate).split('-');
+          toYear = parseInt(parts[0]) || new Date().getFullYear();
+          toMonth = parseInt(parts[1]) || 12;
+        } else {
+          toYear = parseInt(job.period_to_year || job.to_year || new Date().getFullYear().toString());
+          toMonth = parseInt(job.period_to_month || job.to_month || '12');
+        }
         
         if (fromYear > 0) {
           const monthsDiff = (toYear - fromYear) * 12 + (toMonth - fromMonth);
@@ -425,10 +447,32 @@ export default function ApplicationDetail() {
     }
     
     const totalYears = employment.reduce((total: number, job: any) => {
-      const fromYear = parseInt(job.period_from_year || job.from_year || '0');
-      const fromMonth = parseInt(job.period_from_month || job.from_month || '1');
-      const toYear = job.is_present ? new Date().getFullYear() : parseInt(job.period_to_year || job.to_year || new Date().getFullYear().toString());
-      const toMonth = job.is_present ? new Date().getMonth() + 1 : parseInt(job.period_to_month || job.to_month || '12');
+      let fromYear: number, fromMonth: number, toYear: number, toMonth: number;
+      
+      // Handle ISO date format (startDate: "2024-10" or "2024-10-01")
+      if (job.startDate && String(job.startDate).includes('-')) {
+        const parts = String(job.startDate).split('-');
+        fromYear = parseInt(parts[0]) || 0;
+        fromMonth = parseInt(parts[1]) || 1;
+      } else {
+        fromYear = parseInt(job.period_from_year || job.from_year || '0');
+        fromMonth = parseInt(job.period_from_month || job.from_month || '1');
+      }
+      
+      // Check both isCurrent and is_present flags
+      const isCurrent = job.isCurrent || job.is_present;
+      
+      if (isCurrent) {
+        toYear = new Date().getFullYear();
+        toMonth = new Date().getMonth() + 1;
+      } else if (job.endDate && String(job.endDate).includes('-')) {
+        const parts = String(job.endDate).split('-');
+        toYear = parseInt(parts[0]) || new Date().getFullYear();
+        toMonth = parseInt(parts[1]) || 12;
+      } else {
+        toYear = parseInt(job.period_to_year || job.to_year || new Date().getFullYear().toString());
+        toMonth = parseInt(job.period_to_month || job.to_month || '12');
+      }
       
       if (fromYear > 0) {
         const monthsDiff = (toYear - fromYear) * 12 + (toMonth - fromMonth);
@@ -865,11 +909,11 @@ export default function ApplicationDetail() {
                                 {(job.isCurrent || job.is_present) && (
                                   <Badge variant="secondary" className="mt-1">Current Position</Badge>
                                 )}
-                                {job.is_un_system_post && (
-                                  <Badge variant="outline" className="mt-1 bg-blue-50 text-blue-700 border-blue-200">
-                                    UN Position
-                                  </Badge>
-                                )}
+                          {(job.is_un_system_post || job.isUNExperience) && (
+                            <Badge variant="outline" className="mt-1 bg-blue-50 text-blue-700 border-blue-200">
+                              UN Position
+                            </Badge>
+                          )}
                               </div>
                             </div>
                             
