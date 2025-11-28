@@ -718,7 +718,7 @@ export default function JobApplication() {
                   disqualified={disqualified}
                   completedTabs={completedTabs}
                   onTabCompleted={markTabCompleted}
-                  initialTab={getNextIncompleteTab()}
+                  initialTab={0}
                   candidateProfile={candidateProfile}
                 />
               </CardContent>
