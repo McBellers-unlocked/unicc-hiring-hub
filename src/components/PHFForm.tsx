@@ -321,6 +321,7 @@ I confirm that I have read and agree to the Privacy Notice for Applicants and un
 export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = [], killerAnswers = {}, onKillerAnswerChange, disqualified = false, completedTabs = new Set([0]), onTabCompleted, initialTab = 0, candidateProfile }: PHFFormProps) {
   const [currentSection, setCurrentSection] = useState(initialTab);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [visitedSections, setVisitedSections] = useState<Set<number>>(new Set([0])); // Track which sections user has visited
   const [editedWorkExperiences, setEditedWorkExperiences] = useState<any[]>([]);
   const [applicationSkills, setApplicationSkills] = useState<string[]>([]);
   const [applicationCertifications, setApplicationCertifications] = useState<any[]>([]);
@@ -381,13 +382,13 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         return personalMissing || formErrors.personalDetails ? 'warning' : 'valid';
         
       case 2: // Dependants & Relatives
-        return 'valid'; // Optional section
+        return visitedSections.has(2) ? 'valid' : null; // Optional - show valid only after visited
         
       case 3: // Work Preferences
-        return 'valid'; // Optional section
+        return visitedSections.has(3) ? 'valid' : null; // Optional - show valid only after visited
         
       case 4: // Language Proficiency
-        return 'valid'; // Optional section
+        return visitedSections.has(4) ? 'valid' : null; // Optional - show valid only after visited
         
       case 5: // Education
         // Check if we have education data either in form or from candidate profile
@@ -876,6 +877,8 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
 
   const handleTabChange = (value: string) => {
     const targetTab = parseInt(value);
+    // Mark section as visited when user navigates to it
+    setVisitedSections(prev => new Set([...prev, targetTab]));
     // Only allow access to completed tabs or the next available tab
     if (completedTabs.has(targetTab)) {
       setCurrentSection(targetTab);
@@ -3043,6 +3046,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                   const isAccessible = true;
                   const validationStatus = getSectionValidationStatus(index);
                   const hasWarning = validationStatus === 'warning';
+                  const isValid = validationStatus === 'valid';
                   const isCompleted = completedTabs.has(index) && index !== currentSection;
                   return (
                     <TabsTrigger 
@@ -3052,14 +3056,14 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                      className={cn(
                        "text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-1",
                        !isAccessible && "opacity-50 cursor-not-allowed bg-muted text-muted-foreground",
-                       isCompleted && !hasWarning && "bg-green-100 text-green-700",
+                       isCompleted && isValid && !hasWarning && "bg-green-100 text-green-700",
                        hasWarning && "bg-amber-50 text-amber-700 border-amber-200"
                      )}
                      title={section}
                    >
                      <span>{index + 1}. {section}</span>
                      {!isAccessible && <span>🔒</span>}
-                     {isCompleted && !hasWarning && <span>✓</span>}
+                     {isCompleted && isValid && !hasWarning && <span>✓</span>}
                      {hasWarning && <AlertTriangle className="h-3 w-3" />}
                    </TabsTrigger>
                  );
@@ -3073,6 +3077,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                   const isAccessible = true;
                   const validationStatus = getSectionValidationStatus(tabIndex);
                   const hasWarning = validationStatus === 'warning';
+                  const isValid = validationStatus === 'valid';
                   const isCompleted = completedTabs.has(tabIndex) && tabIndex !== currentSection;
                   return (
                     <TabsTrigger 
@@ -3082,14 +3087,14 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                      className={cn(
                        "text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-1",
                        !isAccessible && "opacity-50 cursor-not-allowed bg-muted text-muted-foreground",
-                       isCompleted && !hasWarning && "bg-green-100 text-green-700",
+                       isCompleted && isValid && !hasWarning && "bg-green-100 text-green-700",
                        hasWarning && "bg-amber-50 text-amber-700 border-amber-200"
                      )}
                      title={section}
                    >
                      <span>{tabIndex + 1}. {section}</span>
                      {!isAccessible && <span>🔒</span>}
-                     {isCompleted && !hasWarning && <span>✓</span>}
+                     {isCompleted && isValid && !hasWarning && <span>✓</span>}
                      {hasWarning && <AlertTriangle className="h-3 w-3" />}
                    </TabsTrigger>
                  );
@@ -3103,6 +3108,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                   const isAccessible = true;
                   const validationStatus = getSectionValidationStatus(tabIndex);
                   const hasWarning = validationStatus === 'warning';
+                  const isValid = validationStatus === 'valid';
                   const isCompleted = completedTabs.has(tabIndex) && tabIndex !== currentSection;
                   return (
                     <TabsTrigger 
@@ -3112,14 +3118,14 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                      className={cn(
                        "text-xs px-2 py-2 h-auto data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-1",
                        !isAccessible && "opacity-50 cursor-not-allowed bg-muted text-muted-foreground",
-                       isCompleted && !hasWarning && "bg-green-100 text-green-700",
+                       isCompleted && isValid && !hasWarning && "bg-green-100 text-green-700",
                        hasWarning && "bg-amber-50 text-amber-700 border-amber-200"
                      )}
                      title={section}
                    >
                      <span>{tabIndex + 1}. {section}</span>
                      {!isAccessible && <span>🔒</span>}
-                     {isCompleted && !hasWarning && <span>✓</span>}
+                     {isCompleted && isValid && !hasWarning && <span>✓</span>}
                      {hasWarning && <AlertTriangle className="h-3 w-3" />}
                    </TabsTrigger>
                  );
