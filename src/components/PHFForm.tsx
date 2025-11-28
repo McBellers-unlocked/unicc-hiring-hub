@@ -56,6 +56,8 @@ const phfSchema = z.object({
   }),
 
   // Dependants & Relatives
+  noDependants: z.boolean().optional(),
+  noUNRelatives: z.boolean().optional(),
   dependants: z.array(z.object({
     name: z.string().min(1, 'Name is required'),
     relationship: z.string().min(1, 'Relationship is required'),
@@ -384,7 +386,18 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         return personalMissing || formErrors.personalDetails ? 'warning' : 'valid';
         
       case 2: // Dependants & Relatives
-        return visitedSections.has(2) ? 'valid' : null; // Optional - show valid only after visited
+        if (!visitedSections.has(2)) return null;
+        
+        const noDependants = formValues.noDependants;
+        const noUNRelatives = formValues.noUNRelatives;
+        const hasDependants = formValues.dependants && formValues.dependants.length > 0;
+        const hasRelatives = formValues.relatives && formValues.relatives.length > 0;
+        
+        // If checkbox is NOT checked and no entries exist, show warning
+        const dependantsValid = noDependants || hasDependants;
+        const relativesValid = noUNRelatives || hasRelatives;
+        
+        return (dependantsValid && relativesValid) ? 'valid' : 'warning';
         
       case 3: // Work Preferences
         return visitedSections.has(3) ? 'valid' : null; // Optional - show valid only after visited
@@ -616,6 +629,8 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         usGreenCardDetails: initialData?.personalDetails?.usGreenCardDetails || '',
         photoUrl: initialData?.personalDetails?.photoUrl || '',
       },
+      noDependants: initialData?.noDependants || false,
+      noUNRelatives: initialData?.noUNRelatives || false,
       dependants: initialData?.dependants || [],
       relatives: initialData?.relatives || [],
       workPreferences: {
@@ -1403,15 +1418,47 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
   );
 
   // Dependants & Relatives Section
-  const renderDependantsAndRelatives = () => (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium mb-4">Dependants</h3>
-        <FormDescription className="mb-4">
-          Spouse and children under 18 or other dependants financially supported by you
-        </FormDescription>
-        
-        {dependantFields.map((field, index) => (
+  const renderDependantsAndRelatives = () => {
+    const noDependants = form.watch('noDependants');
+    const noUNRelatives = form.watch('noUNRelatives');
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-medium mb-4">Dependants</h3>
+          <FormDescription className="mb-4">
+            Spouse and children under 18 or other dependants financially supported by you
+          </FormDescription>
+          
+          <FormField
+            control={form.control}
+            name="noDependants"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 mb-4">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={(checked) => {
+                      field.onChange(checked);
+                      // Clear dependants when checkbox is checked
+                      if (checked && dependantFields.length > 0) {
+                        for (let i = dependantFields.length - 1; i >= 0; i--) {
+                          removeDependant(i);
+                        }
+                      }
+                    }}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel className="cursor-pointer">
+                    I have no dependants financially supported by me
+                  </FormLabel>
+                </div>
+              </FormItem>
+            )}
+          />
+          
+          {!noDependants && dependantFields.map((field, index) => (
           <Card key={field.id} className="mb-4">
             <CardContent className="pt-6">
               <div className="flex justify-between items-center mb-4">
@@ -1473,15 +1520,17 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
           </Card>
         ))}
         
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => appendDependant({ name: '', relationship: 'Spouse', dateOfBirth: new Date() })}
-          className="w-full"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Dependant
-        </Button>
+        {!noDependants && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => appendDependant({ name: '', relationship: 'Spouse', dateOfBirth: new Date() })}
+            className="w-full"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Dependant
+          </Button>
+        )}
       </div>
 
       <Separator />
@@ -1492,7 +1541,35 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
           List any relatives working in UN organizations or international organizations
         </FormDescription>
         
-        {relativeFields.map((field, index) => (
+        <FormField
+          control={form.control}
+          name="noUNRelatives"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 mb-4">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={(checked) => {
+                    field.onChange(checked);
+                    // Clear relatives when checkbox is checked
+                    if (checked && relativeFields.length > 0) {
+                      for (let i = relativeFields.length - 1; i >= 0; i--) {
+                        removeRelative(i);
+                      }
+                    }
+                  }}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel className="cursor-pointer">
+                  I have no relatives working in UN organisations
+                </FormLabel>
+              </div>
+            </FormItem>
+          )}
+        />
+        
+        {!noUNRelatives && relativeFields.map((field, index) => (
           <Card key={field.id} className="mb-4">
             <CardContent className="pt-6">
               <div className="flex justify-between items-center mb-4">
@@ -1564,18 +1641,21 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
           </Card>
         ))}
         
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => appendRelative({ name: '', relationship: '', organization: '', position: '' })}
-          className="w-full"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Relative
-        </Button>
+        {!noUNRelatives && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => appendRelative({ name: '', relationship: '', organization: '', position: '' })}
+            className="w-full"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Relative
+          </Button>
+        )}
       </div>
     </div>
-  );
+    );
+  };
 
   // Work Preferences Section
   const renderWorkPreferences = () => (
