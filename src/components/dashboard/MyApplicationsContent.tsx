@@ -186,6 +186,8 @@ export default function MyApplicationsContent() {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
+      case 'draft':
+        return 'bg-gray-100 text-gray-600 border border-dashed border-gray-400';
       case 'application':
         return 'bg-blue-100 text-blue-800';
       case 'screening':
@@ -200,6 +202,8 @@ export default function MyApplicationsContent() {
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+  const isDraft = (status: string) => status.toLowerCase() === 'draft';
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-GB');
@@ -325,30 +329,35 @@ export default function MyApplicationsContent() {
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
-                      Applied: {formatDate(application.submitted_at)}
+                      {isDraft(application.status) 
+                        ? `Last saved: ${formatDistanceToNow(new Date(application.submitted_at), { addSuffix: true })}`
+                        : `Applied: ${formatDate(application.submitted_at)}`
+                      }
                     </div>
                   </div>
                   
-                  {/* Progress Timeline */}
-                  <div className="mt-4 flex items-center gap-2">
-                    {stages.map((stage, index) => (
-                      <div key={stage.name} className="flex items-center">
-                        <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
-                          stage.status === 'completed' 
-                            ? 'bg-green-100 text-green-700' 
-                            : stage.status === 'current'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-gray-100 text-gray-500'
-                        }`}>
-                          {stage.status === 'completed' && <CheckCircle2 className="h-3 w-3" />}
-                          {stage.name}
+                  {/* Progress Timeline - Hidden for drafts */}
+                  {!isDraft(application.status) && (
+                    <div className="mt-4 flex items-center gap-2">
+                      {stages.map((stage, index) => (
+                        <div key={stage.name} className="flex items-center">
+                          <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+                            stage.status === 'completed' 
+                              ? 'bg-green-100 text-green-700' 
+                              : stage.status === 'current'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-gray-100 text-gray-500'
+                          }`}>
+                            {stage.status === 'completed' && <CheckCircle2 className="h-3 w-3" />}
+                            {stage.name}
+                          </div>
+                          {index < stages.length - 1 && (
+                            <div className={`w-4 h-px ${stage.status === 'completed' ? 'bg-green-300' : 'bg-gray-300'}`} />
+                          )}
                         </div>
-                        {index < stages.length - 1 && (
-                          <div className={`w-4 h-px ${stage.status === 'completed' ? 'bg-green-300' : 'bg-gray-300'}`} />
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <Badge className={getStatusColor(application.status)}>
                   {application.status}
@@ -478,7 +487,7 @@ export default function MyApplicationsContent() {
 
               {/* Action Buttons */}
               <div className="flex items-center justify-end gap-2 pt-2 border-t">
-                {application.phf_completed && (
+                {!isDraft(application.status) && application.phf_completed && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -489,11 +498,11 @@ export default function MyApplicationsContent() {
                     View Details
                   </Button>
                 )}
-                {!application.phf_completed && (
+                {(isDraft(application.status) || !application.phf_completed) && (
                   <Button
-                    variant="outline"
                     size="sm"
                     onClick={() => navigate(`/apply/${application.job_id}`)}
+                    className={isDraft(application.status) ? "bg-blue-600 hover:bg-blue-700" : ""}
                   >
                     Continue Application
                   </Button>
