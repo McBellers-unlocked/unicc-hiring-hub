@@ -383,7 +383,18 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                       <div className="w-full">
                         <CustomDatePicker
                           selected={field.value}
-                          onChange={field.onChange}
+                          onChange={(date) => {
+                            if (date) {
+                              const normalizedDate = new Date(
+                                date.getFullYear(),
+                                date.getMonth(),
+                                date.getDate()
+                              );
+                              field.onChange(normalizedDate);
+                            } else {
+                              field.onChange(null);
+                            }
+                          }}
                           placeholderText="Select date of birth"
                           className="w-full"
                         />
