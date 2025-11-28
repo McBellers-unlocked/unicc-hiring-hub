@@ -436,9 +436,9 @@ export default function CandidateProfileEdit() {
         // Store both formats - simple for UI and PHF for form compatibility
         work_experience: profile.work_experience || [],
         phf_work_experience: phfWorkExperience,
-        // Convert date_of_birth to string format for database
+        // Convert date_of_birth to string format for database using local date components
         date_of_birth: profile.date_of_birth instanceof Date 
-          ? profile.date_of_birth.toISOString().split('T')[0] 
+          ? `${profile.date_of_birth.getFullYear()}-${String(profile.date_of_birth.getMonth() + 1).padStart(2, '0')}-${String(profile.date_of_birth.getDate()).padStart(2, '0')}`
           : profile.date_of_birth,
       };
       

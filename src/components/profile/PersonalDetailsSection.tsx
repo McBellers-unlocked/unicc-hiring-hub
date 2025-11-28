@@ -92,7 +92,21 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
       phone: initialData?.phone || '',
       maiden_name: initialData?.maiden_name || '',
       gender: initialData?.gender as 'Male' | 'Female' | undefined,
-      date_of_birth: initialData?.date_of_birth ? new Date(initialData.date_of_birth) : null,
+      date_of_birth: (() => {
+        if (!initialData?.date_of_birth) return null;
+        const val = initialData.date_of_birth;
+        if (val instanceof Date) return val;
+        if (typeof val === 'string') {
+          const strVal = val as string;
+          // Parse ISO string as local date to avoid timezone shift
+          const datePart = strVal.includes('T') ? strVal.split('T')[0] : strVal;
+          const parts = datePart.split('-');
+          if (parts.length === 3) {
+            return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+          }
+        }
+        return null;
+      })(),
       place_of_birth: initialData?.place_of_birth || '',
       country_of_birth: initialData?.country_of_birth || '',
       present_nationality: initialData?.present_nationality || '',
@@ -146,7 +160,9 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
           phone: data.phone || null,
           maiden_name: data.maiden_name || null,
           gender: data.gender || null,
-          date_of_birth: data.date_of_birth ? data.date_of_birth.toISOString().split('T')[0] : null,
+          date_of_birth: data.date_of_birth ? 
+            `${data.date_of_birth.getFullYear()}-${String(data.date_of_birth.getMonth() + 1).padStart(2, '0')}-${String(data.date_of_birth.getDate()).padStart(2, '0')}` 
+            : null,
           place_of_birth: data.place_of_birth || null,
           country_of_birth: data.country_of_birth || null,
           present_nationality: data.present_nationality || null,
