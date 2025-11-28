@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2, GraduationCap, ChevronDown, ChevronUp, Edit2 } from "lucide-react";
+import { EDUCATION_LEVELS } from "@/lib/educationLevels";
 
 interface Education {
   institution: string;
@@ -139,21 +140,20 @@ export default function EducationSection({ education, onChange }: EducationSecti
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <Label>Degree</Label>
+                            <Label>Level of Education</Label>
                             <Select
                               value={edu.degree}
                               onValueChange={(value) => updateEducation(index, 'degree', value)}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder="Select degree" />
+                                <SelectValue placeholder="Select level of education" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="Bachelor's">Bachelor's</SelectItem>
-                                <SelectItem value="Master's">Master's</SelectItem>
-                                <SelectItem value="PhD">PhD</SelectItem>
-                                <SelectItem value="Associate">Associate</SelectItem>
-                                <SelectItem value="Certificate">Certificate</SelectItem>
-                                <SelectItem value="Diploma">Diploma</SelectItem>
+                                {EDUCATION_LEVELS.map(level => (
+                                  <SelectItem key={level.value} value={level.value}>
+                                    {level.label}
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </div>
@@ -256,21 +256,20 @@ export default function EducationSection({ education, onChange }: EducationSecti
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>Degree *</Label>
+                  <Label>Level of Education *</Label>
                   <Select
                     value={newEducation.degree}
                     onValueChange={(value) => setNewEducation({ ...newEducation, degree: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select degree" />
+                      <SelectValue placeholder="Select level of education" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Bachelor's">Bachelor's</SelectItem>
-                      <SelectItem value="Master's">Master's</SelectItem>
-                      <SelectItem value="PhD">PhD</SelectItem>
-                      <SelectItem value="Associate">Associate</SelectItem>
-                      <SelectItem value="Certificate">Certificate</SelectItem>
-                      <SelectItem value="Diploma">Diploma</SelectItem>
+                      {EDUCATION_LEVELS.map(level => (
+                        <SelectItem key={level.value} value={level.value}>
+                          {level.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

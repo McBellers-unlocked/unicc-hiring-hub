@@ -1,6 +1,7 @@
 // PHF Data Mapping utilities for converting between profile and PHF formats
 
 import { format, parse } from 'date-fns';
+import { normalizeEducationLevel } from './educationLevels';
 
 // Convert profile languages to PHF format (keeping same structure)
 export function convertLanguagesToPHF(profileLanguages: any): any {
@@ -108,17 +109,10 @@ export function convertEducationToPHF(education: any[]): any[] {
     const startDate = parseDate(edu.startDate);
     const endDate = parseDate(edu.endDate);
 
-    // Map degree types to PHF format
+    // Map degree types to PHF format with normalization
     const mapDegreeType = (degree: string) => {
-      const mapping: Record<string, string> = {
-        "Bachelor's": "Bachelor's Degree",
-        "Master's": "Master's Degree",
-        "PhD": "PhD",
-        "Associate": "Associate Degree",
-        "Certificate": "Professional Certificate",
-        "Diploma": "Technical Diploma"
-      };
-      return mapping[degree] || degree || "Other";
+      // First normalize legacy values
+      return normalizeEducationLevel(degree);
     };
 
     return {
@@ -149,16 +143,10 @@ export function convertPHFToEducation(phfEdu: any[]): any[] {
       return `${year}-${month.padStart(2, '0')}`;
     };
 
-    // Map PHF degree types back to simple format
+    // Map PHF degree types back to simple format (now just returns as-is since we're standardized)
     const mapDegreeTypeBack = (degreeType: string) => {
-      const mapping: Record<string, string> = {
-        "Bachelor's Degree": "Bachelor's",
-        "Master's Degree": "Master's",
-        "PhD": "PhD",
-        "Professional Certificate": "Certificate",
-        "Technical Diploma": "Diploma"
-      };
-      return mapping[degreeType] || degreeType;
+      // Normalize in case of legacy values
+      return normalizeEducationLevel(degreeType);
     };
 
     return {
