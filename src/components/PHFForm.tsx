@@ -3116,8 +3116,15 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                     
                     // Validate all employment entries before submission
                     const formData = form.getValues();
-                    const hasEmployment = formData.employment && formData.employment.length > 0;
-                    
+
+                    // Prefer edited work experiences (from dialog) if available
+                    const employmentToValidate =
+                      editedWorkExperiences && editedWorkExperiences.length > 0
+                        ? editedWorkExperiences
+                        : formData.employment || [];
+
+                    const hasEmployment = employmentToValidate.length > 0;
+
                     if (!hasEmployment) {
                       toast({
                         title: 'Employment Record Required',
@@ -3126,12 +3133,18 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                       });
                       return;
                     }
-                    
+
                     // Check each employment entry for required duties field
-                    const incompleteDuties = formData.employment.some(emp => {
-                      return !emp.duties_and_responsibilities || emp.duties_and_responsibilities.trim() === '';
+                    // Support both field naming conventions (duties_and_responsibilities/description)
+                    const incompleteDuties = employmentToValidate.some((emp: any) => {
+                      const duties =
+                        (emp as any).duties_and_responsibilities ??
+                        (emp as any).description;
+
+                      const hasDuties = typeof duties === 'string' && duties.trim() !== '';
+                      return !hasDuties;
                     });
-                    
+
                     if (incompleteDuties) {
                       toast({
                         title: 'Incomplete Employment Record',
@@ -3141,7 +3154,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                       setCurrentSection(4); // Navigate to Employment section
                       return;
                     }
-                    
+
                     // Proceed with submission
                     await handleSubmit(formData);
                   }}
