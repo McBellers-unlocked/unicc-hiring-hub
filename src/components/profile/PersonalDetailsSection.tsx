@@ -237,7 +237,13 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate, onF
                 render={({ field }) => (
                 <FormItem>
                   <FormLabel>Title</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      onFieldChange?.('title', value);
+                    }} 
+                    value={field.value}
+                  >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select title" />
@@ -451,7 +457,13 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate, onF
                 render={({ field }) => (
                 <FormItem>
                   <FormLabel>Country of Birth</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      onFieldChange?.('country_of_birth', value);
+                    }} 
+                    value={field.value}
+                  >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select country" />
@@ -476,7 +488,13 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate, onF
                 render={({ field }) => (
                 <FormItem>
                   <FormLabel>Present Nationality</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      onFieldChange?.('present_nationality', value);
+                    }} 
+                    value={field.value}
+                  >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select nationality" />
@@ -542,7 +560,13 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate, onF
                  render={({ field }) => (
                  <FormItem>
                    <FormLabel>Marital Status</FormLabel>
-                   <Select onValueChange={field.onChange} value={field.value}>
+                   <Select 
+                     onValueChange={(value) => {
+                       field.onChange(value);
+                       onFieldChange?.('marital_status', value);
+                     }} 
+                     value={field.value}
+                   >
                        <FormControl>
                          <SelectTrigger>
                            <SelectValue placeholder="Select marital status" />
@@ -567,7 +591,13 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate, onF
                  render={({ field }) => (
                  <FormItem>
                    <FormLabel>Gender</FormLabel>
-                   <Select onValueChange={field.onChange} value={field.value}>
+                   <Select 
+                     onValueChange={(value) => {
+                       field.onChange(value);
+                       onFieldChange?.('gender', value);
+                     }} 
+                     value={field.value}
+                   >
                        <FormControl>
                          <SelectTrigger>
                            <SelectValue placeholder="Select gender" />
@@ -668,6 +698,7 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate, onF
                     <Select 
                       onValueChange={(value) => {
                         field.onChange(value);
+                        onFieldChange?.('permanent_country', value);
                         if (form.watch("present_address_same_as_permanent")) {
                           form.setValue("present_country", value);
                         }
@@ -795,7 +826,10 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate, onF
                     <FormItem>
                     <FormLabel>Country</FormLabel>
                     <Select 
-                      onValueChange={field.onChange} 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        onFieldChange?.('present_country', value);
+                      }} 
                       disabled={form.watch("present_address_same_as_permanent")}
                       value={form.watch("present_address_same_as_permanent") ? 
                         form.watch("permanent_country") || '' : field.value}
