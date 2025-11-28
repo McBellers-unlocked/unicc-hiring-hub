@@ -375,6 +375,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
   }); // Track which sections user has visited
   const [editedWorkExperiences, setEditedWorkExperiences] = useState<any[]>([]);
   const [editedEducation, setEditedEducation] = useState<any[]>([]);
+  const educationInitialized = useRef(false);
   const [applicationSkills, setApplicationSkills] = useState<string[]>([]);
   const [applicationCertifications, setApplicationCertifications] = useState<any[]>([]);
   const [newSkill, setNewSkill] = useState('');
@@ -429,23 +430,25 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
 
   // Initialize edited education from initialData._education or candidate profile on first load
   useEffect(() => {
+    // Only run initialization once per component mount
+    if (educationInitialized.current) return;
+    
     // Cast initialData to access _education field (saved state, not part of form schema)
     const savedEducation = (initialData as any)?._education;
     
     // Priority 1: Restore from saved _education (edited entries from previous session)
-    if (savedEducation && savedEducation.length > 0 && editedEducation.length === 0) {
+    if (savedEducation && savedEducation.length > 0) {
       setEditedEducation(savedEducation);
+      educationInitialized.current = true;
+      return;
     }
+    
     // Priority 2: Initialize from candidate profile if no saved edits
-    else if (
-      candidateProfile?.education &&
-      candidateProfile.education.length > 0 &&
-      editedEducation.length === 0 &&
-      !savedEducation
-    ) {
+    if (candidateProfile?.education && candidateProfile.education.length > 0) {
       setEditedEducation(candidateProfile.education);
+      educationInitialized.current = true;
     }
-  }, [initialData, candidateProfile?.education, editedEducation.length]);
+  }, [initialData, candidateProfile?.education]);
 
   // Validation status helper function
   const getSectionValidationStatus = (sectionIndex: number) => {
