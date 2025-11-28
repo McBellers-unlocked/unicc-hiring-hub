@@ -39,7 +39,28 @@ const phfSchema = z.object({
     sex: z.enum(['Male', 'Female']).refine((val) => val !== undefined, {
       message: 'Sex selection is required',
     }),
-    dateOfBirth: z.union([z.date(), z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, 'Date must be in DD/MM/YYYY format')]),
+    dateOfBirth: z.preprocess(
+      (val) => {
+        if (val instanceof Date) return val;
+        if (typeof val === 'string' && val) {
+          // Handle ISO strings (from database)
+          if (val.includes('T') || val.includes('-')) {
+            // Parse as local date to avoid timezone shift
+            const parts = val.split('T')[0].split('-');
+            if (parts.length === 3) {
+              return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            }
+          }
+          // Handle DD/MM/YYYY format
+          const match = val.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+          if (match) {
+            return new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1]));
+          }
+        }
+        return val;
+      },
+      z.date({ required_error: 'Date of birth is required' })
+    ),
     placeOfBirth: z.string().min(1, 'Place of birth is required'),
     countryOfBirth: z.string().min(1, 'Country of birth is required'),
     presentNationality: z.string().min(1, 'Present nationality is required'),
@@ -61,7 +82,27 @@ const phfSchema = z.object({
   dependants: z.array(z.object({
     name: z.string().min(1, 'Name is required'),
     relationship: z.string().min(1, 'Relationship is required'),
-    dateOfBirth: z.date(),
+    dateOfBirth: z.preprocess(
+      (val) => {
+        if (val instanceof Date) return val;
+        if (typeof val === 'string' && val) {
+          // Handle ISO strings (from database)
+          if (val.includes('T') || val.includes('-')) {
+            const parts = val.split('T')[0].split('-');
+            if (parts.length === 3) {
+              return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            }
+          }
+          // Handle DD/MM/YYYY format
+          const match = val.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+          if (match) {
+            return new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1]));
+          }
+        }
+        return val;
+      },
+      z.date({ required_error: 'Date of birth is required' })
+    ),
   })),
   relatives: z.array(z.object({
     name: z.string().min(1, 'Name is required'),
@@ -610,11 +651,22 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         title: initialData?.personalDetails?.title || 'Mr',
         maidenName: initialData?.personalDetails?.maidenName || '',
         sex: initialData?.personalDetails?.sex || 'Male',
-        dateOfBirth: initialData?.personalDetails?.dateOfBirth ? 
-          (typeof initialData.personalDetails.dateOfBirth === 'string' ? 
-            new Date(initialData.personalDetails.dateOfBirth) : 
-            initialData.personalDetails.dateOfBirth) : 
-          new Date(),
+        dateOfBirth: (() => {
+          const val = initialData?.personalDetails?.dateOfBirth;
+          if (!val) return new Date();
+          if (val instanceof Date) return val;
+          if (typeof val === 'string') {
+            const strVal = val as string;
+            // Parse ISO string as local date to avoid timezone shift
+            if (strVal.includes('T') || strVal.includes('-')) {
+              const parts = strVal.split('T')[0].split('-');
+              if (parts.length === 3) {
+                return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+              }
+            }
+          }
+          return new Date();
+        })(),
         placeOfBirth: initialData?.personalDetails?.placeOfBirth || '',
         countryOfBirth: initialData?.personalDetails?.countryOfBirth || '',
         presentNationality: initialData?.personalDetails?.presentNationality || '',
@@ -919,9 +971,13 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     const parseDate = (value: any): Date => {
       if (value instanceof Date) return value;
       if (typeof value === 'string') {
-        // Handle ISO strings from localStorage
-        if (value.includes('T') || value.includes('Z')) {
-          return new Date(value);
+        // Handle ISO strings - parse as local date to avoid timezone shift
+        if (value.includes('T') || value.includes('-')) {
+          const datePart = value.split('T')[0];
+          const parts = datePart.split('-');
+          if (parts.length === 3) {
+            return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+          }
         }
         // Handle DD/MM/YYYY format
         const dateRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
