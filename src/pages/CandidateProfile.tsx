@@ -67,12 +67,20 @@ export default function CandidateProfile() {
 
         if (error) throw error;
 
+        // Check if work_experience has valid entries, fall back to phf_work_experience
+        const workExp = Array.isArray(data.work_experience) ? data.work_experience : [];
+        const phfWorkExp = Array.isArray(data.phf_work_experience) ? data.phf_work_experience : [];
+        
+        // Use phf_work_experience if work_experience is empty or has only empty entries
+        const hasValidWorkExp = workExp.some((exp: any) => exp.company || exp.position);
+        const finalWorkExp = hasValidWorkExp ? workExp : phfWorkExp;
+
         const normalizedProfile = {
           ...data,
           skills: Array.isArray(data.skills) ? data.skills : [],
           certifications: Array.isArray(data.certifications) ? data.certifications : [],
           education: Array.isArray(data.education) ? data.education : [],
-          work_experience: Array.isArray(data.work_experience) ? data.work_experience : [],
+          work_experience: finalWorkExp,
           preferred_locations: Array.isArray(data.preferred_locations) ? data.preferred_locations : [],
           un_organizations_worked: Array.isArray(data.un_organizations_worked) ? data.un_organizations_worked : [],
           portfolio_attachments: Array.isArray(data.portfolio_attachments) ? data.portfolio_attachments : [],
