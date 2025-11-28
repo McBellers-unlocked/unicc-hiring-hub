@@ -54,19 +54,19 @@ export const Layout = ({ children }: LayoutProps) => {
               
               {user && (
                 <nav className="hidden md:flex items-center space-x-6 ml-8">
-                  <Link to="/jobs" className="flex items-center hover:text-accent transition-colors py-2">
+                  <Link to="/jobs" className="flex items-center hover:opacity-80 transition-colors py-2">
                     <Briefcase className="w-4 h-4 mr-1" />
                     Jobs
                   </Link>
                   
-                  <Link to="/my-profile" className="flex items-center hover:text-accent transition-colors py-2">
+                  <Link to="/my-profile" className="flex items-center hover:opacity-80 transition-colors py-2">
                     <User className="w-4 h-4 mr-1" />
                     My Profile
                   </Link>
                   
                   {(hasAdminAccess || hasHiringManagerAccess) && (
                     <DropdownMenu>
-                      <DropdownMenuTrigger className="flex items-center hover:text-accent transition-colors py-2 focus:outline-none">
+                      <DropdownMenuTrigger className="flex items-center hover:opacity-80 transition-colors py-2 focus:outline-none">
                         <Building className="w-4 h-4 mr-1" />
                         Pipeline
                         <ChevronDown className="w-3 h-3 ml-1" />
@@ -118,7 +118,7 @@ export const Layout = ({ children }: LayoutProps) => {
                   
             {hasAdminAccess && (
                     <DropdownMenu>
-                      <DropdownMenuTrigger className="flex items-center hover:text-accent transition-colors py-2 focus:outline-none">
+                      <DropdownMenuTrigger className="flex items-center hover:opacity-80 transition-colors py-2 focus:outline-none">
                         <Settings className="w-4 h-4 mr-1" />
                         Manage
                         <ChevronDown className="w-3 h-3 ml-1" />
@@ -171,14 +171,14 @@ export const Layout = ({ children }: LayoutProps) => {
                   )}
                   
                   {(hasAdminAccess || hasHiringManagerAccess || isPanelMember) && (
-                    <Link to="/applications" className="flex items-center hover:text-accent transition-colors py-2">
+                    <Link to="/applications" className="flex items-center hover:opacity-80 transition-colors py-2">
                       <UserCheck className="w-4 h-4 mr-1" />
                       Applications
                     </Link>
                   )}
                   
                   {isCandidate && (
-                    <Link to="/my-applications" className="flex items-center hover:text-accent transition-colors py-2">
+                    <Link to="/my-applications" className="flex items-center hover:opacity-80 transition-colors py-2">
                       <UserCheck className="w-4 h-4 mr-1" />
                       My Applications
                     </Link>
@@ -198,7 +198,7 @@ export const Layout = ({ children }: LayoutProps) => {
                       </span>
                     )}
                   </span>
-                  <Link to="/account/security" className="text-sm hover:text-accent transition-colors">
+                  <Link to="/account/security" className="text-sm hover:opacity-80 transition-colors">
                     <Settings className="w-4 h-4 inline mr-1" />
                     Security
                   </Link>
