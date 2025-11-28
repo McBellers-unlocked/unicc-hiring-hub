@@ -20,7 +20,9 @@ import {
   Video,
   FileText,
   RotateCcw,
-  Star
+  Star,
+  Award,
+  Wrench
 } from 'lucide-react';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
 
@@ -145,6 +147,45 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
     );
   };
 
+  // Helper functions for candidate type
+  const getCandidateTypeLabel = (candidate: any) => {
+    const type = candidate.candidate_type || 'External';
+    if (type === 'Affiliate' && candidate.affiliate_subtype) {
+      return `Affiliate (${candidate.affiliate_subtype})`;
+    }
+    if (type === 'Internal') {
+      return 'Internal (Staff)';
+    }
+    return type;
+  };
+
+  const getCandidateTypeBadgeClass = (type: string) => {
+    switch (type) {
+      case 'Internal':
+        return 'bg-blue-100 text-blue-700 hover:bg-blue-100';
+      case 'Affiliate':
+        return 'bg-orange-100 text-orange-700 hover:bg-orange-100';
+      default:
+        return 'bg-gray-100 text-gray-700 hover:bg-gray-100';
+    }
+  };
+
+  // Extract skills from multiple sources
+  const allSkills = [
+    ...(application.candidate.skills || []),
+    ...(application.phf_data?.additionalInformation?.additional_skills || [])
+  ].filter((skill, index, self) => 
+    skill && self.indexOf(skill) === index
+  );
+
+  // Extract certifications
+  const allCertifications = [
+    ...(application.candidate.certifications || []),
+    ...(application.phf_data?.certifications || [])
+  ].filter((cert, index, self) => 
+    cert && self.findIndex(c => c.name === cert.name) === index
+  );
+
   return (
     <Card className="mb-4 hover:shadow-md transition-shadow duration-200">
       <CardContent className="p-6">
@@ -159,7 +200,7 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
             <div className="flex items-center space-x-3 flex-1 min-w-0">
               <User className="w-5 h-5 text-muted-foreground flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <h3 
                     className="font-semibold text-lg cursor-pointer hover:text-primary truncate"
                     onClick={() => navigate(`/admin/applications/${application.id}`)}
@@ -167,6 +208,9 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                   >
                     {application.candidate.name}
                   </h3>
+                  <Badge className={getCandidateTypeBadgeClass(application.candidate.candidate_type || 'External')}>
+                    {getCandidateTypeLabel(application.candidate)}
+                  </Badge>
                 </div>
                 <div className="text-sm text-muted-foreground truncate" title={application.candidate.email}>
                   {application.candidate.email}
@@ -288,8 +332,9 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
           </div>
         </div>
 
-        {/* Secondary info row - Languages and Total Experience */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-3 bg-muted/30 rounded-lg">
+        {/* Secondary info row - Languages, Skills, Certifications and Total Experience */}
+        <div className="space-y-3 mb-4 p-3 bg-muted/30 rounded-lg">
+          {/* Row 1: Languages */}
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Languages className="w-4 h-4 text-muted-foreground" />
@@ -299,8 +344,53 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
               {getLanguageSummary(application.candidate.languages)}
             </div>
           </div>
+
+          {/* Row 2: Skills */}
+          {allSkills.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Wrench className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium text-sm">Skills:</span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {allSkills.slice(0, 10).map((skill, index) => (
+                  <Badge key={index} variant="secondary" className="text-xs">
+                    {skill}
+                  </Badge>
+                ))}
+                {allSkills.length > 10 && (
+                  <Badge variant="outline" className="text-xs">
+                    +{allSkills.length - 10} more
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Row 3: Certifications */}
+          {allCertifications.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Award className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium text-sm">Certifications:</span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {allCertifications.slice(0, 5).map((cert, index) => (
+                  <Badge key={index} variant="outline" className="text-xs">
+                    {cert.name || cert.title}
+                  </Badge>
+                ))}
+                {allCertifications.length > 5 && (
+                  <Badge variant="outline" className="text-xs">
+                    +{allCertifications.length - 5} more
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
           
-          <div>
+          {/* Row 4: Total Experience */}
+          <div className="pt-2 border-t border-border/50">
             <div className="flex items-center gap-2 mb-1">
               <Clock className="w-4 h-4 text-muted-foreground" />
               <span className="font-medium text-sm">Total Experience:</span>
