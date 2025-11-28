@@ -428,7 +428,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
             const hasTitle = emp.position || emp.exact_title_of_post;
             
             // For dates, check if it's a current position
-            const isCurrentPosition = emp.isCurrent === true || emp.is_present === true || emp.ongoing === true;
+            const isCurrentPosition = emp.isCurrent === true || emp.is_present === true || emp.ongoing === true || emp.current === true;
             const hasStartDate =
               emp.startDate ||
               emp.start_date ||
@@ -462,7 +462,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
             const hasEmployer = emp.employer_name || empAny.company;
             const hasTitle = emp.exact_title_of_post || empAny.position;
             
-            const isCurrentPosition = emp.is_present === true || empAny.isCurrent === true || empAny.ongoing === true;
+            const isCurrentPosition = emp.is_present === true || empAny.isCurrent === true || empAny.ongoing === true || empAny.current === true;
             const hasStartDate =
               (emp.period_from_month && emp.period_from_year) ||
               empAny.startDate ||
@@ -3172,21 +3172,43 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                     // Check each employment entry for required duties field
                     // Support both field naming conventions (duties_and_responsibilities/description)
                     const incompleteDuties = employmentToValidate.some((emp: any) => {
+                      const isCurrentPosition =
+                        emp.isCurrent === true ||
+                        emp.is_present === true ||
+                        emp.ongoing === true ||
+                        emp.current === true;
+
+                      const hasStartDate =
+                        emp.startDate ||
+                        emp.start_date ||
+                        (emp.period_from_month && emp.period_from_year) ||
+                        emp.period_from_year;
+
+                      const hasEndDate =
+                        isCurrentPosition ||
+                        emp.endDate ||
+                        emp.end_date ||
+                        (emp.period_to_month && emp.period_to_year);
+
                       const duties =
                         (emp as any).duties_and_responsibilities ??
                         (emp as any).description;
 
                       const hasDuties = typeof duties === 'string' && duties.trim() !== '';
-                      return !hasDuties;
+
+                      // Incomplete if missing duties or dates
+                      return !hasDuties || !hasStartDate || !hasEndDate;
                     });
 
                     if (incompleteDuties) {
                       toast({
                         title: 'Incomplete Employment Record',
-                        description: 'Please complete the "Duties and Responsibilities" field for all employment entries.',
+                        description: 'Please complete the Employment Record (dates and duties) for all employment entries.',
                         variant: 'destructive',
                       });
+                      setIsManualNavigation(true);
                       setCurrentSection(6); // Navigate to Employment Record section
+                      setTimeout(() => setIsManualNavigation(false), 100);
                       return;
                     }
 
