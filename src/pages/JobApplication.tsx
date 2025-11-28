@@ -401,6 +401,24 @@ export default function JobApplication() {
             console.error('Error saving draft to database:', dbError);
             // Don't fail if DB save fails, localStorage is the backup
           }
+          
+          // Sync PHF data back to candidate profile on every save
+          try {
+            const profileUpdates = updateProfileFromPHF(phfData);
+            
+            await supabase
+              .from('candidates')
+              .update({
+                ...profileUpdates,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', candidateId);
+              
+            console.log('Profile synced from PHF progress save');
+          } catch (profileSyncError) {
+            console.error('Error syncing PHF to profile during progress save:', profileSyncError);
+            // Don't fail the save, just log the error
+          }
         }
         
         toast({
