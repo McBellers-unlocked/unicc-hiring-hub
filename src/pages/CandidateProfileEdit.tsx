@@ -892,19 +892,19 @@ export default function CandidateProfileEdit() {
             </CardContent>
           </Card>
         </div>
+      </div>
 
-        {/* Bottom Save Section */}
-        <div className="flex items-center justify-end mt-6 pt-6 border-t space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate(`/candidate-profile/${profile.id}`)}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Saving..." : "Save Profile"}
-          </Button>
-        </div>
+      {/* Bottom Save Section */}
+      <div className="flex items-center justify-end mt-6 pt-6 border-t space-x-2">
+        <Button 
+          variant="outline" 
+          onClick={() => navigate(`/candidate-profile/${profile.id}`)}
+        >
+          Cancel
+        </Button>
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? "Saving..." : "Save Profile"}
+        </Button>
       </div>
       </div>
     </Layout>
