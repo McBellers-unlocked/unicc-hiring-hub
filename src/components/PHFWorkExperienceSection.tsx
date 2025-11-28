@@ -383,7 +383,7 @@ export default function PHFWorkExperienceSection({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
+                    <Label htmlFor="description">Duties and Responsibilities</Label>
                     <Textarea
                       id="description"
                       placeholder="Describe your responsibilities and achievements..."
@@ -569,7 +569,7 @@ export default function PHFWorkExperienceSection({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="edit-description">Description</Label>
+                    <Label htmlFor="edit-description">Duties and Responsibilities</Label>
                     <Textarea
                       id="edit-description"
                       placeholder="Describe your responsibilities and achievements..."
