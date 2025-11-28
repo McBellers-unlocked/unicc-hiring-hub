@@ -365,7 +365,14 @@ I confirm that I have read and agree to the Privacy Notice for Applicants and un
 export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = [], killerAnswers = {}, onKillerAnswerChange, disqualified = false, completedTabs = new Set([0]), onTabCompleted, initialTab = 0, candidateProfile, onProgressChange }: PHFFormProps) {
   const [currentSection, setCurrentSection] = useState(initialTab);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [visitedSections, setVisitedSections] = useState<Set<number>>(new Set([initialTab])); // Track which sections user has visited
+  const [visitedSections, setVisitedSections] = useState<Set<number>>(() => {
+    const initial = new Set([initialTab]);
+    // Include all completed tabs in visited sections for proper styling on reload
+    if (completedTabs) {
+      completedTabs.forEach(tab => initial.add(tab));
+    }
+    return initial;
+  }); // Track which sections user has visited
   const [editedWorkExperiences, setEditedWorkExperiences] = useState<any[]>([]);
   const [editedEducation, setEditedEducation] = useState<any[]>([]);
   const [applicationSkills, setApplicationSkills] = useState<string[]>([]);
@@ -396,6 +403,18 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
       setCurrentSection(initialTab);
     }
   }, [initialTab, isManualNavigation]);
+
+  // Sync visitedSections with completedTabs when they change (e.g., on reload)
+  useEffect(() => {
+    if (completedTabs && completedTabs.size > 0) {
+      setVisitedSections(prev => {
+        const newVisited = new Set([...prev, ...completedTabs]);
+        // Also ensure initialTab is included
+        newVisited.add(initialTab);
+        return newVisited;
+      });
+    }
+  }, [completedTabs, initialTab]);
 
   // Initialize edited work experiences from candidate profile on first load
   useEffect(() => {
