@@ -841,6 +841,17 @@ export default function ApplicationDetail() {
                         <div key={`other-${index}`} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                           <span className="font-medium">{lang.language || lang.name}</span>
                           <div className="flex gap-2">
+                            {/* Handle simple proficiency field (from profile editor) */}
+                            {lang.proficiency && !lang.speaking && !lang.reading && !lang.writing && (
+                              <Badge variant="outline" className="capitalize">
+                                {lang.proficiency === 'professional' ? 'Professional Working' :
+                                 lang.proficiency === 'limited' ? 'Limited Working' :
+                                 lang.proficiency === 'native' ? 'Native/Bilingual' :
+                                 lang.proficiency === 'elementary' ? 'Elementary' :
+                                 lang.proficiency}
+                              </Badge>
+                            )}
+                            {/* Handle separate speaking/reading/writing fields (from PHF import) */}
                             {lang.speaking && (
                               <Badge variant="outline" className="text-xs">
                                 S: {getLanguageProficiency(lang.speaking)}
