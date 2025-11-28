@@ -337,11 +337,14 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const { toast } = useToast();
+  const [isManualNavigation, setIsManualNavigation] = useState(false);
 
   // Update current section when initialTab changes (e.g., when loading saved progress)
   useEffect(() => {
-    setCurrentSection(initialTab);
-  }, [initialTab]);
+    if (!isManualNavigation) {
+      setCurrentSection(initialTab);
+    }
+  }, [initialTab, isManualNavigation]);
 
   // Initialize edited work experiences from candidate profile on first load
   useEffect(() => {
@@ -425,9 +428,17 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
             const hasTitle = emp.position || emp.exact_title_of_post;
             
             // For dates, check if it's a current position
-            const isCurrentPosition = emp.isCurrent === true || emp.is_present === true;
-            const hasStartDate = emp.startDate || (emp.period_from_month && emp.period_from_year) || emp.period_from_year;
-            const hasEndDate = isCurrentPosition || emp.endDate || (emp.period_to_month && emp.period_to_year);
+            const isCurrentPosition = emp.isCurrent === true || emp.is_present === true || emp.ongoing === true;
+            const hasStartDate =
+              emp.startDate ||
+              emp.start_date ||
+              (emp.period_from_month && emp.period_from_year) ||
+              emp.period_from_year;
+            const hasEndDate =
+              isCurrentPosition ||
+              emp.endDate ||
+              emp.end_date ||
+              (emp.period_to_month && emp.period_to_year);
             const hasValidDate = hasStartDate && hasEndDate;
             
             const hasDuties = emp.description || emp.duties_and_responsibilities;
@@ -451,9 +462,16 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
             const hasEmployer = emp.employer_name || empAny.company;
             const hasTitle = emp.exact_title_of_post || empAny.position;
             
-            const isCurrentPosition = emp.is_present === true || empAny.isCurrent === true;
-            const hasStartDate = (emp.period_from_month && emp.period_from_year) || empAny.startDate;
-            const hasEndDate = isCurrentPosition || (emp.period_to_month && emp.period_to_year) || empAny.endDate;
+            const isCurrentPosition = emp.is_present === true || empAny.isCurrent === true || empAny.ongoing === true;
+            const hasStartDate =
+              (emp.period_from_month && emp.period_from_year) ||
+              empAny.startDate ||
+              empAny.start_date;
+            const hasEndDate =
+              isCurrentPosition ||
+              (emp.period_to_month && emp.period_to_year) ||
+              empAny.endDate ||
+              empAny.end_date;
             const hasValidDate = hasStartDate && hasEndDate;
             
             const hasDuties = emp.duties_and_responsibilities || empAny.description;
@@ -467,7 +485,10 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         // PRIORITY 3: Check profile work_experience data
         if (hasEmploymentInProfile) {
           const profileEmploymentIncomplete = candidateProfile.work_experience.some((emp: any) => 
-            !emp.company || !emp.position || !emp.startDate || !emp.description
+            (!emp.company && !emp.employer_name) ||
+            (!emp.position && !emp.exact_title_of_post) ||
+            (!emp.startDate && !emp.start_date && !emp.period_from_year) ||
+            (!emp.description && !emp.duties_and_responsibilities)
           );
           return profileEmploymentIncomplete ? 'warning' : 'valid';
         }
@@ -475,7 +496,10 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         // PRIORITY 4: Check profile phf_work_experience data
         if (hasPHFEmploymentInProfile) {
           const phfEmploymentIncomplete = candidateProfile.phf_work_experience.some((emp: any) => 
-            !emp.employer_name || !emp.exact_title_of_post || !emp.period_from_year || !emp.duties_and_responsibilities
+            (!emp.employer_name && !emp.company) ||
+            (!emp.exact_title_of_post && !emp.position) ||
+            (!emp.period_from_year && !emp.startDate && !emp.start_date) ||
+            (!emp.duties_and_responsibilities && !emp.description)
           );
           return phfEmploymentIncomplete ? 'warning' : 'valid';
         }
