@@ -794,25 +794,43 @@ export default function ApplicationDetail() {
               
               if (allWorkExperience.length === 0) return null;
               
+              // Sort work experience by start date (most recent first)
+              const sortedWorkExperience = [...allWorkExperience].sort((a, b) => {
+                const getStartYear = (job: any) => {
+                  const rawYear = job.startDate || job.period_from_year || job.from_year || '';
+                  return parseInt(String(rawYear).substring(0, 4)) || 0;
+                };
+                const getStartMonth = (job: any) => {
+                  if (job.startDate && String(job.startDate).includes('-')) {
+                    return parseInt(String(job.startDate).split('-')[1]) || 0;
+                  }
+                  return parseInt(job.period_from_month || 0);
+                };
+                
+                const yearDiff = getStartYear(b) - getStartYear(a);
+                if (yearDiff !== 0) return yearDiff;
+                return getStartMonth(b) - getStartMonth(a);
+              });
+              
               return (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <Briefcase className="w-5 h-5" />
-                      <span>Work Experience ({allWorkExperience.length} positions)</span>
+                      <span>Work Experience ({sortedWorkExperience.length} positions)</span>
                     </CardTitle>
                     {/* Experience Summary */}
                     <div className="flex items-center gap-6 pt-3 mt-3 border-t">
                       <div>
                         <div className="text-2xl font-bold text-primary">
-                          {calculateTotalExperience(allWorkExperience)} years
+                          {calculateTotalExperience(sortedWorkExperience)} years
                         </div>
                         <div className="text-sm text-muted-foreground">Total Experience</div>
                       </div>
                       <div className="h-10 w-px bg-border" />
                       <div>
                         <div className="text-2xl font-bold text-blue-600">
-                          {calculateUNExperience(allWorkExperience)} years
+                          {calculateUNExperience(sortedWorkExperience)} years
                         </div>
                         <div className="text-sm text-muted-foreground">UN Experience</div>
                       </div>
@@ -820,7 +838,7 @@ export default function ApplicationDetail() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
-                      {allWorkExperience.map((job: any, index: number) => {
+                      {sortedWorkExperience.map((job: any, index: number) => {
                         const startDate = job.startDate || (job.period_from_month && job.period_from_year 
                           ? `${job.period_from_month}/${job.period_from_year}`
                           : job.from_year || 'Start');
@@ -855,14 +873,14 @@ export default function ApplicationDetail() {
                               </div>
                             </div>
                             
-                            {(job.description || job.duties_and_responsibilities || job.main_duties_responsibilities) && (
+                            {(job.description || job.duties_and_responsibilities || job.main_duties_responsibilities || job.duties_responsibilities || job.duties) && (
                               <div className="mt-3 p-3 bg-muted/30 rounded-md">
                                 <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
                                   <FileText className="w-4 h-4" />
                                   Duties & Responsibilities:
                                 </h5>
                                 <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
-                                  {job.description || job.duties_and_responsibilities || job.main_duties_responsibilities}
+                                  {job.description || job.duties_and_responsibilities || job.main_duties_responsibilities || job.duties_responsibilities || job.duties}
                                 </p>
                               </div>
                             )}
