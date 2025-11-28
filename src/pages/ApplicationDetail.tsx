@@ -788,8 +788,8 @@ export default function ApplicationDetail() {
             {/* Work Experience Section */}
             {(() => {
               const allWorkExperience = deduplicateWorkExperience([
-                ...(application.phf_data?.employment || []),
-                ...(application.phf_data?._workExperiences || [])
+                ...(application.phf_data?._workExperiences || []),
+                ...(application.phf_data?.employment || [])
               ]);
               
               if (allWorkExperience.length === 0) return null;
@@ -903,8 +903,8 @@ export default function ApplicationDetail() {
             {/* Education Section */}
             {(() => {
               const allEducation = deduplicateEducation([
-                ...(application.phf_data?.education || []),
-                ...(application.phf_data?._education || [])
+                ...(application.phf_data?._education || []),
+                ...(application.phf_data?.education || [])
               ]);
               
               if (allEducation.length === 0) return null;
