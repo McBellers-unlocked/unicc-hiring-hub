@@ -84,7 +84,7 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, candidateDa
   };
 
   const getCertificationsData = () => {
-    // Check PHF data first (newly added certifications)
+    // Check PHF data first (newly added certifications - snake_case)
     if (phfData?._certifications && phfData._certifications.length > 0) {
       return phfData._certifications.map((cert: any) => ({
         name: cert.name,
@@ -95,13 +95,13 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, candidateDa
         description: cert.description
       }));
     }
-    // Fall back to candidate profile certifications
+    // Fall back to candidate profile certifications - handle BOTH camelCase and snake_case
     return (candidateData?.certifications || []).map((cert: any) => ({
       name: cert.name,
       issuer: cert.issuer || cert.issuing_organization,
-      issueDate: cert.issue_date || cert.year,
-      expiryDate: cert.expiry_date || cert.expiry,
-      credentialId: cert.credential_id
+      issueDate: cert.issueDate || cert.issue_date || cert.year,
+      expiryDate: cert.expiryDate || cert.expiry_date || cert.expiry,
+      credentialId: cert.credentialId || cert.credential_id
     }));
   };
 

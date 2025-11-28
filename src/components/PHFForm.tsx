@@ -2153,31 +2153,31 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                   <div className="flex items-start justify-between">
                     <div className="space-y-1 flex-1">
                       <h4 className="font-medium text-lg">{cert.name}</h4>
-                      <p className="text-muted-foreground font-medium">{cert.issuing_organization}</p>
+                      <p className="text-muted-foreground font-medium">{cert.issuing_organization || cert.issuer}</p>
                       <div className="text-sm text-muted-foreground">
-                        {cert.issue_date && (
+                        {(cert.issue_date || cert.issueDate) && (
                           <span>
-                            Issued: {cert.issue_date instanceof Date 
-                              ? cert.issue_date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' })
-                              : new Date(cert.issue_date).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' })
+                            Issued: {(cert.issue_date || cert.issueDate) instanceof Date 
+                              ? (cert.issue_date || cert.issueDate).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' })
+                              : new Date(cert.issue_date || cert.issueDate).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' })
                             }
                           </span>
                         )}
-                        {cert.expiry_date && (
+                        {(cert.expiry_date || cert.expiryDate) && (
                           <>
                             <span className="mx-2">•</span>
                             <span>
-                              Expires: {cert.expiry_date instanceof Date 
-                                ? cert.expiry_date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' })
-                                : new Date(cert.expiry_date).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' })
+                              Expires: {(cert.expiry_date || cert.expiryDate) instanceof Date 
+                                ? (cert.expiry_date || cert.expiryDate).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' })
+                                : new Date(cert.expiry_date || cert.expiryDate).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit' })
                               }
                             </span>
                           </>
                         )}
                       </div>
-                      {cert.credential_id && (
+                      {(cert.credential_id || cert.credentialId) && (
                         <p className="text-sm text-muted-foreground">
-                          Credential ID: {cert.credential_id}
+                          Credential ID: {cert.credential_id || cert.credentialId}
                         </p>
                       )}
                       {cert.description && (

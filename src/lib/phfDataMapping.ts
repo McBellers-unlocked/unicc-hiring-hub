@@ -354,10 +354,28 @@ export function updateProfileFromPHF(phfData: any): Partial<any> {
   
   if (phfData.additionalInformation) {
     const ai = phfData.additionalInformation;
-    updates.skills = ai.additional_skills ? ai.additional_skills.split(', ') : [];
     updates.fellowships = ai.fellowships;
     updates.law_violations_disclosed = ai.law_violations_disclosed;
     updates.law_violations_details = ai.law_violations_details;
+  }
+  
+  // Sync skills from PHF to profile - check both _skills (dialog-added) and additionalInformation
+  const skillsData = phfData._skills || phfData.additionalInformation?.additional_skills;
+  if (skillsData) {
+    updates.skills = Array.isArray(skillsData) ? skillsData : skillsData.split(', ').map((s: string) => s.trim()).filter(Boolean);
+  }
+  
+  // Sync certifications from PHF to profile - convert snake_case to camelCase
+  if (phfData._certifications && phfData._certifications.length > 0) {
+    const normalizedCerts = phfData._certifications.map((cert: any) => ({
+      name: cert.name,
+      issuer: cert.issuing_organization || cert.issuer,
+      issueDate: cert.issue_date,
+      expiryDate: cert.expiry_date,
+      credentialId: cert.credential_id,
+      description: cert.description
+    }));
+    updates.certifications = normalizedCerts;
   }
   
   updates.dependants_detailed = phfData.dependants || [];
