@@ -69,9 +69,14 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, candidateDa
   };
 
   const getSkillsData = () => {
+    // Check PHF data first (newly added skills)
+    if (phfData?._skills && phfData._skills.length > 0) {
+      return phfData._skills.join(', ');
+    }
     if (phfData?.additionalInformation?.additional_skills) {
       return phfData.additionalInformation.additional_skills;
     }
+    // Fall back to candidate profile skills
     if (candidateData?.skills && Array.isArray(candidateData.skills)) {
       return candidateData.skills.join(', ');
     }
@@ -79,7 +84,25 @@ export const PHFTabViewer: React.FC<PHFTabViewerProps> = ({ phfData, candidateDa
   };
 
   const getCertificationsData = () => {
-    return candidateData?.certifications || [];
+    // Check PHF data first (newly added certifications)
+    if (phfData?._certifications && phfData._certifications.length > 0) {
+      return phfData._certifications.map((cert: any) => ({
+        name: cert.name,
+        issuer: cert.issuing_organization || cert.issuer,
+        issueDate: cert.issue_date,
+        expiryDate: cert.expiry_date || cert.expiry,
+        credentialId: cert.credential_id,
+        description: cert.description
+      }));
+    }
+    // Fall back to candidate profile certifications
+    return (candidateData?.certifications || []).map((cert: any) => ({
+      name: cert.name,
+      issuer: cert.issuer || cert.issuing_organization,
+      issueDate: cert.issue_date || cert.year,
+      expiryDate: cert.expiry_date || cert.expiry,
+      credentialId: cert.credential_id
+    }));
   };
 
   const getLanguagesData = () => {

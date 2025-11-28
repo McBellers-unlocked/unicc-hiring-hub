@@ -351,12 +351,14 @@ export default function JobApplication() {
       // Extract special fields and merge edited data
       const { _editedData, _markTabCompleted, ...corePhfData } = phfData;
       
-      // Merge edited education and work experiences into the main data if present
+      // Merge edited education, work experiences, skills, and certifications into the main data if present
       const mergedPhfData = {
         ...corePhfData,
-        // Store edited education in phf_data
+        // Store edited data in phf_data
         _education: _editedData?.education || corePhfData._education,
         _workExperiences: _editedData?.workExperiences || corePhfData._workExperiences,
+        _skills: _editedData?.skills || corePhfData._skills,
+        _certifications: _editedData?.certifications || corePhfData._certifications,
       };
 
       // For partial saves (progress), save to localStorage for persistence
