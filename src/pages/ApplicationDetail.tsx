@@ -119,7 +119,11 @@ export default function ApplicationDetail() {
     return experiences.filter((exp) => {
       const company = (exp.company || exp.employer_name || '').toLowerCase().trim();
       const position = (exp.position || exp.exact_title_of_post || exp.position_title || '').toLowerCase().trim();
-      const startYear = exp.startDate || exp.period_from_year || exp.from_year || '';
+      
+      // Extract just the year (first 4 digits) from any date format
+      const rawStartYear = exp.startDate || exp.period_from_year || exp.from_year || '';
+      const startYear = String(rawStartYear).substring(0, 4);
+      
       const key = `${company}|${position}|${startYear}`;
       
       if (seen.has(key)) return false;
@@ -134,7 +138,11 @@ export default function ApplicationDetail() {
     return education.filter((edu) => {
       const institution = (edu.institution || edu.institution_name || '').toLowerCase().trim();
       const degree = (edu.degree || edu.degree_type || edu.degree_or_certificate_title || '').toLowerCase().trim();
-      const startYear = edu.startDate || edu.from_year || '';
+      
+      // Extract just the year (first 4 digits) from any date format
+      const rawStartYear = edu.startDate || edu.from_year || '';
+      const startYear = String(rawStartYear).substring(0, 4);
+      
       const key = `${institution}|${degree}|${startYear}`;
       
       if (seen.has(key)) return false;
