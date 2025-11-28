@@ -477,6 +477,22 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     }
   }, [initialData, candidateProfile?.work_experience]);
 
+  // Initialize skills from saved data
+  useEffect(() => {
+    const savedSkills = (initialData as any)?._skills;
+    if (savedSkills && savedSkills.length > 0) {
+      setApplicationSkills(savedSkills);
+    }
+  }, [initialData]);
+
+  // Initialize certifications from saved data
+  useEffect(() => {
+    const savedCerts = (initialData as any)?._certifications;
+    if (savedCerts && savedCerts.length > 0) {
+      setApplicationCertifications(savedCerts);
+    }
+  }, [initialData]);
+
   // Initialize edited education from initialData._education or candidate profile on first load
   useEffect(() => {
     // Only run initialization once per component mount
@@ -956,12 +972,14 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     setIsSubmitting(true);
     try {
       const formData = form.getValues();
-      // Include edited education and work experiences in saved data
+      // Include edited education, work experiences, skills, and certifications in saved data
       const dataToSave = {
         ...formData,
         _editedData: {
           education: editedEducation.length > 0 ? editedEducation : undefined,
           workExperiences: editedWorkExperiences.length > 0 ? editedWorkExperiences : undefined,
+          skills: applicationSkills.length > 0 ? applicationSkills : undefined,
+          certifications: applicationCertifications.length > 0 ? applicationCertifications : undefined,
         }
       };
       await onSave(dataToSave, false);
@@ -1040,12 +1058,14 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     try {
       const formData = form.getValues();
       
-      // Include edited education and work experiences in saved data
+      // Include edited education, work experiences, skills, and certifications in saved data
       const dataToSave = {
         ...formData,
         _editedData: {
           education: editedEducation.length > 0 ? editedEducation : undefined,
           workExperiences: editedWorkExperiences.length > 0 ? editedWorkExperiences : undefined,
+          skills: applicationSkills.length > 0 ? applicationSkills : undefined,
+          certifications: applicationCertifications.length > 0 ? applicationCertifications : undefined,
         },
         // Include the current tab to be marked as completed
         _markTabCompleted: currentSection
