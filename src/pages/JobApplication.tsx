@@ -439,13 +439,15 @@ export default function JobApplication() {
 
       if (applicationId) {
         // Update existing application with PHF completion
+        console.log('Updating application:', applicationId, 'to status: Application');
+        
         const { error: updateError } = await supabase
           .from('applications')
           .update({
             phf_data: mergedPHFData,
             phf_completed: true,
             answers: killerAnswers,
-            status: 'Application',
+            status: 'Application' as const,
             updated_at: new Date().toISOString()
           })
           .eq('id', applicationId);
@@ -453,6 +455,27 @@ export default function JobApplication() {
         if (updateError) {
           console.error('Error updating application:', updateError);
           throw updateError;
+        }
+
+        // Verify the status was updated correctly
+        const { data: verifyApp } = await supabase
+          .from('applications')
+          .select('status')
+          .eq('id', applicationId)
+          .single();
+        
+        if (verifyApp?.status !== 'Application') {
+          console.warn('Status not updated correctly, retrying status update...');
+          const { error: statusRetryError } = await supabase
+            .from('applications')
+            .update({ status: 'Application' as const })
+            .eq('id', applicationId);
+          
+          if (statusRetryError) {
+            console.error('Status retry failed:', statusRetryError);
+          }
+        } else {
+          console.log('Application status verified as Application');
         }
       } else {
         // Create new application
