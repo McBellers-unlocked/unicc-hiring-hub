@@ -885,7 +885,9 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
       
       // Mark current tab as completed and move to next
       onTabCompleted?.(currentSection);
-      setCurrentSection(Math.min(SECTIONS.length - 1, currentSection + 1));
+      const nextSection = Math.min(SECTIONS.length - 1, currentSection + 1);
+      setVisitedSections(prev => new Set([...prev, currentSection, nextSection]));
+      setCurrentSection(nextSection);
       
       toast({
         title: 'Progress Saved',
@@ -3243,7 +3245,11 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
             <Button
               type="button"
               variant="outline"
-              onClick={() => setCurrentSection(Math.max(0, currentSection - 1))}
+              onClick={() => {
+                const prevSection = Math.max(0, currentSection - 1);
+                setVisitedSections(prev => new Set([...prev, currentSection, prevSection]));
+                setCurrentSection(prevSection);
+              }}
               disabled={currentSection === 0}
             >
               Previous
