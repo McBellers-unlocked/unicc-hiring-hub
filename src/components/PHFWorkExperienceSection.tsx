@@ -138,26 +138,32 @@ export default function PHFWorkExperienceSection({
 
   const handleEditExperience = (index: number) => {
     const experienceToEdit = (editedExperiences && editedExperiences[index]) || profileWorkExperience[index];
-    const description =
-      (experienceToEdit as any)?.description ||
-      (experienceToEdit as any)?.duties_and_responsibilities ||
-      '';
+    const exp = experienceToEdit as any;
+
+    // Support both simple and PHF/DB field names
+    const description = exp?.description || exp?.duties_and_responsibilities || '';
+    const company = exp?.company || exp?.employer_name || '';
+    const position = exp?.position || exp?.exact_title_of_post || '';
+    const startDate = exp?.startDate || exp?.start_date || (exp?.period_from_year && exp?.period_from_month ? `${exp.period_from_year}-${String(exp.period_from_month).padStart(2, '0')}` : '');
+    const endDate = exp?.endDate || exp?.end_date || (exp?.period_to_year && exp?.period_to_month ? `${exp.period_to_year}-${String(exp.period_to_month).padStart(2, '0')}` : '');
+    const isCurrent = exp?.isCurrent ?? exp?.is_present ?? exp?.ongoing ?? false;
+    const isUNExperience = exp?.isUNExperience ?? exp?.is_un_system_post ?? false;
 
     setEditingIndex(index);
     setEditingExperience({
-      company: experienceToEdit.company,
-      position: experienceToEdit.position,
+      company,
+      position,
       employmentType: 'Full-time', // Default since this isn't stored in the original data
-      location: experienceToEdit.location || '',
-      startDate: experienceToEdit.startDate,
-      endDate: experienceToEdit.endDate || '',
-      isCurrent: experienceToEdit.isCurrent || false,
-      isUNExperience: experienceToEdit.isUNExperience || false,
+      location: exp?.location || exp?.employer_address || '',
+      startDate,
+      endDate,
+      isCurrent,
+      isUNExperience,
       description,
-      supervisor_name: experienceToEdit.supervisor_name || '',
-      supervisor_title: experienceToEdit.supervisor_title || '',
-      supervisor_phone: experienceToEdit.supervisor_phone || '',
-      supervisor_email: experienceToEdit.supervisor_email || ''
+      supervisor_name: exp?.supervisor_name || '',
+      supervisor_title: exp?.supervisor_title || '',
+      supervisor_phone: exp?.supervisor_phone || '',
+      supervisor_email: exp?.supervisor_email || ''
     });
     setIsEditDialogOpen(true);
   };
