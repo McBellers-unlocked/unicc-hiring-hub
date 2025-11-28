@@ -9,6 +9,30 @@ interface EducationTimelineProps {
 export default function EducationTimeline({ education }: EducationTimelineProps) {
   if (!education || education.length === 0) return null;
 
+  const formatEducationDates = (edu: any) => {
+    // If we have a simple year, use that
+    if (edu.year || edu.graduation_year) {
+      return edu.year || edu.graduation_year;
+    }
+    
+    // Otherwise format startDate/endDate as a range
+    const formatDate = (dateStr: string) => {
+      if (!dateStr) return '';
+      const [year, month] = dateStr.split('-');
+      if (!year) return '';
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return month ? `${monthNames[parseInt(month) - 1]} ${year}` : year;
+    };
+    
+    const start = formatDate(edu.startDate || edu.start_date || '');
+    const end = (edu.isCurrent || edu.is_current) 
+      ? 'Present' 
+      : formatDate(edu.endDate || edu.end_date || '');
+    
+    if (!start) return '';
+    return end ? `${start} - ${end}` : start;
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -35,16 +59,16 @@ export default function EducationTimeline({ education }: EducationTimelineProps)
                   <p className="text-muted-foreground font-medium">
                     {edu.institution || edu.school}
                   </p>
-                  {edu.field_of_study && (
+                  {(edu.field_of_study || edu.field) && (
                     <p className="text-sm text-muted-foreground">
-                      {edu.field_of_study}
+                      {edu.field_of_study || edu.field}
                     </p>
                   )}
                 </div>
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="h-3 w-3" />
-                  <span>{edu.year || edu.graduation_year}</span>
+                  <span>{formatEducationDates(edu)}</span>
                 </div>
 
                 {edu.honors && (
