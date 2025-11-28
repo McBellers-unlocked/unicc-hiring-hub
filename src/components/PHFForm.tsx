@@ -405,31 +405,41 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         return 'valid';
         
       case 6: // Employment Record
-        // Check if we have employment data either in form or from candidate profile
+        // PRIORITY 1: Check editedWorkExperiences first (user edits from dialog)
+        const hasEditedWorkExperiences = editedWorkExperiences && editedWorkExperiences.length > 0;
+        
+        if (hasEditedWorkExperiences) {
+          const editedIncomplete = editedWorkExperiences.some((emp: any) => {
+            const hasEmployer = emp.company || emp.employer_name;
+            const hasTitle = emp.position || emp.exact_title_of_post;
+            
+            // For dates, check if it's a current position
+            const isCurrentPosition = emp.isCurrent === true || emp.is_present === true;
+            const hasStartDate = emp.startDate || (emp.period_from_month && emp.period_from_year) || emp.period_from_year;
+            const hasEndDate = isCurrentPosition || emp.endDate || (emp.period_to_month && emp.period_to_year);
+            const hasValidDate = hasStartDate && hasEndDate;
+            
+            const hasDuties = emp.description || emp.duties_and_responsibilities;
+            
+            return !hasEmployer || !hasTitle || !hasValidDate || !hasDuties;
+          });
+          return editedIncomplete ? 'warning' : 'valid';
+        }
+        
+        // PRIORITY 2: Check form employment data
         const hasEmploymentInForm = formValues.employment && formValues.employment.length > 0;
         const hasEmploymentInProfile = candidateProfile?.work_experience && candidateProfile.work_experience.length > 0;
         const hasPHFEmploymentInProfile = candidateProfile?.phf_work_experience && candidateProfile.phf_work_experience.length > 0;
         
-        // Debug logging to see what employment data we have
-        console.log('PHF Employment Validation Debug:', {
-          hasEmploymentInForm,
-          hasEmploymentInProfile,
-          hasPHFEmploymentInProfile,
-          formEmployment: formValues.employment,
-          profileWorkExp: candidateProfile?.work_experience,
-          profilePHFWorkExp: candidateProfile?.phf_work_experience
-        });
-        
         if (!hasEmploymentInForm && !hasEmploymentInProfile && !hasPHFEmploymentInProfile) return 'warning';
         
-        // If we have form data, validate it; otherwise check profile data
+        // If we have form data, validate it
         if (hasEmploymentInForm) {
           const employmentIncomplete = formValues.employment.some(emp => {
             const empAny = emp as any;
             const hasEmployer = emp.employer_name || empAny.company;
             const hasTitle = emp.exact_title_of_post || empAny.position;
             
-            // For dates, check if it's a current position
             const isCurrentPosition = emp.is_present === true || empAny.isCurrent === true;
             const hasStartDate = (emp.period_from_month && emp.period_from_year) || empAny.startDate;
             const hasEndDate = isCurrentPosition || (emp.period_to_month && emp.period_to_year) || empAny.endDate;
@@ -437,32 +447,13 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
             
             const hasDuties = emp.duties_and_responsibilities || empAny.description;
             
-            // Supervisor details are optional - not required for validation
-            
-            console.log('Employment validation for:', emp.employer_name || empAny.company, {
-              hasEmployer,
-              hasTitle,
-              hasStartDate,
-              isCurrentPosition,
-              hasEndDate,
-              hasValidDate,
-              hasDuties,
-              incomplete: !hasEmployer || !hasTitle || !hasValidDate || !hasDuties
-            });
-            
             return !hasEmployer || !hasTitle || !hasValidDate || !hasDuties;
-          });
-          
-          console.log('Final employment validation result:', {
-            employmentIncomplete,
-            formErrors: formErrors.employment,
-            finalResult: employmentIncomplete || formErrors.employment ? 'warning' : 'valid'
           });
           
           return employmentIncomplete || formErrors.employment ? 'warning' : 'valid';
         }
         
-        // If only profile data exists, validate that
+        // PRIORITY 3: Check profile work_experience data
         if (hasEmploymentInProfile) {
           const profileEmploymentIncomplete = candidateProfile.work_experience.some((emp: any) => 
             !emp.company || !emp.position || !emp.startDate || !emp.description
@@ -470,7 +461,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
           return profileEmploymentIncomplete ? 'warning' : 'valid';
         }
         
-        // If only PHF employment data exists, validate that
+        // PRIORITY 4: Check profile phf_work_experience data
         if (hasPHFEmploymentInProfile) {
           const phfEmploymentIncomplete = candidateProfile.phf_work_experience.some((emp: any) => 
             !emp.employer_name || !emp.exact_title_of_post || !emp.period_from_year || !emp.duties_and_responsibilities
