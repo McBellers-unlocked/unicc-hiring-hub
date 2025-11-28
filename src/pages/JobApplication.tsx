@@ -434,6 +434,9 @@ export default function JobApplication() {
         candidate = newCandidate;
       }
 
+      // Track the final application ID for email sending
+      let finalApplicationId = applicationId;
+
       if (applicationId) {
         // Update existing application with PHF completion
         const { error: updateError } = await supabase
@@ -442,6 +445,7 @@ export default function JobApplication() {
             phf_data: mergedPHFData,
             phf_completed: true,
             answers: killerAnswers,
+            status: 'Application',
             updated_at: new Date().toISOString()
           })
           .eq('id', applicationId);
@@ -468,6 +472,7 @@ export default function JobApplication() {
           .single();
 
         if (applicationError) throw applicationError;
+        finalApplicationId = application.id;
         setApplicationId(application.id);
       }
 
@@ -486,17 +491,28 @@ export default function JobApplication() {
         const firstName = phfData.personalDetails?.firstNames?.split(' ')[0] || 
                          phfData.personalDetails?.familyName || 'Candidate';
         
-        await supabase.functions.invoke('send-application-confirmation', {
+        console.log('Sending application confirmation email to:', userEmail, 'for application:', finalApplicationId);
+        
+        const { data, error: emailError } = await supabase.functions.invoke('send-application-confirmation', {
           body: {
             candidateEmail: userEmail,
             candidateFirstName: firstName,
             positionTitle: job?.title || 'the position',
-            applicationId: applicationId || candidate.id,
+            applicationId: finalApplicationId,
             jobId: jobId
           }
         });
+        
+        if (emailError) {
+          console.error('Email sending failed:', emailError);
+          toast({
+            title: "Application submitted",
+            description: "Your application was submitted successfully, but the confirmation email may be delayed.",
+          });
+        } else {
+          console.log('Confirmation email sent successfully:', data);
+        }
       } catch (emailError) {
-        // Don't fail the submission if email fails
         console.error('Failed to send confirmation email:', emailError);
       }
 

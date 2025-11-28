@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.delete-job-applications]
 verify_jwt = false
+
+[functions.send-application-confirmation]
+verify_jwt = false
