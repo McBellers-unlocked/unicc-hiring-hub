@@ -429,6 +429,16 @@ export default function CandidateProfileEdit() {
         console.log('No work experience to convert');
       }
       
+      console.log('=== handleSave date processing ===');
+      console.log('profile.date_of_birth:', profile.date_of_birth);
+      console.log('profile.date_of_birth instanceof Date:', profile.date_of_birth instanceof Date);
+
+      const formattedDOB = profile.date_of_birth instanceof Date 
+        ? `${profile.date_of_birth.getFullYear()}-${String(profile.date_of_birth.getMonth() + 1).padStart(2, '0')}-${String(profile.date_of_birth.getDate()).padStart(2, '0')}`
+        : profile.date_of_birth;
+      
+      console.log('Formatted DOB for save:', formattedDOB);
+
       const updateData = {
         ...profile,
         email: user.email,
@@ -437,9 +447,7 @@ export default function CandidateProfileEdit() {
         work_experience: profile.work_experience || [],
         phf_work_experience: phfWorkExperience,
         // Convert date_of_birth to string format for database using local date components
-        date_of_birth: profile.date_of_birth instanceof Date 
-          ? `${profile.date_of_birth.getFullYear()}-${String(profile.date_of_birth.getMonth() + 1).padStart(2, '0')}-${String(profile.date_of_birth.getDate()).padStart(2, '0')}`
-          : profile.date_of_birth,
+        date_of_birth: formattedDOB,
       };
       
       // Remove fields that don't exist in the database
@@ -664,7 +672,8 @@ export default function CandidateProfileEdit() {
                   const datePart = val.includes('T') ? val.split('T')[0] : val;
                   const parts = datePart.split('-');
                   if (parts.length === 3) {
-                    return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                    // Use noon (12:00) instead of midnight to avoid timezone edge cases
+                    return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 12, 0, 0);
                   }
                 }
                 return undefined;
@@ -692,6 +701,13 @@ export default function CandidateProfileEdit() {
                 ...profile,
                 ...data,
               });
+            }}
+            onFieldChange={(field, value) => {
+              // Sync changes in real-time so parent Save button uses latest values
+              setProfile(prev => ({
+                ...prev!,
+                [field]: value
+              }));
             }}
           />
 

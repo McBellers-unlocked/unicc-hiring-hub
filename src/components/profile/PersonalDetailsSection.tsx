@@ -75,9 +75,10 @@ interface PersonalDetailsSectionProps {
     phone_public?: boolean;
   }>;
   onUpdate?: (data: PersonalDetailsFormData) => void;
+  onFieldChange?: (field: string, value: any) => void;
 }
 
-export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: PersonalDetailsSectionProps) {
+export function PersonalDetailsSection({ candidateId, initialData, onUpdate, onFieldChange }: PersonalDetailsSectionProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -96,8 +97,8 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
         if (!initialData?.date_of_birth) return null;
         const val = initialData.date_of_birth;
         if (val instanceof Date) {
-          // Create a new date using local components to ensure we have local midnight
-          return new Date(val.getFullYear(), val.getMonth(), val.getDate());
+          // Create a new date using local components with noon to avoid timezone issues
+          return new Date(val.getFullYear(), val.getMonth(), val.getDate(), 12, 0, 0);
         }
         if (typeof val === 'string') {
           const strVal = val as string;
@@ -105,7 +106,8 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
           const datePart = strVal.includes('T') ? strVal.split('T')[0] : strVal;
           const parts = datePart.split('-');
           if (parts.length === 3) {
-            return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            // Use noon (12:00) instead of midnight to avoid timezone edge cases
+            return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 12, 0, 0);
           }
         }
         return null;
@@ -149,8 +151,18 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
 
 
   const onSubmit = async (data: PersonalDetailsFormData) => {
+    console.log('=== PersonalDetailsSection onSubmit ===');
+    console.log('data.date_of_birth:', data.date_of_birth);
+    console.log('date_of_birth getDate():', data.date_of_birth?.getDate());
+
     try {
       setLoading(true);
+
+      const formattedDOB = data.date_of_birth ? 
+        `${data.date_of_birth.getFullYear()}-${String(data.date_of_birth.getMonth() + 1).padStart(2, '0')}-${String(data.date_of_birth.getDate()).padStart(2, '0')}` 
+        : null;
+      
+      console.log('Formatted date being saved:', formattedDOB);
 
       const { error } = await supabase
         .from('candidates')
@@ -163,9 +175,7 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
           phone: data.phone || null,
           maiden_name: data.maiden_name || null,
           gender: data.gender || null,
-          date_of_birth: data.date_of_birth ? 
-            `${data.date_of_birth.getFullYear()}-${String(data.date_of_birth.getMonth() + 1).padStart(2, '0')}-${String(data.date_of_birth.getDate()).padStart(2, '0')}` 
-            : null,
+          date_of_birth: formattedDOB,
           place_of_birth: data.place_of_birth || null,
           country_of_birth: data.country_of_birth || null,
           present_nationality: data.present_nationality || null,
@@ -384,15 +394,29 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate }: P
                         <CustomDatePicker
                           selected={field.value}
                           onChange={(date) => {
+                            console.log('=== DATE PICKER onChange ===');
+                            console.log('Raw date from picker:', date);
+                            console.log('Date valueOf:', date?.valueOf());
+                            console.log('Date getFullYear():', date?.getFullYear());
+                            console.log('Date getMonth():', date?.getMonth());
+                            console.log('Date getDate():', date?.getDate());
+                            console.log('Date toISOString():', date?.toISOString());
+                            
                             if (date) {
+                              // Use noon (12:00) instead of midnight to avoid timezone edge cases
                               const normalizedDate = new Date(
                                 date.getFullYear(),
                                 date.getMonth(),
-                                date.getDate()
+                                date.getDate(),
+                                12, 0, 0
                               );
+                              console.log('Normalized date (at noon):', normalizedDate);
+                              console.log('Normalized getDate():', normalizedDate.getDate());
                               field.onChange(normalizedDate);
+                              onFieldChange?.('date_of_birth', normalizedDate);
                             } else {
                               field.onChange(null);
+                              onFieldChange?.('date_of_birth', null);
                             }
                           }}
                           placeholderText="Select date of birth"
