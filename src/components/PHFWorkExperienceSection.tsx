@@ -138,6 +138,11 @@ export default function PHFWorkExperienceSection({
 
   const handleEditExperience = (index: number) => {
     const experienceToEdit = (editedExperiences && editedExperiences[index]) || profileWorkExperience[index];
+    const description =
+      (experienceToEdit as any)?.description ||
+      (experienceToEdit as any)?.duties_and_responsibilities ||
+      '';
+
     setEditingIndex(index);
     setEditingExperience({
       company: experienceToEdit.company,
@@ -148,7 +153,7 @@ export default function PHFWorkExperienceSection({
       endDate: experienceToEdit.endDate || '',
       isCurrent: experienceToEdit.isCurrent || false,
       isUNExperience: experienceToEdit.isUNExperience || false,
-      description: experienceToEdit.description || '',
+      description,
       supervisor_name: experienceToEdit.supervisor_name || '',
       supervisor_title: experienceToEdit.supervisor_title || '',
       supervisor_phone: experienceToEdit.supervisor_phone || '',

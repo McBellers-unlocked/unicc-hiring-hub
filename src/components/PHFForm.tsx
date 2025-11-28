@@ -343,6 +343,17 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
     setCurrentSection(initialTab);
   }, [initialTab]);
 
+  // Initialize edited work experiences from candidate profile on first load
+  useEffect(() => {
+    if (
+      candidateProfile?.work_experience &&
+      candidateProfile.work_experience.length > 0 &&
+      editedWorkExperiences.length === 0
+    ) {
+      setEditedWorkExperiences(candidateProfile.work_experience);
+    }
+  }, [candidateProfile?.work_experience, editedWorkExperiences.length]);
+
   // Validation status helper function
   const getSectionValidationStatus = (sectionIndex: number) => {
     const formValues = form.getValues();
@@ -3151,7 +3162,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                         description: 'Please complete the "Duties and Responsibilities" field for all employment entries.',
                         variant: 'destructive',
                       });
-                      setCurrentSection(4); // Navigate to Employment section
+                      setCurrentSection(6); // Navigate to Employment Record section
                       return;
                     }
 
