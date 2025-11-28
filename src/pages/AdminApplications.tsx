@@ -419,8 +419,8 @@ export default function AdminApplications() {
     };
     
     return educationArray.map((edu: any) => {
-      const startYear = extractYear(edu.start_date) || edu.from_year || '';
-      const endYear = extractYear(edu.end_date) || edu.to_year || edu.year_awarded || '';
+      const startYear = extractYear(edu.start_date) || extractYear(edu.startDate) || edu.from_year || '';
+      const endYear = extractYear(edu.end_date) || extractYear(edu.endDate) || edu.to_year || edu.year_awarded || '';
       const dateRange = startYear && endYear ? `${startYear} - ${endYear}` : (endYear || '');
       
       return {

@@ -748,123 +748,141 @@ export default function ApplicationDetail() {
             </Card>
 
             {/* Work Experience Section */}
-            {application.phf_data?.employment && application.phf_data.employment.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Briefcase className="w-5 h-5" />
-                    <span>Work Experience ({application.phf_data.employment.length} positions)</span>
-                  </CardTitle>
-                  {/* Experience Summary */}
-                  <div className="flex items-center gap-6 pt-3 mt-3 border-t">
-                    <div>
-                      <div className="text-2xl font-bold text-primary">
-                        {calculateTotalExperience(application.phf_data.employment)} years
-                      </div>
-                      <div className="text-sm text-muted-foreground">Total Experience</div>
-                    </div>
-                    <div className="h-10 w-px bg-border" />
-                    <div>
-                      <div className="text-2xl font-bold text-blue-600">
-                        {calculateUNExperience(application.phf_data.employment)} years
-                      </div>
-                      <div className="text-sm text-muted-foreground">UN Experience</div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    {application.phf_data.employment.map((job: any, index: number) => {
-                      const startDate = job.period_from_month && job.period_from_year 
-                        ? `${job.period_from_month}/${job.period_from_year}`
-                        : job.from_year || 'Start';
-                      const endDate = job.is_present 
-                        ? 'Present' 
-                        : (job.period_to_month && job.period_to_year 
-                          ? `${job.period_to_month}/${job.period_to_year}`
-                          : job.to_year || 'End');
-                      
-                      return (
-                        <div key={index} className="border-l-2 border-primary pl-4 space-y-2">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h4 className="font-semibold text-lg">{job.exact_title_of_post || job.position_title || 'Position'}</h4>
-                              <p className="text-muted-foreground">{job.employer_name || 'Organization'}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {job.employer_address || job.place_of_work || 'Location'} • {job.type_of_business || 'Full-time'}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-medium">
-                                {startDate} - {endDate}
-                              </p>
-                              {job.is_present && (
-                                <Badge variant="secondary" className="mt-1">Current Position</Badge>
-                              )}
-                              {job.is_un_system_post && (
-                                <Badge variant="outline" className="mt-1 bg-blue-50 text-blue-700 border-blue-200">
-                                  UN Position
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          
-                          {(job.duties_and_responsibilities || job.main_duties_responsibilities) && (
-                            <div className="mt-3 p-3 bg-muted/30 rounded-md">
-                              <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
-                                <FileText className="w-4 h-4" />
-                                Duties & Responsibilities:
-                              </h5>
-                              <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
-                                {job.duties_and_responsibilities || job.main_duties_responsibilities}
-                              </p>
-                            </div>
-                          )}
-                          
-                          {job.reason_for_leaving && !job.is_present && (
-                            <div className="mt-2">
-                              <h5 className="font-medium text-sm mb-1">Reason for Leaving:</h5>
-                              <p className="text-sm text-muted-foreground">{job.reason_for_leaving}</p>
-                            </div>
-                          )}
+            {(() => {
+              const allWorkExperience = [
+                ...(application.phf_data?.employment || []),
+                ...(application.phf_data?._workExperiences || [])
+              ];
+              
+              if (allWorkExperience.length === 0) return null;
+              
+              return (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Briefcase className="w-5 h-5" />
+                      <span>Work Experience ({allWorkExperience.length} positions)</span>
+                    </CardTitle>
+                    {/* Experience Summary */}
+                    <div className="flex items-center gap-6 pt-3 mt-3 border-t">
+                      <div>
+                        <div className="text-2xl font-bold text-primary">
+                          {calculateTotalExperience(allWorkExperience)} years
                         </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                        <div className="text-sm text-muted-foreground">Total Experience</div>
+                      </div>
+                      <div className="h-10 w-px bg-border" />
+                      <div>
+                        <div className="text-2xl font-bold text-blue-600">
+                          {calculateUNExperience(allWorkExperience)} years
+                        </div>
+                        <div className="text-sm text-muted-foreground">UN Experience</div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      {allWorkExperience.map((job: any, index: number) => {
+                        const startDate = job.startDate || (job.period_from_month && job.period_from_year 
+                          ? `${job.period_from_month}/${job.period_from_year}`
+                          : job.from_year || 'Start');
+                        const endDate = job.isCurrent || job.is_present 
+                          ? 'Present' 
+                          : (job.endDate || (job.period_to_month && job.period_to_year 
+                            ? `${job.period_to_month}/${job.period_to_year}`
+                            : job.to_year || 'End'));
+                      
+                        return (
+                          <div key={index} className="border-l-2 border-primary pl-4 space-y-2">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h4 className="font-semibold text-lg">{job.position || job.exact_title_of_post || job.position_title || 'Position'}</h4>
+                                <p className="text-muted-foreground">{job.company || job.employer_name || 'Organization'}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {job.location || job.employer_address || job.place_of_work || 'Location'} • {job.employmentType || job.type_of_business || 'Full-time'}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-medium">
+                                  {startDate} - {endDate}
+                                </p>
+                                {(job.isCurrent || job.is_present) && (
+                                  <Badge variant="secondary" className="mt-1">Current Position</Badge>
+                                )}
+                                {job.is_un_system_post && (
+                                  <Badge variant="outline" className="mt-1 bg-blue-50 text-blue-700 border-blue-200">
+                                    UN Position
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {(job.description || job.duties_and_responsibilities || job.main_duties_responsibilities) && (
+                              <div className="mt-3 p-3 bg-muted/30 rounded-md">
+                                <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+                                  <FileText className="w-4 h-4" />
+                                  Duties & Responsibilities:
+                                </h5>
+                                <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+                                  {job.description || job.duties_and_responsibilities || job.main_duties_responsibilities}
+                                </p>
+                              </div>
+                            )}
+                            
+                            {job.reason_for_leaving && !(job.isCurrent || job.is_present) && (
+                              <div className="mt-2">
+                                <h5 className="font-medium text-sm mb-1">Reason for Leaving:</h5>
+                                <p className="text-sm text-muted-foreground">{job.reason_for_leaving}</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
             {/* Education Section */}
-            {application.phf_data?.education && application.phf_data.education.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <GraduationCap className="w-5 h-5" />
-                    <span>Education ({application.phf_data.education.length})</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {application.phf_data.education.map((edu: any, index: number) => (
-                      <div key={index} className="border-l-2 border-secondary pl-4 space-y-1">
-                        <h4 className="font-semibold">{edu.degree_type || edu.degree_or_certificate_title || 'Degree/Certificate'}</h4>
-                        <p className="text-muted-foreground">{edu.main_course_of_study || 'Field of Study'}</p>
-                        <p className="font-medium text-sm">{edu.institution_name || 'Institution'}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {edu.institution_country || edu.institution_place || edu.place_country || 'Location'} • {edu.from_month && edu.from_year ? `${edu.from_month}/${edu.from_year}` : edu.from_year || 'Year'} - {edu.to_month && edu.to_year ? `${edu.to_month}/${edu.to_year}` : edu.to_year || 'Year'}
-                        </p>
-                        {edu.distinguish_honors_obtained && (
-                          <p className="text-sm">
-                            <span className="font-medium">Honors:</span> {edu.distinguish_honors_obtained}
+            {(() => {
+              const allEducation = [
+                ...(application.phf_data?.education || []),
+                ...(application.phf_data?._education || [])
+              ];
+              
+              if (allEducation.length === 0) return null;
+              
+              return (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <GraduationCap className="w-5 h-5" />
+                      <span>Education ({allEducation.length})</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {allEducation.map((edu: any, index: number) => (
+                        <div key={index} className="border-l-2 border-secondary pl-4 space-y-1">
+                          <h4 className="font-semibold">{edu.degree || edu.degree_type || edu.degree_or_certificate_title || 'Degree/Certificate'}</h4>
+                          <p className="text-muted-foreground">{edu.fieldOfStudy || edu.main_course_of_study || 'Field of Study'}</p>
+                          <p className="font-medium text-sm">{edu.institution || edu.institution_name || 'Institution'}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {edu.location || edu.institution_country || edu.institution_place || edu.place_country || 'Location'} • {edu.startDate || (edu.from_month && edu.from_year ? `${edu.from_month}/${edu.from_year}` : edu.from_year || 'Year')} - {edu.endDate || (edu.to_month && edu.to_year ? `${edu.to_month}/${edu.to_year}` : edu.to_year || 'Year')}
                           </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                          {edu.distinguish_honors_obtained && (
+                            <p className="text-sm">
+                              <span className="font-medium">Honors:</span> {edu.distinguish_honors_obtained}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
             {/* Skills Section */}
             <Card>
@@ -875,20 +893,27 @@ export default function ApplicationDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {application.phf_data?.skills && application.phf_data.skills.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {application.phf_data.skills.map((skill: any, index: number) => (
-                      <Badge key={index} variant="secondary">
-                        {typeof skill === 'string' ? skill : skill.name}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <CheckCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No skills listed</p>
-                  </div>
-                )}
+                {(() => {
+                  const allSkills = [
+                    ...(application.phf_data?._skills || []),
+                    ...(application.phf_data?.skills || [])
+                  ];
+                  
+                  return allSkills.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {allSkills.map((skill: any, index: number) => (
+                        <Badge key={index} variant="secondary">
+                          {typeof skill === 'string' ? skill : skill.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <CheckCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No skills listed</p>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
 
@@ -901,26 +926,33 @@ export default function ApplicationDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {application.phf_data?.certifications && application.phf_data.certifications.length > 0 ? (
-                  <div className="space-y-3">
-                    {application.phf_data.certifications.map((cert: any, index: number) => (
-                      <div key={index} className="p-3 bg-muted/50 rounded-lg">
-                        <h5 className="font-medium">{cert.name || cert.title}</h5>
-                        {cert.issuer && <p className="text-sm text-muted-foreground">{cert.issuer}</p>}
-                        {cert.date && (
-                          <p className="text-xs text-muted-foreground">
-                            Issued: {format(new Date(cert.date), 'dd/MM/yyyy')}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <Award className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No certifications listed</p>
-                  </div>
-                )}
+                {(() => {
+                  const allCertifications = [
+                    ...(application.phf_data?._certifications || []),
+                    ...(application.phf_data?.certifications || [])
+                  ];
+                  
+                  return allCertifications.length > 0 ? (
+                    <div className="space-y-3">
+                      {allCertifications.map((cert: any, index: number) => (
+                        <div key={index} className="p-3 bg-muted/50 rounded-lg">
+                          <h5 className="font-medium">{cert.name || cert.title}</h5>
+                          {cert.issuer && <p className="text-sm text-muted-foreground">{cert.issuer}</p>}
+                          {cert.date && (
+                            <p className="text-xs text-muted-foreground">
+                              Issued: {format(new Date(cert.date), 'dd/MM/yyyy')}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <Award className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No certifications listed</p>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
