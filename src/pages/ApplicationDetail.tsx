@@ -1068,16 +1068,26 @@ export default function ApplicationDetail() {
               </CardHeader>
               <CardContent>
                 {(() => {
-                  const allSkills = [
+                  const skillsArray = [
                     ...(application.phf_data?._skills || []),
                     ...(application.phf_data?.skills || [])
                   ];
                   
+                  // Also include additional_skills from additionalInformation (stored as comma-separated string)
+                  const additionalSkillsStr = application.phf_data?.additionalInformation?.additional_skills;
+                  if (additionalSkillsStr && typeof additionalSkillsStr === 'string') {
+                    const additionalSkillsArray = additionalSkillsStr.split(',').map((s: string) => s.trim()).filter(Boolean);
+                    skillsArray.push(...additionalSkillsArray);
+                  }
+                  
+                  // Remove duplicates
+                  const allSkills = [...new Set(skillsArray.map((s: any) => typeof s === 'string' ? s : s.name))];
+                  
                   return allSkills.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
-                      {allSkills.map((skill: any, index: number) => (
+                      {allSkills.map((skill: string, index: number) => (
                         <Badge key={index} variant="secondary">
-                          {typeof skill === 'string' ? skill : skill.name}
+                          {skill}
                         </Badge>
                       ))}
                     </div>
