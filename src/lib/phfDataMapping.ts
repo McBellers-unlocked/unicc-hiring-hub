@@ -138,23 +138,36 @@ export function convertPHFToEducation(phfEdu: any[]): any[] {
   if (!Array.isArray(phfEdu)) return [];
   
   return phfEdu.map(edu => {
+    // Detect format: new dialog format has 'start_date' or 'institution' without 'institution_name'
+    const isNewFormat = edu.start_date !== undefined || (edu.institution && !edu.institution_name);
+    
+    if (isNewFormat) {
+      // Handle new dialog-based format (snake_case fields)
+      return {
+        institution: edu.institution || '',
+        degree: normalizeEducationLevel(edu.degree || edu.degree_type || ''),
+        field: edu.field_of_study || edu.field || '',
+        startDate: edu.start_date || edu.startDate || '',
+        endDate: edu.end_date || edu.endDate || '',
+        isCurrent: edu.is_current || edu.isCurrent || false,
+        grade: edu.grade || '',
+        description: edu.description || ''
+      };
+    }
+    
+    // Handle old PHF format (from_month, from_year, institution_name, etc.)
     const formatDate = (month: string, year: string) => {
       if (!month || !year) return '';
       return `${year}-${month.padStart(2, '0')}`;
     };
 
-    // Map PHF degree types back to simple format (now just returns as-is since we're standardized)
-    const mapDegreeTypeBack = (degreeType: string) => {
-      // Normalize in case of legacy values
-      return normalizeEducationLevel(degreeType);
-    };
-
     return {
       institution: edu.institution_name || '',
-      degree: mapDegreeTypeBack(edu.degree_type),
+      degree: normalizeEducationLevel(edu.degree_type || ''),
       field: edu.main_course_of_study || '',
       startDate: formatDate(edu.from_month, edu.from_year),
       endDate: formatDate(edu.to_month, edu.to_year),
+      isCurrent: edu.is_present || false,
       grade: '',
       description: ''
     };
