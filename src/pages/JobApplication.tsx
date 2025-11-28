@@ -219,7 +219,7 @@ export default function JobApplication() {
       // Check if application exists for this job and candidate
       const { data: existingApplication } = await supabase
         .from('applications')
-        .select('id, phf_data, phf_completed, answers')
+        .select('id, phf_data, phf_completed, answers, status')
         .eq('job_id', jobId)
         .eq('candidate_id', candidate.id)
         .maybeSingle();
@@ -233,7 +233,39 @@ export default function JobApplication() {
         }
         
         if (existingApplication.phf_data && typeof existingApplication.phf_data === 'object') {
-          setPHFData(existingApplication.phf_data);
+          // For Draft applications, merge latest profile personal details
+          if (existingApplication.status === 'Draft' && candidate) {
+            const freshProfileData = createPHFDataFromProfile(candidate);
+            const existingData = existingApplication.phf_data as any;
+            const mergedData = {
+              ...existingData,
+              personalDetails: {
+                ...existingData.personalDetails,
+                // Override with fresh profile data for key personal fields
+                familyName: freshProfileData.personalDetails.familyName,
+                firstNames: freshProfileData.personalDetails.firstNames,
+                title: freshProfileData.personalDetails.title,
+                maidenName: freshProfileData.personalDetails.maidenName,
+                sex: freshProfileData.personalDetails.sex,
+                dateOfBirth: freshProfileData.personalDetails.dateOfBirth,
+                placeOfBirth: freshProfileData.personalDetails.placeOfBirth,
+                countryOfBirth: freshProfileData.personalDetails.countryOfBirth,
+                presentNationality: freshProfileData.personalDetails.presentNationality,
+                maritalStatus: freshProfileData.personalDetails.maritalStatus,
+                permanentAddress: freshProfileData.personalDetails.permanentAddress,
+                presentAddress: freshProfileData.personalDetails.presentAddress,
+                telephone: freshProfileData.personalDetails.telephone,
+                email: freshProfileData.personalDetails.email,
+              }
+            };
+            setPHFData(mergedData);
+            
+            // Clear stale localStorage for this job
+            const progressKey = `phf_progress_${jobId}`;
+            localStorage.removeItem(progressKey);
+          } else {
+            setPHFData(existingApplication.phf_data);
+          }
         }
 
         // Determine which step to show
