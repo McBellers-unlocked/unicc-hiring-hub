@@ -285,18 +285,18 @@ export function updateProfileFromPHF(phfData: any): Partial<any> {
     updates.us_green_card_details_detailed = pd.usGreenCardDetails;
   }
   
-  if (phfData.education) {
-    // Only update if not already set to prevent duplicates
-    updates.phf_education = phfData.education;
-    // Clear and replace the simple education format to avoid duplicates
-    updates.education = convertPHFToEducation(phfData.education);
+  // Check _education first (dialog-added entries), then fall back to education (form entries)
+  const educationData = phfData._education || phfData.education;
+  if (educationData && educationData.length > 0) {
+    updates.phf_education = educationData;
+    updates.education = convertPHFToEducation(educationData);
   }
   
-  if (phfData.employment) {
-    // Only update if not already set to prevent duplicates
-    updates.phf_work_experience = phfData.employment;
-    // Clear and replace the simple work experience format to avoid duplicates
-    updates.work_experience = convertPHFToWorkExperience(phfData.employment);
+  // Check _workExperiences first (dialog-added entries), then fall back to employment
+  const workData = phfData._workExperiences || phfData.employment;
+  if (workData && workData.length > 0) {
+    updates.phf_work_experience = workData;
+    updates.work_experience = convertPHFToWorkExperience(workData);
   }
   
   if (phfData.workPreferences) {
