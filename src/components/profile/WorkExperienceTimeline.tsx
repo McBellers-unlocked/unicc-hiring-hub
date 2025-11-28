@@ -9,6 +9,16 @@ interface WorkExperienceTimelineProps {
 export default function WorkExperienceTimeline({ workExperience }: WorkExperienceTimelineProps) {
   if (!workExperience || workExperience.length === 0) return null;
 
+  // Sort work experience by start date (most recent first)
+  const sortedWorkExperience = [...workExperience].sort((a, b) => {
+    const getStartDate = (exp: any) => {
+      const dateStr = exp.startDate || exp.start_date || '';
+      if (!dateStr) return new Date(0);
+      return new Date(dateStr);
+    };
+    return getStartDate(b).getTime() - getStartDate(a).getTime();
+  });
+
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
     try {
@@ -29,10 +39,10 @@ export default function WorkExperienceTimeline({ workExperience }: WorkExperienc
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          {workExperience.map((exp, index) => (
+          {sortedWorkExperience.map((exp, index) => (
             <div key={index} className="relative pl-8 pb-6 last:pb-0">
               {/* Timeline line */}
-              {index < workExperience.length - 1 && (
+              {index < sortedWorkExperience.length - 1 && (
                 <div className="absolute left-2 top-6 bottom-0 w-0.5 bg-border" />
               )}
               
