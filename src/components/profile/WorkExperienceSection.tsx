@@ -241,9 +241,9 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
 
                     {/* Description */}
                     <div className="space-y-4">
-                      <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Job Description</h5>
+                      <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Duties and Responsibilities</h5>
                       <div>
-                        <Label>Description</Label>
+                        <Label>Duties and Responsibilities</Label>
                         <Textarea
                           value={work.description}
                           onChange={(e) => updateWorkExperience(index, 'description', e.target.value)}
@@ -368,9 +368,9 @@ export default function WorkExperienceSection({ workExperience, onChange }: Work
 
           {/* Job Description */}
           <div className="space-y-4">
-            <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Job Description</h5>
+            <h5 className="text-sm font-medium text-muted-foreground border-b pb-2">Duties and Responsibilities</h5>
             <div>
-              <Label>Description</Label>
+              <Label>Duties and Responsibilities</Label>
               <Textarea
                 value={newWork.description}
                 onChange={(e) => setNewWork({ ...newWork, description: e.target.value })}
