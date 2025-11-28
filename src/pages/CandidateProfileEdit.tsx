@@ -659,6 +659,7 @@ export default function CandidateProfileEdit() {
               email: profile.email,
               phone: profile.phone,
               maiden_name: profile.maiden_name,
+              gender: profile.gender as 'Male' | 'Female' | undefined,
               date_of_birth: (() => {
                 if (!profile.date_of_birth) return undefined;
                 const val = profile.date_of_birth;
@@ -691,6 +692,8 @@ export default function CandidateProfileEdit() {
               permanent_country: profile.permanent_country,
               us_green_card: profile.us_green_card || false,
               us_green_card_details: profile.us_green_card_details,
+              email_public: profile.email_public || false,
+              phone_public: profile.phone_public || false,
             }}
             onUpdate={(data) => {
               setProfile({
