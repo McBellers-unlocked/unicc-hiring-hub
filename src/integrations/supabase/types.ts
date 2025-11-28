@@ -223,11 +223,13 @@ export type Database = {
       candidates: {
         Row: {
           additional_fellowships: Json | null
+          affiliate_subtype: string | null
           availability_date: string | null
           availability_date_detailed: string | null
           availability_mode: string | null
           availability_mode_detailed: string | null
           availability_status: string | null
+          candidate_type: string | null
           certifications: Json | null
           contract_type_preference: string | null
           country_of_birth: string | null
@@ -324,11 +326,13 @@ export type Database = {
         }
         Insert: {
           additional_fellowships?: Json | null
+          affiliate_subtype?: string | null
           availability_date?: string | null
           availability_date_detailed?: string | null
           availability_mode?: string | null
           availability_mode_detailed?: string | null
           availability_status?: string | null
+          candidate_type?: string | null
           certifications?: Json | null
           contract_type_preference?: string | null
           country_of_birth?: string | null
@@ -425,11 +429,13 @@ export type Database = {
         }
         Update: {
           additional_fellowships?: Json | null
+          affiliate_subtype?: string | null
           availability_date?: string | null
           availability_date_detailed?: string | null
           availability_mode?: string | null
           availability_mode_detailed?: string | null
           availability_status?: string | null
+          candidate_type?: string | null
           certifications?: Json | null
           contract_type_preference?: string | null
           country_of_birth?: string | null
