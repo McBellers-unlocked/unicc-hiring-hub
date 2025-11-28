@@ -12,7 +12,7 @@ import { User, AlertCircle, FileText, Search, Video, Clock, AlertTriangle, Calen
 import { formatDistanceToNow } from 'date-fns';
 import ProfileHero from './profile/ProfileHero';
 import ProfileStatsCards from './profile/ProfileStatsCards';
-import ProfileAnalyticsSection from './profile/ProfileAnalyticsSection';
+
 import JobRecommendationsSection from './profile/JobRecommendationsSection';
 import EnhancedSkillsSection from './profile/EnhancedSkillsSection';
 import EnhancedLanguagesSection from './profile/EnhancedLanguagesSection';
@@ -575,11 +575,6 @@ export default function CandidateDashboard() {
         </Alert>
       )}
 
-      {/* Profile Analytics */}
-      <ProfileAnalyticsSection 
-        profileId={profile.id}
-        completionPercentage={profile.profile_completion_percentage || 0}
-      />
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

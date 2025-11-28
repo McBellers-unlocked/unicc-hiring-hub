@@ -16,7 +16,7 @@ import EducationTimeline from "@/components/profile/EducationTimeline";
 import CertificationsGrid from "@/components/profile/CertificationsGrid";
 import JobRecommendationsSection from "@/components/profile/JobRecommendationsSection";
 import PortfolioSection from "@/components/profile/PortfolioSection";
-import ProfileAnalyticsSection from "@/components/profile/ProfileAnalyticsSection";
+
 import { Layout } from "@/components/Layout";
 
 interface CandidateProfile {
@@ -250,13 +250,6 @@ export default function CandidateProfile() {
         certificationsCount={profile.certifications.length}
       />
 
-      {/* Profile Analytics (only for own profile) */}
-      {isOwnProfile && (
-        <ProfileAnalyticsSection 
-          profileId={profile.id}
-          completionPercentage={profile.profile_completion_percentage}
-        />
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content - Left 2/3 */}
