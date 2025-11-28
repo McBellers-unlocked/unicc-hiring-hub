@@ -911,7 +911,7 @@ export default function ApplicationDetail() {
                                 )}
                           {(job.is_un_system_post || job.isUNExperience) && (
                             <Badge variant="outline" className="mt-1 bg-blue-50 text-blue-700 border-blue-200">
-                              UN Position
+                              UN Experience
                             </Badge>
                           )}
                               </div>
