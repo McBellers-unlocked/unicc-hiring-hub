@@ -30,6 +30,7 @@ import ChiefOfDivisionView from "./pages/ChiefOfDivisionView";
 import DirectorView from "./pages/DirectorView";
 import MyApplications from "./pages/MyApplications";
 import HiringProcessGuide from "./pages/HiringProcessGuide";
+import LifeAtUNICC from "./pages/LifeAtUNICC";
 import CandidateProfile from "./pages/CandidateProfile";
 import MyProfile from "./pages/MyProfile";
 import CandidateProfileEdit from "./pages/CandidateProfileEdit";
@@ -67,6 +68,7 @@ const App = () => (
             <Route path="/my-profile" element={<MyProfile />} />
             <Route path="/my-applications" element={<MyApplications />} />
             <Route path="/hiring-guide" element={<HiringProcessGuide />} />
+            <Route path="/life-at-unicc" element={<LifeAtUNICC />} />
             <Route path="/my-applications/:id" element={<CandidateApplicationView />} />
             <Route path="/candidate-profile/:id" element={<CandidateProfile />} />
             <Route path="/candidate-profile/edit" element={<CandidateProfileEdit />} />
