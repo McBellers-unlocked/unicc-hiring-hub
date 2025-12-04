@@ -7,10 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { 
   FileText, 
-  Search, 
+  Video, 
   Users, 
-  CheckCircle2, 
-  Clock,
   ChevronRight,
   TrendingUp
 } from 'lucide-react';
@@ -111,15 +109,15 @@ export default function ApplicationPipelineTracker() {
       key: 'applied',
       label: 'Applied',
       icon: <FileText className="h-4 w-4" />,
-      count: getStageCount(['application', 'submitted', 'received']),
+      count: getStageCount(['application', 'submitted', 'received', 'screening', 'review', 'longlist', 'shortlist']),
       color: 'text-slate-600',
       bgColor: 'bg-slate-100 dark:bg-slate-800'
     },
     {
-      key: 'screening',
-      label: 'Screening',
-      icon: <Search className="h-4 w-4" />,
-      count: getStageCount(['screening', 'review', 'longlist', 'shortlist']),
+      key: 'video',
+      label: 'Video Interview',
+      icon: <Video className="h-4 w-4" />,
+      count: getStageCount(['video']),
       color: 'text-blue-600',
       bgColor: 'bg-blue-100 dark:bg-blue-900/30'
     },
@@ -127,17 +125,9 @@ export default function ApplicationPipelineTracker() {
       key: 'interview',
       label: 'Interview',
       icon: <Users className="h-4 w-4" />,
-      count: getStageCount(['interview', 'panel']),
+      count: getStageCount(['interview', 'panel', 'offer', 'hired', 'selected']),
       color: 'text-purple-600',
       bgColor: 'bg-purple-100 dark:bg-purple-900/30'
-    },
-    {
-      key: 'decision',
-      label: 'Decision',
-      icon: <CheckCircle2 className="h-4 w-4" />,
-      count: getStageCount(['offer', 'hired', 'selected', 'decision']),
-      color: 'text-green-600',
-      bgColor: 'bg-green-100 dark:bg-green-900/30'
     }
   ];
 
@@ -207,7 +197,7 @@ export default function ApplicationPipelineTracker() {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Pipeline Stages */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {stages.map((stage, index) => (
             <div key={stage.key} className="relative">
               <div className={`${stage.bgColor} rounded-lg p-3 text-center`}>
