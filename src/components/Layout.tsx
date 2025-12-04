@@ -18,6 +18,18 @@ interface LayoutProps {
   children: ReactNode;
 }
 
+// Get avatar background color based on user's highest-priority role
+const getAvatarColorByRole = (roles: string[]) => {
+  if (roles.includes('Admin')) return 'bg-rose-500 text-white';
+  if (roles.includes('Chief of HR')) return 'bg-purple-500 text-white';
+  if (roles.includes('Director')) return 'bg-indigo-600 text-white';
+  if (roles.includes('HR Assistant')) return 'bg-blue-500 text-white';
+  if (roles.includes('Hiring Manager')) return 'bg-cyan-600 text-white';
+  if (roles.includes('Panel Member')) return 'bg-emerald-500 text-white';
+  if (roles.includes('Candidate')) return 'bg-amber-500 text-white';
+  return 'bg-muted-foreground text-white';
+};
+
 export const Layout = ({ children }: LayoutProps) => {
   const { user, userRoles, userName, signOut } = useAuth();
 
@@ -196,7 +208,7 @@ export const Layout = ({ children }: LayoutProps) => {
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 hover:bg-primary-foreground/10">
                       <Avatar className="h-9 w-9 border-2 border-primary-foreground/20">
                         <AvatarImage src="" alt={userName || ''} />
-                        <AvatarFallback className="bg-accent text-accent-foreground font-semibold text-sm">
+                        <AvatarFallback className={`${getAvatarColorByRole(userRoles)} font-semibold text-sm`}>
                           {userName
                             ? userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
                             : user.email?.slice(0, 2).toUpperCase()}
