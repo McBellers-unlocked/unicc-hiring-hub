@@ -170,21 +170,32 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
     }
   };
 
-  // Extract skills from multiple sources
+  // Extract skills from multiple sources - handle string or array format
+  const additionalSkillsRaw = application.phf_data?.additionalInformation?.additional_skills;
+  const additionalSkillsParsed = Array.isArray(additionalSkillsRaw) 
+    ? additionalSkillsRaw 
+    : typeof additionalSkillsRaw === 'string' 
+      ? additionalSkillsRaw.split(',').map((s: string) => s.trim()).filter(Boolean)
+      : [];
+
   const allSkills = [
     ...(application.candidate.skills || []),
-    ...(application.phf_data?.additionalInformation?.additional_skills || [])
+    ...additionalSkillsParsed
   ].filter((skill, index, self) => 
     skill && self.indexOf(skill) === index
   );
 
-  // Extract certifications
-  const allCertifications = [
-    ...(application.candidate.certifications || []),
-    ...(application.phf_data?.certifications || [])
-  ].filter((cert, index, self) => 
-    cert && self.findIndex(c => c.name === cert.name) === index
-  );
+  // Extract certifications - handle various formats
+  const candidateCerts = application.candidate.certifications || [];
+  const phfCerts = application.phf_data?.certifications || [];
+  const allCertifications = [...candidateCerts, ...phfCerts].filter((cert, index, self) => {
+    if (!cert) return false;
+    const certName = typeof cert === 'string' ? cert : (cert.name || cert.title);
+    return certName && self.findIndex(c => {
+      const cName = typeof c === 'string' ? c : (c.name || c.title);
+      return cName === certName;
+    }) === index;
+  });
 
   return (
     <Card className="mb-4 hover:shadow-md transition-shadow duration-200">
@@ -332,83 +343,78 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
           </div>
         </div>
 
-        {/* Secondary info row - Languages, Skills, Certifications and Total Experience */}
-        <div className="space-y-3 mb-4 p-3 bg-muted/30 rounded-lg">
-          {/* Row 1: Languages */}
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Languages className="w-4 h-4 text-muted-foreground" />
-              <span className="font-medium text-sm">Languages:</span>
+        {/* Secondary info row - Compact horizontal layout */}
+        <div className="border-t border-b border-border/50 py-3 my-4 space-y-2">
+          {/* Languages */}
+          <div className="flex items-start gap-3 text-sm">
+            <div className="flex items-center gap-1.5 text-muted-foreground w-24 flex-shrink-0">
+              <Languages className="w-3.5 h-3.5" />
+              <span className="font-medium">Languages</span>
             </div>
-            <div className="text-sm" title={getLanguageSummary(application.candidate.languages)}>
-              {getLanguageSummary(application.candidate.languages)}
+            <div className="text-foreground" title={getLanguageSummary(application.candidate.languages)}>
+              {getLanguageSummary(application.candidate.languages) || <span className="text-muted-foreground italic">Not specified</span>}
             </div>
           </div>
 
-          {/* Row 2: Skills */}
+          {/* Skills */}
           {allSkills.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Wrench className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium text-sm">Skills:</span>
+            <div className="flex items-start gap-3 text-sm">
+              <div className="flex items-center gap-1.5 text-muted-foreground w-24 flex-shrink-0">
+                <Wrench className="w-3.5 h-3.5" />
+                <span className="font-medium">Skills</span>
               </div>
               <div className="flex flex-wrap gap-1">
-                {allSkills.slice(0, 10).map((skill, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
+                {allSkills.slice(0, 8).map((skill, index) => (
+                  <Badge key={index} variant="secondary" className="text-xs font-normal px-2 py-0.5 bg-secondary/50">
                     {skill}
                   </Badge>
                 ))}
-                {allSkills.length > 10 && (
-                  <Badge variant="outline" className="text-xs">
-                    +{allSkills.length - 10} more
-                  </Badge>
+                {allSkills.length > 8 && (
+                  <span className="text-xs text-muted-foreground self-center">+{allSkills.length - 8} more</span>
                 )}
               </div>
             </div>
           )}
 
-          {/* Row 3: Certifications */}
+          {/* Certifications */}
           {allCertifications.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Award className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium text-sm">Certifications:</span>
+            <div className="flex items-start gap-3 text-sm">
+              <div className="flex items-center gap-1.5 text-muted-foreground w-24 flex-shrink-0">
+                <Award className="w-3.5 h-3.5" />
+                <span className="font-medium">Certs</span>
               </div>
               <div className="flex flex-wrap gap-1">
-                {allCertifications.slice(0, 5).map((cert, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
-                    {cert.name || cert.title}
-                  </Badge>
-                ))}
+                {allCertifications.slice(0, 5).map((cert, index) => {
+                  const certName = typeof cert === 'string' ? cert : (cert.name || cert.title);
+                  return (
+                    <Badge key={index} variant="outline" className="text-xs font-normal px-2 py-0.5 border-amber-200 bg-amber-50 text-amber-700">
+                      {certName}
+                    </Badge>
+                  );
+                })}
                 {allCertifications.length > 5 && (
-                  <Badge variant="outline" className="text-xs">
-                    +{allCertifications.length - 5} more
-                  </Badge>
+                  <span className="text-xs text-muted-foreground self-center">+{allCertifications.length - 5} more</span>
                 )}
               </div>
             </div>
           )}
-          
-          {/* Row 4: Total Experience */}
-          <div className="pt-2 border-t border-border/50">
-            <div className="flex items-center gap-2 mb-1">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              <span className="font-medium text-sm">Total Experience:</span>
+
+          {/* Experience - compact inline */}
+          <div className="flex items-center gap-3 text-sm pt-1">
+            <div className="flex items-center gap-1.5 text-muted-foreground w-24 flex-shrink-0">
+              <Clock className="w-3.5 h-3.5" />
+              <span className="font-medium">Experience</span>
             </div>
-            <div className="flex items-center gap-3">
-              <div>
-                <div className="text-lg font-semibold text-primary">
-                  {getTotalExperience(workExperienceData, application.candidate.years_of_experience)}
-                </div>
-                <div className="text-xs text-muted-foreground">Overall</div>
-              </div>
-              <div className="h-8 w-px bg-border" />
-              <div>
-                <div className="text-lg font-semibold text-blue-600">
-                  {getTotalUNExperience(application)}
-                </div>
-                <div className="text-xs text-muted-foreground">UN Experience</div>
-              </div>
+            <div className="flex items-center gap-4">
+              <span>
+                <span className="font-semibold text-foreground">{getTotalExperience(workExperienceData, application.candidate.years_of_experience)}</span>
+                <span className="text-muted-foreground ml-1.5">Overall</span>
+              </span>
+              <span className="text-muted-foreground">•</span>
+              <span>
+                <span className="font-semibold text-blue-600">{getTotalUNExperience(application)}</span>
+                <span className="text-muted-foreground ml-1.5">UN System</span>
+              </span>
             </div>
           </div>
         </div>
