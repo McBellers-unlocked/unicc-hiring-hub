@@ -20,14 +20,14 @@ interface LayoutProps {
 
 // Get avatar background color based on user's highest-priority role
 const getAvatarColorByRole = (roles: string[]) => {
-  if (roles.includes('Admin')) return 'bg-rose-500 text-white';
-  if (roles.includes('Chief of HR')) return 'bg-purple-500 text-white';
-  if (roles.includes('Director')) return 'bg-indigo-600 text-white';
-  if (roles.includes('HR Assistant')) return 'bg-blue-500 text-white';
-  if (roles.includes('Hiring Manager')) return 'bg-cyan-600 text-white';
-  if (roles.includes('Panel Member')) return 'bg-emerald-500 text-white';
-  if (roles.includes('Candidate')) return 'bg-amber-500 text-white';
-  return 'bg-muted-foreground text-white';
+  if (roles.includes('Admin')) return 'bg-rose-100 text-rose-700';
+  if (roles.includes('Chief of HR')) return 'bg-purple-100 text-purple-700';
+  if (roles.includes('Director')) return 'bg-indigo-100 text-indigo-700';
+  if (roles.includes('HR Assistant')) return 'bg-blue-100 text-blue-700';
+  if (roles.includes('Hiring Manager')) return 'bg-cyan-100 text-cyan-700';
+  if (roles.includes('Panel Member')) return 'bg-emerald-100 text-emerald-700';
+  if (roles.includes('Candidate')) return 'bg-amber-100 text-amber-700';
+  return 'bg-gray-100 text-gray-600';
 };
 
 export const Layout = ({ children }: LayoutProps) => {
