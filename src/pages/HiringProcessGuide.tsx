@@ -1,13 +1,13 @@
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Building2, FileText, Video, Users, Clock, Star, Mail, HelpCircle, CheckCircle2, Lightbulb } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, Building2, FileText, Video, Users, Clock, Star, Mail, HelpCircle, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
+import { Layout } from '@/components/Layout';
 
 export default function HiringProcessGuide() {
-  const navigate = useNavigate();
   const [openSections, setOpenSections] = useState<string[]>(['process']);
 
   const toggleSection = (section: string) => {
@@ -43,18 +43,19 @@ export default function HiringProcessGuide() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <Layout>
       <div className="max-w-4xl mx-auto p-6">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2"
+            asChild
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back
+            <Link to="/my-applications" className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Link>
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Hiring Process Guide</h1>
@@ -365,6 +366,6 @@ export default function HiringProcessGuide() {
           </Card>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 }
