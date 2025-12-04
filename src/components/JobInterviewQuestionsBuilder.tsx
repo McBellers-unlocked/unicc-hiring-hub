@@ -51,7 +51,7 @@ interface PanelValidation {
     gender_diversity: number;
     duty_stations: string[];
     nationalities: string[];
-    divisions: string[];
+    units: string[];
   };
 }
 
@@ -636,10 +636,10 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="text-sm font-medium mb-1">Divisions</div>
+                <div className="text-sm font-medium mb-1">Units</div>
                 <div className="text-sm text-muted-foreground">
-                  {(panelValidation.summary.divisions || []).length > 0 
-                    ? (panelValidation.summary.divisions || []).join(', ')
+                  {(panelValidation.summary.units || []).length > 0 
+                    ? (panelValidation.summary.units || []).join(', ')
                     : 'None'}
                 </div>
               </div>
