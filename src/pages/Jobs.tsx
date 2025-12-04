@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { JobEmailAlert } from '@/components/JobEmailAlert';
-import { Search, MapPin, Calendar, Briefcase, Filter } from 'lucide-react';
+import { Search, MapPin, Calendar, Briefcase, Filter, Globe, Heart, GraduationCap, Award, ArrowRight, Home, Plane, BookOpen, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -234,6 +234,20 @@ export default function Jobs() {
     setSelectedTypes([]);
   };
 
+  const valueProps = [
+    { icon: Globe, title: "Global Impact", description: "Advance the UN Sustainable Development Goals" },
+    { icon: Award, title: "Competitive Benefits", description: "UN pension, health insurance, tax exemption" },
+    { icon: Heart, title: "Work-Life Balance", description: "Flexible hours, remote work, 30 days leave" },
+    { icon: GraduationCap, title: "Career Growth", description: "Training, mentoring, promotion opportunities" }
+  ];
+
+  const quickBenefits = [
+    { icon: Home, label: "Remote work" },
+    { icon: Plane, label: "90 days telework abroad" },
+    { icon: BookOpen, label: "10 days study leave" },
+    { icon: Clock, label: "Flexible hours" }
+  ];
+
   return (
     <Layout>
       <div className="min-h-screen bg-background">
@@ -244,18 +258,64 @@ export default function Jobs() {
         <meta property="og:description" content="Explore career opportunities at UNICC. Find international jobs in technology, procurement, and shared services." />
         <meta property="og:type" content="website" />
 
-        {/* Hero Section */}
-        <div className="bg-primary text-primary-foreground py-16">
+        {/* Enhanced Hero Section with EVP */}
+        <div className="bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground py-16">
           <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto text-center">
-              <h1 className="text-4xl font-bold mb-4">Career Opportunities</h1>
-              <p className="text-xl text-primary-foreground/90 mb-8">
-                Join UNICC and make a difference in international cooperation through technology and shared services.
-              </p>
-              <div className="flex items-center justify-center space-x-2 text-primary-foreground/80">
-                <Briefcase className="h-5 w-5" />
-                <span>{jobs.length} open positions</span>
+            <div className="max-w-5xl mx-auto">
+              <div className="text-center mb-10">
+                <h1 className="text-4xl md:text-5xl font-bold mb-4">
+                  Join UNICC to shape the future of technology, for a better world
+                </h1>
+                <p className="text-xl text-primary-foreground/90 mb-6 max-w-3xl mx-auto">
+                  Empower UN organizations with innovative technology solutions that drive positive social impact 
+                  and advance the Sustainable Development Goals.
+                </p>
+                <div className="flex items-center justify-center gap-6 text-primary-foreground/80 mb-8">
+                  <span className="flex items-center gap-2">
+                    <Briefcase className="h-5 w-5" />
+                    {jobs.length} open positions
+                  </span>
+                  <span className="hidden sm:block">•</span>
+                  <span className="hidden sm:block">5 global offices</span>
+                  <span className="hidden sm:block">•</span>
+                  <span className="hidden sm:block">100+ nationalities</span>
+                </div>
               </div>
+
+              {/* Value Proposition Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                {valueProps.map((prop, idx) => (
+                  <div key={idx} className="bg-primary-foreground/10 backdrop-blur-sm rounded-lg p-4 text-center border border-primary-foreground/20">
+                    <prop.icon className="h-8 w-8 mx-auto mb-2 text-primary-foreground" />
+                    <h3 className="font-semibold text-sm mb-1">{prop.title}</h3>
+                    <p className="text-xs text-primary-foreground/80">{prop.description}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Learn More CTA */}
+              <div className="text-center">
+                <Button variant="secondary" size="sm" asChild>
+                  <Link to="/life-at-unicc" className="flex items-center gap-2">
+                    Discover Life at UNICC
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Benefits Bar */}
+        <div className="bg-muted/50 border-b">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex flex-wrap justify-center gap-6 md:gap-10">
+              {quickBenefits.map((benefit, idx) => (
+                <div key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <benefit.icon className="h-4 w-4 text-primary" />
+                  <span>{benefit.label}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
