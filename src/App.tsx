@@ -61,6 +61,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/dashboard" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/my-profile" element={<MyProfile />} />
             <Route path="/my-applications" element={<MyApplications />} />
