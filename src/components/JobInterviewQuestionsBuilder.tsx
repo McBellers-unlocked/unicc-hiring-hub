@@ -52,6 +52,7 @@ interface PanelValidation {
     duty_stations: string[];
     nationalities: string[];
     units: string[];
+    divisions: string[];
   };
 }
 
@@ -594,7 +595,7 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
 
           {/* Panel Composition Summary */}
           {panelValidation && panelValidation.summary && (
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 bg-muted/50 rounded-lg">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 p-4 bg-muted/50 rounded-lg">
               <div className="space-y-1">
                 <div className="text-2xl font-bold">{panelValidation.summary.total_members}</div>
                 <div className="text-sm text-muted-foreground">Panel Members</div>
@@ -640,6 +641,14 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                 <div className="text-sm text-muted-foreground">
                   {(panelValidation.summary.units || []).length > 0 
                     ? (panelValidation.summary.units || []).join(', ')
+                    : 'None'}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-sm font-medium mb-1">Divisions</div>
+                <div className="text-sm text-muted-foreground">
+                  {(panelValidation.summary.divisions || []).length > 0 
+                    ? (panelValidation.summary.divisions || []).join(', ')
                     : 'None'}
                 </div>
               </div>
