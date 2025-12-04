@@ -2,25 +2,20 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { User, AlertCircle, FileText, Search, Video, Clock, AlertTriangle, Calendar } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import ProfileHero from './profile/ProfileHero';
-import ProfileStatsCards from './profile/ProfileStatsCards';
+import { 
+  User, AlertCircle, Video, Clock, AlertTriangle, Calendar, 
+  Briefcase, ChevronRight, CheckCircle2, Eye
+} from 'lucide-react';
 
+import WelcomeHeader from './dashboard/WelcomeHeader';
+import ApplicationPipelineTracker from './dashboard/ApplicationPipelineTracker';
 import JobRecommendationsSection from './profile/JobRecommendationsSection';
-import EnhancedSkillsSection from './profile/EnhancedSkillsSection';
-import EnhancedLanguagesSection from './profile/EnhancedLanguagesSection';
-import WorkExperienceTimeline from './profile/WorkExperienceTimeline';
-import EducationTimeline from './profile/EducationTimeline';
-import CertificationsGrid from './profile/CertificationsGrid';
-import JobsContent from './dashboard/JobsContent';
-import MyApplicationsContent from './dashboard/MyApplicationsContent';
 
 interface CandidateProfile {
   id: string;
@@ -54,9 +49,9 @@ export default function CandidateDashboard() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<CandidateProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('profile');
   const [outstandingTasks, setOutstandingTasks] = useState<any[]>([]);
   const [upcomingInterviews, setUpcomingInterviews] = useState<any[]>([]);
+  const [activeApplicationsCount, setActiveApplicationsCount] = useState(0);
 
   useEffect(() => {
     if (user) {
@@ -76,30 +71,13 @@ export default function CandidateDashboard() {
       if (error) throw error;
 
       if (data) {
-        // Parse languages from JSONB to array format
-        let languagesArray: any[] = [];
-        if (data.languages && typeof data.languages === 'object' && !Array.isArray(data.languages)) {
-          // Convert languages object to array format
-          languagesArray = Object.entries(data.languages).map(([language, proficiency]) => ({
-            language,
-            proficiency
-          }));
-        } else if (Array.isArray(data.languages)) {
-          languagesArray = data.languages;
-        }
-
-        // Remove the raw languages object and replace with converted array
-        const { languages: _languages, ...restData } = data;
-
-        // Calculate current position and organization
         const workExp = Array.isArray(data.work_experience) ? data.work_experience : [];
         const currentPos = getCurrentPosition(workExp);
         const currentOrg = getCurrentOrganization(workExp);
         const experienceMonths = calculateYearsOfExperience(workExp);
         
-        // Ensure arrays are properly handled
         setProfile({
-          ...restData,
+          ...data,
           work_experience: workExp,
           education: Array.isArray(data.education) ? data.education : [],
           skills: Array.isArray(data.skills) ? data.skills.map((s: any) => String(s)) : [],
@@ -112,6 +90,14 @@ export default function CandidateDashboard() {
           years_of_experience: experienceMonths > 0 ? Math.round(experienceMonths / 12 * 10) / 10 : data.years_of_experience,
           preferred_locations: Array.isArray(data.preferred_locations) ? data.preferred_locations.map((l: any) => String(l)) : []
         });
+
+        // Fetch active applications count
+        const { count } = await supabase
+          .from('applications')
+          .select('*', { count: 'exact', head: true })
+          .eq('candidate_id', data.id);
+        
+        setActiveApplicationsCount(count || 0);
       }
     } catch (error) {
       console.error('Error fetching candidate profile:', error);
@@ -135,7 +121,7 @@ export default function CandidateDashboard() {
 
       if (!candidateData) return;
 
-      // Fetch video assignments that are pending or in progress
+      // Fetch video assignments that are pending
       const { data: videoTasks } = await supabase
         .from('video_assignments')
         .select(`
@@ -207,7 +193,7 @@ export default function CandidateDashboard() {
 
       setOutstandingTasks(tasks);
 
-      // Fetch booked interviews for upcoming reminders
+      // Fetch booked interviews
       const { data: bookedInterviews } = await supabase
         .from('panel_interview_invitations')
         .select(`
@@ -233,7 +219,6 @@ export default function CandidateDashboard() {
         .eq('status', 'booked');
 
       if (bookedInterviews && bookedInterviews.length > 0) {
-        // Filter for future interviews and sort by datetime
         const futureInterviews = bookedInterviews
           .filter((interview: any) => 
             interview.panel_interview_time_slots && 
@@ -259,16 +244,6 @@ export default function CandidateDashboard() {
     }
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  // Calculate years of experience from work history
   const calculateYearsOfExperience = (workExperience: any[]) => {
     if (!workExperience || workExperience.length === 0) return 0;
     
@@ -278,7 +253,6 @@ export default function CandidateDashboard() {
       if (job.from_year || job.startDate) {
         let startYear, startMonth, endYear, endMonth;
         
-        // Handle different date formats
         if (job.from_year) {
           startYear = parseInt(job.from_year);
           startMonth = parseInt(job.from_month) || 1;
@@ -300,7 +274,7 @@ export default function CandidateDashboard() {
           endYear = parseInt(year);
           endMonth = parseInt(month) || 12;
         } else {
-          return; // Skip invalid entries
+          return;
         }
         
         if (startYear && endYear) {
@@ -315,16 +289,14 @@ export default function CandidateDashboard() {
       }
     });
     
-    return totalMonths; // Return total months instead of years
+    return totalMonths;
   };
 
-  // Helper functions to derive current position from work experience
   const getCurrentPosition = (workExperience: any[]) => {
     if (!workExperience || !Array.isArray(workExperience) || workExperience.length === 0) {
       return null;
     }
     
-    // Sort work experience by start date (most recent first)
     const sortedExperience = [...workExperience].sort((a, b) => {
       const aDate = a.start_date || a.startDate;
       const bDate = b.start_date || b.startDate;
@@ -332,7 +304,6 @@ export default function CandidateDashboard() {
       return new Date(bDate).getTime() - new Date(aDate).getTime();
     });
     
-    // Find the most recent position (current or most recent if no current)
     const currentJob = sortedExperience.find(job => 
       job.is_present || job.isCurrent || !job.end_date || job.end_date === '' || !job.endDate
     ) || sortedExperience[0];
@@ -345,7 +316,6 @@ export default function CandidateDashboard() {
       return null;
     }
     
-    // Sort work experience by start date (most recent first)
     const sortedExperience = [...workExperience].sort((a, b) => {
       const aDate = a.start_date || a.startDate;
       const bDate = b.start_date || b.startDate;
@@ -353,25 +323,11 @@ export default function CandidateDashboard() {
       return new Date(bDate).getTime() - new Date(aDate).getTime();
     });
     
-    // Find the most recent position (current or most recent if no current)
     const currentJob = sortedExperience.find(job => 
       job.is_present || job.isCurrent || !job.end_date || job.end_date === '' || !job.endDate
     ) || sortedExperience[0];
     
     return currentJob?.organization || currentJob?.company || null;
-  };
-
-  const getAvailabilityColor = (status?: string) => {
-    switch (status?.toLowerCase()) {
-      case 'available':
-        return 'bg-green-100 text-green-800';
-      case 'not available':
-        return 'bg-red-100 text-red-800';
-      case 'open to opportunities':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
   };
 
   const hasIncompleteProfile = () => {
@@ -415,212 +371,264 @@ export default function CandidateDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Enhanced Profile Hero */}
-      <ProfileHero 
+      {/* Compact Welcome Header */}
+      <WelcomeHeader 
         profile={profile}
-        isOwnProfile={true}
-        onEdit={() => navigate(`/candidate-profile/${profile.id}/edit`)}
+        activeApplicationsCount={activeApplicationsCount}
+        upcomingInterviewsCount={upcomingInterviews.length}
       />
 
-      {/* Stats Cards */}
-      <ProfileStatsCards 
-        profileCompletionPercentage={profile.profile_completion_percentage || 0}
-        yearsOfExperience={profile.years_of_experience || 0}
-        skillsCount={profile.skills?.length || 0}
-        certificationsCount={profile.certifications?.length || 0}
-      />
-
-      {/* Upcoming Interviews */}
-      {upcomingInterviews.length > 0 && (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Upcoming Interviews
-            </CardTitle>
-            <CardDescription>
-              You have {upcomingInterviews.length} scheduled {upcomingInterviews.length === 1 ? 'interview' : 'interviews'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {upcomingInterviews.map((interview) => (
-              <div
-                key={interview.id}
-                className="flex items-center justify-between p-4 bg-background rounded-lg border"
-              >
-                <div className="flex items-start gap-3 flex-1">
-                  <Calendar className="h-5 w-5 text-primary mt-0.5" />
-                  <div className="flex-1">
-                    <h4 className="font-semibold mb-1">{interview.jobTitle}</h4>
-                    <p className="text-sm text-muted-foreground mb-2">{interview.noticeNo}</p>
-                    <div className="flex flex-col gap-1 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span>
-                          {new Date(interview.datetime).toLocaleDateString('en-GB', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })} at {new Date(interview.datetime).toLocaleTimeString('en-GB', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <span>Duration: {interview.duration} minutes</span>
-                        {interview.location && (
-                          <>
-                            <span>•</span>
-                            <span>{interview.location}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <Badge variant="secondary">
-                  Confirmed
-                </Badge>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Outstanding Tasks */}
-      {outstandingTasks.length > 0 && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-900">
-              <AlertTriangle className="h-5 w-5" />
-              Outstanding Tasks
-            </CardTitle>
-            <CardDescription className="text-orange-700">
-              You have {outstandingTasks.length} pending {outstandingTasks.length === 1 ? 'task' : 'tasks'} requiring your attention
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {outstandingTasks.map((task) => (
-              <div
-                key={task.id}
-                className="flex items-center justify-between p-4 bg-white rounded-lg border border-orange-200"
-              >
-                <div className="flex items-start gap-3 flex-1">
-                  {task.type === 'video_interview' ? (
-                    <Video className="h-5 w-5 text-orange-600 mt-0.5" />
-                  ) : (
-                    <Calendar className="h-5 w-5 text-orange-600 mt-0.5" />
-                  )}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-semibold text-gray-900">{task.title}</h4>
-                      {task.priority === 'high' && (
-                        <Badge variant="destructive" className="text-xs">
-                          Urgent
-                        </Badge>
+      {/* Priority Section: Tasks & Interviews */}
+      {(outstandingTasks.length > 0 || upcomingInterviews.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Outstanding Tasks */}
+          {outstandingTasks.length > 0 && (
+            <Card className="border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-900">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-orange-900 dark:text-orange-200 text-base">
+                  <AlertTriangle className="h-5 w-5" />
+                  Action Required
+                </CardTitle>
+                <CardDescription className="text-orange-700 dark:text-orange-300">
+                  {outstandingTasks.length} pending {outstandingTasks.length === 1 ? 'task' : 'tasks'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {outstandingTasks.slice(0, 3).map((task) => (
+                  <div
+                    key={task.id}
+                    className="flex items-center justify-between p-3 bg-background rounded-lg border border-orange-200 dark:border-orange-800"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {task.type === 'video_interview' ? (
+                        <Video className="h-4 w-4 text-orange-600 shrink-0" />
+                      ) : (
+                        <Calendar className="h-4 w-4 text-orange-600 shrink-0" />
                       )}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium text-sm truncate">{task.title}</h4>
+                          {task.priority === 'high' && (
+                            <Badge variant="destructive" className="text-xs px-1.5 py-0">
+                              Urgent
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          Due {new Date(task.deadline).toLocaleDateString('en-GB')}
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-600">{task.description}</p>
-                    <div className="flex items-center gap-1 mt-2 text-xs text-orange-700">
+                    <Button
+                      size="sm"
+                      variant={task.priority === 'high' ? 'default' : 'outline'}
+                      className="shrink-0 ml-2"
+                      onClick={() => {
+                        if (task.type === 'panel_interview_booking') {
+                          navigate(`/book-interview/${task.applicationId}`);
+                        } else {
+                          navigate(`/my-applications`);
+                        }
+                      }}
+                    >
+                      {task.type === 'panel_interview_booking' ? 'Book' : 'Start'}
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Upcoming Interviews */}
+          {upcomingInterviews.length > 0 && (
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Calendar className="h-5 w-5" />
+                  Upcoming Interviews
+                </CardTitle>
+                <CardDescription>
+                  {upcomingInterviews.length} scheduled
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {upcomingInterviews.slice(0, 2).map((interview) => (
+                  <div
+                    key={interview.id}
+                    className="p-3 bg-background rounded-lg border"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="font-medium text-sm">{interview.jobTitle}</h4>
+                        <p className="text-xs text-muted-foreground">{interview.noticeNo}</p>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Confirmed
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                       <Clock className="h-3 w-3" />
                       <span>
-                        Due {new Date(task.deadline).toLocaleDateString('en-GB')}
+                        {new Date(interview.datetime).toLocaleDateString('en-GB', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric'
+                        })} at {new Date(interview.datetime).toLocaleTimeString('en-GB', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
                       </span>
+                      <span className="text-muted-foreground">•</span>
+                      <span>{interview.duration} min</span>
                     </div>
                   </div>
-                </div>
-                <Button
-                  size="sm"
-                  variant={task.priority === 'high' ? 'default' : 'outline'}
-                  onClick={() => {
-                    if (task.type === 'panel_interview_booking') {
-                      navigate(`/book-interview/${task.applicationId}`);
-                    } else {
-                      navigate(`/my-applications`);
-                    }
-                  }}
-                >
-                  {task.type === 'panel_interview_booking' 
-                    ? 'Book Slot' 
-                    : (task.status === 'NotStarted' ? 'Start' : 'Continue')
-                  }
-                </Button>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Profile Completion Alert */}
       {hasIncompleteProfile() && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Complete your profile to maximize opportunities!</strong>
-            <br />
-            A complete profile helps you get discovered by hiring managers and ensures you're considered for future openings across the organization. 
-            {(profile.profile_completion_percentage || 0) < 50 && (
-              <span> You're at {profile.profile_completion_percentage || 0}% completion.</span>
-            )}
+        <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="flex items-center justify-between">
+            <div>
+              <strong className="text-amber-900 dark:text-amber-200">Complete your profile to maximize opportunities!</strong>
+              <span className="text-amber-700 dark:text-amber-300 ml-1">
+                You're at {profile.profile_completion_percentage || 0}% completion.
+              </span>
+            </div>
             <Button
-              variant="link"
-              className="p-0 h-auto ml-2"
+              variant="outline"
+              size="sm"
+              className="shrink-0 ml-4 border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300"
               onClick={() => navigate(`/candidate-profile/${profile.id}/edit`)}
             >
-              Complete now →
+              Complete Profile
             </Button>
           </AlertDescription>
         </Alert>
       )}
 
-
-      {/* Main Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="profile" className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            My Profile
-          </TabsTrigger>
-          <TabsTrigger value="jobs" className="flex items-center gap-2">
-            <Search className="h-4 w-4" />
-            Browse Jobs
-          </TabsTrigger>
-          <TabsTrigger value="applications" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            My Applications
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="profile" className="mt-6 space-y-6">
+      {/* Main Content: Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Pipeline & Recommendations */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Application Pipeline */}
+          <ApplicationPipelineTracker />
+          
           {/* Job Recommendations */}
           <JobRecommendationsSection candidateProfile={profile} />
+        </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
-              <WorkExperienceTimeline workExperience={profile.work_experience || []} />
-              <EducationTimeline education={profile.education || []} />
-              <CertificationsGrid certifications={profile.certifications || []} />
-            </div>
+        {/* Right Column - Quick Profile Summary */}
+        <div className="space-y-4">
+          {/* Profile Summary Card */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center justify-between">
+                Profile Summary
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => navigate(`/candidate-profile/${profile.id}`)}
+                  className="text-muted-foreground h-7 px-2"
+                >
+                  <Eye className="h-4 w-4 mr-1" />
+                  View
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Completion Progress */}
+              <div>
+                <div className="flex items-center justify-between text-sm mb-1.5">
+                  <span className="text-muted-foreground">Profile Completion</span>
+                  <span className="font-medium">{profile.profile_completion_percentage || 0}%</span>
+                </div>
+                <Progress value={profile.profile_completion_percentage || 0} className="h-2" />
+              </div>
 
-            {/* Sidebar */}
-            <div className="space-y-6">
-              <EnhancedSkillsSection skills={profile.skills || []} />
-              <EnhancedLanguagesSection languages={profile.languages} />
-            </div>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="jobs" className="mt-6">
-          <JobsContent />
-        </TabsContent>
-        
-        <TabsContent value="applications" className="mt-6">
-          <MyApplicationsContent />
-        </TabsContent>
-      </Tabs>
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-muted/50 rounded-lg p-3 text-center">
+                  <div className="text-xl font-bold text-foreground">
+                    {profile.years_of_experience || 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Years Exp.</div>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3 text-center">
+                  <div className="text-xl font-bold text-foreground">
+                    {profile.skills?.length || 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Skills</div>
+                </div>
+              </div>
+
+              {/* Quick Info */}
+              <div className="space-y-2 text-sm">
+                {profile.location && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Location</span>
+                    <span className="font-medium truncate ml-2">{profile.location}</span>
+                  </div>
+                )}
+                {profile.un_experience && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">UN Experience</span>
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                      Yes
+                    </Badge>
+                  </div>
+                )}
+                {profile.certifications && profile.certifications.length > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Certifications</span>
+                    <span className="font-medium">{profile.certifications.length}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => navigate('/jobs')}
+              >
+                <Briefcase className="h-4 w-4 mr-2" />
+                Browse Jobs
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => navigate('/my-applications')}
+              >
+                <Briefcase className="h-4 w-4 mr-2" />
+                My Applications
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => navigate(`/candidate-profile/${profile.id}`)}
+              >
+                <User className="h-4 w-4 mr-2" />
+                View Full Profile
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
