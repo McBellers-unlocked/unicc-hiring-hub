@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText, ChevronDown, Building, FileCheck, User, LayoutDashboard, Shield, Heart } from 'lucide-react';
+import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText, ChevronDown, Building, FileCheck, User, LayoutDashboard, Shield, Heart, GraduationCap, BookOpen } from 'lucide-react';
 import { UNICCLogo } from '@/components/UNICCLogo';
 
 interface LayoutProps {
@@ -53,6 +53,8 @@ export const Layout = ({ children }: LayoutProps) => {
   const hasAdminAccess = isAdmin || isHR || isChiefHR;
   // Directors have hiring manager access plus their own director functions
   const hasHiringManagerAccess = isHiringManager || isDirector;
+  // Staff members who might want to access career features
+  const hasStaffRole = isAdmin || isHR || isChiefHR || isHiringManager || isPanelMember || isDirector;
 
   return (
     <div className="min-h-screen bg-background">
@@ -196,7 +198,40 @@ export const Layout = ({ children }: LayoutProps) => {
                     </Link>
                   )}
                   
-                  {isCandidate && (
+                  {/* My Career dropdown for staff members */}
+                  {hasStaffRole && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="flex items-center hover:opacity-80 transition-colors py-2 focus:outline-none">
+                        <GraduationCap className="w-4 h-4 mr-1" />
+                        My Career
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="bg-popover border border-border shadow-lg">
+                        <DropdownMenuItem asChild>
+                          <Link to="/my-applications" className="flex items-center w-full">
+                            <UserCheck className="w-4 h-4 mr-2" />
+                            My Applications
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/my-profile" className="flex items-center w-full">
+                            <User className="w-4 h-4 mr-2" />
+                            My Profile
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link to="/hiring-guide" className="flex items-center w-full">
+                            <BookOpen className="w-4 h-4 mr-2" />
+                            Hiring Process Guide
+                          </Link>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                  
+                  {/* Direct link for pure candidates */}
+                  {isCandidate && !hasStaffRole && (
                     <Link to="/my-applications" className="flex items-center hover:opacity-80 transition-colors py-2">
                       <UserCheck className="w-4 h-4 mr-1" />
                       My Applications

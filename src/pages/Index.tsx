@@ -6,10 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Briefcase, Users, UserCheck, Settings, FileText, Calendar } from 'lucide-react';
 import { UNICCLogo } from '@/components/UNICCLogo';
 import CandidateDashboard from '@/components/CandidateDashboard';
-import HRAdminDashboard from '@/components/dashboard/HRAdminDashboard';
-import HiringManagerDashboard from '@/components/dashboard/HiringManagerDashboard';
-import ChiefHRDashboard from '@/components/dashboard/ChiefHRDashboard';
-import PanelMemberDashboard from '@/components/dashboard/PanelMemberDashboard';
+import DualRoleDashboard from '@/components/dashboard/DualRoleDashboard';
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -104,30 +101,17 @@ const Index = () => {
   const isChiefOfDivision = userRoles.includes('Chief of Division');
   const isDirector = userRoles.includes('Director');
 
+  // Check if user has a staff role (non-candidate operational role)
+  const hasStaffRole = isAdmin || isHR || isChiefHR || isHiringManager || isPanelMember;
+
   // Render appropriate dashboard based on primary role
   const renderDashboard = () => {
-    if (isCandidate) {
+    // Pure candidates (no staff role) get the candidate dashboard
+    if (isCandidate && !hasStaffRole) {
       return <CandidateDashboard />;
     }
     
-    if (isAdmin || isHR || isChiefHR) {
-      return (
-        <div className="container mx-auto px-4 py-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold">
-              {isChiefHR ? 'Chief HR Dashboard' : 'HR Admin Dashboard'}
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              {isChiefHR 
-                ? 'Manage Chief HR reviews and position descriptions' 
-                : 'Manage recruitment pipeline and applications'}
-            </p>
-          </div>
-          {isChiefHR ? <ChiefHRDashboard /> : <HRAdminDashboard />}
-        </div>
-      );
-    }
-    
+    // Chief of Division and Director get redirected (handled by useEffect above)
     if (isChiefOfDivision) {
       navigate('/chief-of-division');
       return null;
@@ -138,26 +122,9 @@ const Index = () => {
       return null;
     }
     
-    if (isHiringManager) {
-      return (
-        <div className="container mx-auto px-4 py-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold">Hiring Manager Dashboard</h1>
-            <p className="text-muted-foreground mt-2">
-              Manage your jobs and position descriptions
-            </p>
-          </div>
-          <HiringManagerDashboard />
-        </div>
-      );
-    }
-    
-    if (isPanelMember) {
-      return (
-        <div className="container mx-auto px-4 py-8">
-          <PanelMemberDashboard />
-        </div>
-      );
+    // Staff members get the dual-role dashboard (My Tasks + My Career)
+    if (hasStaffRole) {
+      return <DualRoleDashboard />;
     }
     
     // Fallback: Generic dashboard
