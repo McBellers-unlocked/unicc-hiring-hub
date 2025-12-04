@@ -574,9 +574,11 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
                 </Alert>
               ))}
               {panelValidation.warnings.map((warning, idx) => (
-                <Alert key={idx}>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{warning.message}</AlertDescription>
+                <Alert key={idx} className={warning.type === 'info' ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950' : ''}>
+                  <AlertCircle className={`h-4 w-4 ${warning.type === 'info' ? 'text-blue-600 dark:text-blue-400' : ''}`} />
+                  <AlertDescription className={warning.type === 'info' ? 'text-blue-700 dark:text-blue-300' : ''}>
+                    {warning.message}
+                  </AlertDescription>
                 </Alert>
               ))}
               {panelValidation.valid && panelValidation.issues.length === 0 && (
