@@ -376,13 +376,13 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
             </div>
           )}
 
-          {/* Certifications */}
-          {allCertifications.length > 0 && (
-            <div className="flex items-start gap-3 text-sm">
-              <div className="flex items-center gap-1.5 text-muted-foreground w-24 flex-shrink-0">
-                <Award className="w-3.5 h-3.5" />
-                <span className="font-medium">Certs</span>
-              </div>
+          {/* Certifications - always show */}
+          <div className="flex items-start gap-3 text-sm">
+            <div className="flex items-center gap-1.5 text-muted-foreground w-24 flex-shrink-0">
+              <Award className="w-3.5 h-3.5" />
+              <span className="font-medium">Certs</span>
+            </div>
+            {allCertifications.length > 0 ? (
               <div className="flex flex-wrap gap-1">
                 {allCertifications.slice(0, 5).map((cert, index) => {
                   const certName = typeof cert === 'string' ? cert : (cert.name || cert.title);
@@ -396,25 +396,33 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                   <span className="text-xs text-muted-foreground self-center">+{allCertifications.length - 5} more</span>
                 )}
               </div>
-            </div>
-          )}
+            ) : (
+              <span className="text-muted-foreground italic text-xs">None listed</span>
+            )}
+          </div>
+        </div>
 
-          {/* Experience - compact inline */}
-          <div className="flex items-center gap-3 text-sm pt-1">
-            <div className="flex items-center gap-1.5 text-muted-foreground w-24 flex-shrink-0">
-              <Clock className="w-3.5 h-3.5" />
-              <span className="font-medium">Experience</span>
+        {/* Experience - Prominent metric cards */}
+        <div className="p-3 bg-muted/30 rounded-lg my-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className="w-4 h-4 text-muted-foreground" />
+            <span className="font-medium text-sm text-muted-foreground">Experience</span>
+          </div>
+          <div className="flex gap-3">
+            {/* Overall Experience Card */}
+            <div className="flex-1 bg-background rounded-md p-3 border border-border">
+              <div className="text-2xl font-bold text-foreground">
+                {getTotalExperience(workExperienceData, application.candidate.years_of_experience)}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">Overall Experience</div>
             </div>
-            <div className="flex items-center gap-4">
-              <span>
-                <span className="font-semibold text-foreground">{getTotalExperience(workExperienceData, application.candidate.years_of_experience)}</span>
-                <span className="text-muted-foreground ml-1.5">Overall</span>
-              </span>
-              <span className="text-muted-foreground">•</span>
-              <span>
-                <span className="font-semibold text-blue-600">{getTotalUNExperience(application)}</span>
-                <span className="text-muted-foreground ml-1.5">UN System</span>
-              </span>
+            
+            {/* UN Experience Card - Blue highlight */}
+            <div className="flex-1 bg-blue-50 dark:bg-blue-950/30 rounded-md p-3 border border-blue-200 dark:border-blue-800">
+              <div className="text-2xl font-bold text-blue-700 dark:text-blue-400">
+                {getTotalUNExperience(application)}
+              </div>
+              <div className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">UN System Experience</div>
             </div>
           </div>
         </div>
