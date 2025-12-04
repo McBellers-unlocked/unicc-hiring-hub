@@ -8,8 +8,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
-import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText, ChevronDown, Building, FileCheck, User } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText, ChevronDown, Building, FileCheck, User, LayoutDashboard, Shield } from 'lucide-react';
 import { UNICCLogo } from '@/components/UNICCLogo';
 
 interface LayoutProps {
@@ -54,14 +56,14 @@ export const Layout = ({ children }: LayoutProps) => {
               
               {user && (
                 <nav className="hidden md:flex items-center space-x-6 ml-8">
+                  <Link to="/dashboard" className="flex items-center hover:opacity-80 transition-colors py-2">
+                    <LayoutDashboard className="w-4 h-4 mr-1" />
+                    Dashboard
+                  </Link>
+                  
                   <Link to="/jobs" className="flex items-center hover:opacity-80 transition-colors py-2">
                     <Briefcase className="w-4 h-4 mr-1" />
                     Jobs
-                  </Link>
-                  
-                  <Link to="/my-profile" className="flex items-center hover:opacity-80 transition-colors py-2">
-                    <User className="w-4 h-4 mr-1" />
-                    My Profile
                   </Link>
                   
                   {(hasAdminAccess || hasHiringManagerAccess) && (
@@ -187,26 +189,66 @@ export const Layout = ({ children }: LayoutProps) => {
               )}
             </div>
             
-            <div className="flex items-center space-x-4 ml-auto">{/* rest of header content */}
+            <div className="flex items-center space-x-2 ml-auto">
               {user ? (
-                <div className="flex items-center space-x-4">
-                  <span className="text-sm">
-                    {userName || user.email}
-                    {userRoles.length > 0 && (
-                      <span className="ml-2 text-xs bg-accent text-accent-foreground px-2 py-1 rounded">
-                        {userRoles.join(', ')}
-                      </span>
-                    )}
-                  </span>
-                  <Link to="/account/security" className="text-sm hover:opacity-80 transition-colors">
-                    <Settings className="w-4 h-4 inline mr-1" />
-                    Security
-                  </Link>
-                  <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                    <LogOut className="w-4 h-4 mr-1" />
-                    Sign Out
-                  </Button>
-                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 hover:bg-primary-foreground/10">
+                      <Avatar className="h-9 w-9 border-2 border-primary-foreground/20">
+                        <AvatarImage src="" alt={userName || ''} />
+                        <AvatarFallback className="bg-accent text-accent-foreground font-semibold text-sm">
+                          {userName
+                            ? userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                            : user.email?.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-64" align="end" sideOffset={8}>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-2">
+                        <p className="text-base font-semibold leading-none">{userName || 'User'}</p>
+                        <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                        {userRoles.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            {userRoles.map((role) => (
+                              <span
+                                key={role}
+                                className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full"
+                              >
+                                {role}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard" className="flex items-center cursor-pointer">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/my-profile" className="flex items-center cursor-pointer">
+                        <User className="mr-2 h-4 w-4" />
+                        My Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/account/security" className="flex items-center cursor-pointer">
+                        <Shield className="mr-2 h-4 w-4" />
+                        Security
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive cursor-pointer">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               ) : (
                 <Link to="/auth">
                   <Button variant="secondary">Sign In</Button>
