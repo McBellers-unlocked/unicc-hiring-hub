@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Edit, Briefcase, FileText, Calendar, ChevronRight } from 'lucide-react';
+import { Edit, Briefcase, FileText, Calendar, ChevronRight, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface WelcomeHeaderProps {
@@ -92,16 +92,27 @@ export default function WelcomeHeader({
             )}
           </div>
 
-          {/* Edit Profile Button */}
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => navigate(`/candidate-profile/${profile.id}/edit`)}
-            className="shrink-0"
-          >
-            <Edit className="h-4 w-4 mr-1.5" />
-            Edit Profile
-          </Button>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => navigate('/hiring-guide')}
+              className="shrink-0 text-muted-foreground"
+            >
+              <HelpCircle className="h-4 w-4 mr-1.5" />
+              Process Guide
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate(`/candidate-profile/${profile.id}/edit`)}
+              className="shrink-0"
+            >
+              <Edit className="h-4 w-4 mr-1.5" />
+              Edit Profile
+            </Button>
+          </div>
         </div>
       </div>
     </div>

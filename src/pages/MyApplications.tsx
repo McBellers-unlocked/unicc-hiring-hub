@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { ArrowLeft, FileText } from 'lucide-react';
+import { ArrowLeft, FileText, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import MyApplicationsContent from '@/components/dashboard/MyApplicationsContent';
 
@@ -25,16 +25,27 @@ export default function MyApplications() {
             <h1 className="text-3xl font-bold text-gray-900">My Applications</h1>
           </div>
           
-          {user && (
+          <div className="flex items-center gap-2">
             <Button 
-              onClick={() => navigate('/candidate-profile/edit')}
-              variant="outline"
-              className="flex items-center gap-2"
+              onClick={() => navigate('/hiring-guide')}
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-2 text-muted-foreground"
             >
-              <FileText className="h-4 w-4" />
-              Edit Profile
+              <HelpCircle className="h-4 w-4" />
+              Process Guide
             </Button>
-          )}
+            {user && (
+              <Button 
+                onClick={() => navigate('/candidate-profile/edit')}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Edit Profile
+              </Button>
+            )}
+          </div>
         </div>
 
         <MyApplicationsContent />
