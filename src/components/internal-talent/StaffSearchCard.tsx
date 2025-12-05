@@ -61,8 +61,8 @@ export function StaffSearchCard({ staff, viewMode }: StaffSearchCardProps) {
     ? staff.skills.map((s: any) => typeof s === 'string' ? s : s.name || '')
     : [];
 
-  // Merge and deduplicate skills (limit to 3 for preview)
-  const allSkills = [...new Set([...assessedSkillNames, ...profileSkills])].slice(0, 3);
+  // Merge and deduplicate skills (limit to 8 for fixed-height container)
+  const allSkills = [...new Set([...assessedSkillNames, ...profileSkills])].slice(0, 8);
   const totalSkillCount = [...new Set([...assessedSkillNames, ...profileSkills])].length;
 
   const initials = staff.name
@@ -146,10 +146,10 @@ export function StaffSearchCard({ staff, viewMode }: StaffSearchCardProps) {
   return (
     <>
       <Card 
-        className="cursor-pointer hover:shadow-md transition-shadow"
+        className="cursor-pointer hover:shadow-md transition-shadow min-h-[320px] flex flex-col"
         onClick={() => setModalOpen(true)}
       >
-        <CardContent className="p-4 space-y-3">
+        <CardContent className="p-4 space-y-3 flex-1 flex flex-col">
           <div className="flex items-start gap-3">
             <Avatar className="h-12 w-12">
               <AvatarFallback className="bg-primary/10 text-primary font-semibold">
@@ -187,7 +187,7 @@ export function StaffSearchCard({ staff, viewMode }: StaffSearchCardProps) {
             )}
           </div>
 
-          {allSkills.length > 0 && (
+          <div className="h-[72px] overflow-hidden border-t pt-2">
             <div className="flex flex-wrap gap-1">
               {allSkills.map((skill: string, i: number) => (
                 <AssessedSkillBadge
@@ -196,11 +196,11 @@ export function StaffSearchCard({ staff, viewMode }: StaffSearchCardProps) {
                   assessment={skillAssessmentMap.get(skill.toLowerCase())}
                 />
               ))}
-              {totalSkillCount > 3 && (
-                <Badge variant="outline" className="text-xs">
-                  +{totalSkillCount - 3}
-                </Badge>
-              )}
+            </div>
+          </div>
+          {totalSkillCount > 0 && (
+            <div className="text-xs text-muted-foreground">
+              {totalSkillCount} skill{totalSkillCount !== 1 ? 's' : ''} total
             </div>
           )}
 
