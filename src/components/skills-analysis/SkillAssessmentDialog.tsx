@@ -137,9 +137,10 @@ export default function SkillAssessmentDialog({
       // Sync skill to user's profile skills array
       const selectedSkill = skills.find(s => s.id === skillId);
       if (selectedSkill) {
+        // Sync to users table
         const { data: userData } = await supabase
           .from('users')
-          .select('skills')
+          .select('skills, email')
           .eq('id', userId)
           .single();
         
@@ -155,6 +156,31 @@ export default function SkillAssessmentDialog({
             .from('users')
             .update({ skills: [...currentSkills, selectedSkill.name] })
             .eq('id', userId);
+        }
+
+        // Also sync to candidates table (bidirectional sync)
+        if (userData?.email) {
+          const { data: candidateData } = await supabase
+            .from('candidates')
+            .select('id, skills')
+            .eq('email', userData.email)
+            .single();
+          
+          if (candidateData) {
+            const currentCandidateSkills: string[] = Array.isArray(candidateData.skills)
+              ? (candidateData.skills as (string | { name?: string })[]).map(s => typeof s === 'string' ? s : (s as any)?.name || '').filter(Boolean)
+              : [];
+            const skillExistsInCandidate = currentCandidateSkills.some(
+              s => s.toLowerCase() === selectedSkill.name.toLowerCase()
+            );
+            
+            if (!skillExistsInCandidate) {
+              await supabase
+                .from('candidates')
+                .update({ skills: [...currentCandidateSkills, selectedSkill.name] })
+                .eq('id', candidateData.id);
+            }
+          }
         }
       }
 

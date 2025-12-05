@@ -554,6 +554,77 @@ export default function CandidateProfileEdit() {
       }
 
       console.log('=== SAVE OPERATION COMPLETE ===');
+      
+      // Bidirectional sync: Sync profile skills to users table and create draft skill_assessments
+      const syncSkillsToUsersAndAssessments = async () => {
+        try {
+          // 1. Get user record by email
+          const { data: userData } = await supabase
+            .from('users')
+            .select('id, skills')
+            .eq('email', user.email)
+            .single();
+          
+          if (!userData) {
+            console.log('No user record found for skills sync');
+            return;
+          }
+          
+          const profileSkills = Array.isArray(profile.skills) ? profile.skills : [];
+          if (profileSkills.length === 0) return;
+          
+          // 2. Sync profile skills to users.skills
+          const existingUserSkills: string[] = Array.isArray(userData.skills) 
+            ? (userData.skills as (string | { name?: string })[]).map(s => typeof s === 'string' ? s : (s as any)?.name || '').filter(Boolean)
+            : [];
+          const mergedSkills = [...new Set([...existingUserSkills, ...profileSkills])];
+          
+          await supabase
+            .from('users')
+            .update({ skills: mergedSkills })
+            .eq('id', userData.id);
+          
+          console.log('Synced skills to users table:', mergedSkills);
+          
+          // 3. Create draft skill_assessments for new skills (if skill definition exists)
+          for (const skill of profileSkills) {
+            // Check if a matching skill definition exists (case-insensitive)
+            const { data: skillDef } = await supabase
+              .from('skill_definitions')
+              .select('id')
+              .ilike('name', skill)
+              .single();
+            
+            if (skillDef) {
+              // Check if assessment already exists
+              const { data: existingAssessment } = await supabase
+                .from('skill_assessments')
+                .select('id')
+                .eq('user_id', userData.id)
+                .eq('skill_id', skillDef.id)
+                .single();
+              
+              if (!existingAssessment) {
+                // Create draft assessment
+                await supabase
+                  .from('skill_assessments')
+                  .insert({
+                    user_id: userData.id,
+                    skill_id: skillDef.id,
+                    status: 'draft'
+                  });
+                console.log('Created draft skill assessment for:', skill);
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error syncing skills:', err);
+          // Don't throw - this is a non-critical operation
+        }
+      };
+      
+      await syncSkillsToUsersAndAssessments();
+      
       toast({
         title: "Success",
         description: "Profile updated successfully",
