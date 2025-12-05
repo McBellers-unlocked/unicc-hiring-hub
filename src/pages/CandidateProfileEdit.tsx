@@ -108,6 +108,33 @@ export default function CandidateProfileEdit() {
   const [newLocation, setNewLocation] = useState("");
   const [hasLoadedProfile, setHasLoadedProfile] = useState(false);
   const [staffData, setStaffData] = useState<StaffData | null>(null);
+  const [skillAssessments, setSkillAssessments] = useState<Map<string, {
+    selfAssessment: number | null;
+    managerAssessment: number | null;
+    requiredLevel: number | null;
+    status: string;
+  }>>(new Map());
+
+  // Gap-based color styling for skills
+  const getSkillStyle = (skillName: string) => {
+    const assessment = skillAssessments.get(skillName.toLowerCase());
+    if (!assessment || assessment.status !== 'approved') {
+      return "bg-muted text-muted-foreground"; // Not assessed
+    }
+    
+    const level = assessment.managerAssessment ?? assessment.selfAssessment;
+    const required = assessment.requiredLevel;
+    if (level === null || required === null) {
+      return "bg-muted text-muted-foreground";
+    }
+    
+    const gap = level - required;
+    if (gap >= 2) return "bg-purple-200 text-purple-700"; // Excellence
+    if (gap === 1) return "bg-blue-200 text-blue-700";    // Exceeding
+    if (gap === 0) return "bg-emerald-200 text-emerald-700"; // Meeting
+    if (gap === -1) return "bg-amber-200 text-amber-700";  // Minor gap
+    return "bg-red-200 text-red-700";                      // Significant gap
+  };
 
   useEffect(() => {
     console.log('=== useEffect TRIGGERED ===');
@@ -149,7 +176,7 @@ export default function CandidateProfileEdit() {
         // Fetch staff data from users table
         const { data: userData } = await supabase
           .from("users")
-          .select("job_title, entry_on_duty_date, duty_station, division, unit")
+          .select("id, job_title, entry_on_duty_date, duty_station, division, unit")
           .eq("email", user.email)
           .neq("role", "Candidate")
           .maybeSingle();
@@ -157,6 +184,28 @@ export default function CandidateProfileEdit() {
         if (userData) {
           console.log('Staff data found:', userData);
           setStaffData(userData);
+          
+          // Fetch skill assessments for gap-based coloring
+          const { data: assessments } = await supabase
+            .from('skill_assessments')
+            .select('skill_id, self_assessment, manager_assessment, required_level, status, skill_definitions (name)')
+            .eq('user_id', userData.id);
+          
+          if (assessments) {
+            const assessmentsMap = new Map();
+            assessments.forEach((a: any) => {
+              if (a.skill_definitions?.name) {
+                assessmentsMap.set(a.skill_definitions.name.toLowerCase(), {
+                  selfAssessment: a.self_assessment,
+                  managerAssessment: a.manager_assessment,
+                  requiredLevel: a.required_level,
+                  status: a.status
+                });
+              }
+            });
+            setSkillAssessments(assessmentsMap);
+            console.log('Loaded skill assessments:', assessmentsMap.size);
+          }
         }
 
         // Prioritize existing work_experience data, then fall back to converted PHF data
@@ -586,14 +635,32 @@ export default function CandidateProfileEdit() {
           
           console.log('Synced skills to users table:', mergedSkills);
           
-          // 3. Create draft skill_assessments for new skills (if skill definition exists)
+          // 3. Create draft skill_assessments for new skills (auto-create skill definition if missing)
           for (const skill of profileSkills) {
             // Check if a matching skill definition exists (case-insensitive)
-            const { data: skillDef } = await supabase
+            let { data: skillDef } = await supabase
               .from('skill_definitions')
               .select('id')
               .ilike('name', skill)
-              .single();
+              .maybeSingle();
+            
+            // If not found, create it in "Custom" category
+            if (!skillDef) {
+              const { data: newSkillDef, error: createError } = await supabase
+                .from('skill_definitions')
+                .insert({
+                  name: skill,
+                  category: 'Custom',
+                  is_active: true
+                })
+                .select('id')
+                .single();
+              
+              if (!createError && newSkillDef) {
+                skillDef = newSkillDef;
+                console.log('Created new skill definition:', skill);
+              }
+            }
             
             if (skillDef) {
               // Check if assessment already exists
@@ -602,7 +669,7 @@ export default function CandidateProfileEdit() {
                 .select('id')
                 .eq('user_id', userData.id)
                 .eq('skill_id', skillDef.id)
-                .single();
+                .maybeSingle();
               
               if (!existingAssessment) {
                 // Create draft assessment
@@ -899,9 +966,9 @@ export default function CandidateProfileEdit() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {profile.skills.map((skill: string, index: number) => (
-                  <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                  <Badge key={index} variant="secondary" className={`flex items-center gap-1 ${getSkillStyle(skill)}`}>
                     {skill}
-                    <button onClick={() => removeSkill(index)}>
+                    <button onClick={() => removeSkill(index)} className="hover:opacity-70">
                       <X className="h-3 w-3" />
                     </button>
                   </Badge>
