@@ -160,11 +160,41 @@ export default function CandidateProfileEdit() {
         }
 
         // Prioritize existing work_experience data, then fall back to converted PHF data
-        let workExperience = [];
+        let workExperience: any[] = [];
         if (Array.isArray(data.work_experience) && data.work_experience.length > 0) {
           workExperience = data.work_experience;
         } else if (data.phf_work_experience && Array.isArray(data.phf_work_experience) && data.phf_work_experience.length > 0) {
           workExperience = convertPHFToWorkExperience(data.phf_work_experience);
+        }
+
+        // Inject UNICC work experience as committed entry if staff data exists
+        if (userData && userData.job_title && userData.entry_on_duty_date) {
+          const hasUniccEntry = workExperience.some((exp: any) => 
+            exp.company?.toLowerCase().includes('unicc') || 
+            exp.company?.toLowerCase().includes('united nations international computing centre')
+          );
+
+          if (!hasUniccEntry) {
+            const entryDate = new Date(userData.entry_on_duty_date);
+            const formattedStartDate = `${entryDate.getFullYear()}-${String(entryDate.getMonth() + 1).padStart(2, '0')}`;
+
+            const uniccEntry = {
+              company: "United Nations International Computing Centre (UNICC)",
+              position: userData.job_title,
+              type: "Full-time",
+              startDate: formattedStartDate,
+              endDate: "",
+              location: userData.duty_station || "",
+              description: "",
+              isUNExperience: true,
+              isCurrent: true,
+              _isStaffEntry: true,
+            };
+
+            // Prepend UNICC entry (most recent/current job)
+            workExperience = [uniccEntry, ...workExperience];
+            console.log('Injected UNICC staff entry into work experience');
+          }
         }
 
         console.log('Final work experience for UI:', workExperience);
@@ -181,6 +211,7 @@ export default function CandidateProfileEdit() {
             portfolio_attachments: Array.isArray(data.portfolio_attachments) ? data.portfolio_attachments : [],
             languages: data.languages || { un_languages: {}, other_languages: [] },
             has_security_clearance: data.has_security_clearance || false,
+            un_experience: data.un_experience || !!userData,
           });
           setHasLoadedProfile(true);
           console.log('Profile loaded successfully, setting hasLoadedProfile = true');

@@ -50,38 +50,6 @@ const getDefaultNewWork = (): WorkExperience => ({
 export default function WorkExperienceSection({ workExperience, onChange, staffData }: WorkExperienceSectionProps) {
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const [newWork, setNewWork] = useState<WorkExperience>(getDefaultNewWork());
-  const [hasPrePopulated, setHasPrePopulated] = useState(false);
-
-  // Pre-populate form with staff data if available and no UNICC entry exists
-  useEffect(() => {
-    if (staffData && !hasPrePopulated) {
-      const hasUniccEntry = workExperience.some(
-        (w) => w.company?.toLowerCase().includes('unicc') || w.company?.toLowerCase().includes('united nations international computing centre')
-      );
-
-      if (!hasUniccEntry && staffData.job_title) {
-        // Format entry_on_duty_date to yyyy-MM
-        let formattedStartDate = "";
-        if (staffData.entry_on_duty_date) {
-          const date = new Date(staffData.entry_on_duty_date);
-          formattedStartDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        }
-
-        setNewWork({
-          company: "United Nations International Computing Centre (UNICC)",
-          position: staffData.job_title || "",
-          type: "Full-time",
-          startDate: formattedStartDate,
-          endDate: "",
-          location: staffData.duty_station || "",
-          description: "",
-          isUNExperience: true,
-          isCurrent: true,
-        });
-        setHasPrePopulated(true);
-      }
-    }
-  }, [staffData, workExperience, hasPrePopulated]);
 
   const addWorkExperience = () => {
     if (newWork.company && newWork.position) {
