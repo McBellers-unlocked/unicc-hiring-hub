@@ -39,7 +39,13 @@ export default function BatterySkillIndicator({
       return "bg-primary/60";
     }
     
-    if (currentLevel >= required) {
+    // Exceeding requirement - deeper green
+    if (currentLevel > required) {
+      return "bg-emerald-700";
+    }
+    
+    // Meeting requirement exactly
+    if (currentLevel === required) {
       return "bg-emerald-500";
     }
     
@@ -53,7 +59,8 @@ export default function BatterySkillIndicator({
   const getStatusText = () => {
     if (!requiredLevel) return "No requirement set";
     if (currentLevel === 0) return "Not assessed";
-    if (currentLevel >= requiredLevel) return "Meeting requirement";
+    if (currentLevel > requiredLevel) return "Exceeding requirement";
+    if (currentLevel === requiredLevel) return "Meeting requirement";
     if (gap === 1) return "1 level gap";
     return `${gap} level gap`;
   };
@@ -150,6 +157,9 @@ export default function BatterySkillIndicator({
             )}
             {requiredLevel && (
               <p>Required: Level {requiredLevel}</p>
+            )}
+            {requiredLevel && currentLevel > requiredLevel && (
+              <p className="text-emerald-600">+{currentLevel - requiredLevel} above required</p>
             )}
             {isPending && (
               <p className="text-amber-600">Pending approval</p>
