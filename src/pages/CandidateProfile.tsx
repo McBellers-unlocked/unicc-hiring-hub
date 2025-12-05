@@ -75,13 +75,46 @@ export default function CandidateProfile() {
         const hasValidWorkExp = workExp.some((exp: any) => exp.company || exp.position);
         let finalWorkExp = hasValidWorkExp ? workExp : phfWorkExp;
 
-        // Fetch staff data from users table to auto-inject UNICC experience
+        // Fetch staff data from users table to auto-inject UNICC experience and get user skills
         const { data: staffData } = await supabase
           .from("users")
-          .select("job_title, entry_on_duty_date, duty_station, division, unit")
+          .select("id, job_title, entry_on_duty_date, duty_station, division, unit, skills")
           .eq("email", data.email)
-          .neq("role", "Candidate")
           .maybeSingle();
+
+        // Fetch skill assessments if user exists
+        let assessedSkillNames: string[] = [];
+        if (staffData?.id) {
+          const { data: assessments } = await supabase
+            .from('skill_assessments')
+            .select('skill_definitions (name)')
+            .eq('user_id', staffData.id)
+            .eq('status', 'approved');
+          
+          assessedSkillNames = (assessments || [])
+            .map((a: any) => a.skill_definitions?.name)
+            .filter(Boolean);
+        }
+
+        // Merge skills from all sources: candidates.skills, users.skills, skill_assessments
+        const candidateSkills: string[] = Array.isArray(data.skills) 
+          ? data.skills.map((s: any) => typeof s === 'string' ? s : s?.name || '').filter(Boolean)
+          : [];
+        const userSkills: string[] = Array.isArray(staffData?.skills)
+          ? (staffData.skills as any[]).map((s: any) => typeof s === 'string' ? s : s?.name || '').filter(Boolean)
+          : [];
+
+        // Merge and deduplicate (case-insensitive)
+        const mergedSkillsMap = new Map<string, string>();
+        [...candidateSkills, ...userSkills, ...assessedSkillNames].forEach(skill => {
+          if (skill) {
+            const key = skill.toLowerCase();
+            if (!mergedSkillsMap.has(key)) {
+              mergedSkillsMap.set(key, skill);
+            }
+          }
+        });
+        const mergedSkills = Array.from(mergedSkillsMap.values());
 
         // If staff data exists, inject synthetic UNICC work experience
         if (staffData && staffData.job_title && staffData.entry_on_duty_date) {
@@ -115,7 +148,7 @@ export default function CandidateProfile() {
 
         const normalizedProfile = {
           ...data,
-          skills: Array.isArray(data.skills) ? data.skills : [],
+          skills: mergedSkills, // Use merged skills from all sources
           certifications: Array.isArray(data.certifications) ? data.certifications : [],
           education: Array.isArray(data.education) ? data.education : [],
           work_experience: finalWorkExp,
@@ -123,7 +156,7 @@ export default function CandidateProfile() {
           un_organizations_worked: Array.isArray(data.un_organizations_worked) ? data.un_organizations_worked : [],
           portfolio_attachments: Array.isArray(data.portfolio_attachments) ? data.portfolio_attachments : [],
           // Auto-set UN experience if staff member
-          un_experience: data.un_experience || !!staffData,
+          un_experience: data.un_experience || !!(staffData?.job_title),
         };
 
         // Always recalculate years of experience to include injected UNICC entry
