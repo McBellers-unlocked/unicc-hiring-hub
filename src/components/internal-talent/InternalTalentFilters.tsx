@@ -13,11 +13,22 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import type { InternalTalentFilters as FilterType } from "@/pages/InternalTalentPool";
+
+export interface InternalTalentFilters {
+  searchText: string;
+  divisions: string[];
+  units: string[];
+  dutyStations: string[];
+  skills: string[];
+  grades: string[];
+  minTenure?: number;
+  maxTenure?: number;
+  lineManager?: string;
+}
 
 interface InternalTalentFiltersProps {
-  filters: FilterType;
-  onFiltersChange: (filters: FilterType) => void;
+  filters: InternalTalentFilters;
+  onFiltersChange: (filters: InternalTalentFilters) => void;
   viewMode: "grid" | "list";
   onViewModeChange: (mode: "grid" | "list") => void;
   sortBy: string;
@@ -43,11 +54,11 @@ export function InternalTalentFilters({
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleFilterChange = (key: keyof FilterType, value: any) => {
+  const handleFilterChange = (key: keyof InternalTalentFilters, value: any) => {
     onFiltersChange({ ...filters, [key]: value });
   };
 
-  const toggleArrayFilter = (key: keyof FilterType, value: string) => {
+  const toggleArrayFilter = (key: keyof InternalTalentFilters, value: string) => {
     const current = filters[key] as string[];
     if (current.includes(value)) {
       handleFilterChange(key, current.filter(v => v !== value));

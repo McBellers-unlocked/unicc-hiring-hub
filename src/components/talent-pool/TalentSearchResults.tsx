@@ -13,6 +13,36 @@ interface TalentSearchResultsProps {
   sortBy: string;
 }
 
+// Normalized talent record for unified display
+interface NormalizedTalent {
+  id: string;
+  name: string;
+  email: string;
+  position: string | null;
+  organization: string | null;
+  location: string | null;
+  years_of_experience: number | null;
+  skills: any[];
+  education: any[];
+  languages: any[];
+  un_experience: boolean;
+  profile_photo_url: string | null;
+  updated_at: string;
+  _source: "external" | "internal";
+  // Internal-specific fields
+  division?: string | null;
+  unit?: string | null;
+  duty_station?: string | null;
+  current_grade?: string | null;
+  entry_on_duty_date?: string | null;
+  line_manager?: string | null;
+  // External-specific fields
+  willing_to_relocate?: boolean;
+  has_security_clearance?: boolean;
+  work_experience?: any[];
+  professional_summary?: string | null;
+}
+
 export function TalentSearchResults({
   filters,
   viewMode,
@@ -20,23 +50,18 @@ export function TalentSearchResults({
 }: TalentSearchResultsProps) {
   const [matchScores, setMatchScores] = useState<Record<string, number>>({});
 
-  const { data: candidates, isLoading, error } = useQuery({
-    queryKey: ["talent-pool-search", filters],
+  // Fetch external candidates
+  const { data: externalCandidates, isLoading: loadingExternal } = useQuery({
+    queryKey: ["talent-pool-external", filters],
     queryFn: async () => {
-      let query = supabase
-        .from("candidates")
-        .select("*");
+      let query = supabase.from("candidates").select("*");
 
-      // Apply server-side filters
-      // Experience range
       if (filters.minExperience !== undefined) {
         query = query.gte("years_of_experience", filters.minExperience);
       }
       if (filters.maxExperience !== undefined && filters.maxExperience < 30) {
         query = query.lte("years_of_experience", filters.maxExperience);
       }
-
-      // Boolean filters
       if (filters.hasUNExperience) {
         query = query.eq("un_experience", true);
       }
@@ -47,65 +72,171 @@ export function TalentSearchResults({
         query = query.eq("has_security_clearance", true);
       }
 
-      const { data: allData, error: fetchError } = await query;
-      if (fetchError) throw fetchError;
-      
-      let filteredData = allData || [];
-
-      // Apply client-side filters for complex JSONB searches
-      // Text search in JSONB fields
-      if (filters.searchText) {
-        const searchLower = filters.searchText.toLowerCase();
-        filteredData = filteredData.filter((candidate) => {
-          // Basic text fields
-          const textMatch = 
-            candidate.name?.toLowerCase().includes(searchLower) ||
-            candidate.email?.toLowerCase().includes(searchLower) ||
-            candidate.current_position?.toLowerCase().includes(searchLower) ||
-            candidate.current_organization?.toLowerCase().includes(searchLower) ||
-            candidate.professional_summary?.toLowerCase().includes(searchLower);
-          
-          // Search in skills array
-          const skillsMatch = Array.isArray(candidate.skills) && 
-            candidate.skills.some((skill: any) => 
-              typeof skill === 'string' && skill.toLowerCase().includes(searchLower)
-            );
-          
-          // Search in work experience
-          const workExpMatch = Array.isArray(candidate.work_experience) &&
-            candidate.work_experience.some((exp: any) => 
-              exp.position?.toLowerCase().includes(searchLower) ||
-              exp.organization?.toLowerCase().includes(searchLower) ||
-              exp.description?.toLowerCase().includes(searchLower)
-            );
-          
-          return textMatch || skillsMatch || workExpMatch;
-        });
-      }
-
-      // Apply education level filter
-      if (filters.educationLevel) {
-        filteredData = filteredData.filter((candidate) => {
-          const education = candidate.education as any[];
-          if (!Array.isArray(education) || education.length === 0) return false;
-          
-          // Check all education entries, not just the first one
-          const allDegrees = education.map(e => e.degree?.toLowerCase() || '').join(' ');
-          
-          if (filters.educationLevel === 'first_degree') {
-            return allDegrees.includes('bachelor') || allDegrees.includes('b.a') || 
-                   allDegrees.includes('b.s') || allDegrees.includes('undergraduate');
-          } else if (filters.educationLevel === 'advanced_degree') {
-            return allDegrees.includes('master') || allDegrees.includes('phd') || 
-                   allDegrees.includes('doctorate') || allDegrees.includes('m.a') ||
-                   allDegrees.includes('m.s') || allDegrees.includes('mba');
-          }
-          return true;
-        });
-      }
-
-      return filteredData;
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
     },
+    enabled: filters.talentSource !== "internal",
+  });
+
+  // Fetch internal staff
+  const { data: internalStaff, isLoading: loadingInternal } = useQuery({
+    queryKey: ["talent-pool-internal", filters],
+    queryFn: async () => {
+      let query = supabase
+        .from("users")
+        .select("*")
+        .neq("role", "Candidate");
+
+      if (filters.divisions.length > 0) {
+        query = query.in("division", filters.divisions);
+      }
+      if (filters.dutyStations.length > 0) {
+        query = query.in("duty_station", filters.dutyStations);
+      }
+      if (filters.grades.length > 0) {
+        query = query.in("current_grade", filters.grades);
+      }
+      if (filters.lineManager) {
+        query = query.ilike("line_manager", `%${filters.lineManager}%`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: filters.talentSource !== "external",
+  });
+
+  // Normalize data from both sources
+  const normalizedTalent: NormalizedTalent[] = [];
+
+  // Normalize external candidates
+  if (filters.talentSource !== "internal" && externalCandidates) {
+    externalCandidates.forEach((c) => {
+      normalizedTalent.push({
+        id: c.id,
+        name: c.name,
+        email: c.email,
+        position: c.current_position,
+        organization: c.current_organization,
+        location: c.location,
+        years_of_experience: c.years_of_experience,
+        skills: Array.isArray(c.skills) ? c.skills : [],
+        education: Array.isArray(c.education) ? c.education : [],
+        languages: Array.isArray(c.languages) ? c.languages : [],
+        un_experience: c.un_experience || false,
+        profile_photo_url: c.profile_photo_url,
+        updated_at: c.updated_at,
+        _source: "external",
+        willing_to_relocate: c.willing_to_relocate,
+        has_security_clearance: c.has_security_clearance,
+        work_experience: Array.isArray(c.work_experience) ? c.work_experience : [],
+        professional_summary: c.professional_summary,
+      });
+    });
+  }
+
+  // Normalize internal staff
+  if (filters.talentSource !== "external" && internalStaff) {
+    internalStaff.forEach((s) => {
+      // Calculate tenure in years
+      let tenure: number | null = null;
+      if (s.entry_on_duty_date) {
+        tenure = Math.floor(
+          (Date.now() - new Date(s.entry_on_duty_date).getTime()) /
+            (1000 * 60 * 60 * 24 * 365)
+        );
+      }
+
+      normalizedTalent.push({
+        id: s.id,
+        name: s.name || s.email,
+        email: s.email,
+        position: s.job_title,
+        organization: "UNICC",
+        location: s.duty_station,
+        years_of_experience: tenure,
+        skills: Array.isArray(s.skills) ? s.skills : [],
+        education: [],
+        languages: [],
+        un_experience: true, // All internal staff have UN experience
+        profile_photo_url: null,
+        updated_at: s.updated_at || s.created_at,
+        _source: "internal",
+        division: s.division,
+        unit: s.unit,
+        duty_station: s.duty_station,
+        current_grade: s.current_grade,
+        entry_on_duty_date: s.entry_on_duty_date,
+        line_manager: s.line_manager,
+      });
+    });
+  }
+
+  // Client-side filtering
+  let filteredTalent = normalizedTalent.filter((person) => {
+    // Text search
+    if (filters.searchText) {
+      const searchLower = filters.searchText.toLowerCase();
+      const textMatch =
+        person.name?.toLowerCase().includes(searchLower) ||
+        person.email?.toLowerCase().includes(searchLower) ||
+        person.position?.toLowerCase().includes(searchLower) ||
+        person.organization?.toLowerCase().includes(searchLower) ||
+        person.division?.toLowerCase().includes(searchLower) ||
+        person.unit?.toLowerCase().includes(searchLower) ||
+        person.professional_summary?.toLowerCase().includes(searchLower);
+
+      const skillsMatch = person.skills.some((skill: any) => {
+        const skillName = typeof skill === "string" ? skill : skill.name || "";
+        return skillName.toLowerCase().includes(searchLower);
+      });
+
+      const workExpMatch =
+        person.work_experience?.some(
+          (exp: any) =>
+            exp.position?.toLowerCase().includes(searchLower) ||
+            exp.organization?.toLowerCase().includes(searchLower)
+        ) || false;
+
+      if (!textMatch && !skillsMatch && !workExpMatch) return false;
+    }
+
+    // Education level filter (external only)
+    if (filters.educationLevel && person._source === "external") {
+      if (!person.education.length) return false;
+      const allDegrees = person.education
+        .map((e: any) => e.degree?.toLowerCase() || "")
+        .join(" ");
+      if (filters.educationLevel === "first_degree") {
+        if (
+          !allDegrees.includes("bachelor") &&
+          !allDegrees.includes("b.a") &&
+          !allDegrees.includes("b.s")
+        )
+          return false;
+      } else if (filters.educationLevel === "advanced_degree") {
+        if (
+          !allDegrees.includes("master") &&
+          !allDegrees.includes("phd") &&
+          !allDegrees.includes("doctorate")
+        )
+          return false;
+      }
+    }
+
+    // Tenure filter (internal only)
+    if (person._source === "internal" && person.entry_on_duty_date) {
+      const years =
+        (Date.now() - new Date(person.entry_on_duty_date).getTime()) /
+        (1000 * 60 * 60 * 24 * 365);
+      if (filters.minTenure && years < filters.minTenure) return false;
+      if (filters.maxTenure && filters.maxTenure < 30 && years > filters.maxTenure)
+        return false;
+    }
+
+    return true;
   });
 
   // Fetch job data if job matching is selected
@@ -124,106 +255,93 @@ export function TalentSearchResults({
     enabled: !!filters.selectedJobId,
   });
 
-  // Calculate match scores when job is selected
+  // Calculate match scores
   useEffect(() => {
-    if (selectedJob && candidates) {
+    if (selectedJob && filteredTalent.length > 0) {
       const scores: Record<string, number> = {};
-      
-      // Extract job requirements from the selected job
+
       const extractSkills = (description: string): string[] => {
         const commonSkills = [
-          'penetration testing', 'vulnerability assessment', 'security auditing', 'risk assessment',
-          'incident response', 'malware analysis', 'network security', 'cloud security',
-          'project management', 'data analysis', 'communication', 'leadership',
-          'python', 'javascript', 'sql', 'bash', 'powershell', 'burp suite', 'metasploit',
-          'nmap', 'wireshark', 'kali linux', 'owasp', 'compliance', 'cissp', 'oscp', 'ceh'
+          "penetration testing", "vulnerability assessment", "security auditing",
+          "risk assessment", "incident response", "malware analysis", "network security",
+          "cloud security", "project management", "data analysis", "communication",
+          "leadership", "python", "javascript", "sql", "bash", "powershell",
         ];
         const descLower = description.toLowerCase();
-        return commonSkills.filter(skill => descLower.includes(skill));
+        return commonSkills.filter((skill) => descLower.includes(skill));
       };
-      
+
       const extractExperience = (description: string): number | undefined => {
         const expMatch = description.match(/(\d+)\s*years?\s*(of\s*)?experience/i);
         return expMatch ? parseInt(expMatch[1]) : undefined;
       };
-      
-      const extractEducation = (description: string): string | undefined => {
-        const descLower = description.toLowerCase();
-        if (descLower.includes('phd') || descLower.includes('doctorate')) return 'PhD';
-        if (descLower.includes('master')) return 'Master\'s';
-        if (descLower.includes('bachelor')) return 'Bachelor\'s';
-        return undefined;
-      };
-      
-      const extractLanguages = (description: string): string[] => {
-        const languages = ['english', 'french', 'spanish', 'arabic', 'chinese', 'russian', 'mandarin'];
-        const descLower = description.toLowerCase();
-        return languages.filter(lang => descLower.includes(lang));
-      };
-      
-      const jobDescription = `${selectedJob.requirements_md || ''} ${selectedJob.description_md || ''}`;
+
+      const jobDescription = `${selectedJob.requirements_md || ""} ${selectedJob.description_md || ""}`;
       const jobRequirements = {
         skills: extractSkills(jobDescription),
         experience_years: extractExperience(jobDescription),
-        education_level: extractEducation(jobDescription),
-        languages: extractLanguages(jobDescription),
-        un_experience: jobDescription.toLowerCase().includes('un experience') || 
-                       jobDescription.toLowerCase().includes('united nations'),
+        un_experience:
+          jobDescription.toLowerCase().includes("un experience") ||
+          jobDescription.toLowerCase().includes("united nations"),
       };
-      
-      candidates.forEach((candidate) => {
+
+      filteredTalent.forEach((person) => {
         const match = JobMatchingService.calculateJobMatch(
           {
-            skills: (candidate.skills as any) || [],
-            years_of_experience: candidate.years_of_experience || 0,
-            education: (candidate.education as any) || [],
-            un_experience: candidate.un_experience || false,
-            languages: (candidate.languages as any) || { un_languages: {}, other_languages: [] },
-            work_experience: (candidate.work_experience as any) || [],
+            skills: person.skills || [],
+            years_of_experience: person.years_of_experience || 0,
+            education: person.education || [],
+            un_experience: person.un_experience || false,
+            languages: { un_languages: {}, other_languages: [] },
+            work_experience: person.work_experience || [],
           },
           jobRequirements
         );
-        scores[candidate.id] = match.matchPercentage;
+        scores[person.id] = match.matchPercentage;
       });
       setMatchScores(scores);
     } else {
       setMatchScores({});
     }
-  }, [selectedJob, candidates]);
+  }, [selectedJob, filteredTalent.length]);
 
-  // Filter and sort candidates
-  const sortedCandidates = candidates ? (() => {
-    let filtered = [...candidates];
-    
-    // When a job is selected, filter out 0% matches
+  // Filter out 0% matches when job selected
+  if (filters.selectedJobId && Object.keys(matchScores).length > 0) {
+    filteredTalent = filteredTalent.filter((p) => (matchScores[p.id] || 0) > 0);
+  }
+
+  // Sort results
+  const sortedTalent = [...filteredTalent].sort((a, b) => {
     if (filters.selectedJobId && Object.keys(matchScores).length > 0) {
-      filtered = filtered.filter((candidate) => (matchScores[candidate.id] || 0) > 0);
+      return (matchScores[b.id] || 0) - (matchScores[a.id] || 0);
     }
-    
-    // Sort candidates
-    return filtered.sort((a, b) => {
-      // When a job is selected, default to match score sorting
-      if (filters.selectedJobId && Object.keys(matchScores).length > 0) {
+
+    switch (sortBy) {
+      case "updated_desc":
+        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      case "experience_desc":
+        return (b.years_of_experience || 0) - (a.years_of_experience || 0);
+      case "experience_asc":
+        return (a.years_of_experience || 0) - (b.years_of_experience || 0);
+      case "tenure_desc":
+        if (!a.entry_on_duty_date) return 1;
+        if (!b.entry_on_duty_date) return -1;
+        return (
+          new Date(a.entry_on_duty_date).getTime() -
+          new Date(b.entry_on_duty_date).getTime()
+        );
+      case "name_asc":
+        return a.name.localeCompare(b.name);
+      case "match_score":
         return (matchScores[b.id] || 0) - (matchScores[a.id] || 0);
-      }
-      
-      // Otherwise use the selected sort option
-      switch (sortBy) {
-        case "updated_desc":
-          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-        case "experience_desc":
-          return (b.years_of_experience || 0) - (a.years_of_experience || 0);
-        case "experience_asc":
-          return (a.years_of_experience || 0) - (b.years_of_experience || 0);
-        case "name_asc":
-          return a.name.localeCompare(b.name);
-        case "match_score":
-          return (matchScores[b.id] || 0) - (matchScores[a.id] || 0);
-        default:
-          return 0;
-      }
-    });
-  })() : [];
+      default:
+        return 0;
+    }
+  });
+
+  const isLoading =
+    (filters.talentSource !== "internal" && loadingExternal) ||
+    (filters.talentSource !== "external" && loadingInternal);
 
   if (isLoading) {
     return (
@@ -233,30 +351,28 @@ export function TalentSearchResults({
     );
   }
 
-  if (error) {
+  if (!sortedTalent.length) {
     return (
-      <Alert variant="destructive">
+      <Alert>
         <AlertDescription>
-          Failed to load candidates. Please try again.
+          No {filters.talentSource === "internal" ? "staff members" : filters.talentSource === "external" ? "candidates" : "talent"} found matching your search criteria.
         </AlertDescription>
       </Alert>
     );
   }
 
-  if (!sortedCandidates.length) {
-    return (
-      <Alert>
-        <AlertDescription>
-          No candidates found matching your search criteria.
-        </AlertDescription>
-      </Alert>
-    );
-  }
+  const externalCount = sortedTalent.filter((t) => t._source === "external").length;
+  const internalCount = sortedTalent.filter((t) => t._source === "internal").length;
 
   return (
     <div>
       <div className="mb-4 text-sm text-muted-foreground">
-        Found {sortedCandidates.length} candidate{sortedCandidates.length !== 1 ? "s" : ""}
+        Found {sortedTalent.length} result{sortedTalent.length !== 1 ? "s" : ""}
+        {filters.talentSource === "all" && (
+          <span className="ml-2">
+            ({externalCount} external, {internalCount} internal)
+          </span>
+        )}
       </div>
       <div
         className={
@@ -265,12 +381,12 @@ export function TalentSearchResults({
             : "space-y-4"
         }
       >
-        {sortedCandidates.map((candidate) => (
+        {sortedTalent.map((person) => (
           <CandidateSearchCard
-            key={candidate.id}
-            candidate={candidate}
+            key={person.id}
+            candidate={person}
             viewMode={viewMode}
-            matchScore={matchScores[candidate.id]}
+            matchScore={matchScores[person.id]}
           />
         ))}
       </div>

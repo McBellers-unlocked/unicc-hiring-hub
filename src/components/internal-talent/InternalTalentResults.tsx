@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Users } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { StaffSearchCard } from "./StaffSearchCard";
-import type { InternalTalentFilters } from "@/pages/InternalTalentPool";
+import type { InternalTalentFilters } from "./InternalTalentFilters";
 
 interface InternalTalentResultsProps {
   filters: InternalTalentFilters;

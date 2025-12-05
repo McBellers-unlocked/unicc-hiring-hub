@@ -25,6 +25,14 @@ export interface SearchFilters {
   gender?: string;
   selectedJobId?: string;
   educationLevel?: string;
+  // Internal talent filters
+  talentSource: "all" | "external" | "internal";
+  divisions: string[];
+  dutyStations: string[];
+  grades: string[];
+  minTenure?: number;
+  maxTenure?: number;
+  lineManager?: string;
 }
 
 export default function TalentPool() {
@@ -37,12 +45,18 @@ export default function TalentPool() {
     skills: [],
     availability: [],
     workPreferences: [],
+    talentSource: "all",
+    divisions: [],
+    dutyStations: [],
+    grades: [],
   });
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<string>("updated_desc");
 
-  // Check if user has HR or Admin role
-  const hasAccess = userRoles.includes("Admin") || userRoles.includes("HR Assistant") || userRoles.includes("Chief of HR");
+  // Check if user has appropriate role
+  const hasAccess = userRoles.some(role => 
+    ["Admin", "HR Assistant", "Chief of HR", "Hiring Manager", "Director"].includes(role)
+  );
 
   if (!hasAccess) {
     return <Navigate to="/" replace />;

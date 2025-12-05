@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Search, Trash2, Share2, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import type { InternalTalentFilters } from "@/pages/InternalTalentPool";
+import type { InternalTalentFilters } from "./InternalTalentFilters";
 
 interface SavedInternalSearchesProps {
   onLoadSearch: (filters: InternalTalentFilters) => void;
