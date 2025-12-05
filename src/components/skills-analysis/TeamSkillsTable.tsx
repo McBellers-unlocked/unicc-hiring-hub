@@ -36,7 +36,7 @@ interface Assessment {
 }
 
 export default function TeamSkillsTable() {
-  const { user, userName } = useAuth();
+  const { user } = useAuth();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [skills, setSkills] = useState<SkillDefinition[]>([]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
@@ -50,19 +50,31 @@ export default function TeamSkillsTable() {
   const [requiredLevel, setRequiredLevel] = useState<number | null>(null);
 
   useEffect(() => {
-    if (userName) {
+    if (user?.email) {
       fetchTeamData();
     }
-  }, [userName]);
+  }, [user?.email]);
 
   const fetchTeamData = async () => {
     setLoading(true);
+    
+    // First, get the current user's name from their staff record by email
+    const { data: currentUser, error: userError } = await supabase
+      .from('users')
+      .select('name')
+      .eq('email', user?.email)
+      .single();
+    
+    if (userError || !currentUser?.name) {
+      setLoading(false);
+      return;
+    }
     
     // Fetch team members (users whose line_manager matches current user's name)
     const { data: members, error: membersError } = await supabase
       .from('users')
       .select('id, name, job_title, unit')
-      .eq('line_manager', userName)
+      .eq('line_manager', currentUser.name)
       .order('name');
 
     if (membersError) {
