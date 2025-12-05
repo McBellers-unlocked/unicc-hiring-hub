@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -49,10 +48,6 @@ export default function TeamSkillsTable() {
   const [allSkillDefinitions, setAllSkillDefinitions] = useState<SkillDefinition[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('direct');
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
-  
-  // Cell edit state
-  const [editingCell, setEditingCell] = useState<{ memberId: string; skillId: string } | null>(null);
-  const [editRequiredLevel, setEditRequiredLevel] = useState<number | null>(null);
   
   // Bulk edit state
   const [bulkEditSkill, setBulkEditSkill] = useState<SkillDefinition | null>(null);
@@ -207,41 +202,67 @@ export default function TeamSkillsTable() {
     }
   };
 
-  const handleCellClick = (memberId: string, skillId: string) => {
-    const assessment = getAssessment(memberId, skillId);
-    setEditingCell({ memberId, skillId });
-    setEditRequiredLevel(assessment?.required_level ?? null);
-  };
+  // Direct click-to-set with optimistic update
+  const handleDirectSetRequired = async (memberId: string, skillId: string, level: number) => {
+    const existing = getAssessment(memberId, skillId);
+    
+    // Optimistic update - immediately update local state
+    setAssessments(prev => {
+      if (existing) {
+        return prev.map(a => 
+          a.id === existing.id ? { ...a, required_level: level } : a
+        );
+      } else {
+        // Create temporary assessment for UI
+        const tempAssessment: Assessment = {
+          id: `temp-${memberId}-${skillId}`,
+          user_id: memberId,
+          skill_id: skillId,
+          self_assessment: null,
+          manager_assessment: null,
+          required_level: level,
+          status: 'draft'
+        };
+        return [...prev, tempAssessment];
+      }
+    });
 
-  const handleSaveRequirement = async () => {
-    if (!editingCell || editRequiredLevel === null) return;
-
-    const existing = getAssessment(editingCell.memberId, editingCell.skillId);
-
+    // Save in background
     try {
       if (existing) {
         const { error } = await supabase
           .from('skill_assessments')
-          .update({ required_level: editRequiredLevel })
+          .update({ required_level: level })
           .eq('id', existing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('skill_assessments')
           .insert({
-            user_id: editingCell.memberId,
-            skill_id: editingCell.skillId,
-            required_level: editRequiredLevel,
+            user_id: memberId,
+            skill_id: skillId,
+            required_level: level,
             status: 'draft'
-          });
+          })
+          .select()
+          .single();
         if (error) throw error;
+        
+        // Replace temp assessment with real one
+        if (data) {
+          setAssessments(prev => 
+            prev.map(a => 
+              a.id === `temp-${memberId}-${skillId}` 
+                ? { ...data, user_id: data.user_id, skill_id: data.skill_id } as Assessment
+                : a
+            )
+          );
+        }
       }
-
-      toast.success("Requirement updated");
-      setEditingCell(null);
-      fetchTeamData();
     } catch {
+      // Revert on error
       toast.error("Failed to update requirement");
+      fetchTeamData();
     }
   };
 
@@ -526,75 +547,18 @@ export default function TeamSkillsTable() {
                       </TableCell>
                       {teamMembers.map(member => {
                         const assessment = getAssessment(member.id, skill.id);
-                        const isEditing = editingCell?.memberId === member.id && editingCell?.skillId === skill.id;
                         
                         return (
                           <TableCell key={member.id} className="text-center p-1">
-                            <Popover 
-                              open={isEditing} 
-                              onOpenChange={(open) => !open && setEditingCell(null)}
-                            >
-                              <PopoverTrigger asChild>
-                                <div>
-                                  <BatterySkillIndicator
-                                    selfAssessment={assessment?.self_assessment ?? null}
-                                    requiredLevel={assessment?.required_level ?? null}
-                                    managerAssessment={assessment?.manager_assessment ?? null}
-                                    status={assessment?.status}
-                                    onClick={() => handleCellClick(member.id, skill.id)}
-                                    compact
-                                  />
-                                </div>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-64" side="top">
-                                <div className="space-y-3">
-                                  <div className="font-medium text-sm">{skill.name}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {member.name}
-                                    {viewMode === 'all' && member.depth && (
-                                      <Badge variant="outline" className="ml-2 text-[9px] px-1 py-0">
-                                        {getDepthLabel(member.depth)}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  
-                                  {assessment?.self_assessment && (
-                                    <div className="flex items-center justify-between text-sm">
-                                      <span>Self Assessment:</span>
-                                      <Badge variant="outline">Level {assessment.self_assessment}</Badge>
-                                    </div>
-                                  )}
-                                  
-                                  <div className="space-y-2">
-                                    <label className="text-sm font-medium">Required Level</label>
-                                    <SkillLevelSelector
-                                      value={editRequiredLevel}
-                                      onChange={setEditRequiredLevel}
-                                      size="sm"
-                                    />
-                                  </div>
-                                  
-                                  <div className="flex gap-2 pt-2">
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      className="flex-1"
-                                      onClick={() => setEditingCell(null)}
-                                    >
-                                      Cancel
-                                    </Button>
-                                    <Button 
-                                      size="sm"
-                                      className="flex-1"
-                                      onClick={handleSaveRequirement}
-                                      disabled={editRequiredLevel === null}
-                                    >
-                                      Save
-                                    </Button>
-                                  </div>
-                                </div>
-                              </PopoverContent>
-                            </Popover>
+                            <BatterySkillIndicator
+                              selfAssessment={assessment?.self_assessment ?? null}
+                              requiredLevel={assessment?.required_level ?? null}
+                              managerAssessment={assessment?.manager_assessment ?? null}
+                              status={assessment?.status}
+                              onSegmentClick={(level) => handleDirectSetRequired(member.id, skill.id, level)}
+                              compact
+                              editable
+                            />
                           </TableCell>
                         );
                       })}
