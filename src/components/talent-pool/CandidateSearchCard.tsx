@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MapPin, Briefcase, GraduationCap, Globe, Award, Eye, Building2, Calendar } from "lucide-react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { CandidateDetailModal } from "./CandidateDetailModal";
 import { StaffDetailModal } from "@/components/internal-talent/StaffDetailModal";
+import { AssessedSkillBadge } from "@/components/internal-talent/AssessedSkillBadge";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
 interface CandidateSearchCardProps {
@@ -23,6 +26,49 @@ export function CandidateSearchCard({
 
   const isInternal = candidate._source === "internal";
 
+  // Fetch skill assessments for internal candidates only
+  const { data: skillAssessments } = useQuery({
+    queryKey: ['candidate-skill-assessments-preview', candidate.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('skill_assessments')
+        .select(`
+          self_assessment,
+          manager_assessment,
+          required_level,
+          status,
+          skill_definitions (name)
+        `)
+        .eq('user_id', candidate.id)
+        .eq('status', 'approved');
+      return data || [];
+    },
+    enabled: isInternal && !!candidate?.id,
+    staleTime: 5 * 60 * 1000
+  });
+
+  // Build assessment map for internal candidates
+  const skillAssessmentMap = isInternal
+    ? new Map(
+        (skillAssessments || []).map((a: any) => [
+          a.skill_definitions?.name?.toLowerCase(),
+          {
+            selfAssessment: a.self_assessment,
+            managerAssessment: a.manager_assessment,
+            requiredLevel: a.required_level,
+            status: a.status
+          }
+        ])
+      )
+    : new Map();
+
+  // Get assessed skill names for internal candidates
+  const assessedSkillNames = isInternal
+    ? (skillAssessments || [])
+        .map((a: any) => a.skill_definitions?.name)
+        .filter(Boolean)
+    : [];
+
   const initials = (candidate.name || "?")
     .split(" ")
     .map((n: string) => n[0])
@@ -30,9 +76,15 @@ export function CandidateSearchCard({
     .toUpperCase()
     .slice(0, 2);
 
-  const skills = Array.isArray(candidate.skills)
-    ? candidate.skills.slice(0, 5).map((s: any) => (typeof s === "string" ? s : s.name || ""))
+  // Get profile skills
+  const profileSkills = Array.isArray(candidate.skills)
+    ? candidate.skills.map((s: any) => (typeof s === "string" ? s : s.name || ""))
     : [];
+
+  // Merge skills for internal, just profile for external (limit to 5)
+  const allSkills = isInternal
+    ? [...new Set([...assessedSkillNames, ...profileSkills])].slice(0, 5)
+    : profileSkills.slice(0, 5);
 
   // Find highest education level (external only)
   const getHighestEducation = (educationArray: any[]) => {
@@ -151,13 +203,21 @@ export function CandidateSearchCard({
               </Button>
             </div>
 
-            {skills.length > 0 && (
+            {allSkills.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3">
-                {skills.map((skill: string, idx: number) => (
-                  <Badge key={idx} variant="secondary" className="text-xs">
-                    {skill}
-                  </Badge>
-                ))}
+                {allSkills.map((skill: string, idx: number) =>
+                  isInternal ? (
+                    <AssessedSkillBadge
+                      key={idx}
+                      skillName={skill}
+                      assessment={skillAssessmentMap.get(skill.toLowerCase())}
+                    />
+                  ) : (
+                    <Badge key={idx} variant="secondary" className="text-xs">
+                      {skill}
+                    </Badge>
+                  )
+                )}
               </div>
             )}
           </CardContent>
@@ -275,13 +335,21 @@ export function CandidateSearchCard({
             </Badge>
           )}
 
-          {skills.length > 0 && (
+          {allSkills.length > 0 && (
             <div className="flex flex-wrap gap-2 pt-2 border-t">
-              {skills.map((skill: string, idx: number) => (
-                <Badge key={idx} variant="secondary" className="text-xs">
-                  {skill}
-                </Badge>
-              ))}
+              {allSkills.map((skill: string, idx: number) =>
+                isInternal ? (
+                  <AssessedSkillBadge
+                    key={idx}
+                    skillName={skill}
+                    assessment={skillAssessmentMap.get(skill.toLowerCase())}
+                  />
+                ) : (
+                  <Badge key={idx} variant="secondary" className="text-xs">
+                    {skill}
+                  </Badge>
+                )
+              )}
             </div>
           )}
         </CardContent>

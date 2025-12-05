@@ -1,9 +1,12 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Building2, MapPin, Calendar, Briefcase } from "lucide-react";
 import { StaffDetailModal } from "./StaffDetailModal";
+import { AssessedSkillBadge } from "./AssessedSkillBadge";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
 interface StaffSearchCardProps {
@@ -14,16 +17,60 @@ interface StaffSearchCardProps {
 export function StaffSearchCard({ staff, viewMode }: StaffSearchCardProps) {
   const [modalOpen, setModalOpen] = useState(false);
 
+  // Fetch skill assessments for this staff member
+  const { data: skillAssessments } = useQuery({
+    queryKey: ['staff-skill-assessments-preview', staff.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('skill_assessments')
+        .select(`
+          self_assessment,
+          manager_assessment,
+          required_level,
+          status,
+          skill_definitions (name)
+        `)
+        .eq('user_id', staff.id)
+        .eq('status', 'approved');
+      return data || [];
+    },
+    enabled: !!staff?.id,
+    staleTime: 5 * 60 * 1000
+  });
+
+  // Build assessment map
+  const skillAssessmentMap = new Map(
+    (skillAssessments || []).map((a: any) => [
+      a.skill_definitions?.name?.toLowerCase(),
+      {
+        selfAssessment: a.self_assessment,
+        managerAssessment: a.manager_assessment,
+        requiredLevel: a.required_level,
+        status: a.status
+      }
+    ])
+  );
+
+  // Get assessed skill names
+  const assessedSkillNames = (skillAssessments || [])
+    .map((a: any) => a.skill_definitions?.name)
+    .filter(Boolean);
+
+  // Get profile skills
+  const profileSkills = Array.isArray(staff.skills)
+    ? staff.skills.map((s: any) => typeof s === 'string' ? s : s.name || '')
+    : [];
+
+  // Merge and deduplicate skills (limit to 3 for preview)
+  const allSkills = [...new Set([...assessedSkillNames, ...profileSkills])].slice(0, 3);
+  const totalSkillCount = [...new Set([...assessedSkillNames, ...profileSkills])].length;
+
   const initials = staff.name
     ?.split(" ")
     .map((n: string) => n[0])
     .join("")
     .toUpperCase()
     .slice(0, 2) || "?";
-
-  const skills = Array.isArray(staff.skills)
-    ? staff.skills.slice(0, 3).map((s: any) => typeof s === 'string' ? s : s.name || '')
-    : [];
 
   const tenure = staff.entry_on_duty_date
     ? Math.floor((Date.now() - new Date(staff.entry_on_duty_date).getTime()) / (1000 * 60 * 60 * 24 * 365))
@@ -75,10 +122,12 @@ export function StaffSearchCard({ staff, viewMode }: StaffSearchCardProps) {
             </div>
 
             <div className="hidden lg:flex gap-1">
-              {skills.map((skill: string, i: number) => (
-                <Badge key={i} variant="secondary" className="text-xs">
-                  {skill}
-                </Badge>
+              {allSkills.map((skill: string, i: number) => (
+                <AssessedSkillBadge
+                  key={i}
+                  skillName={skill}
+                  assessment={skillAssessmentMap.get(skill.toLowerCase())}
+                />
               ))}
             </div>
           </CardContent>
@@ -138,16 +187,18 @@ export function StaffSearchCard({ staff, viewMode }: StaffSearchCardProps) {
             )}
           </div>
 
-          {skills.length > 0 && (
+          {allSkills.length > 0 && (
             <div className="flex flex-wrap gap-1">
-              {skills.map((skill: string, i: number) => (
-                <Badge key={i} variant="secondary" className="text-xs">
-                  {skill}
-                </Badge>
+              {allSkills.map((skill: string, i: number) => (
+                <AssessedSkillBadge
+                  key={i}
+                  skillName={skill}
+                  assessment={skillAssessmentMap.get(skill.toLowerCase())}
+                />
               ))}
-              {staff.skills?.length > 3 && (
+              {totalSkillCount > 3 && (
                 <Badge variant="outline" className="text-xs">
-                  +{staff.skills.length - 3}
+                  +{totalSkillCount - 3}
                 </Badge>
               )}
             </div>
