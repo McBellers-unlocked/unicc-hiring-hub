@@ -88,6 +88,14 @@ interface CandidateProfile {
   phone_public?: boolean;
 }
 
+interface StaffData {
+  job_title?: string;
+  entry_on_duty_date?: string;
+  duty_station?: string;
+  division?: string;
+  unit?: string;
+}
+
 export default function CandidateProfileEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -99,6 +107,7 @@ export default function CandidateProfileEdit() {
   const [newSkill, setNewSkill] = useState("");
   const [newLocation, setNewLocation] = useState("");
   const [hasLoadedProfile, setHasLoadedProfile] = useState(false);
+  const [staffData, setStaffData] = useState<StaffData | null>(null);
 
   useEffect(() => {
     console.log('=== useEffect TRIGGERED ===');
@@ -136,6 +145,19 @@ export default function CandidateProfileEdit() {
           work_experience: data.work_experience, 
           phf_work_experience: data.phf_work_experience 
         });
+
+        // Fetch staff data from users table
+        const { data: userData } = await supabase
+          .from("users")
+          .select("job_title, entry_on_duty_date, duty_station, division, unit")
+          .eq("email", user.email)
+          .neq("role", "Candidate")
+          .maybeSingle();
+
+        if (userData) {
+          console.log('Staff data found:', userData);
+          setStaffData(userData);
+        }
 
         // Prioritize existing work_experience data, then fall back to converted PHF data
         let workExperience = [];
@@ -738,6 +760,7 @@ export default function CandidateProfileEdit() {
                 return updated;
               });
             }}
+            staffData={staffData}
           />
 
           {/* Education */}

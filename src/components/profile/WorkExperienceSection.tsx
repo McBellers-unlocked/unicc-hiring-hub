@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,39 +21,72 @@ interface WorkExperience {
   isCurrent: boolean;
 }
 
+interface StaffData {
+  job_title?: string;
+  entry_on_duty_date?: string;
+  duty_station?: string;
+  division?: string;
+  unit?: string;
+}
+
 interface WorkExperienceSectionProps {
   workExperience: WorkExperience[];
   onChange: (workExperience: WorkExperience[]) => void;
+  staffData?: StaffData | null;
 }
 
-export default function WorkExperienceSection({ workExperience, onChange }: WorkExperienceSectionProps) {
+const getDefaultNewWork = (): WorkExperience => ({
+  company: "",
+  position: "",
+  type: "Full-time",
+  startDate: "",
+  endDate: "",
+  location: "",
+  description: "",
+  isUNExperience: false,
+  isCurrent: false,
+});
+
+export default function WorkExperienceSection({ workExperience, onChange, staffData }: WorkExperienceSectionProps) {
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
-  const [newWork, setNewWork] = useState<WorkExperience>({
-    company: "",
-    position: "",
-    type: "Full-time",
-    startDate: "",
-    endDate: "",
-    location: "",
-    description: "",
-    isUNExperience: false,
-    isCurrent: false,
-  });
+  const [newWork, setNewWork] = useState<WorkExperience>(getDefaultNewWork());
+  const [hasPrePopulated, setHasPrePopulated] = useState(false);
+
+  // Pre-populate form with staff data if available and no UNICC entry exists
+  useEffect(() => {
+    if (staffData && !hasPrePopulated) {
+      const hasUniccEntry = workExperience.some(
+        (w) => w.company?.toLowerCase().includes('unicc') || w.company?.toLowerCase().includes('united nations international computing centre')
+      );
+
+      if (!hasUniccEntry && staffData.job_title) {
+        // Format entry_on_duty_date to yyyy-MM
+        let formattedStartDate = "";
+        if (staffData.entry_on_duty_date) {
+          const date = new Date(staffData.entry_on_duty_date);
+          formattedStartDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        setNewWork({
+          company: "United Nations International Computing Centre (UNICC)",
+          position: staffData.job_title || "",
+          type: "Full-time",
+          startDate: formattedStartDate,
+          endDate: "",
+          location: staffData.duty_station || "",
+          description: "",
+          isUNExperience: true,
+          isCurrent: true,
+        });
+        setHasPrePopulated(true);
+      }
+    }
+  }, [staffData, workExperience, hasPrePopulated]);
 
   const addWorkExperience = () => {
     if (newWork.company && newWork.position) {
       onChange([...workExperience, newWork]);
-      setNewWork({
-        company: "",
-        position: "",
-        type: "Full-time",
-        startDate: "",
-        endDate: "",
-        location: "",
-        description: "",
-        isUNExperience: false,
-        isCurrent: false,
-      });
+      setNewWork(getDefaultNewWork());
     }
   };
 
