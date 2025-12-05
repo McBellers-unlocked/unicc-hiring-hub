@@ -804,6 +804,47 @@ export type Database = {
           },
         ]
       }
+      internal_talent_saved_searches: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          filters: Json
+          id: string
+          is_shared: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          filters?: Json
+          id?: string
+          is_shared?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          filters?: Json
+          id?: string
+          is_shared?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_talent_saved_searches_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       interview_panel_reports: {
         Row: {
           application_id: string
