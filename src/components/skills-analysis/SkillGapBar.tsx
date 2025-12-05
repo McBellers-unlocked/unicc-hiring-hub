@@ -20,34 +20,34 @@ export default function SkillGapBar({
   const gap = requiredLevel && effectiveAssessment ? requiredLevel - effectiveAssessment : null;
   const exceeding = requiredLevel && effectiveAssessment ? effectiveAssessment - requiredLevel : null;
   
-  // Enhanced color logic
+  // 5-color spectrum: Red → Yellow → Green → Blue → Purple
   const getGapColor = () => {
     if (!gap || !exceeding) return "bg-muted";
     
-    // Excellence: +2 or more above required → UNICC Blue
-    if (exceeding >= 2) return "bg-primary";
+    // Excellence: +2 or more → Purple
+    if (exceeding >= 2) return "bg-purple-500";
     
-    // Good: +1 above required → Darker emerald
-    if (exceeding === 1) return "bg-emerald-600";
+    // Exceeding: +1 → UNICC Blue
+    if (exceeding === 1) return "bg-primary";
     
-    // Meeting requirement exactly
+    // Meeting requirement exactly → Green
     if (gap === 0) return "bg-emerald-500";
     
-    // Gap of 1 → Amber
+    // Minor gap: -1 → Yellow/Amber
     if (gap === 1) return "bg-amber-500";
     
-    // Gap of 2+ → Destructive
-    return "bg-destructive";
+    // Significant gap: -2 or worse → Red
+    return "bg-red-500";
   };
 
   const getGapStatus = () => {
     if (!requiredLevel) return { text: "No requirement", color: "text-muted-foreground" };
     if (!effectiveAssessment) return { text: "Not assessed", color: "text-muted-foreground" };
-    if (exceeding && exceeding >= 2) return { text: `Excelling (+${exceeding})`, color: "text-primary" };
-    if (exceeding && exceeding === 1) return { text: `+${exceeding}`, color: "text-emerald-600" };
+    if (exceeding && exceeding >= 2) return { text: `Excelling (+${exceeding})`, color: "text-purple-600" };
+    if (exceeding && exceeding === 1) return { text: `+${exceeding}`, color: "text-primary" };
     if (gap === 0) return { text: "Meeting ✓", color: "text-emerald-600" };
     if (gap === 1) return { text: `Gap: -${gap}`, color: "text-amber-600" };
-    return { text: `Gap: -${gap}`, color: "text-destructive" };
+    return { text: `Gap: -${gap}`, color: "text-red-600" };
   };
 
   const status = getGapStatus();
@@ -94,17 +94,17 @@ export default function SkillGapBar({
             {managerAssessment && <p>Manager Override: <strong>{managerAssessment}</strong></p>}
             <p>Required Level: <strong>{requiredLevel ?? 'Not set'}</strong></p>
             {exceeding !== null && exceeding >= 2 && (
-              <p className="text-primary font-medium">
+              <p className="text-purple-600 font-medium">
                 Excelling: <strong>+{exceeding}</strong> above required
               </p>
             )}
             {exceeding !== null && exceeding === 1 && (
-              <p className="text-emerald-500">
+              <p className="text-primary">
                 Exceeding: <strong>+{exceeding}</strong>
               </p>
             )}
             {gap !== null && gap > 0 && (
-              <p className={gap >= 2 ? "text-destructive" : "text-amber-500"}>
+              <p className={gap >= 2 ? "text-red-600" : "text-amber-500"}>
                 Gap: <strong>-{gap}</strong>
               </p>
             )}
@@ -149,12 +149,25 @@ export function SkillGapSummary({
     return sum + (a.required_level! - (effective || 0));
   }, 0);
 
+  // Exceeding by exactly 1
+  const exceeding = withRequirements.filter(a => {
+    const effective = a.manager_assessment ?? a.self_assessment;
+    const diff = effective && a.required_level ? effective - a.required_level : null;
+    return diff !== null && diff === 1;
+  });
+
   return (
     <div className="flex items-center gap-4 text-sm flex-wrap">
       {excelling.length > 0 && (
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-primary" />
+          <div className="w-3 h-3 rounded-full bg-purple-500" />
           <span className="font-medium">{excelling.length} excelling</span>
+        </div>
+      )}
+      {exceeding.length > 0 && (
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-full bg-primary" />
+          <span>{exceeding.length} exceeding</span>
         </div>
       )}
       <div className="flex items-center gap-1.5">
@@ -162,7 +175,7 @@ export function SkillGapSummary({
         <span>{meeting.length} meeting</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <div className="w-3 h-3 rounded-full bg-destructive" />
+        <div className="w-3 h-3 rounded-full bg-red-500" />
         <span>{gaps.length} gaps ({totalGap} levels)</span>
       </div>
     </div>

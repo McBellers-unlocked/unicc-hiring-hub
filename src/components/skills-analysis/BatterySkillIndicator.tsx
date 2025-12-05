@@ -30,7 +30,7 @@ export default function BatterySkillIndicator({
   const gap = required - currentLevel;
   const exceeding = currentLevel - required;
 
-  // Determine color based on gap - enhanced color scheme
+  // 5-color spectrum: Red → Yellow → Green → Blue → Purple
   const getSegmentColor = (segmentLevel: number) => {
     if (segmentLevel > currentLevel) {
       return "bg-muted";
@@ -40,28 +40,28 @@ export default function BatterySkillIndicator({
       return "bg-primary/60";
     }
     
-    // Excellence: +2 or more above required → UNICC Blue
+    // Excellence: +2 or more → Purple
     if (exceeding >= 2) {
+      return "bg-purple-500";
+    }
+    
+    // Exceeding: +1 → UNICC Blue
+    if (exceeding === 1) {
       return "bg-primary";
     }
     
-    // Good: +1 above required → Darker emerald
-    if (exceeding === 1) {
-      return "bg-emerald-600";
-    }
-    
-    // Meeting requirement exactly
+    // Meeting requirement exactly → Green
     if (currentLevel === required) {
       return "bg-emerald-500";
     }
     
-    // Gap of 1 → Amber
+    // Minor gap: -1 → Yellow/Amber
     if (gap === 1) {
       return "bg-amber-500";
     }
     
-    // Gap of 2+ → Destructive
-    return "bg-destructive";
+    // Significant gap: -2 or worse → Red
+    return "bg-red-500";
   };
 
   const getStatusText = () => {
@@ -74,15 +74,15 @@ export default function BatterySkillIndicator({
     return `${gap} level gap`;
   };
 
-  // Get gap badge info
+  // Get gap badge info - 5-color spectrum
   const getGapBadge = () => {
     if (required === 0 || currentLevel === 0) return null;
     
     if (exceeding >= 2) {
-      return { text: `+${exceeding}`, className: "bg-primary/20 text-primary" };
+      return { text: `+${exceeding}`, className: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" };
     }
     if (exceeding === 1) {
-      return { text: `+${exceeding}`, className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" };
+      return { text: `+${exceeding}`, className: "bg-primary/20 text-primary" };
     }
     if (gap === 0) {
       return { text: "✓", className: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400" };
@@ -90,7 +90,7 @@ export default function BatterySkillIndicator({
     if (gap === 1) {
       return { text: `-${gap}`, className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" };
     }
-    return { text: `-${gap}`, className: "bg-destructive/20 text-destructive font-bold" };
+    return { text: `-${gap}`, className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 font-bold" };
   };
 
   const isPending = status === 'pending_approval';
@@ -198,10 +198,10 @@ export default function BatterySkillIndicator({
               <p>Required: Level {requiredLevel}</p>
             )}
             {requiredLevel && exceeding >= 2 && (
-              <p className="text-primary font-medium">+{exceeding} above required (Excelling!)</p>
+              <p className="text-purple-600 font-medium">+{exceeding} above required (Excelling!)</p>
             )}
             {requiredLevel && exceeding === 1 && (
-              <p className="text-emerald-600">+{exceeding} above required</p>
+              <p className="text-primary">+{exceeding} above required</p>
             )}
             {isPending && (
               <p className="text-amber-600">Pending approval</p>
