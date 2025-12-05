@@ -9,41 +9,43 @@ All colors MUST be HSL.
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 60 5% 11%;           /* UNICC Black #1d1d1b */
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 60 5% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 60 5% 11%;
 
-    /* UNICC Brand Colors - Updated to match logo #296EB6 */
---primary: 213 64% 43%;          /* #296EB6 */
---primary-foreground: 0 0% 100%;
+    /* UNICC Brand Colors - Official Palette */
+    --primary: 204 100% 35%;           /* UNICC Blue #006cb5 */
+    --primary-foreground: 0 0% 100%;
 
---secondary: 210 40% 96.1%;
---secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 0 0% 95%;             /* Light Grey #F2F2F2 */
+    --secondary-foreground: 60 5% 11%;
 
---muted: 210 40% 96.1%;
---muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 0 0% 95%;                 /* Light Grey for backgrounds */
+    --muted-foreground: 215 16% 47%;
 
---accent: 213 64% 43%;           /* Match accent to brand blue */
---accent-foreground: 0 0% 100%;
+    --accent: 223 61% 32%;             /* Dark Blue #204184 */
+    --accent-foreground: 0 0% 100%;
 
---destructive: 0 84.2% 60.2%;
---destructive-foreground: 210 40% 98%;
+    --destructive: 15 86% 48%;         /* Deep Orange #E74010 */
+    --destructive-foreground: 0 0% 100%;
 
---border: 214.3 31.8% 91.4%;
---input: 214.3 31.8% 91.4%;
---ring: 213 64% 43%;             /* Focus ring in brand blue */
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 204 100% 35%;              /* UNICC Blue focus ring */
 
---radius: 0.5rem;
+    --radius: 0.5rem;
 
-/* UNICC Specific Colors */
---unicc-blue: 213 64% 43%;       /* Consistent brand blue */
---unicc-accent: 213 64% 43%;
-
-    
+    /* UNICC Specific Colors for utility classes */
+    --unicc-blue: 204 100% 35%;        /* #006cb5 */
+    --unicc-dark-blue: 223 61% 32%;    /* #204184 */
+    --unicc-light-blue: 206 62% 64%;   /* #68ACDF */
+    --unicc-light-grey: 0 0% 95%;      /* #F2F2F2 */
+    --unicc-orange: 15 86% 48%;        /* #E74010 */
+    --unicc-green: 110 48% 46%;        /* #4FAF3D */
 
     --sidebar-background: 0 0% 98%;
 
@@ -63,34 +65,34 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 223 40% 10%;
+    --foreground: 0 0% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 223 40% 12%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 223 40% 12%;
+    --popover-foreground: 0 0% 95%;
 
     /* UNICC Dark Mode Colors */
-    --primary: 207 90% 54%;  /* UNICC Light Blue for dark mode */
-    --primary-foreground: 222.2 84% 4.9%;
+    --primary: 206 62% 64%;            /* Light Blue #68ACDF for dark mode */
+    --primary-foreground: 60 5% 11%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 223 30% 18%;
+    --secondary-foreground: 0 0% 95%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 223 30% 18%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 204 89% 39%;  /* UNICC Dark Blue for dark mode accents */
-    --accent-foreground: 210 40% 98%;
+    --accent: 204 100% 35%;            /* UNICC Blue as accent in dark */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 15 70% 55%;         /* Lighter orange for dark mode */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 207 90% 54%;
+    --border: 223 30% 20%;
+    --input: 223 30% 20%;
+    --ring: 206 62% 64%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
