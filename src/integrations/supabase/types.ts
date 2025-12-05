@@ -2155,6 +2155,125 @@ export type Database = {
         }
         Relationships: []
       }
+      skill_assessments: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          assessed_at: string | null
+          assessed_by: string | null
+          attachments: Json | null
+          created_at: string
+          expiration_date: string | null
+          id: string
+          manager_assessment: number | null
+          remarks: string | null
+          required_level: number | null
+          self_assessment: number | null
+          skill_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          assessed_at?: string | null
+          assessed_by?: string | null
+          attachments?: Json | null
+          created_at?: string
+          expiration_date?: string | null
+          id?: string
+          manager_assessment?: number | null
+          remarks?: string | null
+          required_level?: number | null
+          self_assessment?: number | null
+          skill_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          assessed_at?: string | null
+          assessed_by?: string | null
+          attachments?: Json | null
+          created_at?: string
+          expiration_date?: string | null
+          id?: string
+          manager_assessment?: number | null
+          remarks?: string | null
+          required_level?: number | null
+          self_assessment?: number | null
+          skill_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_assessments_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_assessments_assessed_by_fkey"
+            columns: ["assessed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_assessments_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skill_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_assessments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skill_definitions: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          order_index: number | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          order_index?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          order_index?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       stage_events: {
         Row: {
           application_id: string
@@ -2261,6 +2380,54 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_skill_requirements: {
+        Row: {
+          applies_to_division: string | null
+          applies_to_unit: string | null
+          created_at: string
+          id: string
+          manager_id: string
+          required_level: number
+          skill_id: string
+          updated_at: string
+        }
+        Insert: {
+          applies_to_division?: string | null
+          applies_to_unit?: string | null
+          created_at?: string
+          id?: string
+          manager_id: string
+          required_level: number
+          skill_id: string
+          updated_at?: string
+        }
+        Update: {
+          applies_to_division?: string | null
+          applies_to_unit?: string | null
+          created_at?: string
+          id?: string
+          manager_id?: string
+          required_level?: number
+          skill_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_skill_requirements_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_skill_requirements_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skill_definitions"
             referencedColumns: ["id"]
           },
         ]

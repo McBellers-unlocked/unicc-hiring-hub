@@ -53,6 +53,7 @@ import ReviewCommittee from "./pages/ReviewCommittee";
 import JobVideoAssignmentManager from "./pages/JobVideoAssignmentManager";
 import GenerateFakeVideoResponses from "./pages/GenerateFakeVideoResponses";
 import BookInterviewSlot from "./pages/BookInterviewSlot";
+import SkillsAnalysis from "./pages/SkillsAnalysis";
 
 const queryClient = new QueryClient();
 
@@ -113,6 +114,7 @@ const App = () => (
             <Route path="/account/security" element={<AccountSecurity />} />
             <Route path="/admin/video-email-template" element={<VideoEmailTemplateSettings />} />
             <Route path="/admin/talent-pool" element={<TalentPool />} />
+            <Route path="/skills-analysis" element={<SkillsAnalysis />} />
             <Route path="/admin/import-users" element={<ImportUsers />} />
             <Route path="/admin/import-skills" element={<ImportSkills />} />
             <Route path="/admin/import-staff-data" element={<ImportStaffData />} />
