@@ -43,6 +43,7 @@ import VideoEmailTemplateSettings from "./pages/VideoEmailTemplateSettings";
 import TalentPool from "./pages/TalentPool";
 import ApplicationJobSelection from "./pages/ApplicationJobSelection";
 import ImportUsers from "./pages/ImportUsers";
+import ImportSkills from "./pages/ImportSkills";
 import NotFound from "./pages/NotFound";
 import InitialRequestForm from "./pages/InitialRequestForm";
 import InitialRequestReview from "./pages/InitialRequestReview";
@@ -112,6 +113,7 @@ const App = () => (
             <Route path="/admin/video-email-template" element={<VideoEmailTemplateSettings />} />
             <Route path="/admin/talent-pool" element={<TalentPool />} />
             <Route path="/admin/import-users" element={<ImportUsers />} />
+            <Route path="/admin/import-skills" element={<ImportSkills />} />
             <Route path="/import-users" element={<ImportUsers />} />
             <Route path="/chief-of-division" element={<ChiefOfDivisionView />} />
             <Route path="/director-view" element={<DirectorView />} />
