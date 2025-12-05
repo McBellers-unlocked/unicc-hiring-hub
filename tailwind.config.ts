@@ -64,6 +64,15 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// UNICC Brand Color Utilities
+				unicc: {
+					blue: 'hsl(var(--unicc-blue))',
+					'dark-blue': 'hsl(var(--unicc-dark-blue))',
+					'light-blue': 'hsl(var(--unicc-light-blue))',
+					'light-grey': 'hsl(var(--unicc-light-grey))',
+					orange: 'hsl(var(--unicc-orange))',
+					green: 'hsl(var(--unicc-green))'
 				}
 			},
 			borderRadius: {
