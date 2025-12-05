@@ -134,6 +134,30 @@ export default function SkillAssessmentDialog({
         toast.success(submitForApproval ? "Assessment submitted for approval" : "Assessment saved as draft");
       }
 
+      // Sync skill to user's profile skills array
+      const selectedSkill = skills.find(s => s.id === skillId);
+      if (selectedSkill) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('skills')
+          .eq('id', userId)
+          .single();
+        
+        const currentSkills: string[] = Array.isArray(userData?.skills) 
+          ? (userData.skills as (string | { name?: string })[]).map(s => typeof s === 'string' ? s : s?.name || '').filter(Boolean)
+          : [];
+        const skillExists = currentSkills.some(
+          s => s.toLowerCase() === selectedSkill.name.toLowerCase()
+        );
+        
+        if (!skillExists) {
+          await supabase
+            .from('users')
+            .update({ skills: [...currentSkills, selectedSkill.name] })
+            .eq('id', userId);
+        }
+      }
+
       onSuccess();
       onOpenChange(false);
     } catch (error: any) {
