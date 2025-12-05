@@ -157,13 +157,13 @@ export default function MySkillsAssessment() {
                 <div key={category}>
                   <h3 className="font-semibold text-sm text-muted-foreground mb-3">{category}</h3>
                   <Table>
-                    <TableHeader>
+                  <TableHeader>
                       <TableRow>
                         <TableHead>Skill</TableHead>
-                        <TableHead className="text-center">Self</TableHead>
-                        <TableHead className="text-center">Required</TableHead>
-                        <TableHead className="w-32">Gap</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead className="text-center w-20">Self</TableHead>
+                        <TableHead className="text-center w-20">Required</TableHead>
+                        <TableHead className="text-center w-36">Gap</TableHead>
+                        <TableHead className="w-28">Status</TableHead>
                         <TableHead className="w-10"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -180,13 +180,15 @@ export default function MySkillsAssessment() {
                             <span className="font-medium text-sm">{assessment.required_level ?? '-'}</span>
                           </TableCell>
                           <TableCell>
-                            <BatterySkillIndicator
-                              selfAssessment={assessment.self_assessment ?? 0}
-                              requiredLevel={assessment.required_level ?? 0}
-                              managerAssessment={assessment.manager_assessment ?? undefined}
-                              status={assessment.status === 'pending_approval' ? 'pending' : assessment.status === 'approved' ? 'approved' : undefined}
-                              compact
-                            />
+                            <div className="flex justify-center">
+                              <BatterySkillIndicator
+                                selfAssessment={assessment.self_assessment ?? 0}
+                                requiredLevel={assessment.required_level ?? 0}
+                                managerAssessment={assessment.manager_assessment ?? undefined}
+                                status={assessment.status === 'pending_approval' ? 'pending' : assessment.status === 'approved' ? 'approved' : undefined}
+                                compact
+                              />
+                            </div>
                           </TableCell>
                           <TableCell>
                             {getStatusBadge(assessment.status)}
