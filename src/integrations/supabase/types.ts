@@ -2798,6 +2798,18 @@ export type Database = {
         Args: { p_duty_station: string; p_nature_of_position: string }
         Returns: string
       }
+      get_all_reports: {
+        Args: { p_manager_name: string }
+        Returns: {
+          depth: number
+          division: string
+          id: string
+          job_title: string
+          line_manager: string
+          name: string
+          unit: string
+        }[]
+      }
       get_chief_for_division: { Args: { p_division: string }; Returns: string }
       get_current_user_name: { Args: never; Returns: string }
       get_user_role: {
