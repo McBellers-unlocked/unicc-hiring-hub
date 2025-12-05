@@ -82,18 +82,27 @@ export default function CandidateProfile() {
           .eq("email", data.email)
           .maybeSingle();
 
-        // Fetch skill assessments if user exists
+        // Fetch skill assessments if user exists (with full data for gap display)
         let assessedSkillNames: string[] = [];
+        let skillAssessmentsMap = new Map<string, { selfAssessment: number | null; managerAssessment: number | null; requiredLevel: number | null; status: string }>();
         if (staffData?.id) {
           const { data: assessments } = await supabase
             .from('skill_assessments')
-            .select('skill_definitions (name)')
+            .select('self_assessment, manager_assessment, required_level, status, skill_definitions (name)')
             .eq('user_id', staffData.id)
             .eq('status', 'approved');
           
-          assessedSkillNames = (assessments || [])
-            .map((a: any) => a.skill_definitions?.name)
-            .filter(Boolean);
+          (assessments || []).forEach((a: any) => {
+            if (a.skill_definitions?.name) {
+              assessedSkillNames.push(a.skill_definitions.name);
+              skillAssessmentsMap.set(a.skill_definitions.name.toLowerCase(), {
+                selfAssessment: a.self_assessment,
+                managerAssessment: a.manager_assessment,
+                requiredLevel: a.required_level,
+                status: a.status
+              });
+            }
+          });
         }
 
         // Merge skills from all sources: candidates.skills, users.skills, skill_assessments
@@ -149,6 +158,7 @@ export default function CandidateProfile() {
         const normalizedProfile = {
           ...data,
           skills: mergedSkills, // Use merged skills from all sources
+          skillAssessments: skillAssessmentsMap, // Pass full assessment data for gap display
           certifications: Array.isArray(data.certifications) ? data.certifications : [],
           education: Array.isArray(data.education) ? data.education : [],
           work_experience: finalWorkExp,
@@ -411,7 +421,7 @@ export default function CandidateProfile() {
           </Card>
 
           {/* Skills & Expertise */}
-          <EnhancedSkillsSection skills={profile.skills} />
+          <EnhancedSkillsSection skills={profile.skills} skillAssessments={(profile as any).skillAssessments} />
 
           {/* Languages */}
           <EnhancedLanguagesSection languages={profile.languages} />

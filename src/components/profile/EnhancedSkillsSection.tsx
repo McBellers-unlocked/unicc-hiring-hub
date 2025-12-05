@@ -1,19 +1,47 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Code, Users, Wrench, Globe } from "lucide-react";
+
+interface SkillAssessment {
+  selfAssessment: number | null;
+  managerAssessment: number | null;
+  requiredLevel: number | null;
+  status: string;
+}
 
 interface EnhancedSkillsSectionProps {
   skills: string[];
+  skillAssessments?: Map<string, SkillAssessment>;
 }
 
-export default function EnhancedSkillsSection({ skills }: EnhancedSkillsSectionProps) {
+function getGapBasedStyle(assessment?: SkillAssessment | null) {
+  if (!assessment || assessment.status !== 'approved') {
+    return { bgColor: "bg-muted", textColor: "text-muted-foreground", label: "Not assessed" };
+  }
+  
+  const level = assessment.managerAssessment ?? assessment.selfAssessment;
+  const required = assessment.requiredLevel;
+  if (level === null || required === null) {
+    return { bgColor: "bg-muted", textColor: "text-muted-foreground", label: "Not assessed" };
+  }
+  
+  const gap = level - required;
+  
+  if (gap >= 2) return { bgColor: "bg-purple-100", textColor: "text-purple-700", label: `Excellence (+${gap})` };
+  if (gap === 1) return { bgColor: "bg-blue-100", textColor: "text-blue-700", label: "Exceeding (+1)" };
+  if (gap === 0) return { bgColor: "bg-emerald-100", textColor: "text-emerald-700", label: "Meeting requirement" };
+  if (gap === -1) return { bgColor: "bg-amber-100", textColor: "text-amber-700", label: "Minor gap (-1)" };
+  return { bgColor: "bg-red-100", textColor: "text-red-700", label: `Gap (${gap})` };
+}
+
+export default function EnhancedSkillsSection({ skills, skillAssessments }: EnhancedSkillsSectionProps) {
   if (!skills || skills.length === 0) return null;
 
   // Categorize skills (this is a simple heuristic - could be enhanced with AI)
-  const technicalKeywords = ['programming', 'development', 'coding', 'software', 'database', 'cloud', 'api', 'framework', 'react', 'node', 'python', 'java', 'sql'];
-  const softKeywords = ['communication', 'leadership', 'teamwork', 'management', 'presentation', 'negotiation', 'collaboration'];
-  const domainKeywords = ['finance', 'healthcare', 'education', 'marketing', 'sales', 'legal', 'hr'];
+  const technicalKeywords = ['programming', 'development', 'coding', 'software', 'database', 'cloud', 'api', 'framework', 'react', 'node', 'python', 'java', 'sql', 'aws', 'azure', 'docker', 'kubernetes'];
+  const softKeywords = ['communication', 'leadership', 'teamwork', 'management', 'presentation', 'negotiation', 'collaboration', 'problem-solving', 'critical thinking'];
+  const domainKeywords = ['finance', 'healthcare', 'education', 'marketing', 'sales', 'legal', 'hr', 'project', 'agile', 'scrum'];
   
   const categorizeSkill = (skill: string) => {
     const lowerSkill = skill.toLowerCase();
@@ -37,6 +65,39 @@ export default function EnhancedSkillsSection({ skills }: EnhancedSkillsSectionP
     { key: 'other', title: 'Other Skills', icon: Globe, color: 'text-orange-600' }
   ] as const;
 
+  const renderSkillBadge = (skill: string, idx: number) => {
+    const assessment = skillAssessments?.get(skill.toLowerCase());
+    const style = getGapBasedStyle(assessment);
+    const level = assessment?.managerAssessment ?? assessment?.selfAssessment;
+    const required = assessment?.requiredLevel;
+
+    return (
+      <TooltipProvider key={idx}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge 
+              variant="secondary" 
+              className={`${style.bgColor} ${style.textColor} border-0 cursor-default`}
+            >
+              {skill}
+              {level !== null && level !== undefined && required !== null && required !== undefined && (
+                <span className="ml-1.5 opacity-75">({level}/{required})</span>
+              )}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="font-medium">{style.label}</p>
+            {level !== null && level !== undefined && required !== null && required !== undefined && (
+              <p className="text-xs text-muted-foreground">
+                Level: {level} / Required: {required}
+              </p>
+            )}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -56,22 +117,8 @@ export default function EnhancedSkillsSection({ skills }: EnhancedSkillsSectionP
                   {categorySkills.length}
                 </Badge>
               </div>
-              <div className="space-y-2">
-                {categorySkills.map((skill, idx) => (
-                  <div key={idx} className="space-y-1">
-                    <div className="flex items-center justify-between text-sm">
-                      <span>{skill}</span>
-                      <span className="text-muted-foreground">
-                        {/* Simulated proficiency - in real app, this would come from data */}
-                        {85 + Math.floor(Math.random() * 15)}%
-                      </span>
-                    </div>
-                    <Progress 
-                      value={85 + Math.floor(Math.random() * 15)} 
-                      className="h-1.5"
-                    />
-                  </div>
-                ))}
+              <div className="flex flex-wrap gap-2">
+                {categorySkills.map((skill, idx) => renderSkillBadge(skill, idx))}
               </div>
             </div>
           );
@@ -82,11 +129,7 @@ export default function EnhancedSkillsSection({ skills }: EnhancedSkillsSectionP
          categorizedSkills.soft.length === 0 && 
          categorizedSkills.domain.length === 0 && (
           <div className="flex flex-wrap gap-2">
-            {skills.map((skill, index) => (
-              <Badge key={index} variant="secondary">
-                {skill}
-              </Badge>
-            ))}
+            {skills.map((skill, index) => renderSkillBadge(skill, index))}
           </div>
         )}
       </CardContent>
