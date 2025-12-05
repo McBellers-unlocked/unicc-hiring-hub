@@ -10,8 +10,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Check, X, User, Settings2, Users, Network } from "lucide-react";
 import BatterySkillIndicator from "./BatterySkillIndicator";
+import BatteryLevelSelector from "./BatteryLevelSelector";
 import { cn } from "@/lib/utils";
-import SkillLevelSelector, { SkillLevelDisplay } from "./SkillLevelSelector";
+import { SkillLevelDisplay } from "./SkillLevelSelector";
 
 interface TeamMember {
   id: string;
@@ -617,7 +618,7 @@ export default function TeamSkillsTable() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Required Level for All ({teamMembers.length} members)</label>
-              <SkillLevelSelector
+              <BatteryLevelSelector
                 value={bulkRequiredLevel}
                 onChange={setBulkRequiredLevel}
               />
