@@ -467,26 +467,49 @@ export default function TeamSkillsTable() {
                     <TableHead className="sticky top-0 left-0 bg-background z-20 min-w-56 border-r">
                       Skill
                     </TableHead>
-                    {teamMembers.map(member => (
-                      <TableHead key={member.id} className="sticky top-0 bg-background z-10 text-center min-w-24 px-2">
-                        <div className="text-xs">
-                          <p className="font-medium truncate max-w-20">{member.name.split(' ')[0]}</p>
-                          {viewMode === 'all' && member.depth && (
-                            <Badge 
-                              variant={member.depth === 1 ? 'default' : 'secondary'} 
-                              className="text-[9px] px-1 py-0 h-4 mt-0.5"
-                            >
-                              {getDepthLabel(member.depth)}
-                            </Badge>
-                          )}
-                          {viewMode === 'direct' && (
-                            <p className="text-muted-foreground truncate max-w-20 text-[10px]">
-                              {member.job_title?.split(' ').slice(0, 2).join(' ')}
+                    {teamMembers.map(member => {
+                      // Format name: keep given names + surname initial (e.g., "Maria Isabel G.")
+                      const formatDisplayName = (fullName: string) => {
+                        const parts = fullName.split(' ').filter(Boolean);
+                        if (parts.length <= 2) return fullName;
+                        
+                        // Find uppercase surname(s) at the end
+                        const surnameIndex = parts.findIndex(p => p === p.toUpperCase() && p.length > 1);
+                        if (surnameIndex > 0) {
+                          const givenNames = parts.slice(0, surnameIndex).map(n => 
+                            n.charAt(0).toUpperCase() + n.slice(1).toLowerCase()
+                          ).join(' ');
+                          const surnameInitial = parts[surnameIndex].charAt(0) + '.';
+                          return `${givenNames} ${surnameInitial}`;
+                        }
+                        
+                        // Fallback: first name + last initial
+                        return `${parts[0]} ${parts[parts.length - 1].charAt(0)}.`;
+                      };
+
+                      return (
+                        <TableHead key={member.id} className="sticky top-0 bg-background z-10 text-center min-w-32 px-2">
+                          <div className="text-xs">
+                            <p className="font-medium whitespace-normal leading-tight" title={member.name}>
+                              {formatDisplayName(member.name)}
                             </p>
-                          )}
-                        </div>
-                      </TableHead>
-                    ))}
+                            {viewMode === 'all' && member.depth && (
+                              <Badge 
+                                variant={member.depth === 1 ? 'default' : 'secondary'} 
+                                className="text-[9px] px-1 py-0 h-4 mt-0.5"
+                              >
+                                {getDepthLabel(member.depth)}
+                              </Badge>
+                            )}
+                            {viewMode === 'direct' && (
+                              <p className="text-muted-foreground truncate text-[10px]">
+                                {member.job_title?.split(' ').slice(0, 2).join(' ')}
+                              </p>
+                            )}
+                          </div>
+                        </TableHead>
+                      );
+                    })}
                     <TableHead className="sticky top-0 bg-background z-10 w-12 text-center">
                       <span className="sr-only">Actions</span>
                     </TableHead>
