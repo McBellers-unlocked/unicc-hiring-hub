@@ -68,12 +68,50 @@ export default function CandidateProfile() {
         if (error) throw error;
 
         // Check if work_experience has valid entries, fall back to phf_work_experience
-        const workExp = Array.isArray(data.work_experience) ? data.work_experience : [];
+        let workExp = Array.isArray(data.work_experience) ? data.work_experience : [];
         const phfWorkExp = Array.isArray(data.phf_work_experience) ? data.phf_work_experience : [];
         
         // Use phf_work_experience if work_experience is empty or has only empty entries
         const hasValidWorkExp = workExp.some((exp: any) => exp.company || exp.position);
-        const finalWorkExp = hasValidWorkExp ? workExp : phfWorkExp;
+        let finalWorkExp = hasValidWorkExp ? workExp : phfWorkExp;
+
+        // Fetch staff data from users table to auto-inject UNICC experience
+        const { data: staffData } = await supabase
+          .from("users")
+          .select("job_title, entry_on_duty_date, duty_station, division, unit")
+          .eq("email", data.email)
+          .neq("role", "Candidate")
+          .maybeSingle();
+
+        // If staff data exists, inject synthetic UNICC work experience
+        if (staffData && staffData.job_title && staffData.entry_on_duty_date) {
+          const hasUniccEntry = finalWorkExp.some((exp: any) => 
+            exp.company?.toLowerCase().includes('unicc') || 
+            exp.company?.toLowerCase().includes('united nations international computing centre')
+          );
+
+          if (!hasUniccEntry) {
+            // Format entry_on_duty_date to yyyy-MM
+            const entryDate = new Date(staffData.entry_on_duty_date);
+            const formattedStartDate = `${entryDate.getFullYear()}-${String(entryDate.getMonth() + 1).padStart(2, '0')}`;
+
+            const uniccEntry = {
+              company: "United Nations International Computing Centre (UNICC)",
+              position: staffData.job_title,
+              type: "Full-time",
+              startDate: formattedStartDate,
+              endDate: "",
+              location: staffData.duty_station || "",
+              description: "",
+              isUNExperience: true,
+              isCurrent: true,
+              _isStaffEntry: true, // Flag to identify auto-injected entries
+            };
+
+            // Prepend UNICC entry (most recent/current job)
+            finalWorkExp = [uniccEntry, ...finalWorkExp];
+          }
+        }
 
         const normalizedProfile = {
           ...data,
@@ -84,14 +122,14 @@ export default function CandidateProfile() {
           preferred_locations: Array.isArray(data.preferred_locations) ? data.preferred_locations : [],
           un_organizations_worked: Array.isArray(data.un_organizations_worked) ? data.un_organizations_worked : [],
           portfolio_attachments: Array.isArray(data.portfolio_attachments) ? data.portfolio_attachments : [],
+          // Auto-set UN experience if staff member
+          un_experience: data.un_experience || !!staffData,
         };
 
-        // Calculate years of experience if not present or if 0
-        if (!normalizedProfile.years_of_experience || normalizedProfile.years_of_experience === 0) {
-          const experienceMonths = calculateYearsOfExperience(normalizedProfile.work_experience);
-          (normalizedProfile as any).years_of_experience_months = experienceMonths;
-          normalizedProfile.years_of_experience = Math.round(experienceMonths / 12 * 10) / 10;
-        }
+        // Always recalculate years of experience to include injected UNICC entry
+        const experienceMonths = calculateYearsOfExperience(normalizedProfile.work_experience);
+        (normalizedProfile as any).years_of_experience_months = experienceMonths;
+        normalizedProfile.years_of_experience = Math.round(experienceMonths / 12 * 10) / 10;
 
         // Extract current position and organization
         (normalizedProfile as any).current_position = getCurrentPosition(normalizedProfile.work_experience);
