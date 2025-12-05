@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Check, X, User, Settings2, Users, Network } from "lucide-react";
 import BatterySkillIndicator from "./BatterySkillIndicator";
+import { cn } from "@/lib/utils";
 import SkillLevelSelector, { SkillLevelDisplay } from "./SkillLevelSelector";
 
 interface TeamMember {
@@ -488,7 +489,7 @@ export default function TeamSkillsTable() {
                     <TableHead className="sticky top-0 left-0 bg-background z-20 min-w-56 border-r">
                       Skill
                     </TableHead>
-                    {teamMembers.map(member => {
+                    {teamMembers.map((member, memberIndex) => {
                       // Format name: keep given names + surname initial (e.g., "Maria Isabel G.")
                       const formatDisplayName = (fullName: string) => {
                         const parts = fullName.split(' ').filter(Boolean);
@@ -509,7 +510,13 @@ export default function TeamSkillsTable() {
                       };
 
                       return (
-                        <TableHead key={member.id} className="sticky top-0 bg-background z-10 text-center min-w-32 px-2">
+                        <TableHead 
+                          key={member.id} 
+                          className={cn(
+                            "sticky top-0 z-10 text-center min-w-32 px-2",
+                            memberIndex % 2 === 0 ? "bg-background" : "bg-muted/40"
+                          )}
+                        >
                           <div className="text-xs">
                             <p className="font-medium whitespace-normal leading-tight" title={member.name}>
                               {formatDisplayName(member.name)}
@@ -545,20 +552,28 @@ export default function TeamSkillsTable() {
                           <p className="text-xs text-muted-foreground">{skill.category}</p>
                         </div>
                       </TableCell>
-                      {teamMembers.map(member => {
+                      {teamMembers.map((member, memberIndex) => {
                         const assessment = getAssessment(member.id, skill.id);
                         
                         return (
-                          <TableCell key={member.id} className="text-center p-1">
-                            <BatterySkillIndicator
-                              selfAssessment={assessment?.self_assessment ?? null}
-                              requiredLevel={assessment?.required_level ?? null}
-                              managerAssessment={assessment?.manager_assessment ?? null}
-                              status={assessment?.status}
-                              onSegmentClick={(level) => handleDirectSetRequired(member.id, skill.id, level)}
-                              compact
-                              editable
-                            />
+                          <TableCell 
+                            key={member.id} 
+                            className={cn(
+                              "text-center p-1 align-middle",
+                              memberIndex % 2 === 0 ? "bg-background" : "bg-muted/40"
+                            )}
+                          >
+                            <div className="flex items-center justify-center min-h-[44px]">
+                              <BatterySkillIndicator
+                                selfAssessment={assessment?.self_assessment ?? null}
+                                requiredLevel={assessment?.required_level ?? null}
+                                managerAssessment={assessment?.manager_assessment ?? null}
+                                status={assessment?.status}
+                                onSegmentClick={(level) => handleDirectSetRequired(member.id, skill.id, level)}
+                                compact
+                                editable
+                              />
+                            </div>
                           </TableCell>
                         );
                       })}
