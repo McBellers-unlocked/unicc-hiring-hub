@@ -318,32 +318,34 @@ export default function TeamSkillsTable() {
           </Select>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[600px]">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="sticky left-0 bg-background z-10 min-w-48">Employee</TableHead>
-                  {filteredSkills.map(skill => (
-                    <TableHead key={skill.id} className="text-center min-w-24 text-xs">
-                      {skill.name}
+                  <TableHead className="sticky top-0 left-0 bg-background z-20 min-w-48">Skill</TableHead>
+                  {teamMembers.map(member => (
+                    <TableHead key={member.id} className="sticky top-0 bg-background z-10 text-center min-w-28">
+                      <div className="text-xs">
+                        <p className="font-medium truncate">{member.name}</p>
+                        <p className="text-muted-foreground truncate">{member.job_title}</p>
+                      </div>
                     </TableHead>
                   ))}
-                  <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {teamMembers.map(member => (
-                  <TableRow key={member.id}>
-                    <TableCell className="sticky left-0 bg-background z-10 font-medium">
+                {filteredSkills.map(skill => (
+                  <TableRow key={skill.id}>
+                    <TableCell className="sticky left-0 bg-background z-10">
                       <div>
-                        <p>{member.name}</p>
-                        <p className="text-xs text-muted-foreground">{member.job_title}</p>
+                        <p className="font-medium">{skill.name}</p>
+                        <p className="text-xs text-muted-foreground">{skill.category}</p>
                       </div>
                     </TableCell>
-                    {filteredSkills.map(skill => {
+                    {teamMembers.map(member => {
                       const assessment = getAssessment(member.id, skill.id);
                       return (
-                        <TableCell key={skill.id} className="text-center p-2">
+                        <TableCell key={member.id} className="text-center p-2">
                           {assessment ? (
                             <div className="flex flex-col items-center gap-1">
                               <SkillGapBar
@@ -364,15 +366,6 @@ export default function TeamSkillsTable() {
                         </TableCell>
                       );
                     })}
-                    <TableCell>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => openAddSkillDialog(member)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
