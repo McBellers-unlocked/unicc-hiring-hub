@@ -8,8 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Plus, Edit2, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import SkillAssessmentDialog from "./SkillAssessmentDialog";
-import SkillGapBar, { SkillGapSummary } from "./SkillGapBar";
-import { SkillLevelDisplay } from "./SkillLevelSelector";
+import { SkillGapSummary } from "./SkillGapBar";
+import BatterySkillIndicator from "./BatterySkillIndicator";
 
 interface Assessment {
   id: string;
@@ -174,16 +174,17 @@ export default function MySkillsAssessment() {
                             {assessment.skill_definitions?.name}
                           </TableCell>
                           <TableCell className="text-center">
-                            <SkillLevelDisplay level={assessment.self_assessment} />
+                            <span className="font-medium text-sm">{assessment.self_assessment ?? '-'}</span>
                           </TableCell>
                           <TableCell className="text-center">
-                            <SkillLevelDisplay level={assessment.required_level} />
+                            <span className="font-medium text-sm">{assessment.required_level ?? '-'}</span>
                           </TableCell>
                           <TableCell>
-                            <SkillGapBar
-                              selfAssessment={assessment.self_assessment}
-                              requiredLevel={assessment.required_level}
-                              managerAssessment={assessment.manager_assessment}
+                            <BatterySkillIndicator
+                              selfAssessment={assessment.self_assessment ?? 0}
+                              requiredLevel={assessment.required_level ?? 0}
+                              managerAssessment={assessment.manager_assessment ?? undefined}
+                              status={assessment.status === 'pending_approval' ? 'pending' : assessment.status === 'approved' ? 'approved' : undefined}
                               compact
                             />
                           </TableCell>
