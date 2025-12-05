@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Check, X, User, Settings2 } from "lucide-react";
+import { Check, X, User, Settings2, Users, Network } from "lucide-react";
 import BatterySkillIndicator from "./BatterySkillIndicator";
 import SkillLevelSelector, { SkillLevelDisplay } from "./SkillLevelSelector";
 
@@ -18,6 +18,7 @@ interface TeamMember {
   name: string;
   job_title: string | null;
   unit: string | null;
+  depth?: number;
 }
 
 interface SkillDefinition {
@@ -36,6 +37,8 @@ interface Assessment {
   status: string;
 }
 
+type ViewMode = 'direct' | 'all';
+
 export default function TeamSkillsTable() {
   const { user } = useAuth();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -44,6 +47,8 @@ export default function TeamSkillsTable() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [allSkillDefinitions, setAllSkillDefinitions] = useState<SkillDefinition[]>([]);
+  const [viewMode, setViewMode] = useState<ViewMode>('direct');
+  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
   
   // Cell edit state
   const [editingCell, setEditingCell] = useState<{ memberId: string; skillId: string } | null>(null);
@@ -55,10 +60,28 @@ export default function TeamSkillsTable() {
 
   useEffect(() => {
     if (user?.email) {
-      fetchTeamData();
+      fetchCurrentUserName();
       fetchAllSkillDefinitions();
     }
   }, [user?.email]);
+
+  useEffect(() => {
+    if (currentUserName) {
+      fetchTeamData();
+    }
+  }, [currentUserName, viewMode]);
+
+  const fetchCurrentUserName = async () => {
+    const { data: currentUser, error } = await supabase
+      .from('users')
+      .select('name')
+      .eq('email', user?.email)
+      .single();
+    
+    if (!error && currentUser?.name) {
+      setCurrentUserName(currentUser.name);
+    }
+  };
 
   const fetchAllSkillDefinitions = async () => {
     const { data } = await supabase
@@ -71,34 +94,51 @@ export default function TeamSkillsTable() {
   };
 
   const fetchTeamData = async () => {
+    if (!currentUserName) return;
+    
     setLoading(true);
     
-    const { data: currentUser, error: userError } = await supabase
-      .from('users')
-      .select('name')
-      .eq('email', user?.email)
-      .single();
+    let members: TeamMember[] = [];
     
-    if (userError || !currentUser?.name) {
-      setLoading(false);
-      return;
+    if (viewMode === 'all') {
+      // Use the recursive function to get all reports
+      const { data, error } = await supabase
+        .rpc('get_all_reports', { p_manager_name: currentUserName });
+      
+      if (error) {
+        console.error('Error fetching all reports:', error);
+        toast.error("Failed to load team hierarchy");
+        setLoading(false);
+        return;
+      }
+      
+      members = (data || []).map((m: any) => ({
+        id: m.id,
+        name: m.name,
+        job_title: m.job_title,
+        unit: m.unit,
+        depth: m.depth
+      }));
+    } else {
+      // Direct reports only
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, job_title, unit')
+        .eq('line_manager', currentUserName)
+        .order('name');
+
+      if (error) {
+        toast.error("Failed to load team members");
+        setLoading(false);
+        return;
+      }
+      
+      members = (data || []).map(m => ({ ...m, depth: 1 }));
     }
-    
-    const { data: members, error: membersError } = await supabase
-      .from('users')
-      .select('id, name, job_title, unit')
-      .eq('line_manager', currentUser.name)
-      .order('name');
 
-    if (membersError) {
-      toast.error("Failed to load team members");
-      setLoading(false);
-      return;
-    }
+    setTeamMembers(members);
 
-    setTeamMembers(members || []);
-
-    if (members && members.length > 0) {
+    if (members.length > 0) {
       const memberIds = members.map(m => m.id);
       
       const { data: assessmentData } = await supabase
@@ -125,6 +165,7 @@ export default function TeamSkillsTable() {
       }
     } else {
       setSkills([]);
+      setAssessments([]);
     }
 
     setLoading(false);
@@ -245,6 +286,15 @@ export default function TeamSkillsTable() {
 
   const pendingCount = assessments.filter(a => a.status === 'pending_approval').length;
 
+  // Calculate hierarchy stats
+  const maxDepth = Math.max(...teamMembers.map(m => m.depth || 1), 0);
+  const directCount = teamMembers.filter(m => m.depth === 1).length;
+
+  const getDepthLabel = (depth: number) => {
+    if (depth === 1) return 'Direct';
+    return `L${depth}`;
+  };
+
   if (loading) {
     return (
       <Card>
@@ -335,25 +385,74 @@ export default function TeamSkillsTable() {
 
       {/* Skills Matrix */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle>Team Skills Matrix</CardTitle>
             <CardDescription>
               Click any cell to set required skill levels for your team
             </CardDescription>
           </div>
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Filter by category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map(cat => (
-                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* View Mode Toggle */}
+            <Select value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+              <SelectTrigger className="w-52">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="direct">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    <span>Direct Reports Only</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="all">
+                  <div className="flex items-center gap-2">
+                    <Network className="h-4 w-4" />
+                    <span>Full Hierarchy</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {/* Category Filter */}
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
+        
+        {/* Team Stats Banner */}
+        {viewMode === 'all' && teamMembers.length > 0 && (
+          <div className="px-6 pb-4">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground bg-muted/50 rounded-lg px-4 py-2">
+              <span className="flex items-center gap-1.5">
+                <Network className="h-4 w-4" />
+                <strong className="text-foreground">{teamMembers.length}</strong> team members
+              </span>
+              <span className="text-border">•</span>
+              <span>
+                <strong className="text-foreground">{directCount}</strong> direct reports
+              </span>
+              {maxDepth > 1 && (
+                <>
+                  <span className="text-border">•</span>
+                  <span>
+                    <strong className="text-foreground">{maxDepth}</strong> levels deep
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+        
         <CardContent>
           {filteredSkills.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
@@ -372,9 +471,19 @@ export default function TeamSkillsTable() {
                       <TableHead key={member.id} className="sticky top-0 bg-background z-10 text-center min-w-24 px-2">
                         <div className="text-xs">
                           <p className="font-medium truncate max-w-20">{member.name.split(' ')[0]}</p>
-                          <p className="text-muted-foreground truncate max-w-20 text-[10px]">
-                            {member.job_title?.split(' ').slice(0, 2).join(' ')}
-                          </p>
+                          {viewMode === 'all' && member.depth && (
+                            <Badge 
+                              variant={member.depth === 1 ? 'default' : 'secondary'} 
+                              className="text-[9px] px-1 py-0 h-4 mt-0.5"
+                            >
+                              {getDepthLabel(member.depth)}
+                            </Badge>
+                          )}
+                          {viewMode === 'direct' && (
+                            <p className="text-muted-foreground truncate max-w-20 text-[10px]">
+                              {member.job_title?.split(' ').slice(0, 2).join(' ')}
+                            </p>
+                          )}
                         </div>
                       </TableHead>
                     ))}
@@ -417,7 +526,14 @@ export default function TeamSkillsTable() {
                               <PopoverContent className="w-64" side="top">
                                 <div className="space-y-3">
                                   <div className="font-medium text-sm">{skill.name}</div>
-                                  <div className="text-xs text-muted-foreground">{member.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {member.name}
+                                    {viewMode === 'all' && member.depth && (
+                                      <Badge variant="outline" className="ml-2 text-[9px] px-1 py-0">
+                                        {getDepthLabel(member.depth)}
+                                      </Badge>
+                                    )}
+                                  </div>
                                   
                                   {assessment?.self_assessment && (
                                     <div className="flex items-center justify-between text-sm">
@@ -488,7 +604,7 @@ export default function TeamSkillsTable() {
           <DialogHeader>
             <DialogTitle>Set Required Level for All Team Members</DialogTitle>
             <DialogDescription>
-              Set the same required level for "{bulkEditSkill?.name}" across your entire team.
+              Set the same required level for "{bulkEditSkill?.name}" across {viewMode === 'all' ? 'your entire hierarchy' : 'your direct reports'}.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-4">
