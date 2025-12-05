@@ -114,7 +114,7 @@ export default function BatterySkillIndicator({
           <button
             onClick={onClick}
             className={cn(
-              "flex flex-col items-center gap-1 p-1 rounded-md transition-colors",
+              "flex items-center gap-2 p-1 rounded-md transition-colors",
               onClick && !editable && "hover:bg-muted/50 cursor-pointer",
               !onClick && !editable && "cursor-default",
               editable && "cursor-default"
@@ -159,10 +159,10 @@ export default function BatterySkillIndicator({
               )} />
             </div>
 
-            {/* Gap badge - always visible when applicable */}
+            {/* Gap badge - to the right of battery */}
             {gapBadge && !editable && (
               <span className={cn(
-                "text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none",
+                "text-xs font-semibold px-1.5 py-0.5 rounded-full leading-none min-w-[24px] text-center",
                 gapBadge.className
               )}>
                 {gapBadge.text}
