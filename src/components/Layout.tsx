@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText, ChevronDown, Building, FileCheck, User, LayoutDashboard, Shield, Heart, GraduationCap, BookOpen } from 'lucide-react';
+import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText, ChevronDown, Building, FileCheck, User, LayoutDashboard, Shield, Heart, GraduationCap, BookOpen, Target } from 'lucide-react';
 import { UNICCLogo } from '@/components/UNICCLogo';
 
 interface LayoutProps {
@@ -224,6 +224,12 @@ export const Layout = ({ children }: LayoutProps) => {
                           <Link to="/hiring-guide" className="flex items-center w-full">
                             <BookOpen className="w-4 h-4 mr-2" />
                             Hiring Process Guide
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/skills-analysis" className="flex items-center w-full">
+                            <Target className="w-4 h-4 mr-2" />
+                            Skills Analysis
                           </Link>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
