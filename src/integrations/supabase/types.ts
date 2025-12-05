@@ -2232,8 +2232,10 @@ export type Database = {
           division: string | null
           duty_station: string | null
           email: string
+          entry_on_duty_date: string | null
           gender: string | null
           id: string
+          job_title: string | null
           line_manager: string | null
           name: string
           nationality: string | null
@@ -2250,8 +2252,10 @@ export type Database = {
           division?: string | null
           duty_station?: string | null
           email: string
+          entry_on_duty_date?: string | null
           gender?: string | null
           id: string
+          job_title?: string | null
           line_manager?: string | null
           name: string
           nationality?: string | null
@@ -2268,8 +2272,10 @@ export type Database = {
           division?: string | null
           duty_station?: string | null
           email?: string
+          entry_on_duty_date?: string | null
           gender?: string | null
           id?: string
+          job_title?: string | null
           line_manager?: string | null
           name?: string
           nationality?: string | null
