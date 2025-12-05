@@ -95,17 +95,28 @@ export default function TeamSkillsTable() {
         .in('user_id', memberIds);
 
       setAssessments(assessmentData || []);
+
+      // Get unique skill IDs from assessments
+      const skillIds = [...new Set((assessmentData || []).map(a => a.skill_id))];
+
+      // Fetch only skills that have assessments for team members
+      if (skillIds.length > 0) {
+        const { data: skillData } = await supabase
+          .from('skill_definitions')
+          .select('id, name, category')
+          .eq('is_active', true)
+          .in('id', skillIds)
+          .order('category')
+          .order('name');
+
+        setSkills(skillData || []);
+      } else {
+        setSkills([]);
+      }
+    } else {
+      setSkills([]);
     }
 
-    // Fetch all skills
-    const { data: skillData } = await supabase
-      .from('skill_definitions')
-      .select('id, name, category')
-      .eq('is_active', true)
-      .order('category')
-      .order('name');
-
-    setSkills(skillData || []);
     setLoading(false);
   };
 
