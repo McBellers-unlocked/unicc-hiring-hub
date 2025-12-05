@@ -56,6 +56,11 @@ export function StaffDetailModal({ staff, open, onClose }: StaffDetailModalProps
     ])
   );
 
+  // Get skill names from assessments
+  const assessedSkillNames = (skillAssessments || [])
+    .map((a: any) => a.skill_definitions?.name)
+    .filter(Boolean);
+
   if (!staff) return null;
 
   const initials = staff.name
@@ -65,9 +70,13 @@ export function StaffDetailModal({ staff, open, onClose }: StaffDetailModalProps
     .toUpperCase()
     .slice(0, 2) || "?";
 
-  const skills = Array.isArray(staff.skills)
+  // Get profile skills
+  const profileSkills = Array.isArray(staff.skills)
     ? staff.skills.map((s: any) => typeof s === 'string' ? s : s.name || '')
     : [];
+
+  // Merge and deduplicate skills from both sources
+  const skills = [...new Set([...profileSkills, ...assessedSkillNames])];
 
   const tenure = staff.entry_on_duty_date
     ? formatDistanceToNow(new Date(staff.entry_on_duty_date))
