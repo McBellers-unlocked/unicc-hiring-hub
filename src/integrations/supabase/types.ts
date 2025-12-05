@@ -2799,6 +2799,7 @@ export type Database = {
         Returns: string
       }
       get_chief_for_division: { Args: { p_division: string }; Returns: string }
+      get_current_user_name: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
