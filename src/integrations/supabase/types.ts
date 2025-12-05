@@ -2238,6 +2238,7 @@ export type Database = {
           name: string
           nationality: string | null
           role: Database["public"]["Enums"]["user_role"]
+          skills: Json | null
           unit: string | null
           updated_at: string
           worker_type: string | null
@@ -2255,6 +2256,7 @@ export type Database = {
           name: string
           nationality?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          skills?: Json | null
           unit?: string | null
           updated_at?: string
           worker_type?: string | null
@@ -2272,6 +2274,7 @@ export type Database = {
           name?: string
           nationality?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          skills?: Json | null
           unit?: string | null
           updated_at?: string
           worker_type?: string | null
