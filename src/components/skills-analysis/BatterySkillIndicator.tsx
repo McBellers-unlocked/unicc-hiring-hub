@@ -28,8 +28,9 @@ export default function BatterySkillIndicator({
   const currentLevel = managerAssessment ?? selfAssessment ?? 0;
   const required = requiredLevel ?? 0;
   const gap = required - currentLevel;
+  const exceeding = currentLevel - required;
 
-  // Determine color based on gap
+  // Determine color based on gap - enhanced color scheme
   const getSegmentColor = (segmentLevel: number) => {
     if (segmentLevel > currentLevel) {
       return "bg-muted";
@@ -39,9 +40,14 @@ export default function BatterySkillIndicator({
       return "bg-primary/60";
     }
     
-    // Exceeding requirement - deeper green
-    if (currentLevel > required) {
-      return "bg-emerald-700";
+    // Excellence: +2 or more above required → UNICC Blue
+    if (exceeding >= 2) {
+      return "bg-primary";
+    }
+    
+    // Good: +1 above required → Darker emerald
+    if (exceeding === 1) {
+      return "bg-emerald-600";
     }
     
     // Meeting requirement exactly
@@ -49,24 +55,47 @@ export default function BatterySkillIndicator({
       return "bg-emerald-500";
     }
     
+    // Gap of 1 → Amber
     if (gap === 1) {
       return "bg-amber-500";
     }
     
+    // Gap of 2+ → Destructive
     return "bg-destructive";
   };
 
   const getStatusText = () => {
     if (!requiredLevel) return "No requirement set";
     if (currentLevel === 0) return "Not assessed";
-    if (currentLevel > requiredLevel) return "Exceeding requirement";
+    if (exceeding >= 2) return "Excelling";
+    if (exceeding === 1) return "Exceeding requirement";
     if (currentLevel === requiredLevel) return "Meeting requirement";
     if (gap === 1) return "1 level gap";
     return `${gap} level gap`;
   };
 
+  // Get gap badge info
+  const getGapBadge = () => {
+    if (required === 0 || currentLevel === 0) return null;
+    
+    if (exceeding >= 2) {
+      return { text: `+${exceeding}`, className: "bg-primary/20 text-primary" };
+    }
+    if (exceeding === 1) {
+      return { text: `+${exceeding}`, className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" };
+    }
+    if (gap === 0) {
+      return { text: "✓", className: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400" };
+    }
+    if (gap === 1) {
+      return { text: `-${gap}`, className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" };
+    }
+    return { text: `-${gap}`, className: "bg-destructive/20 text-destructive font-bold" };
+  };
+
   const isPending = status === 'pending_approval';
   const isEmpty = !selfAssessment && !requiredLevel;
+  const gapBadge = getGapBadge();
 
   const handleSegmentClick = (level: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -130,6 +159,16 @@ export default function BatterySkillIndicator({
               )} />
             </div>
 
+            {/* Gap badge - always visible when applicable */}
+            {gapBadge && !editable && (
+              <span className={cn(
+                "text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none",
+                gapBadge.className
+              )}>
+                {gapBadge.text}
+              </span>
+            )}
+
             {/* Pending indicator */}
             {isPending && (
               <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
@@ -158,8 +197,11 @@ export default function BatterySkillIndicator({
             {requiredLevel && (
               <p>Required: Level {requiredLevel}</p>
             )}
-            {requiredLevel && currentLevel > requiredLevel && (
-              <p className="text-emerald-600">+{currentLevel - requiredLevel} above required</p>
+            {requiredLevel && exceeding >= 2 && (
+              <p className="text-primary font-medium">+{exceeding} above required (Excelling!)</p>
+            )}
+            {requiredLevel && exceeding === 1 && (
+              <p className="text-emerald-600">+{exceeding} above required</p>
             )}
             {isPending && (
               <p className="text-amber-600">Pending approval</p>
