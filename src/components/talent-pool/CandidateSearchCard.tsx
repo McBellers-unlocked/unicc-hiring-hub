@@ -81,10 +81,13 @@ export function CandidateSearchCard({
     ? candidate.skills.map((s: any) => (typeof s === "string" ? s : s.name || ""))
     : [];
 
-  // Merge skills for internal, just profile for external (limit to 5)
+  // Merge skills for internal, just profile for external (limit to 8 for fixed-height container)
   const allSkills = isInternal
-    ? [...new Set([...assessedSkillNames, ...profileSkills])].slice(0, 5)
-    : profileSkills.slice(0, 5);
+    ? [...new Set([...assessedSkillNames, ...profileSkills])].slice(0, 8)
+    : profileSkills.slice(0, 8);
+  const totalSkillCount = isInternal
+    ? [...new Set([...assessedSkillNames, ...profileSkills])].length
+    : profileSkills.length;
 
   // Find highest education level (external only)
   const getHighestEducation = (educationArray: any[]) => {
@@ -243,7 +246,7 @@ export function CandidateSearchCard({
   // Grid view
   return (
     <>
-      <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setShowDetail(true)}>
+      <Card className="hover:shadow-md transition-shadow cursor-pointer min-h-[380px] flex flex-col" onClick={() => setShowDetail(true)}>
         <CardHeader className="pb-3">
           <div className="flex items-start gap-3">
             <Avatar className="h-12 w-12">
@@ -261,7 +264,7 @@ export function CandidateSearchCard({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-3 flex-1 flex flex-col">
           <div className="flex gap-2 flex-wrap">
             <SourceBadge />
             {isInternal && candidate.current_grade && (
@@ -335,8 +338,8 @@ export function CandidateSearchCard({
             </Badge>
           )}
 
-          {allSkills.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-2 border-t">
+          <div className="h-[72px] overflow-hidden border-t pt-2 mt-auto">
+            <div className="flex flex-wrap gap-1">
               {allSkills.map((skill: string, idx: number) =>
                 isInternal ? (
                   <AssessedSkillBadge
@@ -350,6 +353,11 @@ export function CandidateSearchCard({
                   </Badge>
                 )
               )}
+            </div>
+          </div>
+          {totalSkillCount > 0 && (
+            <div className="text-xs text-muted-foreground">
+              {totalSkillCount} skill{totalSkillCount !== 1 ? 's' : ''} total
             </div>
           )}
         </CardContent>
