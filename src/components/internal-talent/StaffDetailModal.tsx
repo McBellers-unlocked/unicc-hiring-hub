@@ -4,11 +4,15 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { 
   Building2, MapPin, Mail, Calendar, Briefcase, 
   User, Award, Clock, Users 
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { AssessedSkillBadge } from "./AssessedSkillBadge";
 
 interface StaffDetailModalProps {
   staff: any;
@@ -17,6 +21,41 @@ interface StaffDetailModalProps {
 }
 
 export function StaffDetailModal({ staff, open, onClose }: StaffDetailModalProps) {
+  // Fetch skill assessments for this staff member
+  const { data: skillAssessments } = useQuery({
+    queryKey: ['staff-skill-assessments', staff?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('skill_assessments')
+        .select(`
+          self_assessment,
+          manager_assessment,
+          required_level,
+          status,
+          skill_definitions (name)
+        `)
+        .eq('user_id', staff.id)
+        .eq('status', 'approved');
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!staff?.id && open
+  });
+
+  // Create a map of skill name -> assessment data
+  const skillAssessmentMap = new Map(
+    (skillAssessments || []).map((a: any) => [
+      a.skill_definitions?.name?.toLowerCase(),
+      {
+        selfAssessment: a.self_assessment,
+        managerAssessment: a.manager_assessment,
+        requiredLevel: a.required_level,
+        status: a.status
+      }
+    ])
+  );
+
   if (!staff) return null;
 
   const initials = staff.name
@@ -143,23 +182,33 @@ export function StaffDetailModal({ staff, open, onClose }: StaffDetailModalProps
               </CardHeader>
               <CardContent>
                 {skills.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {skills.map((skill: string, i: number) => (
-                      <Badge key={i} variant="secondary" className="text-sm">
-                        {skill}
-                      </Badge>
-                    ))}
-                  </div>
+                  <TooltipProvider>
+                    <div className="flex flex-wrap gap-2">
+                      {skills.map((skill: string, i: number) => {
+                        const assessment = skillAssessmentMap.get(skill.toLowerCase());
+                        return (
+                          <AssessedSkillBadge 
+                            key={i}
+                            skillName={skill}
+                            assessment={assessment}
+                          />
+                        );
+                      })}
+                    </div>
+                  </TooltipProvider>
                 ) : (
                   <p className="text-muted-foreground text-sm">No skills recorded yet.</p>
                 )}
               </CardContent>
             </Card>
 
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                <strong>Coming soon:</strong> Skills self-assessment with proficiency levels and manager validation.
-              </p>
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg text-sm text-muted-foreground space-y-1">
+              <p><span className="inline-block w-3 h-3 rounded-full bg-purple-100 border border-purple-200 mr-2" />Purple: Excellence (+2 above)</p>
+              <p><span className="inline-block w-3 h-3 rounded-full bg-blue-100 border border-blue-200 mr-2" />Blue: Exceeding (+1)</p>
+              <p><span className="inline-block w-3 h-3 rounded-full bg-emerald-100 border border-emerald-200 mr-2" />Green: Meeting requirement</p>
+              <p><span className="inline-block w-3 h-3 rounded-full bg-amber-100 border border-amber-200 mr-2" />Yellow: Minor gap (-1)</p>
+              <p><span className="inline-block w-3 h-3 rounded-full bg-red-100 border border-red-200 mr-2" />Red: Gap (-2 or more)</p>
+              <p><span className="inline-block w-3 h-3 rounded-full bg-muted border mr-2" />Grey: Not assessed</p>
             </div>
           </TabsContent>
 
