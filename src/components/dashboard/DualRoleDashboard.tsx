@@ -88,7 +88,7 @@ const DualRoleDashboard = () => {
               Track your applications, manage your profile, and explore opportunities
             </p>
           </div>
-          <CandidateDashboard />
+          <CandidateDashboard hideWelcomeHeader />
         </TabsContent>
       </Tabs>
     </div>

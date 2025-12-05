@@ -43,7 +43,11 @@ interface CandidateProfile {
   preferred_locations?: string[];
 }
 
-export default function CandidateDashboard() {
+interface CandidateDashboardProps {
+  hideWelcomeHeader?: boolean;
+}
+
+export default function CandidateDashboard({ hideWelcomeHeader = false }: CandidateDashboardProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -371,12 +375,14 @@ export default function CandidateDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Compact Welcome Header */}
-      <WelcomeHeader 
-        profile={profile}
-        activeApplicationsCount={activeApplicationsCount}
-        upcomingInterviewsCount={upcomingInterviews.length}
-      />
+      {/* Compact Welcome Header - only show if not embedded */}
+      {!hideWelcomeHeader && (
+        <WelcomeHeader 
+          profile={profile}
+          activeApplicationsCount={activeApplicationsCount}
+          upcomingInterviewsCount={upcomingInterviews.length}
+        />
+      )}
 
       {/* Priority Section: Tasks & Interviews */}
       {(outstandingTasks.length > 0 || upcomingInterviews.length > 0) && (
