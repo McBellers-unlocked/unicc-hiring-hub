@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import InternalTalentPool from "./pages/InternalTalentPool";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -116,6 +117,7 @@ const App = () => (
             <Route path="/admin/import-users" element={<ImportUsers />} />
             <Route path="/admin/import-skills" element={<ImportSkills />} />
             <Route path="/admin/import-staff-data" element={<ImportStaffData />} />
+            <Route path="/admin/internal-talent-pool" element={<InternalTalentPool />} />
             <Route path="/import-users" element={<ImportUsers />} />
             <Route path="/chief-of-division" element={<ChiefOfDivisionView />} />
             <Route path="/director-view" element={<DirectorView />} />
