@@ -4,7 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Layout } from "@/components/Layout";
 import MySkillsAssessment from "@/components/skills-analysis/MySkillsAssessment";
 import TeamSkillsTable from "@/components/skills-analysis/TeamSkillsTable";
-import { BarChart3, Users, User, Settings } from "lucide-react";
+import TeamSkillsAnalytics from "@/components/skills-analysis/TeamSkillsAnalytics";
+import { BarChart3, Users, User } from "lucide-react";
 
 export default function SkillsAnalysis() {
   const { userRoles } = useAuth();
@@ -56,11 +57,7 @@ export default function SkillsAnalysis() {
 
           {isManager && (
             <TabsContent value="analytics">
-              <div className="text-center py-12 text-muted-foreground">
-                <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Analytics dashboard coming soon</p>
-                <p className="text-sm mt-2">View skill gaps, trends, and training recommendations</p>
-              </div>
+              <TeamSkillsAnalytics />
             </TabsContent>
           )}
         </Tabs>
