@@ -3,6 +3,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { GapIcon, AccessibleLegend, getGapAriaLabel, ACCESSIBLE_COLORS } from "@/lib/accessibilityPatterns";
+import { ChevronDown } from "lucide-react";
 
 interface TeamMember {
   id: string;
@@ -48,6 +49,19 @@ const categoryColors: Record<string, string> = {
 
 export default function SkillHeatmap({ teamMembers, skills, assessments }: Props) {
   const [hoveredCell, setHoveredCell] = useState<{ memberId: string; skillId: string } | null>(null);
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+
+  const toggleCategory = (category: string) => {
+    setCollapsedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+      return next;
+    });
+  };
   
   // Refs for synchronized scrolling
   const containerRef = useRef<HTMLDivElement>(null);
@@ -345,22 +359,23 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
                   <React.Fragment key={category}>
                     {/* Category section header - spans full width */}
                     <div 
-                      className="sticky left-0 z-10 bg-muted/50 py-2 px-3 border-b border-t border-border/50 flex items-center gap-2"
+                      className="bg-muted/50 py-2 px-3 border-b border-t border-border/50 flex items-center justify-center gap-2 cursor-pointer hover:bg-muted/70 transition-colors"
+                      style={{ gridColumn: `1 / -1` }}
+                      onClick={() => toggleCategory(category)}
                     >
+                      <ChevronDown className={cn(
+                        "h-4 w-4 transition-transform",
+                        collapsedCategories.has(category) && "-rotate-90"
+                      )} />
                       <div className={cn("w-3 h-3 rounded-full flex-shrink-0", categoryColors[category])} />
                       <span className="font-semibold text-sm">{category}</span>
                       <span className="text-xs text-muted-foreground">
                         ({categorySkills.length} skills)
                       </span>
                     </div>
-                    {/* Empty cells for the header row to fill the grid */}
-                    {displayMembers.map(member => (
-                      <div key={`header-${category}-${member.id}`} className="bg-muted/50 border-b border-t border-border/50" />
-                    ))}
-                    <div className="bg-muted/50 border-b border-t border-border/50" />
                     
                     {/* Skills in this category */}
-                    {categorySkills.map((skill) => (
+                    {!collapsedCategories.has(category) && categorySkills.map((skill) => (
                       <React.Fragment key={skill.id}>
                         {/* Skill name cell */}
                         <div className={cn(
