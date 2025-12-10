@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { User, BookOpen, TrendingUp, AlertTriangle, ArrowDown, Circle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { User, BookOpen, TrendingUp, AlertTriangle, ArrowDown, Circle, ChevronDown, ChevronUp } from "lucide-react";
 
 interface SkillGap {
   skillName: string;
@@ -40,6 +42,8 @@ interface Props {
 }
 
 export default function TrainingRecommendations({ gapsBySkill, teamMembers, assessments, skills }: Props) {
+  const [showAll, setShowAll] = useState(false);
+
   if (gapsBySkill.length === 0) {
     return (
       <div className="text-center py-8">
@@ -52,8 +56,9 @@ export default function TrainingRecommendations({ gapsBySkill, teamMembers, asse
     );
   }
 
-  // Get recommendations based on top gaps
-  const recommendations = gapsBySkill.slice(0, 4).map(gap => {
+  // Get recommendations based on gaps (show all or first 4)
+  const displayedGaps = showAll ? gapsBySkill : gapsBySkill.slice(0, 4);
+  const recommendations = displayedGaps.map(gap => {
     // Find team members with this gap
     const membersWithGap = assessments
       .filter(a => {
@@ -188,9 +193,24 @@ export default function TrainingRecommendations({ gapsBySkill, teamMembers, asse
       ))}
 
       {gapsBySkill.length > 4 && (
-        <p className="text-xs text-center text-muted-foreground pt-2">
-          +{gapsBySkill.length - 4} more skill gaps identified
-        </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowAll(!showAll)}
+          className="w-full text-xs text-muted-foreground hover:text-foreground"
+        >
+          {showAll ? (
+            <>
+              <ChevronUp className="h-4 w-4 mr-1" />
+              Show less
+            </>
+          ) : (
+            <>
+              <ChevronDown className="h-4 w-4 mr-1" />
+              +{gapsBySkill.length - 4} more skill gaps identified
+            </>
+          )}
+        </Button>
       )}
     </div>
   );
