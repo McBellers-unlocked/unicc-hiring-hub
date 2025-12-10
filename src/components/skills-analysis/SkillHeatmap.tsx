@@ -1,9 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { GapIcon, AccessibleLegend, getGapAriaLabel, ACCESSIBLE_COLORS } from "@/lib/accessibilityPatterns";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface TeamMember {
   id: string;
@@ -46,6 +45,51 @@ const categoryColors: Record<string, string> = {
 
 export default function SkillHeatmap({ teamMembers, skills, assessments }: Props) {
   const [hoveredCell, setHoveredCell] = useState<{ memberId: string; skillId: string } | null>(null);
+  
+  // Refs for synchronized scrolling
+  const contentRef = useRef<HTMLDivElement>(null);
+  const hScrollRef = useRef<HTMLDivElement>(null);
+  const [contentWidth, setContentWidth] = useState(0);
+  const isScrollingSyncRef = useRef(false);
+
+  // Calculate content width for horizontal scrollbar
+  useEffect(() => {
+    if (contentRef.current) {
+      const updateWidth = () => {
+        if (contentRef.current) {
+          setContentWidth(contentRef.current.scrollWidth);
+        }
+      };
+      updateWidth();
+      const observer = new ResizeObserver(updateWidth);
+      observer.observe(contentRef.current);
+      return () => observer.disconnect();
+    }
+  }, [teamMembers, skills]);
+
+  // Sync horizontal scroll: external scrollbar -> content
+  const handleExternalScroll = useCallback(() => {
+    if (isScrollingSyncRef.current) return;
+    if (hScrollRef.current && contentRef.current) {
+      isScrollingSyncRef.current = true;
+      contentRef.current.scrollLeft = hScrollRef.current.scrollLeft;
+      requestAnimationFrame(() => {
+        isScrollingSyncRef.current = false;
+      });
+    }
+  }, []);
+
+  // Sync horizontal scroll: content -> external scrollbar
+  const handleContentScroll = useCallback(() => {
+    if (isScrollingSyncRef.current) return;
+    if (contentRef.current && hScrollRef.current) {
+      isScrollingSyncRef.current = true;
+      hScrollRef.current.scrollLeft = contentRef.current.scrollLeft;
+      requestAnimationFrame(() => {
+        isScrollingSyncRef.current = false;
+      });
+    }
+  }, []);
 
   // Group skills by category and sort by variance (most meaningful first)
   const skillsByCategory = useMemo(() => {
@@ -244,10 +288,16 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
           <AccessibleLegend />
         </div>
 
-        <ScrollArea className="h-[600px] w-full rounded-lg border border-border/30">
+        {/* Vertical scroll container with hidden horizontal scroll */}
+        <div 
+          ref={contentRef}
+          onScroll={handleContentScroll}
+          className="h-[600px] w-full rounded-lg border border-border/30 overflow-y-auto overflow-x-auto scrollbar-thin"
+          style={{ scrollbarWidth: 'thin' }}
+        >
           <div className="min-w-fit p-2">
             {/* Header row with avatar badges - sticky */}
-            <div 
+            <div
               className="grid items-end pb-3 mb-3 border-b border-border/50 gap-2 sticky top-0 bg-background/95 backdrop-blur-sm z-20 pt-2"
               style={{ gridTemplateColumns }}
             >
@@ -514,9 +564,17 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
               <div className="h-9" /> {/* Empty cell for team avg column */}
             </div>
           </div>
-          <ScrollBar orientation="horizontal" />
-          <ScrollBar orientation="vertical" />
-        </ScrollArea>
+        </div>
+
+        {/* Always-visible horizontal scrollbar */}
+        <div 
+          ref={hScrollRef}
+          onScroll={handleExternalScroll}
+          className="overflow-x-auto overflow-y-hidden border border-border/30 rounded-lg mt-2"
+          style={{ scrollbarWidth: 'auto' }}
+        >
+          <div style={{ width: contentWidth, height: '12px' }} />
+        </div>
       </div>
     </TooltipProvider>
   );
