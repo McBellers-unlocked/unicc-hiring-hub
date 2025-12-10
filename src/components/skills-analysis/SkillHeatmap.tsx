@@ -289,18 +289,20 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
           <AccessibleLegend />
         </div>
 
-        {/* Scroll container - vertical scrolling with sticky horizontal scrollbar */}
-        <div 
-          ref={containerRef}
-          className="h-[600px] w-full rounded-lg border border-border/30 overflow-y-auto overflow-x-hidden relative"
-        >
-          {/* Inner horizontally scrollable content - scrollbar hidden, controlled by sticky scrollbar */}
+        {/* Outer container with flex layout - scrollbar is OUTSIDE scroll area */}
+        <div className="h-[600px] w-full rounded-lg border border-border/30 flex flex-col">
+          {/* Scrollable content area - takes remaining space */}
           <div 
-            ref={innerContentRef}
-            onScroll={handleInnerContentScroll}
-            className="min-w-fit p-2 overflow-x-auto [&::-webkit-scrollbar]:hidden"
-            style={{ minHeight: 'calc(100% - 24px)', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            ref={containerRef}
+            className="flex-1 overflow-y-auto overflow-x-hidden min-h-0"
           >
+            {/* Inner horizontally scrollable content - scrollbar hidden, controlled by external scrollbar */}
+            <div 
+              ref={innerContentRef}
+              onScroll={handleInnerContentScroll}
+              className="min-w-fit p-2 overflow-x-auto [&::-webkit-scrollbar]:hidden"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
             {/* Header row with avatar badges - sticky */}
             <div
               className="grid items-end pb-3 mb-3 border-b border-border/50 gap-2 sticky top-0 bg-background/95 backdrop-blur-sm z-20 pt-2"
@@ -568,13 +570,14 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
               })}
               <div className="h-9" /> {/* Empty cell for team avg column */}
             </div>
+            </div>
           </div>
           
-          {/* Sticky horizontal scrollbar - always visible at bottom */}
+          {/* Always-visible horizontal scrollbar - OUTSIDE scroll area */}
           <div 
             ref={hScrollRef}
             onScroll={handleExternalScroll}
-            className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border/30 z-30 overflow-x-auto"
+            className="flex-shrink-0 bg-background border-t border-border/30 overflow-x-auto"
             style={{ scrollbarWidth: 'auto' }}
           >
             <div style={{ width: contentWidth, height: '16px' }} />
