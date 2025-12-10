@@ -378,10 +378,24 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div className={cn(
-                                "w-10 h-10 rounded-md flex items-center justify-center cursor-pointer shadow-sm relative",
+                                "w-16 h-12 rounded-md flex flex-col items-center justify-center cursor-pointer shadow-sm relative px-1 py-0.5",
                                 styles.bg, styles.gradient, styles.glow, styles.text, styles.patternClass
                               )}>
-                                {gap !== null && <GapIcon gap={gap} className="h-4 w-4 relative z-10" />}
+                                {gap !== null ? (
+                                  <>
+                                    <div className="flex items-center gap-0.5 relative z-10">
+                                      <span className="text-sm font-bold">
+                                        {gap > 0 ? `+${gap}` : gap}
+                                      </span>
+                                      <GapIcon gap={gap} className="h-3 w-3" />
+                                    </div>
+                                    <span className="text-[9px] leading-tight relative z-10 text-center">
+                                      {getGapLabel(gap)}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-xs relative z-10">—</span>
+                                )}
                               </div>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs">
