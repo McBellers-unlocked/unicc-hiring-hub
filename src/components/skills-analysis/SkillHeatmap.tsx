@@ -207,6 +207,9 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
   const hoveredMemberId = hoveredCell?.memberId;
   const hoveredSkillId = hoveredCell?.skillId;
 
+  // Calculate grid template columns: skill name + members + team avg
+  const gridTemplateColumns = `180px repeat(${displayMembers.length}, 68px) 68px`;
+
   return (
     <TooltipProvider delayDuration={100}>
       <div className="space-y-4">
@@ -217,10 +220,13 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
         </div>
 
         <div className="overflow-auto max-h-[600px] p-2">
-          <div className="min-w-[700px]">
+          <div className="min-w-fit">
             {/* Header row with avatar badges */}
-            <div className="flex items-end pb-3 mb-2 border-b border-border/50">
-              <div className="w-40 shrink-0" />
+            <div 
+              className="grid items-end pb-3 mb-3 border-b border-border/50 gap-2"
+              style={{ gridTemplateColumns }}
+            >
+              <div /> {/* Empty cell for skill name column */}
               {displayMembers.map((member, idx) => {
                 const health = memberHealthScores[member.id];
                 const ringColor = getHealthRingColor(health?.avgGap ?? 0);
@@ -228,11 +234,11 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
                   <Tooltip key={member.id}>
                     <TooltipTrigger asChild>
                       <div 
-                        className="w-16 shrink-0 flex flex-col items-center gap-1 cursor-pointer"
+                        className="flex flex-col items-center gap-1 cursor-pointer"
                         style={{ animationDelay: `${idx * 50}ms` }}
                       >
                         <Avatar className={cn(
-                          "h-10 w-10 ring-2 ring-offset-2 ring-offset-background transition-all duration-200",
+                          "h-9 w-9 ring-2 ring-offset-2 ring-offset-background transition-all duration-200",
                           ringColor,
                           hoveredMemberId === member.id && "scale-110 shadow-lg"
                         )}>
@@ -241,7 +247,7 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
                           </AvatarFallback>
                         </Avatar>
                         <span className={cn(
-                          "text-[10px] text-muted-foreground font-medium transition-colors",
+                          "text-[10px] text-muted-foreground font-medium transition-colors text-center leading-tight",
                           hoveredMemberId === member.id && "text-foreground"
                         )}>
                           {health?.count ?? 0} skills
@@ -268,8 +274,8 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
                 );
               })}
               {/* Team Avg header */}
-              <div className="w-16 shrink-0 flex flex-col items-center">
-                <div className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center">
+              <div className="flex flex-col items-center">
+                <div className="h-9 w-9 rounded-full bg-muted/50 flex items-center justify-center">
                   <span className="text-[10px] font-bold text-muted-foreground">AVG</span>
                 </div>
                 <span className="text-[10px] text-muted-foreground font-medium mt-1">Team</span>
@@ -277,11 +283,11 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
             </div>
 
             {/* Skills rows grouped by category */}
-            <div className="space-y-4">
+            <div className="space-y-6">
               {Object.entries(skillsByCategory).map(([category, categorySkills], catIdx) => (
                 <div key={category} className="animate-fade-in" style={{ animationDelay: `${catIdx * 100}ms` }}>
                   {/* Category header */}
-                  <div className="flex items-center mb-2 gap-2">
+                  <div className="flex items-center mb-3 gap-2">
                     <div className={cn(
                       "w-1.5 h-4 rounded-full",
                       categoryColors[category] || categoryColors['General']
@@ -293,168 +299,176 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
                   </div>
 
                   {/* Skills in category */}
-                  {categorySkills.slice(0, 8).map((skill, skillIdx) => {
-                    const skillAvg = skillAverages[skill.id];
-                    const isRowHovered = hoveredSkillId === skill.id;
-                    
-                    return (
-                      <div 
-                        key={skill.id} 
-                        className={cn(
-                          "flex items-center mb-1.5 py-1 px-1 rounded-lg transition-colors duration-150",
-                          isRowHovered && "bg-muted/30"
-                        )}
-                        style={{ animationDelay: `${(catIdx * 100) + (skillIdx * 30)}ms` }}
-                      >
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="w-40 shrink-0 pr-3 text-right">
-                              <span className={cn(
-                                "text-xs font-medium transition-colors",
-                                isRowHovered ? "text-foreground" : "text-muted-foreground"
-                              )}>
-                                {formatSkillName(skill.name)}
-                              </span>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent side="left">
-                            <p className="font-medium">{skill.name}</p>
-                            <p className="text-xs text-muted-foreground">{category}</p>
-                          </TooltipContent>
-                        </Tooltip>
+                  <div className="space-y-2">
+                    {categorySkills.slice(0, 8).map((skill, skillIdx) => {
+                      const skillAvg = skillAverages[skill.id];
+                      const isRowHovered = hoveredSkillId === skill.id;
+                      
+                      return (
+                        <div 
+                          key={skill.id} 
+                          className={cn(
+                            "grid items-center gap-2 py-1 px-1 rounded-lg transition-colors duration-150",
+                            isRowHovered && "bg-muted/30"
+                          )}
+                          style={{ 
+                            gridTemplateColumns,
+                            animationDelay: `${(catIdx * 100) + (skillIdx * 30)}ms` 
+                          }}
+                        >
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="pr-2 text-right">
+                                <span className={cn(
+                                  "text-xs font-medium transition-colors",
+                                  isRowHovered ? "text-foreground" : "text-muted-foreground"
+                                )}>
+                                  {formatSkillName(skill.name)}
+                                </span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="left">
+                              <p className="font-medium">{skill.name}</p>
+                              <p className="text-xs text-muted-foreground">{category}</p>
+                            </TooltipContent>
+                          </Tooltip>
 
-                        {/* Cells for each team member */}
-                        {displayMembers.map((member, memberIdx) => {
-                          const assessment = getAssessment(member.id, skill.id);
-                          const level = assessment?.manager_assessment ?? assessment?.self_assessment ?? null;
-                          const required = assessment?.required_level ?? null;
-                          const gap = level !== null && required !== null ? level - required : null;
-                          const isCritical = gap !== null && gap <= -2;
-                          const styles = getGapStyles(gap, isCritical);
-                          const isHovered = hoveredCell?.memberId === member.id && hoveredCell?.skillId === skill.id;
-                          const isInCrosshair = hoveredMemberId === member.id || hoveredSkillId === skill.id;
-                          const ariaLabel = getGapAriaLabel(gap);
+                          {/* Cells for each team member */}
+                          {displayMembers.map((member, memberIdx) => {
+                            const assessment = getAssessment(member.id, skill.id);
+                            const level = assessment?.manager_assessment ?? assessment?.self_assessment ?? null;
+                            const required = assessment?.required_level ?? null;
+                            const gap = level !== null && required !== null ? level - required : null;
+                            const isCritical = gap !== null && gap <= -2;
+                            const styles = getGapStyles(gap, isCritical);
+                            const isHovered = hoveredCell?.memberId === member.id && hoveredCell?.skillId === skill.id;
+                            const isInCrosshair = hoveredMemberId === member.id || hoveredSkillId === skill.id;
+                            const ariaLabel = getGapAriaLabel(gap);
 
-                          return (
-                            <Tooltip key={`${member.id}-${skill.id}`}>
-                              <TooltipTrigger asChild>
-                                <div
-                                  className={cn(
-                                    "w-16 h-10 shrink-0 mx-0.5 rounded-lg cursor-pointer transition-all duration-200 relative overflow-hidden",
-                                    styles.bg,
-                                    styles.gradient,
-                                    "hover:scale-105 hover:shadow-lg",
-                                    isHovered && "ring-2 ring-primary ring-offset-2 ring-offset-background scale-110 shadow-xl z-10",
-                                    isInCrosshair && !isHovered && "opacity-90",
-                                    !isInCrosshair && hoveredCell && "opacity-50",
-                                    gap === null && "border-2 border-dashed border-muted-foreground/20",
-                                    isCritical && "animate-pulse"
-                                  )}
-                                  style={{ 
-                                    animationDelay: `${(memberIdx * 30) + (skillIdx * 20)}ms`,
-                                    boxShadow: isHovered ? `0 0 20px ${styles.glow}` : undefined
-                                  }}
-                                  onMouseEnter={() => setHoveredCell({ memberId: member.id, skillId: skill.id })}
-                                  onMouseLeave={() => setHoveredCell(null)}
-                                  role="gridcell"
-                                  aria-label={`${member.name}, ${skill.name}: ${ariaLabel}`}
-                                >
-                                  {/* Pattern overlay for gaps - accessibility enhancement */}
-                                  {gap !== null && gap < 0 && (
-                                    <div 
-                                      className="absolute inset-0 pointer-events-none"
-                                      style={{
-                                        backgroundImage: gap === -1 
-                                          ? 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.15) 4px, rgba(0,0,0,0.15) 8px)'
-                                          : 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(0,0,0,0.25) 3px, rgba(0,0,0,0.25) 6px)',
-                                      }}
-                                      aria-hidden="true"
-                                    />
-                                  )}
-                                  
-                                  {level !== null ? (
-                                    <div className="flex flex-col items-center justify-center h-full relative z-10">
-                                      {/* Icon indicator for accessibility */}
-                                      <div className="absolute top-0.5 right-0.5">
-                                        <GapIcon gap={gap} size="sm" className={cn(styles.text, "opacity-80")} />
-                                      </div>
-                                      <span className={cn("text-sm font-bold drop-shadow-md", styles.text)}>
-                                        {level}
-                                      </span>
-                                      <span className={cn("text-[9px] opacity-80", styles.text)}>
-                                        /{required ?? '?'}
-                                      </span>
-                                      {/* Gap value label */}
-                                      {gap !== null && (
-                                        <span className={cn("text-[8px] font-medium opacity-70", styles.text)}>
-                                          {gap >= 0 ? '+' : ''}{gap}
+                            return (
+                              <Tooltip key={`${member.id}-${skill.id}`}>
+                                <TooltipTrigger asChild>
+                                  <div
+                                    className={cn(
+                                      "h-11 rounded-xl cursor-pointer transition-all duration-200 relative overflow-hidden",
+                                      styles.bg,
+                                      styles.gradient,
+                                      "hover:scale-105 hover:shadow-lg",
+                                      isHovered && "ring-2 ring-primary ring-offset-2 ring-offset-background scale-110 shadow-xl z-10",
+                                      isInCrosshair && !isHovered && "opacity-90",
+                                      !isInCrosshair && hoveredCell && "opacity-50",
+                                      gap === null && "border-2 border-dashed border-muted-foreground/20",
+                                      isCritical && "animate-pulse"
+                                    )}
+                                    style={{ 
+                                      animationDelay: `${(memberIdx * 30) + (skillIdx * 20)}ms`,
+                                      boxShadow: isHovered ? `0 0 20px ${styles.glow}` : undefined
+                                    }}
+                                    onMouseEnter={() => setHoveredCell({ memberId: member.id, skillId: skill.id })}
+                                    onMouseLeave={() => setHoveredCell(null)}
+                                    role="gridcell"
+                                    aria-label={`${member.name}, ${skill.name}: ${ariaLabel}`}
+                                  >
+                                    {/* Pattern overlay for gaps - accessibility enhancement */}
+                                    {gap !== null && gap < 0 && (
+                                      <div 
+                                        className="absolute inset-0 pointer-events-none"
+                                        style={{
+                                          backgroundImage: gap === -1 
+                                            ? 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.15) 4px, rgba(0,0,0,0.15) 8px)'
+                                            : 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(0,0,0,0.25) 3px, rgba(0,0,0,0.25) 6px)',
+                                        }}
+                                        aria-hidden="true"
+                                      />
+                                    )}
+                                    
+                                    {level !== null ? (
+                                      <div className="flex flex-col items-center justify-center h-full relative z-10">
+                                        {/* Icon indicator for accessibility */}
+                                        <div className="absolute top-0.5 right-0.5">
+                                          <GapIcon gap={gap} size="sm" className={cn(styles.text, "opacity-80")} />
+                                        </div>
+                                        <span className={cn("text-sm font-bold drop-shadow-md", styles.text)}>
+                                          {level}
                                         </span>
-                                      )}
+                                        <span className={cn("text-[9px] opacity-80", styles.text)}>
+                                          /{required ?? '?'}
+                                        </span>
+                                        {/* Gap value label */}
+                                        {gap !== null && (
+                                          <span className={cn("text-[8px] font-medium opacity-70", styles.text)}>
+                                            {gap >= 0 ? '+' : ''}{gap}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center justify-center h-full">
+                                        <GapIcon gap={null} size="md" />
+                                      </div>
+                                    )}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="p-3 backdrop-blur-sm">
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                      <Avatar className="h-6 w-6">
+                                        <AvatarFallback className="text-[10px] bg-primary/20">
+                                          {getInitials(member.name)}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <div>
+                                        <p className="font-semibold text-sm">{member.name}</p>
+                                        <p className="text-[10px] text-muted-foreground">{skill.name}</p>
+                                      </div>
                                     </div>
-                                  ) : (
-                                    <div className="flex items-center justify-center h-full">
-                                      <GapIcon gap={null} size="md" />
+                                    <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-border/50">
+                                      <div>
+                                        <span className="text-muted-foreground">Level:</span>
+                                        <span className="ml-1 font-medium">{level ?? 'N/A'}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-muted-foreground">Required:</span>
+                                        <span className="ml-1 font-medium">{required ?? 'N/A'}</span>
+                                      </div>
                                     </div>
-                                  )}
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent className="p-3 backdrop-blur-sm">
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-2">
-                                    <Avatar className="h-6 w-6">
-                                      <AvatarFallback className="text-[10px] bg-primary/20">
-                                        {getInitials(member.name)}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                      <p className="font-semibold text-sm">{member.name}</p>
-                                      <p className="text-[10px] text-muted-foreground">{skill.name}</p>
+                                    <div className={cn(
+                                      "flex items-center justify-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full",
+                                      gap !== null && gap >= 0 
+                                        ? "bg-teal-500/20 text-teal-600 dark:text-teal-400" 
+                                        : "bg-red-500/20 text-red-600 dark:text-red-400"
+                                    )}>
+                                      <GapIcon gap={gap} size="sm" />
+                                      {getGapLabel(gap)} {gap !== null && `(${gap >= 0 ? '+' : ''}${gap})`}
                                     </div>
                                   </div>
-                                  <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-border/50">
-                                    <div>
-                                      <span className="text-muted-foreground">Level:</span>
-                                      <span className="ml-1 font-medium">{level ?? 'N/A'}</span>
-                                    </div>
-                                    <div>
-                                      <span className="text-muted-foreground">Required:</span>
-                                      <span className="ml-1 font-medium">{required ?? 'N/A'}</span>
-                                    </div>
-                                  </div>
-                                  <div className={cn(
-                                    "flex items-center justify-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full",
-                                    gap !== null && gap >= 0 
-                                      ? "bg-teal-500/20 text-teal-600 dark:text-teal-400" 
-                                      : "bg-red-500/20 text-red-600 dark:text-red-400"
-                                  )}>
-                                    <GapIcon gap={gap} size="sm" />
-                                    {getGapLabel(gap)} {gap !== null && `(${gap >= 0 ? '+' : ''}${gap})`}
-                                  </div>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          );
-                        })}
+                                </TooltipContent>
+                              </Tooltip>
+                            );
+                          })}
 
-                        {/* Team Average cell */}
-                        <div className="w-16 h-10 shrink-0 mx-0.5 rounded-lg bg-muted/30 flex flex-col items-center justify-center">
-                          <span className={cn("text-sm font-bold", getAvgGapColor(skillAvg?.avgGap ?? 0))}>
-                            {skillAvg?.avgLevel.toFixed(1) ?? '—'}
-                          </span>
-                          <span className="text-[9px] text-muted-foreground">
-                            avg
-                          </span>
+                          {/* Team Average cell */}
+                          <div className="h-11 rounded-xl bg-muted/30 flex flex-col items-center justify-center">
+                            <span className={cn("text-sm font-bold", getAvgGapColor(skillAvg?.avgGap ?? 0))}>
+                              {skillAvg?.avgLevel.toFixed(1) ?? '—'}
+                            </span>
+                            <span className="text-[9px] text-muted-foreground">
+                              avg
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
             </div>
 
             {/* Health Score row */}
-            <div className="flex items-center mt-4 pt-3 border-t border-border/50">
-              <div className="w-40 shrink-0 pr-3 text-right">
+            <div 
+              className="grid items-center mt-4 pt-3 border-t border-border/50 gap-2"
+              style={{ gridTemplateColumns }}
+            >
+              <div className="pr-2 text-right">
                 <span className="text-xs font-semibold text-muted-foreground">Health Score</span>
               </div>
               {displayMembers.map(member => {
@@ -463,7 +477,7 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
                 return (
                   <div 
                     key={member.id}
-                    className="w-16 h-8 shrink-0 mx-0.5 rounded-lg bg-muted/20 flex items-center justify-center"
+                    className="h-9 rounded-xl bg-muted/20 flex items-center justify-center"
                   >
                     <span className={cn("text-xs font-bold", getAvgGapColor(avgGap))}>
                       {avgGap >= 0 ? '+' : ''}{avgGap.toFixed(1)}
@@ -471,7 +485,7 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
                   </div>
                 );
               })}
-              <div className="w-16 h-8 shrink-0 mx-0.5" />
+              <div className="h-9" /> {/* Empty cell for team avg column */}
             </div>
           </div>
         </div>
