@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect, useCallback } from "react";
+import React, { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -45,6 +45,8 @@ const categoryColors: Record<string, string> = {
 
 export default function SkillHeatmap({ teamMembers, skills, assessments }: Props) {
   const [hoveredCell, setHoveredCell] = useState<{ memberId: string; skillId: string } | null>(null);
+  const [isMatrixVisible, setIsMatrixVisible] = useState(true);
+  const [scrollbarStyle, setScrollbarStyle] = useState<React.CSSProperties>({});
   
   // Refs for synchronized scrolling
   const containerRef = useRef<HTMLDivElement>(null);
@@ -67,6 +69,36 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
       return () => observer.disconnect();
     }
   }, [teamMembers, skills]);
+
+  // Update scrollbar position based on container visibility
+  useEffect(() => {
+    const updateScrollbarPosition = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+        setIsMatrixVisible(isVisible);
+        
+        if (isVisible) {
+          setScrollbarStyle({
+            position: 'fixed' as const,
+            left: rect.left,
+            width: rect.width,
+            bottom: 0,
+            zIndex: 50
+          });
+        }
+      }
+    };
+    
+    updateScrollbarPosition();
+    window.addEventListener('scroll', updateScrollbarPosition, { passive: true });
+    window.addEventListener('resize', updateScrollbarPosition, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', updateScrollbarPosition);
+      window.removeEventListener('resize', updateScrollbarPosition);
+    };
+  }, []);
 
   // Sync horizontal scroll: sticky scrollbar -> inner content
   const handleExternalScroll = useCallback(() => {
@@ -281,41 +313,149 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
   const gridTemplateColumns = `180px repeat(${displayMembers.length}, 68px) 68px`;
 
   return (
-    <TooltipProvider delayDuration={100}>
-      <div className="space-y-4">
-        {/* Accessible Legend */}
-        <div className="p-3 bg-muted/30 rounded-lg">
-          <p className="text-xs font-medium text-muted-foreground mb-2">Legend (Icon + Color + Pattern)</p>
-          <AccessibleLegend />
-        </div>
+    <div className="space-y-4">
+      {/* Accessible Legend */}
+      <div className="p-3 bg-muted/30 rounded-lg">
+        <p className="text-xs font-medium text-muted-foreground mb-2">Legend (Icon + Color + Pattern)</p>
+        <AccessibleLegend />
+      </div>
 
-        {/* Matrix container - full height, scrollbar will overlay from outside */}
-        <div 
-          ref={containerRef}
-          className="h-[600px] w-full rounded-lg border border-border/30 overflow-hidden"
-        >
+      {/* Matrix container */}
+      <div 
+        ref={containerRef}
+        className="h-[600px] w-full rounded-lg border border-border/30 overflow-hidden"
+      >
+        <TooltipProvider delayDuration={100}>
           {/* Scrollable content area */}
-          <div className="h-full overflow-y-auto overflow-x-hidden">
-...
+          <div 
+            ref={innerContentRef}
+            className="h-full overflow-y-auto overflow-x-auto"
+            onScroll={handleInnerContentScroll}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns, minWidth: 'max-content' }}>
+              {/* Header row with team member avatars */}
+              <div className="sticky top-0 left-0 z-30 bg-background p-2 border-b border-r border-border/30 font-medium text-sm text-muted-foreground">
+                Skills
+              </div>
+              {displayMembers.map(member => (
+                <div 
+                  key={member.id}
+                  className={cn(
+                    "sticky top-0 z-20 bg-background p-2 border-b border-border/30 flex flex-col items-center justify-center gap-1",
+                    hoveredMemberId === member.id && "bg-muted/50"
+                  )}
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Avatar className={cn("h-8 w-8 ring-2", getHealthRingColor(memberHealthScores[member.id]?.avgGap || 0))}>
+                        <AvatarFallback className="text-xs">{getInitials(member.name)}</AvatarFallback>
+                      </Avatar>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="font-medium">{member.name}</p>
+                      <p className="text-xs text-muted-foreground">{member.job_title}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              ))}
+              <div className="sticky top-0 z-20 bg-muted/30 p-2 border-b border-border/30 flex items-center justify-center text-xs font-medium text-muted-foreground">
+                Avg
+              </div>
+
+              {/* Skill rows by category */}
+              {Object.entries(skillsByCategory).map(([category, categorySkills]) => (
+                categorySkills.map((skill, skillIndex) => (
+                  <React.Fragment key={skill.id}>
+                    {/* Skill name cell */}
+                    <div className={cn(
+                      "sticky left-0 z-10 bg-background p-2 border-b border-r border-border/30 flex items-center gap-2",
+                      skillIndex === 0 && "border-t-2",
+                      hoveredSkillId === skill.id && "bg-muted/50"
+                    )}>
+                      {skillIndex === 0 && (
+                        <div className={cn("w-1 h-full absolute left-0 top-0", categoryColors[category] || categoryColors['General'])} />
+                      )}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-sm truncate cursor-help pl-2">{formatSkillName(skill.name)}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{skill.name}</p>
+                          <p className="text-xs text-muted-foreground">{category}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+
+                    {/* Member cells */}
+                    {displayMembers.map(member => {
+                      const assessment = getAssessment(member.id, skill.id);
+                      const level = assessment?.manager_assessment ?? assessment?.self_assessment ?? null;
+                      const required = assessment?.required_level ?? null;
+                      const gap = (level !== null && required !== null) ? level - required : null;
+                      const styles = getGapStyles(gap, gap !== null && gap <= -2);
+                      const isHovered = hoveredCell?.memberId === member.id && hoveredCell?.skillId === skill.id;
+                      
+                      return (
+                        <div
+                          key={`${member.id}-${skill.id}`}
+                          className={cn(
+                            "p-1 border-b border-border/30 flex items-center justify-center transition-all duration-150",
+                            isHovered && "ring-2 ring-primary ring-inset"
+                          )}
+                          onMouseEnter={() => setHoveredCell({ memberId: member.id, skillId: skill.id })}
+                          onMouseLeave={() => setHoveredCell(null)}
+                          role="gridcell"
+                          aria-label={`${skill.name} for ${member.name}: ${getGapAriaLabel(gap)}`}
+                        >
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className={cn(
+                                "w-10 h-10 rounded-md flex items-center justify-center cursor-pointer shadow-sm",
+                                styles.bg, styles.gradient, styles.glow, styles.text, styles.patternClass
+                              )}>
+                                {gap !== null && <GapIcon gap={gap} className="h-4 w-4" />}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <div className="space-y-1">
+                                <p className="font-medium">{member.name} - {skill.name}</p>
+                                <p className="text-sm">Level: {level ?? 'N/A'} / Required: {required ?? 'N/A'}</p>
+                                <p className={cn("text-sm font-medium", styles.text)}>{getGapLabel(gap)}</p>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      );
+                    })}
+
+                    {/* Team average cell */}
+                    <div className="p-1 border-b border-border/30 bg-muted/20 flex items-center justify-center">
+                      <span className={cn("text-xs font-medium", getAvgGapColor(skillAverages[skill.id]?.avgGap || 0))}>
+                        {skillAverages[skill.id]?.avgGap?.toFixed(1) || '-'}
+                      </span>
+                    </div>
+                  </React.Fragment>
+                ))
+              ))}
             </div>
           </div>
-        </div>
-
-        {/* Fixed-position horizontal scrollbar - overlays at bottom of matrix */}
-        {isMatrixVisible && (
-          <div 
-            ref={hScrollRef}
-            onScroll={handleExternalScroll}
-            className="bg-background border-t border-border/30 overflow-x-auto shadow-lg"
-            style={{
-              ...scrollbarStyle,
-              scrollbarWidth: 'auto'
-            }}
-          >
-            <div style={{ width: contentWidth, height: '16px' }} />
-          </div>
-        )}
+        </TooltipProvider>
       </div>
-    </TooltipProvider>
+
+      {/* Fixed-position horizontal scrollbar */}
+      {isMatrixVisible && (
+        <div 
+          ref={hScrollRef}
+          onScroll={handleExternalScroll}
+          className="bg-background border-t border-border/30 overflow-x-auto shadow-lg"
+          style={{
+            ...scrollbarStyle,
+            scrollbarWidth: 'auto'
+          }}
+        >
+          <div style={{ width: contentWidth, height: '16px' }} />
+        </div>
+      )}
+    </div>
   );
 }
