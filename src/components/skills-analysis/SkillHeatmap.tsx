@@ -385,8 +385,8 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
                                     {level !== null ? (
                                       <div className="flex flex-col items-center justify-center h-full relative z-10">
                                         {/* Icon indicator for accessibility */}
-                                        <div className="absolute top-0.5 right-0.5">
-                                          <GapIcon gap={gap} size="sm" className={cn(styles.text, "opacity-80")} />
+                                        <div className="absolute top-1.5 right-1.5">
+                                          <GapIcon gap={gap} size="sm" className={cn(styles.text, "opacity-90")} />
                                         </div>
                                         {/* Prominent gap value */}
                                         <span className={cn("text-lg font-bold drop-shadow-md leading-none", styles.text)}>

@@ -73,8 +73,8 @@ interface GapIconProps {
 }
 
 const sizeMap = {
-  sm: 'h-2.5 w-2.5',
-  md: 'h-3 w-3',
+  sm: 'h-3 w-3',
+  md: 'h-3.5 w-3.5',
   lg: 'h-4 w-4',
 };
 
@@ -91,7 +91,13 @@ export const GapIcon = ({ gap, className, size = 'md' }: GapIconProps) => {
     return <Check className={cn(sizeClass, className)} aria-label="Exceeding" />;
   }
   if (gap === 0) {
-    return <Circle className={cn(sizeClass, className)} aria-label="Meeting requirements" />;
+    // Filled circle for "meeting" - more visible than outline
+    return (
+      <div 
+        className={cn(sizeClass, "rounded-full bg-current", className)} 
+        aria-label="Meeting requirements"
+      />
+    );
   }
   if (gap === -1) {
     return <ArrowDown className={cn(sizeClass, className)} aria-label="Minor gap" />;
