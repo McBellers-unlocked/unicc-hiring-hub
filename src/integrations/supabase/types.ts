@@ -2168,6 +2168,7 @@ export type Database = {
           manager_assessment: number | null
           remarks: string | null
           required_level: number | null
+          scope: string | null
           self_assessment: number | null
           skill_id: string
           status: string
@@ -2186,6 +2187,7 @@ export type Database = {
           manager_assessment?: number | null
           remarks?: string | null
           required_level?: number | null
+          scope?: string | null
           self_assessment?: number | null
           skill_id: string
           status?: string
@@ -2204,6 +2206,7 @@ export type Database = {
           manager_assessment?: number | null
           remarks?: string | null
           required_level?: number | null
+          scope?: string | null
           self_assessment?: number | null
           skill_id?: string
           status?: string

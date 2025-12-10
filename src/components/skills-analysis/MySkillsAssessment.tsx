@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Plus, Edit2, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Plus, Edit2, Clock, CheckCircle, XCircle, AlertCircle, Users, User } from "lucide-react";
 import SkillAssessmentDialog from "./SkillAssessmentDialog";
 import { SkillGapSummary } from "./SkillGapBar";
 import BatterySkillIndicator from "./BatterySkillIndicator";
@@ -21,6 +21,7 @@ interface Assessment {
   remarks: string | null;
   expiration_date: string | null;
   assessed_at: string | null;
+  scope: 'team' | 'individual';
   skill_definitions: {
     name: string;
     category: string;
@@ -65,6 +66,7 @@ export default function MySkillsAssessment() {
         remarks,
         expiration_date,
         assessed_at,
+        scope,
         skill_definitions (name, category)
       `)
       .eq('user_id', user!.id)
@@ -157,12 +159,13 @@ export default function MySkillsAssessment() {
                 <div key={category}>
                   <h3 className="font-semibold text-sm text-muted-foreground mb-3">{category}</h3>
                   <Table>
-                  <TableHeader>
+                    <TableHeader>
                       <TableRow>
                         <TableHead>Skill</TableHead>
                         <TableHead className="text-center w-20">Self</TableHead>
                         <TableHead className="text-center w-20">Required</TableHead>
                         <TableHead className="text-center w-36">Gap</TableHead>
+                        <TableHead className="w-20">Scope</TableHead>
                         <TableHead className="w-28">Status</TableHead>
                         <TableHead className="w-10"></TableHead>
                       </TableRow>
@@ -189,6 +192,15 @@ export default function MySkillsAssessment() {
                                 compact
                               />
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={assessment.scope === 'individual' ? 'outline' : 'secondary'} className="text-xs">
+                              {assessment.scope === 'individual' ? (
+                                <><User className="h-3 w-3 mr-1" />Personal</>
+                              ) : (
+                                <><Users className="h-3 w-3 mr-1" />Team</>
+                              )}
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             {getStatusBadge(assessment.status)}
@@ -227,6 +239,7 @@ export default function MySkillsAssessment() {
           required_level: editingAssessment.required_level,
           remarks: editingAssessment.remarks,
           expiration_date: editingAssessment.expiration_date,
+          scope: editingAssessment.scope,
         } : null}
         onSuccess={fetchAssessments}
       />

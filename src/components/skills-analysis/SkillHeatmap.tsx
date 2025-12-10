@@ -26,6 +26,7 @@ interface Assessment {
   manager_assessment: number | null;
   required_level: number | null;
   status: string;
+  scope: 'team' | 'individual';
 }
 
 interface Props {
