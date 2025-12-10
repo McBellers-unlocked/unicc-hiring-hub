@@ -47,44 +47,45 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
   const [hoveredCell, setHoveredCell] = useState<{ memberId: string; skillId: string } | null>(null);
   
   // Refs for synchronized scrolling
-  const contentRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const innerContentRef = useRef<HTMLDivElement>(null);
   const hScrollRef = useRef<HTMLDivElement>(null);
   const [contentWidth, setContentWidth] = useState(0);
   const isScrollingSyncRef = useRef(false);
 
   // Calculate content width for horizontal scrollbar
   useEffect(() => {
-    if (contentRef.current) {
+    if (innerContentRef.current) {
       const updateWidth = () => {
-        if (contentRef.current) {
-          setContentWidth(contentRef.current.scrollWidth);
+        if (innerContentRef.current) {
+          setContentWidth(innerContentRef.current.scrollWidth);
         }
       };
       updateWidth();
       const observer = new ResizeObserver(updateWidth);
-      observer.observe(contentRef.current);
+      observer.observe(innerContentRef.current);
       return () => observer.disconnect();
     }
   }, [teamMembers, skills]);
 
-  // Sync horizontal scroll: external scrollbar -> content
+  // Sync horizontal scroll: sticky scrollbar -> inner content
   const handleExternalScroll = useCallback(() => {
     if (isScrollingSyncRef.current) return;
-    if (hScrollRef.current && contentRef.current) {
+    if (hScrollRef.current && innerContentRef.current) {
       isScrollingSyncRef.current = true;
-      contentRef.current.scrollLeft = hScrollRef.current.scrollLeft;
+      innerContentRef.current.scrollLeft = hScrollRef.current.scrollLeft;
       requestAnimationFrame(() => {
         isScrollingSyncRef.current = false;
       });
     }
   }, []);
 
-  // Sync horizontal scroll: content -> external scrollbar
-  const handleContentScroll = useCallback(() => {
+  // Sync horizontal scroll: inner content -> sticky scrollbar
+  const handleInnerContentScroll = useCallback(() => {
     if (isScrollingSyncRef.current) return;
-    if (contentRef.current && hScrollRef.current) {
+    if (innerContentRef.current && hScrollRef.current) {
       isScrollingSyncRef.current = true;
-      hScrollRef.current.scrollLeft = contentRef.current.scrollLeft;
+      hScrollRef.current.scrollLeft = innerContentRef.current.scrollLeft;
       requestAnimationFrame(() => {
         isScrollingSyncRef.current = false;
       });
@@ -288,14 +289,18 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
           <AccessibleLegend />
         </div>
 
-        {/* Vertical scroll container with hidden horizontal scroll */}
+        {/* Scroll container - vertical scrolling with sticky horizontal scrollbar */}
         <div 
-          ref={contentRef}
-          onScroll={handleContentScroll}
-          className="h-[600px] w-full rounded-lg border border-border/30 overflow-y-auto overflow-x-auto scrollbar-thin"
-          style={{ scrollbarWidth: 'thin' }}
+          ref={containerRef}
+          className="h-[600px] w-full rounded-lg border border-border/30 overflow-y-auto overflow-x-hidden relative"
         >
-          <div className="min-w-fit p-2">
+          {/* Inner horizontally scrollable content - scrollbar hidden, controlled by sticky scrollbar */}
+          <div 
+            ref={innerContentRef}
+            onScroll={handleInnerContentScroll}
+            className="min-w-fit p-2 overflow-x-auto [&::-webkit-scrollbar]:hidden"
+            style={{ minHeight: 'calc(100% - 24px)', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
             {/* Header row with avatar badges - sticky */}
             <div
               className="grid items-end pb-3 mb-3 border-b border-border/50 gap-2 sticky top-0 bg-background/95 backdrop-blur-sm z-20 pt-2"
@@ -564,16 +569,16 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
               <div className="h-9" /> {/* Empty cell for team avg column */}
             </div>
           </div>
-        </div>
-
-        {/* Always-visible horizontal scrollbar */}
-        <div 
-          ref={hScrollRef}
-          onScroll={handleExternalScroll}
-          className="overflow-x-auto overflow-y-hidden border border-border/30 rounded-lg mt-2"
-          style={{ scrollbarWidth: 'auto' }}
-        >
-          <div style={{ width: contentWidth, height: '12px' }} />
+          
+          {/* Sticky horizontal scrollbar - always visible at bottom */}
+          <div 
+            ref={hScrollRef}
+            onScroll={handleExternalScroll}
+            className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border/30 z-30 overflow-x-auto"
+            style={{ scrollbarWidth: 'auto' }}
+          >
+            <div style={{ width: contentWidth, height: '16px' }} />
+          </div>
         </div>
       </div>
     </TooltipProvider>
