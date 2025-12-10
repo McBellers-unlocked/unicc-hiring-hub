@@ -1,4 +1,5 @@
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, Tooltip } from "recharts";
+import { Circle, Square } from "lucide-react";
 
 interface SkillAggregate {
   skillName: string;
@@ -27,10 +28,62 @@ export default function TeamSkillsRadar({ data }: Props) {
     required: d.requiredLevel,
   }));
 
+  // Custom legend with shape indicators for accessibility
+  const CustomLegend = () => (
+    <div className="flex justify-center gap-6 pt-2" role="list" aria-label="Chart legend">
+      <div className="flex items-center gap-2 text-xs" role="listitem">
+        <div className="flex items-center gap-1">
+          <div className="w-4 h-0.5 bg-primary" aria-hidden="true" />
+          <Circle className="h-3 w-3 fill-primary text-primary" aria-hidden="true" />
+        </div>
+        <span className="text-muted-foreground">Team Average (solid line, circles)</span>
+      </div>
+      <div className="flex items-center gap-2 text-xs" role="listitem">
+        <div className="flex items-center gap-1">
+          <div className="w-4 h-0.5 bg-muted-foreground border-dashed border-t-2 border-muted-foreground" aria-hidden="true" />
+          <Square className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
+        </div>
+        <span className="text-muted-foreground">Required Level (dashed line, squares)</span>
+      </div>
+    </div>
+  );
+
+  // Custom dot for team data points
+  const TeamDot = (props: any) => {
+    const { cx, cy } = props;
+    return (
+      <circle
+        cx={cx}
+        cy={cy}
+        r={4}
+        fill="hsl(var(--primary))"
+        stroke="hsl(var(--background))"
+        strokeWidth={2}
+      />
+    );
+  };
+
+  // Custom dot for required data points (square shape for differentiation)
+  const RequiredDot = (props: any) => {
+    const { cx, cy } = props;
+    return (
+      <rect
+        x={cx - 4}
+        y={cy - 4}
+        width={8}
+        height={8}
+        fill="hsl(var(--muted-foreground))"
+        stroke="hsl(var(--background))"
+        strokeWidth={2}
+        transform={`rotate(45, ${cx}, ${cy})`}
+      />
+    );
+  };
+
   return (
-    <div className="h-[300px] w-full">
+    <div className="h-[340px] w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <RadarChart data={chartData} margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
+        <RadarChart data={chartData} margin={{ top: 20, right: 30, bottom: 40, left: 30 }}>
           <PolarGrid 
             stroke="hsl(var(--border))" 
             strokeDasharray="3 3"
@@ -50,41 +103,54 @@ export default function TeamSkillsRadar({ data }: Props) {
               fontSize: 10 
             }}
           />
+          {/* Required level - dashed line with square markers */}
           <Radar
             name="Required Level"
             dataKey="required"
             stroke="hsl(var(--muted-foreground))"
             fill="hsl(var(--muted))"
-            fillOpacity={0.3}
+            fillOpacity={0.2}
             strokeWidth={2}
-            strokeDasharray="5 5"
+            strokeDasharray="8 4"
+            dot={<RequiredDot />}
           />
+          {/* Team average - solid line with circle markers */}
           <Radar
             name="Team Average"
             dataKey="team"
             stroke="hsl(var(--primary))"
             fill="hsl(var(--primary))"
-            fillOpacity={0.4}
-            strokeWidth={2}
+            fillOpacity={0.35}
+            strokeWidth={2.5}
+            dot={<TeamDot />}
           />
           <Tooltip 
             content={({ active, payload }) => {
               if (!active || !payload?.length) return null;
               const data = payload[0]?.payload;
+              const gap = data?.team - data?.required;
+              const gapColor = gap >= 0 ? 'text-teal-500' : 'text-red-500';
               return (
                 <div className="bg-popover border rounded-lg shadow-lg p-3">
                   <p className="font-medium text-sm">{data?.fullName}</p>
-                  <div className="mt-1 space-y-0.5 text-xs">
-                    <p className="text-primary">Team Avg: {data?.team}</p>
-                    <p className="text-muted-foreground">Required: {data?.required}</p>
+                  <div className="mt-2 space-y-1 text-xs">
+                    <div className="flex items-center gap-2">
+                      <Circle className="h-3 w-3 fill-primary text-primary" />
+                      <span>Team Avg: {data?.team}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Square className="h-3 w-3 text-muted-foreground" />
+                      <span>Required: {data?.required}</span>
+                    </div>
+                    <div className={`font-medium pt-1 border-t border-border/50 ${gapColor}`}>
+                      Gap: {gap >= 0 ? '+' : ''}{gap.toFixed(1)}
+                    </div>
                   </div>
                 </div>
               );
             }}
           />
-          <Legend 
-            wrapperStyle={{ fontSize: '12px' }}
-          />
+          <Legend content={<CustomLegend />} />
         </RadarChart>
       </ResponsiveContainer>
     </div>
