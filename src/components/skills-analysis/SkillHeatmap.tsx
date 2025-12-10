@@ -154,7 +154,7 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
     return { 
       bg: 'bg-gradient-to-br from-red-500 to-red-700', 
       gradient: 'shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]',
-      glow: isCritical ? 'shadow-red-500/50 animate-pulse' : 'shadow-red-500/30',
+      glow: isCritical ? 'shadow-lg shadow-red-500/50' : 'shadow-red-500/30',
       text: 'text-white',
       patternClass: 'pattern-diagonal-heavy',
       color: ACCESSIBLE_COLORS.criticalGap.bg
@@ -358,7 +358,7 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
                                       isInCrosshair && !isHovered && "opacity-90",
                                       !isInCrosshair && hoveredCell && "opacity-50",
                                       gap === null && "border-2 border-dashed border-muted-foreground/20",
-                                      isCritical && "animate-pulse"
+                                      isCritical && "ring-2 ring-red-400/60"
                                     )}
                                     style={{ 
                                       animationDelay: `${(memberIdx * 30) + (skillIdx * 20)}ms`,
