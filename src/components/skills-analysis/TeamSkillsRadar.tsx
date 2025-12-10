@@ -1,5 +1,7 @@
+import { useState, useMemo } from "react";
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, Tooltip } from "recharts";
 import { Circle, Square } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface SkillAggregate {
   skillName: string;
@@ -13,6 +15,18 @@ interface Props {
 }
 
 export default function TeamSkillsRadar({ data }: Props) {
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  const categories = useMemo(() => {
+    const uniqueCategories = [...new Set(data.map(d => d.category))];
+    return uniqueCategories.sort();
+  }, [data]);
+
+  const filteredData = useMemo(() => {
+    if (selectedCategory === 'all') return data;
+    return data.filter(d => d.category === selectedCategory);
+  }, [data, selectedCategory]);
+
   if (data.length === 0) {
     return (
       <div className="h-[300px] flex items-center justify-center text-muted-foreground">
@@ -21,7 +35,30 @@ export default function TeamSkillsRadar({ data }: Props) {
     );
   }
 
-  const chartData = data.map(d => ({
+  if (filteredData.length === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-50">
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map(category => (
+                <SelectItem key={category} value={category}>{category}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+          <p>No skills available for {selectedCategory}.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const chartData = filteredData.map(d => ({
     skill: d.skillName.length > 15 ? d.skillName.slice(0, 12) + '...' : d.skillName,
     fullName: d.skillName,
     team: Number(d.avgLevel.toFixed(1)),
@@ -81,7 +118,21 @@ export default function TeamSkillsRadar({ data }: Props) {
   };
 
   return (
-    <div className="h-[340px] w-full">
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select category" />
+          </SelectTrigger>
+          <SelectContent className="bg-popover z-50">
+            <SelectItem value="all">All Categories</SelectItem>
+            {categories.map(category => (
+              <SelectItem key={category} value={category}>{category}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="h-[340px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart data={chartData} margin={{ top: 20, right: 30, bottom: 40, left: 30 }}>
           <PolarGrid 
@@ -153,6 +204,7 @@ export default function TeamSkillsRadar({ data }: Props) {
           <Legend content={<CustomLegend />} />
         </RadarChart>
       </ResponsiveContainer>
+      </div>
     </div>
   );
 }
