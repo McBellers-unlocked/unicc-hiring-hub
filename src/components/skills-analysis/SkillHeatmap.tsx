@@ -3,6 +3,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { GapIcon, AccessibleLegend, getGapAriaLabel, ACCESSIBLE_COLORS } from "@/lib/accessibilityPatterns";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface TeamMember {
   id: string;
@@ -243,14 +244,14 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
           <AccessibleLegend />
         </div>
 
-        <div className="overflow-auto max-h-[600px] p-2">
-          <div className="min-w-fit">
-            {/* Header row with avatar badges */}
+        <ScrollArea className="h-[600px] w-full rounded-lg border border-border/30">
+          <div className="min-w-fit p-2">
+            {/* Header row with avatar badges - sticky */}
             <div 
-              className="grid items-end pb-3 mb-3 border-b border-border/50 gap-2"
+              className="grid items-end pb-3 mb-3 border-b border-border/50 gap-2 sticky top-0 bg-background/95 backdrop-blur-sm z-20 pt-2"
               style={{ gridTemplateColumns }}
             >
-              <div /> {/* Empty cell for skill name column */}
+              <div className="sticky left-0 bg-background/95 backdrop-blur-sm z-10" /> {/* Empty cell for skill name column */}
               {displayMembers.map((member, idx) => {
                 const health = memberHealthScores[member.id];
                 const ringColor = getHealthRingColor(health?.avgGap ?? 0);
@@ -342,7 +343,7 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
                         >
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="pr-2 text-right">
+                              <div className="pr-2 text-right sticky left-0 bg-background/95 backdrop-blur-sm z-10">
                                 <span className={cn(
                                   "text-xs font-medium transition-colors",
                                   isRowHovered ? "text-foreground" : "text-muted-foreground"
@@ -493,7 +494,7 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
               className="grid items-center mt-4 pt-3 border-t border-border/50 gap-2"
               style={{ gridTemplateColumns }}
             >
-              <div className="pr-2 text-right">
+              <div className="pr-2 text-right sticky left-0 bg-background/95 backdrop-blur-sm z-10">
                 <span className="text-xs font-semibold text-muted-foreground">Health Score</span>
               </div>
               {displayMembers.map(member => {
@@ -513,7 +514,9 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
               <div className="h-9" /> {/* Empty cell for team avg column */}
             </div>
           </div>
-        </div>
+          <ScrollBar orientation="horizontal" />
+          <ScrollBar orientation="vertical" />
+        </ScrollArea>
       </div>
     </TooltipProvider>
   );
