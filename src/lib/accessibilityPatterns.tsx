@@ -1,4 +1,4 @@
-import { CheckCheck, Check, Circle, ArrowDown, AlertTriangle, Minus } from "lucide-react";
+import { CheckCheck, Check, Star, ArrowDown, AlertTriangle, Minus } from "lucide-react";
 import { cn } from "./utils";
 
 // Colorblind-safe color palette with higher contrast
@@ -85,19 +85,13 @@ export const GapIcon = ({ gap, className, size = 'md' }: GapIconProps) => {
     return <Minus className={cn(sizeClass, "text-muted-foreground", className)} aria-label="No data" />;
   }
   if (gap >= 2) {
-    return <CheckCheck className={cn(sizeClass, className)} aria-label="Excelling" />;
+    return <Star className={cn(sizeClass, className)} aria-label="Excelling" />;
   }
   if (gap === 1) {
-    return <Check className={cn(sizeClass, className)} aria-label="Exceeding" />;
+    return <CheckCheck className={cn(sizeClass, className)} aria-label="Exceeding" />;
   }
   if (gap === 0) {
-    // Filled circle for "meeting" - more visible than outline
-    return (
-      <div 
-        className={cn(sizeClass, "rounded-full bg-current", className)} 
-        aria-label="Meeting requirements"
-      />
-    );
+    return <Check className={cn(sizeClass, className)} aria-label="Meeting requirements" />;
   }
   if (gap === -1) {
     return <ArrowDown className={cn(sizeClass, className)} aria-label="Minor gap" />;
