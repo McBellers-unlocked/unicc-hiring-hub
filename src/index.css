@@ -227,3 +227,53 @@ All colors MUST be HSL.
   content: "•" !important;
   color: currentColor !important;
 }
+
+/* Skill Gap Pattern Overlays */
+.pattern-dots {
+  position: relative;
+}
+.pattern-dots::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px);
+  background-size: 4px 4px;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.pattern-diagonal-light {
+  position: relative;
+}
+.pattern-diagonal-light::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 3px,
+    rgba(0,0,0,0.15) 3px,
+    rgba(0,0,0,0.15) 5px
+  );
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.pattern-diagonal-heavy {
+  position: relative;
+}
+.pattern-diagonal-heavy::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.3) 2px,
+    rgba(0,0,0,0.3) 5px
+  );
+  pointer-events: none;
+  border-radius: inherit;
+}
