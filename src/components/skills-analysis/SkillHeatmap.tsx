@@ -388,18 +388,14 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
                                         <div className="absolute top-0.5 right-0.5">
                                           <GapIcon gap={gap} size="sm" className={cn(styles.text, "opacity-80")} />
                                         </div>
-                                        <span className={cn("text-sm font-bold drop-shadow-md", styles.text)}>
-                                          {level}
+                                        {/* Prominent gap value */}
+                                        <span className={cn("text-lg font-bold drop-shadow-md leading-none", styles.text)}>
+                                          {gap !== null ? (gap >= 0 ? `+${gap}` : gap) : '?'}
                                         </span>
-                                        <span className={cn("text-[9px] opacity-80", styles.text)}>
-                                          /{required ?? '?'}
+                                        {/* Tiny status label */}
+                                        <span className={cn("text-[8px] font-medium opacity-75 mt-0.5", styles.text)}>
+                                          {getGapLabel(gap)}
                                         </span>
-                                        {/* Gap value label */}
-                                        {gap !== null && (
-                                          <span className={cn("text-[8px] font-medium opacity-70", styles.text)}>
-                                            {gap >= 0 ? '+' : ''}{gap}
-                                          </span>
-                                        )}
                                       </div>
                                     ) : (
                                       <div className="flex items-center justify-center h-full">
