@@ -289,12 +289,12 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
           <AccessibleLegend />
         </div>
 
-        {/* Outer container with CSS Grid - scrollbar row is fixed at bottom */}
-        <div className="h-[600px] w-full rounded-lg border border-border/30 grid grid-rows-[1fr_auto] overflow-hidden">
-          {/* Scrollable content area - takes all space except scrollbar */}
+        {/* Outer container with relative positioning - scrollbar is absolutely positioned */}
+        <div className="h-[600px] w-full rounded-lg border border-border/30 relative overflow-hidden">
+          {/* Scrollable content area - fills space above scrollbar */}
           <div 
             ref={containerRef}
-            className="overflow-y-auto overflow-x-hidden min-h-0"
+            className="absolute top-0 left-0 right-0 bottom-[20px] overflow-y-auto overflow-x-hidden"
           >
             {/* Inner horizontally scrollable content - scrollbar hidden, controlled by external scrollbar */}
             <div 
@@ -573,11 +573,11 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
             </div>
           </div>
           
-          {/* Always-visible horizontal scrollbar - fixed row at bottom */}
+          {/* Always-visible horizontal scrollbar - absolutely positioned at bottom */}
           <div 
             ref={hScrollRef}
             onScroll={handleExternalScroll}
-            className="bg-background border-t border-border/30 overflow-x-auto"
+            className="absolute bottom-0 left-0 right-0 h-[20px] bg-background border-t border-border/30 overflow-x-auto z-10"
             style={{ scrollbarWidth: 'auto' }}
           >
             <div style={{ width: contentWidth, height: '16px' }} />
