@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Info, Upload } from "lucide-react";
+import { Info, Upload, Users, User } from "lucide-react";
 import SkillLevelSelector from "./SkillLevelSelector";
 
 interface SkillDefinition {
@@ -29,6 +30,7 @@ interface SkillAssessmentDialogProps {
     required_level: number | null;
     remarks: string | null;
     expiration_date: string | null;
+    scope?: 'team' | 'individual';
   } | null;
   onSuccess: () => void;
   isManager?: boolean;
@@ -52,6 +54,7 @@ export default function SkillAssessmentDialog({
   const [requiredLevel, setRequiredLevel] = useState<number | null>(null);
   const [remarks, setRemarks] = useState("");
   const [expirationDate, setExpirationDate] = useState("");
+  const [scope, setScope] = useState<'team' | 'individual'>('team');
 
   useEffect(() => {
     if (open) {
@@ -62,6 +65,7 @@ export default function SkillAssessmentDialog({
         setRequiredLevel(existingAssessment.required_level);
         setRemarks(existingAssessment.remarks || "");
         setExpirationDate(existingAssessment.expiration_date || "");
+        setScope(existingAssessment.scope || 'team');
       } else {
         resetForm();
       }
@@ -91,6 +95,7 @@ export default function SkillAssessmentDialog({
     setRequiredLevel(null);
     setRemarks("");
     setExpirationDate("");
+    setScope('team');
   };
 
   const handleSubmit = async (submitForApproval: boolean = false) => {
@@ -107,6 +112,7 @@ export default function SkillAssessmentDialog({
         remarks: remarks || null,
         expiration_date: expirationDate || null,
         assessed_at: new Date().toISOString(),
+        scope: isManager ? 'team' : scope, // Managers always set team skills
       };
 
       if (isManager) {
@@ -252,6 +258,34 @@ export default function SkillAssessmentDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Scope selector - only for non-managers */}
+          {!isManager && (
+            <div className="space-y-2">
+              <Label>Skill Purpose</Label>
+              <RadioGroup value={scope} onValueChange={(v) => setScope(v as 'team' | 'individual')} className="flex gap-4">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="team" id="team" />
+                  <Label htmlFor="team" className="flex items-center gap-1.5 cursor-pointer font-normal">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    Role/Team Skill
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="individual" id="individual" />
+                  <Label htmlFor="individual" className="flex items-center gap-1.5 cursor-pointer font-normal">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    Personal Development
+                  </Label>
+                </div>
+              </RadioGroup>
+              <p className="text-xs text-muted-foreground">
+                {scope === 'team' 
+                  ? "This skill is required for your role and will appear in team metrics." 
+                  : "Personal skills won't affect team gap metrics."}
+              </p>
+            </div>
+          )}
 
           {/* Level selector */}
           <div className="space-y-2">

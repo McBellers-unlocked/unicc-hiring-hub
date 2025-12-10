@@ -33,6 +33,7 @@ interface Assessment {
   manager_assessment: number | null;
   required_level: number | null;
   status: string;
+  scope: 'team' | 'individual';
 }
 
 export default function TeamSkillsAnalytics() {
@@ -89,13 +90,14 @@ export default function TeamSkillsAnalytics() {
     if (teamData.length > 0) {
       const memberIds = teamData.map((m: TeamMember) => m.id);
       
-      // Fetch assessments
+      // Fetch assessments - only team scope for analytics
       const { data: assessmentData } = await supabase
         .from('skill_assessments')
-        .select('id, user_id, skill_id, self_assessment, manager_assessment, required_level, status')
-        .in('user_id', memberIds);
+        .select('id, user_id, skill_id, self_assessment, manager_assessment, required_level, status, scope')
+        .in('user_id', memberIds)
+        .eq('scope', 'team');
 
-      setAssessments(assessmentData || []);
+      setAssessments((assessmentData || []) as Assessment[]);
 
       // Fetch skill definitions
       const skillIds = [...new Set((assessmentData || []).map(a => a.skill_id))];

@@ -36,6 +36,7 @@ interface Assessment {
   manager_assessment: number | null;
   required_level: number | null;
   status: string;
+  scope: 'team' | 'individual';
 }
 
 type ViewMode = 'direct' | 'all';
@@ -140,10 +141,11 @@ export default function TeamSkillsTable() {
       
       const { data: assessmentData } = await supabase
         .from('skill_assessments')
-        .select('id, user_id, skill_id, self_assessment, manager_assessment, required_level, status')
-        .in('user_id', memberIds);
+        .select('id, user_id, skill_id, self_assessment, manager_assessment, required_level, status, scope')
+        .in('user_id', memberIds)
+        .eq('scope', 'team'); // Only show team skills in matrix
 
-      setAssessments(assessmentData || []);
+      setAssessments((assessmentData || []) as Assessment[]);
 
       const skillIds = [...new Set((assessmentData || []).map(a => a.skill_id))];
 
@@ -223,7 +225,8 @@ export default function TeamSkillsTable() {
           self_assessment: null,
           manager_assessment: null,
           required_level: level,
-          status: 'draft'
+          status: 'draft',
+          scope: 'team'
         };
         return [...prev, tempAssessment];
       }
