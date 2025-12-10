@@ -289,12 +289,12 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
           <AccessibleLegend />
         </div>
 
-        {/* Outer container with flex layout - scrollbar is OUTSIDE scroll area */}
-        <div className="h-[600px] w-full rounded-lg border border-border/30 flex flex-col">
-          {/* Scrollable content area - takes remaining space */}
+        {/* Outer container with CSS Grid - scrollbar row is fixed at bottom */}
+        <div className="h-[600px] w-full rounded-lg border border-border/30 grid grid-rows-[1fr_auto] overflow-hidden">
+          {/* Scrollable content area - takes all space except scrollbar */}
           <div 
             ref={containerRef}
-            className="flex-1 overflow-y-auto overflow-x-hidden min-h-0"
+            className="overflow-y-auto overflow-x-hidden min-h-0"
           >
             {/* Inner horizontally scrollable content - scrollbar hidden, controlled by external scrollbar */}
             <div 
@@ -573,11 +573,11 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
             </div>
           </div>
           
-          {/* Always-visible horizontal scrollbar - OUTSIDE scroll area */}
+          {/* Always-visible horizontal scrollbar - fixed row at bottom */}
           <div 
             ref={hScrollRef}
             onScroll={handleExternalScroll}
-            className="flex-shrink-0 bg-background border-t border-border/30 overflow-x-auto"
+            className="bg-background border-t border-border/30 overflow-x-auto"
             style={{ scrollbarWidth: 'auto' }}
           >
             <div style={{ width: contentWidth, height: '16px' }} />
