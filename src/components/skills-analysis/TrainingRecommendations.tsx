@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { User, BookOpen, TrendingUp } from "lucide-react";
+import { User, BookOpen, TrendingUp, AlertTriangle, ArrowDown, Circle } from "lucide-react";
 
 interface SkillGap {
   skillName: string;
@@ -43,8 +43,8 @@ export default function TrainingRecommendations({ gapsBySkill, teamMembers, asse
   if (gapsBySkill.length === 0) {
     return (
       <div className="text-center py-8">
-        <TrendingUp className="h-10 w-10 mx-auto mb-3 text-emerald-500" />
-        <p className="text-sm font-medium text-emerald-600">All Skills On Track</p>
+        <TrendingUp className="h-10 w-10 mx-auto mb-3 text-teal-500" />
+        <p className="text-sm font-medium text-teal-600 dark:text-teal-400">All Skills On Track</p>
         <p className="text-xs text-muted-foreground mt-1">
           Your team is meeting or exceeding skill requirements
         </p>
@@ -76,27 +76,87 @@ export default function TrainingRecommendations({ gapsBySkill, teamMembers, asse
     };
   });
 
+  // Accessible severity badge with icon
   const getSeverityBadge = (severity: string) => {
     switch (severity) {
       case 'critical':
-        return <Badge variant="destructive" className="text-[10px]">Critical</Badge>;
+        return (
+          <Badge 
+            variant="destructive" 
+            className="text-[10px] flex items-center gap-1"
+            aria-label="Critical severity"
+          >
+            <AlertTriangle className="h-3 w-3" aria-hidden="true" />
+            Critical
+          </Badge>
+        );
       case 'moderate':
-        return <Badge className="bg-amber-500 hover:bg-amber-600 text-[10px]">Moderate</Badge>;
+        return (
+          <Badge 
+            className="bg-orange-500 hover:bg-orange-600 text-white text-[10px] flex items-center gap-1"
+            aria-label="Moderate severity"
+          >
+            <ArrowDown className="h-3 w-3" aria-hidden="true" />
+            Moderate
+          </Badge>
+        );
       default:
-        return <Badge variant="secondary" className="text-[10px]">Minor</Badge>;
+        return (
+          <Badge 
+            variant="secondary" 
+            className="text-[10px] flex items-center gap-1"
+            aria-label="Minor severity"
+          >
+            <Circle className="h-3 w-3" aria-hidden="true" />
+            Minor
+          </Badge>
+        );
+    }
+  };
+
+  // Get severity indicator for list styling
+  const getSeverityIndicator = (severity: string) => {
+    switch (severity) {
+      case 'critical':
+        return 'border-l-red-500 bg-red-500/5';
+      case 'moderate':
+        return 'border-l-orange-500 bg-orange-500/5';
+      default:
+        return 'border-l-muted-foreground bg-muted/30';
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" role="list" aria-label="Training recommendations">
+      {/* Legend for severity indicators */}
+      <div className="flex flex-wrap gap-3 text-xs pb-2 border-b border-border/50">
+        <div className="flex items-center gap-1.5">
+          <div className="w-1 h-4 rounded-full bg-red-500" aria-hidden="true" />
+          <AlertTriangle className="h-3 w-3 text-red-500" aria-hidden="true" />
+          <span className="text-muted-foreground">Critical priority</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-1 h-4 rounded-full bg-orange-500" aria-hidden="true" />
+          <ArrowDown className="h-3 w-3 text-orange-500" aria-hidden="true" />
+          <span className="text-muted-foreground">Moderate priority</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-1 h-4 rounded-full bg-muted-foreground" aria-hidden="true" />
+          <Circle className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
+          <span className="text-muted-foreground">Minor priority</span>
+        </div>
+      </div>
+
       {recommendations.map((rec, idx) => (
         <div 
           key={idx} 
-          className="p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+          className={`p-3 rounded-lg border border-l-4 hover:shadow-md transition-all ${getSeverityIndicator(rec.severity)}`}
+          role="listitem"
+          aria-label={`${rec.skill}: ${rec.severity} priority, ${rec.affectedCount} team members affected`}
         >
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-primary shrink-0" />
+              <BookOpen className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
               <span className="font-medium text-sm">{rec.skill}</span>
             </div>
             {getSeverityBadge(rec.severity)}
@@ -113,7 +173,7 @@ export default function TrainingRecommendations({ gapsBySkill, teamMembers, asse
                   key={mIdx}
                   className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-[10px]"
                 >
-                  <User className="h-3 w-3" />
+                  <User className="h-3 w-3" aria-hidden="true" />
                   <span>{member.name.split(' ')[0]}</span>
                 </div>
               ))}
