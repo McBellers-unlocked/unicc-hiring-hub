@@ -46,16 +46,40 @@ const categoryColors: Record<string, string> = {
 export default function SkillHeatmap({ teamMembers, skills, assessments }: Props) {
   const [hoveredCell, setHoveredCell] = useState<{ memberId: string; skillId: string } | null>(null);
 
-  // Group skills by category
+  // Group skills by category and sort by variance (most meaningful first)
   const skillsByCategory = useMemo(() => {
+    // First calculate skill averages for sorting
+    const skillGaps: Record<string, number> = {};
+    skills.forEach(skill => {
+      const skillAssessments = assessments.filter(a => a.skill_id === skill.id);
+      let totalGap = 0;
+      let count = 0;
+      skillAssessments.forEach(a => {
+        const level = a.manager_assessment ?? a.self_assessment;
+        const required = a.required_level;
+        if (level !== null && required !== null) {
+          totalGap += level - required;
+          count++;
+        }
+      });
+      skillGaps[skill.id] = count > 0 ? Math.abs(totalGap / count) : 0;
+    });
+
+    // Group by category
     const grouped = skills.reduce((acc, skill) => {
       const cat = skill.category || 'General';
       if (!acc[cat]) acc[cat] = [];
       acc[cat].push(skill);
       return acc;
     }, {} as Record<string, SkillDefinition[]>);
+
+    // Sort each category by variance (highest first) so meaningful skills appear first
+    Object.keys(grouped).forEach(cat => {
+      grouped[cat].sort((a, b) => skillGaps[b.id] - skillGaps[a.id]);
+    });
+
     return grouped;
-  }, [skills]);
+  }, [skills, assessments]);
 
   // Calculate member health scores
   const memberHealthScores = useMemo(() => {
@@ -300,7 +324,7 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
 
                   {/* Skills in category */}
                   <div className="space-y-2">
-                    {categorySkills.slice(0, 8).map((skill, skillIdx) => {
+                    {categorySkills.slice(0, 12).map((skill, skillIdx) => {
                       const skillAvg = skillAverages[skill.id];
                       const isRowHovered = hoveredSkillId === skill.id;
                       
@@ -454,6 +478,11 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
                         </div>
                       );
                     })}
+                    {categorySkills.length > 12 && (
+                      <div className="text-xs text-muted-foreground italic pl-[180px] pt-1">
+                        + {categorySkills.length - 12} more skills not shown
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
