@@ -45,8 +45,6 @@ const categoryColors: Record<string, string> = {
 
 export default function SkillHeatmap({ teamMembers, skills, assessments }: Props) {
   const [hoveredCell, setHoveredCell] = useState<{ memberId: string; skillId: string } | null>(null);
-  const [isMatrixVisible, setIsMatrixVisible] = useState(true);
-  const [scrollbarStyle, setScrollbarStyle] = useState<React.CSSProperties>({});
   
   // Refs for synchronized scrolling
   const containerRef = useRef<HTMLDivElement>(null);
@@ -69,36 +67,6 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
       return () => observer.disconnect();
     }
   }, [teamMembers, skills]);
-
-  // Update scrollbar position based on container visibility
-  useEffect(() => {
-    const updateScrollbarPosition = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
-        setIsMatrixVisible(isVisible);
-        
-        if (isVisible) {
-          setScrollbarStyle({
-            position: 'fixed' as const,
-            left: rect.left,
-            width: rect.width,
-            bottom: 0,
-            zIndex: 50
-          });
-        }
-      }
-    };
-    
-    updateScrollbarPosition();
-    window.addEventListener('scroll', updateScrollbarPosition, { passive: true });
-    window.addEventListener('resize', updateScrollbarPosition, { passive: true });
-    
-    return () => {
-      window.removeEventListener('scroll', updateScrollbarPosition);
-      window.removeEventListener('resize', updateScrollbarPosition);
-    };
-  }, []);
 
   // Sync horizontal scroll: sticky scrollbar -> inner content
   const handleExternalScroll = useCallback(() => {
@@ -320,16 +288,16 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
         <AccessibleLegend />
       </div>
 
-      {/* Matrix container */}
+      {/* Matrix container with flex layout */}
       <div 
         ref={containerRef}
-        className="h-[600px] w-full rounded-lg border border-border/30 overflow-hidden"
+        className="h-[600px] w-full rounded-lg border border-border/30 flex flex-col"
       >
         <TooltipProvider delayDuration={100}>
-          {/* Scrollable content area */}
+          {/* Scrollable content area - grows to fill available space, hides horizontal overflow */}
           <div 
             ref={innerContentRef}
-            className="h-full overflow-y-auto overflow-x-auto"
+            className="flex-1 overflow-y-auto overflow-x-hidden"
             onScroll={handleInnerContentScroll}
           >
             <div style={{ display: 'grid', gridTemplateColumns, minWidth: 'max-content' }}>
@@ -439,23 +407,18 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
               ))}
             </div>
           </div>
+          
+          {/* Always-visible horizontal scrollbar at bottom of container */}
+          <div 
+            ref={hScrollRef}
+            onScroll={handleExternalScroll}
+            className="flex-shrink-0 overflow-x-auto border-t border-border/30 bg-muted/20"
+            style={{ scrollbarWidth: 'thin' }}
+          >
+            <div style={{ width: contentWidth, height: '12px' }} />
+          </div>
         </TooltipProvider>
       </div>
-
-      {/* Fixed-position horizontal scrollbar */}
-      {isMatrixVisible && (
-        <div 
-          ref={hScrollRef}
-          onScroll={handleExternalScroll}
-          className="bg-background border-t border-border/30 overflow-x-auto shadow-lg"
-          style={{
-            ...scrollbarStyle,
-            scrollbarWidth: 'auto'
-          }}
-        >
-          <div style={{ width: contentWidth, height: '16px' }} />
-        </div>
-      )}
     </div>
   );
 }
