@@ -111,18 +111,18 @@ export function TalentSearchResults({
   // Normalize data from both sources
   const normalizedTalent: NormalizedTalent[] = [];
 
-  // Get staff emails for deduplication (exclude candidates who are also staff)
-  const staffEmails = new Set(
-    internalStaff?.map((s) => s.email.toLowerCase()) || []
+  // Build set of candidate emails (candidates table has richer profile data)
+  const candidateEmails = new Set(
+    externalCandidates?.map((c) => c.email.toLowerCase()) || []
   );
 
-  // Normalize external candidates (excluding those who are also staff)
+  // Normalize candidates (both Internal and External) - these have richer profiles
   if (filters.talentSource !== "internal" && externalCandidates) {
     externalCandidates.forEach((c) => {
-      // Skip if this candidate email matches a staff member
-      if (staffEmails.has(c.email.toLowerCase())) {
-        return;
-      }
+      // Check if this candidate is also staff (for proper source tagging)
+      const isAlsoStaff = internalStaff?.some(
+        (s) => s.email.toLowerCase() === c.email.toLowerCase()
+      );
       
       normalizedTalent.push({
         id: c.id,
@@ -135,10 +135,10 @@ export function TalentSearchResults({
         skills: Array.isArray(c.skills) ? c.skills : [],
         education: Array.isArray(c.education) ? c.education : [],
         languages: Array.isArray(c.languages) ? c.languages : [],
-        un_experience: c.un_experience || false,
+        un_experience: isAlsoStaff ? true : (c.un_experience || false),
         profile_photo_url: c.profile_photo_url,
         updated_at: c.updated_at,
-        _source: "external",
+        _source: isAlsoStaff ? "internal" : "external",
         willing_to_relocate: c.willing_to_relocate,
         has_security_clearance: c.has_security_clearance,
         work_experience: Array.isArray(c.work_experience) ? c.work_experience : [],
@@ -147,9 +147,14 @@ export function TalentSearchResults({
     });
   }
 
-  // Normalize internal staff
+  // Normalize internal staff (only those without candidate profiles)
   if (filters.talentSource !== "external" && internalStaff) {
     internalStaff.forEach((s) => {
+      // Skip if this staff member has a candidate profile (show that instead - richer data)
+      if (candidateEmails.has(s.email.toLowerCase())) {
+        return;
+      }
+
       // Calculate tenure in years
       let tenure: number | null = null;
       if (s.entry_on_duty_date) {
