@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
@@ -7,7 +7,11 @@ import { TalentSearchFilters } from "@/components/talent-pool/TalentSearchFilter
 import { TalentSearchResults } from "@/components/talent-pool/TalentSearchResults";
 import { SavedSearchManager } from "@/components/talent-pool/SavedSearchManager";
 import { TalentPoolStats } from "@/components/talent-pool/TalentPoolStats";
+import { SelectionActionBar } from "@/components/talent-pool/SelectionActionBar";
+import { BulkEmailDialog } from "@/components/talent-pool/BulkEmailDialog";
 import { Users, Search, BookmarkCheck, BarChart3 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 export interface SearchFilters {
   searchText: string;
@@ -52,6 +56,39 @@ export default function TalentPool() {
   });
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<string>("updated_desc");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+
+  // Clear selection when filters change
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [filters.talentSource, filters.skills, filters.searchText, filters.divisions, filters.dutyStations, filters.grades]);
+
+  // Fetch selected staff details for email dialog
+  const { data: selectedStaff } = useQuery({
+    queryKey: ["selected-staff", selectedIds],
+    queryFn: async () => {
+      if (selectedIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, name, email, job_title")
+        .in("id", selectedIds);
+      if (error) throw error;
+      return data.map((s) => ({
+        id: s.id,
+        name: s.name || s.email,
+        email: s.email,
+        position: s.job_title,
+      }));
+    },
+    enabled: selectedIds.length > 0,
+  });
+
+  const handleRemoveRecipient = (id: string) => {
+    setSelectedIds((prev) => prev.filter((sid) => sid !== id));
+  };
+
+  const showSelection = filters.talentSource !== "external";
 
   // Check if user has appropriate role
   const hasAccess = userRoles.some(role => 
@@ -104,6 +141,9 @@ export default function TalentPool() {
               filters={filters}
               viewMode={viewMode}
               sortBy={sortBy}
+              selectedIds={selectedIds}
+              onSelectionChange={setSelectedIds}
+              showSelection={showSelection}
             />
           </TabsContent>
 
@@ -115,6 +155,24 @@ export default function TalentPool() {
             <TalentPoolStats />
           </TabsContent>
         </Tabs>
+
+        {/* Selection Action Bar */}
+        <SelectionActionBar
+          selectedCount={selectedIds.length}
+          onClearSelection={() => setSelectedIds([])}
+          onEmailSelected={() => setEmailDialogOpen(true)}
+        />
+
+        {/* Bulk Email Dialog */}
+        <BulkEmailDialog
+          open={emailDialogOpen}
+          onClose={() => {
+            setEmailDialogOpen(false);
+            setSelectedIds([]);
+          }}
+          recipients={selectedStaff || []}
+          onRemoveRecipient={handleRemoveRecipient}
+        />
       </div>
     </Layout>
   );

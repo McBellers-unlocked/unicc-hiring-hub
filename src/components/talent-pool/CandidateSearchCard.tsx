@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { MapPin, Briefcase, GraduationCap, Globe, Award, Eye, Building2, Calendar } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -15,12 +16,18 @@ interface CandidateSearchCardProps {
   candidate: any;
   viewMode: "grid" | "list";
   matchScore?: number;
+  isSelected?: boolean;
+  onSelect?: (id: string, selected: boolean) => void;
+  showSelection?: boolean;
 }
 
 export function CandidateSearchCard({
   candidate,
   viewMode,
   matchScore,
+  isSelected = false,
+  onSelect,
+  showSelection = false,
 }: CandidateSearchCardProps) {
   const [showDetail, setShowDetail] = useState(false);
 
@@ -153,6 +160,14 @@ export function CandidateSearchCard({
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex items-center gap-4">
+              {showSelection && isInternal && (
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={(checked) => onSelect?.(candidate.id, !!checked)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="shrink-0"
+                />
+              )}
               <Avatar className="h-12 w-12">
                 <AvatarImage src={candidate.profile_photo_url} />
                 <AvatarFallback>{initials}</AvatarFallback>
@@ -249,6 +264,14 @@ export function CandidateSearchCard({
       <Card className="hover:shadow-md transition-shadow cursor-pointer min-h-[380px] flex flex-col" onClick={() => setShowDetail(true)}>
         <CardHeader className="pb-3">
           <div className="flex items-start gap-3">
+            {showSelection && isInternal && (
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={(checked) => onSelect?.(candidate.id, !!checked)}
+                onClick={(e) => e.stopPropagation()}
+                className="shrink-0 mt-1"
+              />
+            )}
             <Avatar className="h-12 w-12">
               <AvatarImage src={candidate.profile_photo_url} />
               <AvatarFallback>{initials}</AvatarFallback>
