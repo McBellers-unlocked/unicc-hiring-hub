@@ -18,19 +18,12 @@ export default function MyProfile() {
       }
 
       try {
-        // Check if user is staff (non-Candidate role) - they shouldn't create candidate profiles
+        // Check if user is staff (non-Candidate role) - they get Internal candidate type
         const isStaff = userRoles.some(role => 
           ['Admin', 'HR Assistant', 'Chief of HR', 'Hiring Manager', 'Panel Member', 'Director', 'Chief of Division', 'Deputy Director'].includes(role)
         );
 
-        if (isStaff) {
-          // Staff users - redirect to dashboard or show message
-          // They appear in Talent Pool via the users table, not candidates
-          navigate('/');
-          return;
-        }
-
-        // Only for actual Candidate role users - check if candidate profile exists
+        // Check if candidate profile exists for this email
         const { data: existingProfile, error: fetchError } = await supabase
           .from('candidates')
           .select('id')
@@ -43,12 +36,14 @@ export default function MyProfile() {
           // Profile exists, redirect to view page
           navigate(`/candidate-profile/${existingProfile.id}`);
         } else {
-          // No profile, create one
+          // No profile, create one with appropriate candidate_type
           const { data: newProfile, error: insertError } = await supabase
             .from('candidates')
             .insert({
               email: user.email,
               name: user.user_metadata?.name || user.email.split('@')[0],
+              candidate_type: isStaff ? 'Internal' : 'External',
+              un_experience: isStaff ? true : false,
               profile_completion_percentage: 0
             })
             .select('id')
