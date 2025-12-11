@@ -11,6 +11,9 @@ interface TalentSearchResultsProps {
   filters: SearchFilters;
   viewMode: "grid" | "list";
   sortBy: string;
+  selectedIds: string[];
+  onSelectionChange: (ids: string[]) => void;
+  showSelection: boolean;
 }
 
 // Normalized talent record for unified display
@@ -47,6 +50,9 @@ export function TalentSearchResults({
   filters,
   viewMode,
   sortBy,
+  selectedIds,
+  onSelectionChange,
+  showSelection,
 }: TalentSearchResultsProps) {
   const [matchScores, setMatchScores] = useState<Record<string, number>>({});
 
@@ -393,14 +399,47 @@ export function TalentSearchResults({
   const externalCount = sortedTalent.filter((t) => t._source === "external").length;
   const internalCount = sortedTalent.filter((t) => t._source === "internal").length;
 
+  const internalTalent = sortedTalent.filter((t) => t._source === "internal");
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      onSelectionChange(internalTalent.map((t) => t.id));
+    } else {
+      onSelectionChange([]);
+    }
+  };
+
+  const handleSelect = (id: string, selected: boolean) => {
+    if (selected) {
+      onSelectionChange([...selectedIds, id]);
+    } else {
+      onSelectionChange(selectedIds.filter((sid) => sid !== id));
+    }
+  };
+
+  const allInternalSelected = internalTalent.length > 0 && internalTalent.every((t) => selectedIds.includes(t.id));
+
   return (
     <div>
-      <div className="mb-4 text-sm text-muted-foreground">
-        Found {sortedTalent.length} result{sortedTalent.length !== 1 ? "s" : ""}
-        {filters.talentSource === "all" && (
-          <span className="ml-2">
-            ({externalCount} external, {internalCount} internal)
-          </span>
+      <div className="mb-4 flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          Found {sortedTalent.length} result{sortedTalent.length !== 1 ? "s" : ""}
+          {filters.talentSource === "all" && (
+            <span className="ml-2">
+              ({externalCount} external, {internalCount} internal)
+            </span>
+          )}
+        </div>
+        {showSelection && internalTalent.length > 0 && (
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={allInternalSelected}
+              onChange={(e) => handleSelectAll(e.target.checked)}
+              className="rounded border-gray-300"
+            />
+            Select all internal ({internalTalent.length})
+          </label>
         )}
       </div>
       <div
@@ -416,6 +455,9 @@ export function TalentSearchResults({
             candidate={person}
             viewMode={viewMode}
             matchScore={matchScores[person.id]}
+            isSelected={selectedIds.includes(person.id)}
+            onSelect={handleSelect}
+            showSelection={showSelection}
           />
         ))}
       </div>

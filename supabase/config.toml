@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.import-whed-universities]
 verify_jwt = false
+
+[functions.send-bulk-talent-email]
+verify_jwt = false
