@@ -23,6 +23,7 @@ export interface InternalTalentFilters {
   grades: string[];
   minTenure?: number;
   maxTenure?: number;
+  minExperience?: number;
   lineManager?: string;
 }
 
@@ -262,18 +263,18 @@ export function InternalTalentFilters({
                 </div>
               </div>
 
-              {/* Tenure Range */}
+              {/* Experience Range */}
               <div className="space-y-2 md:col-span-2 lg:col-span-3">
                 <Label className="text-sm font-medium">
-                  Minimum Years at UNICC: {filters.minTenure || 0}+ years
+                  Minimum Years of Experience: {filters.minExperience || 0}+ years
                 </Label>
                 <Slider
                   min={0}
                   max={30}
                   step={1}
-                  value={[filters.minTenure || 0]}
+                  value={[filters.minExperience || 0]}
                   onValueChange={([min]) => {
-                    handleFilterChange("minTenure", min);
+                    handleFilterChange("minExperience", min);
                   }}
                   className="w-full"
                 />
