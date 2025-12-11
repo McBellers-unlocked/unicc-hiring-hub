@@ -109,25 +109,43 @@ export function parseExperienceYears(text: string): number {
 
 /**
  * Calculate total years of experience from work history
+ * Handles multiple data formats:
+ * - PHF format: period_from_year/month, period_to_year/month, is_present
+ * - Profile format: startDate, endDate, isCurrent (camelCase)
+ * - Standard format: start_date, end_date, is_current (snake_case)
  */
-export function calculateTotalExperienceYears(
-  experience: Array<{
-    start_date?: string;
-    end_date?: string;
-    is_current?: boolean;
-  }>
-): number {
+export function calculateTotalExperienceYears(experience: any[]): number {
   let totalMonths = 0;
   
   for (const exp of experience) {
-    if (!exp.start_date) continue;
+    let startDate: Date | null = null;
+    let endDate: Date | null = null;
     
-    const startDate = new Date(exp.start_date);
-    const endDate = exp.is_current || !exp.end_date 
-      ? new Date() 
-      : new Date(exp.end_date);
+    // Handle PHF format (period_from_year, period_from_month)
+    if (exp.period_from_year) {
+      const month = exp.period_from_month ? parseInt(exp.period_from_month) - 1 : 0;
+      startDate = new Date(parseInt(exp.period_from_year), month, 1);
+      
+      if (exp.is_present) {
+        endDate = new Date();
+      } else if (exp.period_to_year) {
+        const toMonth = exp.period_to_month ? parseInt(exp.period_to_month) - 1 : 11;
+        endDate = new Date(parseInt(exp.period_to_year), toMonth, 28);
+      }
+    }
+    // Handle profile format (startDate, endDate - camelCase)
+    else if (exp.startDate) {
+      startDate = new Date(exp.startDate);
+      endDate = exp.isCurrent || !exp.endDate ? new Date() : new Date(exp.endDate);
+    }
+    // Handle snake_case format (start_date, end_date)
+    else if (exp.start_date) {
+      startDate = new Date(exp.start_date);
+      endDate = exp.is_current || !exp.end_date ? new Date() : new Date(exp.end_date);
+    }
     
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) continue;
+    if (!startDate || isNaN(startDate.getTime())) continue;
+    if (!endDate || isNaN(endDate.getTime())) continue;
     
     const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 
       + (endDate.getMonth() - startDate.getMonth());
@@ -139,14 +157,12 @@ export function calculateTotalExperienceYears(
 
 /**
  * Check if candidate has a higher degree than essential requirement
- * Only counts if WHED verified (for now, we check a flag)
+ * Handles multiple data formats:
+ * - degree_type vs degree field names
+ * - is_completed vs isCompleted vs inferring from endDate
  */
 export function hasHigherDegree(
-  candidateEducation: Array<{
-    degree_type: string;
-    is_completed: boolean;
-    whed_verified?: boolean;
-  }>,
+  candidateEducation: any[],
   essentialLevel: EducationLevel,
   requireWhedVerification: boolean = true
 ): { hasHigher: boolean; highestDegree: string; highestLevel: EducationLevel } {
@@ -154,13 +170,22 @@ export function hasHigherDegree(
   let highestDegree = '';
   
   for (const edu of candidateEducation) {
-    if (!edu.is_completed) continue;
+    // Check completion - handle multiple field names, assume completed if no flag
+    const isCompleted = edu.is_completed ?? edu.isCompleted ?? 
+      (edu.endDate ? true : edu.end_date ? true : true);
+    if (!isCompleted) continue;
+    
+    // Check WHED verification if required
     if (requireWhedVerification && !edu.whed_verified) continue;
     
-    const level = getEducationLevel(edu.degree_type);
+    // Get degree name - handle both field names
+    const degreeType = edu.degree_type || edu.degree || '';
+    if (!degreeType) continue;
+    
+    const level = getEducationLevel(degreeType);
     if (EDUCATION_HIERARCHY[level] > EDUCATION_HIERARCHY[highestLevel]) {
       highestLevel = level;
-      highestDegree = edu.degree_type;
+      highestDegree = degreeType;
     }
   }
   
