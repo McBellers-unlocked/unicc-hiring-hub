@@ -4,54 +4,62 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, XCircle, Brain, TrendingUp, FileText, Info } from 'lucide-react';
+import { CheckCircle, XCircle, Brain, TrendingUp, Info, GraduationCap, Briefcase, Lightbulb, Target } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface CriterionScore {
+  criterionId: string;
+  criterionText: string;
+  type: string;
   score: number;
+  passed: boolean;
   evidence: string;
   confidence: number;
-  weight: number;
-  mustHave: boolean;
+  details?: {
+    required?: string;
+    candidateHas?: string;
+  };
 }
 
-interface ScoringBreakdown {
-  criteria: Record<string, CriterionScore>;
+interface ScoringResult {
+  criteria: CriterionScore[];
+  educationScore: CriterionScore | null;
   overallScore: number;
-  passedMustHaves: boolean;
+  passedCount: number;
+  totalCount: number;
   recommendForLonglist: boolean;
   analysisVersion: string;
-  jobRequirements?: {
-    technical_skills: string[];
-    experience_areas: string[];
-    education_requirements: string[];
-    language_requirements: string[];
-    soft_skills: string[];
-    years_experience: number;
-  };
-  candidateAnalysis?: {
-    strengths: string[];
-    gaps: string[];
-    evidence: string[];
-    detailedScores: {
-      technical_match: number;
-      experience_match: number;
-      education_match: number;
-      language_match: number;
-      motivation_alignment: number;
-      overall_fit: number;
-    };
-  };
 }
 
 interface ApplicationScoringProps {
   applicationId: string;
 }
 
+const criterionTypeLabels: Record<string, string> = {
+  years_experience: 'Years of Experience',
+  specific_experience: 'Specific Experience',
+  output_experience: 'Output/Deliverable Experience',
+  knowledge: 'Knowledge',
+  skill: 'Skill',
+  ability: 'Ability',
+  attribute: 'Personal Attribute',
+  education: 'Education'
+};
+
+const criterionTypeIcons: Record<string, React.ReactNode> = {
+  years_experience: <Briefcase className="h-4 w-4" />,
+  specific_experience: <Briefcase className="h-4 w-4" />,
+  output_experience: <Target className="h-4 w-4" />,
+  knowledge: <Lightbulb className="h-4 w-4" />,
+  skill: <Target className="h-4 w-4" />,
+  ability: <Target className="h-4 w-4" />,
+  attribute: <Info className="h-4 w-4" />,
+  education: <GraduationCap className="h-4 w-4" />
+};
+
 export function ApplicationScoring({ applicationId }: ApplicationScoringProps) {
   const [loading, setLoading] = useState(true);
-  const [scoringData, setScoringData] = useState<ScoringBreakdown | null>(null);
-  const [criteriaData, setCriteriaData] = useState<any[]>([]);
+  const [scoringData, setScoringData] = useState<ScoringResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -62,34 +70,29 @@ export function ApplicationScoring({ applicationId }: ApplicationScoringProps) {
     try {
       setLoading(true);
       
-      // Fetch screening score and related criteria
       const { data: screeningScore, error: scoreError } = await supabase
         .from('screening_scores')
-        .select(`
-          *,
-          applications!inner(
-            id,
-            jobs!inner(
-              job_requirements(*)
-            )
-          )
-        `)
+        .select('*')
         .eq('application_id', applicationId)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (scoreError) {
-        throw scoreError;
-      }
+      if (scoreError) throw scoreError;
 
       if (!screeningScore) {
         setError('No scoring data available yet. Scoring may still be in progress.');
         return;
       }
 
-      setScoringData(screeningScore.rubric_breakdown as unknown as ScoringBreakdown);
-      setCriteriaData(screeningScore.applications.jobs.job_requirements || []);
+      // Handle both old and new format
+      const breakdown = screeningScore.rubric_breakdown as any;
+      if (breakdown?.analysisVersion?.startsWith('3.0')) {
+        setScoringData(breakdown as ScoringResult);
+      } else {
+        // Legacy format - show message
+        setError('Scoring data is in legacy format. Please re-run scoring for detailed criterion analysis.');
+      }
 
     } catch (err) {
       console.error('Error fetching scoring data:', err);
@@ -97,19 +100,6 @@ export function ApplicationScoring({ applicationId }: ApplicationScoringProps) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 70) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getScoreBadgeVariant = (score: number, mustHave: boolean) => {
-    if (mustHave && score < 70) return 'destructive';
-    if (score >= 80) return 'default';
-    if (score >= 70) return 'secondary';
-    return 'outline';
   };
 
   if (loading) {
@@ -124,7 +114,7 @@ export function ApplicationScoring({ applicationId }: ApplicationScoringProps) {
         <CardContent>
           <div className="flex items-center space-x-2">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-            <span className="text-muted-foreground">Analyzing application...</span>
+            <span className="text-muted-foreground">Loading scoring data...</span>
           </div>
         </CardContent>
       </Card>
@@ -143,15 +133,9 @@ export function ApplicationScoring({ applicationId }: ApplicationScoringProps) {
         <CardContent>
           <Alert>
             <Info className="h-4 w-4" />
-            <AlertDescription>
-              {error}
-            </AlertDescription>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
-          <Button 
-            onClick={fetchScoringData} 
-            variant="outline" 
-            className="mt-4"
-          >
+          <Button onClick={fetchScoringData} variant="outline" className="mt-4">
             Refresh
           </Button>
         </CardContent>
@@ -159,14 +143,21 @@ export function ApplicationScoring({ applicationId }: ApplicationScoringProps) {
     );
   }
 
-  if (!scoringData) {
-    return null;
-  }
+  if (!scoringData) return null;
 
-  const getCriterionName = (criterionId: string) => {
-    const criterion = criteriaData.find(c => c.id === criterionId);
-    return criterion?.label || criterionId;
-  };
+  // Combine all criteria for display
+  const allCriteria = [
+    ...(scoringData.educationScore ? [scoringData.educationScore] : []),
+    ...scoringData.criteria
+  ];
+
+  // Group by type
+  const groupedCriteria = allCriteria.reduce((acc, criterion) => {
+    const type = criterion.type;
+    if (!acc[type]) acc[type] = [];
+    acc[type].push(criterion);
+    return acc;
+  }, {} as Record<string, CriterionScore[]>);
 
   return (
     <div className="space-y-6">
@@ -175,13 +166,16 @@ export function ApplicationScoring({ applicationId }: ApplicationScoringProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5" />
-            AI Scoring Analysis
+            Criterion-Based AI Scoring
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="text-center">
-              <div className={`text-3xl font-bold ${getScoreColor(scoringData.overallScore)}`}>
+              <div className={`text-3xl font-bold ${
+                scoringData.overallScore >= 70 ? 'text-green-600' : 
+                scoringData.overallScore >= 50 ? 'text-yellow-600' : 'text-red-600'
+              }`}>
                 {scoringData.overallScore}
               </div>
               <div className="text-sm text-muted-foreground">Overall Score</div>
@@ -189,17 +183,14 @@ export function ApplicationScoring({ applicationId }: ApplicationScoringProps) {
             </div>
             
             <div className="text-center">
-              <div className="flex items-center justify-center mb-2">
-                {scoringData.passedMustHaves ? (
-                  <CheckCircle className="h-8 w-8 text-green-600" />
-                ) : (
-                  <XCircle className="h-8 w-8 text-red-600" />
-                )}
+              <div className="text-3xl font-bold text-primary">
+                {scoringData.passedCount}/{scoringData.totalCount}
               </div>
-              <div className="text-sm text-muted-foreground">Must-Have Requirements</div>
-              <div className={`text-sm font-medium ${scoringData.passedMustHaves ? 'text-green-600' : 'text-red-600'}`}>
-                {scoringData.passedMustHaves ? 'Passed' : 'Failed'}
-              </div>
+              <div className="text-sm text-muted-foreground">Criteria Passed</div>
+              <Progress 
+                value={(scoringData.passedCount / Math.max(1, scoringData.totalCount)) * 100} 
+                className="mt-2" 
+              />
             </div>
             
             <div className="text-center">
@@ -211,268 +202,136 @@ export function ApplicationScoring({ applicationId }: ApplicationScoringProps) {
                 )}
               </div>
               <div className="text-sm text-muted-foreground">Recommendation</div>
-              <div className={`text-sm font-medium ${scoringData.recommendForLonglist ? 'text-green-600' : 'text-red-600'}`}>
+              <Badge variant={scoringData.recommendForLonglist ? 'default' : 'destructive'} className="mt-1">
                 {scoringData.recommendForLonglist ? 'Longlist' : 'Not Recommended'}
-              </div>
+              </Badge>
+            </div>
+
+            <div className="text-center">
+              <div className="text-xs text-muted-foreground mb-2">Analysis Version</div>
+              <Badge variant="outline">{scoringData.analysisVersion}</Badge>
             </div>
           </div>
 
           {!scoringData.recommendForLonglist && (
-            <Alert variant="destructive" className="mb-4">
+            <Alert variant="destructive">
               <XCircle className="h-4 w-4" />
               <AlertDescription>
-                This application does not meet the minimum requirements for longlisting. 
-                {!scoringData.passedMustHaves && ' Failed must-have requirements.'}
-                {scoringData.overallScore < 70 && ' Overall score below 70 threshold.'}
+                This application does not meet the minimum criteria for longlisting.
+                {scoringData.passedCount < scoringData.totalCount * 0.6 && 
+                  ` Failed ${scoringData.totalCount - scoringData.passedCount} of ${scoringData.totalCount} criteria.`}
               </AlertDescription>
             </Alert>
           )}
         </CardContent>
       </Card>
 
-      {/* Enhanced Match Analysis */}
-      {scoringData.candidateAnalysis && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Match Analysis Summary</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Comprehensive evaluation of candidate fit against job requirements
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              {/* Match Scores */}
-              <div className="space-y-4">
-                <h4 className="font-medium">Detailed Match Scores</h4>
-                {Object.entries(scoringData.candidateAnalysis.detailedScores).map(([key, score]) => (
-                  <div key={key} className="flex items-center justify-between">
-                    <span className="text-sm capitalize">
-                      {key.replace('_', ' ')}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <Progress value={score} className="w-20 h-2" />
-                      <span className={`text-sm font-medium ${getScoreColor(score)}`}>
-                        {Math.round(score)}%
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Strengths & Gaps */}
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-medium text-green-600 mb-2">Key Strengths</h4>
-                  <ul className="text-sm space-y-1">
-                    {scoringData.candidateAnalysis.strengths.map((strength, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        {strength}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div>
-                  <h4 className="font-medium text-orange-600 mb-2">Areas for Consideration</h4>
-                  <ul className="text-sm space-y-1">
-                    {scoringData.candidateAnalysis.gaps.map((gap, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <Info className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
-                        {gap}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            {/* Evidence */}
-            <div className="border-t pt-4">
-              <h4 className="font-medium mb-3">Supporting Evidence</h4>
-              <div className="grid gap-3">
-                {scoringData.candidateAnalysis.evidence.map((evidence, index) => (
-                  <div key={index} className="text-sm text-muted-foreground bg-muted/30 p-3 rounded">
-                    {evidence}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Job Requirements vs Candidate Profile */}
-      {scoringData.jobRequirements && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Job Requirements Analysis</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Extracted requirements from job description and essential criteria
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-2">Technical Skills Required</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {scoringData.jobRequirements.technical_skills.map((skill, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {skill}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Experience Areas</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {scoringData.jobRequirements.experience_areas.map((area, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {area}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Language Requirements</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {scoringData.jobRequirements.language_requirements.map((lang, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {lang}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-2">Education Requirements</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {scoringData.jobRequirements.education_requirements.map((edu, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {edu}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Soft Skills</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {scoringData.jobRequirements.soft_skills.map((skill, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {skill}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Experience Level</h4>
-                  <Badge variant="default" className="text-sm">
-                    {scoringData.jobRequirements.years_experience}+ years required
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Detailed Criterion Breakdown */}
+      {/* Individual Criteria Results */}
       <Card>
         <CardHeader>
-          <CardTitle>Essential Criteria Scoring</CardTitle>
+          <CardTitle>Essential Criteria Assessment</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Detailed evaluation against specific job criteria
+            Each criterion from the job requirements assessed individually
           </p>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {Object.entries(scoringData.criteria).map(([criterionId, score]) => (
-              <div key={criterionId} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <h4 className="font-medium">{getCriterionName(criterionId)}</h4>
-                    {score.mustHave && (
-                      <Badge variant="outline" className="text-xs">
-                        Must Have
-                      </Badge>
-                    )}
-                    <Badge 
-                      variant={getScoreBadgeVariant(score.score, score.mustHave)}
-                      className="text-xs"
-                    >
-                      {score.score}/100
-                    </Badge>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm text-muted-foreground">
-                      Weight: {score.weight}x
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Confidence: {Math.round(score.confidence * 100)}%
-                    </div>
-                  </div>
-                </div>
-                
-                <Progress 
-                  value={score.score} 
-                  className="mb-2 h-2" 
-                />
-                
-                <div className="text-sm text-muted-foreground">
-                  <strong>Evidence:</strong> {score.evidence}
-                </div>
+        <CardContent className="space-y-6">
+          {Object.entries(groupedCriteria).map(([type, criteria]) => (
+            <div key={type} className="space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
+                {criterionTypeIcons[type]}
+                {criterionTypeLabels[type] || type}
+                <Badge variant="outline" className="ml-auto">
+                  {criteria.filter(c => c.passed).length}/{criteria.length} passed
+                </Badge>
               </div>
-            ))}
-          </div>
+              
+              {criteria.map((criterion) => (
+                <div 
+                  key={criterion.criterionId} 
+                  className={`border rounded-lg p-4 ${
+                    criterion.passed 
+                      ? 'border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-900' 
+                      : 'border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-900'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="flex items-start gap-2 flex-1">
+                      {criterion.passed ? (
+                        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                      )}
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{criterion.criterionText}</p>
+                        {criterion.details && (
+                          <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                            {criterion.details.required && (
+                              <p><span className="font-medium">Required:</span> {criterion.details.required}</p>
+                            )}
+                            {criterion.details.candidateHas && (
+                              <p><span className="font-medium">Candidate has:</span> {criterion.details.candidateHas}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <Badge 
+                        variant={criterion.passed ? 'default' : 'destructive'}
+                        className="text-xs"
+                      >
+                        {criterion.score}/100
+                      </Badge>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {Math.round(criterion.confidence * 100)}% confidence
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="text-sm text-muted-foreground bg-muted/30 p-2 rounded">
+                    <span className="font-medium">Evidence:</span> {criterion.evidence}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
         </CardContent>
       </Card>
 
       {/* Scoring Methodology */}
       <Card>
         <CardHeader>
-          <CardTitle>Enhanced Scoring Methodology</CardTitle>
+          <CardTitle>Scoring Methodology (v3.0)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-sm text-muted-foreground space-y-3">
             <div>
-              <p><strong>Dynamic Analysis Process:</strong></p>
-              <ul className="list-disc list-inside space-y-1 ml-4">
-                <li>Job requirements extracted from description and essential criteria</li>
-                <li>Candidate profile analyzed including work experience, education, and motivation</li>
-                <li>Semantic matching using AI to understand context beyond keywords</li>
-                <li>Evidence-based scoring with specific justifications</li>
+              <p className="font-medium">Criterion-Based Analysis:</p>
+              <ul className="list-disc list-inside ml-4 space-y-1">
+                <li>Each bullet point in Essential Criteria is scored separately</li>
+                <li>Years of experience: Deterministic check against PHF work history</li>
+                <li>Education: Deterministic match against PHF education entries</li>
+                <li>Other criteria: AI relevance check using duties and motivation letter</li>
               </ul>
             </div>
             
             <div>
-              <p><strong>Scoring Scale:</strong></p>
-              <ul className="list-disc list-inside space-y-1 ml-4">
-                <li>0-30: No evidence or very limited evidence found</li>
-                <li>31-69: Moderate evidence with some gaps</li>
-                <li>70-100: Strong evidence meeting or exceeding requirements</li>
+              <p className="font-medium">Pass/Fail Criteria:</p>
+              <ul className="list-disc list-inside ml-4 space-y-1">
+                <li>Years requirements must be met exactly (total years from PHF)</li>
+                <li>Education level must match or exceed requirement</li>
+                <li>AI checks experience relevance using specific evidence</li>
               </ul>
             </div>
             
             <div>
-              <p><strong>Match Recommendation Criteria:</strong></p>
-              <ul className="list-disc list-inside space-y-1 ml-4">
-                <li>Overall weighted score ≥ 70</li>
-                <li>All must-have criteria ≥ 70</li>
-                <li>Comprehensive analysis of technical, experience, and cultural fit</li>
+              <p className="font-medium">Longlist Recommendation:</p>
+              <ul className="list-disc list-inside ml-4 space-y-1">
+                <li>All core criteria (years + education) must pass</li>
+                <li>At least 60% of all criteria must pass</li>
+                <li>Overall weighted score ≥ 60</li>
               </ul>
             </div>
-            
-            <p className="mt-4 text-xs border-t pt-2">
-              Analysis Version: {scoringData.analysisVersion} | 
-              Enhanced AI-powered candidate matching system
-            </p>
           </div>
         </CardContent>
       </Card>
