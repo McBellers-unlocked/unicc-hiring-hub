@@ -28,6 +28,7 @@ import { getDivisionCode } from "@/lib/chiefAssignment";
 
 interface JobRequisition {
   id: string;
+  slug: string;
   reference_number: string;
   position_title: string;
   grade: string;
@@ -638,7 +639,7 @@ export default function AdminRequisitions() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => navigate(`/requisitions/initial/${requisition.id}?view=true`)}
+                                onClick={() => navigate(`/requisitions/initial/${(requisition as any).slug || requisition.id}?view=true`)}
                               >
                                 <Eye className="h-4 w-4 mr-1" />
                                 View Request
@@ -652,9 +653,9 @@ export default function AdminRequisitions() {
                                 size="sm"
                                 onClick={() => {
                                   if (requisition.status === 'initial_request_draft') {
-                                    navigate(`/requisitions/initial/${requisition.id}`);
+                                    navigate(`/requisitions/initial/${(requisition as any).slug || requisition.id}`);
                                   } else {
-                                    navigate(`/requisitions/${requisition.id}/edit`);
+                                    navigate(`/requisitions/${(requisition as any).slug || requisition.id}/edit`);
                                   }
                                 }}
                               >
@@ -688,7 +689,7 @@ export default function AdminRequisitions() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => navigate(`/requisitions/${requisition.id}`)}
+                              onClick={() => navigate(`/requisitions/${(requisition as any).slug || requisition.id}`)}
                             >
                               <Eye className="h-4 w-4 mr-1" />
                               View
@@ -700,7 +701,7 @@ export default function AdminRequisitions() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => navigate(`/requisitions/${requisition.id}/hr-edit`)}
+                                  onClick={() => navigate(`/requisitions/${(requisition as any).slug || requisition.id}/hr-edit`)}
                                   className="text-blue-600 border-blue-600 hover:bg-blue-50"
                                 >
                                   <Edit2 className="h-4 w-4 mr-1" />
@@ -715,13 +716,14 @@ export default function AdminRequisitions() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => navigate(`/requisitions/${requisition.id}`)}
+                                  onClick={() => navigate(`/requisitions/${(requisition as any).slug || requisition.id}`)}
                                 >
                                   <Eye className="h-4 w-4 mr-1" />
                                   View Details
                                 </Button>
                                 <ChiefHRReviewDialog 
-                                  requisitionId={requisition.id} 
+                                  requisitionId={requisition.id}
+                                  requisitionSlug={(requisition as any).slug}
                                   onComplete={fetchRequisitions} 
                                 />
                               </div>
@@ -745,7 +747,7 @@ export default function AdminRequisitions() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => navigate(`/requisitions/${requisition.id}/hr-final-edit`)}
+                                  onClick={() => navigate(`/requisitions/${(requisition as any).slug || requisition.id}/hr-final-edit`)}
                                   className="text-blue-600 border-blue-600 hover:bg-blue-50"
                                 >
                                   <Edit2 className="h-4 w-4 mr-1" />

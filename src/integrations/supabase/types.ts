@@ -1415,6 +1415,7 @@ export type Database = {
           positions_available: number | null
           purpose_of_position: string | null
           reference_number: string | null
+          slug: string | null
           start_date: string | null
           status: string
           temporary_duration: string | null
@@ -1494,6 +1495,7 @@ export type Database = {
           positions_available?: number | null
           purpose_of_position?: string | null
           reference_number?: string | null
+          slug?: string | null
           start_date?: string | null
           status?: string
           temporary_duration?: string | null
@@ -1573,6 +1575,7 @@ export type Database = {
           positions_available?: number | null
           purpose_of_position?: string | null
           reference_number?: string | null
+          slug?: string | null
           start_date?: string | null
           status?: string
           temporary_duration?: string | null
@@ -2967,6 +2970,10 @@ export type Database = {
       }
       generate_position_description_reference: {
         Args: { p_duty_station: string; p_nature_of_position: string }
+        Returns: string
+      }
+      generate_requisition_slug: {
+        Args: { req_id: string; title: string }
         Returns: string
       }
       get_all_reports: {

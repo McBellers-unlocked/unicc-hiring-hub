@@ -15,6 +15,7 @@ import { getAssignedChief } from "@/lib/chiefAssignment";
 
 interface JobRequisition {
   id: string;
+  slug: string;
   reference_number: string;
   position_title: string;
   unit_section_division: string | null;
@@ -404,7 +405,7 @@ export default function JobRequisitions() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/requisitions/initial/${requisition.id}?view=true`)}
+                          onClick={() => navigate(`/requisitions/initial/${requisition.slug || requisition.id}?view=true`)}
                         >
                           <Eye className="h-4 w-4 mr-1" />
                           View Request
@@ -418,9 +419,9 @@ export default function JobRequisitions() {
                           size="sm"
                           onClick={() => {
                             if (requisition.status === 'initial_request_draft') {
-                              navigate(`/requisitions/initial/${requisition.id}`);
+                              navigate(`/requisitions/initial/${requisition.slug || requisition.id}`);
                             } else {
-                              navigate(`/requisitions/${requisition.id}/edit`);
+                              navigate(`/requisitions/${requisition.slug || requisition.id}/edit`);
                             }
                           }}
                         >
@@ -440,7 +441,7 @@ export default function JobRequisitions() {
                             variant="default"
                             size="sm"
                             className="bg-green-600 hover:bg-green-700"
-                            onClick={() => navigate(`/requisitions/${requisition.id}/edit`)}
+                            onClick={() => navigate(`/requisitions/${requisition.slug || requisition.id}/edit`)}
                           >
                             <FileText className="h-4 w-4 mr-1" />
                             Continue to Full PD
@@ -478,7 +479,7 @@ export default function JobRequisitions() {
                           variant="default"
                           size="sm"
                           className="bg-blue-600 hover:bg-blue-700"
-                          onClick={() => navigate(`/requisitions/${requisition.id}/hr-edit`)}
+                          onClick={() => navigate(`/requisitions/${requisition.slug || requisition.id}/hr-edit`)}
                         >
                           <Eye className="h-4 w-4 mr-1" />
                           Finalize & Send to Chief
@@ -529,7 +530,7 @@ export default function JobRequisitions() {
                         onClick={() => {
                           // Route to hiring manager review if status is hiring_manager_review and user is the hiring manager
                           if (requisition.status === 'hiring_manager_review' && requisition.created_by === user?.id) {
-                            navigate(`/requisitions/${requisition.id}/hm-review`);
+                            navigate(`/requisitions/${requisition.slug || requisition.id}/hm-review`);
                           } else {
                             // Route to initial request form if:
                             // 1. Initial request was submitted but not approved, OR
@@ -538,9 +539,9 @@ export default function JobRequisitions() {
                             const isStillInitialRequest = hasInitialRequestData && !requisition.initial_request_approved;
                             
                             if (isStillInitialRequest) {
-                              navigate(`/requisitions/initial/${requisition.id}`);
+                              navigate(`/requisitions/initial/${requisition.slug || requisition.id}`);
                             } else {
-                              navigate(`/requisitions/${requisition.id}`);
+                              navigate(`/requisitions/${requisition.slug || requisition.id}`);
                             }
                           }
                         }}

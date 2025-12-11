@@ -4,10 +4,11 @@ import { Eye } from "lucide-react";
 
 interface ChiefHRReviewDialogProps {
   requisitionId: string;
+  requisitionSlug?: string;
   onComplete: () => void;
 }
 
-export function ChiefHRReviewDialog({ requisitionId }: ChiefHRReviewDialogProps) {
+export function ChiefHRReviewDialog({ requisitionId, requisitionSlug }: ChiefHRReviewDialogProps) {
   const navigate = useNavigate();
 
   return (
@@ -15,7 +16,7 @@ export function ChiefHRReviewDialog({ requisitionId }: ChiefHRReviewDialogProps)
       variant="outline" 
       size="sm"
       className="text-blue-600 border-blue-600 hover:bg-blue-50"
-      onClick={() => navigate(`/requisitions/${requisitionId}/chief-hr-edit`)}
+      onClick={() => navigate(`/requisitions/${requisitionSlug || requisitionId}/chief-hr-edit`)}
     >
       <Eye className="h-4 w-4 mr-1" />
       Review & Edit as Chief HR

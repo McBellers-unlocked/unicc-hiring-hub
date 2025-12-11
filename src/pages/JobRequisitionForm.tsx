@@ -478,10 +478,11 @@ export default function JobRequisitionForm() {
   const fetchRequisition = async () => {
     try {
       setLoading(true);
+      // Query supports both slug and UUID
       const { data, error } = await supabase
         .from('job_requisitions')
         .select('*')
-        .eq('id', id)
+        .or(`slug.eq.${id},id.eq.${id}`)
         .single();
 
       if (error) throw error;
@@ -759,7 +760,14 @@ export default function JobRequisitionForm() {
 
         currentRequisitionId = id;
       } else {
-        // Create new requisition
+        // Create new requisition with slug
+        const generateSlug = (title: string) => {
+          return title
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '');
+        };
+        
         const { un_language_advantage, local_language_advantage, additional_languages, is_supervisor_role, ...cleanFormData } = formData as any;
         const updatedLanguageRequirements = {
           english: "Expert knowledge is required",
@@ -768,10 +776,13 @@ export default function JobRequisitionForm() {
           additional_languages: additional_languages || []
         };
         
+        const baseSlug = generateSlug(formData.position_title);
+        
         const { data: newRequisition, error } = await supabase
           .from('job_requisitions')
           .insert({
             ...cleanFormData,
+            slug: baseSlug,
             duty_station: JSON.stringify(formData.duty_station),
             language_requirements: updatedLanguageRequirements,
             comments: updatedComments,
@@ -799,7 +810,7 @@ export default function JobRequisitionForm() {
             .eq('id', newRequisition.id);
         }
 
-        navigate(`/requisitions/${newRequisition.id}`);
+        navigate(`/requisitions/${newRequisition.slug || newRequisition.id}`);
       }
 
       // Send email notification if submitting for approval
