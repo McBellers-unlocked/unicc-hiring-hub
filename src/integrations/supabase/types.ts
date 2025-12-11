@@ -1784,6 +1784,134 @@ export type Database = {
           },
         ]
       }
+      offer_determinations: {
+        Row: {
+          additional_years_counted: number | null
+          application_id: string
+          approved_at: string | null
+          approved_by: string | null
+          base_step: number | null
+          calculated_at: string | null
+          calculated_by: string | null
+          calculated_step: number
+          candidate_education_level: string | null
+          candidate_highest_education: string | null
+          candidate_relevant_experience_years: number | null
+          candidate_total_experience_years: number | null
+          created_at: string | null
+          education_step: number | null
+          education_step_justification: string | null
+          essential_education_level: string | null
+          essential_experience_text: string | null
+          essential_experience_years: number | null
+          experience_steps: number | null
+          experience_steps_justification: string | null
+          final_step: number | null
+          id: string
+          job_grade: string | null
+          job_id: string
+          override_justification: string | null
+          rejection_reason: string | null
+          status: string | null
+          updated_at: string | null
+          whed_verification_notes: string | null
+          whed_verified: boolean | null
+        }
+        Insert: {
+          additional_years_counted?: number | null
+          application_id: string
+          approved_at?: string | null
+          approved_by?: string | null
+          base_step?: number | null
+          calculated_at?: string | null
+          calculated_by?: string | null
+          calculated_step: number
+          candidate_education_level?: string | null
+          candidate_highest_education?: string | null
+          candidate_relevant_experience_years?: number | null
+          candidate_total_experience_years?: number | null
+          created_at?: string | null
+          education_step?: number | null
+          education_step_justification?: string | null
+          essential_education_level?: string | null
+          essential_experience_text?: string | null
+          essential_experience_years?: number | null
+          experience_steps?: number | null
+          experience_steps_justification?: string | null
+          final_step?: number | null
+          id?: string
+          job_grade?: string | null
+          job_id: string
+          override_justification?: string | null
+          rejection_reason?: string | null
+          status?: string | null
+          updated_at?: string | null
+          whed_verification_notes?: string | null
+          whed_verified?: boolean | null
+        }
+        Update: {
+          additional_years_counted?: number | null
+          application_id?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          base_step?: number | null
+          calculated_at?: string | null
+          calculated_by?: string | null
+          calculated_step?: number
+          candidate_education_level?: string | null
+          candidate_highest_education?: string | null
+          candidate_relevant_experience_years?: number | null
+          candidate_total_experience_years?: number | null
+          created_at?: string | null
+          education_step?: number | null
+          education_step_justification?: string | null
+          essential_education_level?: string | null
+          essential_experience_text?: string | null
+          essential_experience_years?: number | null
+          experience_steps?: number | null
+          experience_steps_justification?: string | null
+          final_step?: number | null
+          id?: string
+          job_grade?: string | null
+          job_id?: string
+          override_justification?: string | null
+          rejection_reason?: string | null
+          status?: string | null
+          updated_at?: string | null
+          whed_verification_notes?: string | null
+          whed_verified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_determinations_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_determinations_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_determinations_calculated_by_fkey"
+            columns: ["calculated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_determinations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       panel_interview_invitations: {
         Row: {
           application_id: string
