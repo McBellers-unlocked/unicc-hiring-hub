@@ -265,16 +265,15 @@ export function InternalTalentFilters({
               {/* Tenure Range */}
               <div className="space-y-2 md:col-span-2 lg:col-span-3">
                 <Label className="text-sm font-medium">
-                  Years at UNICC: {filters.minTenure || 0} - {filters.maxTenure || 30}+ years
+                  Minimum Years at UNICC: {filters.minTenure || 0}+ years
                 </Label>
                 <Slider
                   min={0}
                   max={30}
                   step={1}
-                  value={[filters.minTenure || 0, filters.maxTenure || 30]}
-                  onValueChange={([min, max]) => {
+                  value={[filters.minTenure || 0]}
+                  onValueChange={([min]) => {
                     handleFilterChange("minTenure", min);
-                    handleFilterChange("maxTenure", max);
                   }}
                   className="w-full"
                 />
