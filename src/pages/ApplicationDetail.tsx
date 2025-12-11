@@ -1347,7 +1347,7 @@ export default function ApplicationDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {['Offer', 'Roster', 'Panel Interview', 'Shortlist'].includes(application.status) ? (
+                {['Offer', 'Roster', 'Panel Interview', 'Shortlist', 'Recommended'].includes(application.status) ? (
                   <StepDeterminationCalculator
                     applicationId={application.id}
                     jobId={application.job.id}
