@@ -353,13 +353,11 @@ export default function AdminApplications() {
               else if (r.responses && typeof r.responses === 'object') {
                 const respObj = r.responses as Record<string, any>;
                 const scores: number[] = [];
-                Object.values(respObj).forEach((section: any) => {
-                  if (section && typeof section === 'object') {
-                    Object.values(section).forEach((criterion: any) => {
-                      if (criterion && typeof criterion.score === 'number') {
-                        scores.push(criterion.score);
-                      }
-                    });
+                // Flat structure: each key directly contains {note, score}
+                Object.entries(respObj).forEach(([key, item]: [string, any]) => {
+                  // Skip overall_notes which is just for notes
+                  if (key !== 'overall_notes' && item && typeof item === 'object' && typeof item.score === 'number') {
+                    scores.push(item.score);
                   }
                 });
                 if (scores.length > 0) {
