@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, FileText, Briefcase, CheckCircle, Clock, MessageSquare, Download, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { InlineTrackChanges } from "@/components/InlineTrackChanges";
+import { isValidUUID } from "@/lib/utils";
 
 interface JobRequisition {
   id: string;
@@ -75,11 +76,16 @@ export default function JobRequisitionDetail() {
 
   const fetchRequisition = async () => {
     try {
-      // Query supports both slug and UUID
+      // Query by id if UUID, otherwise by slug
       let query = supabase
         .from('job_requisitions')
-        .select('*')
-        .or(`slug.eq.${id},id.eq.${id}`);
+        .select('*');
+      
+      if (isValidUUID(id || '')) {
+        query = query.eq('id', id);
+      } else {
+        query = query.eq('slug', id);
+      }
 
       // If user is only a hiring manager (not admin/HR), restrict to their own requisitions
       if (userRoles.includes('Hiring Manager') && !userRoles.includes('Admin') && !userRoles.includes('HR Assistant')) {

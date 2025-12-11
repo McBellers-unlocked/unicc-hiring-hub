@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, Eye, FileCheck, Check } from "lucide-react";
 import EditableTrackChangesField from "@/components/EditableTrackChangesField";
 import { FinalDocumentReviewDialog } from "@/components/FinalDocumentReviewDialog";
+import { isValidUUID } from "@/lib/utils";
 
 interface JobRequisition {
   id: string;
@@ -65,8 +66,14 @@ export default function JobRequisitionHiringManagerReview() {
     try {
       let query = supabase
         .from('job_requisitions')
-        .select('*')
-        .eq('id', id);
+        .select('*');
+      
+      // Query by id if UUID, otherwise by slug
+      if (isValidUUID(id || '')) {
+        query = query.eq('id', id);
+      } else {
+        query = query.eq('slug', id);
+      }
 
       // Hiring managers can only access their own requisitions
       if (!userRoles.includes('Admin') && !userRoles.includes('HR Assistant')) {

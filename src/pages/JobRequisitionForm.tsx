@@ -17,7 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, isValidUUID } from "@/lib/utils";
 import { ArrowLeft, Save, Send, FileText, Briefcase, ChevronDown, CheckCircle2, CalendarIcon, Plus } from "lucide-react";
 import MDEditor, { commands, ICommand } from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';
@@ -478,12 +478,18 @@ export default function JobRequisitionForm() {
   const fetchRequisition = async () => {
     try {
       setLoading(true);
-      // Query supports both slug and UUID
-      const { data, error } = await supabase
+      // Query by id if UUID, otherwise by slug
+      let query = supabase
         .from('job_requisitions')
-        .select('*')
-        .or(`slug.eq.${id},id.eq.${id}`)
-        .single();
+        .select('*');
+      
+      if (isValidUUID(id || '')) {
+        query = query.eq('id', id);
+      } else {
+        query = query.eq('slug', id);
+      }
+      
+      const { data, error } = await query.single();
 
       if (error) throw error;
 

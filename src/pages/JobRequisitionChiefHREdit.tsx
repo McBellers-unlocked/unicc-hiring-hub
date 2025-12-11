@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { InlineTrackChanges, InlineTrackChangesSummary } from "@/components/InlineTrackChanges";
 import { FinalDocumentReviewDialog } from "@/components/FinalDocumentReviewDialog";
 import EditableTrackChangesFieldWithHighlight from "@/components/EditableTrackChangesFieldWithHighlight";
+import { isValidUUID } from "@/lib/utils";
 
 interface JobRequisition {
   id: string;
@@ -89,11 +90,18 @@ export default function JobRequisitionChiefHREdit() {
 
   const fetchRequisition = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('job_requisitions')
-        .select('*')
-        .eq('id', id)
-        .single();
+        .select('*');
+      
+      // Query by id if UUID, otherwise by slug
+      if (isValidUUID(id || '')) {
+        query = query.eq('id', id);
+      } else {
+        query = query.eq('slug', id);
+      }
+      
+      const { data, error } = await query.single();
 
       if (error) throw error;
       

@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { isValidUUID } from '@/lib/utils';
 import { ArrowLeft, Save, Send, CheckCircle, XCircle } from 'lucide-react';
 import { ConsultancyLevelGuidance } from '@/components/ConsultancyLevelGuidance';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -195,11 +196,17 @@ export default function InitialRequestForm() {
     try {
       setLoading(true);
       // Query supports both slug and UUID
-      const { data, error } = await supabase
+      let query = supabase
         .from('job_requisitions')
-        .select('*')
-        .or(`slug.eq.${id},id.eq.${id}`)
-        .single();
+        .select('*');
+      
+      if (isValidUUID(id || '')) {
+        query = query.eq('id', id);
+      } else {
+        query = query.eq('slug', id);
+      }
+      
+      const { data, error } = await query.single();
 
       if (error) throw error;
       
