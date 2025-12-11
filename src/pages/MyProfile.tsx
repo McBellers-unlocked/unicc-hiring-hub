@@ -6,7 +6,7 @@ import { Layout } from '@/components/Layout';
 import { UNICCLogo } from '@/components/UNICCLogo';
 
 export default function MyProfile() {
-  const { user } = useAuth();
+  const { user, userRoles } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
@@ -18,7 +18,19 @@ export default function MyProfile() {
       }
 
       try {
-        // Check if candidate profile exists for this email
+        // Check if user is staff (non-Candidate role) - they shouldn't create candidate profiles
+        const isStaff = userRoles.some(role => 
+          ['Admin', 'HR Assistant', 'Chief of HR', 'Hiring Manager', 'Panel Member', 'Director', 'Chief of Division', 'Deputy Director'].includes(role)
+        );
+
+        if (isStaff) {
+          // Staff users - redirect to dashboard or show message
+          // They appear in Talent Pool via the users table, not candidates
+          navigate('/');
+          return;
+        }
+
+        // Only for actual Candidate role users - check if candidate profile exists
         const { data: existingProfile, error: fetchError } = await supabase
           .from('candidates')
           .select('id')
@@ -59,7 +71,7 @@ export default function MyProfile() {
     };
 
     findOrCreateProfile();
-  }, [user, navigate]);
+  }, [user, userRoles, navigate]);
 
   if (loading) {
     return (

@@ -111,9 +111,19 @@ export function TalentSearchResults({
   // Normalize data from both sources
   const normalizedTalent: NormalizedTalent[] = [];
 
-  // Normalize external candidates
+  // Get staff emails for deduplication (exclude candidates who are also staff)
+  const staffEmails = new Set(
+    internalStaff?.map((s) => s.email.toLowerCase()) || []
+  );
+
+  // Normalize external candidates (excluding those who are also staff)
   if (filters.talentSource !== "internal" && externalCandidates) {
     externalCandidates.forEach((c) => {
+      // Skip if this candidate email matches a staff member
+      if (staffEmails.has(c.email.toLowerCase())) {
+        return;
+      }
+      
       normalizedTalent.push({
         id: c.id,
         name: c.name,
