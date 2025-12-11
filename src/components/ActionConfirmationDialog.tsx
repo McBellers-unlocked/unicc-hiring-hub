@@ -10,12 +10,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Plus, X, AlertCircle, Video, Check } from 'lucide-react';
+import { CheckCircle, Plus, X, AlertCircle, Video, Check, Award, Users } from 'lucide-react';
 
 interface ActionConfirmationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  action: 'longlist' | 'shortlist' | 'reject' | 'add-to-shortlist' | 'add-to-video' | 'move-to-panel-interview';
+  action: 'longlist' | 'shortlist' | 'reject' | 'add-to-shortlist' | 'add-to-video' | 'move-to-panel-interview' | 'move-to-recommended' | 'move-to-roster';
   candidateName: string;
   currentStatus: string;
   isToggleAction?: boolean; // For longlist toggle
@@ -115,6 +115,24 @@ export function ActionConfirmationDialog({
           buttonText: 'Move to Panel Interview',
           buttonVariant: 'default',
           placeholder: 'Reason for moving to panel interview (optional)...'
+        };
+      case 'move-to-recommended':
+        return {
+          title: 'Recommend Candidate',
+          description: `Recommend ${candidateName} for this position? This candidate scored highest (≥80%) in their interview.`,
+          icon: <Award className="w-5 h-5 text-emerald-600" />,
+          buttonText: 'Recommend',
+          buttonVariant: 'default',
+          placeholder: 'Reason for recommendation (optional)...'
+        };
+      case 'move-to-roster':
+        return {
+          title: 'Add to Roster as Alternate',
+          description: `Add ${candidateName} to the talent roster as an alternate? This candidate scored ≥80% and qualifies for future opportunities.`,
+          icon: <Users className="w-5 h-5 text-teal-600" />,
+          buttonText: 'Add to Roster',
+          buttonVariant: 'default',
+          placeholder: 'Reason for adding to roster (optional)...'
         };
       default:
         return {
