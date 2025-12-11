@@ -336,7 +336,7 @@ export default function AdminApplications() {
         if (panelApps.length > 0) {
           const { data: responses } = await supabase
             .from('feedback_form_responses')
-            .select('application_id, overall')
+            .select('application_id, overall, responses')
             .in('application_id', panelApps.map((a: any) => a.id));
 
           if (responses && responses.length > 0) {
@@ -344,17 +344,39 @@ export default function AdminApplications() {
             const scoreMap: Record<string, number[]> = {};
             responses.forEach((r: any) => {
               if (!scoreMap[r.application_id]) scoreMap[r.application_id] = [];
+              
+              // Use overall if available
               if (r.overall !== null && r.overall !== undefined) {
                 scoreMap[r.application_id].push(r.overall);
+              } 
+              // Fallback: calculate from responses JSONB
+              else if (r.responses && typeof r.responses === 'object') {
+                const respObj = r.responses as Record<string, any>;
+                const scores: number[] = [];
+                Object.values(respObj).forEach((section: any) => {
+                  if (section && typeof section === 'object') {
+                    Object.values(section).forEach((criterion: any) => {
+                      if (criterion && typeof criterion.score === 'number') {
+                        scores.push(criterion.score);
+                      }
+                    });
+                  }
+                });
+                if (scores.length > 0) {
+                  const avgFromResponses = scores.reduce((a, b) => a + b, 0) / scores.length;
+                  scoreMap[r.application_id].push(avgFromResponses);
+                }
               }
             });
 
-            // Calculate averages and ranks (assuming max score is 5, convert to percentage)
-            const averages = Object.entries(scoreMap).map(([appId, scores]) => ({
-              applicationId: appId,
-              avgScore: scores.reduce((a, b) => a + b, 0) / scores.length,
-              percentage: Math.round((scores.reduce((a, b) => a + b, 0) / scores.length / 5) * 100)
-            }));
+            // Filter out applications with no scores, then calculate averages and ranks
+            const averages = Object.entries(scoreMap)
+              .filter(([_, scores]) => scores.length > 0)
+              .map(([appId, scores]) => ({
+                applicationId: appId,
+                avgScore: scores.reduce((a, b) => a + b, 0) / scores.length,
+                percentage: Math.round((scores.reduce((a, b) => a + b, 0) / scores.length / 5) * 100)
+              }));
 
             averages.sort((a, b) => b.avgScore - a.avgScore);
 
