@@ -32,6 +32,7 @@ import {
 } from '@/lib/stepDetermination';
 import { getEducationLevel, type EducationLevel } from '@/lib/educationUtils';
 import StepDeterminationBreakdown from './StepDeterminationBreakdown';
+import WHEDVerificationStatus from './WHEDVerificationStatus';
 
 interface Props {
   applicationId: string;
@@ -432,7 +433,15 @@ export default function StepDeterminationCalculator({ applicationId, jobId, onSa
           {/* WHED Verification */}
           <Separator />
           <div className="space-y-3">
-            <div className="flex items-start gap-3">
+            {/* Automatic WHED verification */}
+            <WHEDVerificationStatus 
+              education={candidateEducation}
+              onVerificationChange={(verified) => setWhedVerified(verified)}
+              readOnly={isReadOnly}
+            />
+            
+            {/* Manual override checkbox */}
+            <div className="flex items-start gap-3 pt-2 border-t border-dashed">
               <Checkbox
                 id="whed"
                 checked={whedVerified}
@@ -440,11 +449,11 @@ export default function StepDeterminationCalculator({ applicationId, jobId, onSa
                 disabled={isReadOnly}
               />
               <div className="space-y-1">
-                <Label htmlFor="whed" className="font-medium cursor-pointer">
-                  WHED Verification Completed
+                <Label htmlFor="whed" className="font-medium cursor-pointer text-sm">
+                  Manual Override: WHED Verification Completed
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Higher education must be verified in the World Higher Education Database (WHED) to award additional education step.
+                  Check this box if you have manually verified the institution(s) in WHED even if automatic verification failed.
                 </p>
               </div>
             </div>

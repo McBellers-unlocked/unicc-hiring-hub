@@ -2908,6 +2908,39 @@ export type Database = {
           },
         ]
       }
+      whed_universities: {
+        Row: {
+          alternative_names: string[] | null
+          country: string
+          country_code: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          alternative_names?: string[] | null
+          country: string
+          country_code?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          alternative_names?: string[] | null
+          country?: string
+          country_code?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -2975,6 +3008,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      search_whed_universities: {
+        Args: { max_results?: number; search_term: string }
+        Returns: {
+          alternative_names: string[]
+          country: string
+          id: string
+          name: string
+          similarity_score: number
+        }[]
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       update_video_assignment_status: {
         Args: {
           assignment_token: string
