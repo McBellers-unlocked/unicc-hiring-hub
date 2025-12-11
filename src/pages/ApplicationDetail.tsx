@@ -29,6 +29,7 @@ import { ApplicationAuditViewer } from '@/components/ApplicationAuditViewer';
 import { CompactCandidateView } from '@/components/CompactCandidateView';
 import { InterviewScoreMatrix } from '@/components/InterviewScoreMatrix';
 import { InterviewRecommendationStatus } from '@/components/InterviewRecommendationStatus';
+import StepDeterminationCalculator from '@/components/StepDeterminationCalculator';
 import {
   ArrowLeft, 
   User, 
@@ -46,7 +47,8 @@ import {
   GraduationCap,
   Briefcase,
   Languages as LanguagesIcon,
-  Award
+  Award,
+  Calculator
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -699,7 +701,7 @@ export default function ApplicationDetail() {
           // Update URL with tab parameter for better navigation
           navigate(`/admin/applications/${id}?tab=${value}`, { replace: true });
         }} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className="grid w-full grid-cols-9">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="motivation">Motivation</TabsTrigger>
             <TabsTrigger value="emails">Emails</TabsTrigger>
@@ -707,6 +709,7 @@ export default function ApplicationDetail() {
             <TabsTrigger value="interviews">Interviews</TabsTrigger>
             <TabsTrigger value="scores">Score Matrix</TabsTrigger>
             <TabsTrigger value="feedback">Feedback</TabsTrigger>
+            <TabsTrigger value="step">Step</TabsTrigger>
             <TabsTrigger value="audit">Audit Trail</TabsTrigger>
           </TabsList>
 
@@ -1331,6 +1334,30 @@ export default function ApplicationDetail() {
                   <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
                   <p>Feedback system coming soon</p>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="step">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calculator className="w-5 h-5" />
+                  Step Determination
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {['Offer', 'Roster', 'Panel Interview', 'Shortlist'].includes(application.status) ? (
+                  <StepDeterminationCalculator
+                    applicationId={application.id}
+                    jobId={application.job.id}
+                  />
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>Step determination is available once the candidate reaches the Shortlist stage or later.</p>
+                    <p className="text-sm mt-2">Current status: {application.status}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
