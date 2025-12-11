@@ -54,6 +54,7 @@ import JobVideoAssignmentManager from "./pages/JobVideoAssignmentManager";
 import GenerateFakeVideoResponses from "./pages/GenerateFakeVideoResponses";
 import BookInterviewSlot from "./pages/BookInterviewSlot";
 import SkillsAnalysis from "./pages/SkillsAnalysis";
+import ImportWHED from "./pages/ImportWHED";
 
 const queryClient = new QueryClient();
 
@@ -118,6 +119,7 @@ const App = () => (
             <Route path="/admin/import-users" element={<ImportUsers />} />
             <Route path="/admin/import-skills" element={<ImportSkills />} />
             <Route path="/admin/import-staff-data" element={<ImportStaffData />} />
+            <Route path="/admin/import-whed" element={<ImportWHED />} />
             <Route path="/import-users" element={<ImportUsers />} />
             <Route path="/chief-of-division" element={<ChiefOfDivisionView />} />
             <Route path="/director-view" element={<DirectorView />} />
