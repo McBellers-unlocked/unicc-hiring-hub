@@ -22,7 +22,8 @@ import {
   RotateCcw,
   Star,
   Award,
-  Wrench
+  Wrench,
+  Users
 } from 'lucide-react';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
 
@@ -41,6 +42,10 @@ interface CandidateApplicationCardProps {
   onReviewVideos?: (applicationId: string) => void;
   onMoveToPanelInterview?: (applicationId: string) => void;
   onMoveToApplications?: (applicationId: string) => void;
+  onMoveToRecommended?: (applicationId: string) => void;
+  onMoveToRoster?: (applicationId: string) => void;
+  interviewScore?: number | null;
+  interviewRank?: number | null;
   getFlagEmoji: (location: string | null) => string | null;
   getEducationSummary: (education: any) => any[];
   getWorkExperienceSummary: (workExp: any) => any[];
@@ -61,6 +66,10 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
   onReviewVideos,
   onMoveToPanelInterview,
   onMoveToApplications,
+  onMoveToRecommended,
+  onMoveToRoster,
+  interviewScore,
+  interviewRank,
   onReject,
   onAddToShortlist,
   onAddToVideoInterview,
@@ -635,6 +644,82 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                   >
                     <X className="w-3 h-3 mr-1" />
                     Reject
+                  </Button>
+                )}
+              </>
+            ) : application.status === 'Panel Interview' ? (
+              <>
+                {/* View button */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate(`/admin/applications/${application.id}`)}
+                  className="whitespace-nowrap"
+                >
+                  <Eye className="w-3 h-3 mr-1" />
+                  View
+                </Button>
+
+                {/* Show interview score if available */}
+                {interviewScore !== null && interviewScore !== undefined && (
+                  <span className={`text-xs font-medium px-2 py-1 rounded ${
+                    interviewScore >= 80 
+                      ? 'bg-emerald-100 text-emerald-700' 
+                      : 'bg-red-100 text-red-700'
+                  }`}>
+                    Interview: {Math.round(interviewScore)}%
+                    {interviewRank && ` (#${interviewRank})`}
+                  </span>
+                )}
+
+                {/* Move to Recommended - only for top scorer with ≥80% */}
+                {onMoveToRecommended && 
+                 interviewScore !== null && 
+                 interviewScore !== undefined && 
+                 interviewScore >= 80 && 
+                 interviewRank === 1 &&
+                 (userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR')) && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => onMoveToRecommended(application.id)}
+                    className="whitespace-nowrap bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    <Award className="w-3 h-3 mr-1" />
+                    Recommend
+                  </Button>
+                )}
+
+                {/* Move to Roster - for alternates with ≥80% but not top rank */}
+                {onMoveToRoster && 
+                 interviewScore !== null && 
+                 interviewScore !== undefined && 
+                 interviewScore >= 80 && 
+                 interviewRank !== 1 &&
+                 (userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR')) && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => onMoveToRoster(application.id)}
+                    className="whitespace-nowrap"
+                  >
+                    <Users className="w-3 h-3 mr-1" />
+                    Add to Roster
+                  </Button>
+                )}
+
+                {/* Reject button - for those below 80% or HR decision */}
+                {(userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR')) && 
+                 onReject && 
+                 application.status !== 'Rejected' && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => onReject(application.id)}
+                    className="whitespace-nowrap"
+                  >
+                    <X className="w-3 h-3 mr-1" />
+                    Not Recommended
                   </Button>
                 )}
               </>

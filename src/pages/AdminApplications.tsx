@@ -83,7 +83,7 @@ export default function AdminApplications() {
   // Dialog state
   const [dialogState, setDialogState] = useState<{
     open: boolean;
-    action: 'longlist' | 'shortlist' | 'reject' | 'add-to-shortlist' | 'add-to-video' | 'move-to-panel-interview';
+    action: 'longlist' | 'shortlist' | 'reject' | 'add-to-shortlist' | 'add-to-video' | 'move-to-panel-interview' | 'move-to-recommended' | 'move-to-roster';
     applicationId: string;
     candidateName: string;
     currentStatus: string;
@@ -96,6 +96,9 @@ export default function AdminApplications() {
     currentStatus: '',
     isToggleAction: false
   });
+
+  // Interview scores for Panel Interview candidates
+  const [interviewScores, setInterviewScores] = useState<Record<string, { score: number; rank: number }>>({});
 
   // Video Assignment Dialog state
   const [videoAssignmentDialog, setVideoAssignmentDialog] = useState<{
@@ -324,6 +327,44 @@ export default function AdminApplications() {
           }));
 
           setApplications(updatedApps);
+        }
+      }
+
+      // Fetch interview scores for Panel Interview candidates
+      if (data && data.length > 0) {
+        const panelApps = data.filter((app: any) => app.status === 'Panel Interview');
+        if (panelApps.length > 0) {
+          const { data: responses } = await supabase
+            .from('feedback_form_responses')
+            .select('application_id, overall')
+            .in('application_id', panelApps.map((a: any) => a.id));
+
+          if (responses && responses.length > 0) {
+            // Calculate average scores per application
+            const scoreMap: Record<string, number[]> = {};
+            responses.forEach((r: any) => {
+              if (!scoreMap[r.application_id]) scoreMap[r.application_id] = [];
+              if (r.overall !== null && r.overall !== undefined) {
+                scoreMap[r.application_id].push(r.overall);
+              }
+            });
+
+            // Calculate averages and ranks (assuming max score is 5, convert to percentage)
+            const averages = Object.entries(scoreMap).map(([appId, scores]) => ({
+              applicationId: appId,
+              avgScore: scores.reduce((a, b) => a + b, 0) / scores.length,
+              percentage: Math.round((scores.reduce((a, b) => a + b, 0) / scores.length / 5) * 100)
+            }));
+
+            averages.sort((a, b) => b.avgScore - a.avgScore);
+
+            const result: Record<string, { score: number; rank: number }> = {};
+            averages.forEach((a, index) => {
+              result[a.applicationId] = { score: a.percentage, rank: index + 1 };
+            });
+
+            setInterviewScores(result);
+          }
         }
       }
 
@@ -1484,6 +1525,114 @@ export default function AdminApplications() {
     }
   };
 
+  const moveToRecommended = async (applicationId: string, reason?: string) => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      const currentUserId = user?.user?.id;
+      const currentApp = applications.find(app => app.id === applicationId);
+      
+      const { error } = await supabase
+        .from('applications')
+        .update({ status: 'Recommended' })
+        .eq('id', applicationId);
+
+      if (error) throw error;
+
+      if (currentUserId) {
+        await supabase
+          .from('stage_events')
+          .insert({
+            application_id: applicationId,
+            from_stage: currentApp?.status as any,
+            to_stage: 'Recommended' as any,
+            by_user: currentUserId,
+            reason: reason || 'Top interview scorer (≥80%) recommended for position'
+          });
+      }
+
+      toast({
+        title: "Success",
+        description: "Candidate recommended for position",
+      });
+
+      fetchApplications(selectedJobId);
+    } catch (error) {
+      console.error('Error moving to recommended:', error);
+      toast({
+        title: "Error",
+        description: "Failed to recommend candidate",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const moveToRoster = async (applicationId: string, reason?: string) => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      const currentUserId = user?.user?.id;
+      const currentApp = applications.find(app => app.id === applicationId);
+      
+      const { error } = await supabase
+        .from('applications')
+        .update({ status: 'Roster' })
+        .eq('id', applicationId);
+
+      if (error) throw error;
+
+      if (currentUserId) {
+        await supabase
+          .from('stage_events')
+          .insert({
+            application_id: applicationId,
+            from_stage: currentApp?.status as any,
+            to_stage: 'Roster' as any,
+            by_user: currentUserId,
+            reason: reason || 'Alternate candidate (≥80%) added to roster for future opportunities'
+          });
+      }
+
+      toast({
+        title: "Success",
+        description: "Candidate added to roster as alternate",
+      });
+
+      fetchApplications(selectedJobId);
+    } catch (error) {
+      console.error('Error moving to roster:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add to roster",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleMoveToRecommended = (applicationId: string) => {
+    const app = applications.find(a => a.id === applicationId);
+    if (!app) return;
+    
+    setDialogState({
+      open: true,
+      action: 'move-to-recommended',
+      applicationId,
+      candidateName: app.candidate.name,
+      currentStatus: app.status
+    });
+  };
+
+  const handleMoveToRoster = (applicationId: string) => {
+    const app = applications.find(a => a.id === applicationId);
+    if (!app) return;
+    
+    setDialogState({
+      open: true,
+      action: 'move-to-roster',
+      applicationId,
+      candidateName: app.candidate.name,
+      currentStatus: app.status
+    });
+  };
+
   const handleDialogConfirm = async (reason: string) => {
     const { action, applicationId } = dialogState;
     
@@ -1505,6 +1654,12 @@ export default function AdminApplications() {
         break;
       case 'move-to-panel-interview':
         await moveToPanelInterview(applicationId, reason);
+        break;
+      case 'move-to-recommended':
+        await moveToRecommended(applicationId, reason);
+        break;
+      case 'move-to-roster':
+        await moveToRoster(applicationId, reason);
         break;
     }
   };
@@ -1877,6 +2032,10 @@ export default function AdminApplications() {
                           onReviewVideos={handleReviewVideos}
                           onMoveToPanelInterview={handleMoveToPanelInterview}
                           onMoveToApplications={moveToApplications}
+                          onMoveToRecommended={handleMoveToRecommended}
+                          onMoveToRoster={handleMoveToRoster}
+                          interviewScore={interviewScores[application.id]?.score}
+                          interviewRank={interviewScores[application.id]?.rank}
                          getFlagEmoji={getCountryFromLocation}
                          getEducationSummary={getAllEducationDetails}
                          getWorkExperienceSummary={getRecentWorkExperience}
