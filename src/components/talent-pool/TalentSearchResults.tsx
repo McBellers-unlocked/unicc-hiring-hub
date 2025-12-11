@@ -218,6 +218,20 @@ export function TalentSearchResults({
       if (!textMatch && !skillsMatch && !workExpMatch) return false;
     }
 
+    // Skills filter (AND logic - must have ALL selected skills)
+    if (filters.skills.length > 0) {
+      const hasAllSkills = filters.skills.every((requiredSkill) => {
+        const requiredLower = requiredSkill.toLowerCase();
+        return person.skills.some((personSkill: any) => {
+          const skillName = typeof personSkill === "string" 
+            ? personSkill 
+            : personSkill.name || "";
+          return skillName.toLowerCase().includes(requiredLower);
+        });
+      });
+      if (!hasAllSkills) return false;
+    }
+
     // Education level filter (external only)
     if (filters.educationLevel && person._source === "external") {
       if (!person.education.length) return false;

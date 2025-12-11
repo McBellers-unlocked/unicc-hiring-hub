@@ -42,6 +42,7 @@ export function TalentSearchFilters({
   onSortByChange,
 }: TalentSearchFiltersProps) {
   const [isFiltersOpen, setIsFiltersOpen] = useState(true);
+  const [skillInput, setSkillInput] = useState("");
 
   // Fetch active jobs for job matching dropdown
   const { data: jobs } = useQuery({
@@ -68,6 +69,21 @@ export function TalentSearchFilters({
     } else {
       handleFilterChange(key, [...current, value]);
     }
+  };
+
+  const handleSkillKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && skillInput.trim()) {
+      e.preventDefault();
+      const newSkill = skillInput.trim();
+      if (!filters.skills.includes(newSkill)) {
+        handleFilterChange("skills", [...filters.skills, newSkill]);
+      }
+      setSkillInput("");
+    }
+  };
+
+  const removeSkill = (skillToRemove: string) => {
+    handleFilterChange("skills", filters.skills.filter(s => s !== skillToRemove));
   };
 
   const clearFilters = () => {
@@ -130,12 +146,33 @@ export function TalentSearchFilters({
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={showInternalFilters 
-                ? "Search by name, position, skills, division..." 
-                : "Search by name, position, organization, skills..."}
+                ? "Search by name, position, division..." 
+                : "Search by name, position, organization..."}
               value={filters.searchText}
               onChange={(e) => handleFilterChange("searchText", e.target.value)}
               className="pl-9"
             />
+          </div>
+          <div className="flex-1 relative">
+            <Input
+              placeholder="Type a skill and press Enter..."
+              value={skillInput}
+              onChange={(e) => setSkillInput(e.target.value)}
+              onKeyDown={handleSkillKeyDown}
+            />
+            {filters.skills.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {filters.skills.map((skill) => (
+                  <Badge key={skill} variant="secondary" className="gap-1 pr-1">
+                    {skill}
+                    <X 
+                      className="h-3 w-3 cursor-pointer hover:text-destructive" 
+                      onClick={() => removeSkill(skill)} 
+                    />
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
           
           <div className="flex gap-2 flex-wrap lg:flex-nowrap">
