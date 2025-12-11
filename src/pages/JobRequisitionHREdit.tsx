@@ -12,6 +12,7 @@ import { ArrowLeft, Save, AlertTriangle, Eye, Check } from "lucide-react";
 import { format } from "date-fns";
 import EditableTrackChangesFieldWithHighlight from "@/components/EditableTrackChangesFieldWithHighlight";
 import { FinalDocumentReviewDialog } from "@/components/FinalDocumentReviewDialog";
+import { isValidUUID } from "@/lib/utils";
 
 interface JobRequisition {
   id: string;
@@ -94,12 +95,18 @@ export default function JobRequisitionHREdit() {
 
   const fetchRequisition = async () => {
     try {
-      // Query supports both slug and UUID
-      const { data, error } = await supabase
+      // Query by id if UUID, otherwise by slug
+      let query = supabase
         .from('job_requisitions')
-        .select('*')
-        .or(`slug.eq.${id},id.eq.${id}`)
-        .single();
+        .select('*');
+      
+      if (isValidUUID(id || '')) {
+        query = query.eq('id', id);
+      } else {
+        query = query.eq('slug', id);
+      }
+      
+      const { data, error } = await query.single();
 
       if (error) throw error;
       
