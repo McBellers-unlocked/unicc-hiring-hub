@@ -393,7 +393,7 @@ export default function ChiefOfDivisionView() {
                         
                         <div className="flex gap-2 pt-2">
                           <Button
-                            onClick={() => navigate(`/requisitions/initial/${requisition.id}?view=true`)}
+                            onClick={() => navigate(`/requisitions/initial/${requisition.slug || requisition.id}?view=true`)}
                             variant="outline"
                             size="sm"
                           >

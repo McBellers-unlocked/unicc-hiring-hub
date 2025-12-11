@@ -194,10 +194,11 @@ export default function InitialRequestForm() {
   const loadRequest = async () => {
     try {
       setLoading(true);
+      // Query supports both slug and UUID
       const { data, error } = await supabase
         .from('job_requisitions')
         .select('*')
-        .eq('id', id)
+        .or(`slug.eq.${id},id.eq.${id}`)
         .single();
 
       if (error) throw error;
@@ -454,6 +455,14 @@ export default function InitialRequestForm() {
     try {
       setSaving(true);
       
+      // Generate slug from position title
+      const generateSlug = (title: string) => {
+        return title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '');
+      };
+      
       // Determine the final nature_of_position value
       let finalNatureOfPosition = formData.nature_of_position;
       if (formData.nature_of_position === 'Staff') {
@@ -504,11 +513,13 @@ export default function InitialRequestForm() {
 
         if (error) throw error;
       } else {
-        // Create new
+        // Create new with slug
+        const baseSlug = generateSlug(formData.position_title);
         const { error } = await supabase
           .from('job_requisitions')
           .insert({
             ...dataToSave,
+            slug: baseSlug,
             created_by: user?.id,
           });
 

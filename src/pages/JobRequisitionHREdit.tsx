@@ -94,10 +94,11 @@ export default function JobRequisitionHREdit() {
 
   const fetchRequisition = async () => {
     try {
+      // Query supports both slug and UUID
       const { data, error } = await supabase
         .from('job_requisitions')
         .select('*')
-        .eq('id', id)
+        .or(`slug.eq.${id},id.eq.${id}`)
         .single();
 
       if (error) throw error;

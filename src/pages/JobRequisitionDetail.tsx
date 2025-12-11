@@ -13,6 +13,7 @@ import { InlineTrackChanges } from "@/components/InlineTrackChanges";
 
 interface JobRequisition {
   id: string;
+  slug: string;
   reference_number: string;
   position_title: string;
   grade: string;
@@ -74,10 +75,11 @@ export default function JobRequisitionDetail() {
 
   const fetchRequisition = async () => {
     try {
+      // Query supports both slug and UUID
       let query = supabase
         .from('job_requisitions')
         .select('*')
-        .eq('id', id);
+        .or(`slug.eq.${id},id.eq.${id}`);
 
       // If user is only a hiring manager (not admin/HR), restrict to their own requisitions
       if (userRoles.includes('Hiring Manager') && !userRoles.includes('Admin') && !userRoles.includes('HR Assistant')) {
@@ -282,9 +284,9 @@ export default function JobRequisitionDetail() {
            user?.id === requisition.created_by && (
             <Button onClick={() => {
               if (requisition.status === 'initial_request_draft') {
-                navigate(`/requisitions/initial/${requisition.id}`);
+                navigate(`/requisitions/initial/${requisition.slug || requisition.id}`);
               } else {
-                navigate(`/requisitions/${requisition.id}/edit`);
+                navigate(`/requisitions/${requisition.slug || requisition.id}/edit`);
               }
             }}>
               <FileText className="h-4 w-4 mr-2" />
@@ -297,7 +299,7 @@ export default function JobRequisitionDetail() {
             <Button
               variant="default"
               className="bg-blue-600 hover:bg-blue-700"
-              onClick={() => navigate(`/requisitions/${requisition.id}/hr-edit`)}
+              onClick={() => navigate(`/requisitions/${requisition.slug || requisition.id}/hr-edit`)}
             >
               <CheckCircle className="h-4 w-4 mr-2" />
               HR Final Review & Send to Chief
@@ -308,7 +310,7 @@ export default function JobRequisitionDetail() {
           {(userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
            (userRoles.includes('Hiring Manager') && requisition.created_by === user?.id && 
             (requisition.status === 'draft' || requisition.status === 'hr_amendments'))) && (
-            <Button variant="outline" onClick={() => navigate(`/requisitions/${requisition.id}/edit`)}>
+            <Button variant="outline" onClick={() => navigate(`/requisitions/${requisition.slug || requisition.id}/edit`)}>
               Edit
             </Button>
           )}
