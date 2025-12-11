@@ -476,14 +476,14 @@ export default function StepDeterminationCalculator({ applicationId, jobId, onSa
             <div className="flex items-center gap-4">
               <Label>Final Step:</Label>
               <Select
-                value={overrideStep?.toString() || ''}
-                onValueChange={(v) => setOverrideStep(v ? parseInt(v) : null)}
+                value={overrideStep?.toString() || 'calculated'}
+                onValueChange={(v) => setOverrideStep(v === 'calculated' ? null : parseInt(v))}
               >
                 <SelectTrigger className="w-32">
                   <SelectValue placeholder={`${calculation.calculatedStep} (calculated)`} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Use calculated ({calculation.calculatedStep})</SelectItem>
+                  <SelectItem value="calculated">Use calculated ({calculation.calculatedStep})</SelectItem>
                   {[1, 2, 3, 4, 5, 6].map(s => (
                     <SelectItem key={s} value={s.toString()}>Step {s}</SelectItem>
                   ))}
