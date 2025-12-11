@@ -161,10 +161,18 @@ export default function StepDeterminationCalculator({ applicationId, jobId, onSa
     }));
   }, [candidate, whedVerified]);
 
-  // Combine work experience
+  // Use PHF work experience if available, otherwise profile data
+  // Don't combine both to avoid double-counting the same positions
   const candidateExperience = useMemo(() => {
     if (!candidate) return [];
-    return [...(candidate.work_experience || []), ...(candidate.phf_work_experience || [])];
+    
+    // Prefer PHF data (official UN form) if available
+    if (candidate.phf_work_experience && candidate.phf_work_experience.length > 0) {
+      return candidate.phf_work_experience;
+    }
+    
+    // Fall back to profile work experience
+    return candidate.work_experience || [];
   }, [candidate]);
 
   // Calculate step
