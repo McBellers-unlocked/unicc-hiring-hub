@@ -27,6 +27,7 @@ import { PersonalDetailsSection } from "@/components/profile/PersonalDetailsSect
 import { convertPHFToWorkExperience, convertWorkExperienceToPHF } from "@/lib/phfDataMapping";
 
 interface CandidateProfile {
+  slug?: string;
   id: string;
   name: string;
   email: string;
@@ -155,6 +156,7 @@ export default function CandidateProfileEdit() {
       }
 
       try {
+        // Query by email (for edit page, user can only edit their own profile)
         const { data, error } = await supabase
           .from("candidates")
           .select("*")
@@ -795,7 +797,7 @@ export default function CandidateProfileEdit() {
         <div className="space-x-2">
           <Button 
             variant="outline" 
-            onClick={() => navigate(`/candidate-profile/${profile.id}`)}
+            onClick={() => navigate(`/candidate-profile/${profile.slug || profile.id}`)}
           >
             Cancel
           </Button>
@@ -1118,7 +1120,7 @@ export default function CandidateProfileEdit() {
       <div className="flex items-center justify-end mt-6 pt-6 border-t space-x-2">
         <Button 
           variant="outline" 
-          onClick={() => navigate(`/candidate-profile/${profile.id}`)}
+          onClick={() => navigate(`/candidate-profile/${profile.slug || profile.id}`)}
         >
           Cancel
         </Button>

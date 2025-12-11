@@ -22,12 +22,12 @@ const Index = () => {
         try {
           const { data } = await supabase
             .from('candidates')
-            .select('id')
+            .select('id, slug')
             .eq('email', user.email)
             .single();
           
           if (data?.id) {
-            navigate(`/candidate-profile/${data.id}/edit`);
+            navigate(`/candidate-profile/${data.slug || data.id}/edit`);
           }
         } catch (error) {
           console.error('Error finding candidate profile:', error);

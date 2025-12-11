@@ -26,15 +26,15 @@ export default function MyProfile() {
         // Check if candidate profile exists for this email
         const { data: existingProfile, error: fetchError } = await supabase
           .from('candidates')
-          .select('id')
+          .select('id, slug')
           .eq('email', user.email)
           .maybeSingle();
 
         if (fetchError) throw fetchError;
 
         if (existingProfile?.id) {
-          // Profile exists, redirect to view page
-          navigate(`/candidate-profile/${existingProfile.id}`);
+          // Profile exists, redirect to view page using slug
+          navigate(`/candidate-profile/${existingProfile.slug || existingProfile.id}`);
         } else {
           // For staff, fetch actual name from users table (not user_metadata which contains role)
           let profileName = user.user_metadata?.name || user.email.split('@')[0];
@@ -51,24 +51,33 @@ export default function MyProfile() {
             }
           }
 
+          // Generate slug from name
+          const generateSlug = (name: string) => {
+            return name
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-|-$/g, '');
+          };
+
           // No profile, create one with appropriate candidate_type
           const { data: newProfile, error: insertError } = await supabase
             .from('candidates')
             .insert({
               email: user.email,
               name: profileName,
+              slug: generateSlug(profileName),
               candidate_type: isStaff ? 'Internal' : 'External',
               un_experience: isStaff ? true : false,
               profile_completion_percentage: 0
             })
-            .select('id')
+            .select('id, slug')
             .single();
 
           if (insertError) throw insertError;
 
           if (newProfile?.id) {
-            // Redirect to edit page for new profile
-            navigate(`/candidate-profile/${newProfile.id}/edit`);
+            // Redirect to edit page for new profile using slug
+            navigate(`/candidate-profile/${newProfile.slug || newProfile.id}/edit`);
           }
         }
       } catch (error) {

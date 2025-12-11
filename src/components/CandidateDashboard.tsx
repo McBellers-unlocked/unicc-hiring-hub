@@ -19,6 +19,7 @@ import JobRecommendationsSection from './profile/JobRecommendationsSection';
 
 interface CandidateProfile {
   id: string;
+  slug?: string;
   name: string;
   email: string;
   phone?: string;
@@ -512,7 +513,7 @@ export default function CandidateDashboard({ hideWelcomeHeader = false }: Candid
               variant="outline"
               size="sm"
               className="shrink-0 ml-4 border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300"
-              onClick={() => navigate(`/candidate-profile/${profile.id}/edit`)}
+              onClick={() => navigate(`/candidate-profile/${profile.slug || profile.id}/edit`)}
             >
               Complete Profile
             </Button>
@@ -541,7 +542,7 @@ export default function CandidateDashboard({ hideWelcomeHeader = false }: Candid
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => navigate(`/candidate-profile/${profile.id}`)}
+                  onClick={() => navigate(`/candidate-profile/${profile.slug || profile.id}`)}
                   className="text-muted-foreground h-7 px-2"
                 >
                   <Eye className="h-4 w-4 mr-1" />
@@ -626,7 +627,7 @@ export default function CandidateDashboard({ hideWelcomeHeader = false }: Candid
               <Button 
                 variant="outline" 
                 className="w-full justify-start"
-                onClick={() => navigate(`/candidate-profile/${profile.id}`)}
+                onClick={() => navigate(`/candidate-profile/${profile.slug || profile.id}`)}
               >
                 <User className="h-4 w-4 mr-2" />
                 View Full Profile

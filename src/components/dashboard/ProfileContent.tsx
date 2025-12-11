@@ -7,6 +7,7 @@ import { MapPin, Phone, Mail, Calendar, GraduationCap, Briefcase, Award, Globe, 
 interface ProfileContentProps {
   profile: {
     id: string;
+    slug?: string;
     name: string;
     email: string;
     phone?: string;
@@ -273,7 +274,7 @@ export default function ProfileContent({ profile }: ProfileContentProps) {
         <Card>
           <CardContent className="pt-6">
             <Button
-              onClick={() => navigate(`/candidate-profile/${profile.id}/edit`)}
+              onClick={() => navigate(`/candidate-profile/${profile.slug || profile.id}/edit`)}
               className="w-full flex items-center gap-2"
             >
               <Edit3 className="h-4 w-4" />

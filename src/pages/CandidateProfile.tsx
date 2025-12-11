@@ -21,6 +21,7 @@ import { Layout } from "@/components/Layout";
 
 interface CandidateProfile {
   id: string;
+  slug?: string;
   name: string;
   email: string;
   phone?: string;
@@ -48,7 +49,7 @@ interface CandidateProfile {
 }
 
 export default function CandidateProfile() {
-  const { id } = useParams();
+  const { id } = useParams(); // Can be slug or UUID
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -59,10 +60,13 @@ export default function CandidateProfile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        // Query by slug or UUID
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || '');
+        
         const { data, error } = await supabase
           .from("candidates")
           .select("*")
-          .eq("id", id)
+          .or(isUUID ? `id.eq.${id}` : `slug.eq.${id}`)
           .single();
 
         if (error) throw error;
@@ -328,7 +332,7 @@ export default function CandidateProfile() {
       <ProfileHero 
         profile={profile}
         isOwnProfile={isOwnProfile}
-        onEdit={() => navigate(`/candidate-profile/${id}/edit`)}
+        onEdit={() => navigate(`/candidate-profile/${profile.slug || profile.id}/edit`)}
       />
 
       {/* Stats Cards */}

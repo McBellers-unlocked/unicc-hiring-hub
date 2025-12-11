@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 interface WelcomeHeaderProps {
   profile: {
     id: string;
+    slug?: string;
     name: string;
     current_position?: string | null;
     current_organization?: string | null;
@@ -106,7 +107,7 @@ export default function WelcomeHeader({
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => navigate(`/candidate-profile/${profile.id}/edit`)}
+              onClick={() => navigate(`/candidate-profile/${profile.slug || profile.id}/edit`)}
               className="shrink-0"
             >
               <Edit className="h-4 w-4 mr-1.5" />

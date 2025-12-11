@@ -52,6 +52,7 @@ export default function JobApplication() {
   const [candidateProfile, setCandidateProfile] = useState<any>(null);
   const [profileIncomplete, setProfileIncomplete] = useState(false);
   const [candidateId, setCandidateId] = useState<string | null>(null);
+  const [candidateSlug, setCandidateSlug] = useState<string | null>(null);
   const [initialTab, setInitialTab] = useState<number>(0);
   const [currentTab, setCurrentTab] = useState<number>(0);
   
@@ -211,12 +212,14 @@ export default function JobApplication() {
       if (!hasBasicInfo || !hasEducation || !hasWorkExperience) {
         setProfileIncomplete(true);
         setCandidateId(candidate.id);
+        setCandidateSlug(candidate.slug);
         return;
       }
       
       // Store candidate profile in state
       setCandidateProfile(candidate);
       setCandidateId(candidate.id);
+      setCandidateSlug(candidate.slug);
 
       // Check if application exists for this job and candidate
       const { data: existingApplication } = await supabase
@@ -727,7 +730,7 @@ export default function JobApplication() {
           </Alert>
           
           <div className="flex gap-3">
-            <Button onClick={() => navigate(candidateId ? `/candidate-profile/${candidateId}/edit` : '/my-profile')} size="lg">
+            <Button onClick={() => navigate(candidateSlug ? `/candidate-profile/${candidateSlug}/edit` : (candidateId ? `/candidate-profile/${candidateId}/edit` : '/my-profile'))} size="lg">
               <User className="h-4 w-4 mr-2" />
               Complete My Profile
             </Button>
