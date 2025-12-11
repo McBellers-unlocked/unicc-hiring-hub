@@ -327,17 +327,16 @@ export function TalentSearchFilters({
 
                   {/* Tenure Range */}
                   <div className="space-y-2 lg:col-span-2">
-                    <Label>Years at UNICC: {filters.minTenure || 0} - {filters.maxTenure || 30}+</Label>
+                    <Label>Minimum Years at UNICC: {filters.minTenure || 0}+</Label>
                     <Slider
                       min={0}
                       max={30}
                       step={1}
-                      value={[filters.minTenure || 0, filters.maxTenure || 30]}
-                      onValueChange={([min, max]) => {
+                      value={[filters.minTenure || 0]}
+                      onValueChange={([min]) => {
                         onFiltersChange({
                           ...filters,
                           minTenure: min,
-                          maxTenure: max,
                         });
                       }}
                       className="mt-2"
@@ -359,17 +358,16 @@ export function TalentSearchFilters({
               {/* Experience Range - for external/all */}
               {filters.talentSource !== "internal" && (
                 <div className="space-y-2">
-                  <Label>Years of Experience: {filters.minExperience || 0} - {filters.maxExperience || 30}+</Label>
+                  <Label>Minimum Years of Experience: {filters.minExperience || 0}+</Label>
                   <Slider
                     min={0}
                     max={30}
                     step={1}
-                    value={[filters.minExperience ?? 0, filters.maxExperience ?? 30]}
-                    onValueChange={([min, max]) => {
+                    value={[filters.minExperience ?? 0]}
+                    onValueChange={([min]) => {
                       onFiltersChange({
                         ...filters,
                         minExperience: min,
-                        maxExperience: max,
                       });
                     }}
                     className="mt-2"
