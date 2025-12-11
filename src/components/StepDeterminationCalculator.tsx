@@ -147,13 +147,16 @@ export default function StepDeterminationCalculator({ applicationId, jobId, onSa
     return mapping[job.essential_education_level] || 'First Level University';
   }, [job?.essential_education_level]);
 
-  // Combine education from profile and PHF
+  // Combine and normalize education from profile and PHF
   const candidateEducation = useMemo(() => {
     if (!candidate) return [];
     const combined = [...(candidate.education || []), ...(candidate.phf_education || [])];
-    // Add WHED verified flag based on current checkbox
+    // Normalize field names and add WHED verified flag
     return combined.map(edu => ({
-      ...edu,
+      degree_type: edu.degree_type || edu.degree || '',
+      field_of_study: edu.field_of_study || edu.field || edu.major || '',
+      institution: edu.institution || edu.school || '',
+      is_completed: edu.is_completed ?? edu.isCompleted ?? (edu.endDate ? true : edu.end_date ? true : true),
       whed_verified: whedVerified
     }));
   }, [candidate, whedVerified]);
