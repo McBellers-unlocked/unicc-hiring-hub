@@ -306,6 +306,7 @@ export type Database = {
           salary_expectation_range: string | null
           security_clearance_level: string | null
           skills: Json | null
+          slug: string | null
           supervisor_contact_consent: boolean | null
           telephone_detailed: string | null
           title: string | null
@@ -409,6 +410,7 @@ export type Database = {
           salary_expectation_range?: string | null
           security_clearance_level?: string | null
           skills?: Json | null
+          slug?: string | null
           supervisor_contact_consent?: boolean | null
           telephone_detailed?: string | null
           title?: string | null
@@ -512,6 +514,7 @@ export type Database = {
           salary_expectation_range?: string | null
           security_clearance_level?: string | null
           skills?: Json | null
+          slug?: string | null
           supervisor_contact_consent?: boolean | null
           telephone_detailed?: string | null
           title?: string | null
@@ -2957,6 +2960,10 @@ export type Database = {
       check_signup_rate_limit: {
         Args: { p_email: string; p_ip_address: string }
         Returns: boolean
+      }
+      generate_candidate_slug: {
+        Args: { candidate_id: string; candidate_name: string }
+        Returns: string
       }
       generate_position_description_reference: {
         Args: { p_duty_station: string; p_nature_of_position: string }
