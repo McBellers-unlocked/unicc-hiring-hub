@@ -386,8 +386,12 @@ export default function CandidateAssessment() {
     // Refetch threads to show the new message
     refetchThreads();
 
-    // Schedule AI reply if enabled
-    if (email.reply_enabled) {
+    // Schedule AI reply if enabled AND no reply has been sent yet for this email
+    const existingSystemReply = threadMessages?.some(
+      (m) => m.original_email_id === emailId && m.sender_type === 'system_reply'
+    );
+    
+    if (email.reply_enabled && !existingSystemReply) {
       const delayMin = email.reply_delay_min || 4;
       const delayMax = email.reply_delay_max || 8;
       const randomDelay = delayMin + Math.random() * (delayMax - delayMin);
