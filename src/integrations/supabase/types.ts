@@ -343,6 +343,8 @@ export type Database = {
         Row: {
           access_token: string
           assessment_id: string
+          available_from: string | null
+          available_until: string | null
           candidate_email: string
           candidate_name: string
           created_at: string
@@ -358,6 +360,8 @@ export type Database = {
         Insert: {
           access_token?: string
           assessment_id: string
+          available_from?: string | null
+          available_until?: string | null
           candidate_email: string
           candidate_name: string
           created_at?: string
@@ -373,6 +377,8 @@ export type Database = {
         Update: {
           access_token?: string
           assessment_id?: string
+          available_from?: string | null
+          available_until?: string | null
           candidate_email?: string
           candidate_name?: string
           created_at?: string
@@ -3262,6 +3268,7 @@ export type Database = {
       }
       written_assessments: {
         Row: {
+          availability_window_hours: number | null
           created_at: string
           created_by: string | null
           curveball_trigger_type:
@@ -3277,6 +3284,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          availability_window_hours?: number | null
           created_at?: string
           created_by?: string | null
           curveball_trigger_type?:
@@ -3292,6 +3300,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          availability_window_hours?: number | null
           created_at?: string
           created_by?: string | null
           curveball_trigger_type?:

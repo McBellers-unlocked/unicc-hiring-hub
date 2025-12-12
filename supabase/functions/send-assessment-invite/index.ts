@@ -12,7 +12,9 @@ interface InviteRequest {
   candidateName: string;
   candidateEmail: string;
   assessmentTitle: string;
-  scheduledStart: string;
+  availableFrom: string;
+  availableUntil: string;
+  timeLimitMinutes: number;
   accessToken: string;
 }
 
@@ -23,22 +25,39 @@ serve(async (req) => {
   }
 
   try {
-    const { candidateName, candidateEmail, assessmentTitle, scheduledStart, accessToken }: InviteRequest = await req.json();
+    const { candidateName, candidateEmail, assessmentTitle, availableFrom, availableUntil, timeLimitMinutes, accessToken }: InviteRequest = await req.json();
 
     console.log(`Sending assessment invite to ${candidateEmail} for ${assessmentTitle}`);
 
-    const scheduledDate = new Date(scheduledStart);
-    const formattedDate = scheduledDate.toLocaleDateString("en-US", {
+    const availableFromDate = new Date(availableFrom);
+    const availableUntilDate = new Date(availableUntil);
+    
+    const formattedOpenDate = availableFromDate.toLocaleDateString("en-US", {
       weekday: "long",
       year: "numeric",
       month: "long",
       day: "numeric",
     });
-    const formattedTime = scheduledDate.toLocaleTimeString("en-US", {
+    const formattedOpenTime = availableFromDate.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
       timeZoneName: "short",
     });
+    
+    const formattedCloseDate = availableUntilDate.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    const formattedCloseTime = availableUntilDate.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZoneName: "short",
+    });
+
+    // Calculate hours difference for display
+    const hoursWindow = Math.round((availableUntilDate.getTime() - availableFromDate.getTime()) / (1000 * 60 * 60));
 
     // Use production URL or fallback
     const baseUrl = Deno.env.get("PUBLIC_SITE_URL") || "https://staging.unicconnect.org";
@@ -65,15 +84,27 @@ serve(async (req) => {
   
   <div style="background-color: #f7fafc; border-left: 4px solid #3182ce; padding: 20px; margin: 20px 0;">
     <h2 style="color: #2d3748; font-size: 18px; margin-top: 0;">${assessmentTitle}</h2>
-    <p style="margin: 10px 0;"><strong>Scheduled Date:</strong> ${formattedDate}</p>
-    <p style="margin: 10px 0;"><strong>Scheduled Time:</strong> ${formattedTime}</p>
+    <p style="margin: 10px 0;"><strong>Assessment Opens:</strong> ${formattedOpenDate} at ${formattedOpenTime}</p>
+    <p style="margin: 10px 0;"><strong>Must Start By:</strong> ${formattedCloseDate} at ${formattedCloseTime}</p>
+    <p style="margin: 10px 0;"><strong>Time to Complete:</strong> ${timeLimitMinutes} minutes (once started)</p>
   </div>
   
-  <h3 style="color: #2d3748;">Important Instructions:</h3>
+  <div style="background-color: #fffbeb; border: 1px solid #f59e0b; padding: 20px; margin: 20px 0; border-radius: 8px;">
+    <h3 style="color: #92400e; font-size: 16px; margin-top: 0;">⚠️ Important - Two-Stage Timing:</h3>
+    <ol style="padding-left: 20px; margin-bottom: 0; color: #78350f;">
+      <li style="margin-bottom: 8px;">The assessment will become available at <strong>${formattedOpenTime} on ${formattedOpenDate}</strong></li>
+      <li style="margin-bottom: 8px;">You have <strong>${hoursWindow} hours</strong> from that time to start the assessment</li>
+      <li style="margin-bottom: 8px;">Once you click "Start", you will have <strong>${timeLimitMinutes} minutes</strong> to complete it</li>
+      <li style="margin-bottom: 0;">The assessment <strong>must be completed in one sitting</strong> - you cannot pause or come back later</li>
+    </ol>
+  </div>
+  
+  <h3 style="color: #2d3748;">Before You Begin:</h3>
   <ul style="padding-left: 20px;">
-    <li>Please ensure you have a stable internet connection</li>
+    <li>Ensure you have a stable internet connection</li>
     <li>Find a quiet environment where you won't be interrupted</li>
-    <li>Once you start, the timer cannot be paused</li>
+    <li>Make sure you have ${timeLimitMinutes} uninterrupted minutes available</li>
+    <li>The assessment runs in fullscreen mode</li>
     <li>Your responses will be auto-saved every 30 seconds</li>
     <li>You may submit early if you complete before the time limit</li>
   </ul>
@@ -83,7 +114,7 @@ serve(async (req) => {
   </div>
   
   <p style="font-size: 14px; color: #718096;">
-    <strong>Note:</strong> This link is unique to you. Please do not share it with others.
+    <strong>Note:</strong> This link is unique to you. Please do not share it with others. You can use the link to check when the assessment opens and to start when ready.
   </p>
   
   <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">

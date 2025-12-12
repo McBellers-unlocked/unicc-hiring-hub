@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, Clock, Send, AlertTriangle, CheckCircle, Inbox, ChevronLeft, MessageSquare } from "lucide-react";
+import { Mail, Clock, Send, AlertTriangle, CheckCircle, Inbox, ChevronLeft, MessageSquare, CalendarClock, Timer } from "lucide-react";
 import { differenceInSeconds, addMinutes } from "date-fns";
 import { EmailThread } from "@/components/assessment/EmailThread";
 import { processEmailVariables, TemplateVariables } from "@/lib/emailTemplateVariables";
@@ -65,6 +65,8 @@ interface AssessmentData {
   instructions: string;
   title: string;
   started_at: string | null;
+  available_from: string | null;
+  available_until: string | null;
 }
 
 export default function CandidateAssessment() {
@@ -91,7 +93,21 @@ export default function CandidateAssessment() {
       });
       if (error) throw error;
       if (!data || data.length === 0) throw new Error("Invalid or expired assessment link");
-      return data[0] as AssessmentData;
+      
+      const slotData = data[0];
+      
+      // Fetch the slot directly to get available_from and available_until
+      const { data: slot } = await supabase
+        .from("assessment_slots")
+        .select("available_from, available_until")
+        .eq("id", slotData.slot_id)
+        .single();
+      
+      return {
+        ...slotData,
+        available_from: slot?.available_from || null,
+        available_until: slot?.available_until || null,
+      } as AssessmentData;
     },
   });
 
@@ -535,8 +551,105 @@ export default function CandidateAssessment() {
     );
   }
 
-  // Instructions screen before starting
-  if (!hasStarted) {
+  // Check availability window status
+  const now = new Date();
+  const availableFrom = assessmentData.available_from ? new Date(assessmentData.available_from) : null;
+  const availableUntil = assessmentData.available_until ? new Date(assessmentData.available_until) : null;
+
+  // Determine if we're in the availability window
+  const isTooEarly = availableFrom && now < availableFrom;
+  const isWindowExpired = availableUntil && now > availableUntil && !assessmentData.started_at;
+  const isWithinWindow = !isTooEarly && !isWindowExpired;
+
+  // Format dates for display
+  const formatDateTime = (date: Date) => {
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  // Too early screen
+  if (isTooEarly && availableFrom) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="max-w-2xl w-full">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">{assessmentData.title}</CardTitle>
+            <CardDescription>Written Assessment - Inbox Simulation</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="text-center py-8">
+              <CalendarClock className="w-16 h-16 mx-auto mb-4 text-primary opacity-70" />
+              <h3 className="text-xl font-semibold mb-2">Assessment Not Yet Available</h3>
+              <p className="text-muted-foreground">
+                Your assessment will open at:
+              </p>
+              <p className="text-2xl font-bold text-primary mt-2">
+                {formatDateTime(availableFrom)}
+              </p>
+            </div>
+
+            <div className="bg-muted p-4 rounded-lg">
+              <h4 className="font-semibold mb-2">Welcome, {assessmentData.candidate_name}!</h4>
+              <p className="text-sm text-muted-foreground">
+                Please return to this page at the scheduled time to begin your assessment.
+                You can keep this page open - it will update automatically.
+              </p>
+            </div>
+
+            {availableUntil && (
+              <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg dark:bg-amber-950/30 dark:border-amber-800">
+                <div className="flex items-start gap-3">
+                  <Timer className="w-5 h-5 text-amber-600 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-semibold text-amber-800 dark:text-amber-200">Important Timing Information:</p>
+                    <ul className="list-disc list-inside text-amber-700 dark:text-amber-300 mt-1 space-y-1">
+                      <li>Once available, you have until <strong>{formatDateTime(availableUntil)}</strong> to start</li>
+                      <li>After clicking "Start", you'll have <strong>{assessmentData.time_limit_minutes} minutes</strong> to complete</li>
+                      <li>The assessment must be completed in one sitting</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Window expired screen
+  if (isWindowExpired) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="max-w-md">
+          <CardContent className="pt-6 text-center">
+            <AlertTriangle className="w-12 h-12 mx-auto text-destructive mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Assessment Window Expired</h2>
+            <p className="text-muted-foreground mb-4">
+              The time window to start this assessment has passed.
+              {availableUntil && (
+                <span className="block mt-2 text-sm">
+                  The deadline was: {formatDateTime(availableUntil)}
+                </span>
+              )}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              If you believe this is an error, please contact HR for assistance.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Instructions screen before starting (within availability window)
+  if (!hasStarted && isWithinWindow) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="max-w-2xl w-full">
@@ -559,11 +672,23 @@ export default function CandidateAssessment() {
               </div>
             </div>
 
+            {availableUntil && (
+              <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-lg dark:bg-emerald-950/30 dark:border-emerald-800">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-emerald-600" />
+                  <div className="text-sm text-emerald-800 dark:text-emerald-200">
+                    <p className="font-semibold">Assessment Available!</p>
+                    <p>You must start by: {formatDateTime(availableUntil)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4 text-center">
               <div className="p-4 bg-muted rounded-lg">
                 <Clock className="w-8 h-8 mx-auto mb-2 text-primary" />
                 <p className="font-semibold">{assessmentData.time_limit_minutes} minutes</p>
-                <p className="text-sm text-muted-foreground">Time Limit</p>
+                <p className="text-sm text-muted-foreground">Once started</p>
               </div>
               <div className="p-4 bg-muted rounded-lg">
                 <Mail className="w-8 h-8 mx-auto mb-2 text-primary" />
@@ -576,11 +701,11 @@ export default function CandidateAssessment() {
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
                 <div className="text-sm text-amber-800 dark:text-amber-200">
-                  <p className="font-semibold mb-1">Important Notes:</p>
+                  <p className="font-semibold mb-1">Important - Read Before Starting:</p>
                   <ul className="list-disc list-inside space-y-1">
-                    <li>The assessment runs in fullscreen mode - please do not exit fullscreen</li>
+                    <li>Once you click "Start", you have <strong>{assessmentData.time_limit_minutes} minutes</strong> - no pausing!</li>
+                    <li>The assessment runs in fullscreen mode - please do not exit</li>
                     <li>Copy/paste and right-click are restricted for integrity purposes</li>
-                    <li>Once started, the timer cannot be paused</li>
                     <li>Your responses are auto-saved every 30 seconds</li>
                     <li>You can submit early by clicking "Submit Assessment"</li>
                     <li>New emails may arrive during the assessment</li>
@@ -591,7 +716,7 @@ export default function CandidateAssessment() {
             </div>
 
             <Button onClick={startAssessment} className="w-full" size="lg">
-              Start Assessment
+              Start Assessment ({assessmentData.time_limit_minutes} minutes)
             </Button>
           </CardContent>
         </Card>
