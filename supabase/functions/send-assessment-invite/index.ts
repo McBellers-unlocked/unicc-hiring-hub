@@ -41,7 +41,7 @@ serve(async (req) => {
     });
 
     // Use production URL or fallback
-    const baseUrl = Deno.env.get("PUBLIC_SITE_URL") || "https://unicconnect.lovable.app";
+    const baseUrl = Deno.env.get("PUBLIC_SITE_URL") || "https://staging.unicconnect.org";
     const assessmentLink = `${baseUrl}/assessment/${accessToken}`;
 
     const emailHtml = `
