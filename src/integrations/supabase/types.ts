@@ -89,6 +89,234 @@ export type Database = {
           },
         ]
       }
+      assessment_emails: {
+        Row: {
+          assessment_id: string
+          body: string
+          created_at: string
+          expected_response_guidance: string | null
+          id: string
+          is_curveball: boolean
+          order_index: number
+          sender_email: string
+          sender_name: string
+          subject: string
+          urgency: Database["public"]["Enums"]["email_urgency"]
+        }
+        Insert: {
+          assessment_id: string
+          body: string
+          created_at?: string
+          expected_response_guidance?: string | null
+          id?: string
+          is_curveball?: boolean
+          order_index?: number
+          sender_email: string
+          sender_name: string
+          subject: string
+          urgency?: Database["public"]["Enums"]["email_urgency"]
+        }
+        Update: {
+          assessment_id?: string
+          body?: string
+          created_at?: string
+          expected_response_guidance?: string | null
+          id?: string
+          is_curveball?: boolean
+          order_index?: number
+          sender_email?: string
+          sender_name?: string
+          subject?: string
+          urgency?: Database["public"]["Enums"]["email_urgency"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_emails_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "written_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_responses: {
+        Row: {
+          created_at: string
+          email_id: string
+          id: string
+          last_saved_at: string | null
+          order_addressed: number | null
+          response_text: string | null
+          slot_id: string
+          started_at: string | null
+          time_spent_seconds: number | null
+        }
+        Insert: {
+          created_at?: string
+          email_id: string
+          id?: string
+          last_saved_at?: string | null
+          order_addressed?: number | null
+          response_text?: string | null
+          slot_id: string
+          started_at?: string | null
+          time_spent_seconds?: number | null
+        }
+        Update: {
+          created_at?: string
+          email_id?: string
+          id?: string
+          last_saved_at?: string | null
+          order_addressed?: number | null
+          response_text?: string | null
+          slot_id?: string
+          started_at?: string | null
+          time_spent_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_responses_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_emails"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_responses_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_scores: {
+        Row: {
+          comments: string | null
+          communication: number | null
+          created_at: string
+          email_id: string
+          id: string
+          legal_accuracy: number | null
+          prioritization: number | null
+          risk_awareness: number | null
+          scored_by: string
+          slot_id: string
+          updated_at: string
+        }
+        Insert: {
+          comments?: string | null
+          communication?: number | null
+          created_at?: string
+          email_id: string
+          id?: string
+          legal_accuracy?: number | null
+          prioritization?: number | null
+          risk_awareness?: number | null
+          scored_by: string
+          slot_id: string
+          updated_at?: string
+        }
+        Update: {
+          comments?: string | null
+          communication?: number | null
+          created_at?: string
+          email_id?: string
+          id?: string
+          legal_accuracy?: number | null
+          prioritization?: number | null
+          risk_awareness?: number | null
+          scored_by?: string
+          slot_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_scores_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_emails"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_scores_scored_by_fkey"
+            columns: ["scored_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_scores_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_slots: {
+        Row: {
+          access_token: string
+          assessment_id: string
+          candidate_email: string
+          candidate_name: string
+          created_at: string
+          created_by: string | null
+          curveball_shown_at: string | null
+          id: string
+          scheduled_end: string
+          scheduled_start: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["assessment_slot_status"]
+          submitted_at: string | null
+        }
+        Insert: {
+          access_token?: string
+          assessment_id: string
+          candidate_email: string
+          candidate_name: string
+          created_at?: string
+          created_by?: string | null
+          curveball_shown_at?: string | null
+          id?: string
+          scheduled_end: string
+          scheduled_start: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["assessment_slot_status"]
+          submitted_at?: string | null
+        }
+        Update: {
+          access_token?: string
+          assessment_id?: string
+          candidate_email?: string
+          candidate_name?: string
+          created_at?: string
+          created_by?: string | null
+          curveball_shown_at?: string | null
+          id?: string
+          scheduled_end?: string
+          scheduled_start?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["assessment_slot_status"]
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_slots_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "written_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_slots_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -2947,6 +3175,62 @@ export type Database = {
         }
         Relationships: []
       }
+      written_assessments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          curveball_trigger_type:
+            | Database["public"]["Enums"]["curveball_trigger_type"]
+            | null
+          curveball_trigger_value: number | null
+          description: string | null
+          id: string
+          instructions: string | null
+          status: Database["public"]["Enums"]["assessment_status"]
+          time_limit_minutes: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          curveball_trigger_type?:
+            | Database["public"]["Enums"]["curveball_trigger_type"]
+            | null
+          curveball_trigger_value?: number | null
+          description?: string | null
+          id?: string
+          instructions?: string | null
+          status?: Database["public"]["Enums"]["assessment_status"]
+          time_limit_minutes?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          curveball_trigger_type?:
+            | Database["public"]["Enums"]["curveball_trigger_type"]
+            | null
+          curveball_trigger_value?: number | null
+          description?: string | null
+          id?: string
+          instructions?: string | null
+          status?: Database["public"]["Enums"]["assessment_status"]
+          time_limit_minutes?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "written_assessments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -3022,6 +3306,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      mark_curveball_shown: { Args: { p_token: string }; Returns: boolean }
       search_whed_universities: {
         Args: { max_results?: number; search_term: string }
         Returns: {
@@ -3034,6 +3319,8 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      start_assessment: { Args: { p_token: string }; Returns: boolean }
+      submit_assessment: { Args: { p_token: string }; Returns: boolean }
       update_video_assignment_status: {
         Args: {
           assignment_token: string
@@ -3041,6 +3328,24 @@ export type Database = {
           new_status: Database["public"]["Enums"]["video_assignment_status"]
         }
         Returns: boolean
+      }
+      validate_assessment_token: {
+        Args: { p_token: string }
+        Returns: {
+          assessment_id: string
+          candidate_email: string
+          candidate_name: string
+          curveball_trigger_type: Database["public"]["Enums"]["curveball_trigger_type"]
+          curveball_trigger_value: number
+          instructions: string
+          scheduled_end: string
+          scheduled_start: string
+          slot_id: string
+          started_at: string
+          status: Database["public"]["Enums"]["assessment_slot_status"]
+          time_limit_minutes: number
+          title: string
+        }[]
       }
       validate_panel_composition: { Args: { p_job_id: string }; Returns: Json }
       validate_video_assignment_token: {
@@ -3069,6 +3374,15 @@ export type Database = {
         | "Offer"
         | "Roster"
         | "Rejected"
+      assessment_slot_status:
+        | "scheduled"
+        | "in_progress"
+        | "completed"
+        | "expired"
+        | "cancelled"
+      assessment_status: "draft" | "active" | "archived"
+      curveball_trigger_type: "time" | "progress"
+      email_urgency: "low" | "normal" | "high" | "urgent"
       input_type: "boolean" | "single" | "multi" | "text"
       killer_question_rule: "yes_required" | "no_required" | "custom"
       panel_member_role:
@@ -3242,6 +3556,16 @@ export const Constants = {
         "Roster",
         "Rejected",
       ],
+      assessment_slot_status: [
+        "scheduled",
+        "in_progress",
+        "completed",
+        "expired",
+        "cancelled",
+      ],
+      assessment_status: ["draft", "active", "archived"],
+      curveball_trigger_type: ["time", "progress"],
+      email_urgency: ["low", "normal", "high", "urgent"],
       input_type: ["boolean", "single", "multi", "text"],
       killer_question_rule: ["yes_required", "no_required", "custom"],
       panel_member_role: [
