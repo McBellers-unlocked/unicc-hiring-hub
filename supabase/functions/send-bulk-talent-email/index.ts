@@ -62,7 +62,7 @@ const handler = async (req: Request): Promise<Response> => {
         console.log(`Sending email to: ${recipient.email}`);
 
         const emailResponse = await resend.emails.send({
-          from: "UNICC Talent <onboarding@resend.dev>",
+          from: "UNICC Talent <recruitment@unicconnect.org>",
           to: [recipient.email],
           subject: subject,
           html: personalizedHtml,

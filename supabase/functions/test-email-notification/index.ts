@@ -21,7 +21,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending test email to verify domain setup");
 
     const emailResponse = await resend.emails.send({
-      from: "UNICC Jobs <noreply@unicc.org>",
+      from: "UNICC Jobs <recruitment@unicconnect.org>",
       to: ["valente@unicc.org"],
       subject: "Test Email - Domain Verification Check",
       html: `

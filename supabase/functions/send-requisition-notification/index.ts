@@ -39,7 +39,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending requisition notification for:", requisitionId);
 
     const emailResponse = await resend.emails.send({
-      from: "UNICC Jobs <noreply@unicc.org>",
+      from: "UNICC Recruitment <recruitment@unicconnect.org>",
       to: ["valente@unicc.org"],
       subject: `New Job Requisition Submitted: ${title}`,
       html: `
