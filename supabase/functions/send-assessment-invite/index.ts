@@ -107,7 +107,7 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "UNICC Recruitment <no-reply@unicc.org>",
+        from: "UNICC Recruitment <onboarding@resend.dev>",
         to: [candidateEmail],
         subject: `Written Assessment Invitation: ${assessmentTitle}`,
         html: emailHtml,
