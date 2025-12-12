@@ -55,6 +55,12 @@ import GenerateFakeVideoResponses from "./pages/GenerateFakeVideoResponses";
 import BookInterviewSlot from "./pages/BookInterviewSlot";
 import SkillsAnalysis from "./pages/SkillsAnalysis";
 import ImportWHED from "./pages/ImportWHED";
+import AdminAssessments from "./pages/AdminAssessments";
+import AssessmentBuilder from "./pages/AssessmentBuilder";
+import AssessmentSlots from "./pages/AssessmentSlots";
+import AssessmentReview from "./pages/AssessmentReview";
+import CandidateAssessment from "./pages/CandidateAssessment";
+import AssessmentComplete from "./pages/AssessmentComplete";
 
 const queryClient = new QueryClient();
 
@@ -120,6 +126,13 @@ const App = () => (
             <Route path="/admin/import-skills" element={<ImportSkills />} />
             <Route path="/admin/import-staff-data" element={<ImportStaffData />} />
             <Route path="/admin/import-whed" element={<ImportWHED />} />
+            <Route path="/admin/assessments" element={<AdminAssessments />} />
+            <Route path="/admin/assessments/new" element={<AssessmentBuilder />} />
+            <Route path="/admin/assessments/:id/edit" element={<AssessmentBuilder />} />
+            <Route path="/admin/assessments/:id/slots" element={<AssessmentSlots />} />
+            <Route path="/admin/assessments/:id/review" element={<AssessmentReview />} />
+            <Route path="/assessment/:token" element={<CandidateAssessment />} />
+            <Route path="/assessment/complete" element={<AssessmentComplete />} />
             <Route path="/import-users" element={<ImportUsers />} />
             <Route path="/chief-of-division" element={<ChiefOfDivisionView />} />
             <Route path="/director-view" element={<DirectorView />} />
