@@ -248,6 +248,13 @@ export default function CandidateAssessment() {
   }, [responses, emails, assessmentData, hasStarted, triggerCurveball]);
 
   const startAssessment = async () => {
+    // Request fullscreen mode
+    try {
+      await document.documentElement.requestFullscreen();
+    } catch (e) {
+      console.log("Fullscreen not supported or denied");
+    }
+
     const { data: success } = await supabase.rpc("start_assessment", { p_token: token });
     if (success) {
       setHasStarted(true);
@@ -256,6 +263,72 @@ export default function CandidateAssessment() {
       toast.error("Failed to start assessment");
     }
   };
+
+  // Proctoring: Block context menu and keyboard shortcuts
+  useEffect(() => {
+    if (!hasStarted) return;
+
+    // Block context menu (right-click)
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      toast.warning("Right-click is disabled during the assessment");
+    };
+
+    // Block keyboard shortcuts
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isTextInput = target.tagName === "TEXTAREA" || target.tagName === "INPUT" || target.isContentEditable;
+
+      // Block Ctrl/Cmd+C and Ctrl/Cmd+V outside of text inputs
+      if ((e.ctrlKey || e.metaKey) && (e.key === "c" || e.key === "v")) {
+        if (!isTextInput) {
+          e.preventDefault();
+          toast.warning("Copy/paste is restricted during the assessment");
+        }
+      }
+
+      // Block F12 (DevTools) and Ctrl+Shift+I
+      if (e.key === "F12" || ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "I" || e.key === "i"))) {
+        e.preventDefault();
+        toast.warning("Developer tools are disabled during the assessment");
+      }
+
+      // Block Ctrl+Shift+C (inspect element)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "C" || e.key === "c")) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener("contextmenu", handleContextMenu);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("contextmenu", handleContextMenu);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [hasStarted]);
+
+  // Proctoring: Handle fullscreen exit
+  useEffect(() => {
+    if (!hasStarted) return;
+
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        toast.warning("Please stay in fullscreen mode during the assessment", {
+          duration: 8000,
+          action: {
+            label: "Return to Fullscreen",
+            onClick: () => {
+              document.documentElement.requestFullscreen().catch(() => {});
+            },
+          },
+        });
+      }
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, [hasStarted]);
 
   const saveResponses = async () => {
     if (!assessmentData) return;
@@ -501,6 +574,8 @@ export default function CandidateAssessment() {
                 <div className="text-sm text-amber-800 dark:text-amber-200">
                   <p className="font-semibold mb-1">Important Notes:</p>
                   <ul className="list-disc list-inside space-y-1">
+                    <li>The assessment runs in fullscreen mode - please do not exit fullscreen</li>
+                    <li>Copy/paste and right-click are restricted for integrity purposes</li>
                     <li>Once started, the timer cannot be paused</li>
                     <li>Your responses are auto-saved every 30 seconds</li>
                     <li>You can submit early by clicking "Submit Assessment"</li>
