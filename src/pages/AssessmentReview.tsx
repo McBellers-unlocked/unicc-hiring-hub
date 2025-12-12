@@ -82,14 +82,15 @@ export default function AssessmentReview() {
     },
   });
 
-  // Fetch responses for selected slot
+  // Fetch responses for selected slot (from email threads where candidate replied)
   const { data: responses } = useQuery({
     queryKey: ["assessment-responses", selectedSlotId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("assessment_responses")
+        .from("assessment_email_threads")
         .select("*")
-        .eq("slot_id", selectedSlotId);
+        .eq("slot_id", selectedSlotId)
+        .eq("sender_type", "candidate");
       if (error) throw error;
       return data;
     },
@@ -166,7 +167,7 @@ export default function AssessmentReview() {
   const selectedSlot = slots?.find((s) => s.id === selectedSlotId);
   const emails = assessment?.assessment_emails?.sort((a: any, b: any) => a.order_index - b.order_index) || [];
   const selectedEmail = emails.find((e: any) => e.id === selectedEmailId);
-  const selectedResponse = responses?.find((r) => r.email_id === selectedEmailId);
+  const selectedResponse = responses?.find((r) => r.original_email_id === selectedEmailId);
 
   const getScoreLabel = (score: number | null) => {
     switch (score) {
@@ -290,7 +291,7 @@ export default function AssessmentReview() {
                       <CardContent className="p-0">
                         <ScrollArea className="h-[500px]">
                           {emails.map((email: any) => {
-                            const response = responses?.find((r) => r.email_id === email.id);
+                            const response = responses?.find((r) => r.original_email_id === email.id);
                             const score = scores[email.id];
                             const hasScore =
                               score?.legal_accuracy ||
@@ -317,7 +318,7 @@ export default function AssessmentReview() {
                                   >
                                     {email.is_curveball ? "Curveball" : email.urgency}
                                   </Badge>
-                                  {response?.response_text?.trim() && (
+                                  {response?.content?.trim() && (
                                     <CheckCircle className="w-3 h-3 text-emerald-500" />
                                   )}
                                   {hasScore && (
@@ -375,7 +376,7 @@ export default function AssessmentReview() {
                                     Candidate's Response
                                   </Label>
                                   <div className="mt-1 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm whitespace-pre-wrap">
-                                    {selectedResponse?.response_text || (
+                                    {selectedResponse?.content || (
                                       <span className="text-muted-foreground italic">
                                         No response provided
                                       </span>
@@ -512,7 +513,7 @@ export default function AssessmentReview() {
                             <div className="flex justify-between">
                               <dt className="text-muted-foreground">Emails Responded</dt>
                               <dd>
-                                {responses?.filter((r) => r.response_text?.trim()).length || 0} /{" "}
+                                {responses?.filter((r) => r.content?.trim()).length || 0} /{" "}
                                 {emails.length}
                               </dd>
                             </div>
