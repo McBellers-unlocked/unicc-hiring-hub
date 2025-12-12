@@ -82,15 +82,15 @@ export default function AssessmentReview() {
     },
   });
 
-  // Fetch responses for selected slot (from email threads where candidate replied)
-  const { data: responses } = useQuery({
-    queryKey: ["assessment-responses", selectedSlotId],
+  // Fetch ALL thread messages for selected slot (to show full conversation)
+  const { data: threadMessages } = useQuery({
+    queryKey: ["assessment-threads", selectedSlotId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("assessment_email_threads")
         .select("*")
         .eq("slot_id", selectedSlotId)
-        .eq("sender_type", "candidate");
+        .order("created_at", { ascending: true });
       if (error) throw error;
       return data;
     },
@@ -167,7 +167,8 @@ export default function AssessmentReview() {
   const selectedSlot = slots?.find((s) => s.id === selectedSlotId);
   const emails = assessment?.assessment_emails?.sort((a: any, b: any) => a.order_index - b.order_index) || [];
   const selectedEmail = emails.find((e: any) => e.id === selectedEmailId);
-  const selectedResponse = responses?.find((r) => r.original_email_id === selectedEmailId);
+  // Get all thread messages for the selected email (full conversation)
+  const emailThread = threadMessages?.filter((m) => m.original_email_id === selectedEmailId) || [];
 
   const getScoreLabel = (score: number | null) => {
     switch (score) {
@@ -291,7 +292,9 @@ export default function AssessmentReview() {
                       <CardContent className="p-0">
                         <ScrollArea className="h-[500px]">
                           {emails.map((email: any) => {
-                            const response = responses?.find((r) => r.original_email_id === email.id);
+                            const hasResponse = threadMessages?.some(
+                              (r) => r.original_email_id === email.id && r.sender_type === 'candidate' && r.content?.trim()
+                            );
                             const score = scores[email.id];
                             const hasScore =
                               score?.legal_accuracy ||
@@ -318,7 +321,7 @@ export default function AssessmentReview() {
                                   >
                                     {email.is_curveball ? "Curveball" : email.urgency}
                                   </Badge>
-                                  {response?.content?.trim() && (
+                                  {hasResponse && (
                                     <CheckCircle className="w-3 h-3 text-emerald-500" />
                                   )}
                                   {hasScore && (
@@ -370,16 +373,38 @@ export default function AssessmentReview() {
                                   </div>
                                 </div>
 
-                                {/* Candidate response */}
+                                {/* Full Email Thread */}
                                 <div>
                                   <Label className="text-xs text-muted-foreground">
-                                    Candidate's Response
+                                    Conversation Thread
                                   </Label>
-                                  <div className="mt-1 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm whitespace-pre-wrap">
-                                    {selectedResponse?.content || (
-                                      <span className="text-muted-foreground italic">
-                                        No response provided
-                                      </span>
+                                  <div className="mt-2 space-y-3">
+                                    {emailThread.length > 0 ? (
+                                      emailThread.map((message) => (
+                                        <div key={message.id}>
+                                          <div className="text-xs text-muted-foreground mb-1">
+                                            {message.sender_type === 'candidate' 
+                                              ? "Candidate's Response" 
+                                              : `Reply from ${message.sender_name}`}
+                                            <span className="ml-2 opacity-60">
+                                              {format(new Date(message.created_at), "HH:mm:ss")}
+                                            </span>
+                                          </div>
+                                          <div className={`p-3 rounded-lg text-sm whitespace-pre-wrap ${
+                                            message.sender_type === 'candidate' 
+                                              ? "bg-blue-50 border border-blue-200" 
+                                              : "bg-amber-50 border border-amber-200"
+                                          }`}>
+                                            {message.content}
+                                          </div>
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <div className="p-3 bg-muted rounded-lg text-sm">
+                                        <span className="text-muted-foreground italic">
+                                          No response provided
+                                        </span>
+                                      </div>
                                     )}
                                   </div>
                                 </div>
@@ -513,7 +538,7 @@ export default function AssessmentReview() {
                             <div className="flex justify-between">
                               <dt className="text-muted-foreground">Emails Responded</dt>
                               <dd>
-                                {responses?.filter((r) => r.content?.trim()).length || 0} /{" "}
+                                {new Set(threadMessages?.filter((r) => r.sender_type === 'candidate' && r.content?.trim()).map((r) => r.original_email_id)).size || 0} /{" "}
                                 {emails.length}
                               </dd>
                             </div>
