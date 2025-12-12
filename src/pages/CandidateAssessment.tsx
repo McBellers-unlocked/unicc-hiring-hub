@@ -470,7 +470,7 @@ export default function CandidateAssessment() {
           <CardContent className="space-y-6">
             <div className="bg-muted p-4 rounded-lg">
               <h3 className="font-semibold mb-2">Welcome, {assessmentData.candidate_name}!</h3>
-              <div className="prose prose-sm text-muted-foreground">
+              <div className="prose prose-sm text-muted-foreground whitespace-pre-line">
                 {assessmentData.instructions || (
                   <p>
                     In this assessment, you will be presented with a simulated email inbox. Your
