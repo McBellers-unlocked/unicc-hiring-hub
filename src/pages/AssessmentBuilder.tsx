@@ -49,6 +49,7 @@ export default function AssessmentBuilder() {
   const [description, setDescription] = useState("");
   const [instructions, setInstructions] = useState("");
   const [timeLimit, setTimeLimit] = useState(90);
+  const [availabilityWindowHours, setAvailabilityWindowHours] = useState(24);
   const [curveballTriggerType, setCurveballTriggerType] = useState<"time" | "progress">("time");
   const [curveballTriggerValue, setCurveballTriggerValue] = useState(36);
   const [status, setStatus] = useState<"draft" | "active" | "archived">("draft");
@@ -78,6 +79,7 @@ export default function AssessmentBuilder() {
       setDescription(assessment.description || "");
       setInstructions(assessment.instructions || "");
       setTimeLimit(assessment.time_limit_minutes);
+      setAvailabilityWindowHours(assessment.availability_window_hours || 24);
       setCurveballTriggerType(assessment.curveball_trigger_type || "time");
       setCurveballTriggerValue(assessment.curveball_trigger_value || 36);
       setStatus(assessment.status);
@@ -114,6 +116,7 @@ export default function AssessmentBuilder() {
         description,
         instructions,
         time_limit_minutes: timeLimit,
+        availability_window_hours: availabilityWindowHours,
         curveball_trigger_type: curveballTriggerType,
         curveball_trigger_value: curveballTriggerValue,
         status,
@@ -318,7 +321,7 @@ export default function AssessmentBuilder() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="timeLimit">Time Limit (minutes)</Label>
                     <Input
@@ -329,6 +332,20 @@ export default function AssessmentBuilder() {
                       value={timeLimit}
                       onChange={(e) => setTimeLimit(parseInt(e.target.value) || 90)}
                     />
+                    <p className="text-xs text-muted-foreground">Once started</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="availabilityWindow">Availability Window (hours)</Label>
+                    <Input
+                      id="availabilityWindow"
+                      type="number"
+                      min={1}
+                      max={72}
+                      value={availabilityWindowHours}
+                      onChange={(e) => setAvailabilityWindowHours(parseInt(e.target.value) || 24)}
+                    />
+                    <p className="text-xs text-muted-foreground">Time to start after opening</p>
                   </div>
 
                   <div className="space-y-2">
@@ -344,6 +361,16 @@ export default function AssessmentBuilder() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                <div className="bg-muted/50 p-4 rounded-lg border">
+                  <h4 className="font-medium mb-2">How the two-stage timing works:</h4>
+                  <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
+                    <li>You schedule a date/time when the assessment becomes <strong>available</strong></li>
+                    <li>Candidate has <strong>{availabilityWindowHours} hours</strong> from that time to start</li>
+                    <li>Once they click "Start", they have <strong>{timeLimit} minutes</strong> to complete</li>
+                    <li>The assessment must be completed in one sitting - no pausing</li>
+                  </ol>
                 </div>
               </CardContent>
             </Card>

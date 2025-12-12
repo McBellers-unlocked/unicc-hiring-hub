@@ -28,8 +28,8 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Plus, Mail, Calendar, Clock, Copy, ExternalLink, Trash2 } from "lucide-react";
-import { format, addMinutes } from "date-fns";
+import { ArrowLeft, Plus, Mail, Calendar, Clock, Copy, ExternalLink, Trash2, AlertCircle } from "lucide-react";
+import { format, addMinutes, addHours } from "date-fns";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -76,7 +76,11 @@ export default function AssessmentSlots() {
     mutationFn: async () => {
       if (!scheduledStart || !assessment) throw new Error("Missing data");
 
-      const scheduledEnd = addMinutes(scheduledStart, assessment.time_limit_minutes);
+      const availabilityWindowHours = assessment.availability_window_hours || 24;
+      const availableFrom = scheduledStart;
+      const availableUntil = addHours(scheduledStart, availabilityWindowHours);
+      // scheduled_end is now calculated when assessment starts, but we set a placeholder
+      const scheduledEnd = addMinutes(availableUntil, assessment.time_limit_minutes);
 
       const { data, error } = await supabase
         .from("assessment_slots")
@@ -86,6 +90,8 @@ export default function AssessmentSlots() {
           candidate_email: candidateEmail,
           scheduled_start: scheduledStart.toISOString(),
           scheduled_end: scheduledEnd.toISOString(),
+          available_from: availableFrom.toISOString(),
+          available_until: availableUntil.toISOString(),
           created_by: user?.id,
         })
         .select()
@@ -93,14 +99,16 @@ export default function AssessmentSlots() {
 
       if (error) throw error;
 
-      // Optionally send invite email
+      // Send invite email with two-stage timing info
       await supabase.functions.invoke("send-assessment-invite", {
         body: {
           slotId: data.id,
           candidateName,
           candidateEmail,
           assessmentTitle: assessment.title,
-          scheduledStart: scheduledStart.toISOString(),
+          availableFrom: availableFrom.toISOString(),
+          availableUntil: availableUntil.toISOString(),
+          timeLimitMinutes: assessment.time_limit_minutes,
           accessToken: data.access_token,
         },
       });
@@ -265,7 +273,7 @@ export default function AssessmentSlots() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Scheduled Start</Label>
+                    <Label>Assessment Opens At</Label>
                     <DatePicker
                       selected={scheduledStart}
                       onChange={(date: Date | null) => setScheduledStart(date)}
@@ -275,7 +283,24 @@ export default function AssessmentSlots() {
                       className="w-full px-3 py-2 border border-input rounded-md bg-background"
                       placeholderText="Select date and time"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      When the assessment becomes available to the candidate
+                    </p>
                   </div>
+                  
+                  {scheduledStart && assessment && (
+                    <div className="bg-muted/50 p-3 rounded-lg border text-sm space-y-1">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <AlertCircle className="w-4 h-4" />
+                        <span className="font-medium">Candidate will receive:</span>
+                      </div>
+                      <ul className="list-disc list-inside text-muted-foreground ml-6 space-y-1">
+                        <li>Assessment opens: <strong className="text-foreground">{format(scheduledStart, "MMM d, yyyy 'at' h:mm a")}</strong></li>
+                        <li>Must start within: <strong className="text-foreground">{assessment.availability_window_hours || 24} hours</strong></li>
+                        <li>Time to complete once started: <strong className="text-foreground">{assessment.time_limit_minutes} minutes</strong></li>
+                      </ul>
+                    </div>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
@@ -314,7 +339,7 @@ export default function AssessmentSlots() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Candidate</TableHead>
-                    <TableHead>Scheduled</TableHead>
+                    <TableHead>Available Window</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Started</TableHead>
                     <TableHead>Submitted</TableHead>
@@ -331,7 +356,14 @@ export default function AssessmentSlots() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {format(new Date(slot.scheduled_start), "MMM d, yyyy h:mm a")}
+                        <div>
+                          <p>{format(new Date(slot.available_from || slot.scheduled_start), "MMM d, yyyy h:mm a")}</p>
+                          {slot.available_until && (
+                            <p className="text-xs text-muted-foreground">
+                              Until {format(new Date(slot.available_until), "h:mm a")}
+                            </p>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>{getStatusBadge(slot.status)}</TableCell>
                       <TableCell>
