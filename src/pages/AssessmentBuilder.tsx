@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Plus, Trash2, GripVertical, Mail, AlertTriangle, Save, Eye } from "lucide-react";
 import { EmailReplySettings } from "@/components/assessment/EmailReplySettings";
+import { TemplateVariablesHelper } from "@/components/assessment/TemplateVariablesHelper";
 
 interface AssessmentEmail {
   id?: string;
@@ -345,6 +346,8 @@ export default function AssessmentBuilder() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <TemplateVariablesHelper />
+                
                 {emails.filter((e) => !e.is_curveball).map((email, index) => (
                   <Card key={index} className="border-l-4 border-l-primary">
                     <CardContent className="pt-4">

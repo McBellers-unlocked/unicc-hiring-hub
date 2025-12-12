@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, User, Mail, Sparkles } from "lucide-react";
 import { format } from "date-fns";
+import { processEmailVariables, TemplateVariables } from "@/lib/emailTemplateVariables";
 
 interface ThreadMessage {
   id: string;
@@ -31,6 +32,7 @@ interface EmailThreadProps {
   onSendResponse: () => void;
   isSending?: boolean;
   candidateName?: string;
+  candidateEmail?: string;
 }
 
 export function EmailThread({
@@ -41,9 +43,16 @@ export function EmailThread({
   onSendResponse,
   isSending = false,
   candidateName = "You",
+  candidateEmail = "",
 }: EmailThreadProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasNewMessage, setHasNewMessage] = useState(false);
+
+  // Template variables for processing email content
+  const templateVars: TemplateVariables = {
+    candidate_name: candidateName,
+    candidate_email: candidateEmail,
+  };
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -91,13 +100,20 @@ export function EmailThread({
       sender_type: "original",
       sender_name: originalEmail.sender_name,
       sender_email: originalEmail.sender_email,
-      content: originalEmail.body,
+      content: processEmailVariables(originalEmail.body, templateVars),
       created_at: new Date().toISOString(),
       is_read: true,
     },
-    ...threadMessages.sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    ),
+    ...threadMessages
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .map((msg) => ({
+        ...msg,
+        // Process template variables in system replies (AI might include them)
+        content:
+          msg.sender_type === "system_reply"
+            ? processEmailVariables(msg.content, templateVars)
+            : msg.content,
+      })),
   ];
 
   return (

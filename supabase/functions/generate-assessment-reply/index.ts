@@ -11,6 +11,8 @@ interface GenerateReplyRequest {
   email_id: string;
   slot_id: string;
   candidate_response: string;
+  candidate_name: string;
+  candidate_email: string;
   reply_mode: "ai" | "pre_written";
   reply_style?: string;
   reply_ai_prompt?: string;
@@ -21,6 +23,20 @@ interface GenerateReplyRequest {
     subject: string;
     body: string;
   };
+}
+
+// Process template variables in content
+function processTemplateVariables(
+  content: string,
+  candidateName: string,
+  candidateEmail: string
+): string {
+  if (!content) return content;
+  const firstName = candidateName?.trim().split(/\s+/)[0] || candidateName || "";
+  return content
+    .replace(/\{\{candidate_first_name\}\}/gi, firstName)
+    .replace(/\{\{candidate_name\}\}/gi, candidateName || "")
+    .replace(/\{\{candidate_email\}\}/gi, candidateEmail || "");
 }
 
 const REPLY_STYLE_PROMPTS: Record<string, string> = {
@@ -50,6 +66,8 @@ serve(async (req) => {
       email_id,
       slot_id,
       candidate_response,
+      candidate_name,
+      candidate_email,
       reply_mode,
       reply_style,
       reply_ai_prompt,
@@ -57,11 +75,18 @@ serve(async (req) => {
       original_email,
     } = payload;
 
+    // Process template variables in original email body for AI context
+    const processedEmailBody = processTemplateVariables(
+      original_email.body,
+      candidate_name,
+      candidate_email
+    );
+
     let replyContent: string;
 
     if (reply_mode === "pre_written" && reply_pre_written) {
-      // Use pre-written reply
-      replyContent = reply_pre_written;
+      // Use pre-written reply and process template variables
+      replyContent = processTemplateVariables(reply_pre_written, candidate_name, candidate_email);
       console.log("Using pre-written reply");
     } else {
       // Generate AI reply using OpenAI
@@ -71,7 +96,11 @@ serve(async (req) => {
       }
 
       const styleInstructions = reply_style ? REPLY_STYLE_PROMPTS[reply_style] : REPLY_STYLE_PROMPTS.clarification;
-      const customPrompt = reply_ai_prompt ? `\n\nAdditional instructions: ${reply_ai_prompt}` : "";
+      // Process template variables in custom AI prompt
+      const processedAiPrompt = reply_ai_prompt 
+        ? processTemplateVariables(reply_ai_prompt, candidate_name, candidate_email)
+        : "";
+      const customPrompt = processedAiPrompt ? `\n\nAdditional instructions: ${processedAiPrompt}` : "";
 
       const systemPrompt = `You are ${original_email.sender_name} (${original_email.sender_email}), responding to an email thread in a professional UN/international organization context.
 
@@ -91,12 +120,14 @@ Important guidelines:
       const userPrompt = `Original email subject: ${original_email.subject}
 
 Original email body:
-${original_email.body}
+${processedEmailBody}
+
+Candidate's name: ${candidate_name}
 
 Candidate's response:
 ${candidate_response}
 
-Generate a follow-up reply email.`;
+Generate a follow-up reply email. Address the candidate by their first name if appropriate.`;
 
       console.log("Calling OpenAI for AI-generated reply...");
       
