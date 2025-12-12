@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Plus, Trash2, GripVertical, Mail, AlertTriangle, Save, Eye } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, GripVertical, Mail, AlertTriangle, Save, Eye, Users } from "lucide-react";
 import { EmailReplySettings } from "@/components/assessment/EmailReplySettings";
 import { TemplateVariablesHelper } from "@/components/assessment/TemplateVariablesHelper";
 
@@ -245,14 +245,30 @@ export default function AssessmentBuilder() {
   return (
     <Layout>
       <div className="container mx-auto py-8 px-4 max-w-4xl">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/admin/assessments")}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-          <h1 className="text-2xl font-bold">
-            {isEditing ? "Edit Assessment" : "Create Assessment"}
-          </h1>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/admin/assessments")}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+            <h1 className="text-2xl font-bold">
+              {isEditing ? "Edit Assessment" : "Create Assessment"}
+            </h1>
+            {isEditing && (
+              <Badge 
+                variant={status === "active" ? "default" : status === "archived" ? "secondary" : "outline"}
+                className="capitalize"
+              >
+                {status}
+              </Badge>
+            )}
+          </div>
+          {isEditing && (
+            <Button onClick={() => navigate(`/admin/assessments/${id}/slots`)}>
+              <Users className="w-4 h-4 mr-2" />
+              Manage Candidates
+            </Button>
+          )}
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
