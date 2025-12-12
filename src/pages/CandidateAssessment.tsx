@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Mail, Clock, Send, AlertTriangle, CheckCircle, Inbox, ChevronLeft, MessageSquare } from "lucide-react";
 import { differenceInSeconds, addMinutes } from "date-fns";
 import { EmailThread } from "@/components/assessment/EmailThread";
+import { processEmailVariables, TemplateVariables } from "@/lib/emailTemplateVariables";
 
 interface AssessmentEmail {
   id: string;
@@ -57,6 +58,7 @@ interface AssessmentData {
   slot_id: string;
   assessment_id: string;
   candidate_name: string;
+  candidate_email: string;
   time_limit_minutes: number;
   curveball_trigger_type: string;
   curveball_trigger_value: number;
@@ -295,7 +297,7 @@ export default function CandidateAssessment() {
         original_email_id: emailId,
         sender_type: "candidate",
         sender_name: assessmentData.candidate_name,
-        sender_email: "candidate@assessment.local",
+        sender_email: assessmentData.candidate_email || "candidate@assessment.local",
         content: content,
         is_read: true,
       })
@@ -328,6 +330,8 @@ export default function CandidateAssessment() {
               email_id: emailId,
               slot_id: assessmentData.slot_id,
               candidate_response: content,
+              candidate_name: assessmentData.candidate_name,
+              candidate_email: assessmentData.candidate_email || "",
               reply_mode: email.reply_mode || "ai",
               reply_style: email.reply_style,
               reply_ai_prompt: email.reply_ai_prompt,
@@ -665,6 +669,7 @@ export default function CandidateAssessment() {
                     setResponses({ ...responses, [selectedEmail.id]: "" });
                   }}
                   candidateName={assessmentData.candidate_name}
+                  candidateEmail={assessmentData.candidate_email || ""}
                 />
               </div>
             </>
