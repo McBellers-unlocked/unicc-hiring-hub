@@ -89,6 +89,70 @@ export type Database = {
           },
         ]
       }
+      assessment_email_threads: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_read: boolean | null
+          original_email_id: string
+          parent_message_id: string | null
+          scheduled_for: string | null
+          sender_email: string
+          sender_name: string
+          sender_type: string
+          slot_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          original_email_id: string
+          parent_message_id?: string | null
+          scheduled_for?: string | null
+          sender_email: string
+          sender_name: string
+          sender_type: string
+          slot_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          original_email_id?: string
+          parent_message_id?: string | null
+          scheduled_for?: string | null
+          sender_email?: string
+          sender_name?: string
+          sender_type?: string
+          slot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_email_threads_original_email_id_fkey"
+            columns: ["original_email_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_emails"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_email_threads_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_email_threads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_email_threads_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessment_emails: {
         Row: {
           assessment_id: string
@@ -98,6 +162,13 @@ export type Database = {
           id: string
           is_curveball: boolean
           order_index: number
+          reply_ai_prompt: string | null
+          reply_delay_max: number | null
+          reply_delay_min: number | null
+          reply_enabled: boolean | null
+          reply_mode: string | null
+          reply_pre_written: string | null
+          reply_style: string | null
           sender_email: string
           sender_name: string
           subject: string
@@ -111,6 +182,13 @@ export type Database = {
           id?: string
           is_curveball?: boolean
           order_index?: number
+          reply_ai_prompt?: string | null
+          reply_delay_max?: number | null
+          reply_delay_min?: number | null
+          reply_enabled?: boolean | null
+          reply_mode?: string | null
+          reply_pre_written?: string | null
+          reply_style?: string | null
           sender_email: string
           sender_name: string
           subject: string
@@ -124,6 +202,13 @@ export type Database = {
           id?: string
           is_curveball?: boolean
           order_index?: number
+          reply_ai_prompt?: string | null
+          reply_delay_max?: number | null
+          reply_delay_min?: number | null
+          reply_enabled?: boolean | null
+          reply_mode?: string | null
+          reply_pre_written?: string | null
+          reply_style?: string | null
           sender_email?: string
           sender_name?: string
           subject?: string

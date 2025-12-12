@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.send-assessment-invite]
 verify_jwt = false
+
+[functions.generate-assessment-reply]
+verify_jwt = false

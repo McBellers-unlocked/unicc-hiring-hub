@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Plus, Trash2, GripVertical, Mail, AlertTriangle, Save, Eye } from "lucide-react";
+import { EmailReplySettings } from "@/components/assessment/EmailReplySettings";
 
 interface AssessmentEmail {
   id?: string;
@@ -27,6 +28,13 @@ interface AssessmentEmail {
   urgency: "low" | "normal" | "high" | "urgent";
   is_curveball: boolean;
   expected_response_guidance: string;
+  reply_enabled?: boolean;
+  reply_mode?: "ai" | "pre_written";
+  reply_style?: string;
+  reply_ai_prompt?: string;
+  reply_pre_written?: string;
+  reply_delay_min?: number;
+  reply_delay_max?: number;
 }
 
 export default function AssessmentBuilder() {
@@ -85,6 +93,13 @@ export default function AssessmentBuilder() {
             urgency: e.urgency,
             is_curveball: e.is_curveball,
             expected_response_guidance: e.expected_response_guidance || "",
+            reply_enabled: e.reply_enabled || false,
+            reply_mode: e.reply_mode || "ai",
+            reply_style: e.reply_style || "clarification",
+            reply_ai_prompt: e.reply_ai_prompt || "",
+            reply_pre_written: e.reply_pre_written || "",
+            reply_delay_min: e.reply_delay_min || 4,
+            reply_delay_max: e.reply_delay_max || 8,
           }))
       );
     }
@@ -137,6 +152,13 @@ export default function AssessmentBuilder() {
             urgency: email.urgency,
             is_curveball: email.is_curveball,
             expected_response_guidance: email.expected_response_guidance,
+            reply_enabled: email.reply_enabled || false,
+            reply_mode: email.reply_mode || "ai",
+            reply_style: email.reply_style || "clarification",
+            reply_ai_prompt: email.reply_ai_prompt || "",
+            reply_pre_written: email.reply_pre_written || "",
+            reply_delay_min: email.reply_delay_min || 4,
+            reply_delay_max: email.reply_delay_max || 8,
           }));
 
           const { error } = await supabase.from("assessment_emails").insert(emailsToInsert);
@@ -172,6 +194,13 @@ export default function AssessmentBuilder() {
         urgency: "normal",
         is_curveball: false,
         expected_response_guidance: "",
+        reply_enabled: false,
+        reply_mode: "ai",
+        reply_style: "clarification",
+        reply_ai_prompt: "",
+        reply_pre_written: "",
+        reply_delay_min: 4,
+        reply_delay_max: 8,
       },
     ]);
   };
@@ -402,6 +431,12 @@ export default function AssessmentBuilder() {
                           rows={3}
                         />
                       </div>
+
+                      {/* Reply Settings */}
+                      <EmailReplySettings
+                        email={email}
+                        onUpdate={(field, value) => updateEmail(emails.indexOf(email), field as keyof AssessmentEmail, value)}
+                      />
                     </CardContent>
                   </Card>
                 ))}
