@@ -2702,6 +2702,11 @@ export type Database = {
       }
       skill_definitions: {
         Row: {
+          ai_review_pending: boolean | null
+          ai_reviewed_at: string | null
+          ai_reviewed_by: string | null
+          ai_suggested_category: string | null
+          ai_suggested_status: string | null
           category: string
           created_at: string
           description: string | null
@@ -2710,9 +2715,15 @@ export type Database = {
           name: string
           order_index: number | null
           skill_type: string | null
+          status: string | null
           updated_at: string
         }
         Insert: {
+          ai_review_pending?: boolean | null
+          ai_reviewed_at?: string | null
+          ai_reviewed_by?: string | null
+          ai_suggested_category?: string | null
+          ai_suggested_status?: string | null
           category?: string
           created_at?: string
           description?: string | null
@@ -2721,9 +2732,15 @@ export type Database = {
           name: string
           order_index?: number | null
           skill_type?: string | null
+          status?: string | null
           updated_at?: string
         }
         Update: {
+          ai_review_pending?: boolean | null
+          ai_reviewed_at?: string | null
+          ai_reviewed_by?: string | null
+          ai_suggested_category?: string | null
+          ai_suggested_status?: string | null
           category?: string
           created_at?: string
           description?: string | null
@@ -2732,6 +2749,7 @@ export type Database = {
           name?: string
           order_index?: number | null
           skill_type?: string | null
+          status?: string | null
           updated_at?: string
         }
         Relationships: []

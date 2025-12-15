@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Plus, Edit2, Clock, CheckCircle, XCircle, AlertCircle, Users, User, Award, Brain, Cpu, ClipboardList } from "lucide-react";
+import { Plus, Edit2, Clock, CheckCircle, XCircle, AlertCircle, Users, User, Award, Brain, Cpu, ClipboardList, Sparkles, TrendingUp } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import SkillAssessmentDialog from "./SkillAssessmentDialog";
 import { SkillGapSummary } from "./SkillGapBar";
 import BatterySkillIndicator from "./BatterySkillIndicator";
@@ -27,8 +28,15 @@ interface Assessment {
     name: string;
     category: string;
     skill_type: 'proficiency' | 'credential';
+    status: string | null;
   };
 }
+
+const SKILL_STATUS_CONFIG: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
+  new: { icon: <Sparkles className="h-3 w-3" />, label: 'New', color: 'text-blue-500' },
+  emerging: { icon: <TrendingUp className="h-3 w-3" />, label: 'Emerging', color: 'text-green-500' },
+  legacy: { icon: <Clock className="h-3 w-3" />, label: 'Legacy', color: 'text-amber-500' },
+};
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   'Behavioral': <Brain className="h-4 w-4" />,
@@ -79,7 +87,7 @@ export default function MySkillsAssessment() {
         assessed_at,
         scope,
         has_credential,
-        skill_definitions (name, category, skill_type)
+        skill_definitions (name, category, skill_type, status)
       `)
       .eq('user_id', user!.id)
       .order('created_at', { ascending: false });
@@ -214,8 +222,20 @@ export default function MySkillsAssessment() {
                             ) : (
                               <XCircle className="h-4 w-4 text-muted-foreground" />
                             )}
-                            <span className="font-medium text-sm">
+                            <span className="font-medium text-sm flex items-center gap-1">
                               {assessment.skill_definitions?.name}
+                              {assessment.skill_definitions?.status && SKILL_STATUS_CONFIG[assessment.skill_definitions.status] && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className={SKILL_STATUS_CONFIG[assessment.skill_definitions.status].color}>
+                                      {SKILL_STATUS_CONFIG[assessment.skill_definitions.status].icon}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {SKILL_STATUS_CONFIG[assessment.skill_definitions.status].label} skill
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
                             </span>
                             {getStatusBadge(assessment.status)}
                             {assessment.expiration_date && (
@@ -244,7 +264,21 @@ export default function MySkillsAssessment() {
                           {categoryAssessments.map((assessment) => (
                             <TableRow key={assessment.id}>
                               <TableCell className="font-medium">
-                                {assessment.skill_definitions?.name}
+                                <span className="flex items-center gap-1">
+                                  {assessment.skill_definitions?.name}
+                                  {assessment.skill_definitions?.status && SKILL_STATUS_CONFIG[assessment.skill_definitions.status] && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className={SKILL_STATUS_CONFIG[assessment.skill_definitions.status].color}>
+                                          {SKILL_STATUS_CONFIG[assessment.skill_definitions.status].icon}
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        {SKILL_STATUS_CONFIG[assessment.skill_definitions.status].label} skill
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
+                                </span>
                               </TableCell>
                               <TableCell className="text-center">
                                 <span className="font-medium text-sm">{assessment.self_assessment ?? '-'}</span>
