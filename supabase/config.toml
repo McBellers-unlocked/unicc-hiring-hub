@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.generate-assessment-reply]
 verify_jwt = false
+
+[functions.categorize-skills]
+verify_jwt = false

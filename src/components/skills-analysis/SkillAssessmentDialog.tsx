@@ -10,7 +10,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Info, Upload, Users, User, Award, Brain, Cpu, ClipboardList } from "lucide-react";
+import { Info, Upload, Users, User, Award, Brain, Cpu, ClipboardList, Sparkles, TrendingUp, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import SkillLevelSelector from "./SkillLevelSelector";
 
 interface SkillDefinition {
@@ -18,6 +19,7 @@ interface SkillDefinition {
   name: string;
   category: string;
   skill_type: 'proficiency' | 'credential';
+  status: string | null;
 }
 
 interface SkillAssessmentDialogProps {
@@ -47,6 +49,12 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 };
 
 const CATEGORY_ORDER = ['Behavioral', 'Technical & Domain', 'Methods & Processes', 'Certifications & Licenses'];
+
+const STATUS_ICONS: Record<string, { icon: React.ReactNode; color: string }> = {
+  new: { icon: <Sparkles className="h-3 w-3" />, color: 'text-blue-500' },
+  emerging: { icon: <TrendingUp className="h-3 w-3" />, color: 'text-green-500' },
+  legacy: { icon: <Clock className="h-3 w-3" />, color: 'text-amber-500' },
+};
 
 export default function SkillAssessmentDialog({
   open,
@@ -93,8 +101,9 @@ export default function SkillAssessmentDialog({
     setLoading(true);
     const { data, error } = await supabase
       .from('skill_definitions')
-      .select('id, name, category, skill_type')
+      .select('id, name, category, skill_type, status')
       .eq('is_active', true)
+      .neq('status', 'retired') // Filter out retired skills
       .order('category')
       .order('name');
     
@@ -302,6 +311,11 @@ export default function SkillAssessmentDialog({
                           {skill.name}
                           {skill.skill_type === 'credential' && (
                             <Award className="h-3 w-3 text-amber-500" />
+                          )}
+                          {skill.status && STATUS_ICONS[skill.status] && (
+                            <span className={STATUS_ICONS[skill.status].color}>
+                              {STATUS_ICONS[skill.status].icon}
+                            </span>
                           )}
                         </span>
                       </SelectItem>

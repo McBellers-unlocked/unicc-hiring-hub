@@ -55,6 +55,7 @@ import GenerateFakeVideoResponses from "./pages/GenerateFakeVideoResponses";
 import BookInterviewSlot from "./pages/BookInterviewSlot";
 import SkillsAnalysis from "./pages/SkillsAnalysis";
 import ImportWHED from "./pages/ImportWHED";
+import AdminSkillsReview from "./pages/AdminSkillsReview";
 import AdminAssessments from "./pages/AdminAssessments";
 import AssessmentBuilder from "./pages/AssessmentBuilder";
 import AssessmentSlots from "./pages/AssessmentSlots";
@@ -126,6 +127,7 @@ const App = () => (
             <Route path="/admin/import-skills" element={<ImportSkills />} />
             <Route path="/admin/import-staff-data" element={<ImportStaffData />} />
             <Route path="/admin/import-whed" element={<ImportWHED />} />
+            <Route path="/admin/skills-review" element={<AdminSkillsReview />} />
             <Route path="/admin/assessments" element={<AdminAssessments />} />
             <Route path="/admin/assessments/new" element={<AssessmentBuilder />} />
             <Route path="/admin/assessments/:id/edit" element={<AssessmentBuilder />} />
