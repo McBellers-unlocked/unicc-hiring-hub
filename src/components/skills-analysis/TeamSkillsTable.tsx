@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Check, X, User, Settings2, Users, Network } from "lucide-react";
+import { Check, X, User, Settings2, Users, Network, Brain, Cpu, ClipboardList, Award, CheckCircle, XCircle } from "lucide-react";
 import BatterySkillIndicator from "./BatterySkillIndicator";
 import BatteryLevelSelector from "./BatteryLevelSelector";
 import { cn } from "@/lib/utils";
@@ -26,6 +26,7 @@ interface SkillDefinition {
   id: string;
   name: string;
   category: string;
+  skill_type?: 'proficiency' | 'credential';
 }
 
 interface Assessment {
@@ -37,9 +38,19 @@ interface Assessment {
   required_level: number | null;
   status: string;
   scope: 'team' | 'individual';
+  has_credential?: boolean | null;
 }
 
 type ViewMode = 'direct' | 'all';
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  'Behavioral': <Brain className="h-4 w-4" />,
+  'Technical & Domain': <Cpu className="h-4 w-4" />,
+  'Methods & Processes': <ClipboardList className="h-4 w-4" />,
+  'Certifications & Licenses': <Award className="h-4 w-4" />,
+};
+
+const CATEGORY_ORDER = ['Behavioral', 'Technical & Domain', 'Methods & Processes', 'Certifications & Licenses'];
 
 export default function TeamSkillsTable() {
   const { user } = useAuth();
@@ -84,11 +95,11 @@ export default function TeamSkillsTable() {
   const fetchAllSkillDefinitions = async () => {
     const { data } = await supabase
       .from('skill_definitions')
-      .select('id, name, category')
+      .select('id, name, category, skill_type')
       .eq('is_active', true)
       .order('category')
       .order('name');
-    setAllSkillDefinitions(data || []);
+    setAllSkillDefinitions((data || []) as SkillDefinition[]);
   };
 
   const fetchTeamData = async () => {
@@ -141,7 +152,7 @@ export default function TeamSkillsTable() {
       
       const { data: assessmentData } = await supabase
         .from('skill_assessments')
-        .select('id, user_id, skill_id, self_assessment, manager_assessment, required_level, status, scope')
+        .select('id, user_id, skill_id, self_assessment, manager_assessment, required_level, status, scope, has_credential')
         .in('user_id', memberIds)
         .eq('scope', 'team'); // Only show team skills in matrix
 
@@ -152,13 +163,13 @@ export default function TeamSkillsTable() {
       if (skillIds.length > 0) {
         const { data: skillData } = await supabase
           .from('skill_definitions')
-          .select('id, name, category')
+          .select('id, name, category, skill_type')
           .eq('is_active', true)
           .in('id', skillIds)
           .order('category')
           .order('name');
 
-        setSkills(skillData || []);
+        setSkills((skillData || []) as SkillDefinition[]);
       } else {
         setSkills([]);
       }
@@ -304,10 +315,23 @@ export default function TeamSkillsTable() {
     }
   };
 
-  const categories = [...new Set(skills.map(s => s.category))];
+  // Sort categories by defined order
+  const categories = [...new Set(skills.map(s => s.category))].sort((a, b) => {
+    const aIndex = CATEGORY_ORDER.indexOf(a);
+    const bIndex = CATEGORY_ORDER.indexOf(b);
+    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+    return aIndex - bIndex;
+  });
   
   const filteredSkills = selectedCategory === "all" 
-    ? skills 
+    ? skills.sort((a, b) => {
+        const catA = CATEGORY_ORDER.indexOf(a.category);
+        const catB = CATEGORY_ORDER.indexOf(b.category);
+        if (catA !== catB) return (catA === -1 ? 999 : catA) - (catB === -1 ? 999 : catB);
+        return a.name.localeCompare(b.name);
+      })
     : skills.filter(s => s.category === selectedCategory);
 
   const pendingCount = assessments.filter(a => a.status === 'pending_approval').length;
@@ -442,13 +466,18 @@ export default function TeamSkillsTable() {
             
             {/* Category Filter */}
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-52">
                 <SelectValue placeholder="Filter by category" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
                 {categories.map(cat => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  <SelectItem key={cat} value={cat}>
+                    <span className="flex items-center gap-2">
+                      {CATEGORY_ICONS[cat]}
+                      {cat}
+                    </span>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -551,13 +580,20 @@ export default function TeamSkillsTable() {
                   {filteredSkills.map(skill => (
                     <TableRow key={skill.id}>
                       <TableCell className="sticky left-0 bg-background z-10 border-r">
-                        <div>
-                          <p className="font-medium text-sm">{skill.name}</p>
-                          <p className="text-xs text-muted-foreground">{skill.category}</p>
+                        <div className="flex items-center gap-2">
+                          {CATEGORY_ICONS[skill.category]}
+                          <div>
+                            <p className="font-medium text-sm">{skill.name}</p>
+                            <p className="text-xs text-muted-foreground">{skill.category}</p>
+                          </div>
+                          {skill.skill_type === 'credential' && (
+                            <Award className="h-3 w-3 text-amber-500 ml-auto" />
+                          )}
                         </div>
                       </TableCell>
                       {teamMembers.map((member, memberIndex) => {
                         const assessment = getAssessment(member.id, skill.id);
+                        const isCredential = skill.skill_type === 'credential';
                         
                         return (
                           <TableCell 
@@ -568,15 +604,31 @@ export default function TeamSkillsTable() {
                             )}
                           >
                             <div className="flex items-center justify-center min-h-[44px]">
-                              <BatterySkillIndicator
-                                selfAssessment={assessment?.self_assessment ?? null}
-                                requiredLevel={assessment?.required_level ?? null}
-                                managerAssessment={assessment?.manager_assessment ?? null}
-                                status={assessment?.status}
-                                onSegmentClick={(level) => handleDirectSetRequired(member.id, skill.id, level)}
-                                compact
-                                editable
-                              />
+                              {isCredential ? (
+                                // Credential display - simple check/x
+                                <div className={cn(
+                                  "inline-flex items-center justify-center w-8 h-8 rounded-full",
+                                  assessment?.has_credential 
+                                    ? "bg-emerald-100 dark:bg-emerald-900/30" 
+                                    : "bg-muted"
+                                )}>
+                                  {assessment?.has_credential ? (
+                                    <CheckCircle className="h-5 w-5 text-emerald-600" />
+                                  ) : (
+                                    <XCircle className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                </div>
+                              ) : (
+                                <BatterySkillIndicator
+                                  selfAssessment={assessment?.self_assessment ?? null}
+                                  requiredLevel={assessment?.required_level ?? null}
+                                  managerAssessment={assessment?.manager_assessment ?? null}
+                                  status={assessment?.status}
+                                  onSegmentClick={(level) => handleDirectSetRequired(member.id, skill.id, level)}
+                                  compact
+                                  editable
+                                />
+                              )}
                             </div>
                           </TableCell>
                         );

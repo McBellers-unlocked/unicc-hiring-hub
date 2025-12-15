@@ -7,15 +7,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Info, Upload, Users, User } from "lucide-react";
+import { Info, Upload, Users, User, Award, Brain, Cpu, ClipboardList } from "lucide-react";
 import SkillLevelSelector from "./SkillLevelSelector";
 
 interface SkillDefinition {
   id: string;
   name: string;
   category: string;
+  skill_type: 'proficiency' | 'credential';
 }
 
 interface SkillAssessmentDialogProps {
@@ -31,10 +33,20 @@ interface SkillAssessmentDialogProps {
     remarks: string | null;
     expiration_date: string | null;
     scope?: 'team' | 'individual';
+    has_credential?: boolean | null;
   } | null;
   onSuccess: () => void;
   isManager?: boolean;
 }
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  'Behavioral': <Brain className="h-4 w-4" />,
+  'Technical & Domain': <Cpu className="h-4 w-4" />,
+  'Methods & Processes': <ClipboardList className="h-4 w-4" />,
+  'Certifications & Licenses': <Award className="h-4 w-4" />,
+};
+
+const CATEGORY_ORDER = ['Behavioral', 'Technical & Domain', 'Methods & Processes', 'Certifications & Licenses'];
 
 export default function SkillAssessmentDialog({
   open,
@@ -55,6 +67,10 @@ export default function SkillAssessmentDialog({
   const [remarks, setRemarks] = useState("");
   const [expirationDate, setExpirationDate] = useState("");
   const [scope, setScope] = useState<'team' | 'individual'>('team');
+  const [hasCredential, setHasCredential] = useState<boolean>(false);
+
+  const selectedSkill = skills.find(s => s.id === skillId);
+  const isCredentialSkill = selectedSkill?.skill_type === 'credential';
 
   useEffect(() => {
     if (open) {
@@ -66,6 +82,7 @@ export default function SkillAssessmentDialog({
         setRemarks(existingAssessment.remarks || "");
         setExpirationDate(existingAssessment.expiration_date || "");
         setScope(existingAssessment.scope || 'team');
+        setHasCredential(existingAssessment.has_credential || false);
       } else {
         resetForm();
       }
@@ -76,7 +93,7 @@ export default function SkillAssessmentDialog({
     setLoading(true);
     const { data, error } = await supabase
       .from('skill_definitions')
-      .select('id, name, category')
+      .select('id, name, category, skill_type')
       .eq('is_active', true)
       .order('category')
       .order('name');
@@ -84,7 +101,7 @@ export default function SkillAssessmentDialog({
     if (error) {
       toast.error("Failed to load skills");
     } else {
-      setSkills(data || []);
+      setSkills((data || []) as SkillDefinition[]);
     }
     setLoading(false);
   };
@@ -96,11 +113,18 @@ export default function SkillAssessmentDialog({
     setRemarks("");
     setExpirationDate("");
     setScope('team');
+    setHasCredential(false);
   };
 
   const handleSubmit = async (submitForApproval: boolean = false) => {
-    if (!skillId || (!selfAssessment && !isManager)) {
-      toast.error("Please select a skill and assessment level");
+    if (!skillId) {
+      toast.error("Please select a skill");
+      return;
+    }
+    
+    // For proficiency skills, require a level
+    if (!isCredentialSkill && !selfAssessment && !isManager) {
+      toast.error("Please select an assessment level");
       return;
     }
 
@@ -112,14 +136,28 @@ export default function SkillAssessmentDialog({
         remarks: remarks || null,
         expiration_date: expirationDate || null,
         assessed_at: new Date().toISOString(),
-        scope: isManager ? 'team' : scope, // Managers always set team skills
+        scope: isManager ? 'team' : scope,
       };
 
-      if (isManager) {
-        assessmentData.required_level = requiredLevel;
-        assessmentData.status = 'approved';
+      // Handle credential vs proficiency differently
+      if (isCredentialSkill) {
+        assessmentData.has_credential = hasCredential;
+        assessmentData.self_assessment = hasCredential ? 5 : null; // Full level if has credential
+        assessmentData.required_level = 5; // Credentials are always required at max
       } else {
-        assessmentData.self_assessment = selfAssessment;
+        assessmentData.has_credential = null;
+        if (isManager) {
+          assessmentData.required_level = requiredLevel;
+          assessmentData.status = 'approved';
+        } else {
+          assessmentData.self_assessment = selfAssessment;
+          assessmentData.status = submitForApproval ? 'pending_approval' : 'draft';
+        }
+      }
+
+      if (!isManager && !isCredentialSkill) {
+        assessmentData.status = submitForApproval ? 'pending_approval' : 'draft';
+      } else if (isCredentialSkill) {
         assessmentData.status = submitForApproval ? 'pending_approval' : 'draft';
       }
 
@@ -141,9 +179,7 @@ export default function SkillAssessmentDialog({
       }
 
       // Sync skill to user's profile skills array
-      const selectedSkill = skills.find(s => s.id === skillId);
       if (selectedSkill) {
-        // Sync to users table
         const { data: userData } = await supabase
           .from('users')
           .select('skills, email')
@@ -164,7 +200,7 @@ export default function SkillAssessmentDialog({
             .eq('id', userId);
         }
 
-        // Also sync to candidates table (bidirectional sync)
+        // Also sync to candidates table
         if (userData?.email) {
           const { data: candidateData } = await supabase
             .from('candidates')
@@ -200,11 +236,22 @@ export default function SkillAssessmentDialog({
     }
   };
 
+  // Group skills by category in the defined order
   const groupedSkills = skills.reduce((acc, skill) => {
     if (!acc[skill.category]) acc[skill.category] = [];
     acc[skill.category].push(skill);
     return acc;
   }, {} as Record<string, SkillDefinition[]>);
+
+  // Sort categories by defined order
+  const sortedCategories = Object.keys(groupedSkills).sort((a, b) => {
+    const aIndex = CATEGORY_ORDER.indexOf(a);
+    const bIndex = CATEGORY_ORDER.indexOf(b);
+    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+    return aIndex - bIndex;
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -243,14 +290,20 @@ export default function SkillAssessmentDialog({
                 <SelectValue placeholder="Select a skill..." />
               </SelectTrigger>
               <SelectContent className="max-h-64">
-                {Object.entries(groupedSkills).map(([category, categorySkills]) => (
+                {sortedCategories.map(category => (
                   <div key={category}>
-                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted">
+                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted flex items-center gap-2">
+                      {CATEGORY_ICONS[category]}
                       {category}
                     </div>
-                    {categorySkills.map(skill => (
+                    {groupedSkills[category].map(skill => (
                       <SelectItem key={skill.id} value={skill.id}>
-                        {skill.name}
+                        <span className="flex items-center gap-2">
+                          {skill.name}
+                          {skill.skill_type === 'credential' && (
+                            <Award className="h-3 w-3 text-amber-500" />
+                          )}
+                        </span>
                       </SelectItem>
                     ))}
                   </div>
@@ -287,23 +340,54 @@ export default function SkillAssessmentDialog({
             </div>
           )}
 
-          {/* Level selector */}
-          <div className="space-y-2">
-            <Label>{isManager ? "Required Level *" : "Self Assessment Level *"}</Label>
-            <SkillLevelSelector
-              value={isManager ? requiredLevel : selfAssessment}
-              onChange={isManager ? setRequiredLevel : setSelfAssessment}
-            />
-          </div>
+          {/* Level selector - different UI for credentials vs proficiency */}
+          {isCredentialSkill ? (
+            <div className="space-y-3 p-4 border rounded-lg bg-amber-50/50 dark:bg-amber-950/20">
+              <div className="flex items-center gap-2">
+                <Award className="h-5 w-5 text-amber-600" />
+                <Label className="text-amber-800 dark:text-amber-200">Certification Status</Label>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Do you have this certification?</p>
+                  <p className="text-xs text-muted-foreground">Credentials are tracked as Yes/No</p>
+                </div>
+                <Switch
+                  checked={hasCredential}
+                  onCheckedChange={setHasCredential}
+                />
+              </div>
+              {hasCredential && (
+                <p className="text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                  ✓ You have this certification
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>{isManager ? "Required Level *" : "Self Assessment Level *"}</Label>
+              <SkillLevelSelector
+                value={isManager ? requiredLevel : selfAssessment}
+                onChange={isManager ? setRequiredLevel : setSelfAssessment}
+              />
+            </div>
+          )}
 
-          {/* Expiration date */}
+          {/* Expiration date - more prominent for certifications */}
           <div className="space-y-2">
-            <Label>Expiration Date (Optional)</Label>
+            <Label>
+              {isCredentialSkill ? "Certification Expiry Date" : "Expiration Date (Optional)"}
+            </Label>
             <Input
               type="date"
               value={expirationDate}
               onChange={(e) => setExpirationDate(e.target.value)}
             />
+            {isCredentialSkill && (
+              <p className="text-xs text-muted-foreground">
+                When does this certification expire? Leave blank if it doesn't expire.
+              </p>
+            )}
           </div>
 
           {/* Remarks */}
@@ -312,7 +396,7 @@ export default function SkillAssessmentDialog({
             <Textarea
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
-              placeholder="Add any relevant notes..."
+              placeholder={isCredentialSkill ? "Add certification ID, issuing body, etc..." : "Add any relevant notes..."}
               rows={3}
             />
           </div>
@@ -323,7 +407,7 @@ export default function SkillAssessmentDialog({
             <div className="border-2 border-dashed rounded-lg p-4 text-center text-muted-foreground">
               <Upload className="h-6 w-6 mx-auto mb-2" />
               <p className="text-sm">Drag & drop or click to upload</p>
-              <p className="text-xs">Certificates, training records, etc.</p>
+              <p className="text-xs">{isCredentialSkill ? "Upload certificate copy" : "Certificates, training records, etc."}</p>
             </div>
           </div>
 

@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Users, Target, TrendingUp, Award, GraduationCap, AlertTriangle } from "lucide-react";
+import { Users, Target, TrendingUp, Award, GraduationCap, AlertTriangle, Brain, Cpu, ClipboardList } from "lucide-react";
 import StatsCard from "@/components/dashboard/StatsCard";
 import SkillHeatmap from "./SkillHeatmap";
 import TeamSkillsRadar from "./TeamSkillsRadar";
@@ -23,6 +24,7 @@ interface SkillDefinition {
   id: string;
   name: string;
   category: string;
+  skill_type?: 'proficiency' | 'credential';
 }
 
 interface Assessment {
@@ -34,7 +36,17 @@ interface Assessment {
   required_level: number | null;
   status: string;
   scope: 'team' | 'individual';
+  has_credential?: boolean | null;
 }
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  'Behavioral': <Brain className="h-4 w-4" />,
+  'Technical & Domain': <Cpu className="h-4 w-4" />,
+  'Methods & Processes': <ClipboardList className="h-4 w-4" />,
+  'Certifications & Licenses': <Award className="h-4 w-4" />,
+};
+
+const CATEGORY_ORDER = ['Behavioral', 'Technical & Domain', 'Methods & Processes', 'Certifications & Licenses'];
 
 export default function TeamSkillsAnalytics() {
   const { user } = useAuth();
@@ -43,6 +55,7 @@ export default function TeamSkillsAnalytics() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   useEffect(() => {
     if (user?.email) {
@@ -93,7 +106,7 @@ export default function TeamSkillsAnalytics() {
       // Fetch assessments - only team scope for analytics
       const { data: assessmentData } = await supabase
         .from('skill_assessments')
-        .select('id, user_id, skill_id, self_assessment, manager_assessment, required_level, status, scope')
+        .select('id, user_id, skill_id, self_assessment, manager_assessment, required_level, status, scope, has_credential')
         .in('user_id', memberIds)
         .eq('scope', 'team');
 
@@ -104,18 +117,45 @@ export default function TeamSkillsAnalytics() {
       if (skillIds.length > 0) {
         const { data: skillData } = await supabase
           .from('skill_definitions')
-          .select('id, name, category')
+          .select('id, name, category, skill_type')
           .in('id', skillIds);
-        setSkills(skillData || []);
+        setSkills((skillData || []) as SkillDefinition[]);
       }
     }
 
     setLoading(false);
   };
 
+  // Filter skills by category and exclude credentials from proficiency metrics
+  const filteredAssessments = useMemo(() => {
+    let filtered = assessments;
+    
+    // Filter by category if selected
+    if (selectedCategory !== "all") {
+      const categorySkillIds = skills
+        .filter(s => s.category === selectedCategory)
+        .map(s => s.id);
+      filtered = filtered.filter(a => categorySkillIds.includes(a.skill_id));
+    }
+    
+    // Exclude credentials from proficiency-based metrics
+    const credentialSkillIds = skills
+      .filter(s => s.skill_type === 'credential')
+      .map(s => s.id);
+    
+    return {
+      all: filtered,
+      proficiencyOnly: filtered.filter(a => !credentialSkillIds.includes(a.skill_id)),
+      credentialsOnly: filtered.filter(a => credentialSkillIds.includes(a.skill_id))
+    };
+  }, [assessments, skills, selectedCategory]);
+
   // Calculate analytics metrics
   const metrics = useMemo(() => {
-    if (assessments.length === 0) {
+    const proficiencyAssessments = filteredAssessments.proficiencyOnly;
+    const credentialAssessments = filteredAssessments.credentialsOnly;
+    
+    if (proficiencyAssessments.length === 0 && credentialAssessments.length === 0) {
       return {
         teamSize: teamMembers.length,
         totalSkills: 0,
@@ -129,15 +169,18 @@ export default function TeamSkillsAnalytics() {
         totalGapLevels: 0,
         gapsBySkill: [] as { skillName: string; skillId: string; gapCount: number; totalGap: number }[],
         skillAggregates: [] as { skillName: string; category: string; avgLevel: number; requiredLevel: number }[],
-        distribution: { excelling: 0, exceeding: 0, meeting: 0, minorGap: 0, criticalGap: 0 }
+        distribution: { excelling: 0, exceeding: 0, meeting: 0, minorGap: 0, criticalGap: 0 },
+        credentialsHeld: 0,
+        credentialsMissing: 0
       };
     }
 
+    // Proficiency skill metrics
     let excelling = 0, exceeding = 0, meeting = 0, gaps = 0, criticalGaps = 0, totalGapLevels = 0;
     const gapMap = new Map<string, { count: number; total: number }>();
     const skillLevels = new Map<string, { levels: number[]; required: number[] }>();
 
-    assessments.forEach(a => {
+    proficiencyAssessments.forEach(a => {
       const level = a.manager_assessment ?? a.self_assessment ?? 0;
       const required = a.required_level ?? 0;
       
@@ -170,6 +213,10 @@ export default function TeamSkillsAnalytics() {
       }
     });
 
+    // Credential metrics
+    const credentialsHeld = credentialAssessments.filter(a => a.has_credential === true).length;
+    const credentialsMissing = credentialAssessments.filter(a => a.has_credential !== true).length;
+
     const totalAssessed = excelling + exceeding + meeting + gaps + criticalGaps;
     const healthScore = totalAssessed > 0 
       ? Math.round(((excelling * 100 + exceeding * 90 + meeting * 80 + gaps * 50 + criticalGaps * 20) / totalAssessed))
@@ -194,13 +241,17 @@ export default function TeamSkillsAnalytics() {
       }))
       .slice(0, 8);
 
+    const filteredSkills = selectedCategory === "all" 
+      ? skills 
+      : skills.filter(s => s.category === selectedCategory);
+
     const coverage = teamMembers.length > 0 
-      ? Math.round((new Set(assessments.map(a => a.user_id)).size / teamMembers.length) * 100)
+      ? Math.round((new Set(filteredAssessments.all.map(a => a.user_id)).size / teamMembers.length) * 100)
       : 0;
 
     return {
       teamSize: teamMembers.length,
-      totalSkills: skills.length,
+      totalSkills: filteredSkills.length,
       coverage,
       healthScore,
       excelling,
@@ -217,9 +268,23 @@ export default function TeamSkillsAnalytics() {
         meeting, 
         minorGap: gaps, 
         criticalGap: criticalGaps 
-      }
+      },
+      credentialsHeld,
+      credentialsMissing
     };
-  }, [assessments, skills, teamMembers]);
+  }, [filteredAssessments, skills, teamMembers, selectedCategory]);
+
+  // Get unique categories for filter
+  const categories = useMemo(() => {
+    return [...new Set(skills.map(s => s.category))].sort((a, b) => {
+      const aIndex = CATEGORY_ORDER.indexOf(a);
+      const bIndex = CATEGORY_ORDER.indexOf(b);
+      if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    });
+  }, [skills]);
 
   if (loading) {
     return (
