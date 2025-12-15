@@ -2617,6 +2617,7 @@ export type Database = {
           attachments: Json | null
           created_at: string
           expiration_date: string | null
+          has_credential: boolean | null
           id: string
           manager_assessment: number | null
           remarks: string | null
@@ -2636,6 +2637,7 @@ export type Database = {
           attachments?: Json | null
           created_at?: string
           expiration_date?: string | null
+          has_credential?: boolean | null
           id?: string
           manager_assessment?: number | null
           remarks?: string | null
@@ -2655,6 +2657,7 @@ export type Database = {
           attachments?: Json | null
           created_at?: string
           expiration_date?: string | null
+          has_credential?: boolean | null
           id?: string
           manager_assessment?: number | null
           remarks?: string | null
@@ -2706,6 +2709,7 @@ export type Database = {
           is_active: boolean | null
           name: string
           order_index: number | null
+          skill_type: string | null
           updated_at: string
         }
         Insert: {
@@ -2716,6 +2720,7 @@ export type Database = {
           is_active?: boolean | null
           name: string
           order_index?: number | null
+          skill_type?: string | null
           updated_at?: string
         }
         Update: {
@@ -2726,6 +2731,7 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           order_index?: number | null
+          skill_type?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -3337,6 +3343,13 @@ export type Database = {
       can_approve_as_chief: {
         Args: { p_requisition_id: string; p_user_id: string }
         Returns: boolean
+      }
+      categorize_skill: {
+        Args: { skill_name: string }
+        Returns: {
+          category: string
+          skill_type: string
+        }[]
       }
       check_signup_rate_limit: {
         Args: { p_email: string; p_ip_address: string }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Plus, Edit2, Clock, CheckCircle, XCircle, AlertCircle, Users, User } from "lucide-react";
+import { Plus, Edit2, Clock, CheckCircle, XCircle, AlertCircle, Users, User, Award, Brain, Cpu, ClipboardList } from "lucide-react";
 import SkillAssessmentDialog from "./SkillAssessmentDialog";
 import { SkillGapSummary } from "./SkillGapBar";
 import BatterySkillIndicator from "./BatterySkillIndicator";
@@ -22,11 +22,22 @@ interface Assessment {
   expiration_date: string | null;
   assessed_at: string | null;
   scope: 'team' | 'individual';
+  has_credential: boolean | null;
   skill_definitions: {
     name: string;
     category: string;
+    skill_type: 'proficiency' | 'credential';
   };
 }
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  'Behavioral': <Brain className="h-4 w-4" />,
+  'Technical & Domain': <Cpu className="h-4 w-4" />,
+  'Methods & Processes': <ClipboardList className="h-4 w-4" />,
+  'Certifications & Licenses': <Award className="h-4 w-4" />,
+};
+
+const CATEGORY_ORDER = ['Behavioral', 'Technical & Domain', 'Methods & Processes', 'Certifications & Licenses'];
 
 export default function MySkillsAssessment() {
   const { user } = useAuth();
@@ -67,7 +78,8 @@ export default function MySkillsAssessment() {
         expiration_date,
         assessed_at,
         scope,
-        skill_definitions (name, category)
+        has_credential,
+        skill_definitions (name, category, skill_type)
       `)
       .eq('user_id', user!.id)
       .order('created_at', { ascending: false });
@@ -105,13 +117,31 @@ export default function MySkillsAssessment() {
     setDialogOpen(true);
   };
 
-  // Group by category
-  const groupedAssessments = assessments.reduce((acc, a) => {
-    const category = a.skill_definitions?.category || 'Uncategorized';
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(a);
-    return acc;
-  }, {} as Record<string, Assessment[]>);
+  // Group by category with proper ordering
+  const groupedAssessments = useMemo(() => {
+    const groups = assessments.reduce((acc, a) => {
+      const category = a.skill_definitions?.category || 'Uncategorized';
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(a);
+      return acc;
+    }, {} as Record<string, Assessment[]>);
+
+    // Sort by defined order
+    const sortedGroups: Record<string, Assessment[]> = {};
+    CATEGORY_ORDER.forEach(cat => {
+      if (groups[cat]) sortedGroups[cat] = groups[cat];
+    });
+    // Add any remaining categories
+    Object.keys(groups).forEach(cat => {
+      if (!sortedGroups[cat]) sortedGroups[cat] = groups[cat];
+    });
+    return sortedGroups;
+  }, [assessments]);
+
+  // Only include proficiency skills in gap summary
+  const proficiencyAssessments = assessments.filter(
+    a => a.skill_definitions?.skill_type !== 'credential'
+  );
 
   if (loading) {
     return (
@@ -139,9 +169,9 @@ export default function MySkillsAssessment() {
           </Button>
         </CardHeader>
         <CardContent>
-          {assessments.length > 0 && (
+          {proficiencyAssessments.length > 0 && (
             <div className="mb-6">
-              <SkillGapSummary assessments={assessments} />
+              <SkillGapSummary assessments={proficiencyAssessments} />
             </div>
           )}
 
@@ -155,73 +185,115 @@ export default function MySkillsAssessment() {
             </div>
           ) : (
             <div className="space-y-6">
-              {Object.entries(groupedAssessments).map(([category, categoryAssessments]) => (
-                <div key={category}>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-3">{category}</h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Skill</TableHead>
-                        <TableHead className="text-center w-20">Self</TableHead>
-                        <TableHead className="text-center w-20">Required</TableHead>
-                        <TableHead className="text-center w-36">Gap</TableHead>
-                        <TableHead className="w-20">Scope</TableHead>
-                        <TableHead className="w-28">Status</TableHead>
-                        <TableHead className="w-10"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {categoryAssessments.map((assessment) => (
-                        <TableRow key={assessment.id}>
-                          <TableCell className="font-medium">
-                            {assessment.skill_definitions?.name}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <span className="font-medium text-sm">{assessment.self_assessment ?? '-'}</span>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <span className="font-medium text-sm">{assessment.required_level ?? '-'}</span>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex justify-center">
-                              <BatterySkillIndicator
-                                selfAssessment={assessment.self_assessment ?? 0}
-                                requiredLevel={assessment.required_level ?? 0}
-                                managerAssessment={assessment.manager_assessment ?? undefined}
-                                status={assessment.status === 'pending_approval' ? 'pending' : assessment.status === 'approved' ? 'approved' : undefined}
-                                compact
-                              />
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={assessment.scope === 'individual' ? 'outline' : 'secondary'} className="text-xs">
-                              {assessment.scope === 'individual' ? (
-                                <><User className="h-3 w-3 mr-1" />Personal</>
-                              ) : (
-                                <><Users className="h-3 w-3 mr-1" />Team</>
-                              )}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {getStatusBadge(assessment.status)}
-                          </TableCell>
-                          <TableCell>
-                            {(assessment.status === 'draft' || assessment.status === 'rejected') && (
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => handleEdit(assessment)}
-                              >
-                                <Edit2 className="h-4 w-4" />
-                              </Button>
+              {Object.entries(groupedAssessments).map(([category, categoryAssessments]) => {
+                const isCredentialCategory = category === 'Certifications & Licenses';
+                
+                return (
+                  <div key={category}>
+                    <h3 className="font-semibold text-sm text-muted-foreground mb-3 flex items-center gap-2">
+                      {CATEGORY_ICONS[category]}
+                      {category}
+                      <Badge variant="outline" className="ml-2 text-xs">{categoryAssessments.length}</Badge>
+                    </h3>
+                    
+                    {isCredentialCategory ? (
+                      // Credentials display - simple yes/no badges
+                      <div className="flex flex-wrap gap-2">
+                        {categoryAssessments.map((assessment) => (
+                          <div
+                            key={assessment.id}
+                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors ${
+                              assessment.has_credential 
+                                ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800' 
+                                : 'bg-muted/30 border-border'
+                            }`}
+                            onClick={() => (assessment.status === 'draft' || assessment.status === 'rejected') && handleEdit(assessment)}
+                          >
+                            {assessment.has_credential ? (
+                              <CheckCircle className="h-4 w-4 text-emerald-600" />
+                            ) : (
+                              <XCircle className="h-4 w-4 text-muted-foreground" />
                             )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ))}
+                            <span className="font-medium text-sm">
+                              {assessment.skill_definitions?.name}
+                            </span>
+                            {getStatusBadge(assessment.status)}
+                            {assessment.expiration_date && (
+                              <span className="text-xs text-muted-foreground">
+                                Exp: {new Date(assessment.expiration_date).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      // Proficiency skills - table with levels
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Skill</TableHead>
+                            <TableHead className="text-center w-20">Self</TableHead>
+                            <TableHead className="text-center w-20">Required</TableHead>
+                            <TableHead className="text-center w-36">Gap</TableHead>
+                            <TableHead className="w-20">Scope</TableHead>
+                            <TableHead className="w-28">Status</TableHead>
+                            <TableHead className="w-10"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {categoryAssessments.map((assessment) => (
+                            <TableRow key={assessment.id}>
+                              <TableCell className="font-medium">
+                                {assessment.skill_definitions?.name}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <span className="font-medium text-sm">{assessment.self_assessment ?? '-'}</span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <span className="font-medium text-sm">{assessment.required_level ?? '-'}</span>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex justify-center">
+                                  <BatterySkillIndicator
+                                    selfAssessment={assessment.self_assessment ?? 0}
+                                    requiredLevel={assessment.required_level ?? 0}
+                                    managerAssessment={assessment.manager_assessment ?? undefined}
+                                    status={assessment.status === 'pending_approval' ? 'pending' : assessment.status === 'approved' ? 'approved' : undefined}
+                                    compact
+                                  />
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={assessment.scope === 'individual' ? 'outline' : 'secondary'} className="text-xs">
+                                  {assessment.scope === 'individual' ? (
+                                    <><User className="h-3 w-3 mr-1" />Personal</>
+                                  ) : (
+                                    <><Users className="h-3 w-3 mr-1" />Team</>
+                                  )}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {getStatusBadge(assessment.status)}
+                              </TableCell>
+                              <TableCell>
+                                {(assessment.status === 'draft' || assessment.status === 'rejected') && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => handleEdit(assessment)}
+                                  >
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -240,6 +312,7 @@ export default function MySkillsAssessment() {
           remarks: editingAssessment.remarks,
           expiration_date: editingAssessment.expiration_date,
           scope: editingAssessment.scope,
+          has_credential: editingAssessment.has_credential,
         } : null}
         onSuccess={fetchAssessments}
       />
