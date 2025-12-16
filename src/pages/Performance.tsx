@@ -33,18 +33,31 @@ const Performance = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('my-workplan');
 
-  // Fetch active performance cycle
+  // Fetch active performance cycle - prioritize individual cycles
   const { data: activeCycle, isLoading: cycleLoading } = useQuery({
-    queryKey: ['active-performance-cycle'],
+    queryKey: ['active-performance-cycle', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First, check for active individual cycle for this user
+      const { data: individualCycle, error: indError } = await supabase
         .from('performance_cycles')
         .select('*')
+        .eq('staff_id', user?.id)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
       
-      if (error && error.code !== 'PGRST116') throw error;
-      return data;
+      if (indError) throw indError;
+      if (individualCycle) return { ...individualCycle, isIndividual: true };
+      
+      // Fall back to organization-wide active cycle
+      const { data: orgCycle, error: orgError } = await supabase
+        .from('performance_cycles')
+        .select('*')
+        .is('staff_id', null)
+        .eq('status', 'active')
+        .maybeSingle();
+      
+      if (orgError) throw orgError;
+      return orgCycle ? { ...orgCycle, isIndividual: false } : null;
     },
     enabled: !!user
   });
@@ -221,7 +234,17 @@ const Performance = () => {
                     </p>
                   </div>
                 </div>
-                <Badge className="bg-primary text-primary-foreground">Active Cycle</Badge>
+                <div className="flex items-center gap-2">
+                  {activeCycle.isIndividual && (
+                    <Badge className={activeCycle.cycle_type === 'probation' 
+                      ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200" 
+                      : "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                    }>
+                      {activeCycle.cycle_type === 'probation' ? 'Probation' : 'Transition'}
+                    </Badge>
+                  )}
+                  <Badge className="bg-primary text-primary-foreground">Active Cycle</Badge>
+                </div>
               </div>
             </CardContent>
           </Card>

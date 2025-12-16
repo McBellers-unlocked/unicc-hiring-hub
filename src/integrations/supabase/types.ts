@@ -2501,11 +2501,14 @@ export type Database = {
           begin_year_deadline: string | null
           created_at: string
           created_by: string | null
+          cycle_type: string | null
           end_date: string
           end_year_deadline: string | null
           id: string
+          is_auto_generated: boolean | null
           mid_year_deadline: string | null
           name: string
+          staff_id: string | null
           start_date: string
           status: string
           updated_at: string
@@ -2514,11 +2517,14 @@ export type Database = {
           begin_year_deadline?: string | null
           created_at?: string
           created_by?: string | null
+          cycle_type?: string | null
           end_date: string
           end_year_deadline?: string | null
           id?: string
+          is_auto_generated?: boolean | null
           mid_year_deadline?: string | null
           name: string
+          staff_id?: string | null
           start_date: string
           status?: string
           updated_at?: string
@@ -2527,11 +2533,14 @@ export type Database = {
           begin_year_deadline?: string | null
           created_at?: string
           created_by?: string | null
+          cycle_type?: string | null
           end_date?: string
           end_year_deadline?: string | null
           id?: string
+          is_auto_generated?: boolean | null
           mid_year_deadline?: string | null
           name?: string
+          staff_id?: string | null
           start_date?: string
           status?: string
           updated_at?: string
@@ -2540,6 +2549,13 @@ export type Database = {
           {
             foreignKeyName: "performance_cycles_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_cycles_staff_id_fkey"
+            columns: ["staff_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -3004,6 +3020,7 @@ export type Database = {
           line_manager: string | null
           name: string
           nationality: string | null
+          probation_end_date: string | null
           role: Database["public"]["Enums"]["user_role"]
           skills: Json | null
           unit: string | null
@@ -3024,6 +3041,7 @@ export type Database = {
           line_manager?: string | null
           name: string
           nationality?: string | null
+          probation_end_date?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           skills?: Json | null
           unit?: string | null
@@ -3044,6 +3062,7 @@ export type Database = {
           line_manager?: string | null
           name?: string
           nationality?: string | null
+          probation_end_date?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           skills?: Json | null
           unit?: string | null
