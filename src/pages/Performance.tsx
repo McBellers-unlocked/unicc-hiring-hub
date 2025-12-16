@@ -132,19 +132,30 @@ const Performance = () => {
     mutationFn: async () => {
       if (!activeCycle?.id || !user?.id) throw new Error('Missing cycle or user');
       
-      // Get user's line manager as supervisor1
+      // Get user's line manager name
       const { data: userData } = await supabase
         .from('users')
         .select('line_manager')
         .eq('id', user.id)
         .single();
       
+      // Look up supervisor UUID from their name
+      let supervisor1Id = null;
+      if (userData?.line_manager) {
+        const { data: supervisorData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('name', userData.line_manager)
+          .maybeSingle();
+        supervisor1Id = supervisorData?.id || null;
+      }
+      
       const { data, error } = await supabase
         .from('workplans')
         .insert({
           cycle_id: activeCycle.id,
           staff_id: user.id,
-          supervisor1_id: userData?.line_manager || null,
+          supervisor1_id: supervisor1Id,
           status: 'draft',
           current_phase: 'begin_year'
         })
