@@ -5,7 +5,8 @@ import { Layout } from "@/components/Layout";
 import MySkillsAssessment from "@/components/skills-analysis/MySkillsAssessment";
 import TeamSkillsTable from "@/components/skills-analysis/TeamSkillsTable";
 import TeamSkillsAnalytics from "@/components/skills-analysis/TeamSkillsAnalytics";
-import { BarChart3, Users, User } from "lucide-react";
+import SkillsPortfolioAnalytics from "@/components/skills-analysis/SkillsPortfolioAnalytics";
+import { BarChart3, Users, User, Building2 } from "lucide-react";
 
 export default function SkillsAnalysis() {
   const { userRoles } = useAuth();
@@ -43,6 +44,12 @@ export default function SkillsAnalysis() {
                 Analytics
               </TabsTrigger>
             )}
+            {isManager && (
+              <TabsTrigger value="organization" className="gap-2">
+                <Building2 className="h-4 w-4" />
+                Organization
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="my-skills">
@@ -58,6 +65,12 @@ export default function SkillsAnalysis() {
           {isManager && (
             <TabsContent value="analytics">
               <TeamSkillsAnalytics />
+            </TabsContent>
+          )}
+
+          {isManager && (
+            <TabsContent value="organization">
+              <SkillsPortfolioAnalytics />
             </TabsContent>
           )}
         </Tabs>
