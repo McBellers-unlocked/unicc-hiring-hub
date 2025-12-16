@@ -1,15 +1,16 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-import { Loader2, Brain, CheckCircle, XCircle, RefreshCw, Filter, ArrowRight, Sparkles, TrendingUp, Clock, Archive, Ban } from 'lucide-react';
+import { Loader2, Brain, CheckCircle, XCircle, RefreshCw, Filter, ArrowRight, Sparkles, TrendingUp, Clock, Ban, Square } from 'lucide-react';
 
 interface SkillDefinition {
   id: string;
@@ -21,6 +22,12 @@ interface SkillDefinition {
   ai_suggested_status: string | null;
   ai_review_pending: boolean;
   ai_reviewed_at: string | null;
+}
+
+interface ProcessingProgress {
+  processed: number;
+  remaining: number;
+  total: number;
 }
 
 const STATUS_CONFIG = {
@@ -41,6 +48,8 @@ export default function AdminSkillsReview() {
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('pending');
+  const [progress, setProgress] = useState<ProcessingProgress | null>(null);
+  const shouldStopRef = useRef(false);
 
   useEffect(() => {
     fetchSkills();
@@ -76,23 +85,63 @@ export default function AdminSkillsReview() {
 
   const runAICategorization = async () => {
     setProcessing(true);
+    shouldStopRef.current = false;
+    let totalProcessed = 0;
+    let hasMore = true;
+
     try {
-      const { data, error } = await supabase.functions.invoke('categorize-skills', {
-        body: { forceAll: false }
-      });
+      while (hasMore && !shouldStopRef.current) {
+        const { data, error } = await supabase.functions.invoke('categorize-skills', {
+          body: { limit: 100 }
+        });
 
-      if (error) throw error;
+        if (error) {
+          // Handle rate limit
+          if (error.message?.includes('429') || error.status === 429) {
+            toast.info('Rate limited - waiting 10 seconds...');
+            await new Promise(r => setTimeout(r, 10000));
+            continue;
+          }
+          // Handle payment required
+          if (error.message?.includes('402') || error.status === 402) {
+            toast.error('Please add credits to continue AI processing');
+            break;
+          }
+          throw error;
+        }
 
-      toast.success(`Processed ${data.classified} skills`, {
-        description: `Categories: ${Object.entries(data.summary?.byCategory || {}).map(([k, v]) => `${k}: ${v}`).join(', ')}`
-      });
+        totalProcessed += data.processed || 0;
+        hasMore = data.hasMore || false;
+
+        setProgress({
+          processed: totalProcessed,
+          remaining: data.remaining || 0,
+          total: data.totalSkills || totalProcessed + (data.remaining || 0)
+        });
+
+        // Small delay between chunks to avoid overwhelming the API
+        if (hasMore && !shouldStopRef.current) {
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+
+      if (shouldStopRef.current) {
+        toast.info(`Processing stopped. Processed ${totalProcessed} skills.`);
+      } else {
+        toast.success(`Completed! Processed ${totalProcessed} skills`);
+      }
 
       fetchSkills();
     } catch (error: any) {
       toast.error('Failed to run AI categorization', { description: error.message });
     } finally {
       setProcessing(false);
+      setProgress(null);
     }
+  };
+
+  const stopProcessing = () => {
+    shouldStopRef.current = true;
   };
 
   const approveSelected = async () => {
@@ -211,6 +260,28 @@ export default function AdminSkillsReview() {
           </Button>
         </div>
 
+        {/* Progress Card */}
+        {processing && progress && (
+          <Card className="border-primary">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="font-medium">Processing skills with Gemini Flash...</span>
+                </div>
+                <Button variant="destructive" size="sm" onClick={stopProcessing}>
+                  <Square className="h-3 w-3 mr-1 fill-current" />
+                  Stop
+                </Button>
+              </div>
+              <Progress value={(progress.processed / progress.total) * 100} className="h-2" />
+              <p className="text-sm text-muted-foreground mt-2">
+                {progress.processed} of {progress.total} skills processed ({progress.remaining} remaining)
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
@@ -278,7 +349,7 @@ export default function AdminSkillsReview() {
                 </Select>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={fetchSkills}>
+                <Button variant="outline" size="sm" onClick={fetchSkills} disabled={processing}>
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Refresh
                 </Button>
