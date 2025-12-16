@@ -139,15 +139,29 @@ const Performance = () => {
         .eq('id', user.id)
         .single();
       
-      // Look up supervisor UUID from their name
+      // Look up supervisor1 UUID AND their line_manager (for supervisor2)
       let supervisor1Id = null;
+      let supervisor2Id = null;
+      
       if (userData?.line_manager) {
-        const { data: supervisorData } = await supabase
+        const { data: sup1Data } = await supabase
           .from('users')
-          .select('id')
+          .select('id, line_manager')
           .eq('name', userData.line_manager)
           .maybeSingle();
-        supervisor1Id = supervisorData?.id || null;
+        
+        supervisor1Id = sup1Data?.id || null;
+        
+        // Traverse hierarchy: supervisor2 = supervisor1's line_manager
+        if (sup1Data?.line_manager) {
+          const { data: sup2Data } = await supabase
+            .from('users')
+            .select('id')
+            .eq('name', sup1Data.line_manager)
+            .maybeSingle();
+          
+          supervisor2Id = sup2Data?.id || null;
+        }
       }
       
       const { data, error } = await supabase
@@ -156,6 +170,7 @@ const Performance = () => {
           cycle_id: activeCycle.id,
           staff_id: user.id,
           supervisor1_id: supervisor1Id,
+          supervisor2_id: supervisor2Id,
           status: 'draft',
           current_phase: 'begin_year'
         })
