@@ -1,7 +1,7 @@
 import { CheckCircle2, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface EPMDSWorkflowTimelineProps {
+interface PerformanceWorkflowTimelineProps {
   workplan: any;
   staffName?: string;
   supervisor1Name?: string;
@@ -24,36 +24,42 @@ interface Phase {
   subSteps: SubStep[];
 }
 
-export const EPMDSWorkflowTimeline = ({ 
+export const PerformanceWorkflowTimeline = ({ 
   workplan, 
   staffName = 'Staff Member',
   supervisor1Name = '1st Level Supervisor',
   supervisor2Name = '2nd Level Supervisor'
-}: EPMDSWorkflowTimelineProps) => {
+}: PerformanceWorkflowTimelineProps) => {
   
   const currentPhase = workplan?.current_phase || 'begin_year';
   
   // Determine current step based on workplan data
+  // Order: Initiate (begin only) → Complete Sections → Discussion → Staff Signature → Supervisor1 Signature
+  // End-year has additional: Staff Acknowledgment → Supervisor2 Signature → Staff Final Signature
   const getCurrentStepInfo = () => {
-    const phases = ['begin_year', 'mid_year', 'end_year', 'completed'];
-    const currentIndex = phases.indexOf(currentPhase);
-    
-    // Check signatures to determine exact position within phase
     if (currentPhase === 'begin_year') {
+      if (!workplan?.begin_year_submitted_at) return { phase: 'begin_year', step: 'complete_sections' };
+      if (!workplan?.begin_year_discussion_at) return { phase: 'begin_year', step: 'discussion' };
       if (!workplan?.begin_year_staff_signed_at) return { phase: 'begin_year', step: 'staff_signature' };
       if (!workplan?.begin_year_supervisor1_signed_at) return { phase: 'begin_year', step: 'supervisor1_signature' };
-      return { phase: 'begin_year', step: 'discussion' };
+      return { phase: 'mid_year', step: 'complete_sections' };
     }
     if (currentPhase === 'mid_year') {
+      if (!workplan?.mid_year_submitted_at) return { phase: 'mid_year', step: 'complete_sections' };
+      if (!workplan?.mid_year_discussion_at) return { phase: 'mid_year', step: 'discussion' };
       if (!workplan?.mid_year_staff_signed_at) return { phase: 'mid_year', step: 'staff_signature' };
       if (!workplan?.mid_year_supervisor1_signed_at) return { phase: 'mid_year', step: 'supervisor1_signature' };
-      return { phase: 'mid_year', step: 'discussion' };
+      return { phase: 'end_year', step: 'complete_sections' };
     }
     if (currentPhase === 'end_year') {
+      if (!workplan?.end_year_submitted_at) return { phase: 'end_year', step: 'complete_sections' };
+      if (!workplan?.end_year_discussion_at) return { phase: 'end_year', step: 'discussion' };
       if (!workplan?.end_year_staff_signed_at) return { phase: 'end_year', step: 'staff_signature' };
       if (!workplan?.end_year_supervisor1_signed_at) return { phase: 'end_year', step: 'supervisor1_signature' };
+      if (!workplan?.end_year_staff_acknowledgment_at) return { phase: 'end_year', step: 'staff_acknowledgment' };
       if (!workplan?.end_year_supervisor2_signed_at) return { phase: 'end_year', step: 'supervisor2_signature' };
-      return { phase: 'end_year', step: 'final_signature' };
+      if (!workplan?.end_year_staff_final_signed_at) return { phase: 'end_year', step: 'staff_final_signature' };
+      return { phase: 'completed', step: 'finish' };
     }
     return { phase: 'completed', step: 'finish' };
   };
@@ -71,28 +77,28 @@ export const EPMDSWorkflowTimeline = ({
     // If phase is after current, no steps are completed
     if (stepPhaseIndex > currentPhaseIndex) return false;
     
-    // Same phase - check specific signatures
+    // Same phase - check specific fields
     if (phase === 'begin_year') {
-      if (stepId === 'initiate') return true;
-      if (stepId === 'complete_sections') return true;
+      if (stepId === 'initiate') return true; // Always completed once workplan exists
+      if (stepId === 'complete_sections') return !!workplan?.begin_year_submitted_at;
+      if (stepId === 'discussion') return !!workplan?.begin_year_discussion_at;
       if (stepId === 'staff_signature') return !!workplan?.begin_year_staff_signed_at;
       if (stepId === 'supervisor1_signature') return !!workplan?.begin_year_supervisor1_signed_at;
-      if (stepId === 'discussion') return !!workplan?.begin_year_supervisor1_signed_at;
     }
     if (phase === 'mid_year') {
-      if (stepId === 'complete_sections') return !!workplan?.mid_year_staff_signed_at;
+      if (stepId === 'complete_sections') return !!workplan?.mid_year_submitted_at;
+      if (stepId === 'discussion') return !!workplan?.mid_year_discussion_at;
       if (stepId === 'staff_signature') return !!workplan?.mid_year_staff_signed_at;
       if (stepId === 'supervisor1_signature') return !!workplan?.mid_year_supervisor1_signed_at;
-      if (stepId === 'discussion') return !!workplan?.mid_year_supervisor1_signed_at;
     }
     if (phase === 'end_year') {
-      if (stepId === 'complete_sections') return !!workplan?.end_year_staff_signed_at;
+      if (stepId === 'complete_sections') return !!workplan?.end_year_submitted_at;
+      if (stepId === 'discussion') return !!workplan?.end_year_discussion_at;
       if (stepId === 'staff_signature') return !!workplan?.end_year_staff_signed_at;
       if (stepId === 'supervisor1_signature') return !!workplan?.end_year_supervisor1_signed_at;
-      if (stepId === 'discussion') return !!workplan?.end_year_supervisor1_signed_at;
+      if (stepId === 'staff_acknowledgment') return !!workplan?.end_year_staff_acknowledgment_at;
       if (stepId === 'supervisor2_signature') return !!workplan?.end_year_supervisor2_signed_at;
-      if (stepId === 'final_signature') return currentPhase === 'completed';
-      if (stepId === 'finish') return currentPhase === 'completed';
+      if (stepId === 'staff_final_signature') return !!workplan?.end_year_staff_final_signed_at;
     }
     return false;
   };
@@ -109,11 +115,11 @@ export const EPMDSWorkflowTimeline = ({
       bgClass: 'bg-cyan-500',
       borderClass: 'border-cyan-500',
       subSteps: [
-        { id: 'initiate', label: 'ePMDS+ Start / Initiate Form General Info', isCompleted: isStepCompleted('begin_year', 'initiate') },
-        { id: 'complete_sections', label: 'Complete Sections', isCompleted: isStepCompleted('begin_year', 'complete_sections') },
+        { id: 'initiate', label: 'Start / Initiate Workplan', isCompleted: isStepCompleted('begin_year', 'initiate') },
+        { id: 'complete_sections', label: 'Complete Sections', isCompleted: isStepCompleted('begin_year', 'complete_sections'), isCurrent: isCurrentStep('begin_year', 'complete_sections') },
+        { id: 'discussion', label: 'Discussion Completed', isCompleted: isStepCompleted('begin_year', 'discussion'), isCurrent: isCurrentStep('begin_year', 'discussion') },
         { id: 'staff_signature', label: "Staff Member's Signature", isCompleted: isStepCompleted('begin_year', 'staff_signature'), isCurrent: isCurrentStep('begin_year', 'staff_signature') },
         { id: 'supervisor1_signature', label: "1st Level Supervisor's Signature", isCompleted: isStepCompleted('begin_year', 'supervisor1_signature'), isCurrent: isCurrentStep('begin_year', 'supervisor1_signature') },
-        { id: 'discussion', label: 'Discussion Completed', isCompleted: isStepCompleted('begin_year', 'discussion'), isCurrent: isCurrentStep('begin_year', 'discussion') },
       ]
     },
     {
@@ -123,10 +129,10 @@ export const EPMDSWorkflowTimeline = ({
       bgClass: 'bg-blue-500',
       borderClass: 'border-blue-500',
       subSteps: [
-        { id: 'complete_sections', label: 'Complete Sections', isCompleted: isStepCompleted('mid_year', 'complete_sections') },
+        { id: 'complete_sections', label: 'Complete Sections', isCompleted: isStepCompleted('mid_year', 'complete_sections'), isCurrent: isCurrentStep('mid_year', 'complete_sections') },
+        { id: 'discussion', label: 'Discussion Completed', isCompleted: isStepCompleted('mid_year', 'discussion'), isCurrent: isCurrentStep('mid_year', 'discussion') },
         { id: 'staff_signature', label: "Staff Member's Signature", isCompleted: isStepCompleted('mid_year', 'staff_signature'), isCurrent: isCurrentStep('mid_year', 'staff_signature') },
         { id: 'supervisor1_signature', label: "1st Level Supervisor's Signature", isCompleted: isStepCompleted('mid_year', 'supervisor1_signature'), isCurrent: isCurrentStep('mid_year', 'supervisor1_signature') },
-        { id: 'discussion', label: 'Discussion Completed', isCompleted: isStepCompleted('mid_year', 'discussion'), isCurrent: isCurrentStep('mid_year', 'discussion') },
       ]
     },
     {
@@ -136,13 +142,13 @@ export const EPMDSWorkflowTimeline = ({
       bgClass: 'bg-purple-500',
       borderClass: 'border-purple-500',
       subSteps: [
-        { id: 'complete_sections', label: 'Complete Sections', isCompleted: isStepCompleted('end_year', 'complete_sections') },
+        { id: 'complete_sections', label: 'Complete Sections', isCompleted: isStepCompleted('end_year', 'complete_sections'), isCurrent: isCurrentStep('end_year', 'complete_sections') },
+        { id: 'discussion', label: 'Discussion Completed', isCompleted: isStepCompleted('end_year', 'discussion'), isCurrent: isCurrentStep('end_year', 'discussion') },
         { id: 'staff_signature', label: "Staff Member's Signature", isCompleted: isStepCompleted('end_year', 'staff_signature'), isCurrent: isCurrentStep('end_year', 'staff_signature') },
         { id: 'supervisor1_signature', label: "1st Level Supervisor's Signature", isCompleted: isStepCompleted('end_year', 'supervisor1_signature'), isCurrent: isCurrentStep('end_year', 'supervisor1_signature') },
-        { id: 'discussion', label: 'Discussion Completed', isCompleted: isStepCompleted('end_year', 'discussion'), isCurrent: isCurrentStep('end_year', 'discussion') },
+        { id: 'staff_acknowledgment', label: "Staff Member's Acknowledgment", isCompleted: isStepCompleted('end_year', 'staff_acknowledgment'), isCurrent: isCurrentStep('end_year', 'staff_acknowledgment') },
         { id: 'supervisor2_signature', label: "2nd Level Supervisor's Signature", isCompleted: isStepCompleted('end_year', 'supervisor2_signature'), isCurrent: isCurrentStep('end_year', 'supervisor2_signature') },
-        { id: 'final_signature', label: "Staff Member's Final Signature", isCompleted: isStepCompleted('end_year', 'final_signature'), isCurrent: isCurrentStep('end_year', 'final_signature') },
-        { id: 'finish', label: 'ePMDS+ Finish', isCompleted: isStepCompleted('end_year', 'finish') },
+        { id: 'staff_final_signature', label: "Staff Member's Final Signature", isCompleted: isStepCompleted('end_year', 'staff_final_signature'), isCurrent: isCurrentStep('end_year', 'staff_final_signature') },
       ]
     }
   ];
@@ -168,7 +174,7 @@ export const EPMDSWorkflowTimeline = ({
           </div>
           <div className="flex items-center justify-end">
             <div className="text-right">
-              <p className="text-xs text-muted-foreground">ePMDS+</p>
+              <p className="text-xs text-muted-foreground">Performance Workplan</p>
               <p className="text-sm font-mono text-primary">{workplan?.id?.slice(0, 8).toUpperCase() || 'DRAFT'}</p>
             </div>
           </div>
@@ -298,7 +304,7 @@ export const EPMDSWorkflowTimeline = ({
       {/* Notes section */}
       <div className="bg-muted/30 p-4 border-t text-xs text-muted-foreground space-y-2">
         <p><strong>Note:</strong> Performance Management is a shared responsibility between the staff member and supervisor(s).</p>
-        <p>The ePMDS+ cycle consists of three formal phases: Begin-Year (goal setting), Mid-Year (progress review), and End-Year (final evaluation).</p>
+        <p>The performance cycle consists of three formal phases: Begin-Year (goal setting), Mid-Year (progress review), and End-Year (final evaluation).</p>
         <p>All signatures indicate acknowledgment of the documented discussion.</p>
       </div>
     </div>
