@@ -3022,6 +3022,7 @@ export type Database = {
           nationality: string | null
           probation_end_date: string | null
           role: Database["public"]["Enums"]["user_role"]
+          second_line_manager: string | null
           skills: Json | null
           unit: string | null
           updated_at: string
@@ -3043,6 +3044,7 @@ export type Database = {
           nationality?: string | null
           probation_end_date?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          second_line_manager?: string | null
           skills?: Json | null
           unit?: string | null
           updated_at?: string
@@ -3064,6 +3066,7 @@ export type Database = {
           nationality?: string | null
           probation_end_date?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          second_line_manager?: string | null
           skills?: Json | null
           unit?: string | null
           updated_at?: string
