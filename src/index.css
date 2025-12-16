@@ -47,6 +47,13 @@ All colors MUST be HSL.
     --unicc-orange: 15 86% 48%;        /* #E74010 */
     --unicc-green: 110 48% 46%;        /* #4FAF3D */
 
+    /* Chart colors for data visualization */
+    --chart-1: 110 48% 46%;            /* Green (established) */
+    --chart-2: 204 100% 35%;           /* Blue (emerging) */
+    --chart-3: 280 65% 55%;            /* Purple (new) */
+    --chart-4: 30 80% 50%;             /* Orange (legacy) */
+    --chart-5: 215 16% 47%;            /* Gray (uncategorized) */
+
     --sidebar-background: 0 0% 98%;
 
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -93,6 +100,14 @@ All colors MUST be HSL.
     --border: 223 30% 20%;
     --input: 223 30% 20%;
     --ring: 206 62% 64%;
+
+    /* Chart colors for dark mode */
+    --chart-1: 110 55% 55%;            /* Brighter green */
+    --chart-2: 206 62% 64%;            /* Light blue */
+    --chart-3: 280 70% 65%;            /* Lighter purple */
+    --chart-4: 30 85% 60%;             /* Lighter orange */
+    --chart-5: 215 20% 60%;            /* Lighter gray */
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
