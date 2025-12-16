@@ -26,9 +26,10 @@ import {
 import { toast } from 'sonner';
 import { WorkplanPhaseIndicator } from '@/components/performance/WorkplanPhaseIndicator';
 import { WorkplanStatusCard } from '@/components/performance/WorkplanStatusCard';
+import { EPMDSWorkflowTimeline } from '@/components/performance/EPMDSWorkflowTimeline';
 
 const Performance = () => {
-  const { user } = useAuth();
+  const { user, userName } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('my-workplan');
@@ -302,10 +303,12 @@ const Performance = () => {
           <TabsContent value="my-workplan">
             {myWorkplan ? (
               <div className="space-y-6">
-                {/* Phase Progress */}
-                <WorkplanPhaseIndicator 
-                  currentPhase={myWorkplan.current_phase}
+                {/* ePMDS+ Workflow Timeline */}
+                <EPMDSWorkflowTimeline 
                   workplan={myWorkplan}
+                  staffName={userName || user?.email || 'Staff Member'}
+                  supervisor1Name={myWorkplan?.supervisor1?.name || '1st Level Supervisor'}
+                  supervisor2Name={myWorkplan?.supervisor2?.name || '2nd Level Supervisor'}
                 />
 
                 {/* Workplan Status Card */}
