@@ -296,7 +296,17 @@ export const PerformanceWorkflowTimeline = ({
             Performance Improvement Plan (PIP)
           </p>
           <p className="text-xs text-amber-700 dark:text-amber-500 mt-1">
-            A PIP can be initiated at any time if needed. Contact your supervisor or HR for guidance.
+            A PIP may be established at any time during the performance evaluation cycle where the 
+            informal process to address performance issues has not been successful. A PIP is required 
+            for non-probationary fixed-term and continuing appointments; it is optional for probationary 
+            fixed-term and temporary appointments.{' '}
+            <a 
+              href="mailto:hr@unicc.org?subject=PIP%20Request" 
+              className="underline hover:text-amber-900 dark:hover:text-amber-300 font-medium"
+            >
+              Please speak to HR
+            </a>{' '}
+            about opening a PIP for a staff member.
           </p>
         </div>
       </div>
