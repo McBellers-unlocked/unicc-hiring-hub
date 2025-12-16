@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const BATCH_SIZE = 50;
+const BATCH_SIZE = 25;
 
 interface SkillClassification {
   id: string;
@@ -23,18 +23,30 @@ serve(async (req) => {
   }
 
   try {
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      throw new Error('OPENAI_API_KEY is not configured');
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (!lovableApiKey) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { skillIds, forceAll = false } = await req.json();
+    const { skillIds, forceAll = false, limit = 100 } = await req.json();
 
-    // Fetch skills to categorize
+    // First, count total unprocessed skills
+    let countQuery = supabase
+      .from('skill_definitions')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_active', true);
+
+    if (!forceAll) {
+      countQuery = countQuery.or('ai_reviewed_at.is.null,ai_review_pending.eq.true');
+    }
+
+    const { count: totalUnprocessed } = await countQuery;
+
+    // Fetch skills to categorize (with limit)
     let query = supabase
       .from('skill_definitions')
       .select('id, name, category, skill_type, status')
@@ -43,20 +55,27 @@ serve(async (req) => {
     if (skillIds && skillIds.length > 0) {
       query = query.in('id', skillIds);
     } else if (!forceAll) {
-      // Only process skills that haven't been AI reviewed
       query = query.or('ai_reviewed_at.is.null,ai_review_pending.eq.true');
     }
+
+    query = query.limit(limit);
 
     const { data: skills, error: fetchError } = await query;
     if (fetchError) throw fetchError;
 
     if (!skills || skills.length === 0) {
-      return new Response(JSON.stringify({ message: 'No skills to process', processed: 0 }), {
+      return new Response(JSON.stringify({ 
+        message: 'No skills to process', 
+        processed: 0,
+        remaining: 0,
+        hasMore: false,
+        totalSkills: totalUnprocessed || 0
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log(`Processing ${skills.length} skills in batches of ${BATCH_SIZE}`);
+    console.log(`Processing ${skills.length} skills in batches of ${BATCH_SIZE} (${totalUnprocessed} total unprocessed)`);
 
     const systemPrompt = `You are a skills taxonomy expert for IT and organizational management. Classify each skill into exactly one category and assign a lifecycle status.
 
@@ -93,26 +112,45 @@ Be consistent: All certifications should be category "Certifications & Licenses"
       console.log(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(skills.length / BATCH_SIZE)}`);
 
       try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${openAIApiKey}`,
+            'Authorization': `Bearer ${lovableApiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini',
+            model: 'google/gemini-2.5-flash',
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: `Classify these skills:\n${JSON.stringify(skillList, null, 2)}` }
             ],
-            temperature: 0.2,
-            max_tokens: 4000,
           }),
         });
 
+        if (response.status === 429) {
+          console.error('Rate limited by Lovable AI');
+          return new Response(JSON.stringify({ 
+            error: 'Rate limited - please wait and try again',
+            retryAfter: 10 
+          }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        if (response.status === 402) {
+          console.error('Payment required for Lovable AI');
+          return new Response(JSON.stringify({ 
+            error: 'Payment required - please add credits to your workspace' 
+          }), {
+            status: 402,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
         if (!response.ok) {
           const errorText = await response.text();
-          console.error(`OpenAI API error: ${response.status} - ${errorText}`);
+          console.error(`Lovable AI error: ${response.status} - ${errorText}`);
           errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: API error ${response.status}`);
           continue;
         }
@@ -138,11 +176,6 @@ Be consistent: All certifications should be category "Certifications & Licenses"
       } catch (batchError) {
         console.error(`Error processing batch: ${batchError}`);
         errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${batchError.message}`);
-      }
-
-      // Rate limiting delay between batches
-      if (i + BATCH_SIZE < skills.length) {
-        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
@@ -178,11 +211,15 @@ Be consistent: All certifications should be category "Certifications & Licenses"
       return acc;
     }, {} as Record<string, number>);
 
+    const remaining = Math.max(0, (totalUnprocessed || 0) - results.length);
+
     return new Response(JSON.stringify({
       message: 'Skills categorized successfully',
-      totalProcessed: skills.length,
-      classified: results.length,
+      processed: results.length,
       updated,
+      remaining,
+      hasMore: remaining > 0,
+      totalSkills: totalUnprocessed || 0,
       errors: errors.length > 0 ? errors : undefined,
       summary: {
         byCategory: categorySummary,
