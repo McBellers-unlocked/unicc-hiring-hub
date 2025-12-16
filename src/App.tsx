@@ -63,6 +63,7 @@ import AssessmentReview from "./pages/AssessmentReview";
 import CandidateAssessment from "./pages/CandidateAssessment";
 import AssessmentComplete from "./pages/AssessmentComplete";
 import Performance from "./pages/Performance";
+import WorkplanDetail from "./pages/WorkplanDetail";
 import AdminPerformanceCycles from "./pages/AdminPerformanceCycles";
 
 const queryClient = new QueryClient();
@@ -141,7 +142,7 @@ const App = () => (
             <Route path="/chief-of-division" element={<ChiefOfDivisionView />} />
             <Route path="/director-view" element={<DirectorView />} />
             <Route path="/performance" element={<Performance />} />
-            <Route path="/performance/workplan/:id" element={<Performance />} />
+            <Route path="/performance/workplan/:id" element={<WorkplanDetail />} />
             <Route path="/performance/team" element={<Performance />} />
             <Route path="/admin/performance-cycles" element={<AdminPerformanceCycles />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
