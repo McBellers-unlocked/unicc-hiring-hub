@@ -41,7 +41,7 @@ serve(async (req) => {
       .eq('is_active', true);
 
     if (!forceAll) {
-      countQuery = countQuery.or('ai_reviewed_at.is.null,ai_review_pending.eq.true');
+      countQuery = countQuery.is('ai_suggested_category', null);
     }
 
     const { count: totalUnprocessed } = await countQuery;
@@ -55,7 +55,7 @@ serve(async (req) => {
     if (skillIds && skillIds.length > 0) {
       query = query.in('id', skillIds);
     } else if (!forceAll) {
-      query = query.or('ai_reviewed_at.is.null,ai_review_pending.eq.true');
+      query = query.is('ai_suggested_category', null);
     }
 
     query = query.limit(limit);
