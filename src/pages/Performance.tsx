@@ -26,7 +26,7 @@ import {
 import { toast } from 'sonner';
 import { WorkplanPhaseIndicator } from '@/components/performance/WorkplanPhaseIndicator';
 import { WorkplanStatusCard } from '@/components/performance/WorkplanStatusCard';
-import { EPMDSWorkflowTimeline } from '@/components/performance/EPMDSWorkflowTimeline';
+import { PerformanceWorkflowTimeline } from '@/components/performance/PerformanceWorkflowTimeline';
 
 const Performance = () => {
   const { user, userName } = useAuth();
@@ -240,7 +240,7 @@ const Performance = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            Performance Management (ePMDS)
+            Performance Management
           </h1>
           <p className="text-muted-foreground">
             Manage your objectives, competencies, and development plans
@@ -303,8 +303,8 @@ const Performance = () => {
           <TabsContent value="my-workplan">
             {myWorkplan ? (
               <div className="space-y-6">
-                {/* ePMDS+ Workflow Timeline */}
-                <EPMDSWorkflowTimeline 
+                {/* Performance Workflow Timeline */}
+                <PerformanceWorkflowTimeline 
                   workplan={myWorkplan}
                   staffName={userName || user?.email || 'Staff Member'}
                   supervisor1Name={myWorkplan?.supervisor1?.name || '1st Level Supervisor'}

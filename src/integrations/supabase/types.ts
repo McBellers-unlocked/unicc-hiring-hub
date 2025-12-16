@@ -3613,19 +3613,27 @@ export type Database = {
       }
       workplans: {
         Row: {
+          begin_year_discussion_at: string | null
           begin_year_staff_signed_at: string | null
+          begin_year_submitted_at: string | null
           begin_year_supervisor1_signed_at: string | null
           begin_year_supervisor2_signed_at: string | null
           created_at: string
           current_phase: string
           cycle_id: string
+          end_year_discussion_at: string | null
+          end_year_staff_acknowledgment_at: string | null
+          end_year_staff_final_signed_at: string | null
           end_year_staff_signed_at: string | null
+          end_year_submitted_at: string | null
           end_year_supervisor1_signed_at: string | null
           end_year_supervisor2_signed_at: string | null
           id: string
           is_supervisor_role: boolean | null
           mandatory_training_completed: boolean | null
+          mid_year_discussion_at: string | null
           mid_year_staff_signed_at: string | null
+          mid_year_submitted_at: string | null
           mid_year_supervisor1_signed_at: string | null
           mid_year_supervisor2_signed_at: string | null
           overall_rating: number | null
@@ -3642,19 +3650,27 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          begin_year_discussion_at?: string | null
           begin_year_staff_signed_at?: string | null
+          begin_year_submitted_at?: string | null
           begin_year_supervisor1_signed_at?: string | null
           begin_year_supervisor2_signed_at?: string | null
           created_at?: string
           current_phase?: string
           cycle_id: string
+          end_year_discussion_at?: string | null
+          end_year_staff_acknowledgment_at?: string | null
+          end_year_staff_final_signed_at?: string | null
           end_year_staff_signed_at?: string | null
+          end_year_submitted_at?: string | null
           end_year_supervisor1_signed_at?: string | null
           end_year_supervisor2_signed_at?: string | null
           id?: string
           is_supervisor_role?: boolean | null
           mandatory_training_completed?: boolean | null
+          mid_year_discussion_at?: string | null
           mid_year_staff_signed_at?: string | null
+          mid_year_submitted_at?: string | null
           mid_year_supervisor1_signed_at?: string | null
           mid_year_supervisor2_signed_at?: string | null
           overall_rating?: number | null
@@ -3671,19 +3687,27 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          begin_year_discussion_at?: string | null
           begin_year_staff_signed_at?: string | null
+          begin_year_submitted_at?: string | null
           begin_year_supervisor1_signed_at?: string | null
           begin_year_supervisor2_signed_at?: string | null
           created_at?: string
           current_phase?: string
           cycle_id?: string
+          end_year_discussion_at?: string | null
+          end_year_staff_acknowledgment_at?: string | null
+          end_year_staff_final_signed_at?: string | null
           end_year_staff_signed_at?: string | null
+          end_year_submitted_at?: string | null
           end_year_supervisor1_signed_at?: string | null
           end_year_supervisor2_signed_at?: string | null
           id?: string
           is_supervisor_role?: boolean | null
           mandatory_training_completed?: boolean | null
+          mid_year_discussion_at?: string | null
           mid_year_staff_signed_at?: string | null
+          mid_year_submitted_at?: string | null
           mid_year_supervisor1_signed_at?: string | null
           mid_year_supervisor2_signed_at?: string | null
           overall_rating?: number | null

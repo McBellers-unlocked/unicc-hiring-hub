@@ -248,7 +248,7 @@ export const Layout = ({ children }: LayoutProps) => {
                         <DropdownMenuItem asChild>
                           <Link to="/performance" className="flex items-center w-full">
                             <ClipboardCheck className="w-4 h-4 mr-2" />
-                            Performance (ePMDS)
+                            Performance
                           </Link>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
