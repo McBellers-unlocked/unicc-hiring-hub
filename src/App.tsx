@@ -62,6 +62,8 @@ import AssessmentSlots from "./pages/AssessmentSlots";
 import AssessmentReview from "./pages/AssessmentReview";
 import CandidateAssessment from "./pages/CandidateAssessment";
 import AssessmentComplete from "./pages/AssessmentComplete";
+import Performance from "./pages/Performance";
+import AdminPerformanceCycles from "./pages/AdminPerformanceCycles";
 
 const queryClient = new QueryClient();
 
@@ -138,6 +140,10 @@ const App = () => (
             <Route path="/import-users" element={<ImportUsers />} />
             <Route path="/chief-of-division" element={<ChiefOfDivisionView />} />
             <Route path="/director-view" element={<DirectorView />} />
+            <Route path="/performance" element={<Performance />} />
+            <Route path="/performance/workplan/:id" element={<Performance />} />
+            <Route path="/performance/team" element={<Performance />} />
+            <Route path="/admin/performance-cycles" element={<AdminPerformanceCycles />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

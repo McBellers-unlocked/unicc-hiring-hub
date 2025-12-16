@@ -452,6 +452,33 @@ export type Database = {
           },
         ]
       }
+      budget_outputs: {
+        Row: {
+          code: string
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean | null
+          programme: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean | null
+          programme?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          programme?: string | null
+        }
+        Relationships: []
+      }
       candidate_flags: {
         Row: {
           candidate_id: string
@@ -2469,6 +2496,56 @@ export type Database = {
         }
         Relationships: []
       }
+      performance_cycles: {
+        Row: {
+          begin_year_deadline: string | null
+          created_at: string
+          created_by: string | null
+          end_date: string
+          end_year_deadline: string | null
+          id: string
+          mid_year_deadline: string | null
+          name: string
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          begin_year_deadline?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          end_year_deadline?: string | null
+          id?: string
+          mid_year_deadline?: string | null
+          name: string
+          start_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          begin_year_deadline?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          end_year_deadline?: string | null
+          id?: string
+          mid_year_deadline?: string | null
+          name?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_cycles_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       requisition_field_comments: {
         Row: {
           author_id: string
@@ -3289,6 +3366,347 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      workplan_competencies: {
+        Row: {
+          competency_name: string
+          competency_type: string
+          created_at: string
+          description: string | null
+          id: string
+          order_index: number
+          staff_comment: string | null
+          staff_rating: number | null
+          supervisor_comment: string | null
+          supervisor_rating: number | null
+          updated_at: string
+          workplan_id: string
+        }
+        Insert: {
+          competency_name: string
+          competency_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number
+          staff_comment?: string | null
+          staff_rating?: number | null
+          supervisor_comment?: string | null
+          supervisor_rating?: number | null
+          updated_at?: string
+          workplan_id: string
+        }
+        Update: {
+          competency_name?: string
+          competency_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number
+          staff_comment?: string | null
+          staff_rating?: number | null
+          supervisor_comment?: string | null
+          supervisor_rating?: number | null
+          updated_at?: string
+          workplan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workplan_competencies_workplan_id_fkey"
+            columns: ["workplan_id"]
+            isOneToOne: false
+            referencedRelation: "workplans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workplan_learning_plans: {
+        Row: {
+          achievements: string | null
+          created_at: string
+          description: string | null
+          end_year_comment: string | null
+          id: string
+          learning_areas: Json | null
+          learning_methods: Json | null
+          learning_reasons: Json | null
+          updated_at: string
+          workplan_id: string
+        }
+        Insert: {
+          achievements?: string | null
+          created_at?: string
+          description?: string | null
+          end_year_comment?: string | null
+          id?: string
+          learning_areas?: Json | null
+          learning_methods?: Json | null
+          learning_reasons?: Json | null
+          updated_at?: string
+          workplan_id: string
+        }
+        Update: {
+          achievements?: string | null
+          created_at?: string
+          description?: string | null
+          end_year_comment?: string | null
+          id?: string
+          learning_areas?: Json | null
+          learning_methods?: Json | null
+          learning_reasons?: Json | null
+          updated_at?: string
+          workplan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workplan_learning_plans_workplan_id_fkey"
+            columns: ["workplan_id"]
+            isOneToOne: true
+            referencedRelation: "workplans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workplan_objectives: {
+        Row: {
+          actual_time_percent: number | null
+          created_at: string
+          description: string | null
+          id: string
+          mid_year_progress: string | null
+          order_index: number
+          output_id: string | null
+          planned_time_percent: number | null
+          staff_comment: string | null
+          staff_rating: number | null
+          status: string | null
+          supervisor_comment: string | null
+          supervisor_rating: number | null
+          title: string
+          updated_at: string
+          workplan_id: string
+        }
+        Insert: {
+          actual_time_percent?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          mid_year_progress?: string | null
+          order_index?: number
+          output_id?: string | null
+          planned_time_percent?: number | null
+          staff_comment?: string | null
+          staff_rating?: number | null
+          status?: string | null
+          supervisor_comment?: string | null
+          supervisor_rating?: number | null
+          title: string
+          updated_at?: string
+          workplan_id: string
+        }
+        Update: {
+          actual_time_percent?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          mid_year_progress?: string | null
+          order_index?: number
+          output_id?: string | null
+          planned_time_percent?: number | null
+          staff_comment?: string | null
+          staff_rating?: number | null
+          status?: string | null
+          supervisor_comment?: string | null
+          supervisor_rating?: number | null
+          title?: string
+          updated_at?: string
+          workplan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workplan_objectives_output_id_fkey"
+            columns: ["output_id"]
+            isOneToOne: false
+            referencedRelation: "budget_outputs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workplan_objectives_workplan_id_fkey"
+            columns: ["workplan_id"]
+            isOneToOne: false
+            referencedRelation: "workplans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workplan_team_objectives: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          individual_contribution: string | null
+          objective_type: string
+          staff_rating: number | null
+          status: string | null
+          supervisor_rating: number | null
+          title: string
+          updated_at: string
+          workplan_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          individual_contribution?: string | null
+          objective_type: string
+          staff_rating?: number | null
+          status?: string | null
+          supervisor_rating?: number | null
+          title: string
+          updated_at?: string
+          workplan_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          individual_contribution?: string | null
+          objective_type?: string
+          staff_rating?: number | null
+          status?: string | null
+          supervisor_rating?: number | null
+          title?: string
+          updated_at?: string
+          workplan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workplan_team_objectives_workplan_id_fkey"
+            columns: ["workplan_id"]
+            isOneToOne: false
+            referencedRelation: "workplans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workplans: {
+        Row: {
+          begin_year_staff_signed_at: string | null
+          begin_year_supervisor1_signed_at: string | null
+          begin_year_supervisor2_signed_at: string | null
+          created_at: string
+          current_phase: string
+          cycle_id: string
+          end_year_staff_signed_at: string | null
+          end_year_supervisor1_signed_at: string | null
+          end_year_supervisor2_signed_at: string | null
+          id: string
+          is_supervisor_role: boolean | null
+          mandatory_training_completed: boolean | null
+          mid_year_staff_signed_at: string | null
+          mid_year_supervisor1_signed_at: string | null
+          mid_year_supervisor2_signed_at: string | null
+          overall_rating: number | null
+          staff_achievements_comment: string | null
+          staff_challenges_comment: string | null
+          staff_id: string
+          staff_support_comment: string | null
+          status: string
+          supervisor_achievements_comment: string | null
+          supervisor_challenges_comment: string | null
+          supervisor_support_comment: string | null
+          supervisor1_id: string | null
+          supervisor2_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          begin_year_staff_signed_at?: string | null
+          begin_year_supervisor1_signed_at?: string | null
+          begin_year_supervisor2_signed_at?: string | null
+          created_at?: string
+          current_phase?: string
+          cycle_id: string
+          end_year_staff_signed_at?: string | null
+          end_year_supervisor1_signed_at?: string | null
+          end_year_supervisor2_signed_at?: string | null
+          id?: string
+          is_supervisor_role?: boolean | null
+          mandatory_training_completed?: boolean | null
+          mid_year_staff_signed_at?: string | null
+          mid_year_supervisor1_signed_at?: string | null
+          mid_year_supervisor2_signed_at?: string | null
+          overall_rating?: number | null
+          staff_achievements_comment?: string | null
+          staff_challenges_comment?: string | null
+          staff_id: string
+          staff_support_comment?: string | null
+          status?: string
+          supervisor_achievements_comment?: string | null
+          supervisor_challenges_comment?: string | null
+          supervisor_support_comment?: string | null
+          supervisor1_id?: string | null
+          supervisor2_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          begin_year_staff_signed_at?: string | null
+          begin_year_supervisor1_signed_at?: string | null
+          begin_year_supervisor2_signed_at?: string | null
+          created_at?: string
+          current_phase?: string
+          cycle_id?: string
+          end_year_staff_signed_at?: string | null
+          end_year_supervisor1_signed_at?: string | null
+          end_year_supervisor2_signed_at?: string | null
+          id?: string
+          is_supervisor_role?: boolean | null
+          mandatory_training_completed?: boolean | null
+          mid_year_staff_signed_at?: string | null
+          mid_year_supervisor1_signed_at?: string | null
+          mid_year_supervisor2_signed_at?: string | null
+          overall_rating?: number | null
+          staff_achievements_comment?: string | null
+          staff_challenges_comment?: string | null
+          staff_id?: string
+          staff_support_comment?: string | null
+          status?: string
+          supervisor_achievements_comment?: string | null
+          supervisor_challenges_comment?: string | null
+          supervisor_support_comment?: string | null
+          supervisor1_id?: string | null
+          supervisor2_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workplans_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "performance_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workplans_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workplans_supervisor1_id_fkey"
+            columns: ["supervisor1_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workplans_supervisor2_id_fkey"
+            columns: ["supervisor2_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       written_assessments: {
         Row: {
