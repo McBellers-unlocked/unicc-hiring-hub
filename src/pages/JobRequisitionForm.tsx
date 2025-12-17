@@ -150,6 +150,24 @@ const turndownService = new TurndownService({
   strongDelimiter: '**',
 });
 
+// Remove style, script, head tags completely (Microsoft Word junk)
+turndownService.addRule('removeStyles', {
+  filter: ['style', 'script', 'head', 'meta', 'link'],
+  replacement: function () {
+    return '';
+  }
+});
+
+// Remove HTML comments (Word uses <!-- --> comments)
+turndownService.addRule('removeComments', {
+  filter: function (node) {
+    return node.nodeType === 8; // Node.COMMENT_NODE
+  },
+  replacement: function () {
+    return '';
+  }
+});
+
 // Add rule to handle list items with spacing
 turndownService.addRule('listItemSpacing', {
   filter: 'li',
