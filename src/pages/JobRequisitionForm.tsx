@@ -403,8 +403,24 @@ export default function JobRequisitionForm() {
 
   // Update main duties template when nature of position changes
   useEffect(() => {
+    const currentMainDuties = form.getValues('main_duties_responsibilities');
     const currentEssentialExperience = form.getValues('essential_experience');
     const currentEssentialEducation = form.getValues('essential_education');
+    
+    // Auto-set main duties template if field is empty
+    const isMainDutiesEmpty = !currentMainDuties || currentMainDuties.trim() === '';
+    
+    if (isMainDutiesEmpty && watchedNatureOfPosition) {
+      if (watchedNatureOfPosition === 'Intern') {
+        form.setValue('main_duties_responsibilities', 
+          "The incumbent(s) will work [number of days] days per week for [number of hours] hours under the supervision of the [title of the supervisor], and will receive the guidance and support necessary to carry out the responsibilities outlined below.\n\n"
+        );
+      } else if (watchedNatureOfPosition === 'Staff' || watchedNatureOfPosition === 'STDA') {
+        form.setValue('main_duties_responsibilities', 
+          "The incumbent will work under the direct supervision and guidance of the [SUPERVISOR TITLE] within the [DIVISION NAME] and in close collaboration with the [SECTION NAME] team members. The incumbent will perform the following duties:\n\n"
+        );
+      }
+    }
     
     // Only auto-set experience/education for Intern positions when the fields
     // are effectively still using a default/template value. For non‑Intern
