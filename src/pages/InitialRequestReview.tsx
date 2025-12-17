@@ -28,6 +28,7 @@ interface InitialRequest {
   temporary_duration: string | null;
   consultant_duration: string | null;
   intern_modality: string | null;
+  intern_duration: string | null;
   grade: string | null;
   duty_station: string;
   unit_section_division: string | null;
@@ -266,11 +267,21 @@ export default function InitialRequestReview() {
                       </div>
                     )}
 
-                    {/* Intern Modality */}
-                    {request.nature_of_position === 'Intern' && request.intern_modality && (
-                      <div>
-                        <p className="text-sm font-medium mb-1">Modality</p>
-                        <Badge variant="outline">{request.intern_modality}</Badge>
+                    {/* Intern Modality & Duration */}
+                    {request.nature_of_position === 'Intern' && (request.intern_modality || request.intern_duration) && (
+                      <div className="flex gap-6">
+                        {request.intern_modality && (
+                          <div>
+                            <p className="text-sm font-medium mb-1">Modality</p>
+                            <Badge variant="outline">{request.intern_modality}</Badge>
+                          </div>
+                        )}
+                        {request.intern_duration && (
+                          <div>
+                            <p className="text-sm font-medium mb-1">Internship Length</p>
+                            <Badge variant="outline">{request.intern_duration}</Badge>
+                          </div>
+                        )}
                       </div>
                     )}
 

@@ -157,6 +157,7 @@ export default function InitialRequestForm() {
     temporary_duration: '',
     consultant_duration: '',
     intern_modality: '',
+    intern_duration: '',
     grade: '',
     unit_section_division: '',
     duty_station: [] as string[],
@@ -229,6 +230,7 @@ export default function InitialRequestForm() {
           temporary_duration: data.temporary_duration || '',
           consultant_duration: data.consultant_duration || '',
           intern_modality: data.intern_modality || '',
+          intern_duration: data.intern_duration || '',
           grade: data.grade || '',
           unit_section_division: data.unit_section_division || '',
           duty_station: data.duty_station ? JSON.parse(data.duty_station) : [],
@@ -341,6 +343,14 @@ export default function InitialRequestForm() {
       toast({
         title: "Validation Error",
         description: "Please select Full time or Part time for Intern positions",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (formData.nature_of_position === 'Intern' && !formData.intern_duration) {
+      toast({
+        title: "Validation Error",
+        description: "Please select internship length (3 or 6 months)",
         variant: "destructive",
       });
       return false;
@@ -482,6 +492,7 @@ export default function InitialRequestForm() {
         temporary_duration: formData.temporary_duration || null,
         consultant_duration: formData.consultant_duration || null,
         intern_modality: formData.intern_modality || null,
+        intern_duration: formData.intern_duration || null,
         grade: formData.grade || null,
         unit_section_division: formData.unit_section_division || null,
         duty_station: JSON.stringify(formData.duty_station),
@@ -839,6 +850,27 @@ export default function InitialRequestForm() {
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="Part time" id="parttime" />
                     <Label htmlFor="parttime" className="font-normal">Part time</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
+
+            {/* Intern Duration */}
+            {showInternModality && (
+              <div className="space-y-2">
+                <Label>Internship Length *</Label>
+                <RadioGroup 
+                  value={formData.intern_duration} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, intern_duration: value }))}
+                  disabled={viewMode}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="3 months" id="intern3" />
+                    <Label htmlFor="intern3" className="font-normal">3 months</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="6 months" id="intern6" />
+                    <Label htmlFor="intern6" className="font-normal">6 months</Label>
                   </div>
                 </RadioGroup>
               </div>
