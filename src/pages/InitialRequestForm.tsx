@@ -577,16 +577,34 @@ export default function InitialRequestForm() {
         status: approved ? 'initial_request_approved' : 'initial_request_rejected',
       };
       
-      if (comments) {
-        updateData.comments = JSON.stringify([
-          {
-            user_id: user?.id,
-            comment: comments,
-            timestamp: new Date().toISOString(),
-            action: approved ? 'approved_initial_request' : 'rejected_initial_request',
-          }
-        ]);
-      }
+      // Preserve existing comment metadata (consultancy_level, remote_region, etc.)
+      // while adding approval comments to approval_history
+      const { data: existingRequisition } = await supabase
+        .from("job_requisitions")
+        .select("comments")
+        .eq("id", id)
+        .single();
+      
+      const existingComments = existingRequisition?.comments || {};
+      const existingMetadata = typeof existingComments === 'object' && !Array.isArray(existingComments)
+        ? (existingComments as Record<string, any>)
+        : {};
+      const metadataHistory = (existingMetadata as any).approval_history;
+      const existingApprovalHistory: any[] = Array.isArray(existingComments) 
+        ? existingComments 
+        : (Array.isArray(metadataHistory) ? metadataHistory : []);
+
+      const newComment = comments ? [{
+        user_id: user?.id,
+        comment: comments,
+        timestamp: new Date().toISOString(),
+        action: approved ? 'approved_initial_request' : 'rejected_initial_request',
+      }] : [];
+
+      updateData.comments = {
+        ...existingMetadata,
+        approval_history: [...existingApprovalHistory, ...newComment]
+      };
 
       const { error } = await supabase
         .from("job_requisitions")
