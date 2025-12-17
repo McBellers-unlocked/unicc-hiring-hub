@@ -33,7 +33,7 @@ const CHIEF_ASSIGNMENTS: Record<string, ChiefInfo> = {
     division: 'Digital Delivery (DD)'
   },
   'DO': {
-    name: 'Chauhan',
+    name: 'Sameer Chauhan',
     email: 'chauhan@unicc.org',
     division: 'Director (DO)'
   }
