@@ -733,6 +733,11 @@ export default function JobRequisitionForm() {
         updatedComments.remote_region = remoteTimezone.trim();
       }
 
+      // Save consultancy level for Individual Consultant positions
+      if (consultancyLevel && formData.nature_of_position === 'Individual Consultant') {
+        updatedComments.consultancy_level = consultancyLevel;
+      }
+
       let currentRequisitionId = id;
 
       if (id && id !== 'new') {
@@ -1307,16 +1312,51 @@ export default function JobRequisitionForm() {
                 )}
               />
 
-              {consultancyLevel && watchedNatureOfPosition === 'Individual Consultant' && (
+              {watchedNatureOfPosition === 'Individual Consultant' && (
                 <div className="space-y-2">
-                  <Label>Consultancy Band Level</Label>
-                  <Input
-                    value={consultancyLevel}
-                    disabled
-                    className="bg-muted"
-                  />
+                  <Label>Consultancy Band Level *</Label>
+                  <Select 
+                    value={consultancyLevel} 
+                    onValueChange={(value) => {
+                      setConsultancyLevel(value);
+                      // Trigger auto-population of experience/education based on band level
+                      const consultantRequirements: Record<string, { education: string; experience: string }> = {
+                        'Band level A': {
+                          education: 'Minimum first university degree',
+                          experience: 'Up to 5 years of relevant experience'
+                        },
+                        'Band level B': {
+                          education: 'Minimum first university degree - essential, an advanced university degree desirable',
+                          experience: '5 to 10 years of relevant experience'
+                        },
+                        'Band level C': {
+                          education: 'Minimum an advanced university degree',
+                          experience: 'Over 10 years of relevant experience'
+                        },
+                        'Band level D': {
+                          education: 'Minimum an advanced university degree',
+                          experience: 'Over 15 years of relevant experience'
+                        }
+                      };
+                      const req = consultantRequirements[value];
+                      if (req) {
+                        form.setValue('essential_education', req.education);
+                        form.setValue('essential_experience', req.experience);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select band level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Band level A">Band level A (Up to 5 years experience)</SelectItem>
+                      <SelectItem value="Band level B">Band level B (5-10 years experience)</SelectItem>
+                      <SelectItem value="Band level C">Band level C (10+ years experience)</SelectItem>
+                      <SelectItem value="Band level D">Band level D (15+ years experience)</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-muted-foreground">
-                    This band level was set in the initial request and cannot be changed here.
+                    Selecting a band level will auto-populate minimum experience and education requirements
                   </p>
                 </div>
               )}
