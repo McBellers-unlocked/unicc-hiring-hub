@@ -741,11 +741,22 @@ export default function JobRequisitionForm() {
       let currentRequisitionId = id;
 
       if (id && id !== 'new') {
+        // Safety check: ensure currentRequisition is loaded before updating
+        if (!currentRequisition?.id) {
+          toast({
+            title: "Error",
+            description: "Form data not loaded. Please refresh and try again.",
+            variant: "destructive",
+          });
+          setSaving(false);
+          return;
+        }
+
         // Get current requisition to check status
         const { data: currentReq, error: fetchError } = await supabase
           .from('job_requisitions')
           .select('status, hr_reviewed, reference_number')
-          .eq('id', id)
+          .eq('id', currentRequisition.id)
           .single();
 
         if (fetchError) throw fetchError;
@@ -783,7 +794,7 @@ export default function JobRequisitionForm() {
             comments: updatedComments,
             status: newStatus,
           })
-          .eq('id', id);
+          .eq('id', currentRequisition.id);
 
         if (error) throw error;
 
@@ -799,11 +810,11 @@ export default function JobRequisitionForm() {
             await supabase
               .from('job_requisitions')
               .update({ reference_number: refData })
-              .eq('id', id);
+              .eq('id', currentRequisition.id);
           }
         }
 
-        currentRequisitionId = id;
+        currentRequisitionId = currentRequisition.id;
       } else {
         // Create new requisition with slug
         const generateSlug = (title: string) => {
@@ -907,7 +918,7 @@ export default function JobRequisitionForm() {
           hiring_manager_confirmed_at: new Date().toISOString(),
           status: 'hiring_manager_review'
         })
-        .eq('id', id);
+        .eq('id', currentRequisition?.id);
 
       if (error) throw error;
 
