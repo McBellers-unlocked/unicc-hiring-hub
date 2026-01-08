@@ -839,6 +839,10 @@ export default function JobRequisitionForm() {
             language_requirements: updatedLanguageRequirements,
             comments: updatedComments,
             status: newStatus,
+            // Record when PD is first submitted to HR
+            ...(submit && newStatus === 'hr_review' && !currentReq.reference_number 
+              ? { pd_submitted_at: new Date().toISOString() } 
+              : {}),
           })
           .eq('id', currentRequisition.id);
 
@@ -890,6 +894,8 @@ export default function JobRequisitionForm() {
             comments: updatedComments,
             created_by: user?.id,
             status: submit ? 'hr_review' : 'draft',
+            // Record when PD is submitted to HR
+            pd_submitted_at: submit ? new Date().toISOString() : null,
           })
           .select()
           .single();

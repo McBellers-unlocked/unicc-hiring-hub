@@ -48,6 +48,7 @@ interface JobRequisition {
   created_by: string;
   hiring_manager_name?: string;
   internal_only: boolean;
+  pd_submitted_at: string | null;
   hr_reviewed: boolean;
   hr_reviewed_at: string | null;
   hr_reviewed_by: string | null;
@@ -73,7 +74,77 @@ interface JobRequisition {
   brief_outline?: string;
 }
 
-// Calculate KPI status for a requisition
+// Helper to calculate days between two dates
+const daysBetween = (start: string | null | undefined, end: string | null | undefined): number => {
+  if (!start || !end) return 0;
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  return Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+};
+
+// Calculate cumulative KPI variance across all completed stages + current active stage
+const calculateCumulativeKPI = (requisition: JobRequisition): number => {
+  let totalVariance = 0;
+  const now = new Date();
+
+  // PD Creation stage (from initial approval to PD submission)
+  if (requisition.pd_submitted_at && requisition.initial_request_approved_at) {
+    const days = daysBetween(requisition.initial_request_approved_at, requisition.pd_submitted_at);
+    totalVariance += (STAGE_KPIS.pd_creation.days - days);
+  } else if (requisition.initial_request_approved_at && !requisition.pd_submitted_at && 
+             requisition.status === 'initial_request_approved') {
+    // Active PD creation stage
+    const days = daysBetween(requisition.initial_request_approved_at, now.toISOString());
+    totalVariance += (STAGE_KPIS.pd_creation.days - days);
+  }
+
+  // HR Review stage (from PD submission to HR review complete)
+  if (requisition.hr_reviewed_at && requisition.pd_submitted_at) {
+    const days = daysBetween(requisition.pd_submitted_at, requisition.hr_reviewed_at);
+    totalVariance += (STAGE_KPIS.hr_review.days - days);
+  } else if (requisition.pd_submitted_at && !requisition.hr_reviewed && requisition.status === 'hr_review') {
+    // Active HR review stage
+    const days = daysBetween(requisition.pd_submitted_at, now.toISOString());
+    totalVariance += (STAGE_KPIS.hr_review.days - days);
+  }
+
+  // Manager Endorsement stage (from HR review to manager confirmation)
+  if (requisition.hiring_manager_confirmed_at && requisition.hr_reviewed_at) {
+    const days = daysBetween(requisition.hr_reviewed_at, requisition.hiring_manager_confirmed_at);
+    totalVariance += (STAGE_KPIS.manager_endorsement.days - days);
+  } else if (requisition.hr_reviewed_at && !requisition.hiring_manager_confirmed_hr_changes && 
+             requisition.status === 'hiring_manager_review') {
+    // Active manager review stage
+    const days = daysBetween(requisition.hr_reviewed_at, now.toISOString());
+    totalVariance += (STAGE_KPIS.manager_endorsement.days - days);
+  }
+
+  // Division Chief stage (from manager confirmation to chief approval)
+  if (requisition.chief_of_division_approved_at && requisition.hiring_manager_confirmed_at) {
+    const days = daysBetween(requisition.hiring_manager_confirmed_at, requisition.chief_of_division_approved_at);
+    totalVariance += (STAGE_KPIS.division_chief.days - days);
+  } else if (requisition.hiring_manager_confirmed_at && !requisition.chief_of_division_approval && 
+             ['chief_of_division_review', 'chief_division_review'].includes(requisition.status)) {
+    // Active chief review stage
+    const days = daysBetween(requisition.hiring_manager_confirmed_at, now.toISOString());
+    totalVariance += (STAGE_KPIS.division_chief.days - days);
+  }
+
+  // Director stage (from chief approval to director approval)
+  if (requisition.director_approved_at && requisition.chief_of_division_approved_at) {
+    const days = daysBetween(requisition.chief_of_division_approved_at, requisition.director_approved_at);
+    totalVariance += (STAGE_KPIS.director.days - days);
+  } else if (requisition.chief_of_division_approved_at && !requisition.director_approval && 
+             requisition.status === 'director_review') {
+    // Active director review stage
+    const days = daysBetween(requisition.chief_of_division_approved_at, now.toISOString());
+    totalVariance += (STAGE_KPIS.director.days - days);
+  }
+
+  return totalVariance;
+};
+
+// Calculate KPI status for a requisition's current stage only
 const calculateKPIStatus = (requisition: JobRequisition): { 
   daysVariance: number; 
   stage: string;
@@ -91,9 +162,11 @@ const calculateKPIStatus = (requisition: JobRequisition): {
       ? new Date(requisition.initial_request_approved_at) : null;
     stage = 'PD Creation';
     kpiTarget = STAGE_KPIS.pd_creation.days;
-  } else if (requisition.status === 'hr_review' && requisition.hr_internal_status === 'pending_initial_review') {
-    // HR Review - time since submitted for HR review
-    stageStartDate = new Date(requisition.created_at);
+  } else if (requisition.status === 'hr_review') {
+    // HR Review - time since PD was submitted
+    stageStartDate = requisition.pd_submitted_at 
+      ? new Date(requisition.pd_submitted_at) 
+      : new Date(requisition.created_at);
     stage = 'HR Review';
     kpiTarget = STAGE_KPIS.hr_review.days;
   } else if (requisition.status === 'hiring_manager_review') {
@@ -101,11 +174,6 @@ const calculateKPIStatus = (requisition: JobRequisition): {
     stageStartDate = requisition.hr_reviewed_at ? new Date(requisition.hr_reviewed_at) : null;
     stage = 'Manager Endorsement';
     kpiTarget = STAGE_KPIS.manager_endorsement.days;
-  } else if (requisition.status === 'hr_review' && requisition.hr_internal_status === 'pending_chief_review') {
-    // Chief HR Review - time since HR focal point completed
-    stageStartDate = requisition.hr_reviewed_at ? new Date(requisition.hr_reviewed_at) : null;
-    stage = 'Chief HR';
-    kpiTarget = STAGE_KPIS.chief_hr.days;
   } else if (['chief_of_division_review', 'chief_division_review'].includes(requisition.status)) {
     // Division Chief - time since manager confirmed
     stageStartDate = requisition.hiring_manager_confirmed_at 
@@ -128,7 +196,7 @@ const calculateKPIStatus = (requisition: JobRequisition): {
   return { daysVariance, stage, kpiTarget };
 };
 
-// KPI Badge component
+// KPI Badge component for current stage
 const KPIBadge = ({ kpiStatus }: { kpiStatus: { daysVariance: number; stage: string; kpiTarget: number } }) => {
   const isOverdue = kpiStatus.daysVariance < 0;
   const isWarning = kpiStatus.daysVariance >= 0 && kpiStatus.daysVariance <= 2;
@@ -148,6 +216,30 @@ const KPIBadge = ({ kpiStatus }: { kpiStatus: { daysVariance: number; stage: str
         ? `-${daysText}d overdue` 
         : `+${daysText}d remaining`
       }
+    </Badge>
+  );
+};
+
+// Cumulative KPI Badge component (shows total variance across all stages)
+const CumulativeKPIBadge = ({ requisition }: { requisition: JobRequisition }) => {
+  const totalVariance = calculateCumulativeKPI(requisition);
+  
+  // Don't show for initial request stages or completed requisitions
+  if (requisition.status?.includes('initial_request') || requisition.converted_to_job_id) {
+    return null;
+  }
+  
+  const isOverdue = totalVariance < 0;
+  const daysText = Math.abs(totalVariance);
+  
+  return (
+    <Badge 
+      variant="outline"
+      className={`text-xs font-medium ${
+        isOverdue ? "border-red-500 text-red-600 bg-red-50" : "border-green-500 text-green-600 bg-green-50"
+      }`}
+    >
+      {isOverdue ? `-${daysText}d` : `+${daysText}d`}
     </Badge>
   );
 };
@@ -755,10 +847,7 @@ export default function AdminRequisitions() {
                                 <StatusIcon className="h-3 w-3" />
                                 {statusInfo.label}
                               </Badge>
-                              {(() => {
-                                const kpiStatus = calculateKPIStatus(requisition);
-                                return kpiStatus ? <KPIBadge kpiStatus={kpiStatus} /> : null;
-                              })()}
+                              <CumulativeKPIBadge requisition={requisition} />
                             </div>
                             <CardDescription className="flex items-center gap-4">
                               <span className="flex items-center gap-1">
