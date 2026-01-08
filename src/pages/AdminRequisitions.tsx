@@ -26,6 +26,16 @@ import { ChiefHRReviewDialog } from "@/components/ChiefHRReviewDialog";
 import { RequisitionWorkflowTimeline } from "@/components/RequisitionWorkflowTimeline";
 import { getDivisionCode } from "@/lib/chiefAssignment";
 
+// KPI targets in days for each stage
+const STAGE_KPIS = {
+  pd_creation: { days: 7, label: 'PD Creation' },
+  hr_review: { days: 7, label: 'HR Review' },
+  manager_endorsement: { days: 5, label: 'Manager Endorsement' },
+  chief_hr: { days: 7, label: 'Chief HR' },
+  division_chief: { days: 7, label: 'Division Chief' },
+  director: { days: 7, label: 'Director' }
+};
+
 interface JobRequisition {
   id: string;
   slug: string;
@@ -58,9 +68,89 @@ interface JobRequisition {
   finance_controller_approved_at: string | null;
   converted_to_job_id?: string;
   initial_request_approved?: boolean;
+  initial_request_approved_at?: string | null;
   funding_status?: string;
   brief_outline?: string;
 }
+
+// Calculate KPI status for a requisition
+const calculateKPIStatus = (requisition: JobRequisition): { 
+  daysVariance: number; 
+  stage: string;
+  kpiTarget: number;
+} | null => {
+  const now = new Date();
+  let stageStartDate: Date | null = null;
+  let stage: string = '';
+  let kpiTarget: number = 0;
+
+  // Determine current stage and when it started
+  if (requisition.status === 'initial_request_approved') {
+    // PD Creation - time since initial request was approved
+    stageStartDate = requisition.initial_request_approved_at 
+      ? new Date(requisition.initial_request_approved_at) : null;
+    stage = 'PD Creation';
+    kpiTarget = STAGE_KPIS.pd_creation.days;
+  } else if (requisition.status === 'hr_review' && requisition.hr_internal_status === 'pending_initial_review') {
+    // HR Review - time since submitted for HR review
+    stageStartDate = new Date(requisition.created_at);
+    stage = 'HR Review';
+    kpiTarget = STAGE_KPIS.hr_review.days;
+  } else if (requisition.status === 'hiring_manager_review') {
+    // Manager Endorsement - time since HR completed their review
+    stageStartDate = requisition.hr_reviewed_at ? new Date(requisition.hr_reviewed_at) : null;
+    stage = 'Manager Endorsement';
+    kpiTarget = STAGE_KPIS.manager_endorsement.days;
+  } else if (requisition.status === 'hr_review' && requisition.hr_internal_status === 'pending_chief_review') {
+    // Chief HR Review - time since HR focal point completed
+    stageStartDate = requisition.hr_reviewed_at ? new Date(requisition.hr_reviewed_at) : null;
+    stage = 'Chief HR';
+    kpiTarget = STAGE_KPIS.chief_hr.days;
+  } else if (['chief_of_division_review', 'chief_division_review'].includes(requisition.status)) {
+    // Division Chief - time since manager confirmed
+    stageStartDate = requisition.hiring_manager_confirmed_at 
+      ? new Date(requisition.hiring_manager_confirmed_at) : null;
+    stage = 'Division Chief';
+    kpiTarget = STAGE_KPIS.division_chief.days;
+  } else if (requisition.status === 'director_review') {
+    // Director - time since division chief approved
+    stageStartDate = requisition.chief_of_division_approved_at 
+      ? new Date(requisition.chief_of_division_approved_at) : null;
+    stage = 'Director';
+    kpiTarget = STAGE_KPIS.director.days;
+  }
+
+  if (!stageStartDate) return null;
+
+  const daysInStage = Math.floor((now.getTime() - stageStartDate.getTime()) / (1000 * 60 * 60 * 24));
+  const daysVariance = kpiTarget - daysInStage; // Positive = time remaining, Negative = overdue
+
+  return { daysVariance, stage, kpiTarget };
+};
+
+// KPI Badge component
+const KPIBadge = ({ kpiStatus }: { kpiStatus: { daysVariance: number; stage: string; kpiTarget: number } }) => {
+  const isOverdue = kpiStatus.daysVariance < 0;
+  const isWarning = kpiStatus.daysVariance >= 0 && kpiStatus.daysVariance <= 2;
+  const daysText = Math.abs(kpiStatus.daysVariance);
+  
+  return (
+    <Badge 
+      variant="outline"
+      className={`text-xs font-medium ${
+        isOverdue ? "border-red-500 text-red-600 bg-red-50" :
+        isWarning ? "border-orange-500 text-orange-600 bg-orange-50" :
+        "border-green-500 text-green-600 bg-green-50"
+      }`}
+    >
+      <Clock className="h-3 w-3 mr-1" />
+      {isOverdue 
+        ? `-${daysText}d overdue` 
+        : `+${daysText}d remaining`
+      }
+    </Badge>
+  );
+};
 
 export default function AdminRequisitions() {
   const [requisitions, setRequisitions] = useState<JobRequisition[]>([]);
@@ -653,7 +743,7 @@ export default function AdminRequisitions() {
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <div className="space-y-1">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <CardTitle className="text-lg">{requisition.position_title}</CardTitle>
                               <Badge 
                                 variant={getStatusVariant(statusInfo.color)} 
@@ -665,6 +755,10 @@ export default function AdminRequisitions() {
                                 <StatusIcon className="h-3 w-3" />
                                 {statusInfo.label}
                               </Badge>
+                              {(() => {
+                                const kpiStatus = calculateKPIStatus(requisition);
+                                return kpiStatus ? <KPIBadge kpiStatus={kpiStatus} /> : null;
+                              })()}
                             </div>
                             <CardDescription className="flex items-center gap-4">
                               <span className="flex items-center gap-1">
