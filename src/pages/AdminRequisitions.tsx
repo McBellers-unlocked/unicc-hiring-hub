@@ -488,8 +488,66 @@ export default function AdminRequisitions() {
       case 'completed':
         return requisitions.filter(r => ['approved', 'rejected'].includes(r.status) || r.converted_to_job_id);
       default:
-        return requisitions;
+        return sortByPriority(requisitions);
     }
+  };
+
+  // Priority-based sorting for the "All" view
+  const sortByPriority = (reqs: JobRequisition[]): JobRequisition[] => {
+    const getPriority = (req: JobRequisition): number => {
+      // Priority 1: HR Review (pending_initial_review)
+      if (req.status === 'hr_review' && req.hr_internal_status === 'pending_initial_review') return 1;
+      
+      // Priority 2: Manager Confirmation
+      if (req.status === 'hiring_manager_review') return 2;
+      
+      // Priority 3: Chief of Division Approval
+      if (['chief_of_division_review', 'chief_division_review'].includes(req.status)) return 3;
+      
+      // Priority 4: Director Approval
+      if (req.status === 'director_review') return 4;
+      
+      // Priority 5: Initial Request Approved (waiting for full PD)
+      if (req.status === 'initial_request_approved') return 5;
+      
+      // Priority 6: Initial Request Submitted (pending approval)
+      if (['initial_request_submitted', 'initial_request_chief_review'].includes(req.status)) return 6;
+      
+      // Priority 7: Everything else (drafts, completed, etc.)
+      return 7;
+    };
+    
+    const getWaitDate = (req: JobRequisition): Date => {
+      // Use the date when the item entered its current status, or created_at as fallback
+      if (req.status === 'hr_review' && req.hr_internal_status === 'pending_initial_review') {
+        return new Date(req.created_at);
+      }
+      if (req.status === 'hiring_manager_review') {
+        return new Date(req.hr_reviewed_at || req.created_at);
+      }
+      if (req.status === 'chief_of_division_review' || req.status === 'chief_division_review') {
+        return new Date(req.hiring_manager_confirmed_at || req.created_at);
+      }
+      if (req.status === 'director_review') {
+        return new Date(req.chief_of_division_approved_at || req.created_at);
+      }
+      return new Date(req.created_at);
+    };
+    
+    return [...reqs].sort((a, b) => {
+      const priorityA = getPriority(a);
+      const priorityB = getPriority(b);
+      
+      // Sort by priority first
+      if (priorityA !== priorityB) return priorityA - priorityB;
+      
+      // Within same priority: action items (1-6) show oldest first, others show newest first
+      if (priorityA <= 6) {
+        return getWaitDate(a).getTime() - getWaitDate(b).getTime();
+      } else {
+        return getWaitDate(b).getTime() - getWaitDate(a).getTime();
+      }
+    });
   };
 
   if (loading) {
