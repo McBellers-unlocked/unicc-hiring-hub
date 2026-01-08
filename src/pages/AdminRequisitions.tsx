@@ -587,46 +587,23 @@ export default function AdminRequisitions() {
 
   const filterRequisitions = (status: string) => {
     switch (status) {
-      case 'my-division-initial':
-        // Filter initial requests for the user's division
-        return requisitions.filter(r => {
-          if (!r.status.includes('initial_request') || r.initial_request_approved) return false;
-          if (!userDivision) return false;
-          
-          // Get the division code for this requisition
-          const reqDivisionCode = getDivisionCode(r.unit_section_division);
-          return reqDivisionCode === userDivision;
-        });
       case 'initial-requests':
-        return requisitions.filter(r => 
-          r.status.includes('initial_request')
-        );
+        return requisitions.filter(r => r.status.includes('initial_request'));
       case 'pending-hr':
-        return requisitions.filter(r => 
-          r.status === 'hr_review' && r.hr_internal_status === 'pending_initial_review'
-        );
-      case 'chief-hr-review':
-        return requisitions.filter(r => 
-          r.status === 'hr_review' && r.hr_internal_status === 'pending_chief_review'
-        );
-      case 'hr-ready':
-        return requisitions.filter(r => 
-          r.status === 'hr_review' && r.hr_internal_status === 'ready_for_manager'
-        );
-      case 'hr-final-review':
-        return requisitions.filter(r => 
-          r.status === 'hr_review' && r.hr_internal_status === 'pending_final_review'
-        );
-      case 'amendments':
-        return requisitions.filter(r => r.status === 'hr_amendments');
-      case 'manager-confirmation':
+        // All HR review statuses including Chief HR
+        return requisitions.filter(r => r.status === 'hr_review');
+      case 'manager-review':
         return requisitions.filter(r => r.status === 'hiring_manager_review');
-      case 'in-progress':
+      case 'chief-approval':
         return requisitions.filter(r => 
-          ['chief_division_review', 'chief_of_division_review', 'director_review'].includes(r.status)
+          ['chief_division_review', 'chief_of_division_review'].includes(r.status)
         );
-      case 'completed':
-        return requisitions.filter(r => ['approved', 'rejected'].includes(r.status) || r.converted_to_job_id);
+      case 'director-approval':
+        return requisitions.filter(r => r.status === 'director_review');
+      case 'published':
+        return requisitions.filter(r => 
+          ['approved'].includes(r.status) || r.converted_to_job_id
+        );
       default:
         return sortByPriority(requisitions);
     }
@@ -733,64 +710,48 @@ export default function AdminRequisitions() {
           </Button>
         </div>
 
-        <Tabs defaultValue={(isHiringManager || isDirector) && !isAdmin && !isHR ? "my-division-initial" : "all"} className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="all">All Position Descriptions</TabsTrigger>
-            {(isHiringManager || isDirector) && userDivision && (
-              <TabsTrigger value="my-division-initial">
-                My Division - Initial Review
-                <Badge variant="secondary" className="ml-2">
-                  {filterRequisitions('my-division-initial').length}
-                </Badge>
-              </TabsTrigger>
-            )}
+        <Tabs defaultValue="all" className="space-y-6">
+          <TabsList className="flex flex-wrap h-auto gap-1">
+            <TabsTrigger value="all">All PDs</TabsTrigger>
             <TabsTrigger value="initial-requests">
               Initial Requests
               <Badge variant="secondary" className="ml-2">
-                {filterRequisitions('initial-requests').length}
+                {requisitions.filter(r => r.status.includes('initial_request')).length}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="pending-hr">
               Pending HR Review
               <Badge variant="secondary" className="ml-2">
-                {filterRequisitions('pending-hr').length}
+                {requisitions.filter(r => r.status === 'hr_review').length}
               </Badge>
             </TabsTrigger>
-            <TabsTrigger value="chief-hr-review">
-              Chief HR Review
+            <TabsTrigger value="manager-review">
+              Manager Review
               <Badge variant="secondary" className="ml-2">
-                {filterRequisitions('chief-hr-review').length}
+                {requisitions.filter(r => r.status === 'hiring_manager_review').length}
               </Badge>
             </TabsTrigger>
-            <TabsTrigger value="hr-ready">
-              Ready for Manager
+            <TabsTrigger value="chief-approval">
+              Chief of Division Approval
               <Badge variant="secondary" className="ml-2">
-                {filterRequisitions('hr-ready').length}
+                {requisitions.filter(r => ['chief_division_review', 'chief_of_division_review'].includes(r.status)).length}
               </Badge>
             </TabsTrigger>
-            <TabsTrigger value="hr-final-review">
-              Final HR Review
+            <TabsTrigger value="director-approval">
+              Director Approval
               <Badge variant="secondary" className="ml-2">
-                {filterRequisitions('hr-final-review').length}
+                {requisitions.filter(r => r.status === 'director_review').length}
               </Badge>
             </TabsTrigger>
-            <TabsTrigger value="amendments">
-              Amendments Required
-              <Badge variant="destructive" className="ml-2">
-                {filterRequisitions('amendments').length}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger value="manager-confirmation">
-              Manager Confirmation
+            <TabsTrigger value="published">
+              Published
               <Badge variant="secondary" className="ml-2">
-                {filterRequisitions('manager-confirmation').length}
+                {requisitions.filter(r => ['approved'].includes(r.status) || r.converted_to_job_id).length}
               </Badge>
             </TabsTrigger>
-            <TabsTrigger value="in-progress">In Progress</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
           </TabsList>
 
-          {(['all', 'my-division-initial', 'initial-requests', 'pending-hr', 'chief-hr-review', 'hr-ready', 'hr-final-review', 'amendments', 'manager-confirmation', 'in-progress', 'completed'] as const).map(tabValue => (
+          {(['all', 'initial-requests', 'pending-hr', 'manager-review', 'chief-approval', 'director-approval', 'published'] as const).map(tabValue => (
             <TabsContent key={tabValue} value={tabValue} className="space-y-4">
               {filterRequisitions(tabValue).length === 0 ? (
                 <Card>
