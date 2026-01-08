@@ -1698,6 +1698,10 @@ export type Database = {
           chief_of_division_approved_at: string | null
           chief_of_division_approved_by: string | null
           chief_of_division_sent_at: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closed_status: string | null
+          closure_reason: string | null
           comments: Json | null
           consultant_duration: string | null
           converted_to_job_id: string | null
@@ -1761,6 +1765,7 @@ export type Database = {
           pdf_url: string | null
           position_title: string | null
           positions_available: number | null
+          postponed_until: string | null
           purpose_of_position: string | null
           reference_number: string | null
           slug: string | null
@@ -1780,6 +1785,10 @@ export type Database = {
           chief_of_division_approved_at?: string | null
           chief_of_division_approved_by?: string | null
           chief_of_division_sent_at?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_status?: string | null
+          closure_reason?: string | null
           comments?: Json | null
           consultant_duration?: string | null
           converted_to_job_id?: string | null
@@ -1843,6 +1852,7 @@ export type Database = {
           pdf_url?: string | null
           position_title?: string | null
           positions_available?: number | null
+          postponed_until?: string | null
           purpose_of_position?: string | null
           reference_number?: string | null
           slug?: string | null
@@ -1862,6 +1872,10 @@ export type Database = {
           chief_of_division_approved_at?: string | null
           chief_of_division_approved_by?: string | null
           chief_of_division_sent_at?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_status?: string | null
+          closure_reason?: string | null
           comments?: Json | null
           consultant_duration?: string | null
           converted_to_job_id?: string | null
@@ -1925,6 +1939,7 @@ export type Database = {
           pdf_url?: string | null
           position_title?: string | null
           positions_available?: number | null
+          postponed_until?: string | null
           purpose_of_position?: string | null
           reference_number?: string | null
           slug?: string | null
@@ -1935,6 +1950,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "job_requisitions_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "job_requisitions_created_by_fkey"
             columns: ["created_by"]
