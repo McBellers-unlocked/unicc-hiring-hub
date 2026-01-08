@@ -261,14 +261,21 @@ export function TalentSearchResults({
       }
     }
 
-    // Tenure filter (internal only)
-    if (person._source === "internal" && person.entry_on_duty_date) {
-      const years =
-        (Date.now() - new Date(person.entry_on_duty_date).getTime()) /
-        (1000 * 60 * 60 * 24 * 365);
-      if (filters.minTenure && years < filters.minTenure) return false;
-      if (filters.maxTenure && filters.maxTenure < 30 && years > filters.maxTenure)
-        return false;
+    // Experience filter for internal staff (uses tenure as proxy)
+    if (person._source === "internal") {
+      const yearsExp = person.years_of_experience || 0;
+      if (filters.minExperience && yearsExp < filters.minExperience) return false;
+      if (filters.maxExperience && filters.maxExperience < 30 && yearsExp > filters.maxExperience) return false;
+      
+      // Also apply tenure-specific filters if set
+      if (person.entry_on_duty_date) {
+        const tenure =
+          (Date.now() - new Date(person.entry_on_duty_date).getTime()) /
+          (1000 * 60 * 60 * 24 * 365);
+        if (filters.minTenure && tenure < filters.minTenure) return false;
+        if (filters.maxTenure && filters.maxTenure < 30 && tenure > filters.maxTenure)
+          return false;
+      }
     }
 
     return true;
