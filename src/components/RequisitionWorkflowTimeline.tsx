@@ -1,6 +1,48 @@
 import { CheckCircle2, Clock, Circle, FileText, User, UserCheck, Users } from "lucide-react";
 import { format } from "date-fns";
 
+// KPI targets in days for each stage
+const STAGE_KPI_TARGETS: Record<string, number> = {
+  'pd_submitted': 7,           // PD creation after init approved
+  'hr_review': 7,              // HR review
+  'hiring_manager_review': 5,  // Manager endorsement
+  'chief_approval': 7,         // Division chief
+  'director_approval': 7       // Director
+};
+
+// Calculate KPI variance for a completed stage
+const calculateCompletedStageKPI = (
+  stageKey: string,
+  completedAt: string | null | undefined,
+  previousStageCompletedAt: string | null | undefined
+): { variance: number; kpiTarget: number } | null => {
+  const kpiTarget = STAGE_KPI_TARGETS[stageKey];
+  if (!kpiTarget || !completedAt || !previousStageCompletedAt) return null;
+
+  const startDate = new Date(previousStageCompletedAt);
+  const endDate = new Date(completedAt);
+  const daysInStage = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  const variance = kpiTarget - daysInStage; // Positive = completed ahead, Negative = overdue
+
+  return { variance, kpiTarget };
+};
+
+// Calculate KPI variance for an active stage
+const calculateActiveStageKPI = (
+  stageKey: string,
+  previousStageCompletedAt: string | null | undefined
+): { variance: number; kpiTarget: number } | null => {
+  const kpiTarget = STAGE_KPI_TARGETS[stageKey];
+  if (!kpiTarget || !previousStageCompletedAt) return null;
+
+  const startDate = new Date(previousStageCompletedAt);
+  const now = new Date();
+  const daysInStage = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  const variance = kpiTarget - daysInStage;
+
+  return { variance, kpiTarget };
+};
+
 interface WorkflowStage {
   key: string;
   label: string;
@@ -10,6 +52,7 @@ interface WorkflowStage {
   isActive: boolean;
   completedAt?: string | null;
   completedBy?: string | null;
+  previousStageCompletedAt?: string | null;
   icon?: typeof CheckCircle2;
 }
 
@@ -35,6 +78,49 @@ interface RequisitionWorkflowTimelineProps {
   };
   compact?: boolean;
 }
+
+// Component for displaying KPI badge
+const KPIIndicator = ({ 
+  stageKey, 
+  isCompleted, 
+  isActive, 
+  completedAt, 
+  previousStageCompletedAt 
+}: {
+  stageKey: string;
+  isCompleted: boolean;
+  isActive: boolean;
+  completedAt?: string | null;
+  previousStageCompletedAt?: string | null;
+}) => {
+  if (!STAGE_KPI_TARGETS[stageKey]) return null;
+
+  if (isCompleted && completedAt && previousStageCompletedAt) {
+    const kpi = calculateCompletedStageKPI(stageKey, completedAt, previousStageCompletedAt);
+    if (!kpi) return null;
+    
+    const isOverdue = kpi.variance < 0;
+    return (
+      <span className={`text-[9px] font-medium ${isOverdue ? 'text-red-600' : 'text-green-600'}`}>
+        {isOverdue ? `${Math.abs(kpi.variance)}d late` : `+${kpi.variance}d`}
+      </span>
+    );
+  }
+
+  if (isActive && previousStageCompletedAt) {
+    const kpi = calculateActiveStageKPI(stageKey, previousStageCompletedAt);
+    if (!kpi) return null;
+    
+    const isOverdue = kpi.variance < 0;
+    return (
+      <span className={`text-[9px] font-medium ${isOverdue ? 'text-red-600' : 'text-orange-500'}`}>
+        {isOverdue ? `-${Math.abs(kpi.variance)}d` : `${kpi.variance}d left`}
+      </span>
+    );
+  }
+
+  return null;
+};
 
 export function RequisitionWorkflowTimeline({ requisition, compact = false }: RequisitionWorkflowTimelineProps) {
   const isInitialRequestPhase = requisition.status?.includes('initial_request') || 
@@ -81,6 +167,7 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
       isCompleted: ['hr_review', 'hiring_manager_review', 'chief_review', 'director_review', 'published'].includes(requisition.status) || !!requisition.hr_reviewed,
       isActive: requisition.status === 'pd_submitted' || 
                 (requisition.status === 'draft' && !!requisition.initial_request_approved),
+      previousStageCompletedAt: requisition.initial_request_approved_at,
       icon: FileText
     },
     {
@@ -91,6 +178,7 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
       isCompleted: !!requisition.hr_reviewed,
       isActive: requisition.status === 'hr_review' && !requisition.hiring_manager_confirmed_hr_changes,
       completedAt: requisition.hr_reviewed_at,
+      previousStageCompletedAt: requisition.initial_request_approved_at || requisition.created_at,
       icon: Users
     },
     {
@@ -101,6 +189,7 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
       isCompleted: !!requisition.hiring_manager_confirmed_hr_changes,
       isActive: requisition.status === 'hiring_manager_review' && !requisition.hiring_manager_confirmed_hr_changes,
       completedAt: requisition.hiring_manager_confirmed_at,
+      previousStageCompletedAt: requisition.hr_reviewed_at,
       icon: UserCheck
     },
     {
@@ -122,6 +211,7 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
                 !!requisition.hr_final_review_completed &&
                 !requisition.director_approval,
       completedAt: requisition.chief_of_division_approved_at,
+      previousStageCompletedAt: requisition.hiring_manager_confirmed_at,
       icon: UserCheck
     },
     {
@@ -132,6 +222,7 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
       isCompleted: !!requisition.director_approval,
       isActive: requisition.status === 'director_review',
       completedAt: requisition.director_approved_at,
+      previousStageCompletedAt: requisition.chief_of_division_approved_at,
       icon: UserCheck
     },
     {
@@ -178,6 +269,13 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
                 }`}>
                   {stage.shortLabel || stage.label}
                 </span>
+                <KPIIndicator
+                  stageKey={stage.key}
+                  isCompleted={stage.isCompleted}
+                  isActive={stage.isActive}
+                  completedAt={stage.completedAt}
+                  previousStageCompletedAt={stage.previousStageCompletedAt}
+                />
               </div>
               {index < visibleStages.length - 1 && (
                 <div 
@@ -233,8 +331,17 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="flex-1 pt-0.5">
-                  <div className={`font-medium ${stage.isCompleted || stage.isActive ? '' : 'text-muted-foreground'}`}>
-                    {stage.label}
+                  <div className="flex items-center gap-2">
+                    <span className={`font-medium ${stage.isCompleted || stage.isActive ? '' : 'text-muted-foreground'}`}>
+                      {stage.label}
+                    </span>
+                    <KPIIndicator
+                      stageKey={stage.key}
+                      isCompleted={stage.isCompleted}
+                      isActive={stage.isActive}
+                      completedAt={stage.completedAt}
+                      previousStageCompletedAt={stage.previousStageCompletedAt}
+                    />
                   </div>
                   <div className="text-sm text-muted-foreground">
                     {stage.description}
