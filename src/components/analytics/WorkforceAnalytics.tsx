@@ -150,16 +150,21 @@ export const WorkforceAnalytics: React.FC<WorkforceAnalyticsProps> = ({ filters 
     return Object.entries(divisionMap)
       .map(([division, counts]) => {
         const total = counts.women + counts.men + counts.other;
+        const womenPercent = total > 0 ? (counts.women / total) * 100 : 0;
+        const parityGap = 50 - womenPercent; // Positive = below parity, negative = above
+        const womenNeededFor50 = Math.max(0, Math.ceil(total * 0.5) - counts.women);
         return {
           division,
           women: counts.women,
           men: counts.men,
           other: counts.other,
           total,
-          womenPercent: total > 0 ? (counts.women / total) * 100 : 0,
+          womenPercent,
+          parityGap,
+          womenNeededFor50,
         };
       })
-      .sort((a, b) => b.total - a.total);
+      .sort((a, b) => a.womenPercent - b.womenPercent); // Sort by Women % ascending (worst gaps first)
   }, [workforceData]);
 
   // Calculate totals for snapshot
