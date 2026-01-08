@@ -64,7 +64,9 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
   };
 
   const updateFilter = (key: keyof AnalyticsFilterState, value: any) => {
-    onChange({ ...filters, [key]: value });
+    // Convert "all" placeholder back to undefined
+    const actualValue = value === '__all__' ? undefined : value;
+    onChange({ ...filters, [key]: actualValue });
   };
 
   const clearFilters = () => {
@@ -142,14 +144,14 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
           <div className="space-y-2">
             <label className="text-sm font-medium">Division</label>
             <Select 
-              value={filters.division || ''} 
-              onValueChange={(val) => updateFilter('division', val || undefined)}
+              value={filters.division || '__all__'} 
+              onValueChange={(val) => updateFilter('division', val)}
             >
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="All divisions" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All divisions</SelectItem>
+                <SelectItem value="__all__">All divisions</SelectItem>
                 {divisions.map(division => (
                   <SelectItem key={division} value={division}>{division}</SelectItem>
                 ))}
@@ -161,14 +163,14 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
           <div className="space-y-2">
             <label className="text-sm font-medium">Job</label>
             <Select 
-              value={filters.jobId || ''} 
-              onValueChange={(val) => updateFilter('jobId', val || undefined)}
+              value={filters.jobId || '__all__'} 
+              onValueChange={(val) => updateFilter('jobId', val)}
             >
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="All jobs" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All jobs</SelectItem>
+                <SelectItem value="__all__">All jobs</SelectItem>
                 {jobs.map(job => (
                   <SelectItem key={job.id} value={job.id}>{job.title}</SelectItem>
                 ))}
@@ -180,14 +182,14 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
           <div className="space-y-2">
             <label className="text-sm font-medium">Status</label>
             <Select 
-              value={filters.status || ''} 
-              onValueChange={(val) => updateFilter('status', val || undefined)}
+              value={filters.status || '__all__'} 
+              onValueChange={(val) => updateFilter('status', val)}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All statuses</SelectItem>
+                <SelectItem value="__all__">All statuses</SelectItem>
                 {statuses.map(status => (
                   <SelectItem key={status} value={status}>{status}</SelectItem>
                 ))}
@@ -199,14 +201,14 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
           <div className="space-y-2">
             <label className="text-sm font-medium">Grade</label>
             <Select 
-              value={filters.grade || ''} 
-              onValueChange={(val) => updateFilter('grade', val || undefined)}
+              value={filters.grade || '__all__'} 
+              onValueChange={(val) => updateFilter('grade', val)}
             >
               <SelectTrigger className="w-[120px]">
                 <SelectValue placeholder="All grades" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All grades</SelectItem>
+                <SelectItem value="__all__">All grades</SelectItem>
                 {grades.map(grade => (
                   <SelectItem key={grade} value={grade}>{grade}</SelectItem>
                 ))}
@@ -218,14 +220,14 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
           <div className="space-y-2">
             <label className="text-sm font-medium">Contract Type</label>
             <Select 
-              value={filters.contractType || ''} 
-              onValueChange={(val) => updateFilter('contractType', val || undefined)}
+              value={filters.contractType || '__all__'} 
+              onValueChange={(val) => updateFilter('contractType', val)}
             >
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="All types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All types</SelectItem>
+                <SelectItem value="__all__">All types</SelectItem>
                 {contractTypes.map(type => (
                   <SelectItem key={type} value={type}>{type}</SelectItem>
                 ))}
