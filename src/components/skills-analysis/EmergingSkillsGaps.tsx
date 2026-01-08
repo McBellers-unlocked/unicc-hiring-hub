@@ -19,6 +19,16 @@ interface SkillDefinition {
 
 interface Props {
   skills: SkillDefinition[];
+  onGapDataUpdate?: (data: {
+    skillId: string;
+    skillName: string;
+    gapSize: number;
+    belowRequired: number;
+    avgLevel: number;
+    requiredLevel: number;
+    priority: 'high' | 'medium' | 'low';
+    topDivisions: { division: string; count: number }[];
+  }[]) => void;
 }
 
 interface SkillGapData {
@@ -35,7 +45,7 @@ interface SkillGapData {
   priority: 'high' | 'medium' | 'low';
 }
 
-export default function EmergingSkillsGaps({ skills }: Props) {
+export default function EmergingSkillsGaps({ skills, onGapDataUpdate }: Props) {
   const [gapData, setGapData] = useState<SkillGapData[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
@@ -154,6 +164,20 @@ export default function EmergingSkillsGaps({ skills }: Props) {
 
     setGapData(gaps);
     setLoading(false);
+    
+    // Call parent callback with normalized gap data for insights
+    if (onGapDataUpdate) {
+      onGapDataUpdate(gaps.map(g => ({
+        skillId: g.id,
+        skillName: g.name,
+        gapSize: g.gapSize,
+        belowRequired: g.belowRequired,
+        avgLevel: g.avgProficiency,
+        requiredLevel: g.requiredLevel,
+        priority: g.priority,
+        topDivisions: g.topDivisions,
+      })));
+    }
   };
 
   const handleAction = (action: string, skillName: string) => {
