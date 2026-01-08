@@ -317,11 +317,15 @@ export default function JobRequisitionChiefHREdit() {
     setSaving(true);
     try {
       const updateData = {
-        chief_hr_reviewed: true,
-        chief_hr_reviewed_at: new Date().toISOString(),
+        chief_hr_reviewed: false, // Reset so HR can edit normally
+        chief_hr_reviewed_at: new Date().toISOString(), // Keep timestamp for audit trail
         chief_hr_reviewed_by: user?.id,
         chief_hr_comments: chiefHRComments,
         hr_internal_status: 'pending_initial_review',
+        // Preserve any changes Chief HR made to the document
+        ...formData,
+        // Keep original data for tracking
+        hr_original_data: requisition.hr_original_data || originalData,
       };
 
       const { error } = await supabase
