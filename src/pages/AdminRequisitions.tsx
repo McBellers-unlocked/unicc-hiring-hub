@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Clock, 
@@ -19,7 +20,8 @@ import {
   User,
   Building,
   Edit2,
-  Mail
+  Mail,
+  Filter
 } from "lucide-react";
 import { format } from "date-fns";
 import { ChiefHRReviewDialog } from "@/components/ChiefHRReviewDialog";
@@ -206,6 +208,7 @@ export default function AdminRequisitions() {
   const [requisitions, setRequisitions] = useState<JobRequisition[]>([]);
   const [loading, setLoading] = useState(true);
   const [userDivision, setUserDivision] = useState<string | null>(null);
+  const [divisionFilter, setDivisionFilter] = useState<string>('all');
   const [remindersSent, setRemindersSent] = useState<Set<string>>(new Set());
   const [hmReviewRemindersSent, setHmReviewRemindersSent] = useState<Set<string>>(new Set());
   const [sendingReminder, setSendingReminder] = useState<string | null>(null);
@@ -585,28 +588,43 @@ export default function AdminRequisitions() {
     }
   };
 
+  // Apply division filter to a list of requisitions
+  const applyDivisionFilter = (reqs: JobRequisition[]) => {
+    if (divisionFilter === 'all') return reqs;
+    return reqs.filter(r => getDivisionCode(r.unit_section_division) === divisionFilter);
+  };
+
   const filterRequisitions = (status: string) => {
+    let filtered: JobRequisition[];
+    
     switch (status) {
       case 'initial-requests':
-        return requisitions.filter(r => r.status.includes('initial_request'));
+        filtered = requisitions.filter(r => r.status.includes('initial_request'));
+        break;
       case 'pending-hr':
-        // All HR review statuses including Chief HR
-        return requisitions.filter(r => r.status === 'hr_review');
+        filtered = requisitions.filter(r => r.status === 'hr_review');
+        break;
       case 'manager-review':
-        return requisitions.filter(r => r.status === 'hiring_manager_review');
+        filtered = requisitions.filter(r => r.status === 'hiring_manager_review');
+        break;
       case 'chief-approval':
-        return requisitions.filter(r => 
+        filtered = requisitions.filter(r => 
           ['chief_division_review', 'chief_of_division_review'].includes(r.status)
         );
+        break;
       case 'director-approval':
-        return requisitions.filter(r => r.status === 'director_review');
+        filtered = requisitions.filter(r => r.status === 'director_review');
+        break;
       case 'published':
-        return requisitions.filter(r => 
+        filtered = requisitions.filter(r => 
           ['approved'].includes(r.status) || r.converted_to_job_id
         );
+        break;
       default:
-        return sortByPriority(requisitions);
+        filtered = sortByPriority(requisitions);
     }
+    
+    return applyDivisionFilter(filtered);
   };
 
   // Priority-based sorting for the "All" view
@@ -710,43 +728,64 @@ export default function AdminRequisitions() {
           </Button>
         </div>
 
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Division:</span>
+          </div>
+          <Select value={divisionFilter} onValueChange={setDivisionFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="All Divisions" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Divisions</SelectItem>
+              <SelectItem value="CS">Cybersecurity (CS)</SelectItem>
+              <SelectItem value="DS">Digital Solutions (DS)</SelectItem>
+              <SelectItem value="MS">Management & Strategy (MS)</SelectItem>
+              <SelectItem value="OP">Operations (OP)</SelectItem>
+              <SelectItem value="DD">Digital Delivery (DD)</SelectItem>
+              <SelectItem value="DO">Director's Office (DO)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <Tabs defaultValue="all" className="space-y-6">
           <TabsList className="flex flex-wrap h-auto gap-1">
             <TabsTrigger value="all">All PDs</TabsTrigger>
             <TabsTrigger value="initial-requests">
               Initial Requests
               <Badge variant="secondary" className="ml-2">
-                {requisitions.filter(r => r.status.includes('initial_request')).length}
+                {applyDivisionFilter(requisitions.filter(r => r.status.includes('initial_request'))).length}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="pending-hr">
               Pending HR Review
               <Badge variant="secondary" className="ml-2">
-                {requisitions.filter(r => r.status === 'hr_review').length}
+                {applyDivisionFilter(requisitions.filter(r => r.status === 'hr_review')).length}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="manager-review">
               Manager Review
               <Badge variant="secondary" className="ml-2">
-                {requisitions.filter(r => r.status === 'hiring_manager_review').length}
+                {applyDivisionFilter(requisitions.filter(r => r.status === 'hiring_manager_review')).length}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="chief-approval">
               Chief of Division Approval
               <Badge variant="secondary" className="ml-2">
-                {requisitions.filter(r => ['chief_division_review', 'chief_of_division_review'].includes(r.status)).length}
+                {applyDivisionFilter(requisitions.filter(r => ['chief_division_review', 'chief_of_division_review'].includes(r.status))).length}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="director-approval">
               Director Approval
               <Badge variant="secondary" className="ml-2">
-                {requisitions.filter(r => r.status === 'director_review').length}
+                {applyDivisionFilter(requisitions.filter(r => r.status === 'director_review')).length}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="published">
               Published
               <Badge variant="secondary" className="ml-2">
-                {requisitions.filter(r => ['approved'].includes(r.status) || r.converted_to_job_id).length}
+                {applyDivisionFilter(requisitions.filter(r => ['approved'].includes(r.status) || r.converted_to_job_id)).length}
               </Badge>
             </TabsTrigger>
           </TabsList>
