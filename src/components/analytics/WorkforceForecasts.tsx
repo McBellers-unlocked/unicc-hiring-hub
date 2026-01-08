@@ -36,20 +36,21 @@ interface WorkforceForecastsProps {
   isLoading: boolean;
 }
 
-const STAGE_WEIGHTS: Record<string, number> = {
-  'Initial Request': 0.10,
-  'PD Review': 0.25,
-  'Selection': 0.50,
-  'Offer': 0.75,
-  'Onboarding': 0.95,
+// Time-to-hire estimates by stage (in months)
+const STAGE_MONTHS_TO_HIRE: Record<string, number> = {
+  'Initial Request': 6,
+  'PD Review': 4,
+  'Selection': 3,
+  'Offer': 1,
+  'Onboarding': 0,
 };
 
-const OPTIMISTIC_STAGE_WEIGHTS: Record<string, number> = {
-  'Initial Request': 0.25,
-  'PD Review': 0.45,
-  'Selection': 0.70,
-  'Offer': 0.90,
-  'Onboarding': 1.00,
+const OPTIMISTIC_STAGE_MONTHS_TO_HIRE: Record<string, number> = {
+  'Initial Request': 5,
+  'PD Review': 3,
+  'Selection': 2,
+  'Offer': 0.5,
+  'Onboarding': 0,
 };
 
 const headcountChartConfig = {
@@ -95,23 +96,24 @@ export const WorkforceForecasts: React.FC<WorkforceForecastsProps> = ({
     const months = parseInt(horizon);
     const data: ForecastDataPoint[] = [];
     
-    // Calculate weighted pipeline positions for conservative
-    const totalWeightedPositions = pipelineData.reduce((sum, stage) => {
-      const weight = STAGE_WEIGHTS[stage.stage] || 0.25;
-      return sum + (stage.positions * weight);
-    }, 0);
-
-    // Calculate weighted pipeline positions for optimistic
-    const totalOptimisticPositions = pipelineData.reduce((sum, stage) => {
-      const weight = OPTIMISTIC_STAGE_WEIGHTS[stage.stage] || 0.40;
-      return sum + (stage.positions * weight);
-    }, 0);
-
-    // Distribute hires evenly across months
-    const hiresPerMonth = totalWeightedPositions / months;
-    const optimisticHiresPerMonth = totalOptimisticPositions / months;
+    // Build hires by month based on time-to-hire estimates
+    const conservativeHiresByMonth: Record<number, number> = {};
+    const optimisticHiresByMonth: Record<number, number> = {};
     
-    let cumulativeHires = 0;
+    pipelineData.forEach((stage) => {
+      const conservativeMonths = STAGE_MONTHS_TO_HIRE[stage.stage] ?? 4;
+      const optimisticMonths = OPTIMISTIC_STAGE_MONTHS_TO_HIRE[stage.stage] ?? 3;
+      
+      // Round to nearest month for conservative
+      const conservativeMonth = Math.round(conservativeMonths);
+      conservativeHiresByMonth[conservativeMonth] = (conservativeHiresByMonth[conservativeMonth] || 0) + stage.positions;
+      
+      // Round to nearest month for optimistic
+      const optimisticMonth = Math.round(optimisticMonths);
+      optimisticHiresByMonth[optimisticMonth] = (optimisticHiresByMonth[optimisticMonth] || 0) + stage.positions;
+    });
+    
+    let cumulativeConservativeHires = 0;
     let cumulativeOptimisticHires = 0;
     const currentWomen = Math.round((currentWomenPercent / 100) * currentHeadcount);
 
@@ -119,22 +121,21 @@ export const WorkforceForecasts: React.FC<WorkforceForecastsProps> = ({
       const date = addMonths(new Date(), i);
       const monthLabel = format(date, 'MMM yyyy');
       
-      if (i > 0) {
-        cumulativeHires += hiresPerMonth;
-        cumulativeOptimisticHires += optimisticHiresPerMonth;
-      }
+      // Add hires scheduled for this month
+      cumulativeConservativeHires += conservativeHiresByMonth[i] || 0;
+      cumulativeOptimisticHires += optimisticHiresByMonth[i] || 0;
 
-      const projectedHeadcount = Math.round(currentHeadcount + cumulativeHires);
-      const optimisticHeadcount = Math.round(currentHeadcount + cumulativeOptimisticHires);
+      const projectedHeadcount = currentHeadcount + cumulativeConservativeHires;
+      const optimisticHeadcount = currentHeadcount + cumulativeOptimisticHires;
       
       // Conservative: assume new hires match current gender ratio
-      const conservativeWomen = currentWomen + Math.round(cumulativeHires * (currentWomenPercent / 100));
+      const conservativeWomen = currentWomen + Math.round(cumulativeConservativeHires * (currentWomenPercent / 100));
       const conservativePercent = projectedHeadcount > 0 
         ? (conservativeWomen / projectedHeadcount) * 100 
         : currentWomenPercent;
 
       // Target: assume 50% of new hires are women
-      const targetWomen = currentWomen + Math.round(cumulativeHires * 0.5);
+      const targetWomen = currentWomen + Math.round(cumulativeConservativeHires * 0.5);
       const targetPercent = projectedHeadcount > 0 
         ? (targetWomen / projectedHeadcount) * 100 
         : currentWomenPercent;
@@ -220,16 +221,16 @@ export const WorkforceForecasts: React.FC<WorkforceForecastsProps> = ({
                 <div className="space-y-4">
                   <h4 className="font-medium">Forecast Methodology</h4>
                   <p className="text-sm text-muted-foreground">
-                    Projections use weighted probabilities based on hiring pipeline stages:
+                    Projections based on expected time-to-hire for each pipeline stage:
                   </p>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm font-medium mb-2">Conservative</p>
                       <ul className="text-sm space-y-1">
-                        {Object.entries(STAGE_WEIGHTS).map(([stage, weight]) => (
+                        {Object.entries(STAGE_MONTHS_TO_HIRE).map(([stage, months]) => (
                           <li key={stage} className="flex justify-between text-xs">
                             <span className="text-muted-foreground">{stage}</span>
-                            <span className="font-mono">{(weight * 100).toFixed(0)}%</span>
+                            <span className="font-mono">+{months}mo</span>
                           </li>
                         ))}
                       </ul>
@@ -237,10 +238,10 @@ export const WorkforceForecasts: React.FC<WorkforceForecastsProps> = ({
                     <div>
                       <p className="text-sm font-medium mb-2">Optimistic</p>
                       <ul className="text-sm space-y-1">
-                        {Object.entries(OPTIMISTIC_STAGE_WEIGHTS).map(([stage, weight]) => (
+                        {Object.entries(OPTIMISTIC_STAGE_MONTHS_TO_HIRE).map(([stage, months]) => (
                           <li key={stage} className="flex justify-between text-xs">
                             <span className="text-muted-foreground">{stage}</span>
-                            <span className="font-mono">{(weight * 100).toFixed(0)}%</span>
+                            <span className="font-mono">+{months}mo</span>
                           </li>
                         ))}
                       </ul>
@@ -275,7 +276,7 @@ export const WorkforceForecasts: React.FC<WorkforceForecastsProps> = ({
                 checked={showWeights}
                 onCheckedChange={setShowWeights}
               />
-              <Label htmlFor="show-weights">Show stage weights</Label>
+              <Label htmlFor="show-weights">Show time-to-hire</Label>
             </div>
           </div>
           
@@ -283,23 +284,23 @@ export const WorkforceForecasts: React.FC<WorkforceForecastsProps> = ({
             <div className="mt-4 p-3 bg-muted rounded-lg">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm font-medium mb-2">Conservative Weights</p>
+                  <p className="text-sm font-medium mb-2">Conservative Time-to-Hire</p>
                   <div className="flex flex-wrap gap-2">
-                    {Object.entries(STAGE_WEIGHTS).map(([stage, weight]) => (
+                    {Object.entries(STAGE_MONTHS_TO_HIRE).map(([stage, months]) => (
                       <div key={stage} className="text-xs bg-background px-2 py-1 rounded">
                         <span className="text-muted-foreground">{stage}:</span>
-                        <span className="font-mono ml-1">{(weight * 100).toFixed(0)}%</span>
+                        <span className="font-mono ml-1">+{months}mo</span>
                       </div>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm font-medium mb-2">Optimistic Weights</p>
+                  <p className="text-sm font-medium mb-2">Optimistic Time-to-Hire</p>
                   <div className="flex flex-wrap gap-2">
-                    {Object.entries(OPTIMISTIC_STAGE_WEIGHTS).map(([stage, weight]) => (
+                    {Object.entries(OPTIMISTIC_STAGE_MONTHS_TO_HIRE).map(([stage, months]) => (
                       <div key={stage} className="text-xs bg-background px-2 py-1 rounded">
                         <span className="text-muted-foreground">{stage}:</span>
-                        <span className="font-mono ml-1">{(weight * 100).toFixed(0)}%</span>
+                        <span className="font-mono ml-1">+{months}mo</span>
                       </div>
                     ))}
                   </div>
