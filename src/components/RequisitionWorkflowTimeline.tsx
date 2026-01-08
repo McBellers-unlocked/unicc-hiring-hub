@@ -80,6 +80,18 @@ interface RequisitionWorkflowTimelineProps {
   compact?: boolean;
 }
 
+// Get graduated color for active stage based on days remaining and KPI target
+const getActiveStageColor = (daysRemaining: number, kpiTarget: number): string => {
+  // Calculate thresholds based on stage target
+  const highThreshold = Math.ceil(kpiTarget * 0.65);  // ~65% = green
+  const midThreshold = Math.ceil(kpiTarget * 0.30);   // ~30% = orange
+  
+  if (daysRemaining >= highThreshold) return 'text-green-600';  // Plenty of time
+  if (daysRemaining >= midThreshold) return 'text-orange-500';  // Getting tight
+  if (daysRemaining >= 0) return 'text-red-600';                // Almost out of time
+  return 'text-red-800 font-bold';                               // Overdue
+};
+
 // Component for displaying KPI badge
 const KPIIndicator = ({ 
   stageKey, 
@@ -112,10 +124,10 @@ const KPIIndicator = ({
     const kpi = calculateActiveStageKPI(stageKey, previousStageCompletedAt);
     if (!kpi) return null;
     
-    const isOverdue = kpi.variance < 0;
+    const colorClass = getActiveStageColor(kpi.variance, kpi.kpiTarget);
     return (
-      <span className={`text-[9px] font-medium ${isOverdue ? 'text-red-600' : 'text-orange-500'}`}>
-        {isOverdue ? `-${Math.abs(kpi.variance)}d` : `${kpi.variance}d left`}
+      <span className={`text-[9px] font-medium ${colorClass}`}>
+        {kpi.variance < 0 ? `-${Math.abs(kpi.variance)}d` : `${kpi.variance}d left`}
       </span>
     );
   }

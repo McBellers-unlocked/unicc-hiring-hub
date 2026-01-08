@@ -82,72 +82,21 @@ const daysBetween = (start: string | null | undefined, end: string | null | unde
   return Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 };
 
-// Calculate cumulative KPI variance across all completed stages + current active stage
+// Total workflow target: 40 days from initial request approval to job posting
+const TOTAL_WORKFLOW_DAYS = 40;
+
+// Calculate cumulative KPI: days remaining from 40-day total target
 const calculateCumulativeKPI = (requisition: JobRequisition): number => {
-  let totalVariance = 0;
+  // Start from initial request approval, or created_at as fallback
+  const startDate = requisition.initial_request_approved_at || requisition.created_at;
+  if (!startDate) return 0;
+  
+  const start = new Date(startDate);
   const now = new Date();
-
-  // Determine the effective PD submission date - use pd_submitted_at, or created_at as fallback for legacy records
-  const effectivePdSubmittedAt = requisition.pd_submitted_at || 
-    (['hr_review', 'hiring_manager_review', 'chief_of_division_review', 'chief_division_review', 'director_review', 'published'].includes(requisition.status) 
-      ? requisition.created_at 
-      : null);
-
-  // PD Creation stage (from initial approval to PD submission) - only if we had initial request flow
-  if (requisition.initial_request_approved_at && effectivePdSubmittedAt) {
-    const days = daysBetween(requisition.initial_request_approved_at, effectivePdSubmittedAt);
-    totalVariance += (STAGE_KPIS.pd_creation.days - days);
-  } else if (requisition.initial_request_approved_at && !effectivePdSubmittedAt && 
-             requisition.status === 'initial_request_approved') {
-    // Active PD creation stage
-    const days = daysBetween(requisition.initial_request_approved_at, now.toISOString());
-    totalVariance += (STAGE_KPIS.pd_creation.days - days);
-  }
-
-  // HR Review stage (from PD submission to HR review complete)
-  if (requisition.hr_reviewed_at && effectivePdSubmittedAt) {
-    const days = daysBetween(effectivePdSubmittedAt, requisition.hr_reviewed_at);
-    totalVariance += (STAGE_KPIS.hr_review.days - days);
-  } else if (effectivePdSubmittedAt && !requisition.hr_reviewed && requisition.status === 'hr_review') {
-    // Active HR review stage
-    const days = daysBetween(effectivePdSubmittedAt, now.toISOString());
-    totalVariance += (STAGE_KPIS.hr_review.days - days);
-  }
-
-  // Manager Endorsement stage (from HR review to manager confirmation)
-  if (requisition.hiring_manager_confirmed_at && requisition.hr_reviewed_at) {
-    const days = daysBetween(requisition.hr_reviewed_at, requisition.hiring_manager_confirmed_at);
-    totalVariance += (STAGE_KPIS.manager_endorsement.days - days);
-  } else if (requisition.hr_reviewed_at && !requisition.hiring_manager_confirmed_hr_changes && 
-             requisition.status === 'hiring_manager_review') {
-    // Active manager review stage
-    const days = daysBetween(requisition.hr_reviewed_at, now.toISOString());
-    totalVariance += (STAGE_KPIS.manager_endorsement.days - days);
-  }
-
-  // Division Chief stage (from manager confirmation to chief approval)
-  if (requisition.chief_of_division_approved_at && requisition.hiring_manager_confirmed_at) {
-    const days = daysBetween(requisition.hiring_manager_confirmed_at, requisition.chief_of_division_approved_at);
-    totalVariance += (STAGE_KPIS.division_chief.days - days);
-  } else if (requisition.hiring_manager_confirmed_at && !requisition.chief_of_division_approval && 
-             ['chief_of_division_review', 'chief_division_review'].includes(requisition.status)) {
-    // Active chief review stage
-    const days = daysBetween(requisition.hiring_manager_confirmed_at, now.toISOString());
-    totalVariance += (STAGE_KPIS.division_chief.days - days);
-  }
-
-  // Director stage (from chief approval to director approval)
-  if (requisition.director_approved_at && requisition.chief_of_division_approved_at) {
-    const days = daysBetween(requisition.chief_of_division_approved_at, requisition.director_approved_at);
-    totalVariance += (STAGE_KPIS.director.days - days);
-  } else if (requisition.chief_of_division_approved_at && !requisition.director_approval && 
-             requisition.status === 'director_review') {
-    // Active director review stage
-    const days = daysBetween(requisition.chief_of_division_approved_at, now.toISOString());
-    totalVariance += (STAGE_KPIS.director.days - days);
-  }
-
-  return totalVariance;
+  const daysElapsed = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Return days remaining (positive = ahead, negative = behind)
+  return TOTAL_WORKFLOW_DAYS - daysElapsed;
 };
 
 // Calculate KPI status for a requisition's current stage only
@@ -226,26 +175,29 @@ const KPIBadge = ({ kpiStatus }: { kpiStatus: { daysVariance: number; stage: str
   );
 };
 
-// Cumulative KPI Badge component (shows total variance across all stages)
+// Cumulative KPI Badge component (shows days remaining from 40-day total)
 const CumulativeKPIBadge = ({ requisition }: { requisition: JobRequisition }) => {
-  const totalVariance = calculateCumulativeKPI(requisition);
+  const daysRemaining = calculateCumulativeKPI(requisition);
   
   // Don't show for initial request stages or completed requisitions
   if (requisition.status?.includes('initial_request') || requisition.converted_to_job_id) {
     return null;
   }
   
-  const isOverdue = totalVariance < 0;
-  const daysText = Math.abs(totalVariance);
+  const daysText = Math.abs(daysRemaining);
+  
+  // Graduated colors based on days remaining
+  const getColor = () => {
+    if (daysRemaining >= 15) return "border-green-500 text-green-700 bg-green-50";   // 15+ days left
+    if (daysRemaining >= 7) return "border-green-400 text-green-600 bg-green-50";    // 7-14 days left
+    if (daysRemaining >= 0) return "border-orange-500 text-orange-600 bg-orange-50"; // 0-6 days left
+    if (daysRemaining >= -7) return "border-red-500 text-red-600 bg-red-50";         // 1-7 days overdue
+    return "border-red-600 text-red-800 bg-red-100 font-bold";                        // 8+ days overdue
+  };
   
   return (
-    <Badge 
-      variant="outline"
-      className={`text-xs font-medium ${
-        isOverdue ? "border-red-500 text-red-600 bg-red-50" : "border-green-500 text-green-600 bg-green-50"
-      }`}
-    >
-      {isOverdue ? `-${daysText}d` : `+${daysText}d`}
+    <Badge variant="outline" className={`text-xs font-medium ${getColor()}`}>
+      {daysRemaining < 0 ? `-${daysText}d` : `+${daysText}d`}
     </Badge>
   );
 };
