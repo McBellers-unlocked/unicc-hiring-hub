@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, X } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 export interface AnalyticsFilterState {
   dateFrom?: Date;
@@ -16,18 +18,28 @@ export interface AnalyticsFilterState {
   status?: string;
   grade?: string;
   location?: string;
+  division?: string;
+  contractType?: string;
+  includeProjections?: boolean;
 }
 
 interface AnalyticsFiltersProps {
   filters: AnalyticsFilterState;
   onChange: (filters: AnalyticsFilterState) => void;
+  showProjectionsToggle?: boolean;
 }
 
-export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({ filters, onChange }) => {
+export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({ 
+  filters, 
+  onChange,
+  showProjectionsToggle = false 
+}) => {
   const [jobs, setJobs] = useState<{ id: string; title: string }[]>([]);
+  const [divisions, setDivisions] = useState<string[]>([]);
 
   useEffect(() => {
     fetchJobs();
+    fetchDivisions();
   }, []);
 
   const fetchJobs = async () => {
@@ -39,21 +51,36 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({ filters, onC
     if (data) setJobs(data);
   };
 
+  const fetchDivisions = async () => {
+    const { data } = await supabase
+      .from('users')
+      .select('division')
+      .not('division', 'is', null);
+    
+    if (data) {
+      const uniqueDivisions = [...new Set(data.map(d => d.division).filter(Boolean))] as string[];
+      setDivisions(uniqueDivisions.sort());
+    }
+  };
+
   const updateFilter = (key: keyof AnalyticsFilterState, value: any) => {
     onChange({ ...filters, [key]: value });
   };
 
   const clearFilters = () => {
-    onChange({});
+    onChange({ includeProjections: filters.includeProjections });
   };
 
-  const hasActiveFilters = Object.values(filters).some(v => v !== undefined);
+  const hasActiveFilters = Object.entries(filters).some(
+    ([key, value]) => key !== 'includeProjections' && value !== undefined
+  );
 
   const statuses = ['Application', 'Longlist', 'Shortlist', 'Pre-Recorded Video', 'Panel Interview', 'Offer', 'Roster'];
   const grades = ['P-1', 'P-2', 'P-3', 'P-4', 'P-5', 'D-1', 'D-2', 'G-1', 'G-2', 'G-3', 'G-4', 'G-5', 'G-6', 'G-7'];
+  const contractTypes = ['Fixed term', 'Temporary', 'STDA', 'Intern', 'Individual Consultant'];
 
   return (
-    <Card>
+    <Card className="mb-6">
       <CardContent className="pt-6">
         <div className="flex flex-wrap gap-4 items-end">
           {/* Date Range */}
@@ -111,14 +138,37 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({ filters, onC
             </div>
           </div>
 
+          {/* Division Filter */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Division</label>
+            <Select 
+              value={filters.division || ''} 
+              onValueChange={(val) => updateFilter('division', val || undefined)}
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="All divisions" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All divisions</SelectItem>
+                {divisions.map(division => (
+                  <SelectItem key={division} value={division}>{division}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Job Filter */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Job</label>
-            <Select value={filters.jobId} onValueChange={(val) => updateFilter('jobId', val)}>
+            <Select 
+              value={filters.jobId || ''} 
+              onValueChange={(val) => updateFilter('jobId', val || undefined)}
+            >
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="All jobs" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="">All jobs</SelectItem>
                 {jobs.map(job => (
                   <SelectItem key={job.id} value={job.id}>{job.title}</SelectItem>
                 ))}
@@ -129,11 +179,15 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({ filters, onC
           {/* Status Filter */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Status</label>
-            <Select value={filters.status} onValueChange={(val) => updateFilter('status', val)}>
+            <Select 
+              value={filters.status || ''} 
+              onValueChange={(val) => updateFilter('status', val || undefined)}
+            >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="">All statuses</SelectItem>
                 {statuses.map(status => (
                   <SelectItem key={status} value={status}>{status}</SelectItem>
                 ))}
@@ -144,17 +198,54 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({ filters, onC
           {/* Grade Filter */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Grade</label>
-            <Select value={filters.grade} onValueChange={(val) => updateFilter('grade', val)}>
+            <Select 
+              value={filters.grade || ''} 
+              onValueChange={(val) => updateFilter('grade', val || undefined)}
+            >
               <SelectTrigger className="w-[120px]">
                 <SelectValue placeholder="All grades" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="">All grades</SelectItem>
                 {grades.map(grade => (
                   <SelectItem key={grade} value={grade}>{grade}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
+          {/* Contract Type Filter */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Contract Type</label>
+            <Select 
+              value={filters.contractType || ''} 
+              onValueChange={(val) => updateFilter('contractType', val || undefined)}
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="All types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All types</SelectItem>
+                {contractTypes.map(type => (
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Include Projections Toggle */}
+          {showProjectionsToggle && (
+            <div className="flex items-center space-x-2 mt-7">
+              <Switch
+                id="include-projections"
+                checked={filters.includeProjections !== false}
+                onCheckedChange={(checked) => updateFilter('includeProjections', checked)}
+              />
+              <Label htmlFor="include-projections" className="text-sm">
+                Include Projections
+              </Label>
+            </div>
+          )}
 
           {/* Clear Filters */}
           {hasActiveFilters && (

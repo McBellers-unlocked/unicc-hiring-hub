@@ -1,0 +1,362 @@
+import React, { useState, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { TrendingUp, Settings2, Info } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { addMonths, format } from 'date-fns';
+
+interface ForecastDataPoint {
+  month: string;
+  baseline: number;
+  projected: number;
+  womenBaseline: number;
+  womenConservative: number;
+  womenTarget: number;
+}
+
+interface PipelineForHire {
+  stage: string;
+  count: number;
+  positions: number;
+  targetMonth?: string;
+}
+
+interface WorkforceForecastsProps {
+  currentHeadcount: number;
+  currentWomenPercent: number;
+  pipelineData: PipelineForHire[];
+  isLoading: boolean;
+}
+
+const STAGE_WEIGHTS: Record<string, number> = {
+  'Initial Request': 0.10,
+  'PD Review': 0.25,
+  'Selection': 0.50,
+  'Offer': 0.75,
+  'Onboarding': 0.95,
+};
+
+const chartConfig = {
+  baseline: {
+    label: 'Current',
+    color: 'hsl(var(--muted-foreground))',
+  },
+  projected: {
+    label: 'Projected',
+    color: 'hsl(var(--primary))',
+  },
+  womenConservative: {
+    label: 'Conservative',
+    color: 'hsl(var(--chart-2))',
+  },
+  womenTarget: {
+    label: 'Target (50%)',
+    color: 'hsl(var(--chart-1))',
+  },
+};
+
+export const WorkforceForecasts: React.FC<WorkforceForecastsProps> = ({
+  currentHeadcount,
+  currentWomenPercent,
+  pipelineData,
+  isLoading,
+}) => {
+  const [horizon, setHorizon] = useState<'3' | '6' | '12'>('12');
+  const [showWeights, setShowWeights] = useState(false);
+
+  const forecastData = useMemo(() => {
+    const months = parseInt(horizon);
+    const data: ForecastDataPoint[] = [];
+    
+    // Calculate weighted pipeline positions
+    const totalWeightedPositions = pipelineData.reduce((sum, stage) => {
+      const weight = STAGE_WEIGHTS[stage.stage] || 0.25;
+      return sum + (stage.positions * weight);
+    }, 0);
+
+    // Distribute hires evenly across months (simplified)
+    const hiresPerMonth = totalWeightedPositions / months;
+    
+    let cumulativeHires = 0;
+    const currentWomen = Math.round((currentWomenPercent / 100) * currentHeadcount);
+
+    for (let i = 0; i <= months; i++) {
+      const date = addMonths(new Date(), i);
+      const monthLabel = format(date, 'MMM yyyy');
+      
+      if (i > 0) {
+        cumulativeHires += hiresPerMonth;
+      }
+
+      const projectedHeadcount = Math.round(currentHeadcount + cumulativeHires);
+      
+      // Conservative: assume new hires match current gender ratio
+      const conservativeWomen = currentWomen + Math.round(cumulativeHires * (currentWomenPercent / 100));
+      const conservativePercent = projectedHeadcount > 0 
+        ? (conservativeWomen / projectedHeadcount) * 100 
+        : currentWomenPercent;
+
+      // Target: assume 50% of new hires are women
+      const targetWomen = currentWomen + Math.round(cumulativeHires * 0.5);
+      const targetPercent = projectedHeadcount > 0 
+        ? (targetWomen / projectedHeadcount) * 100 
+        : currentWomenPercent;
+
+      data.push({
+        month: monthLabel,
+        baseline: currentHeadcount,
+        projected: projectedHeadcount,
+        womenBaseline: currentWomenPercent,
+        womenConservative: Math.round(conservativePercent * 10) / 10,
+        womenTarget: Math.round(targetPercent * 10) / 10,
+      });
+    }
+
+    return data;
+  }, [currentHeadcount, currentWomenPercent, pipelineData, horizon]);
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[300px] w-full" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[300px] w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (pipelineData.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Workforce Forecasts</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-12 text-muted-foreground">
+            <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <h3 className="font-medium">No pipeline data for forecasting</h3>
+            <p className="text-sm mt-1">
+              Active hiring requests are needed to generate forecasts
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Control Panel */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Forecast Settings</CardTitle>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <Info className="h-4 w-4 mr-1" />
+                  How it works
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="space-y-2">
+                  <h4 className="font-medium">Forecast Methodology</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Projections use weighted probabilities based on hiring pipeline stages:
+                  </p>
+                  <ul className="text-sm space-y-1">
+                    {Object.entries(STAGE_WEIGHTS).map(([stage, weight]) => (
+                      <li key={stage} className="flex justify-between">
+                        <span>{stage}</span>
+                        <span className="font-mono">{(weight * 100).toFixed(0)}%</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-center gap-6">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="horizon">Forecast Horizon</Label>
+              <Select value={horizon} onValueChange={(v) => setHorizon(v as '3' | '6' | '12')}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3">3 months</SelectItem>
+                  <SelectItem value="6">6 months</SelectItem>
+                  <SelectItem value="12">12 months</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="show-weights"
+                checked={showWeights}
+                onCheckedChange={setShowWeights}
+              />
+              <Label htmlFor="show-weights">Show stage weights</Label>
+            </div>
+          </div>
+          
+          {showWeights && (
+            <div className="mt-4 p-3 bg-muted rounded-lg">
+              <p className="text-sm font-medium mb-2">Stage Probability Weights</p>
+              <div className="flex flex-wrap gap-3">
+                {Object.entries(STAGE_WEIGHTS).map(([stage, weight]) => (
+                  <div key={stage} className="text-xs bg-background px-2 py-1 rounded">
+                    <span className="text-muted-foreground">{stage}:</span>
+                    <span className="font-mono ml-1">{(weight * 100).toFixed(0)}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Headcount Projection Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Projected Headcount</CardTitle>
+            <CardDescription>
+              Based on {pipelineData.reduce((sum, s) => sum + s.positions, 0)} positions in pipeline
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={forecastData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis 
+                    dataKey="month" 
+                    tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }}
+                    tickLine={{ stroke: 'hsl(var(--border))' }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis 
+                    tick={{ fill: 'hsl(var(--foreground))' }}
+                    tickLine={{ stroke: 'hsl(var(--border))' }}
+                    domain={['dataMin - 10', 'dataMax + 10']}
+                  />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="baseline" 
+                    stroke="hsl(var(--muted-foreground))" 
+                    strokeDasharray="5 5"
+                    name="Current"
+                    dot={false}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="projected" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2}
+                    name="Projected"
+                    dot={{ fill: 'hsl(var(--primary))' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* Gender Parity Projection Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Projected Women %</CardTitle>
+            <CardDescription>
+              Current: {currentWomenPercent.toFixed(1)}% • Target: 50%
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={forecastData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis 
+                    dataKey="month" 
+                    tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }}
+                    tickLine={{ stroke: 'hsl(var(--border))' }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis 
+                    tick={{ fill: 'hsl(var(--foreground))' }}
+                    tickLine={{ stroke: 'hsl(var(--border))' }}
+                    domain={[0, 100]}
+                    tickFormatter={(value) => `${value}%`}
+                  />
+                  <ReferenceLine 
+                    y={50} 
+                    stroke="hsl(var(--chart-1))" 
+                    strokeDasharray="3 3" 
+                    label={{ value: '50% target', fill: 'hsl(var(--chart-1))', fontSize: 11 }}
+                  />
+                  <ChartTooltip 
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-background border rounded-lg shadow-lg p-3">
+                            <p className="font-medium">{label}</p>
+                            {payload.map((entry: any) => (
+                              <p key={entry.dataKey} className="text-sm" style={{ color: entry.color }}>
+                                {entry.name}: {entry.value}%
+                              </p>
+                            ))}
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="womenConservative" 
+                    stroke="hsl(var(--chart-2))" 
+                    strokeWidth={2}
+                    name="Conservative"
+                    dot={{ fill: 'hsl(var(--chart-2))' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="womenTarget" 
+                    stroke="hsl(var(--chart-1))" 
+                    strokeWidth={2}
+                    name="If 50% women hires"
+                    dot={{ fill: 'hsl(var(--chart-1))' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
