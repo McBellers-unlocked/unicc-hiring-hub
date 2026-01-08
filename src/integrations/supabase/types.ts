@@ -1757,6 +1757,7 @@ export type Database = {
           management_competencies: Json | null
           nature_of_position: string | null
           objectives_of_programme: string | null
+          pd_submitted_at: string | null
           pdf_url: string | null
           position_title: string | null
           positions_available: number | null
@@ -1838,6 +1839,7 @@ export type Database = {
           management_competencies?: Json | null
           nature_of_position?: string | null
           objectives_of_programme?: string | null
+          pd_submitted_at?: string | null
           pdf_url?: string | null
           position_title?: string | null
           positions_available?: number | null
@@ -1919,6 +1921,7 @@ export type Database = {
           management_competencies?: Json | null
           nature_of_position?: string | null
           objectives_of_programme?: string | null
+          pd_submitted_at?: string | null
           pdf_url?: string | null
           position_title?: string | null
           positions_available?: number | null

@@ -63,6 +63,7 @@ interface RequisitionWorkflowTimelineProps {
     initial_request_submitted?: boolean;
     initial_request_approved?: boolean;
     initial_request_approved_at?: string | null;
+    pd_submitted_at?: string | null;
     hr_reviewed?: boolean;
     hr_reviewed_at?: string | null;
     hr_final_review_completed?: boolean;
@@ -164,9 +165,9 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
       label: 'Full PD Submitted',
       shortLabel: 'PD Submitted',
       description: 'Position description submitted for HR review',
-      isCompleted: ['hr_review', 'hiring_manager_review', 'chief_review', 'director_review', 'published'].includes(requisition.status) || !!requisition.hr_reviewed,
-      isActive: requisition.status === 'pd_submitted' || 
-                (requisition.status === 'draft' && !!requisition.initial_request_approved),
+      isCompleted: !!requisition.pd_submitted_at || ['hr_review', 'hiring_manager_review', 'chief_review', 'director_review', 'published'].includes(requisition.status) || !!requisition.hr_reviewed,
+      isActive: !requisition.pd_submitted_at && requisition.status === 'draft' && !!requisition.initial_request_approved,
+      completedAt: requisition.pd_submitted_at,
       previousStageCompletedAt: requisition.initial_request_approved_at,
       icon: FileText
     },
@@ -178,7 +179,7 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
       isCompleted: !!requisition.hr_reviewed,
       isActive: requisition.status === 'hr_review' && !requisition.hiring_manager_confirmed_hr_changes,
       completedAt: requisition.hr_reviewed_at,
-      previousStageCompletedAt: requisition.initial_request_approved_at || requisition.created_at,
+      previousStageCompletedAt: requisition.pd_submitted_at || requisition.initial_request_approved_at,
       icon: Users
     },
     {
