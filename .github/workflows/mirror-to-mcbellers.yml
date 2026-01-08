@@ -1,19 +1,13 @@
-name: Mirror to McBellers (for Amplify)
+- name: Set up SSH
+  run: |
+    mkdir -p ~/.ssh
+    echo "${{ secrets.MCBELLERS_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+    chmod 600 ~/.ssh/id_ed25519
+    ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-on:
-  push:
-    branches: ["main"]
+- name: Push to McBellers repo
+  run: |
+    git remote remove mirror 2>/dev/null || true
+    git remote add mirror git@github.com:McBellers-unlocked/unicc-hireflow.git
+    git push mirror HEAD:main --force
 
-jobs:
-  mirror:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Push to McBellers repo
-        run: |
-          git remote add mirror https://x-access-token:${{ secrets.MIRROR_TOKEN }}@github.com/McBellers-unlocked/unicc-hireflow.git
-          git push mirror main:main --force
