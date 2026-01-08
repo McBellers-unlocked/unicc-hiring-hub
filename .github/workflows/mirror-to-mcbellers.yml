@@ -1,0 +1,19 @@
+name: Mirror to McBellers (for Amplify)
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to McBellers repo
+        run: |
+          git remote add mirror https://x-access-token:${{ secrets.MIRROR_TOKEN }}@github.com/McBellers-unlocked/unicc-hireflow.git
+          git push mirror main:main --force
