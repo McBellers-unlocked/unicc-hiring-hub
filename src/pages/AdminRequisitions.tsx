@@ -635,8 +635,11 @@ export default function AdminRequisitions() {
   // Priority-based sorting for the "All" view
   const sortByPriority = (reqs: JobRequisition[]): JobRequisition[] => {
     const getPriority = (req: JobRequisition): number => {
-      // Priority 1: HR Review (pending_initial_review)
-      if (req.status === 'hr_review' && req.hr_internal_status === 'pending_initial_review') return 1;
+      // Priority 1: HR Review (includes both HR staff review AND Chief HR review)
+      if (req.status === 'hr_review' && 
+          ['pending_initial_review', 'pending_chief_review'].includes(req.hr_internal_status || '')) {
+        return 1;
+      }
       
       // Priority 2: Manager Confirmation
       if (req.status === 'hiring_manager_review') return 2;
@@ -658,19 +661,32 @@ export default function AdminRequisitions() {
     };
     
     const getWaitDate = (req: JobRequisition): Date => {
-      // Use the date when the item entered its current status, or created_at as fallback
-      if (req.status === 'hr_review' && req.hr_internal_status === 'pending_initial_review') {
-        return new Date(req.created_at);
+      // HR Review (both initial and Chief HR) - use PD submission date
+      if (req.status === 'hr_review' && 
+          ['pending_initial_review', 'pending_chief_review'].includes(req.hr_internal_status || '')) {
+        return new Date(req.pd_submitted_at || req.created_at);
       }
+      
+      // Manager Confirmation - use when Chief HR finished reviewing
       if (req.status === 'hiring_manager_review') {
-        return new Date(req.hr_reviewed_at || req.created_at);
+        return new Date(req.chief_hr_reviewed_at || req.hr_reviewed_at || req.created_at);
       }
+      
+      // Chief of Division - use when Manager confirmed
       if (req.status === 'chief_of_division_review' || req.status === 'chief_division_review') {
         return new Date(req.hiring_manager_confirmed_at || req.created_at);
       }
+      
+      // Director - use when Chief of Division approved
       if (req.status === 'director_review') {
         return new Date(req.chief_of_division_approved_at || req.created_at);
       }
+      
+      // Initial Request Approved - use approval date
+      if (req.status === 'initial_request_approved') {
+        return new Date(req.initial_request_approved_at || req.created_at);
+      }
+      
       return new Date(req.created_at);
     };
     
