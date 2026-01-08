@@ -2,24 +2,22 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Briefcase, TrendingUp, AlertTriangle, Sparkles, Clock, CheckCircle2, Building2 } from "lucide-react";
+import { Briefcase, TrendingUp, AlertTriangle, Sparkles, Clock, CheckCircle2, Building2, Target, ShieldAlert } from "lucide-react";
 import StatsCard from "@/components/dashboard/StatsCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { ResponsiveContainer, PieChart, Pie, Cell, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import FutureReadinessCard from "./FutureReadinessCard";
 import EmergingSkillsGaps from "./EmergingSkillsGaps";
 import DivisionSkillCell from "./DivisionSkillCell";
 import DivisionSkillDrillDown from "./DivisionSkillDrillDown";
-
-interface SkillStatusData {
-  status: string | null;
-  category: string | null;
-  count: number;
-}
+import SkillStatusBar from "./SkillStatusBar";
+import SkillRiskQuadrant from "./SkillRiskQuadrant";
+import SkillsDataQuality from "./SkillsDataQuality";
+import OrganizationFilters, { FilterState } from "./OrganizationFilters";
 
 interface SkillDefinition {
   id: string;
@@ -64,19 +62,25 @@ const STATUS_LABELS: Record<string, string> = {
   uncategorized: "Uncategorized",
 };
 
-const STATUS_ICONS: Record<string, React.ReactNode> = {
-  established: <CheckCircle2 className="h-4 w-4" />,
-  emerging: <TrendingUp className="h-4 w-4" />,
-  new: <Sparkles className="h-4 w-4" />,
-  legacy: <Clock className="h-4 w-4" />,
-};
-
 const DIVISIONS = ['CS', 'DD', 'DO', 'DS', 'MS', 'OP'];
 
 export default function SkillsPortfolioAnalytics() {
   const { userRoles } = useAuth();
   const [skills, setSkills] = useState<SkillDefinition[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Filter state
+  const [filters, setFilters] = useState<FilterState>({
+    division: "All",
+    dutyStation: "All",
+    grade: "All",
+    workerType: "All",
+    viewMode: "skill",
+  });
+
+  // Action KPIs
+  const [criticalGaps, setCriticalGaps] = useState(0);
+  const [coverageRate, setCoverageRate] = useState(0);
   
   // Organization matrix state (admin only)
   const [divisionData, setDivisionData] = useState<DivisionSkillAggregation[]>([]);
@@ -95,6 +99,7 @@ export default function SkillsPortfolioAnalytics() {
 
   useEffect(() => {
     fetchSkillsData();
+    fetchActionKPIs();
     if (isAdmin) {
       fetchDivisionSkillsData();
     }
@@ -111,10 +116,50 @@ export default function SkillsPortfolioAnalytics() {
     setLoading(false);
   };
 
+  const fetchActionKPIs = async () => {
+    // Calculate critical gaps (skills where avg < required)
+    const { data: assessments } = await supabase
+      .from('skill_assessments')
+      .select('skill_id, self_assessment, required_level')
+      .eq('scope', 'team')
+      .not('required_level', 'is', null);
+
+    const skillGaps = new Map<string, { total: number; belowRequired: number }>();
+    (assessments || []).forEach(a => {
+      const stats = skillGaps.get(a.skill_id) || { total: 0, belowRequired: 0 };
+      stats.total++;
+      if (a.self_assessment !== null && a.required_level !== null && a.self_assessment < a.required_level) {
+        stats.belowRequired++;
+      }
+      skillGaps.set(a.skill_id, stats);
+    });
+
+    // Count skills where >50% are below required
+    let criticalCount = 0;
+    skillGaps.forEach(stats => {
+      if (stats.total > 0 && (stats.belowRequired / stats.total) > 0.5) {
+        criticalCount++;
+      }
+    });
+    setCriticalGaps(criticalCount);
+
+    // Calculate coverage rate (% meeting required for critical skills)
+    let totalAssessed = 0;
+    let meetingRequired = 0;
+    (assessments || []).forEach(a => {
+      if (a.self_assessment !== null && a.required_level !== null) {
+        totalAssessed++;
+        if (a.self_assessment >= a.required_level) {
+          meetingRequired++;
+        }
+      }
+    });
+    setCoverageRate(totalAssessed > 0 ? Math.round((meetingRequired / totalAssessed) * 100) : 0);
+  };
+
   const fetchDivisionSkillsData = async () => {
     setMatrixLoading(true);
     try {
-      // Get staff counts by division
       const { data: users } = await supabase
         .from("users")
         .select("id, division")
@@ -134,7 +179,6 @@ export default function SkillsPortfolioAnalytics() {
       });
       setDivisionStaffCounts(staffCounts);
 
-      // Get all skill assessments
       const { data: assessments } = await supabase
         .from("skill_assessments")
         .select("user_id, skill_id, self_assessment, has_credential")
@@ -142,7 +186,6 @@ export default function SkillsPortfolioAnalytics() {
 
       if (!assessments) return;
 
-      // Aggregate by division and skill
       const aggregationMap = new Map<string, {
         levels: number[];
         credentialCount: number;
@@ -227,18 +270,9 @@ export default function SkillsPortfolioAnalytics() {
       ? Math.round((statusCounts.legacy / totalCategorized) * 100)
       : 0;
 
-    const pieData = Object.entries(statusCounts)
-      .filter(([_, count]) => count > 0)
-      .map(([status, count]) => ({
-        name: STATUS_LABELS[status] || status,
-        value: count,
-        color: STATUS_COLORS[status],
-        status,
-      }));
-
     const barData: BarDataItem[] = Object.entries(categoryStatusCounts)
       .map(([category, counts]) => ({
-        category: category.length > 15 ? category.slice(0, 15) + '...' : category,
+        category: category.length > 12 ? category.slice(0, 12) + '…' : category,
         fullCategory: category,
         established: counts.established || 0,
         emerging: counts.emerging || 0,
@@ -254,7 +288,6 @@ export default function SkillsPortfolioAnalytics() {
       statusCounts,
       modernizationRate,
       legacyRisk,
-      pieData,
       barData,
     };
   }, [skills]);
@@ -303,32 +336,55 @@ export default function SkillsPortfolioAnalytics() {
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Filter Bar + Data Quality */}
+      <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex-1">
+          <OrganizationFilters filters={filters} onChange={setFilters} />
+        </div>
+        <div className="w-full lg:w-72">
+          <SkillsDataQuality />
+        </div>
+      </div>
+
+      {/* KPI Cards - 6 columns */}
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
         <StatsCard
-          title="Total Active Skills"
+          title="Total Skills"
           value={metrics.total}
           subtitle="in portfolio"
           icon={Briefcase}
         />
         <StatsCard
-          title="Emerging Skills"
+          title="Emerging"
           value={metrics.statusCounts.emerging}
-          subtitle={`${metrics.statusCounts.new} new skills`}
+          subtitle={`+${metrics.statusCounts.new} new`}
           icon={TrendingUp}
         />
         <StatsCard
-          title="Modernization Rate"
+          title="Modernization"
           value={`${metrics.modernizationRate}%`}
           subtitle="new + emerging"
           icon={Sparkles}
         />
         <StatsCard
-          title="Legacy Skills"
+          title="Legacy"
           value={metrics.statusCounts.legacy}
-          subtitle={metrics.legacyRisk > 20 ? "Review needed" : "Acceptable level"}
+          subtitle={metrics.legacyRisk > 20 ? "Review needed" : "OK"}
           icon={Clock}
           alert={metrics.legacyRisk > 20}
+        />
+        <StatsCard
+          title="Critical Gaps"
+          value={criticalGaps}
+          subtitle="high priority"
+          icon={ShieldAlert}
+          alert={criticalGaps > 5}
+        />
+        <StatsCard
+          title="Coverage"
+          value={`${coverageRate}%`}
+          subtitle="meeting required"
+          icon={Target}
         />
       </div>
 
@@ -345,88 +401,44 @@ export default function SkillsPortfolioAnalytics() {
         </Card>
       )}
 
-      {/* Charts Row */}
+      {/* Charts Row: Status Bar + Risk Quadrant */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Skills by Status Pie Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Skills by Status</CardTitle>
-            <CardDescription>Distribution of skill lifecycle stages</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={metrics.pieData}
-                    cx="50%"
-                    cy="45%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={2}
-                    dataKey="value"
-                    label={({ name, percent }) => percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ''}
-                    labelLine={false}
-                  >
-                    {metrics.pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} stroke="hsl(var(--background))" strokeWidth={2} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (!active || !payload?.length) return null;
-                      const item = payload[0].payload;
-                      return (
-                        <div className="bg-popover border rounded-lg shadow-lg p-3">
-                          <div className="flex items-center gap-2">
-                            {STATUS_ICONS[item.status]}
-                            <p className="font-medium text-sm">{item.name}</p>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {item.value} skills ({((item.value / metrics.total) * 100).toFixed(1)}%)
-                          </p>
-                        </div>
-                      );
-                    }}
-                  />
-                  <Legend
-                    content={({ payload }) => (
-                      <div className="flex flex-wrap justify-center gap-3 pt-2">
-                        {payload?.map((entry: any, index: number) => (
-                          <div key={index} className="flex items-center gap-1.5 text-xs">
-                            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: entry.color }} />
-                            <span className="text-muted-foreground">{entry.value}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <SkillStatusBar 
+          statusCounts={{
+            established: metrics.statusCounts.established,
+            emerging: metrics.statusCounts.emerging,
+            new: metrics.statusCounts.new,
+            legacy: metrics.statusCounts.legacy,
+          }} 
+          total={metrics.total} 
+        />
+        <SkillRiskQuadrant skills={skills} />
+      </div>
 
-        {/* Skills by Category Stacked Bar */}
+      {/* Future Readiness + Skills by Category */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <FutureReadinessCard skills={skills} />
+        
+        {/* Skills by Category Bar Chart */}
         <Card>
-          <CardHeader>
-            <CardTitle>Skills by Category & Status</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Skills by Category</CardTitle>
             <CardDescription>Breakdown across skill categories</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[240px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={metrics.barData} layout="vertical" margin={{ left: 10, right: 20 }}>
+                <BarChart data={metrics.barData} layout="vertical" margin={{ left: 0, right: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                  <XAxis type="number" tick={{ fontSize: 12 }} />
+                  <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis 
                     dataKey="category" 
                     type="category" 
-                    width={100} 
-                    tick={{ fontSize: 11 }}
+                    width={90} 
+                    tick={{ fontSize: 10 }}
                   />
                   <Tooltip
-                    content={({ active, payload, label }) => {
+                    content={({ active, payload }) => {
                       if (!active || !payload?.length) return null;
                       const data = payload[0].payload;
                       return (
@@ -453,11 +465,8 @@ export default function SkillsPortfolioAnalytics() {
         </Card>
       </div>
 
-      {/* Future Readiness & Emerging Gaps */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <FutureReadinessCard skills={skills} />
-        <EmergingSkillsGaps skills={skills} />
-      </div>
+      {/* Emerging Skills Gaps - Full Width */}
+      <EmergingSkillsGaps skills={skills} />
 
       {/* Organization Skills Matrix - Admin Only */}
       {isAdmin && (
