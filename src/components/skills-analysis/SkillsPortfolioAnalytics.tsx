@@ -1,12 +1,19 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Briefcase, TrendingUp, AlertTriangle, Sparkles, Clock, CheckCircle2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Briefcase, TrendingUp, AlertTriangle, Sparkles, Clock, CheckCircle2, Building2 } from "lucide-react";
 import StatsCard from "@/components/dashboard/StatsCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
 import { ResponsiveContainer, PieChart, Pie, Cell, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import FutureReadinessCard from "./FutureReadinessCard";
 import EmergingSkillsGaps from "./EmergingSkillsGaps";
+import DivisionSkillCell from "./DivisionSkillCell";
+import DivisionSkillDrillDown from "./DivisionSkillDrillDown";
 
 interface SkillStatusData {
   status: string | null;
@@ -18,6 +25,7 @@ interface SkillDefinition {
   id: string;
   name: string;
   category: string;
+  skill_type?: string | null;
   ai_suggested_status: string | null;
   ai_suggested_category: string | null;
 }
@@ -29,6 +37,15 @@ interface BarDataItem {
   emerging: number;
   new: number;
   legacy: number;
+}
+
+interface DivisionSkillAggregation {
+  division: string;
+  skillId: string;
+  staffWithSkill: number;
+  totalStaff: number;
+  averageLevel: number | null;
+  credentialCount: number;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -54,23 +71,127 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
   legacy: <Clock className="h-4 w-4" />,
 };
 
+const DIVISIONS = ['CS', 'DD', 'DO', 'DS', 'MS', 'OP'];
+
 export default function SkillsPortfolioAnalytics() {
+  const { userRoles } = useAuth();
   const [skills, setSkills] = useState<SkillDefinition[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Organization matrix state (admin only)
+  const [divisionData, setDivisionData] = useState<DivisionSkillAggregation[]>([]);
+  const [divisionStaffCounts, setDivisionStaffCounts] = useState<Record<string, number>>({});
+  const [matrixLoading, setMatrixLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [drillDown, setDrillDown] = useState<{
+    open: boolean;
+    division: string;
+    skillId: string;
+    skillName: string;
+    isCredential: boolean;
+  }>({ open: false, division: "", skillId: "", skillName: "", isCredential: false });
+
+  const isAdmin = userRoles.some(r => ['Admin', 'HR Assistant', 'Chief of HR'].includes(r));
 
   useEffect(() => {
     fetchSkillsData();
-  }, []);
+    if (isAdmin) {
+      fetchDivisionSkillsData();
+    }
+  }, [isAdmin]);
 
   const fetchSkillsData = async () => {
     setLoading(true);
     const { data } = await supabase
       .from('skill_definitions')
-      .select('id, name, category, ai_suggested_status, ai_suggested_category')
+      .select('id, name, category, skill_type, ai_suggested_status, ai_suggested_category')
       .eq('is_active', true);
     
     setSkills(data || []);
     setLoading(false);
+  };
+
+  const fetchDivisionSkillsData = async () => {
+    setMatrixLoading(true);
+    try {
+      // Get staff counts by division
+      const { data: users } = await supabase
+        .from("users")
+        .select("id, division")
+        .in("division", DIVISIONS);
+
+      if (!users) return;
+
+      const staffCounts: Record<string, number> = {};
+      const userDivisionMap = new Map<string, string>();
+      
+      DIVISIONS.forEach(d => staffCounts[d] = 0);
+      users.forEach(u => {
+        if (u.division) {
+          staffCounts[u.division] = (staffCounts[u.division] || 0) + 1;
+          userDivisionMap.set(u.id, u.division);
+        }
+      });
+      setDivisionStaffCounts(staffCounts);
+
+      // Get all skill assessments
+      const { data: assessments } = await supabase
+        .from("skill_assessments")
+        .select("user_id, skill_id, self_assessment, has_credential")
+        .eq("scope", "team");
+
+      if (!assessments) return;
+
+      // Aggregate by division and skill
+      const aggregationMap = new Map<string, {
+        levels: number[];
+        credentialCount: number;
+        staffSet: Set<string>;
+      }>();
+
+      assessments.forEach(a => {
+        const division = userDivisionMap.get(a.user_id);
+        if (!division) return;
+
+        const key = `${division}:${a.skill_id}`;
+        if (!aggregationMap.has(key)) {
+          aggregationMap.set(key, { levels: [], credentialCount: 0, staffSet: new Set() });
+        }
+        
+        const agg = aggregationMap.get(key)!;
+        agg.staffSet.add(a.user_id);
+        
+        if (a.self_assessment !== null) {
+          agg.levels.push(a.self_assessment);
+        }
+        if (a.has_credential) {
+          agg.credentialCount++;
+        }
+      });
+
+      const divisionAggregations: DivisionSkillAggregation[] = [];
+      aggregationMap.forEach((agg, key) => {
+        const [division, skillId] = key.split(":");
+        const avgLevel = agg.levels.length > 0 
+          ? agg.levels.reduce((a, b) => a + b, 0) / agg.levels.length 
+          : null;
+
+        divisionAggregations.push({
+          division,
+          skillId,
+          staffWithSkill: agg.staffSet.size,
+          totalStaff: staffCounts[division] || 0,
+          averageLevel: avgLevel,
+          credentialCount: agg.credentialCount,
+        });
+      });
+
+      setDivisionData(divisionAggregations);
+    } catch (error) {
+      console.error("Error fetching division skills:", error);
+    } finally {
+      setMatrixLoading(false);
+    }
   };
 
   const metrics = useMemo(() => {
@@ -137,6 +258,30 @@ export default function SkillsPortfolioAnalytics() {
       barData,
     };
   }, [skills]);
+
+  const categories = useMemo(() => {
+    const cats = new Set(skills.map(s => s.ai_suggested_category || s.category || "Other"));
+    return ["all", ...Array.from(cats).sort()];
+  }, [skills]);
+
+  const filteredSkillsForMatrix = useMemo(() => {
+    if (selectedCategory === "all") return skills;
+    return skills.filter(s => (s.ai_suggested_category || s.category || "Other") === selectedCategory);
+  }, [skills, selectedCategory]);
+
+  const getDivisionSkillData = (division: string, skillId: string) => {
+    return divisionData.find(d => d.division === division && d.skillId === skillId);
+  };
+
+  const handleCellClick = (division: string, skill: SkillDefinition) => {
+    setDrillDown({
+      open: true,
+      division,
+      skillId: skill.id,
+      skillName: skill.name,
+      isCredential: skill.skill_type === "credential",
+    });
+  };
 
   if (loading) {
     return (
@@ -313,6 +458,114 @@ export default function SkillsPortfolioAnalytics() {
         <FutureReadinessCard skills={skills} />
         <EmergingSkillsGaps skills={skills} />
       </div>
+
+      {/* Organization Skills Matrix - Admin Only */}
+      {isAdmin && (
+        <>
+          <Separator className="my-8" />
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    Organization Skills Matrix
+                  </CardTitle>
+                  <CardDescription>
+                    Skill coverage and proficiency levels across divisions
+                  </CardDescription>
+                </div>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Filter by category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.slice(1).map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {matrixLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[200px]">Skill</TableHead>
+                        <TableHead className="text-center w-20">Type</TableHead>
+                        {DIVISIONS.map(div => (
+                          <TableHead key={div} className="text-center min-w-[80px]">
+                            <div className="font-medium">{div}</div>
+                            <div className="text-xs text-muted-foreground font-normal">
+                              {divisionStaffCounts[div] || 0}
+                            </div>
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredSkillsForMatrix.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                            No skills found for this category
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredSkillsForMatrix.map(skill => {
+                          const isCredential = skill.skill_type === "credential";
+                          return (
+                            <TableRow key={skill.id}>
+                              <TableCell className="font-medium">{skill.name}</TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant={isCredential ? "default" : "secondary"} className="text-xs">
+                                  {isCredential ? "Cert" : "Skill"}
+                                </Badge>
+                              </TableCell>
+                              {DIVISIONS.map(div => {
+                                const data = getDivisionSkillData(div, skill.id);
+                                return (
+                                  <TableCell key={div} className="p-1">
+                                    <DivisionSkillCell
+                                      staffWithSkill={data?.staffWithSkill || 0}
+                                      totalStaffInDivision={divisionStaffCounts[div] || 0}
+                                      averageLevel={data?.averageLevel || null}
+                                      credentialCount={data?.credentialCount || 0}
+                                      isCredential={isCredential}
+                                      onClick={() => handleCellClick(div, skill)}
+                                    />
+                                  </TableCell>
+                                );
+                              })}
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <DivisionSkillDrillDown
+            open={drillDown.open}
+            onOpenChange={(open) => setDrillDown(prev => ({ ...prev, open }))}
+            division={drillDown.division}
+            skillId={drillDown.skillId}
+            skillName={drillDown.skillName}
+            isCredential={drillDown.isCredential}
+          />
+        </>
+      )}
     </div>
   );
 }
