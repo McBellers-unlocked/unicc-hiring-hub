@@ -1,22 +1,24 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { TrendingUp, Settings2, Info } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { TrendingUp, Info } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
 import { addMonths, format } from 'date-fns';
 
 interface ForecastDataPoint {
   month: string;
   baseline: number;
   projected: number;
+  projectedOptimistic: number;
   womenBaseline: number;
   womenConservative: number;
+  womenOptimistic: number;
   womenTarget: number;
 }
 
@@ -42,22 +44,41 @@ const STAGE_WEIGHTS: Record<string, number> = {
   'Onboarding': 0.95,
 };
 
-const chartConfig = {
+const OPTIMISTIC_STAGE_WEIGHTS: Record<string, number> = {
+  'Initial Request': 0.25,
+  'PD Review': 0.45,
+  'Selection': 0.70,
+  'Offer': 0.90,
+  'Onboarding': 1.00,
+};
+
+const headcountChartConfig = {
   baseline: {
     label: 'Current',
     color: 'hsl(var(--muted-foreground))',
   },
   projected: {
-    label: 'Projected',
-    color: 'hsl(var(--primary))',
+    label: 'Conservative',
+    color: 'hsl(var(--chart-1))',
   },
+  projectedOptimistic: {
+    label: 'Optimistic',
+    color: 'hsl(var(--chart-3))',
+  },
+};
+
+const womenChartConfig = {
   womenConservative: {
     label: 'Conservative',
-    color: 'hsl(var(--chart-2))',
+    color: 'hsl(var(--chart-4))',
+  },
+  womenOptimistic: {
+    label: 'Optimistic (65%)',
+    color: 'hsl(var(--chart-3))',
   },
   womenTarget: {
     label: 'Target (50%)',
-    color: 'hsl(var(--chart-1))',
+    color: 'hsl(var(--chart-2))',
   },
 };
 
@@ -74,16 +95,24 @@ export const WorkforceForecasts: React.FC<WorkforceForecastsProps> = ({
     const months = parseInt(horizon);
     const data: ForecastDataPoint[] = [];
     
-    // Calculate weighted pipeline positions
+    // Calculate weighted pipeline positions for conservative
     const totalWeightedPositions = pipelineData.reduce((sum, stage) => {
       const weight = STAGE_WEIGHTS[stage.stage] || 0.25;
       return sum + (stage.positions * weight);
     }, 0);
 
-    // Distribute hires evenly across months (simplified)
+    // Calculate weighted pipeline positions for optimistic
+    const totalOptimisticPositions = pipelineData.reduce((sum, stage) => {
+      const weight = OPTIMISTIC_STAGE_WEIGHTS[stage.stage] || 0.40;
+      return sum + (stage.positions * weight);
+    }, 0);
+
+    // Distribute hires evenly across months
     const hiresPerMonth = totalWeightedPositions / months;
+    const optimisticHiresPerMonth = totalOptimisticPositions / months;
     
     let cumulativeHires = 0;
+    let cumulativeOptimisticHires = 0;
     const currentWomen = Math.round((currentWomenPercent / 100) * currentHeadcount);
 
     for (let i = 0; i <= months; i++) {
@@ -92,9 +121,11 @@ export const WorkforceForecasts: React.FC<WorkforceForecastsProps> = ({
       
       if (i > 0) {
         cumulativeHires += hiresPerMonth;
+        cumulativeOptimisticHires += optimisticHiresPerMonth;
       }
 
       const projectedHeadcount = Math.round(currentHeadcount + cumulativeHires);
+      const optimisticHeadcount = Math.round(currentHeadcount + cumulativeOptimisticHires);
       
       // Conservative: assume new hires match current gender ratio
       const conservativeWomen = currentWomen + Math.round(cumulativeHires * (currentWomenPercent / 100));
@@ -108,12 +139,20 @@ export const WorkforceForecasts: React.FC<WorkforceForecastsProps> = ({
         ? (targetWomen / projectedHeadcount) * 100 
         : currentWomenPercent;
 
+      // Optimistic: assume 65% of new hires are women
+      const optimisticWomen = currentWomen + Math.round(cumulativeOptimisticHires * 0.65);
+      const optimisticPercent = optimisticHeadcount > 0 
+        ? (optimisticWomen / optimisticHeadcount) * 100 
+        : currentWomenPercent;
+
       data.push({
         month: monthLabel,
         baseline: currentHeadcount,
         projected: projectedHeadcount,
+        projectedOptimistic: optimisticHeadcount,
         womenBaseline: currentWomenPercent,
         womenConservative: Math.round(conservativePercent * 10) / 10,
+        womenOptimistic: Math.round(optimisticPercent * 10) / 10,
         womenTarget: Math.round(targetPercent * 10) / 10,
       });
     }
@@ -177,20 +216,39 @@ export const WorkforceForecasts: React.FC<WorkforceForecastsProps> = ({
                   How it works
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80">
-                <div className="space-y-2">
+              <PopoverContent className="w-96">
+                <div className="space-y-4">
                   <h4 className="font-medium">Forecast Methodology</h4>
                   <p className="text-sm text-muted-foreground">
                     Projections use weighted probabilities based on hiring pipeline stages:
                   </p>
-                  <ul className="text-sm space-y-1">
-                    {Object.entries(STAGE_WEIGHTS).map(([stage, weight]) => (
-                      <li key={stage} className="flex justify-between">
-                        <span>{stage}</span>
-                        <span className="font-mono">{(weight * 100).toFixed(0)}%</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium mb-2">Conservative</p>
+                      <ul className="text-sm space-y-1">
+                        {Object.entries(STAGE_WEIGHTS).map(([stage, weight]) => (
+                          <li key={stage} className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">{stage}</span>
+                            <span className="font-mono">{(weight * 100).toFixed(0)}%</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium mb-2">Optimistic</p>
+                      <ul className="text-sm space-y-1">
+                        {Object.entries(OPTIMISTIC_STAGE_WEIGHTS).map(([stage, weight]) => (
+                          <li key={stage} className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">{stage}</span>
+                            <span className="font-mono">{(weight * 100).toFixed(0)}%</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground border-t pt-2">
+                    Women % projections: Conservative maintains current ratio, Optimistic assumes 65% women hires, Target assumes 50%.
+                  </p>
                 </div>
               </PopoverContent>
             </Popover>
@@ -223,14 +281,29 @@ export const WorkforceForecasts: React.FC<WorkforceForecastsProps> = ({
           
           {showWeights && (
             <div className="mt-4 p-3 bg-muted rounded-lg">
-              <p className="text-sm font-medium mb-2">Stage Probability Weights</p>
-              <div className="flex flex-wrap gap-3">
-                {Object.entries(STAGE_WEIGHTS).map(([stage, weight]) => (
-                  <div key={stage} className="text-xs bg-background px-2 py-1 rounded">
-                    <span className="text-muted-foreground">{stage}:</span>
-                    <span className="font-mono ml-1">{(weight * 100).toFixed(0)}%</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium mb-2">Conservative Weights</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(STAGE_WEIGHTS).map(([stage, weight]) => (
+                      <div key={stage} className="text-xs bg-background px-2 py-1 rounded">
+                        <span className="text-muted-foreground">{stage}:</span>
+                        <span className="font-mono ml-1">{(weight * 100).toFixed(0)}%</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-2">Optimistic Weights</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(OPTIMISTIC_STAGE_WEIGHTS).map(([stage, weight]) => (
+                      <div key={stage} className="text-xs bg-background px-2 py-1 rounded">
+                        <span className="text-muted-foreground">{stage}:</span>
+                        <span className="font-mono ml-1">{(weight * 100).toFixed(0)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -247,7 +320,7 @@ export const WorkforceForecasts: React.FC<WorkforceForecastsProps> = ({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="h-[300px]">
+            <ChartContainer config={headcountChartConfig} className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={forecastData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -275,10 +348,18 @@ export const WorkforceForecasts: React.FC<WorkforceForecastsProps> = ({
                   <Line 
                     type="monotone" 
                     dataKey="projected" 
-                    stroke="hsl(var(--primary))" 
+                    stroke="hsl(var(--chart-1))" 
                     strokeWidth={2}
-                    name="Projected"
-                    dot={{ fill: 'hsl(var(--primary))' }}
+                    name="Conservative"
+                    dot={{ fill: 'hsl(var(--chart-1))' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="projectedOptimistic" 
+                    stroke="hsl(var(--chart-3))" 
+                    strokeWidth={2}
+                    name="Optimistic"
+                    dot={{ fill: 'hsl(var(--chart-3))' }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -295,7 +376,7 @@ export const WorkforceForecasts: React.FC<WorkforceForecastsProps> = ({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="h-[300px]">
+            <ChartContainer config={womenChartConfig} className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={forecastData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -313,9 +394,9 @@ export const WorkforceForecasts: React.FC<WorkforceForecastsProps> = ({
                   />
                   <ReferenceLine 
                     y={50} 
-                    stroke="hsl(var(--chart-1))" 
+                    stroke="hsl(var(--chart-2))" 
                     strokeDasharray="3 3" 
-                    label={{ value: '50% target', fill: 'hsl(var(--chart-1))', fontSize: 11 }}
+                    label={{ value: '50% target', fill: 'hsl(var(--chart-2))', fontSize: 11 }}
                   />
                   <ChartTooltip 
                     content={({ active, payload, label }) => {
@@ -338,18 +419,26 @@ export const WorkforceForecasts: React.FC<WorkforceForecastsProps> = ({
                   <Line 
                     type="monotone" 
                     dataKey="womenConservative" 
-                    stroke="hsl(var(--chart-2))" 
+                    stroke="hsl(var(--chart-4))" 
                     strokeWidth={2}
                     name="Conservative"
-                    dot={{ fill: 'hsl(var(--chart-2))' }}
+                    dot={{ fill: 'hsl(var(--chart-4))' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="womenOptimistic" 
+                    stroke="hsl(var(--chart-3))" 
+                    strokeWidth={2}
+                    name="Optimistic (65%)"
+                    dot={{ fill: 'hsl(var(--chart-3))' }}
                   />
                   <Line 
                     type="monotone" 
                     dataKey="womenTarget" 
-                    stroke="hsl(var(--chart-1))" 
+                    stroke="hsl(var(--chart-2))" 
                     strokeWidth={2}
-                    name="If 50% women hires"
-                    dot={{ fill: 'hsl(var(--chart-1))' }}
+                    name="Target (50%)"
+                    dot={{ fill: 'hsl(var(--chart-2))' }}
                   />
                 </LineChart>
               </ResponsiveContainer>
