@@ -21,12 +21,24 @@ import {
   Building,
   Edit2,
   Mail,
-  Filter
+  Filter,
+  MoreHorizontal,
+  Pause,
+  Play,
+  Archive
 } from "lucide-react";
 import { format } from "date-fns";
 import { ChiefHRReviewDialog } from "@/components/ChiefHRReviewDialog";
 import { RequisitionWorkflowTimeline } from "@/components/RequisitionWorkflowTimeline";
+import { RequisitionClosureDialog } from "@/components/RequisitionClosureDialog";
 import { getDivisionCode } from "@/lib/chiefAssignment";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // KPI targets in days for each stage
 const STAGE_KPIS = {
@@ -74,6 +86,12 @@ interface JobRequisition {
   initial_request_approved_at?: string | null;
   funding_status?: string;
   brief_outline?: string;
+  // Closure fields
+  closed_status?: string | null;
+  closed_at?: string | null;
+  closed_by?: string | null;
+  closure_reason?: string | null;
+  postponed_until?: string | null;
 }
 
 // Helper to calculate days between two dates
@@ -213,6 +231,12 @@ export default function AdminRequisitions() {
   const [hmReviewRemindersSent, setHmReviewRemindersSent] = useState<Set<string>>(new Set());
   const [sendingReminder, setSendingReminder] = useState<string | null>(null);
   const [sendingHMReviewReminder, setSendingHMReviewReminder] = useState<string | null>(null);
+  const [closureDialog, setClosureDialog] = useState<{
+    open: boolean;
+    action: 'cancel' | 'postpone';
+    requisitionId: string;
+    requisitionTitle: string;
+  } | null>(null);
   const { user, userRoles } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -533,6 +557,46 @@ export default function AdminRequisitions() {
     }
   };
 
+  const handleReactivate = async (requisitionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('job_requisitions')
+        .update({
+          closed_status: null,
+          closed_at: null,
+          closed_by: null,
+          closure_reason: null,
+          postponed_until: null
+        })
+        .eq('id', requisitionId);
+
+      if (error) throw error;
+
+      // Log to audit
+      await supabase.from('audit_logs').insert({
+        actor_id: user?.id,
+        action: 'REQUISITION_REACTIVATED',
+        entity: 'job_requisitions',
+        entity_id: requisitionId,
+        after: { reactivated_at: new Date().toISOString() }
+      });
+
+      toast({
+        title: "Requisition Reactivated",
+        description: "The position description has been reopened and is now active.",
+      });
+
+      fetchRequisitions();
+    } catch (error: any) {
+      console.error('Error reactivating requisition:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reactivate requisition",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusInfo = (requisition: JobRequisition) => {
     // Check if converted to job (published)
     if ((requisition as any).converted_to_job_id) {
@@ -597,31 +661,37 @@ export default function AdminRequisitions() {
   const filterRequisitions = (status: string) => {
     let filtered: JobRequisition[];
     
+    // Exclude closed items from all tabs except "closed"
+    const activeRequisitions = requisitions.filter(r => !r.closed_status);
+    
     switch (status) {
       case 'initial-requests':
-        filtered = requisitions.filter(r => r.status.includes('initial_request'));
+        filtered = activeRequisitions.filter(r => r.status.includes('initial_request'));
         break;
       case 'pending-hr':
-        filtered = requisitions.filter(r => r.status === 'hr_review');
+        filtered = activeRequisitions.filter(r => r.status === 'hr_review');
         break;
       case 'manager-review':
-        filtered = requisitions.filter(r => r.status === 'hiring_manager_review');
+        filtered = activeRequisitions.filter(r => r.status === 'hiring_manager_review');
         break;
       case 'chief-approval':
-        filtered = requisitions.filter(r => 
+        filtered = activeRequisitions.filter(r => 
           ['chief_division_review', 'chief_of_division_review'].includes(r.status)
         );
         break;
       case 'director-approval':
-        filtered = requisitions.filter(r => r.status === 'director_review');
+        filtered = activeRequisitions.filter(r => r.status === 'director_review');
         break;
       case 'published':
-        filtered = requisitions.filter(r => 
+        filtered = activeRequisitions.filter(r => 
           ['approved'].includes(r.status) || r.converted_to_job_id
         );
         break;
+      case 'closed':
+        filtered = requisitions.filter(r => r.closed_status);
+        break;
       default:
-        filtered = sortByPriority(requisitions);
+        filtered = sortByPriority(activeRequisitions);
     }
     
     return applyDivisionFilter(filtered);
@@ -755,42 +825,48 @@ export default function AdminRequisitions() {
             <TabsTrigger value="initial-requests">
               Initial Requests
               <Badge variant="secondary" className="ml-2">
-                {applyDivisionFilter(requisitions.filter(r => r.status.includes('initial_request'))).length}
+                {applyDivisionFilter(requisitions.filter(r => !r.closed_status && r.status.includes('initial_request'))).length}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="pending-hr">
               Pending HR Review
               <Badge variant="secondary" className="ml-2">
-                {applyDivisionFilter(requisitions.filter(r => r.status === 'hr_review')).length}
+                {applyDivisionFilter(requisitions.filter(r => !r.closed_status && r.status === 'hr_review')).length}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="manager-review">
               Manager Review
               <Badge variant="secondary" className="ml-2">
-                {applyDivisionFilter(requisitions.filter(r => r.status === 'hiring_manager_review')).length}
+                {applyDivisionFilter(requisitions.filter(r => !r.closed_status && r.status === 'hiring_manager_review')).length}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="chief-approval">
               Chief of Division Approval
               <Badge variant="secondary" className="ml-2">
-                {applyDivisionFilter(requisitions.filter(r => ['chief_division_review', 'chief_of_division_review'].includes(r.status))).length}
+                {applyDivisionFilter(requisitions.filter(r => !r.closed_status && ['chief_division_review', 'chief_of_division_review'].includes(r.status))).length}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="director-approval">
               Director Approval
               <Badge variant="secondary" className="ml-2">
-                {applyDivisionFilter(requisitions.filter(r => r.status === 'director_review')).length}
+                {applyDivisionFilter(requisitions.filter(r => !r.closed_status && r.status === 'director_review')).length}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="published">
               Published
               <Badge variant="secondary" className="ml-2">
-                {applyDivisionFilter(requisitions.filter(r => ['approved'].includes(r.status) || r.converted_to_job_id)).length}
+                {applyDivisionFilter(requisitions.filter(r => !r.closed_status && (['approved'].includes(r.status) || r.converted_to_job_id))).length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="closed">
+              Closed
+              <Badge variant="secondary" className="ml-2">
+                {applyDivisionFilter(requisitions.filter(r => r.closed_status)).length}
               </Badge>
             </TabsTrigger>
           </TabsList>
 
-          {(['all', 'initial-requests', 'pending-hr', 'manager-review', 'chief-approval', 'director-approval', 'published'] as const).map(tabValue => (
+          {(['all', 'initial-requests', 'pending-hr', 'manager-review', 'chief-approval', 'director-approval', 'published', 'closed'] as const).map(tabValue => (
             <TabsContent key={tabValue} value={tabValue} className="space-y-4">
               {filterRequisitions(tabValue).length === 0 ? (
                 <Card>
@@ -810,18 +886,36 @@ export default function AdminRequisitions() {
                         <div className="flex items-start justify-between">
                           <div className="space-y-1">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <CardTitle className="text-lg">{requisition.position_title}</CardTitle>
-                              <Badge 
-                                variant={getStatusVariant(statusInfo.color)} 
-                                className={`flex items-center gap-1 ${
-                                  statusInfo.color === 'warning' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 
-                                  statusInfo.color === 'success' ? 'bg-green-500 hover:bg-green-600 text-white' : ''
-                                }`}
-                              >
-                                <StatusIcon className="h-3 w-3" />
-                                {statusInfo.label}
-                              </Badge>
-                              <CumulativeKPIBadge requisition={requisition} />
+                              <CardTitle className={`text-lg ${requisition.closed_status === 'cancelled' ? 'line-through text-muted-foreground' : ''}`}>
+                                {requisition.position_title}
+                              </CardTitle>
+                              {/* Closure status badges */}
+                              {requisition.closed_status === 'cancelled' && (
+                                <Badge variant="destructive" className="flex items-center gap-1">
+                                  <Archive className="h-3 w-3" />
+                                  Cancelled
+                                </Badge>
+                              )}
+                              {requisition.closed_status === 'postponed' && (
+                                <Badge className="flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white">
+                                  <Pause className="h-3 w-3" />
+                                  Postponed until {requisition.postponed_until ? format(new Date(requisition.postponed_until), 'dd MMM yyyy') : 'TBD'}
+                                </Badge>
+                              )}
+                              {/* Regular status badge - hide if closed */}
+                              {!requisition.closed_status && (
+                                <Badge 
+                                  variant={getStatusVariant(statusInfo.color)} 
+                                  className={`flex items-center gap-1 ${
+                                    statusInfo.color === 'warning' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 
+                                    statusInfo.color === 'success' ? 'bg-green-500 hover:bg-green-600 text-white' : ''
+                                  }`}
+                                >
+                                  <StatusIcon className="h-3 w-3" />
+                                  {statusInfo.label}
+                                </Badge>
+                              )}
+                              {!requisition.closed_status && <CumulativeKPIBadge requisition={requisition} />}
                             </div>
                             <CardDescription className="flex items-center gap-4">
                               <span className="flex items-center gap-1">
@@ -1021,6 +1115,54 @@ export default function AdminRequisitions() {
                                 )}
                               </>
                             )}
+
+                            {/* Reactivate button for postponed items */}
+                            {requisition.closed_status === 'postponed' && (isAdmin || isHR) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleReactivate(requisition.id)}
+                                className="text-green-600 border-green-600 hover:bg-green-50"
+                              >
+                                <Play className="h-4 w-4 mr-1" />
+                                Reactivate
+                              </Button>
+                            )}
+
+                            {/* More Actions dropdown - only for non-closed items */}
+                            {!requisition.closed_status && (isAdmin || isHR) && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => setClosureDialog({
+                                    open: true,
+                                    action: 'postpone',
+                                    requisitionId: requisition.id,
+                                    requisitionTitle: requisition.position_title || 'Untitled'
+                                  })}>
+                                    <Pause className="h-4 w-4 mr-2" />
+                                    Postpone
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => setClosureDialog({
+                                      open: true,
+                                      action: 'cancel',
+                                      requisitionId: requisition.id,
+                                      requisitionTitle: requisition.position_title || 'Untitled'
+                                    })}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <XCircle className="h-4 w-4 mr-2" />
+                                    Cancel
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
                           </div>
                         </div>
                       </CardHeader>
@@ -1095,6 +1237,15 @@ export default function AdminRequisitions() {
                               </span>
                             </div>
                           )}
+                          {/* Closure reason */}
+                          {requisition.closed_status && requisition.closure_reason && (
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Closure Reason:</span>
+                              <p className="mt-1 text-sm bg-muted/50 p-2 rounded border-l-2 border-amber-500">
+                                {requisition.closure_reason}
+                              </p>
+                            </div>
+                          )}
                           
                           <div className="flex flex-wrap gap-2 pt-2">
                             {requisition.chief_of_division_approval && (
@@ -1121,6 +1272,19 @@ export default function AdminRequisitions() {
           ))}
         </Tabs>
       </div>
+
+      {/* Closure Dialog */}
+      {closureDialog && (
+        <RequisitionClosureDialog
+          open={closureDialog.open}
+          onOpenChange={(open) => !open && setClosureDialog(null)}
+          action={closureDialog.action}
+          requisitionId={closureDialog.requisitionId}
+          requisitionTitle={closureDialog.requisitionTitle}
+          onComplete={fetchRequisitions}
+          userId={user?.id}
+        />
+      )}
     </Layout>
   );
 }
