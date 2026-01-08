@@ -176,8 +176,14 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
       label: 'HR Review',
       shortLabel: 'HR Review',
       description: 'HR reviewing and editing PD',
-      isCompleted: !!requisition.hr_reviewed,
-      isActive: requisition.status === 'hr_review' && !requisition.hiring_manager_confirmed_hr_changes,
+      // Only completed if hr_reviewed AND we've moved past this stage (manager has confirmed)
+      isCompleted: !!requisition.hr_reviewed && (
+        !!requisition.hiring_manager_confirmed_hr_changes || 
+        ['chief_review', 'chief_division_review', 'chief_of_division_review', 'director_review', 'approved', 'published'].includes(requisition.status) ||
+        !!requisition.converted_to_job_id
+      ),
+      isActive: requisition.status === 'hr_review' || 
+        (requisition.status === 'hiring_manager_review' && !requisition.hiring_manager_confirmed_hr_changes),
       completedAt: requisition.hr_reviewed_at,
       // Use pd_submitted_at for KPI, fallback to created_at for legacy records already in HR review
       previousStageCompletedAt: requisition.pd_submitted_at || 
