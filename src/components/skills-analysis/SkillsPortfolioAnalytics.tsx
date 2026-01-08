@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,7 +18,7 @@ import SkillStatusBar from "./SkillStatusBar";
 import SkillRiskQuadrant from "./SkillRiskQuadrant";
 import SkillsDataQuality from "./SkillsDataQuality";
 import OrganizationFilters, { FilterState } from "./OrganizationFilters";
-
+import SkillsInsightsStrip from "./SkillsInsightsStrip";
 interface SkillDefinition {
   id: string;
   name: string;
@@ -82,6 +82,18 @@ export default function SkillsPortfolioAnalytics() {
   const [criticalGaps, setCriticalGaps] = useState(0);
   const [coverageRate, setCoverageRate] = useState(0);
   
+  // Gap data for insights strip
+  const [gapData, setGapData] = useState<{
+    skillId: string;
+    skillName: string;
+    gapSize: number;
+    belowRequired: number;
+    avgLevel: number;
+    requiredLevel: number;
+    priority: 'high' | 'medium' | 'low';
+    topDivisions: { division: string; count: number }[];
+  }[]>([]);
+  
   // Organization matrix state (admin only)
   const [divisionData, setDivisionData] = useState<DivisionSkillAggregation[]>([]);
   const [divisionStaffCounts, setDivisionStaffCounts] = useState<Record<string, number>>({});
@@ -94,6 +106,10 @@ export default function SkillsPortfolioAnalytics() {
     skillName: string;
     isCredential: boolean;
   }>({ open: false, division: "", skillId: "", skillName: "", isCredential: false });
+
+  // Refs for scrolling
+  const emergingGapsRef = useRef<HTMLDivElement>(null);
+  const statusBarRef = useRef<HTMLDivElement>(null);
 
   const isAdmin = userRoles.some(r => ['Admin', 'HR Assistant', 'Chief of HR'].includes(r));
 
@@ -316,6 +332,20 @@ export default function SkillsPortfolioAnalytics() {
     });
   };
 
+  // Scroll handler for insights strip
+  const handleScrollTo = useCallback((section: string) => {
+    if (section === 'emerging-gaps' && emergingGapsRef.current) {
+      emergingGapsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (section === 'status-bar' && statusBarRef.current) {
+      statusBarRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
+
+  // Handler for gap data from EmergingSkillsGaps
+  const handleGapDataUpdate = useCallback((data: typeof gapData) => {
+    setGapData(data);
+  }, []);
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -345,6 +375,26 @@ export default function SkillsPortfolioAnalytics() {
           <SkillsDataQuality />
         </div>
       </div>
+
+      {/* Insights Strip - Admin Only */}
+      {isAdmin && !matrixLoading && divisionData.length > 0 && (
+        <SkillsInsightsStrip
+          divisionData={divisionData}
+          divisionStaffCounts={divisionStaffCounts}
+          skills={skills}
+          gapData={gapData}
+          onScrollTo={handleScrollTo}
+          onDivisionClick={(division) => {
+            setDrillDown({
+              open: true,
+              division,
+              skillId: skills.find(s => s.ai_suggested_status === 'emerging')?.id || '',
+              skillName: 'Division Overview',
+              isCredential: false,
+            });
+          }}
+        />
+      )}
 
       {/* KPI Cards - 6 columns */}
       <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
@@ -402,7 +452,7 @@ export default function SkillsPortfolioAnalytics() {
       )}
 
       {/* Charts Row: Status Bar + Risk Quadrant */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div ref={statusBarRef} className="grid gap-6 lg:grid-cols-2">
         <SkillStatusBar 
           statusCounts={{
             established: metrics.statusCounts.established,
@@ -466,7 +516,9 @@ export default function SkillsPortfolioAnalytics() {
       </div>
 
       {/* Emerging Skills Gaps - Full Width */}
-      <EmergingSkillsGaps skills={skills} />
+      <div ref={emergingGapsRef}>
+        <EmergingSkillsGaps skills={skills} onGapDataUpdate={handleGapDataUpdate} />
+      </div>
 
       {/* Organization Skills Matrix - Admin Only */}
       {isAdmin && (
