@@ -13,15 +13,31 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up SSH
+      - name: Set up SSH (deploy key)
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
-          echo "${{ secrets.MCBELLERS_DEPLOY_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
+
+          # Write private key from base64 secret
+          echo "${{ secrets.MCBELLERS_DEPLOY_KEY_B64 }}" | base64 -d > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
+
+          # Trust GitHub host key
           ssh-keyscan github.com >> ~/.ssh/known_hosts
 
+          # Optional: show that the key parses (won't print the key)
+          ssh-keygen -l -f ~/.ssh/id_ed25519 >/dev/null
+
       - name: Push to McBellers repo
+        shell: bash
         run: |
+          set -euo pipefail
           git remote remove mirror 2>/dev/null || true
           git remote add mirror git@github.com:McBellers-unlocked/unicc-hireflow.git
+
+          # Optional: quick auth check (doesn't fail the job if it prints a message)
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes -T git@github.com || true
+
           git push mirror HEAD:main --force
+
