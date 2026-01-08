@@ -761,7 +761,8 @@ export default function JobRequisitionForm() {
 
         if (fetchError) throw fetchError;
 
-        let newStatus = 'draft';
+        // Preserve current status for drafts, only change status when submitting
+        let newStatus = submit ? currentReq.status : currentReq.status; // Keep status for drafts
         if (submit) {
           // Determine next status based on current workflow state
           if (currentReq.status === 'hr_amendments') {
@@ -2366,28 +2367,14 @@ export default function JobRequisitionForm() {
                 type="button"
                 variant="outline"
                 onClick={async () => {
-                  const isValid = await form.trigger();
-                  if (!isValid) {
-                    const errors = form.formState.errors;
-                    const missingFields = Object.entries(errors)
-                      .map(([field, error]) => {
-                        if (field === 'start_date') return 'Start Date';
-                        if (field === 'position_title') return 'Position Title';
-                        if (field === 'nature_of_position') return 'Nature of Position';
-                        if (field === 'unit_section_division') return 'Unit/Section/Division';
-                        if (field === 'duty_station') return 'Duty Station';
-                        if (field === 'purpose_of_position') return 'Purpose of Position';
-                        if (field === 'main_duties_responsibilities') return 'Main Duties';
-                        if (field === 'essential_experience') return 'Essential Experience';
-                        if (field === 'essential_education') return 'Essential Education';
-                        if (field === 'essential_education_level') return 'Essential Education Level';
-                        return field;
-                      })
-                      .filter(Boolean);
-                    
+                  // Minimal validation for drafts - just need title and nature
+                  const positionTitle = form.getValues('position_title')?.trim();
+                  const natureOfPosition = form.getValues('nature_of_position')?.trim();
+                  
+                  if (!positionTitle || !natureOfPosition) {
                     toast({
-                      title: "Required Fields Missing",
-                      description: `Please fill in the following required fields: ${missingFields.join(', ')}`,
+                      title: "Cannot Save Draft",
+                      description: "Position title and nature of position are required to save a draft.",
                       variant: "destructive",
                     });
                     return;
@@ -2408,21 +2395,33 @@ export default function JobRequisitionForm() {
                     const isValid = await form.trigger();
                     if (!isValid) {
                       const errors = form.formState.errors;
-                      const missingFields = Object.entries(errors)
-                        .map(([field, error]) => {
-                          if (field === 'start_date') return 'Start Date';
-                          if (field === 'position_title') return 'Position Title';
-                          if (field === 'nature_of_position') return 'Nature of Position';
-                          if (field === 'unit_section_division') return 'Unit/Section/Division';
-                          if (field === 'duty_station') return 'Duty Station';
-                          if (field === 'purpose_of_position') return 'Purpose of Position';
-                          if (field === 'main_duties_responsibilities') return 'Main Duties';
-                          if (field === 'essential_experience') return 'Essential Experience';
-                          if (field === 'essential_education') return 'Essential Education';
-                          if (field === 'essential_education_level') return 'Essential Education Level';
-                          return field;
-                        })
+                      const fieldLabels: Record<string, string> = {
+                        'start_date': 'Start Date',
+                        'position_title': 'Position Title',
+                        'nature_of_position': 'Nature of Position',
+                        'unit_section_division': 'Unit/Section/Division',
+                        'duty_station': 'Duty Station',
+                        'purpose_of_position': 'Purpose of Position',
+                        'main_duties_responsibilities': 'Main Duties',
+                        'essential_experience': 'Essential Experience',
+                        'essential_education': 'Essential Education',
+                        'essential_education_level': 'Essential Education Level',
+                        'confirmChiefApproval': 'Chief of Division Approval Confirmation'
+                      };
+                      
+                      const missingFields = Object.keys(errors)
+                        .map(field => fieldLabels[field] || field)
                         .filter(Boolean);
+                      
+                      // Scroll to first error field
+                      const firstErrorKey = Object.keys(errors)[0];
+                      if (firstErrorKey) {
+                        const element = document.querySelector(`[name="${firstErrorKey}"]`) || 
+                                        document.getElementById(firstErrorKey);
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                      }
                       
                       toast({
                         title: "Required Fields Missing",
