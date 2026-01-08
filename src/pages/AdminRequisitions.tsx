@@ -87,11 +87,17 @@ const calculateCumulativeKPI = (requisition: JobRequisition): number => {
   let totalVariance = 0;
   const now = new Date();
 
-  // PD Creation stage (from initial approval to PD submission)
-  if (requisition.pd_submitted_at && requisition.initial_request_approved_at) {
-    const days = daysBetween(requisition.initial_request_approved_at, requisition.pd_submitted_at);
+  // Determine the effective PD submission date - use pd_submitted_at, or created_at as fallback for legacy records
+  const effectivePdSubmittedAt = requisition.pd_submitted_at || 
+    (['hr_review', 'hiring_manager_review', 'chief_of_division_review', 'chief_division_review', 'director_review', 'published'].includes(requisition.status) 
+      ? requisition.created_at 
+      : null);
+
+  // PD Creation stage (from initial approval to PD submission) - only if we had initial request flow
+  if (requisition.initial_request_approved_at && effectivePdSubmittedAt) {
+    const days = daysBetween(requisition.initial_request_approved_at, effectivePdSubmittedAt);
     totalVariance += (STAGE_KPIS.pd_creation.days - days);
-  } else if (requisition.initial_request_approved_at && !requisition.pd_submitted_at && 
+  } else if (requisition.initial_request_approved_at && !effectivePdSubmittedAt && 
              requisition.status === 'initial_request_approved') {
     // Active PD creation stage
     const days = daysBetween(requisition.initial_request_approved_at, now.toISOString());
@@ -99,12 +105,12 @@ const calculateCumulativeKPI = (requisition: JobRequisition): number => {
   }
 
   // HR Review stage (from PD submission to HR review complete)
-  if (requisition.hr_reviewed_at && requisition.pd_submitted_at) {
-    const days = daysBetween(requisition.pd_submitted_at, requisition.hr_reviewed_at);
+  if (requisition.hr_reviewed_at && effectivePdSubmittedAt) {
+    const days = daysBetween(effectivePdSubmittedAt, requisition.hr_reviewed_at);
     totalVariance += (STAGE_KPIS.hr_review.days - days);
-  } else if (requisition.pd_submitted_at && !requisition.hr_reviewed && requisition.status === 'hr_review') {
+  } else if (effectivePdSubmittedAt && !requisition.hr_reviewed && requisition.status === 'hr_review') {
     // Active HR review stage
-    const days = daysBetween(requisition.pd_submitted_at, now.toISOString());
+    const days = daysBetween(effectivePdSubmittedAt, now.toISOString());
     totalVariance += (STAGE_KPIS.hr_review.days - days);
   }
 
