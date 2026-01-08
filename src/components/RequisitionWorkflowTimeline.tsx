@@ -4,7 +4,7 @@ import { format } from "date-fns";
 // KPI targets in days for each stage
 const STAGE_KPI_TARGETS: Record<string, number> = {
   'pd_submitted': 7,           // PD creation after init approved
-  'hr_review': 7,              // HR review
+  'hr_review': 14,             // HR review (includes Chief HR review)
   'hiring_manager_review': 5,  // Manager endorsement
   'chief_approval': 7,         // Division chief
   'director_approval': 7       // Director
