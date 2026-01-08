@@ -191,13 +191,58 @@ const fixMarkdownFormatting = (text: string): string => {
   return fixed;
 };
 
+// Clean Microsoft Word HTML before processing
+const cleanWordHtml = (html: string): string => {
+  // Remove all <style>...</style> blocks including content
+  let cleaned = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  
+  // Remove all <script>...</script> blocks
+  cleaned = cleaned.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  
+  // Remove XML declarations and namespaces
+  cleaned = cleaned.replace(/<\?xml[^>]*\?>/gi, '');
+  cleaned = cleaned.replace(/<o:[^>]*>[\s\S]*?<\/o:[^>]*>/gi, '');
+  cleaned = cleaned.replace(/<w:[^>]*>[\s\S]*?<\/w:[^>]*>/gi, '');
+  
+  // Remove conditional comments (<!--[if gte mso 9]>...<![endif]-->)
+  cleaned = cleaned.replace(/<!--\[if[^\]]*\]>[\s\S]*?<!\[endif\]-->/gi, '');
+  
+  // Remove CSS comments that leaked as text
+  cleaned = cleaned.replace(/<!--\s*\/\*[\s\S]*?\*\/\s*-->/gi, '');
+  cleaned = cleaned.replace(/\/\*[\s\S]*?\*\//g, '');
+  
+  // Remove @font-face declarations that leaked as text
+  cleaned = cleaned.replace(/@font-face\s*\{[^}]*\}/gi, '');
+  
+  // Remove mso-* properties that leaked as text
+  cleaned = cleaned.replace(/mso-[a-z-]+:[^;}"']+[;]?/gi, '');
+  
+  // Remove font-family declarations with Office fonts
+  cleaned = cleaned.replace(/font-family:[^;}"']*(?:Wingdings|Cambria|Calibri|Symbol)[^;}"']*[;]?/gi, '');
+  
+  // Remove panose declarations
+  cleaned = cleaned.replace(/panose-[\d-]+:\s*[\d\s]+[;]?/gi, '');
+  
+  // Clean up any remaining Office-specific class names
+  cleaned = cleaned.replace(/class="Mso[^"]*"/gi, '');
+  
+  // Remove empty paragraphs and clean up whitespace
+  cleaned = cleaned.replace(/<p[^>]*>\s*(&nbsp;|\s)*\s*<\/p>/gi, '');
+  
+  return cleaned;
+};
+
 // Handle paste events to convert HTML to Markdown
 const handlePaste = (event: React.ClipboardEvent, onChange: (value: string) => void, currentValue: string) => {
   const clipboardData = event.clipboardData;
-  const htmlData = clipboardData.getData('text/html');
+  let htmlData = clipboardData.getData('text/html');
   
   if (htmlData) {
     event.preventDefault();
+    
+    // Pre-clean Microsoft Word HTML before Turndown processing
+    htmlData = cleanWordHtml(htmlData);
+    
     const markdown = turndownService.turndown(htmlData);
     
     // Get current selection/cursor position from the textarea
