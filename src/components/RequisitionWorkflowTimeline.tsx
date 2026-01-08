@@ -179,7 +179,11 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
       isCompleted: !!requisition.hr_reviewed,
       isActive: requisition.status === 'hr_review' && !requisition.hiring_manager_confirmed_hr_changes,
       completedAt: requisition.hr_reviewed_at,
-      previousStageCompletedAt: requisition.pd_submitted_at || requisition.initial_request_approved_at,
+      // Use pd_submitted_at for KPI, fallback to created_at for legacy records already in HR review
+      previousStageCompletedAt: requisition.pd_submitted_at || 
+        (['hr_review', 'hiring_manager_review', 'chief_review', 'director_review', 'published'].includes(requisition.status) 
+          ? requisition.created_at 
+          : requisition.initial_request_approved_at),
       icon: Users
     },
     {
