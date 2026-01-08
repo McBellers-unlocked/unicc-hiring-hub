@@ -29,7 +29,7 @@ import { getDivisionCode } from "@/lib/chiefAssignment";
 // KPI targets in days for each stage
 const STAGE_KPIS = {
   pd_creation: { days: 7, label: 'PD Creation' },
-  hr_review: { days: 7, label: 'HR Review' },
+  hr_review: { days: 14, label: 'HR Review' },  // Includes Chief HR review
   manager_endorsement: { days: 5, label: 'Manager Endorsement' },
   chief_hr: { days: 7, label: 'Chief HR' },
   division_chief: { days: 7, label: 'Division Chief' },
