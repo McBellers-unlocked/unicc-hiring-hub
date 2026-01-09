@@ -76,6 +76,7 @@ interface RequisitionWorkflowTimelineProps {
     director_approval?: boolean;
     director_approved_at?: string | null;
     converted_to_job_id?: string | null;
+    job_status?: string | null;
   };
   compact?: boolean;
 }
@@ -258,9 +259,11 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
       label: 'Published',
       shortLabel: 'Published',
       description: 'Job posting published',
-      isCompleted: !!requisition.converted_to_job_id,
-      isActive: false,
-      completedAt: requisition.converted_to_job_id ? new Date().toISOString() : null,
+      isCompleted: !!requisition.converted_to_job_id && requisition.job_status === 'active',
+      isActive: !!requisition.converted_to_job_id && requisition.job_status !== 'active',
+      completedAt: requisition.converted_to_job_id && requisition.job_status === 'active' 
+        ? new Date().toISOString() 
+        : null,
       icon: CheckCircle2
     }
   ];
