@@ -74,3 +74,9 @@ verify_jwt = false
 
 [functions.categorize-skills]
 verify_jwt = false
+
+[functions.send-chief-pd-approval-notification]
+verify_jwt = false
+
+[functions.send-director-approval-notification]
+verify_jwt = false
