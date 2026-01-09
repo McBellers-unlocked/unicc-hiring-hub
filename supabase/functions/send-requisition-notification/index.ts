@@ -11,11 +11,13 @@ const corsHeaders = {
 
 interface RequisitionNotificationRequest {
   requisitionId: string;
+  slug?: string;
   title: string;
   requestedBy: string;
   referenceNumber?: string;
   natureOfPosition: string;
   unitSection: string;
+  grade?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -29,41 +31,67 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { 
       requisitionId, 
+      slug,
       title, 
       requestedBy, 
       referenceNumber, 
       natureOfPosition, 
-      unitSection 
+      unitSection,
+      grade
     }: RequisitionNotificationRequest = await req.json();
 
-    console.log("Sending requisition notification for:", requisitionId);
+    console.log("Sending requisition notification for:", requisitionId, "slug:", slug);
+
+    const reviewUrl = `https://staging.unicconnect.org/requisitions/${slug || requisitionId}/hr-edit`;
+    const submissionDate = new Date().toLocaleDateString('en-GB', { 
+      day: 'numeric', 
+      month: 'long', 
+      year: 'numeric' 
+    });
 
     const emailResponse = await resend.emails.send({
       from: "UNICC Recruitment <recruitment@unicconnect.org>",
-      to: ["valente@unicc.org"],
-      subject: `New Job Requisition Submitted: ${title}`,
+      to: ["HRselection@unicc.org"],
+      subject: `New Position Description Submitted: ${title}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1 style="color: #0066cc;">New Job Requisition Submitted</h1>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <img src="https://staging.unicconnect.org/email-assets/unicc_logo.jpg" alt="UNICC Logo" style="max-width: 180px; margin-bottom: 20px;" />
           
-          <p>A new job requisition has been submitted for your review:</p>
+          <h1 style="color: #0066cc; margin-bottom: 20px;">New Position Description Submitted</h1>
           
-          <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
-            <h2 style="margin-top: 0;">${title}</h2>
-            ${referenceNumber ? `<p><strong>Reference:</strong> ${referenceNumber}</p>` : ''}
-            <p><strong>Position Type:</strong> ${natureOfPosition}</p>
-            <p><strong>Unit/Section:</strong> ${unitSection}</p>
-            <p><strong>Requested by:</strong> ${requestedBy}</p>
+          <p style="font-size: 15px; color: #333;">Dear HR Selection Team,</p>
+          
+          <p style="font-size: 15px; color: #333;">A new Position Description has been submitted and is ready for your review.</p>
+          
+          <div style="background-color: #d1fae5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <h3 style="margin: 0 0 5px 0; color: #065f46; font-size: 16px;">✓ PD Submitted for Review</h3>
+            <p style="margin: 0; color: #047857; font-size: 14px;">Submitted on ${submissionDate}</p>
           </div>
           
-          <p>Please log into the system to review this requisition:</p>
-          <a href="https://cxpnvbphjpntrvvgjhli.supabase.co/requisitions/${requisitionId}" 
-             style="background-color: #0066cc; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
-            Review Requisition
-          </a>
+          <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h2 style="margin: 0 0 15px 0; color: #333; font-size: 18px;">📋 ${title}</h2>
+            ${grade ? `<p style="margin: 8px 0; font-size: 14px;"><strong>Grade:</strong> ${grade}</p>` : ''}
+            <p style="margin: 8px 0; font-size: 14px;"><strong>Position Type:</strong> ${natureOfPosition}</p>
+            <p style="margin: 8px 0; font-size: 14px;"><strong>Unit/Section:</strong> ${unitSection}</p>
+            <p style="margin: 8px 0; font-size: 14px;"><strong>Requested by:</strong> ${requestedBy}</p>
+          </div>
           
-          <p style="margin-top: 30px; color: #666; font-size: 12px;">
-            This is an automated notification from the UNICC Job Management System.
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${reviewUrl}" 
+               style="background-color: #0066cc; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 15px;">
+              Review Position Description →
+            </a>
+          </div>
+          
+          <div style="background-color: #dbeafe; padding: 15px; margin: 20px 0; border-radius: 6px;">
+            <h3 style="margin: 0 0 8px 0; color: #1e40af; font-size: 15px;">Next Step:</h3>
+            <p style="margin: 0; color: #1e3a8a; font-size: 14px;">Please review and process this requisition. Once approved, it will proceed through the Chief and Director approval workflow.</p>
+          </div>
+          
+          <p style="margin-top: 30px; font-size: 15px; color: #333;">Best regards,<br><strong>UNICC Recruitment System</strong></p>
+          
+          <p style="margin-top: 20px; color: #666; font-size: 12px;">
+            This is an automated notification from the UNICC Recruitment System.
           </p>
         </div>
       `,

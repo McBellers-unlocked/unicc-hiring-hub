@@ -784,6 +784,7 @@ export default function JobRequisitionForm() {
       }
 
       let currentRequisitionId = id;
+      let currentSlug: string | undefined = currentRequisition?.slug;
 
       if (id && id !== 'new') {
         // Safety check: ensure currentRequisition is loaded before updating
@@ -903,6 +904,7 @@ export default function JobRequisitionForm() {
         if (error) throw error;
 
         currentRequisitionId = newRequisition.id;
+        currentSlug = newRequisition.slug;
 
         // Generate reference number
         const { data: refData, error: refError } = await supabase
@@ -927,11 +929,13 @@ export default function JobRequisitionForm() {
           await supabase.functions.invoke('send-requisition-notification', {
             body: {
               requisitionId: currentRequisitionId,
+              slug: currentSlug,
               title: formData.position_title,
               requestedBy: user?.email || 'Unknown',
-              referenceNumber: '', // Will be generated after submission
+              referenceNumber: '',
               natureOfPosition: formData.nature_of_position,
-              unitSection: formData.unit_section_division
+              unitSection: formData.unit_section_division,
+              grade: formData.grade
             }
           });
         } catch (emailError) {
