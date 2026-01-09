@@ -201,9 +201,22 @@ export default function DirectorView() {
         .eq("id", id);
 
       if (error) throw error;
+      return { id, approved };
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["requisitions-director-approval"] });
+      
+      // Send email notification when Director approves
+      if (data.approved) {
+        try {
+          await supabase.functions.invoke("send-director-approval-notification", {
+            body: { requisitionId: data.id }
+          });
+        } catch (emailError) {
+          console.error("Failed to send director approval notification:", emailError);
+        }
+      }
+      
       toast.success("Requisition updated successfully");
     },
     onError: () => {
