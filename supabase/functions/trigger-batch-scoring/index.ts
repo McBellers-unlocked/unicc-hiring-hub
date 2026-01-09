@@ -46,6 +46,86 @@ async function scoreWithRetry(
   }
 }
 
+async function processScoringInBackground(
+  supabase: any,
+  batchJobId: string,
+  applicationsToScore: { id: string }[],
+  skippedCount: number
+) {
+  try {
+    console.log(`Background processing started for batch job ${batchJobId}`);
+    
+    // Update status to processing
+    await supabase.from('batch_scoring_jobs')
+      .update({ status: 'processing' })
+      .eq('id', batchJobId);
+
+    let scoredCount = 0;
+    let errorCount = 0;
+
+    // Process in batches
+    for (let i = 0; i < applicationsToScore.length; i += BATCH_SIZE) {
+      const batch = applicationsToScore.slice(i, i + BATCH_SIZE);
+      const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(applicationsToScore.length / BATCH_SIZE);
+      
+      console.log(`Processing batch ${batchNumber}/${totalBatches} (${batch.length} applications)`);
+      
+      // Process batch concurrently
+      const batchResults = await Promise.all(
+        batch.map(app => scoreWithRetry(supabase, app.id))
+      );
+      
+      // Count results
+      for (const result of batchResults) {
+        if (result.status === 'success') scoredCount++;
+        else if (result.status === 'error') errorCount++;
+      }
+      
+      // Update progress in database
+      await supabase.from('batch_scoring_jobs')
+        .update({ 
+          scored_count: scoredCount, 
+          error_count: errorCount 
+        })
+        .eq('id', batchJobId);
+      
+      console.log(`Progress: ${scoredCount} scored, ${errorCount} errors`);
+      
+      // Delay between batches (except for the last batch)
+      if (i + BATCH_SIZE < applicationsToScore.length) {
+        console.log(`Waiting ${BATCH_DELAY_MS}ms before next batch...`);
+        await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
+      }
+    }
+
+    // Mark as completed
+    await supabase.from('batch_scoring_jobs')
+      .update({ 
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        scored_count: scoredCount,
+        skipped_count: skippedCount,
+        error_count: errorCount
+      })
+      .eq('id', batchJobId);
+
+    console.log(`Batch job ${batchJobId} completed: ${scoredCount} scored, ${skippedCount} skipped, ${errorCount} errors`);
+
+  } catch (error: any) {
+    console.error(`Batch job ${batchJobId} failed:`, error);
+    
+    // Mark as failed
+    await supabase.from('batch_scoring_jobs')
+      .update({ 
+        status: 'failed',
+        completed_at: new Date().toISOString(),
+        error_message: error.message
+      })
+      .eq('id', batchJobId);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -107,55 +187,46 @@ Deno.serve(async (req) => {
 
     console.log(`Will score ${applicationsToScore.length} applications, skipping ${skippedApplications.length}`);
 
-    // Process applications in batches with rate limiting
-    const results: { id: string; status: string; error?: any }[] = [];
-    
-    for (let i = 0; i < applicationsToScore.length; i += BATCH_SIZE) {
-      const batch = applicationsToScore.slice(i, i + BATCH_SIZE);
-      const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
-      const totalBatches = Math.ceil(applicationsToScore.length / BATCH_SIZE);
-      
-      console.log(`Processing batch ${batchNumber}/${totalBatches} (${batch.length} applications)`);
-      
-      // Process batch concurrently
-      const batchResults = await Promise.all(
-        batch.map(app => scoreWithRetry(supabase, app.id))
-      );
-      results.push(...batchResults);
-      
-      // Delay before next batch (except for the last batch)
-      if (i + BATCH_SIZE < applicationsToScore.length) {
-        console.log(`Waiting ${BATCH_DELAY_MS}ms before next batch...`);
-        await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
-      }
-    }
+    // Create batch job record
+    const { data: batchJob, error: insertError } = await supabase
+      .from('batch_scoring_jobs')
+      .insert({
+        job_id: jobId,
+        status: 'pending',
+        total_applications: applications?.length || 0,
+        skipped_count: skippedApplications.length
+      })
+      .select()
+      .single();
 
-    // Add skipped applications to results
-    for (const app of skippedApplications) {
-      results.push({ id: app.id, status: 'skipped' });
-    }
+    if (insertError) throw insertError;
 
-    const successCount = results.filter(r => r.status === 'success').length;
-    const errorCount = results.filter(r => r.status === 'error').length;
-    const skippedCount = results.filter(r => r.status === 'skipped').length;
+    // Start background processing (non-blocking)
+    // @ts-ignore - EdgeRuntime is available in Supabase Edge Functions
+    EdgeRuntime.waitUntil(
+      processScoringInBackground(
+        supabase,
+        batchJob.id,
+        applicationsToScore,
+        skippedApplications.length
+      )
+    );
 
-    console.log(`Batch scoring completed: ${successCount} success, ${errorCount} errors, ${skippedCount} skipped`);
-
+    // Return immediately with batch job ID for polling
     return new Response(
       JSON.stringify({ 
-        message: 'Batch scoring completed',
+        message: 'Batch scoring started',
+        batchJobId: batchJob.id,
         total: applications?.length || 0,
-        success: successCount,
-        errors: errorCount,
-        skipped: skippedCount,
-        results
+        toScore: applicationsToScore.length,
+        skipped: skippedApplications.length
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
+        status: 202  // Accepted - processing in background
       }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in trigger-batch-scoring:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
