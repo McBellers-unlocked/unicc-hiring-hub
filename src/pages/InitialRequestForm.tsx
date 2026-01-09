@@ -36,6 +36,17 @@ const LOCATIONS = [
   'Remote',
 ];
 
+// Helper to safely parse duty_station which may be JSON array or plain string
+const parseDutyStation = (dutyStation: string | null): string[] => {
+  if (!dutyStation) return [];
+  try {
+    const parsed = JSON.parse(dutyStation);
+    return Array.isArray(parsed) ? parsed : [dutyStation];
+  } catch {
+    return dutyStation.split(',').map(s => s.trim()).filter(Boolean);
+  }
+};
+
 // Organizational structure
 const DIVISIONS = {
   "CS": "Cybersecurity division (CS)",
@@ -233,7 +244,7 @@ export default function InitialRequestForm() {
           intern_duration: data.intern_duration || '',
           grade: data.grade || '',
           unit_section_division: data.unit_section_division || '',
-          duty_station: data.duty_station ? JSON.parse(data.duty_station) : [],
+          duty_station: parseDutyStation(data.duty_station),
           remote_region: remoteRegion,
           brief_outline: data.brief_outline || '',
           funding_status: data.funding_status || '',

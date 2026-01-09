@@ -21,6 +21,17 @@ import { CheckCircle2, XCircle, Eye, Calendar, MapPin, Briefcase, UserCheck } fr
 import { format } from 'date-fns';
 import { getAssignedChief } from '@/lib/chiefAssignment';
 
+// Helper to safely parse duty_station which may be JSON array or plain string
+const parseDutyStation = (dutyStation: string | null): string[] => {
+  if (!dutyStation) return [];
+  try {
+    const parsed = JSON.parse(dutyStation);
+    return Array.isArray(parsed) ? parsed : [dutyStation];
+  } catch {
+    return dutyStation.split(',').map(s => s.trim()).filter(Boolean);
+  }
+};
+
 interface InitialRequest {
   id: string;
   position_title: string;
@@ -212,7 +223,7 @@ export default function InitialRequestReview() {
           <div className="grid gap-6">
             {requests.map((request) => {
               const duration = getDurationDisplay(request);
-              const locations = request.duty_station ? JSON.parse(request.duty_station) : [];
+              const locations = parseDutyStation(request.duty_station);
               const remoteRegion = (request as any).comments?.remote_region;
               const assignedChief = getAssignedChief(request.unit_section_division);
               
