@@ -21,6 +21,7 @@ import { VideoAssignmentDialog } from '@/components/VideoAssignmentDialog';
 import { BulkVideoAssignmentDialog } from '@/components/BulkVideoAssignmentDialog';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { TriggerScoringButton } from '@/components/TriggerScoringButton';
+import { ApplicationSelectionActionBar } from '@/components/ApplicationSelectionActionBar';
 
 interface Application {
   id: string;
@@ -2020,48 +2021,22 @@ export default function AdminApplications() {
                     )}
                   </span>
                 </div>
-                
-                {selectedApplications.size > 0 && (() => {
-                  // Check if selected applications are in application/longlist stage
+              </div>
+              
+              {/* Floating Selection Action Bar */}
+              <ApplicationSelectionActionBar
+                selectedCount={selectedApplications.size}
+                showLonglistActions={(() => {
                   const selectedApps = applications.filter(app => selectedApplications.has(app.id));
-                  const areInApplicationStage = selectedApps.every(app => 
+                  return selectedApps.every(app => 
                     app.status === 'Application' || app.status === 'Longlist'
                   );
-                  
-                  return (
-                    <div className="flex gap-2">
-                      {areInApplicationStage && (
-                        <>
-                          <Button 
-                            size="sm" 
-                            onClick={() => addToLonglist(Array.from(selectedApplications))}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <Plus className="w-4 h-4 mr-1" />
-                            Add to Longlist
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => removeFromLonglist(Array.from(selectedApplications))}
-                          >
-                            <X className="w-4 h-4 mr-1" />
-                            Remove from Longlist
-                          </Button>
-                        </>
-                      )}
-                      <Button 
-                        size="sm" 
-                        onClick={() => setBulkVideoAssignmentDialog(true)}
-                        className="bg-purple-600 hover:bg-purple-700"
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        Bulk Video Assignment
-                      </Button>
-                    </div>
-                  );
                 })()}
-              </div>
+                onAddToLonglist={() => addToLonglist(Array.from(selectedApplications))}
+                onRemoveFromLonglist={() => removeFromLonglist(Array.from(selectedApplications))}
+                onBulkVideoAssignment={() => setBulkVideoAssignmentDialog(true)}
+                onClearSelection={() => setSelectedApplications(new Set())}
+              />
 
               {/* Card-based Layout - No more horizontal scrolling */}
               <TooltipProvider>
