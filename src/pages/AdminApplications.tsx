@@ -22,6 +22,7 @@ import { BulkVideoAssignmentDialog } from '@/components/BulkVideoAssignmentDialo
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { TriggerScoringButton } from '@/components/TriggerScoringButton';
 import { ApplicationSelectionActionBar } from '@/components/ApplicationSelectionActionBar';
+import { BulkRejectDialog } from '@/components/BulkRejectDialog';
 
 interface Application {
   id: string;
@@ -80,6 +81,8 @@ export default function AdminApplications() {
   const [languageFilter, setLanguageFilter] = useState('all');
   const [aiScoreFilter, setAiScoreFilter] = useState('all');
   const [requirementsFilter, setRequirementsFilter] = useState('all');
+  const [showBulkRejectDialog, setShowBulkRejectDialog] = useState(false);
+  const [bulkRejectLoading, setBulkRejectLoading] = useState(false);
   
   // Dialog state
   const [dialogState, setDialogState] = useState<{
@@ -2056,15 +2059,28 @@ export default function AdminApplications() {
               {/* Floating Selection Action Bar */}
               <ApplicationSelectionActionBar
                 selectedCount={selectedApplications.size}
-                onReject={async () => {
-                  // Bulk reject
-                  for (const appId of selectedApplications) {
-                    await rejectApplication(appId, 'Bulk rejection');
-                  }
-                  setSelectedApplications(new Set());
-                  fetchApplications();
-                }}
+                onReject={() => setShowBulkRejectDialog(true)}
                 onClearSelection={() => setSelectedApplications(new Set())}
+              />
+              
+              <BulkRejectDialog
+                open={showBulkRejectDialog}
+                onOpenChange={setShowBulkRejectDialog}
+                selectedCount={selectedApplications.size}
+                isLoading={bulkRejectLoading}
+                onConfirm={async (reason) => {
+                  setBulkRejectLoading(true);
+                  try {
+                    for (const appId of selectedApplications) {
+                      await rejectApplication(appId, reason);
+                    }
+                    setSelectedApplications(new Set());
+                    fetchApplications();
+                    setShowBulkRejectDialog(false);
+                  } finally {
+                    setBulkRejectLoading(false);
+                  }
+                }}
               />
 
               {/* Card-based Layout - No more horizontal scrolling */}
