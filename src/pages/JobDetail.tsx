@@ -462,7 +462,9 @@ export default function JobDetail() {
                           ul: ({ children }) => <ul className="list-disc ml-4 space-y-1">{children}</ul>,
                           li: ({ children }) => <li className="text-sm break-words">{children}</li>,
                           p: ({ children }) => <p className="mb-2 text-sm break-words">{children}</p>,
-                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                          code: ({ children }) => <span className="font-sans break-words">{children}</span>,
+                          pre: ({ children }) => <div className="font-sans break-words whitespace-pre-wrap">{children}</div>
                         }}
                       >
                         {fixMarkdownFormatting(job.description_md)}
@@ -487,7 +489,9 @@ export default function JobDetail() {
                           ul: ({ children }) => <ul className="list-disc ml-4 space-y-1">{children}</ul>,
                           li: ({ children }) => <li className="text-sm break-words">{children}</li>,
                           p: ({ children }) => <p className="mb-2 text-sm break-words">{children}</p>,
-                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>
+                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                          code: ({ children }) => <span className="font-sans break-words">{children}</span>,
+                          pre: ({ children }) => <div className="font-sans break-words whitespace-pre-wrap">{children}</div>
                         }}
                       >
                         {fixMarkdownFormatting(job.requirements_md)}
