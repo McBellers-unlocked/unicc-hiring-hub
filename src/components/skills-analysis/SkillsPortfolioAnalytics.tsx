@@ -119,7 +119,7 @@ export default function SkillsPortfolioAnalytics() {
     if (isAdmin) {
       fetchDivisionSkillsData();
     }
-  }, [isAdmin]);
+  }, [isAdmin, filters.division, filters.dutyStation, filters.grade, filters.workerType]);
 
   const fetchSkillsData = async () => {
     setLoading(true);
@@ -133,12 +133,41 @@ export default function SkillsPortfolioAnalytics() {
   };
 
   const fetchActionKPIs = async () => {
+    // First get filtered user IDs if filters are applied
+    const hasFilters = filters.division !== "All" || filters.dutyStation !== "All" || 
+                       filters.grade !== "All" || filters.workerType !== "All";
+    
+    let filteredUserIds: string[] = [];
+    if (hasFilters) {
+      let userQuery = supabase.from("users").select("id");
+      if (filters.division !== "All") userQuery = userQuery.eq("division", filters.division);
+      if (filters.dutyStation !== "All") userQuery = userQuery.eq("duty_station", filters.dutyStation);
+      if (filters.grade !== "All") userQuery = userQuery.eq("current_grade", filters.grade);
+      if (filters.workerType !== "All") userQuery = userQuery.eq("worker_type", filters.workerType);
+      
+      const { data: filteredUsers } = await userQuery;
+      filteredUserIds = filteredUsers?.map(u => u.id) || [];
+      
+      // If no users match filters, set empty KPIs
+      if (filteredUserIds.length === 0) {
+        setCriticalGaps(0);
+        setCoverageRate(0);
+        return;
+      }
+    }
+
     // Calculate critical gaps (skills where avg < required)
-    const { data: assessments } = await supabase
+    let assessmentQuery = supabase
       .from('skill_assessments')
-      .select('skill_id, self_assessment, required_level')
+      .select('skill_id, user_id, self_assessment, required_level')
       .eq('scope', 'team')
       .not('required_level', 'is', null);
+    
+    if (hasFilters && filteredUserIds.length > 0) {
+      assessmentQuery = assessmentQuery.in('user_id', filteredUserIds);
+    }
+
+    const { data: assessments } = await assessmentQuery;
 
     const skillGaps = new Map<string, { total: number; belowRequired: number }>();
     (assessments || []).forEach(a => {
@@ -176,12 +205,25 @@ export default function SkillsPortfolioAnalytics() {
   const fetchDivisionSkillsData = async () => {
     setMatrixLoading(true);
     try {
-      const { data: users } = await supabase
+      // Build query with filters
+      let query = supabase
         .from("users")
         .select("id, division")
         .in("division", DIVISIONS);
+      
+      // Apply filters
+      if (filters.division !== "All") query = query.eq("division", filters.division);
+      if (filters.dutyStation !== "All") query = query.eq("duty_station", filters.dutyStation);
+      if (filters.grade !== "All") query = query.eq("current_grade", filters.grade);
+      if (filters.workerType !== "All") query = query.eq("worker_type", filters.workerType);
 
-      if (!users) return;
+      const { data: users } = await query;
+
+      if (!users) {
+        setDivisionStaffCounts({});
+        setDivisionData([]);
+        return;
+      }
 
       const staffCounts: Record<string, number> = {};
       const userDivisionMap = new Map<string, string>();
@@ -195,10 +237,18 @@ export default function SkillsPortfolioAnalytics() {
       });
       setDivisionStaffCounts(staffCounts);
 
+      // Only fetch assessments for filtered users
+      const userIds = users.map(u => u.id);
+      if (userIds.length === 0) {
+        setDivisionData([]);
+        return;
+      }
+
       const { data: assessments } = await supabase
         .from("skill_assessments")
         .select("user_id, skill_id, self_assessment, has_credential")
-        .eq("scope", "team");
+        .eq("scope", "team")
+        .in("user_id", userIds);
 
       if (!assessments) return;
 
