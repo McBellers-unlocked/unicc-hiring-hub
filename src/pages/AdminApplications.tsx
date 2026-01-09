@@ -232,7 +232,7 @@ export default function AdminApplications() {
             present_city, present_country, permanent_city, permanent_country
           ),
           job:jobs(id, title, org_unit),
-          screening_scores(ai_score, created_at)
+          screening_scores(ai_score, created_at, rubric_breakdown)
         `)
         .eq('job_id', jobId)
         .neq('status', 'Draft')
@@ -284,7 +284,7 @@ export default function AdminApplications() {
                     present_city, present_country, permanent_city, permanent_country
                   ),
                   job:jobs(id, title, org_unit),
-                  screening_scores(ai_score, created_at)
+                  screening_scores(ai_score, created_at, rubric_breakdown)
                 `)
                 .eq('job_id', jobId)
                 .neq('status', 'Draft')
@@ -919,7 +919,7 @@ export default function AdminApplications() {
                            languages.toLowerCase().includes(languageFilter.toLowerCase());
 
     // AI Score filter
-    const score = app.screening_scores?.[0]?.ai_score;
+    const score = app.screening_scores?.ai_score;
     const matchesAiScore = aiScoreFilter === 'all' || 
                           (aiScoreFilter === 'high' && score !== null && score !== undefined && score >= 80) ||
                           (aiScoreFilter === 'medium' && score !== null && score !== undefined && score >= 70 && score < 80) ||
@@ -927,7 +927,7 @@ export default function AdminApplications() {
                           (aiScoreFilter === 'not_scored' && (score === null || score === undefined));
 
     // Requirements filter
-    const breakdown = app.screening_scores?.[0]?.rubric_breakdown;
+    const breakdown = app.screening_scores?.rubric_breakdown;
     const matchesRequirements = requirementsFilter === 'all' ||
                                (requirementsFilter === 'recommended' && breakdown?.recommendForLonglist) ||
                                (requirementsFilter === 'meets_all' && breakdown?.passedMustHaves && breakdown?.overallScore >= 70) ||
@@ -944,8 +944,8 @@ export default function AdminApplications() {
       case 'updated_at':
         return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
       case 'ai_score':
-        const scoreA = a.screening_scores?.[0]?.ai_score || 0;
-        const scoreB = b.screening_scores?.[0]?.ai_score || 0;
+        const scoreA = a.screening_scores?.ai_score || 0;
+        const scoreB = b.screening_scores?.ai_score || 0;
         return scoreB - scoreA; // Higher scores first
       case 'video_score':
         const videoA = a.videoScore || 0;
