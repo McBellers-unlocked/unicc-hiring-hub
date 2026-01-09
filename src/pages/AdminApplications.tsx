@@ -53,7 +53,7 @@ interface Application {
     ai_score: number | null;
     created_at: string;
     rubric_breakdown?: any;
-  }[];
+  } | null;
   videoScore?: number | null;
   videoRatingsCount?: number;
 }
@@ -990,11 +990,8 @@ export default function AdminApplications() {
   const totalWomenPercentage = totalApplications > 0 ? Math.round((totalWomenCount / totalApplications) * 100) : 0;
 
   const getScoreBadge = (application: Application) => {
-    // Get the latest score by sorting by created_at descending
-    const latestScore = application.screening_scores
-      ?.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-    
-    const score = latestScore?.ai_score;
+    // Get the score directly (now a single object, not array)
+    const score = application.screening_scores?.ai_score;
     if (score === null || score === undefined) {
       return (
         <Badge className="bg-gray-100 text-gray-800 text-xs">
