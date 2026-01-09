@@ -64,6 +64,7 @@ export default function ChiefOfDivisionView() {
       // Fetch both full PD approvals and initial requests
       const [fullPDResult, initialRequestsResult] = await Promise.all([
         // Full PD approvals - requisitions ready for chief approval after HR review
+        // Uses chief_pd_approval (separate from initial request approval)
         supabase
           .from("job_requisitions")
           .select(`
@@ -72,7 +73,7 @@ export default function ChiefOfDivisionView() {
           `)
           .eq("hr_final_review_completed", true)
           .in("status", ["chief_of_division_review", "chief_division_review"])
-          .or("chief_of_division_approval.is.null,chief_of_division_approval.eq.false")
+          .or("chief_pd_approval.is.null,chief_pd_approval.eq.false")
           .order("created_at", { ascending: false }),
         
         // Initial requests pending approval - exclude already approved ones
@@ -202,12 +203,14 @@ export default function ChiefOfDivisionView() {
           approval_history: [...existingApprovalHistory, ...newComment]
         };
       } else {
-        // For full PD approvals
-        updateData.chief_of_division_approval = approved;
+        // For full PD approvals - use chief_pd_* fields (separate from initial request approval)
+        updateData.chief_pd_approval = approved;
+        updateData.chief_pd_approved_by = user?.id;
+        updateData.chief_pd_approved_at = new Date().toISOString();
         updateData.status = approved ? 'director_review' : 'rejected';
         
         if (comments) {
-          updateData.chief_hr_comments = comments;
+          updateData.chief_pd_comments = comments;
         }
       }
 
