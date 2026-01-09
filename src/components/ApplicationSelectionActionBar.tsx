@@ -23,7 +23,7 @@ export function ApplicationSelectionActionBar({
       <Button
         size="sm"
         onClick={onReject}
-        className="bg-red-100 hover:bg-red-200 text-red-800 gap-1.5"
+        className="bg-red-600 hover:bg-red-700 text-white gap-1.5"
       >
         <Ban className="h-4 w-4" />
         Reject

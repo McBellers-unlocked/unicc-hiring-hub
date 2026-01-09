@@ -26,7 +26,7 @@ export const ApplicationDetailActionBar = ({
         <Button
           size="sm"
           onClick={onAddToLonglist}
-          className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 gap-1.5"
+          className="bg-green-600 hover:bg-green-700 text-white gap-1.5"
         >
           <Plus className="h-4 w-4" />
           Add to Longlist
@@ -37,7 +37,7 @@ export const ApplicationDetailActionBar = ({
         <Button
           size="sm"
           onClick={onReject}
-          className="bg-red-100 hover:bg-red-200 text-red-800 gap-1.5"
+          className="bg-red-600 hover:bg-red-700 text-white gap-1.5"
         >
           <Ban className="h-4 w-4" />
           Reject
