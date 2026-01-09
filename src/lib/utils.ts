@@ -17,6 +17,34 @@ export function getPublicSiteUrl(): string {
   return import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin;
 }
 
+/**
+ * Generate a unique slug with sequential numbering for duplicates
+ * @param baseSlug - The base slug to check
+ * @param existingSlugs - Array of existing slugs to check against
+ * @returns A unique slug, potentially with -2, -3, etc. suffix
+ */
+export function generateUniqueSlug(baseSlug: string, existingSlugs: string[]): string {
+  if (!existingSlugs.includes(baseSlug)) {
+    return baseSlug;
+  }
+  
+  // Find all slugs that match pattern: baseSlug or baseSlug-{number}
+  const escapedSlug = baseSlug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`^${escapedSlug}(-\\d+)?$`);
+  const matchingSlugs = existingSlugs.filter(s => pattern.test(s));
+  
+  // Find the highest number suffix
+  let maxNumber = 1;
+  matchingSlugs.forEach(slug => {
+    const match = slug.match(/-(\d+)$/);
+    if (match) {
+      maxNumber = Math.max(maxNumber, parseInt(match[1], 10));
+    }
+  });
+  
+  return `${baseSlug}-${maxNumber + 1}`;
+}
+
 // Fix common markdown formatting issues
 export function fixMarkdownFormatting(text: string): string {
   if (!text) return text;

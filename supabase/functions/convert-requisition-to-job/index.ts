@@ -109,8 +109,38 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Generate slug from title with sequential numbering
+    const baseSlug = req_data.position_title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    // Check for existing slugs
+    const { data: existingSlugs } = await supabase
+      .from('jobs')
+      .select('slug')
+      .like('slug', `${baseSlug}%`);
+
+    let finalSlug = baseSlug;
+    if (existingSlugs && existingSlugs.length > 0) {
+      const slugList = existingSlugs.map(j => j.slug).filter(Boolean) as string[];
+      if (slugList.includes(baseSlug)) {
+        // Find highest number suffix
+        const escapedSlug = baseSlug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const pattern = new RegExp(`^${escapedSlug}(-\\d+)?$`);
+        const matchingSlugs = slugList.filter(s => pattern.test(s));
+        let maxNumber = 1;
+        matchingSlugs.forEach(slug => {
+          const match = slug.match(/-(\d+)$/);
+          if (match) maxNumber = Math.max(maxNumber, parseInt(match[1], 10));
+        });
+        finalSlug = `${baseSlug}-${maxNumber + 1}`;
+      }
+    }
+
     const { data: newJob, error: jobError } = await supabase.from('jobs').insert({
       title: req_data.position_title,
+      slug: finalSlug,
       notice_no: req_data.reference_number,
       grade: req_data.grade,
       type: jobType,
