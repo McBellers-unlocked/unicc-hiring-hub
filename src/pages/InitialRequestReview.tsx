@@ -145,9 +145,18 @@ export default function InitialRequestReview() {
 
         if (error) throw error;
 
+        // Send approval notification email to hiring manager
+        try {
+          await supabase.functions.invoke("send-initial-request-approval-notification", {
+            body: { requisitionId: selectedRequest.id }
+          });
+        } catch (emailError) {
+          console.error("Failed to send approval notification:", emailError);
+        }
+
         toast({
           title: "Request Approved",
-          description: "HR will notify the hiring manager to create the full position description",
+          description: "The hiring manager has been notified and can now create the full position description",
         });
       } else {
         // Reject the request

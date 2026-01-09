@@ -255,6 +255,17 @@ export default function ChiefOfDivisionView() {
       await queryClient.invalidateQueries({ queryKey: ["requisitions-chief-approval"] });
       await queryClient.refetchQueries({ queryKey: ["requisitions-chief-approval"] });
       
+      // Send email notification when Chief approves initial request
+      if (data.approved && data.isInitialRequest) {
+        try {
+          await supabase.functions.invoke("send-initial-request-approval-notification", {
+            body: { requisitionId: data.id }
+          });
+        } catch (emailError) {
+          console.error("Failed to send initial request approval notification:", emailError);
+        }
+      }
+      
       // Send email notification when Chief approves full PD (not initial request)
       if (data.approved && !data.isInitialRequest) {
         try {
