@@ -199,8 +199,17 @@ function parseBulletPoints(description: string): string[] {
   return description
     .split('\n')
     .map(line => line.trim())
-    .filter(line => line.startsWith('- ') || line.startsWith('• ') || line.match(/^\d+\.\s/))
-    .map(line => line.replace(/^[-•]\s*/, '').replace(/^\d+\.\s*/, '').trim())
+    .filter(line => 
+      line.startsWith('- ') || 
+      line.startsWith('• ') ||   // Standard bullet (U+2022)
+      line.startsWith('· ') ||   // Middle dot (U+00B7)
+      line.startsWith('* ') ||   // Asterisk
+      line.startsWith('– ') ||   // En-dash
+      line.startsWith('— ') ||   // Em-dash
+      line.match(/^\d+\.\s/) ||  // Numbered list
+      line.match(/^[·•\-\*–—]\s*\S/)  // Catch bullets with varying whitespace
+    )
+    .map(line => line.replace(/^[·•\-\*–—]\s*/, '').replace(/^\d+\.\s*/, '').trim())
     .filter(line => line.length > 0);
 }
 
