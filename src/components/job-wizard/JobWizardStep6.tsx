@@ -99,8 +99,8 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
     // Closing date
     items.push({
       label: 'Closing Date Set',
-      status: data.closing_date ? 'pass' : 'warning',
-      description: 'Application closing date helps candidates plan their submissions',
+      status: data.closing_date ? 'pass' : 'fail',
+      description: 'A closing date is required before publishing',
     });
 
     return items;
