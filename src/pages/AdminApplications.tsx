@@ -517,10 +517,32 @@ export default function AdminApplications() {
 
   const getLanguageSummary = (languages: any) => {
     if (!languages) return 'Not specified';
-    const unLangs = languages.un_languages || {};
-    const otherLangs = languages.other_languages || [];
-    const allLangs = [...Object.keys(unLangs), ...otherLangs.map((l: any) => l.language || '')];
-    return allLangs.slice(0, 3).map(lang => lang.charAt(0).toUpperCase() + lang.slice(1)).join(', ') + (allLangs.length > 3 ? '...' : '');
+    
+    // Handle PHF format with un_languages/other_languages
+    if (languages.un_languages) {
+      const unLangs = languages.un_languages || {};
+      const otherLangs = languages.other_languages || [];
+      
+      const activeUnLangs = Object.entries(unLangs)
+        .filter(([_, v]: [string, any]) => v && v.read && v.read !== 'none')
+        .map(([k]) => k.charAt(0).toUpperCase() + k.slice(1));
+      
+      const otherLangNames = otherLangs.map((l: any) => l.language || '').filter(Boolean);
+      const allLangs = [...activeUnLangs, ...otherLangNames];
+      
+      if (allLangs.length === 0) return 'Not specified';
+      return allLangs.slice(0, 3).join(', ') + (allLangs.length > 3 ? '...' : '');
+    }
+    
+    // Handle simple array format [{name: "English", level: "fluent"}]
+    if (Array.isArray(languages)) {
+      if (languages.length === 0) return 'Not specified';
+      const langNames = languages.map((l: any) => l.name || l.language || '').filter(Boolean);
+      if (langNames.length === 0) return 'Not specified';
+      return langNames.slice(0, 3).join(', ') + (langNames.length > 3 ? '...' : '');
+    }
+    
+    return 'Not specified';
   };
 
   const getCurrentJobDetails = (workExp: any) => {
@@ -930,7 +952,7 @@ export default function AdminApplications() {
     // Each phase only counts candidates currently at that exact status
     const phaseApps = applications.filter(app => app.status === phase.status);
     
-    const womenApps = phaseApps.filter(app => app.candidate.gender === 'Female');
+    const womenApps = phaseApps.filter(app => app.candidate.gender === 'Woman' || app.candidate.gender === 'Female');
     const womenPercentage = phaseApps.length > 0 ? (womenApps.length / phaseApps.length) * 100 : 0;
     
     return {
@@ -943,7 +965,7 @@ export default function AdminApplications() {
 
   // Calculate total stats for analytics
   const totalApplications = applications.length;
-  const totalWomenCount = applications.filter(app => app.candidate.gender === 'Female').length;
+  const totalWomenCount = applications.filter(app => app.candidate.gender === 'Woman' || app.candidate.gender === 'Female').length;
   const totalWomenPercentage = totalApplications > 0 ? Math.round((totalWomenCount / totalApplications) * 100) : 0;
 
   const getScoreBadge = (application: Application) => {
