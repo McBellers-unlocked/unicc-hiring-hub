@@ -1698,6 +1698,10 @@ export type Database = {
           chief_of_division_approved_at: string | null
           chief_of_division_approved_by: string | null
           chief_of_division_sent_at: string | null
+          chief_pd_approval: boolean | null
+          chief_pd_approved_at: string | null
+          chief_pd_approved_by: string | null
+          chief_pd_comments: string | null
           closed_at: string | null
           closed_by: string | null
           closed_status: string | null
@@ -1785,6 +1789,10 @@ export type Database = {
           chief_of_division_approved_at?: string | null
           chief_of_division_approved_by?: string | null
           chief_of_division_sent_at?: string | null
+          chief_pd_approval?: boolean | null
+          chief_pd_approved_at?: string | null
+          chief_pd_approved_by?: string | null
+          chief_pd_comments?: string | null
           closed_at?: string | null
           closed_by?: string | null
           closed_status?: string | null
@@ -1872,6 +1880,10 @@ export type Database = {
           chief_of_division_approved_at?: string | null
           chief_of_division_approved_by?: string | null
           chief_of_division_sent_at?: string | null
+          chief_pd_approval?: boolean | null
+          chief_pd_approved_at?: string | null
+          chief_pd_approved_by?: string | null
+          chief_pd_comments?: string | null
           closed_at?: string | null
           closed_by?: string | null
           closed_status?: string | null
@@ -1950,6 +1962,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "job_requisitions_chief_pd_approved_by_fkey"
+            columns: ["chief_pd_approved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "job_requisitions_closed_by_fkey"
             columns: ["closed_by"]
