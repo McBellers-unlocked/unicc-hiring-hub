@@ -1,27 +1,15 @@
 import { Button } from "@/components/ui/button";
-import { Plus, X, Video, Ban } from "lucide-react";
+import { X, Ban } from "lucide-react";
 
 interface ApplicationSelectionActionBarProps {
   selectedCount: number;
-  showAddToLonglist: boolean;
-  showRemoveFromLonglist: boolean;
-  showReject: boolean;
-  onAddToLonglist: () => void;
-  onRemoveFromLonglist: () => void;
   onReject: () => void;
-  onBulkVideoAssignment: () => void;
   onClearSelection: () => void;
 }
 
 export function ApplicationSelectionActionBar({
   selectedCount,
-  showAddToLonglist,
-  showRemoveFromLonglist,
-  showReject,
-  onAddToLonglist,
-  onRemoveFromLonglist,
   onReject,
-  onBulkVideoAssignment,
   onClearSelection,
 }: ApplicationSelectionActionBarProps) {
   if (selectedCount === 0) return null;
@@ -32,48 +20,14 @@ export function ApplicationSelectionActionBar({
         {selectedCount} selected
       </span>
       
-      {showAddToLonglist && (
-        <Button
-          size="sm"
-          onClick={onAddToLonglist}
-          className="bg-green-600 hover:bg-green-700 gap-1.5"
-        >
-          <Plus className="h-4 w-4" />
-          Add to Longlist
-        </Button>
-      )}
-      
-      {showRemoveFromLonglist && (
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={onRemoveFromLonglist}
-          className="gap-1.5"
-        >
-          <X className="h-4 w-4" />
-          Remove from Longlist
-        </Button>
-      )}
-      
-      {showReject && (
-        <Button
-          size="sm"
-          variant="destructive"
-          onClick={onReject}
-          className="gap-1.5"
-        >
-          <Ban className="h-4 w-4" />
-          Reject
-        </Button>
-      )}
-      
       <Button
         size="sm"
-        onClick={onBulkVideoAssignment}
-        className="bg-purple-600 hover:bg-purple-700 gap-1.5"
+        variant="destructive"
+        onClick={onReject}
+        className="gap-1.5"
       >
-        <Video className="h-4 w-4" />
-        Bulk Video
+        <Ban className="h-4 w-4" />
+        Reject
       </Button>
       
       <Button

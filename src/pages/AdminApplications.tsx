@@ -2031,20 +2031,6 @@ export default function AdminApplications() {
               {/* Floating Selection Action Bar */}
               <ApplicationSelectionActionBar
                 selectedCount={selectedApplications.size}
-                showAddToLonglist={(() => {
-                  const selectedApps = applications.filter(app => selectedApplications.has(app.id));
-                  return selectedApps.every(app => app.status === 'Application');
-                })()}
-                showRemoveFromLonglist={(() => {
-                  const selectedApps = applications.filter(app => selectedApplications.has(app.id));
-                  return selectedApps.every(app => app.status === 'Longlist');
-                })()}
-                showReject={(() => {
-                  const selectedApps = applications.filter(app => selectedApplications.has(app.id));
-                  return selectedApps.every(app => app.status === 'Application');
-                })()}
-                onAddToLonglist={() => addToLonglist(Array.from(selectedApplications))}
-                onRemoveFromLonglist={() => removeFromLonglist(Array.from(selectedApplications))}
                 onReject={async () => {
                   // Bulk reject
                   for (const appId of selectedApplications) {
@@ -2053,7 +2039,6 @@ export default function AdminApplications() {
                   setSelectedApplications(new Set());
                   fetchApplications();
                 }}
-                onBulkVideoAssignment={() => setBulkVideoAssignmentDialog(true)}
                 onClearSelection={() => setSelectedApplications(new Set())}
               />
 
