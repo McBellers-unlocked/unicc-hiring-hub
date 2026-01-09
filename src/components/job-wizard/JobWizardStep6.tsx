@@ -10,7 +10,7 @@ import { ArrowLeft, CheckCircle, AlertTriangle, Eye, Copy, Save, Globe } from 'l
 import { JobFormData } from '@/pages/JobWizard';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { getPublicSiteUrl } from '@/lib/utils';
+import { getPublicSiteUrl, generateUniqueSlug } from '@/lib/utils';
 
 interface Props {
   data: JobFormData;
@@ -135,16 +135,15 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
       if (isEditing && jobId) {
         // Update existing job
         // Check if slug conflicts with another job
-        const { data: existingJob } = await supabase
+        const { data: matchingSlugs } = await supabase
           .from('jobs')
-          .select('id')
-          .eq('slug', slug)
-          .neq('id', jobId)
-          .maybeSingle();
+          .select('slug')
+          .like('slug', `${slug}%`)
+          .neq('id', jobId);
 
-        if (existingJob) {
-          // Slug is taken by another job, generate a unique one
-          const uniqueSlug = `${slug}-${Date.now().toString(36)}`;
+        const slugList = matchingSlugs?.map(j => j.slug).filter(Boolean) as string[] || [];
+        if (slugList.includes(slug)) {
+          const uniqueSlug = generateUniqueSlug(slug, slugList);
           finalJobData.slug = uniqueSlug;
           setSlug(uniqueSlug);
           onUpdate({ slug: uniqueSlug });
@@ -157,15 +156,14 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
           .eq('id', jobId);
       } else {
         // Create new job - check for slug conflicts
-        const { data: existingJob } = await supabase
+        const { data: matchingSlugs } = await supabase
           .from('jobs')
-          .select('id')
-          .eq('slug', slug)
-          .maybeSingle();
+          .select('slug')
+          .like('slug', `${slug}%`);
 
-        if (existingJob) {
-          // Slug is taken, generate a unique one
-          const uniqueSlug = `${slug}-${Date.now().toString(36)}`;
+        const slugList = matchingSlugs?.map(j => j.slug).filter(Boolean) as string[] || [];
+        if (slugList.includes(slug)) {
+          const uniqueSlug = generateUniqueSlug(slug, slugList);
           finalJobData.slug = uniqueSlug;
           setSlug(uniqueSlug);
           onUpdate({ slug: uniqueSlug });
