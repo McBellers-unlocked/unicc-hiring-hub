@@ -51,6 +51,14 @@ const ratingOptions = [
   }
 ];
 
+const QUICK_REJECT_REASONS = [
+  "Does not meet minimum education requirements",
+  "Does not meet minimum experience requirements",
+  "Incomplete application",
+  "Does not meet language requirements",
+  "Does not meet essential qualifications",
+];
+
 export function ActionConfirmationDialog({
   open,
   onOpenChange,
@@ -233,6 +241,28 @@ export function ActionConfirmationDialog({
                     </button>
                   );
                 })}
+              </div>
+            </div>
+          )}
+          
+          {action === 'reject' && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                Quick select a reason:
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {QUICK_REJECT_REASONS.map((quickReason) => (
+                  <Button
+                    key={quickReason}
+                    type="button"
+                    variant={reason === quickReason ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setReason(quickReason)}
+                    className="text-xs"
+                  >
+                    {quickReason}
+                  </Button>
+                ))}
               </div>
             </div>
           )}
