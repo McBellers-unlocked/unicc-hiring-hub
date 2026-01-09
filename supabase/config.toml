@@ -83,3 +83,12 @@ verify_jwt = false
 
 [functions.send-initial-request-approval-notification]
 verify_jwt = false
+
+[functions.trigger-batch-scoring]
+verify_jwt = false
+
+[functions.trigger-batch-scoring.edge_runtime]
+policy = "per_worker"
+
+[functions.score-application]
+verify_jwt = false

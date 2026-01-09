@@ -455,6 +455,56 @@ export type Database = {
           },
         ]
       }
+      batch_scoring_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          error_count: number
+          error_message: string | null
+          id: string
+          job_id: string
+          scored_count: number
+          skipped_count: number
+          started_at: string | null
+          status: string
+          total_applications: number
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_count?: number
+          error_message?: string | null
+          id?: string
+          job_id: string
+          scored_count?: number
+          skipped_count?: number
+          started_at?: string | null
+          status?: string
+          total_applications?: number
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_count?: number
+          error_message?: string | null
+          id?: string
+          job_id?: string
+          scored_count?: number
+          skipped_count?: number
+          started_at?: string | null
+          status?: string
+          total_applications?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_scoring_jobs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_outputs: {
         Row: {
           code: string
