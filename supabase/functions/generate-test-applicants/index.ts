@@ -657,11 +657,11 @@ const handler = async (req: Request): Promise<Response> => {
         date_of_birth: dob.toISOString().split('T')[0],
         present_nationality: nationality,
         location: `${location.city}, ${location.country}`,
+        present_city: location.city,
+        present_country: location.country,
         skills: skills,
         certifications: certs.map(c => ({ name: c, year: randomInt(2018, 2024) })),
-        languages: Object.entries(languagesPHF.un_languages)
-          .filter(([_, v]: [string, any]) => v.read !== 'none')
-          .map(([k, v]: [string, any]) => ({ name: k.charAt(0).toUpperCase() + k.slice(1), level: v.read })),
+        languages: languagesPHF,
         education: educationPHF.map(e => ({
           degree: e.degree_or_certificate_title,
           institution: e.institution_name,
