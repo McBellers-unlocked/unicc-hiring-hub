@@ -33,10 +33,9 @@ const lastNames = [
 
 const companies = [
   "Microsoft", "Google", "Amazon", "IBM", "Accenture", "Deloitte", "KPMG", "PwC",
-  "Cisco Systems", "Oracle", "SAP", "Palo Alto Networks", "CrowdStrike", "FireEye",
-  "Mandiant", "Tenable", "Rapid7", "Check Point", "Symantec", "Fortinet", "Splunk",
+  "Cisco Systems", "Oracle", "SAP", "McKinsey", "Boston Consulting Group", "Bain",
   "JPMorgan Chase", "Bank of America", "Goldman Sachs", "HSBC", "Barclays",
-  "Booz Allen Hamilton", "Leidos", "Northrop Grumman", "BAE Systems", "SAIC"
+  "Salesforce", "ServiceNow", "Atlassian", "Zoom", "Slack", "Shopify", "Stripe"
 ];
 
 const unOrganizations = [
@@ -49,9 +48,11 @@ const universities = [
   "Cambridge University", "Imperial College London", "ETH Zurich", "TU Munich",
   "National University of Singapore", "University of Tokyo", "Tsinghua University",
   "IIT Delhi", "University of Toronto", "Georgia Tech", "University of Illinois",
-  "Cornell University", "Columbia University", "University of Washington", "TU Delft"
+  "Cornell University", "Columbia University", "University of Washington", "TU Delft",
+  "INSEAD", "London Business School", "Wharton School", "Harvard Business School"
 ];
 
+// ============= CYBERSECURITY CONTENT (Legacy) =============
 const securitySkills = [
   "Penetration Testing", "Vulnerability Assessment", "Burp Suite", "Metasploit", "Kali Linux",
   "OWASP Top 10", "Network Security", "Web Application Security", "API Security", "Cloud Security",
@@ -61,30 +62,173 @@ const securitySkills = [
   "Azure Security", "DevSecOps", "Source Code Analysis", "Red Teaming", "Blue Teaming"
 ];
 
-const certifications = [
+const securityCertifications = [
   "OSCP", "CEH", "CISSP", "Security+", "GPEN", "GWAPT", "CREST CRT", "OSWE", "GCIH", "GCFA"
 ];
 
-const jobTitles = {
-  senior: [
+const securityJobTitles = {
+  exceeds: [
     "Chief Information Security Officer", "Director of Cybersecurity", "Head of Security Operations",
     "Principal Security Architect", "Senior Security Manager", "VP of Information Security"
   ],
-  mid: [
+  meets: [
     "Cybersecurity Manager", "Security Operations Lead", "Senior Penetration Tester",
     "Security Analyst Team Lead", "Information Security Officer", "Senior Security Consultant"
   ],
-  junior: [
+  close: [
     "Cybersecurity Analyst", "Security Operations Analyst", "Penetration Tester",
     "Vulnerability Analyst", "Security Consultant", "SOC Analyst"
+  ],
+  far: [
+    "Accountant", "Legal Assistant", "Marketing Specialist", "Customer Support Representative",
+    "Sales Associate", "Administrative Assistant", "Data Entry Clerk"
   ]
 };
 
+// ============= PRODUCT DELIVERY CONTENT =============
+const productDeliverySkills = {
+  exceeds: [
+    "Product Development", "Product Lifecycle Management", "Business Model Canvas",
+    "Project Portfolio Management", "Digital Diplomacy", "Digital Payment Solutions",
+    "RSI (Remote Simultaneous Interpretation)", "Event Management", "Agile/Scrum Master",
+    "Process Design & Optimization", "KPI Development", "Strategic Roadmapping",
+    "Stakeholder Management", "Requirements Engineering", "Service Delivery Excellence",
+    "Design Thinking", "Business Case Development", "OKR Methodology", "Lean Six Sigma"
+  ],
+  meets: [
+    "Product Management", "Business Analysis", "Agile Methodologies", 
+    "Product Strategy", "Market Analysis", "Process Improvement",
+    "Event Coordination", "Technical Documentation", "Jira", "ClickUp",
+    "Requirements Gathering", "User Story Writing", "Sprint Planning",
+    "Stakeholder Communication", "Product Roadmapping", "Competitive Analysis"
+  ],
+  close: [
+    "Project Coordination", "Meeting Facilitation", "Documentation",
+    "Basic Jira Usage", "PowerPoint", "Excel", "Customer Service",
+    "Team Collaboration", "Report Writing", "Scheduling", "Data Entry"
+  ],
+  far: [
+    "Penetration Testing", "Network Security", "Vulnerability Assessment",
+    "Accounting", "Legal Research", "Graphic Design", "Sales", "Payroll Processing",
+    "Inventory Management", "Forklift Operation", "Carpentry"
+  ]
+};
+
+const productDeliveryCertifications = {
+  exceeds: [
+    "PMP", "PRINCE2 Practitioner", "Certified Scrum Master (CSM)", "SAFe Agilist",
+    "Lean Six Sigma Black Belt", "CBAP", "Product Management Certificate (Stanford)"
+  ],
+  meets: [
+    "PRINCE2 Foundation", "Scrum Fundamentals", "CAPM", "Google Project Management",
+    "Agile Certified Practitioner", "Lean Six Sigma Green Belt"
+  ],
+  close: [
+    "Microsoft Office Specialist", "Google Workspace Certification", "Basic Excel Certificate"
+  ],
+  far: [
+    "OSCP", "CEH", "CISSP", "CPA", "Bar Exam", "Real Estate License"
+  ]
+};
+
+const productDeliveryJobTitles = {
+  exceeds: [
+    "Head of Product Delivery", "Director of Digital Solutions", "Senior Product Manager",
+    "Portfolio Management Lead", "Chief Product Officer", "VP of Product Development",
+    "Director of Business Development", "Head of Digital Transformation"
+  ],
+  meets: [
+    "Product Manager", "Project Portfolio Analyst", "Digital Solutions Specialist",
+    "Business Development Officer", "Product Owner", "Delivery Manager",
+    "Technical Product Manager", "Associate Product Director"
+  ],
+  close: [
+    "Project Coordinator", "Business Analyst", "Event Coordinator",
+    "Junior Product Associate", "Project Assistant", "Administrative Officer",
+    "Operations Associate", "Team Coordinator"
+  ],
+  far: [
+    "Security Analyst", "Accountant", "Legal Assistant", "Sales Representative",
+    "Customer Support Agent", "Data Entry Clerk", "Warehouse Supervisor"
+  ]
+};
+
+const productDeliveryDuties = {
+  exceeds: [
+    "Led end-to-end product development lifecycle for 5+ digital products serving UN agencies, including Digital Diplomacy platforms and digital payment solutions with 500,000+ users globally",
+    "Managed strategic portfolio of 15+ concurrent projects valued at $10M+ using Business Model Canvas and strategic analysis frameworks, achieving 98% on-time delivery",
+    "Designed and optimized end-to-end service delivery processes for RSI (Remote Simultaneous Interpretation) supporting 200+ multilingual events annually across 6 UN official languages",
+    "Developed comprehensive product roadmaps with measurable KPIs, achieving 95% on-time delivery and 40% improvement in user satisfaction scores",
+    "Established Digital Diplomacy requirement analysis frameworks adopted across 8 UN agencies, enabling standardized digital engagement for international conferences",
+    "Pioneered new business solution development methodologies that reduced time-to-market by 35% while maintaining quality standards",
+    "Led cross-functional teams of 20+ members across multiple time zones, facilitating Agile ceremonies and ensuring alignment with strategic objectives",
+    "Presented quarterly business reviews to C-level executives and board members, translating technical achievements into business value metrics"
+  ],
+  meets: [
+    "Managed product development for 3 digital solutions, coordinating with cross-functional teams of 8-12 members across 4 departments",
+    "Utilized Business Model Canvas for strategic product planning and market positioning, developing 5+ successful business cases",
+    "Coordinated project portfolio of 8 concurrent initiatives with international stakeholders across Europe, Asia, and North America",
+    "Supported Digital Diplomacy events including conference management and interpretation services for 50+ multilingual meetings annually",
+    "Conducted process optimization initiatives resulting in 30% efficiency improvements in service delivery workflows",
+    "Developed and maintained product roadmaps with clear milestones, dependencies, and resource requirements",
+    "Facilitated stakeholder workshops and requirements gathering sessions, documenting user stories and acceptance criteria",
+    "Implemented Agile/Scrum methodologies for development teams, conducting sprint planning, daily standups, and retrospectives"
+  ],
+  close: [
+    "Contributed to product development initiatives as team member, assisting senior product managers with documentation and coordination",
+    "Participated in project management activities using standard methodologies, tracking tasks and deadlines in Jira",
+    "Supported event coordination and logistics for organizational meetings, managing calendars and participant communications",
+    "Assisted with business analysis and requirements documentation, conducting interviews with stakeholders",
+    "Gained exposure to digital solutions and service delivery through shadowing senior team members",
+    "Prepared presentations and reports for team meetings, compiling data and creating visualizations",
+    "Attended Agile ceremonies as observer, learning sprint planning and retrospective processes",
+    "Helped maintain project documentation and status reports for management review"
+  ],
+  far: [
+    "Monitored security events and alerts using SIEM tools, investigating potential threats",
+    "Conducted vulnerability assessments of network infrastructure and web applications",
+    "Managed accounting records and financial reporting for department budgets",
+    "Provided customer support via phone and email, resolving tier-1 inquiries",
+    "Processed sales orders and maintained customer relationship management systems",
+    "Performed data entry and document filing for administrative operations",
+    "Supervised warehouse operations including inventory management and shipping"
+  ]
+};
+
+const productDeliveryEducation = {
+  exceeds: [
+    { degree: "MBA", field: "Technology Management" },
+    { degree: "Master of Science", field: "Product Management" },
+    { degree: "Executive MBA", field: "Digital Transformation" },
+    { degree: "Master of Business Administration", field: "Innovation and Entrepreneurship" },
+    { degree: "Master of Science", field: "Information Systems" }
+  ],
+  meets: [
+    { degree: "Bachelor of Business Administration", field: "Management" },
+    { degree: "Bachelor of Science", field: "Business Information Systems" },
+    { degree: "Master of Arts", field: "International Relations" },
+    { degree: "Bachelor of Commerce", field: "Marketing" },
+    { degree: "Bachelor of Science", field: "Computer Science" }
+  ],
+  close: [
+    { degree: "Bachelor of Arts", field: "Communications" },
+    { degree: "Bachelor of Science", field: "General Studies" },
+    { degree: "Associate Degree", field: "Business Administration" },
+    { degree: "Bachelor of Arts", field: "Psychology" }
+  ],
+  far: [
+    { degree: "Bachelor of Science", field: "Cybersecurity" },
+    { degree: "Bachelor of Arts", field: "Fine Arts" },
+    { degree: "Bachelor of Science", field: "Accounting" },
+    { degree: "High School Diploma", field: "" }
+  ]
+};
+
+// ============= COMMON DATA =============
 const supervisorTitles = [
-  "Chief Information Security Officer", "Director of Cybersecurity", "Head of Security Operations",
-  "Security Operations Manager", "Principal Security Engineer", "Senior Technical Lead",
-  "Information Security Director", "VP of Technology", "Chief Technology Officer",
-  "Security Architecture Lead", "Programme Manager", "Division Chief"
+  "Chief Product Officer", "Director of Digital Solutions", "Head of Service Delivery",
+  "VP of Product", "Principal Product Manager", "Senior Technical Lead",
+  "Division Chief", "Programme Manager", "Director of Operations", "Head of Innovation"
 ];
 
 const cities = [
@@ -104,11 +248,6 @@ const nationalities = [
   "American", "British", "Canadian", "Australian", "German", "French", "Italian", "Spanish",
   "Brazilian", "Mexican", "Indian", "Chinese", "Japanese", "South Korean", "Nigerian", "South African",
   "Egyptian", "Kenyan", "Swiss", "Dutch", "Swedish", "Norwegian"
-];
-
-const fieldsOfStudy = [
-  "Computer Science", "Cybersecurity", "Information Technology", "Computer Engineering",
-  "Information Systems", "Network Security", "Software Engineering", "Data Science"
 ];
 
 // Helper functions
@@ -151,269 +290,354 @@ function generateSupervisor(company: string): { name: string; title: string; ema
   };
 }
 
-function generateDuties(jobTitle: string, isUNJob: boolean): string {
+// Updated to use quality tiers
+type QualityTier = 'exceeds' | 'meets' | 'close' | 'far';
+
+function determineQualityDistribution(index: number, totalCount: number): QualityTier {
+  // Target distribution: 10% exceed, 30% meet, 40% close, 20% far
+  const exceedsThreshold = Math.floor(totalCount * 0.10);
+  const meetsThreshold = Math.floor(totalCount * 0.40);  // cumulative 10% + 30%
+  const closeThreshold = Math.floor(totalCount * 0.80);  // cumulative 10% + 30% + 40%
+  
+  if (index < exceedsThreshold) return 'exceeds';
+  if (index < meetsThreshold) return 'meets';
+  if (index < closeThreshold) return 'close';
+  return 'far';
+}
+
+function determineGender(index: number, totalCount: number): 'Man' | 'Woman' {
+  // Roughly 50/50 split
+  return index % 2 === 0 ? 'Man' : 'Woman';
+}
+
+function shouldHaveUNExperience(quality: QualityTier): boolean {
+  // Exceeds and meets are more likely to have UN experience
+  if (quality === 'exceeds') return Math.random() > 0.2;  // 80% chance
+  if (quality === 'meets') return Math.random() > 0.5;    // 50% chance
+  if (quality === 'close') return Math.random() > 0.8;    // 20% chance
+  return false;  // far candidates don't have UN experience
+}
+
+function shouldHaveUNRelatives(index: number): boolean {
+  return index % 10 === 0;
+}
+
+// Generate duties based on job type and quality
+function generateDutiesForJobType(quality: QualityTier, jobType: string): string {
+  if (jobType === 'product_delivery') {
+    const duties = randomItems(productDeliveryDuties[quality], 4);
+    return duties.map(d => `• ${d}`).join('\n\n');
+  }
+  
+  // Legacy cybersecurity duties for backward compatibility
   const baseDuties = {
-    analyst: [
-      "Monitored security events and alerts using SIEM tools, investigating and triaging potential security incidents across the organization's infrastructure",
-      "Conducted regular vulnerability assessments and penetration tests of internal and external systems, documenting findings and tracking remediation progress",
-      "Developed and maintained security documentation including policies, procedures, incident response playbooks, and security awareness training materials",
-      "Collaborated with IT teams and business units to remediate identified vulnerabilities and implement security improvements",
-      "Performed security reviews of new applications, infrastructure changes, and third-party integrations before production deployment",
-      "Prepared detailed security reports and metrics for management and stakeholders, presenting findings in monthly security review meetings"
+    exceeds: [
+      "Directed enterprise security strategy, managing teams of 15+ professionals across multiple security domains",
+      "Presented security metrics and strategic initiatives to executive leadership and board of directors",
+      "Led red team operations simulating nation-state adversaries to test organizational resilience"
     ],
-    pentester: [
-      "Led comprehensive penetration testing engagements covering web applications, APIs, mobile applications, and network infrastructure using both automated tools and manual techniques",
-      "Executed red team exercises simulating advanced persistent threats (APTs) to assess organizational resilience and incident response capabilities",
-      "Developed custom exploitation tools, scripts, and proof-of-concept code to demonstrate the impact of identified security vulnerabilities",
-      "Prepared detailed technical reports with CVSS-rated findings, business impact analysis, and prioritized remediation guidance for technical and executive audiences",
-      "Mentored junior security analysts on penetration testing methodologies, secure coding practices, and technical report writing",
-      "Collaborated with development teams to validate security fixes, conduct retesting, and improve secure software development lifecycle practices"
+    meets: [
+      "Conducted comprehensive penetration testing of web applications, APIs, and network infrastructure",
+      "Managed vulnerability remediation programs tracking 1000+ findings across the organization",
+      "Developed incident response procedures and led tabletop exercises for security team"
     ],
-    manager: [
-      "Directed a team of 8-15 security professionals responsible for security operations, incident response, vulnerability management, and compliance activities",
-      "Developed and implemented enterprise security strategies aligned with business objectives, risk tolerance, and regulatory requirements",
-      "Managed relationships with external security vendors, coordinated third-party assessments, and oversaw managed security service providers",
-      "Presented security metrics, risk assessments, and strategic initiatives to executive leadership, board of directors, and key stakeholders",
-      "Oversaw budget planning, resource allocation, and procurement for security initiatives totaling $2-5M annually",
-      "Established security awareness programs, training curricula, and phishing simulation exercises for all staff levels"
+    close: [
+      "Monitored security events and alerts using SIEM tools, escalating potential incidents",
+      "Assisted senior analysts with vulnerability scanning and basic penetration testing",
+      "Maintained security documentation and supported compliance audit activities"
     ],
-    architect: [
-      "Designed and implemented enterprise security architecture supporting cloud, on-premises, and hybrid environments across multiple geographic regions",
-      "Evaluated and selected security technologies including SIEM, EDR, IAM, CASB, and zero trust solutions aligned with organizational requirements",
-      "Developed security standards, frameworks, reference architectures, and design patterns for use across the organization",
-      "Led security design reviews for major projects, infrastructure changes, and cloud migration initiatives, ensuring security by design principles",
-      "Provided technical leadership, guidance, and mentorship to security engineering teams and cross-functional project teams",
-      "Collaborated with business units, IT teams, and vendors to understand requirements and integrate security controls into solutions"
+    far: [
+      "Processed customer orders and maintained sales records in CRM system",
+      "Handled administrative tasks including scheduling, filing, and correspondence",
+      "Managed inventory and coordinated shipping logistics"
     ]
   };
-
-  const unSpecificDuties = [
-    "Ensured compliance with UN security policies, ICSC standards, and international best practices for information security",
-    "Coordinated with other UN agencies on shared security initiatives, threat intelligence sharing, and incident response",
-    "Supported field operations and duty stations with security guidance, training, and incident response during emergencies",
-    "Contributed to inter-agency working groups on cybersecurity, data protection, and digital transformation initiatives"
-  ];
-
-  let category = 'analyst';
-  const titleLower = jobTitle.toLowerCase();
-  if (titleLower.includes('penetration') || titleLower.includes('red team') || titleLower.includes('ethical')) category = 'pentester';
-  else if (titleLower.includes('manager') || titleLower.includes('director') || titleLower.includes('head') || titleLower.includes('chief') || titleLower.includes('lead')) category = 'manager';
-  else if (titleLower.includes('architect') || titleLower.includes('principal')) category = 'architect';
-
-  let duties = randomItems(baseDuties[category], 4);
-  if (isUNJob) {
-    duties = duties.concat(randomItems(unSpecificDuties, 2));
-  }
-
+  
+  const duties = randomItems(baseDuties[quality], 4);
   return duties.map(d => `• ${d}`).join('\n\n');
 }
 
-function generateMotivationLetter(skills: string[], yearsOfExp: number, firstName: string, lastName: string): string {
-  const intro = randomItem([
-    `I am writing to express my strong interest in contributing to UNICC's mission of providing digital solutions for the United Nations system. With ${yearsOfExp} years of experience in cybersecurity and a deep commitment to international cooperation, I am confident in my ability to make a meaningful impact on your team.`,
-    `As a dedicated cybersecurity professional with ${yearsOfExp} years of progressive experience, I am excited about the opportunity to join UNICC and support the UN's digital transformation journey. My background in ${skills[0]} and ${skills[1]} aligns well with your requirements.`,
-    `I am writing to apply for a position at UNICC, where I can leverage my ${yearsOfExp} years of cybersecurity expertise to support the critical work of the United Nations. My passion for protecting organizations from cyber threats, combined with my commitment to the UN's values of integrity and professionalism, makes me an ideal candidate.`
-  ]);
+// Generate skills based on job type and quality
+function getSkillsForJobType(quality: QualityTier, jobType: string): string[] {
+  if (jobType === 'product_delivery') {
+    const skillPool = productDeliverySkills[quality];
+    const count = quality === 'exceeds' ? randomInt(8, 12) : 
+                  quality === 'meets' ? randomInt(6, 8) :
+                  quality === 'close' ? randomInt(4, 6) : randomInt(2, 4);
+    return randomItems(skillPool, count);
+  }
+  
+  // Legacy cybersecurity skills
+  return randomItems(securitySkills, randomInt(4, 8));
+}
 
-  const body = randomItem([
-    `Throughout my career, I have developed deep expertise in ${skills.slice(0, 3).join(', ')}. I have successfully led security initiatives that resulted in measurable improvements to organizational security posture, including reducing critical vulnerabilities by over 60% and implementing zero-trust architecture across enterprise environments.
+// Generate certifications based on job type and quality
+function getCertificationsForJobType(quality: QualityTier, jobType: string): string[] {
+  if (jobType === 'product_delivery') {
+    const certPool = productDeliveryCertifications[quality];
+    const count = quality === 'exceeds' ? randomInt(3, 5) : 
+                  quality === 'meets' ? randomInt(2, 3) :
+                  quality === 'close' ? randomInt(0, 1) : 0;
+    return randomItems(certPool, count);
+  }
+  
+  // Legacy cybersecurity certs
+  return randomItems(securityCertifications, quality === 'exceeds' ? randomInt(3, 5) : randomInt(1, 3));
+}
 
-My experience includes working with diverse, multicultural teams in complex organizational structures. I understand the unique challenges of operating in an international environment and the importance of balancing security requirements with operational needs. I am skilled at communicating technical concepts to non-technical stakeholders and building consensus across different teams and cultures.
+// Generate job title based on job type and quality
+function getJobTitleForJobType(quality: QualityTier, jobType: string): string {
+  if (jobType === 'product_delivery') {
+    return randomItem(productDeliveryJobTitles[quality]);
+  }
+  return randomItem(securityJobTitles[quality]);
+}
 
-In my current role, I have been responsible for conducting comprehensive security assessments, developing incident response procedures, and providing security guidance to project teams. I have also led security awareness initiatives and contributed to policy development efforts that align with industry standards and best practices.`,
+// Generate motivation letter based on job type and quality
+function generateMotivationLetter(skills: string[], yearsOfExp: number, firstName: string, lastName: string, quality: QualityTier, jobType: string): string {
+  if (jobType === 'product_delivery') {
+    return generateProductDeliveryMotivationLetter(skills, yearsOfExp, firstName, lastName, quality);
+  }
+  return generateSecurityMotivationLetter(skills, yearsOfExp, firstName, lastName);
+}
 
-    `My professional journey has equipped me with comprehensive skills in ${skills.slice(0, 3).join(', ')}. I have a proven track record of identifying and mitigating security risks, implementing robust security controls, and building security-aware cultures within organizations.
+function generateProductDeliveryMotivationLetter(skills: string[], yearsOfExp: number, firstName: string, lastName: string, quality: QualityTier): string {
+  const intros = {
+    exceeds: `I am writing to express my strong interest in the Associate Product Delivery and Development Officer position at UNICC. With ${yearsOfExp} years of progressive experience in product development, digital solutions, and service delivery across international organizations, I am confident in my ability to make an immediate and significant impact on your team.`,
+    meets: `I am excited to apply for the Associate Product Delivery and Development Officer role at UNICC. With ${yearsOfExp} years of experience in product management and project delivery, I am eager to contribute my skills to support the UN's digital transformation initiatives.`,
+    close: `I am writing to apply for the Associate Product Delivery and Development Officer position at UNICC. While my ${yearsOfExp} years of professional experience has been in related fields, I am motivated to transition into product delivery and believe my transferable skills would be valuable.`,
+    far: `I am interested in the Associate Product Delivery and Development Officer position at UNICC. Although my background is primarily in different fields, I am eager to learn and transition into product delivery work.`
+  };
 
-I am particularly skilled at bridging the gap between technical security teams and business stakeholders, ensuring that security considerations are understood and prioritized at all levels of an organization. My collaborative approach has been instrumental in successful cross-functional security initiatives that delivered measurable business value.
+  const bodies = {
+    exceeds: `Throughout my career, I have led end-to-end product development initiatives that directly align with this role's requirements. I have extensive experience with Digital Diplomacy platforms, having designed and launched solutions supporting international conferences with 500+ participants and real-time interpretation in all 6 UN official languages.
 
-I have experience managing complex security projects from inception to completion, including vulnerability management programs, security tool implementations, and compliance initiatives. I am comfortable working independently while also thriving in team environments where knowledge sharing and collaboration are valued.`,
+My expertise in Business Model Canvas methodology has enabled me to develop compelling business cases that secured $10M+ in funding for digital transformation projects. I have successfully managed project portfolios of 15+ concurrent initiatives, consistently achieving 95%+ on-time delivery rates.
 
-    `I bring extensive experience in ${skills.slice(0, 3).join(', ')}, having worked across various sectors including international organizations, government, and private industry. This diverse background has given me a unique perspective on security challenges and best practices.
+I have hands-on experience with Remote Simultaneous Interpretation (RSI) platforms, having optimized service delivery processes that now support 200+ multilingual events annually. My work in process design and optimization has resulted in measurable efficiency gains of 30-40% across multiple service lines.
 
-I am adept at developing security strategies that align with organizational objectives while maintaining robust protection against evolving threats. My experience includes incident response leadership, security architecture design, and compliance with international standards such as ISO 27001 and NIST frameworks.
+Key achievements that demonstrate my qualifications:
+• Led Digital Diplomacy platform development serving 8 UN agencies with 98% stakeholder satisfaction
+• Implemented product roadmapping frameworks adopted as organizational standards
+• Managed cross-functional teams of 20+ members across 4 continents
+• Pioneered new business solution development methodologies reducing time-to-market by 35%`,
 
-I am committed to continuous learning and staying current with the latest security trends, threats, and technologies. I regularly participate in professional development activities and contribute to the security community through knowledge sharing and mentorship.`
-  ]);
+    meets: `In my ${yearsOfExp} years of experience, I have developed strong capabilities in product management and project delivery that align well with this position's requirements. I have hands-on experience using Business Model Canvas for strategic planning and have successfully coordinated projects with international stakeholders.
 
-  const closing = randomItem([
-    `I am drawn to UNICC's unique position as the technology backbone of the UN system. The opportunity to contribute to securing digital infrastructure that supports humanitarian and development work worldwide is deeply motivating to me. I am committed to upholding the highest standards of integrity, professionalism, and respect for diversity that the UN represents.
+I have contributed to digital solutions development, including conference management platforms and interpretation services. My experience includes requirements gathering, stakeholder management, and Agile/Scrum methodologies.
 
-I am confident that my technical expertise, international experience, and commitment to the UN's values would make me a valuable addition to your team. I welcome the opportunity to discuss how my skills and experience can contribute to UNICC's important mission.
+Key experiences relevant to this role:
+• Managed product development for 3 digital solutions with cross-functional teams
+• Coordinated project portfolio of 8 concurrent initiatives across multiple regions  
+• Facilitated stakeholder workshops and documented user requirements
+• Implemented Agile practices including sprint planning and retrospectives
 
-Thank you for considering my application. I look forward to the opportunity to further discuss my qualifications and learn more about how I can contribute to UNICC's continued success.`,
+I am skilled at ${skills.slice(0, 3).join(', ')} and have a proven track record of delivering projects on time and within scope.`,
 
-    `The mission of UNICC resonates strongly with my professional values and career aspirations. I believe that effective cybersecurity is essential to enabling the UN's critical humanitarian and development work, and I am eager to be part of an organization that makes a real difference in the world.
+    close: `I am applying for this position because I believe my ${yearsOfExp} years of professional experience has provided me with transferable skills relevant to product delivery work. While I have not held a product management role directly, I have contributed to projects and gained exposure to Agile methodologies.
 
-I am confident that my technical expertise, combined with my commitment to the UN's core values, would make me a valuable addition to your team. I am excited about the possibility of contributing to an organization that has such a positive impact on people's lives around the world.
+In my current role, I support project activities by maintaining documentation, coordinating meetings, and assisting with stakeholder communications. I am a quick learner and am committed to developing my product delivery skills.
 
-I appreciate your consideration of my application and look forward to the possibility of discussing my qualifications in more detail. Thank you for your time and attention.`,
+I am familiar with tools like Jira and have basic experience with ${skills.slice(0, 2).join(' and ')}. I am eager to learn Business Model Canvas, roadmapping, and other product management frameworks.`,
 
-    `Joining UNICC would allow me to combine my technical expertise with my desire to contribute to meaningful global initiatives. I am excited about the prospect of working alongside talented professionals who share a commitment to excellence and the UN's principles of integrity and respect.
+    far: `I am writing to express my interest in transitioning to a product delivery role at UNICC. My background has been in ${skills[0] || 'other fields'}, which has given me strong attention to detail and organizational skills.
 
-My experience, skills, and values align closely with what I understand UNICC is looking for in its team members. I am confident in my ability to contribute from day one while continuing to grow and develop within the organization.
+While I do not have direct product management experience, I am a dedicated professional who is willing to learn and grow. I am attracted to UNICC's mission and believe that with proper training, I could contribute to your team.
 
-I appreciate your consideration of my application and look forward to the opportunity to discuss how I can contribute to UNICC's important work. Thank you for your time.`
-  ]);
+I understand this role requires specific product delivery skills that I am still developing, but I am committed to pursuing professional development opportunities to build these capabilities.`
+  };
 
-  return `${intro}\n\n${body}\n\n${closing}\n\nSincerely,\n${firstName} ${lastName}`;
+  const closings = {
+    exceeds: `I am drawn to UNICC's unique position as the technology backbone of the UN system. The opportunity to drive product innovation that enables humanitarian and development work worldwide deeply motivates me. I bring not only the technical skills required but also a genuine commitment to the UN's values of integrity, professionalism, and respect for diversity.
+
+I am confident that my extensive experience in product development, Digital Diplomacy, and service delivery would make me a valuable addition to your team. I welcome the opportunity to discuss how I can contribute to UNICC's important mission.`,
+
+    meets: `I am excited about the opportunity to contribute to UNICC's digital transformation initiatives. I believe my product management experience and commitment to continuous learning would make me an effective contributor to your team.
+
+Thank you for considering my application. I look forward to discussing how my skills and experience align with your needs.`,
+
+    close: `I am motivated by UNICC's mission and eager to develop my product delivery capabilities in this environment. I am a quick learner and believe that my enthusiasm and transferable skills could add value to your team.
+
+Thank you for considering my application. I would appreciate the opportunity to discuss how I could grow into this role.`,
+
+    far: `While I recognize my background may not be the traditional path to this role, I am committed to learning and developing new skills. I would appreciate any opportunity to discuss this position further.
+
+Thank you for your time and consideration.`
+  };
+
+  return `${intros[quality]}
+
+${bodies[quality]}
+
+${closings[quality]}`;
+}
+
+function generateSecurityMotivationLetter(skills: string[], yearsOfExp: number, firstName: string, lastName: string): string {
+  const intro = `I am writing to express my strong interest in contributing to UNICC's mission of providing digital solutions for the United Nations system. With ${yearsOfExp} years of experience in cybersecurity and a deep commitment to international cooperation, I am confident in my ability to make a meaningful impact on your team.`;
+
+  const body = `Throughout my career, I have developed deep expertise in ${skills.slice(0, 3).join(', ')}. I have successfully led security initiatives that resulted in measurable improvements to organizational security posture, including reducing critical vulnerabilities by over 60% and implementing zero-trust architecture across enterprise environments.
+
+My experience includes working with diverse, multicultural teams in complex organizational structures. I understand the unique challenges of operating in an international environment and the importance of balancing security requirements with operational needs.`;
+
+  const closing = `I am drawn to UNICC's unique position as the technology backbone of the UN system. The opportunity to contribute to securing digital infrastructure that supports humanitarian and development work worldwide is deeply motivating to me.
+
+Thank you for considering my application. I look forward to the opportunity to further discuss my qualifications.`;
+
+  return `${intro}\n\n${body}\n\n${closing}`;
 }
 
 function generateReferences(): Array<{ name: string; full_address: string; occupation_title: string }> {
   const refs = [];
+  const types = ['academic', 'professional', 'colleague'];
   
-  // Academic reference
-  const academicGender = Math.random() > 0.5 ? 'male' : 'female';
-  const academicFirst = randomItem(academicGender === 'male' ? maleFirstNames : femaleFirstNames);
-  const academicLast = randomItem(lastNames);
-  const uni = randomItem(universities);
-  const uniCity = randomItem(cities);
-  refs.push({
-    name: `Professor ${academicFirst} ${academicLast}`,
-    full_address: `Department of Computer Science, ${uni}, ${uniCity.city}, ${uniCity.country}`,
-    occupation_title: randomItem(["Professor of Computer Science", "Professor of Cybersecurity", "Associate Professor of Information Security"])
-  });
-
-  // Professional reference (former supervisor)
-  const profGender = Math.random() > 0.5 ? 'male' : 'female';
-  const profFirst = randomItem(profGender === 'male' ? maleFirstNames : femaleFirstNames);
-  const profLast = randomItem(lastNames);
-  const profCompany = randomItem(companies);
-  const profCity = randomItem(cities);
-  refs.push({
-    name: `${profFirst} ${profLast}`,
-    full_address: `${profCompany}, ${randomItem(profCity.addresses)}, ${profCity.city}, ${profCity.country}`,
-    occupation_title: randomItem(["Former Supervisor", "Director of IT Security", "Chief Technology Officer", "Head of Security Operations"])
-  });
-
-  // Colleague reference
-  const collGender = Math.random() > 0.5 ? 'male' : 'female';
-  const collFirst = randomItem(collGender === 'male' ? maleFirstNames : femaleFirstNames);
-  const collLast = randomItem(lastNames);
-  const collOrg = Math.random() > 0.5 ? randomItem(unOrganizations) : randomItem(companies);
-  const collCity = randomItem(cities);
-  refs.push({
-    name: `${collFirst} ${collLast}`,
-    full_address: `${collOrg}, ${collCity.city}, ${collCity.country}`,
-    occupation_title: randomItem(["Senior Security Consultant", "Principal Engineer", "Technical Director", "Programme Manager"])
-  });
-
+  for (const type of types) {
+    const gender = Math.random() > 0.5 ? 'male' : 'female';
+    const firstName = randomItem(gender === 'male' ? maleFirstNames : femaleFirstNames);
+    const lastName = randomItem(lastNames);
+    const location = randomItem(cities);
+    
+    let title = '';
+    if (type === 'academic') {
+      title = randomItem(['Professor of Computer Science', 'Dean of Engineering', 'Department Chair', 'Research Director']);
+    } else if (type === 'professional') {
+      title = randomItem(['Director', 'Vice President', 'Senior Manager', 'Chief Technology Officer', 'Head of Division']);
+    } else {
+      title = randomItem(['Senior Colleague', 'Team Lead', 'Principal Engineer', 'Technical Architect']);
+    }
+    
+    refs.push({
+      name: `${firstName} ${lastName}`,
+      full_address: `${randomItem(location.addresses)}, ${location.city}, ${location.country}`,
+      occupation_title: title
+    });
+  }
+  
   return refs;
 }
 
 function generateDependants(maritalStatus: string): Array<{ name: string; relationship: string; dateOfBirth: string }> {
   if (maritalStatus === 'Single' || Math.random() > 0.6) return [];
-
+  
   const dependants = [];
-  const numDependants = randomInt(1, 3);
-
-  for (let i = 0; i < numDependants; i++) {
-    const relationship = i === 0 && maritalStatus === 'Married' ? 'Spouse' : 'Child';
+  const numDeps = randomInt(1, 3);
+  
+  for (let i = 0; i < numDeps; i++) {
     const gender = Math.random() > 0.5 ? 'male' : 'female';
     const firstName = randomItem(gender === 'male' ? maleFirstNames : femaleFirstNames);
-    
-    const yearOffset = relationship === 'Spouse' ? randomInt(25, 50) : randomInt(1, 18);
-    const dob = new Date();
-    dob.setFullYear(dob.getFullYear() - yearOffset);
+    const dob = randomDate(new Date(2005, 0, 1), new Date(2022, 0, 1));
     
     dependants.push({
       name: firstName,
-      relationship,
+      relationship: randomItem(['Child', 'Son', 'Daughter']),
       dateOfBirth: dob.toISOString().split('T')[0]
     });
   }
-
+  
   return dependants;
 }
 
 function generateUNRelatives(shouldHave: boolean): Array<{ name: string; relationship: string; organization: string; position: string }> {
   if (!shouldHave) return [];
-
-  const numRelatives = randomInt(1, 2);
+  
   const relatives = [];
-  const relationships = ['Sibling', 'Parent', 'Spouse', 'Cousin', 'Uncle', 'Aunt'];
-  const positions = ['Programme Officer', 'Administrative Assistant', 'Project Manager', 'Technical Specialist', 'Human Resources Officer', 'Finance Officer'];
-
-  for (let i = 0; i < numRelatives; i++) {
+  const numRels = randomInt(1, 2);
+  
+  for (let i = 0; i < numRels; i++) {
     const gender = Math.random() > 0.5 ? 'male' : 'female';
     const firstName = randomItem(gender === 'male' ? maleFirstNames : femaleFirstNames);
     const lastName = randomItem(lastNames);
-
+    
     relatives.push({
       name: `${firstName} ${lastName}`,
-      relationship: randomItem(relationships),
+      relationship: randomItem(['Spouse', 'Sibling', 'Parent', 'Child']),
       organization: randomItem(unOrganizations),
-      position: randomItem(positions)
+      position: randomItem(['Programme Officer', 'Administrative Assistant', 'Technical Specialist', 'Consultant'])
     });
   }
-
+  
   return relatives;
 }
 
-function generateEducationPHF(quality: string): any[] {
-  const numEducation = quality === 'strong' ? randomInt(2, 3) : quality === 'good' ? 2 : 1;
+// Generate education based on job type and quality
+function generateEducationPHF(quality: QualityTier, jobType: string): any[] {
   const education = [];
-
-  const degreeTypes = {
-    phd: ["Ph.D.", "Doctor of Philosophy", "Doctorate"],
-    masters: ["Master of Science", "Master of Arts", "MBA", "Master of Engineering"],
-    bachelors: ["Bachelor of Science", "Bachelor of Arts", "Bachelor of Engineering"]
-  };
-
-  for (let i = 0; i < numEducation; i++) {
-    const degreeCategory = i === 0 && quality === 'strong' ? 
-      (Math.random() > 0.7 ? 'phd' : 'masters') : 
-      (i === 0 && quality === 'good' ? 'masters' : 'bachelors');
-
-    const startYear = 2000 + randomInt(0, 15);
-    const duration = degreeCategory === 'phd' ? randomInt(3, 5) : degreeCategory === 'masters' ? randomInt(1, 2) : randomInt(3, 4);
-    const endYear = startYear + duration;
-
-    const location = randomItem(cities);
-    const degreeTitle = randomItem(degreeTypes[degreeCategory]);
-    const field = randomItem(fieldsOfStudy);
-
+  const numDegrees = quality === 'exceeds' ? 2 : quality === 'meets' ? randomInt(1, 2) : 1;
+  let currentYear = 2023;
+  
+  for (let i = 0; i < numDegrees; i++) {
+    let degree, field;
+    
+    if (jobType === 'product_delivery') {
+      const eduConfig = productDeliveryEducation[quality];
+      const selected = randomItem(eduConfig);
+      degree = selected.degree;
+      field = selected.field;
+    } else {
+      // Legacy cybersecurity education
+      const degrees = i === 0 && (quality === 'exceeds' || quality === 'meets')
+        ? ['Master of Science', 'Master of Engineering', 'MBA']
+        : ['Bachelor of Science', 'Bachelor of Engineering'];
+      degree = randomItem(degrees);
+      field = randomItem(['Computer Science', 'Cybersecurity', 'Information Technology', 'Software Engineering']);
+    }
+    
+    const duration = degree.includes('Master') || degree.includes('MBA') ? randomInt(1, 2) : randomInt(3, 4);
+    const endYear = currentYear - (i * 4);
+    const startYear = endYear - duration;
+    
     education.push({
-      from_month: randomInt(1, 12),
+      from_month: 9,
       from_year: startYear,
-      to_month: randomInt(1, 12),
+      to_month: 6,
       to_year: endYear,
-      is_present: false,
       institution_name: randomItem(universities),
-      institution_place: location.city,
-      institution_country: location.country,
-      degree_type: degreeTitle,
-      degree_or_certificate_title: `${degreeTitle} in ${field}`,
+      institution_city: randomItem(cities).city,
+      institution_country: randomItem(cities).country,
+      degree_or_certificate_title: degree,
       main_course_of_study: field,
-      is_completed: true
+      completed: true,
+      attestations: { confirm_education_true: true }
     });
+    
+    currentYear = startYear - 1;
   }
-
-  return education.sort((a, b) => b.to_year - a.to_year);
+  
+  return education;
 }
 
-function generateEmploymentPHF(quality: string, shouldHaveUNExp: boolean): any[] {
-  const numJobs = quality === 'strong' ? randomInt(4, 5) : quality === 'good' ? randomInt(3, 4) : randomInt(2, 3);
+function generateEmploymentPHF(quality: QualityTier, hasUNExp: boolean, jobType: string): any[] {
   const employment = [];
-
-  let currentYear = new Date().getFullYear();
-
+  const numJobs = quality === 'exceeds' ? randomInt(3, 5) : 
+                  quality === 'meets' ? randomInt(2, 4) : 
+                  quality === 'close' ? randomInt(1, 3) : randomInt(1, 2);
+  let currentYear = 2024;
+  
   for (let i = 0; i < numJobs; i++) {
-    const isUN = shouldHaveUNExp && i < 2;
+    const isUN = hasUNExp && i < 2;
     const company = isUN ? randomItem(unOrganizations) : randomItem(companies);
     const location = randomItem(cities);
     const supervisor = generateSupervisor(company);
-
+    
     const duration = i === 0 ? randomInt(1, 3) : randomInt(2, 4);
     const startYear = currentYear - duration;
     const endYear = i === 0 ? null : currentYear;
     const isPresent = i === 0;
-
-    const titleCategory = i === 0 && quality === 'strong' ? 'senior' : 
-                          (i === 0 || quality === 'good') ? 'mid' : 'junior';
-    const title = randomItem(jobTitles[titleCategory]);
-
-    const duties = generateDuties(title, isUN);
-
+    
+    // Job title appropriate for the position in career and quality
+    let title: string;
+    if (i === 0) {
+      // Current job - use quality-appropriate title
+      title = getJobTitleForJobType(quality, jobType);
+    } else if (i === 1 && (quality === 'exceeds' || quality === 'meets')) {
+      // Previous job - slightly lower level
+      const lowerQuality: QualityTier = quality === 'exceeds' ? 'meets' : 'close';
+      title = getJobTitleForJobType(lowerQuality, jobType);
+    } else {
+      title = getJobTitleForJobType('close', jobType);
+    }
+    
+    const duties = generateDutiesForJobType(i === 0 ? quality : 'close', jobType);
+    
     employment.push({
       from_month: randomInt(1, 12),
       from_year: startYear,
@@ -422,37 +646,32 @@ function generateEmploymentPHF(quality: string, shouldHaveUNExp: boolean): any[]
       is_present: isPresent,
       employer_name: company,
       employer_address: `${randomItem(location.addresses)}, ${location.city}, ${location.country}`,
-      type_of_business: isUN ? 'International Organization' : randomItem(['Technology', 'Consulting', 'Defense', 'Financial Services', 'Government']),
+      type_of_business: isUN ? 'International Organization' : randomItem(['Technology', 'Consulting', 'Financial Services', 'Government']),
       exact_title: title,
       duties_and_responsibilities: duties,
-      un_grade: isUN ? randomItem(['P-2', 'P-3', 'P-4', 'P-5', 'D-1']) : null,
+      un_grade: isUN ? randomItem(['P-2', 'P-3', 'P-4', 'P-5']) : null,
       annual_income_starting: randomInt(50000, 80000) * (numJobs - i),
       annual_income_most_recent: randomInt(70000, 120000) * (numJobs - i + 1),
-      allowances_or_benefits: isUN ? 'Post adjustment, education grant, home leave, rental subsidy' : 'Health insurance, pension contribution, annual bonus, stock options',
-      employees_supervised_number: quality === 'strong' ? randomInt(3, 15) : quality === 'good' ? randomInt(0, 5) : 0,
-      employees_supervised_type: quality !== 'weak' && randomInt(0, 10) > 3 ? 'Direct reports including analysts and engineers' : null,
+      allowances_or_benefits: isUN ? 'Post adjustment, education grant, home leave, rental subsidy' : 'Health insurance, pension contribution, annual bonus',
+      employees_supervised_number: quality === 'exceeds' ? randomInt(5, 20) : quality === 'meets' ? randomInt(1, 8) : 0,
+      employees_supervised_type: (quality === 'exceeds' || quality === 'meets') ? 'Direct reports' : null,
       reason_for_change: i === 0 ? null : randomItem([
         'Career advancement opportunity',
-        'Seeking new challenges and professional growth',
-        'Relocation for personal reasons',
+        'Seeking new challenges',
         'Contract completion',
-        'Organizational restructuring',
-        'Better alignment with career goals'
+        'Organizational restructuring'
       ]),
       supervisor_name: supervisor.name,
       supervisor_title: supervisor.title,
       supervisor_email: supervisor.email,
       supervisor_phone: supervisor.phone,
       supervisor_can_contact: Math.random() > 0.2,
-      attestations: {
-        confirm_duties_accurate: true,
-        confirm_dates_accurate: true
-      }
+      attestations: { confirm_duties_accurate: true, confirm_dates_accurate: true }
     });
-
+    
     currentYear = startYear - 1;
   }
-
+  
   return employment;
 }
 
@@ -465,13 +684,12 @@ function generateLanguagesPHF(): any {
   // Always fluent in English
   unLangs['english'] = { read: 'fluent', write: 'fluent', speak: 'fluent' };
   
-  // Random proficiency for other UN languages - only add if they have a level (not none)
+  // Random proficiency for other UN languages
   for (const lang of unLanguages.slice(1)) {
     if (Math.random() > 0.6) {
       const level = randomItem(proficiencies);
       unLangs[lang] = { read: level, write: level, speak: level };
     }
-    // Don't add languages with 'none' - just skip them entirely
   }
 
   const otherLanguageNames = ['German', 'Portuguese', 'Italian', 'Japanese', 'Hindi', 'Korean', 'Dutch', 'Swedish'];
@@ -485,25 +703,6 @@ function generateLanguagesPHF(): any {
   return { un_languages: unLangs, other_languages: otherLangs };
 }
 
-function determineQuality(index: number): string {
-  if (index < 8) return 'strong';
-  if (index < 14) return 'good';
-  if (index < 30) return 'average';
-  return 'weak';
-}
-
-function determineGender(index: number): 'Man' | 'Woman' {
-  return index < 21 ? 'Man' : 'Woman';
-}
-
-function shouldHaveUNExperience(index: number): boolean {
-  return index < 16;
-}
-
-function shouldHaveUNRelatives(index: number): boolean {
-  return index % 10 === 0;
-}
-
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -514,21 +713,23 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { jobId } = await req.json();
+    const { jobId, count = 80, jobType = 'product_delivery' } = await req.json();
 
     if (!jobId) {
       throw new Error("jobId is required");
     }
 
-    console.log(`Generating 40 test applicants with full PHF data for job: ${jobId}`);
+    const totalCount = count;
+    console.log(`Generating ${totalCount} test applicants for job ${jobId} with jobType: ${jobType}`);
+    console.log(`Distribution: ${Math.floor(totalCount * 0.10)} exceeds, ${Math.floor(totalCount * 0.30)} meets, ${Math.floor(totalCount * 0.40)} close, ${Math.floor(totalCount * 0.20)} far`);
 
     const candidatesToCreate = [];
     const applicationsToCreate = [];
 
-    for (let i = 0; i < 40; i++) {
-      const quality = determineQuality(i);
-      const gender = determineGender(i);
-      const hasUNExp = shouldHaveUNExperience(i);
+    for (let i = 0; i < totalCount; i++) {
+      const quality = determineQualityDistribution(i, totalCount);
+      const gender = determineGender(i, totalCount);
+      const hasUNExp = shouldHaveUNExperience(quality);
       const hasUNRelatives = shouldHaveUNRelatives(i);
 
       const firstName = gender === 'Man' ? randomItem(maleFirstNames) : randomItem(femaleFirstNames);
@@ -540,17 +741,22 @@ const handler = async (req: Request): Promise<Response> => {
       const maritalStatus = randomItem(['Single', 'Married', 'Divorced', 'Widowed']);
       const dob = randomDate(new Date(1970, 0, 1), new Date(2000, 0, 1));
 
-      // Generate core data
-      const skills = randomItems(securitySkills, randomInt(4, 8));
-      const certs = randomItems(certifications, quality === 'strong' ? randomInt(3, 5) : randomInt(1, 3));
-      const educationPHF = generateEducationPHF(quality);
-      const employmentPHF = generateEmploymentPHF(quality, hasUNExp);
+      // Generate core data based on job type and quality
+      const skills = getSkillsForJobType(quality, jobType);
+      const certs = getCertificationsForJobType(quality, jobType);
+      const educationPHF = generateEducationPHF(quality, jobType);
+      const employmentPHF = generateEmploymentPHF(quality, hasUNExp, jobType);
       const references = generateReferences();
       const dependants = generateDependants(maritalStatus);
       const relatives = generateUNRelatives(hasUNRelatives);
       const languagesPHF = generateLanguagesPHF();
-      const yearsOfExp = quality === 'strong' ? randomInt(10, 20) : quality === 'good' ? randomInt(6, 12) : randomInt(2, 6);
-      const motivationLetter = generateMotivationLetter(skills, yearsOfExp, firstName, lastName);
+      
+      // Years of experience based on quality
+      const yearsOfExp = quality === 'exceeds' ? randomInt(10, 20) : 
+                         quality === 'meets' ? randomInt(5, 10) : 
+                         quality === 'close' ? randomInt(2, 5) : randomInt(0, 2);
+      
+      const motivationLetter = generateMotivationLetter(skills, yearsOfExp, firstName, lastName, quality, jobType);
 
       // Build complete PHF data
       const phfData = {
@@ -592,8 +798,8 @@ const handler = async (req: Request): Promise<Response> => {
         unemploymentPeriods: [],
         additionalInformation: {
           additional_skills: skills.join(', '),
-          fellowships: quality === 'strong' && Math.random() > 0.7 ? [{
-            title: randomItem(['Fulbright Scholar', 'Rhodes Scholar', 'Marshall Scholar', 'Chevening Scholar']),
+          fellowships: quality === 'exceeds' && Math.random() > 0.7 ? [{
+            title: randomItem(['Fulbright Scholar', 'Rhodes Scholar', 'Marshall Scholar']),
             organization: 'Academic Institution',
             year: randomInt(2010, 2020)
           }] : [],
@@ -641,6 +847,11 @@ const handler = async (req: Request): Promise<Response> => {
           signature_place: location.city,
           signature_date: new Date().toISOString(),
           signed_at_utc: new Date().toISOString()
+        },
+        // Store quality tier for debugging/verification
+        _metadata: {
+          quality_tier: quality,
+          job_type: jobType
         }
       };
 
@@ -680,7 +891,7 @@ const handler = async (req: Request): Promise<Response> => {
         years_of_experience: yearsOfExp,
         un_experience: hasUNExp,
         marital_status_detailed: maritalStatus,
-        professional_summary: `Experienced ${skills[0]} professional with ${yearsOfExp} years of experience in ${skills.slice(0, 3).join(', ')}.`,
+        professional_summary: `Experienced ${skills[0] || 'professional'} with ${yearsOfExp} years of experience in ${skills.slice(0, 3).join(', ')}.`,
         motivation_letter: motivationLetter,
         personal_references: references,
         notice_period_days: phfData.availability.notice_period_days,
@@ -698,7 +909,8 @@ const handler = async (req: Request): Promise<Response> => {
       // Application record with PHF data
       applicationsToCreate.push({
         candidate_email: email,
-        phf_data: phfData
+        phf_data: phfData,
+        quality_tier: quality
       });
     }
 
@@ -743,7 +955,14 @@ const handler = async (req: Request): Promise<Response> => {
       throw applicationError;
     }
 
-    console.log(`Successfully created ${insertedCandidates.length} candidates and ${insertedApps.length} applications with complete PHF data`);
+    // Count by quality tier
+    const qualityCounts = applicationsToCreate.reduce((acc, app) => {
+      acc[app.quality_tier] = (acc[app.quality_tier] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    console.log(`Successfully created ${insertedCandidates.length} candidates and ${insertedApps.length} applications`);
+    console.log(`Quality distribution: exceeds=${qualityCounts.exceeds || 0}, meets=${qualityCounts.meets || 0}, close=${qualityCounts.close || 0}, far=${qualityCounts.far || 0}`);
 
     // Log audit entry
     await supabase.from('audit_logs').insert({
@@ -753,6 +972,8 @@ const handler = async (req: Request): Promise<Response> => {
       after: {
         candidates_created: insertedCandidates.length,
         applications_created: insertedApps.length,
+        job_type: jobType,
+        quality_distribution: qualityCounts,
         with_full_phf: true
       }
     });
@@ -762,7 +983,9 @@ const handler = async (req: Request): Promise<Response> => {
         success: true,
         candidates_created: insertedCandidates.length,
         applications_created: insertedApps.length,
-        message: "40 test applicants created with complete PHF data including motivation letters, references, duties & responsibilities, and supervisor details"
+        job_type: jobType,
+        quality_distribution: qualityCounts,
+        message: `${totalCount} test applicants created with ${jobType} profiles: ${qualityCounts.exceeds || 0} exceed, ${qualityCounts.meets || 0} meet, ${qualityCounts.close || 0} close, ${qualityCounts.far || 0} far from requirements`
       }),
       {
         status: 200,
