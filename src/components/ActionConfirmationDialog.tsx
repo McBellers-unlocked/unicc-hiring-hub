@@ -211,9 +211,9 @@ export function ActionConfirmationDialog({
           </div>
           
           {showRatingSelector && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="text-sm font-medium">
-                Candidate Rating <span className="text-muted-foreground font-normal">(optional)</span>
+                Candidate Rating <span className="text-destructive">*</span>
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {ratingOptions.map((option) => {
@@ -296,7 +296,7 @@ export function ActionConfirmationDialog({
           <Button
             variant={config.buttonVariant}
             onClick={handleConfirm}
-            disabled={isSubmitting || (isRequired && !reason.trim())}
+            disabled={isSubmitting || (isRequired && !reason.trim()) || (showRatingSelector && !rating)}
             className="min-w-[100px]"
           >
             {isSubmitting ? 'Processing...' : config.buttonText}
