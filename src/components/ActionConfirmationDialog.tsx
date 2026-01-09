@@ -27,23 +27,23 @@ const ratingOptions = [
   { 
     value: 'eligible', 
     label: 'Eligible', 
-    description: 'Meets basic requirements',
+    description: 'Meets the minimum requirements for the position',
     bgColor: 'bg-blue-50 hover:bg-blue-100 border-blue-200',
     selectedBg: 'bg-blue-100 border-blue-500 ring-2 ring-blue-500/20',
     textColor: 'text-blue-700'
   },
   { 
-    value: 'above_average', 
-    label: 'Above Average', 
-    description: 'Good experience',
+    value: 'tier_2', 
+    label: 'Tier 2', 
+    description: 'Strong candidate with relevant experience and competencies',
     bgColor: 'bg-amber-50 hover:bg-amber-100 border-amber-200',
     selectedBg: 'bg-amber-100 border-amber-500 ring-2 ring-amber-500/20',
     textColor: 'text-amber-700'
   },
   { 
-    value: 'excellent', 
-    label: 'Excellent', 
-    description: 'Gold star candidate',
+    value: 'tier_1', 
+    label: 'Tier 1', 
+    description: 'Exceptional candidate; highly recommended for shortlisting',
     bgColor: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200',
     selectedBg: 'bg-emerald-100 border-emerald-500 ring-2 ring-emerald-500/20',
     textColor: 'text-emerald-700',
