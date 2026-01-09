@@ -20,7 +20,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2, FileText, UserCheck, Eye } from "lucide-react";
-import { getAssignedChief } from "@/lib/chiefAssignment";
+import { getAssignedChief, getDivisionCode } from "@/lib/chiefAssignment";
 import { useNavigate } from "react-router-dom";
 
 export default function ChiefOfDivisionView() {
@@ -207,10 +207,29 @@ export default function ChiefOfDivisionView() {
         updateData.chief_pd_approval = approved;
         updateData.chief_pd_approved_by = user?.id;
         updateData.chief_pd_approved_at = new Date().toISOString();
-        updateData.status = approved ? 'director_review' : 'rejected';
         
         if (comments) {
           updateData.chief_pd_comments = comments;
+        }
+        
+        // Get the requisition to check its division
+        const { data: requisition } = await supabase
+          .from("job_requisitions")
+          .select("unit_section_division")
+          .eq("id", id)
+          .single();
+        
+        // Check if this is a DO division requisition
+        const divisionCode = getDivisionCode(requisition?.unit_section_division);
+        
+        if (divisionCode === 'DO' && approved) {
+          // For DO division: Chief = Director (Sameer), so auto-approve director step too
+          updateData.director_approval = true;
+          updateData.director_approved_by = user?.id;
+          updateData.director_approved_at = new Date().toISOString();
+          updateData.status = 'approved';
+        } else {
+          updateData.status = approved ? 'director_review' : 'rejected';
         }
       }
 
@@ -221,7 +240,15 @@ export default function ChiefOfDivisionView() {
 
       if (error) throw error;
       
-      return { id, approved, isInitialRequest };
+      // Get division code for email logic
+      const { data: reqData } = await supabase
+        .from("job_requisitions")
+        .select("unit_section_division")
+        .eq("id", id)
+        .single();
+      const isDODivision = getDivisionCode(reqData?.unit_section_division) === 'DO';
+      
+      return { id, approved, isInitialRequest, isDODivision };
     },
     onSuccess: async (data) => {
       // Immediately refetch to ensure UI updates
@@ -234,8 +261,15 @@ export default function ChiefOfDivisionView() {
           await supabase.functions.invoke("send-chief-pd-approval-notification", {
             body: { requisitionId: data.id }
           });
+          
+          // If DO division, also send director approval notification since Chief = Director
+          if (data.isDODivision) {
+            await supabase.functions.invoke("send-director-approval-notification", {
+              body: { requisitionId: data.id }
+            });
+          }
         } catch (emailError) {
-          console.error("Failed to send chief approval notification:", emailError);
+          console.error("Failed to send approval notification:", emailError);
         }
       }
       
