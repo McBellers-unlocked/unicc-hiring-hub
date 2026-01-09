@@ -247,6 +247,18 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
         description: `Job ${publish ? 'published' : 'saved'} successfully`,
       });
 
+      // Send notification when publishing
+      if (publish) {
+        try {
+          await supabase.functions.invoke('send-vacancy-published-notification', {
+            body: { jobId: finalJobId }
+          });
+        } catch (emailError) {
+          console.error('Failed to send vacancy published notification:', emailError);
+          // Don't block the publish - just log the error
+        }
+      }
+
       // Navigate back to admin jobs list
       navigate('/admin/jobs');
 
