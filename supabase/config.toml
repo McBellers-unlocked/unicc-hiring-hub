@@ -92,3 +92,6 @@ policy = "per_worker"
 
 [functions.score-application]
 verify_jwt = false
+
+[functions.send-longlist-complete-notification]
+verify_jwt = false
