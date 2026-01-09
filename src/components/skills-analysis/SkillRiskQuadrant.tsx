@@ -319,19 +319,19 @@ export default function SkillRiskQuadrant({ skills }: Props) {
                 {/* Quadrant background fills */}
                 <ReferenceArea 
                   x1={CRITICALITY_THRESHOLD} x2={5} y1={0} y2={COVERAGE_TARGET} 
-                  fill="hsl(var(--destructive))" fillOpacity={0.04}
+                  fill="hsl(var(--destructive))" fillOpacity={0.12}
                 />
                 <ReferenceArea 
                   x1={CRITICALITY_THRESHOLD} x2={5} y1={COVERAGE_TARGET} y2={100} 
-                  fill="hsl(var(--chart-1))" fillOpacity={0.04}
+                  fill="hsl(var(--chart-1))" fillOpacity={0.10}
                 />
                 <ReferenceArea 
                   x1={1} x2={CRITICALITY_THRESHOLD} y1={0} y2={COVERAGE_TARGET} 
-                  fill="hsl(var(--chart-4))" fillOpacity={0.04}
+                  fill="hsl(var(--chart-4))" fillOpacity={0.10}
                 />
                 <ReferenceArea 
                   x1={1} x2={CRITICALITY_THRESHOLD} y1={COVERAGE_TARGET} y2={100} 
-                  fill="hsl(var(--muted))" fillOpacity={0.3}
+                  fill="hsl(var(--muted))" fillOpacity={0.25}
                 />
 
                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -478,16 +478,16 @@ export default function SkillRiskQuadrant({ skills }: Props) {
 
           {/* Quadrant Labels - positioned on chart */}
           <div className="relative -mt-[310px] h-[280px] pointer-events-none">
-            <span className="absolute top-2 right-4 text-[10px] font-medium text-chart-1 opacity-70">
+            <span className="absolute top-2 right-4 text-xs font-semibold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded">
               HEALTHY
             </span>
-            <span className="absolute top-2 left-12 text-[10px] font-medium text-muted-foreground opacity-70">
+            <span className="absolute top-2 left-12 text-xs font-semibold text-gray-600 bg-gray-200/80 px-2 py-0.5 rounded">
               DEPRIORITIZE
             </span>
-            <span className="absolute bottom-8 right-4 text-[10px] font-medium text-destructive opacity-70">
+            <span className="absolute bottom-8 right-4 text-xs font-semibold text-red-700 bg-red-100/80 px-2 py-0.5 rounded">
               URGENT
             </span>
-            <span className="absolute bottom-8 left-12 text-[10px] font-medium text-chart-4 opacity-70">
+            <span className="absolute bottom-8 left-12 text-xs font-semibold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded">
               WATCH
             </span>
           </div>
