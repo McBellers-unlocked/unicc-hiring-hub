@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.send-director-approval-notification]
 verify_jwt = false
+
+[functions.send-initial-request-approval-notification]
+verify_jwt = false
