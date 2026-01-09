@@ -15,16 +15,15 @@ export function ApplicationSelectionActionBar({
   if (selectedCount === 0) return null;
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-3 z-50 animate-in slide-in-from-bottom-4">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-6 py-3 rounded-full shadow-lg flex items-center gap-3 z-50 animate-in slide-in-from-bottom-4">
       <span className="font-medium text-sm">
         {selectedCount} selected
       </span>
       
       <Button
         size="sm"
-        variant="destructive"
         onClick={onReject}
-        className="gap-1.5"
+        className="bg-red-100 hover:bg-red-200 text-red-800 gap-1.5"
       >
         <Ban className="h-4 w-4" />
         Reject
@@ -34,7 +33,7 @@ export function ApplicationSelectionActionBar({
         variant="ghost"
         size="icon"
         onClick={onClearSelection}
-        className="h-8 w-8 hover:bg-white/20 text-white"
+        className="h-8 w-8 hover:bg-primary-foreground/20"
       >
         <X className="h-4 w-4" />
       </Button>
