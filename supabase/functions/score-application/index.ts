@@ -268,12 +268,15 @@ function parseEssentialCriteria(requirements: any[]): ParsedCriterion[] {
 // =============================================================================
 
 function calculateTotalExperienceYears(experience: any[]): number {
+  if (!experience || !Array.isArray(experience)) return 0;
+  
   let totalMonths = 0;
   
   for (const exp of experience) {
     let startDate: Date | null = null;
     let endDate: Date | null = null;
     
+    // Handle PHF format (period_from_year, period_to_year)
     if (exp.period_from_year) {
       const month = exp.period_from_month ? parseInt(exp.period_from_month) - 1 : 0;
       startDate = new Date(parseInt(exp.period_from_year), month, 1);
@@ -284,12 +287,26 @@ function calculateTotalExperienceYears(experience: any[]): number {
         const toMonth = exp.period_to_month ? parseInt(exp.period_to_month) - 1 : 11;
         endDate = new Date(parseInt(exp.period_to_year), toMonth, 28);
       }
-    } else if (exp.startDate) {
+    } 
+    // Handle camelCase format (startDate, endDate)
+    else if (exp.startDate) {
       startDate = new Date(exp.startDate);
-      endDate = exp.isCurrent || !exp.endDate ? new Date() : new Date(exp.endDate);
-    } else if (exp.start_date) {
+      // Explicit null/undefined check - isCurrent or missing/null endDate = current job
+      if (exp.isCurrent === true || exp.endDate === null || exp.endDate === undefined) {
+        endDate = new Date();
+      } else {
+        endDate = new Date(exp.endDate);
+      }
+    } 
+    // Handle snake_case format (start_date, end_date)
+    else if (exp.start_date) {
       startDate = new Date(exp.start_date);
-      endDate = exp.is_current || !exp.end_date ? new Date() : new Date(exp.end_date);
+      // Explicit null/undefined check - is_current or missing/null end_date = current job
+      if (exp.is_current === true || exp.end_date === null || exp.end_date === undefined) {
+        endDate = new Date();
+      } else {
+        endDate = new Date(exp.end_date);
+      }
     }
     
     if (!startDate || isNaN(startDate.getTime())) continue;
@@ -360,10 +377,14 @@ function getEducationLevel(degreeType: string): EducationLevel {
   return DEGREE_TYPE_LEVELS[degreeType] || 'Other';
 }
 
-function getHighestEducationLevel(educationEntries: Array<{ degree_type: string }>): EducationLevel {
-  if (!educationEntries.length) return 'Other';
+function getHighestEducationLevel(educationEntries: any[]): EducationLevel {
+  if (!educationEntries || !educationEntries.length) return 'Other';
   
-  const levels = educationEntries.map(entry => getEducationLevel(entry.degree_type));
+  const levels = educationEntries.map(entry => {
+    // Support both field naming conventions: degree_type and degree
+    const degreeType = entry.degree_type || entry.degree || '';
+    return getEducationLevel(degreeType);
+  });
   
   if (levels.includes('Advanced University')) return 'Advanced University';
   if (levels.includes('First Level University')) return 'First Level University';
@@ -381,10 +402,13 @@ const LEVEL_HIERARCHY: Record<EducationLevel, number> = {
 };
 
 function checkEducationEligibility(
-  candidateEducation: Array<{ degree_type: string, is_completed: boolean }>,
+  candidateEducation: any[],
   requiredLevel: EducationLevel
 ): { eligible: boolean; candidateLevel: EducationLevel; details: string } {
-  const completedEducation = candidateEducation.filter(edu => edu.is_completed);
+  // Handle both: filter by is_completed if present, or include all if field is missing
+  const completedEducation = candidateEducation.filter(edu => 
+    edu.is_completed === true || edu.is_completed === undefined
+  );
   const candidateLevel = getHighestEducationLevel(completedEducation);
   
   const eligible = LEVEL_HIERARCHY[candidateLevel] >= LEVEL_HIERARCHY[requiredLevel];
