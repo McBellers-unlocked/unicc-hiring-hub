@@ -285,7 +285,7 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
                   className={`
                     w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all
                     ${stage.isActive
-                      ? 'bg-blue-500 border-blue-500 text-white animate-pulse'
+                      ? 'bg-primary border-primary text-white animate-pulse'
                       : stage.isCompleted 
                         ? 'bg-green-500 border-green-500 text-white' 
                         : 'bg-background border-muted-foreground/30 text-muted-foreground'
@@ -333,7 +333,7 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
             Initial Request Phase
           </span>
         ) : (
-          <span className="flex items-center gap-2 text-blue-600">
+          <span className="flex items-center gap-2 text-primary">
             <FileText className="h-4 w-4" />
             Full Position Description Phase
           </span>
@@ -352,7 +352,7 @@ export function RequisitionWorkflowTimeline({ requisition, compact = false }: Re
                   className={`
                     relative z-10 w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all flex-shrink-0
                     ${stage.isActive
-                      ? 'bg-blue-500 border-blue-500 text-white animate-pulse shadow-lg'
+                      ? 'bg-primary border-primary text-white animate-pulse shadow-lg'
                       : stage.isCompleted 
                         ? 'bg-green-500 border-green-500 text-white shadow-sm' 
                         : 'bg-background border-muted-foreground/30 text-muted-foreground'

@@ -1050,7 +1050,7 @@ export default function AdminRequisitions() {
                                   size="sm"
                                   onClick={() => handleSendReminder(requisition.id)}
                                   disabled={sendingReminder === requisition.id}
-                                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                  className="text-primary border-primary hover:bg-primary/5"
                                 >
                                   <Mail className="h-4 w-4 mr-1" />
                                   {sendingReminder === requisition.id ? 'Sending...' : 'Send PD Reminder'}
@@ -1073,7 +1073,7 @@ export default function AdminRequisitions() {
                                 size="sm"
                                 onClick={() => handleConvertToJob(requisition.id)}
                                 disabled={convertingToJob === requisition.id}
-                                className="bg-blue-600 hover:bg-blue-700"
+                                className="bg-primary hover:bg-primary/90"
                               >
                                 <Briefcase className="h-4 w-4 mr-1" />
                                 {convertingToJob === requisition.id ? 'Converting...' : 'Convert to Job'}
@@ -1087,7 +1087,7 @@ export default function AdminRequisitions() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => navigate(`/requisitions/${(requisition as any).slug || requisition.id}/hr-edit`)}
-                                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                  className="text-primary border-primary hover:bg-primary/5"
                                 >
                                   <Edit2 className="h-4 w-4 mr-1" />
                                   Edit & Review
@@ -1133,7 +1133,7 @@ export default function AdminRequisitions() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => navigate(`/requisitions/${(requisition as any).slug || requisition.id}/hr-final-edit`)}
-                                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                  className="text-primary border-primary hover:bg-primary/5"
                                 >
                                   <Edit2 className="h-4 w-4 mr-1" />
                                   Final Review
@@ -1176,7 +1176,7 @@ export default function AdminRequisitions() {
                                           size="sm"
                                           onClick={() => handleSendHMReviewReminder(requisition.id)}
                                           disabled={sendingHMReviewReminder === requisition.id}
-                                          className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                          className="text-primary border-primary hover:bg-primary/5"
                                         >
                                           <Mail className="h-4 w-4 mr-1" />
                                           {sendingHMReviewReminder === requisition.id ? 'Sending...' : 'Send Review Reminder'}
