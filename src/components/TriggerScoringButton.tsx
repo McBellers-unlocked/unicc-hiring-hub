@@ -23,10 +23,18 @@ export function TriggerScoringButton({ jobId, onComplete, forceRescore = false }
 
       if (error) throw error;
 
-      toast({
-        title: forceRescore ? "Re-Scoring Complete" : "Scoring Complete",
-        description: `Successfully scored ${data.success} applications. ${data.skipped} already scored. ${data.errors} errors.`,
-      });
+      if (data.errors > 0) {
+        toast({
+          title: "Scoring Partially Complete",
+          description: `${data.success} scored, ${data.errors} failed. Click "Re-Score All" to retry failed applications.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: forceRescore ? "Re-Scoring Complete" : "Scoring Complete",
+          description: `Successfully scored ${data.success} applications.${data.skipped > 0 ? ` ${data.skipped} already scored.` : ''}`,
+        });
+      }
 
       onComplete?.();
     } catch (error: any) {
