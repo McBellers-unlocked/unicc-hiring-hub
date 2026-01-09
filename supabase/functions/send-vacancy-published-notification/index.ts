@@ -101,6 +101,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "UNICC Recruitment <recruitment@unicconnect.org>",
       to: [hiringManager.email],
+      cc: ["hrselection@unicc.org"],
       subject: `Your Vacancy is Now Live: ${job.title}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc;">
