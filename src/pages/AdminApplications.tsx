@@ -734,7 +734,7 @@ export default function AdminApplications() {
     setGeneratingTestData(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-test-applicants', {
-        body: { jobId: selectedJobId }
+        body: { jobId: selectedJobId, count: 40, jobType: 'product_delivery' }
       });
 
       if (error) throw error;
@@ -1769,6 +1769,15 @@ export default function AdminApplications() {
               >
                 <Search className="h-4 w-4" />
                 Search Talent Pool
+              </Button>
+              <Button
+                onClick={deleteJobApplications}
+                disabled={generatingTestData}
+                variant="outline"
+                className="text-destructive border-destructive/50 hover:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {generatingTestData ? 'Deleting...' : 'Delete Test Applicants'}
               </Button>
               <Button
                 onClick={generateTestData}
