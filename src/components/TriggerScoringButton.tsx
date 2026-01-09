@@ -56,7 +56,7 @@ export function TriggerScoringButton({ jobId, onComplete, forceRescore = false }
             total: job.total_applications 
           });
 
-          if (job.status === 'completed' || job.status === 'failed') {
+          if (job.status === 'completed' || job.status === 'failed' || job.status === 'incomplete') {
             if (pollingRef.current) {
               clearInterval(pollingRef.current);
               pollingRef.current = null;
@@ -70,6 +70,12 @@ export function TriggerScoringButton({ jobId, onComplete, forceRescore = false }
                 title: hasErrors ? "Scoring Partially Complete" : "Scoring Complete",
                 description: `Scored ${job.scored_count}, skipped ${job.skipped_count}${hasErrors ? `, ${job.error_count} errors` : ''}`,
                 variant: hasErrors ? "destructive" : "default",
+              });
+            } else if (job.status === 'incomplete') {
+              toast({
+                title: "Scoring Incomplete",
+                description: `Scored ${job.scored_count}/${job.total_applications}. Click again to resume.`,
+                variant: "default",
               });
             } else {
               toast({
