@@ -637,9 +637,9 @@ export default function AdminRequisitions() {
         description: "Requisition has been converted to a job posting. You can now publish it.",
       });
 
-      // Navigate to the job detail page
+      // Navigate to the admin job edit page (job is created as 'paused' for review)
       if (data?.jobId) {
-        navigate(`/jobs/${data.jobId}`);
+        navigate(`/admin/jobs/${data.jobId}/edit`);
       } else {
         fetchRequisitions();
       }
