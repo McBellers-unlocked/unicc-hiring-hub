@@ -572,8 +572,8 @@ function scoreEducation(
   const requiredLevel = criterion.requiredEducationLevel || 'First Level University';
   
   const normalizedEducation = candidateEducation.map(edu => ({
-    degree_type: edu.degree_type || edu.degree || '',
-    is_completed: edu.is_completed ?? edu.isCompleted ?? true
+    degree_type: edu.degree_type || edu.degree || edu.degree_or_certificate_title || '',
+    is_completed: edu.is_completed ?? edu.isCompleted ?? edu.completed ?? true
   }));
   
   const result = checkEducationEligibility(normalizedEducation, requiredLevel);
