@@ -24,7 +24,7 @@ const personalDetailsSchema = z.object({
   email: z.string().email('Invalid email address'),
   phone: z.string().optional(),
   maiden_name: z.string().optional(),
-  gender: z.enum(['Male', 'Female']).optional(),
+  gender: z.enum(['Man', 'Woman']).optional(),
   date_of_birth: z.date().nullable().optional(),
   place_of_birth: z.string().optional(),
   country_of_birth: z.string().optional(),
@@ -92,7 +92,7 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate, onF
       email: initialData?.email || '',
       phone: initialData?.phone || '',
       maiden_name: initialData?.maiden_name || '',
-      gender: initialData?.gender as 'Male' | 'Female' | undefined,
+      gender: initialData?.gender as 'Man' | 'Woman' | undefined,
       date_of_birth: (() => {
         if (!initialData?.date_of_birth) return null;
         const val = initialData.date_of_birth;
@@ -604,8 +604,8 @@ export function PersonalDetailsSection({ candidateId, initialData, onUpdate, onF
                          </SelectTrigger>
                        </FormControl>
                        <SelectContent>
-                         <SelectItem value="Male">Male</SelectItem>
-                         <SelectItem value="Female">Female</SelectItem>
+                         <SelectItem value="Man">Man</SelectItem>
+                         <SelectItem value="Woman">Woman</SelectItem>
                        </SelectContent>
                      </Select>
                      <FormMessage />

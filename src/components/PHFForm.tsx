@@ -36,7 +36,7 @@ const phfSchema = z.object({
     firstNames: z.string().min(1, 'First/other names are required'),
     title: z.enum(['Mr', 'Mrs', 'Ms', 'Miss']),
     maidenName: z.string().optional(),
-    sex: z.enum(['Male', 'Female']).refine((val) => val !== undefined, {
+    sex: z.enum(['Man', 'Woman']).refine((val) => val !== undefined, {
       message: 'Sex selection is required',
     }),
     dateOfBirth: z.preprocess(
@@ -764,7 +764,7 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
         firstNames: initialData?.personalDetails?.firstNames || '',
         title: initialData?.personalDetails?.title || 'Mr',
         maidenName: initialData?.personalDetails?.maidenName || '',
-        sex: initialData?.personalDetails?.sex || 'Male',
+        sex: initialData?.personalDetails?.sex || 'Man',
         dateOfBirth: (() => {
           const val = initialData?.personalDetails?.dateOfBirth;
           if (!val) return new Date();
@@ -1358,8 +1358,8 @@ export function PHFForm({ initialData, onSave, onUploadPhoto, killerQuestions = 
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="Male">Male</SelectItem>
-                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Man">Man</SelectItem>
+                  <SelectItem value="Woman">Woman</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />

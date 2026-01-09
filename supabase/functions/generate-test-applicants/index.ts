@@ -493,8 +493,8 @@ function determineQuality(index: number): string {
   return 'weak';
 }
 
-function determineGender(index: number): 'male' | 'female' {
-  return index < 21 ? 'male' : 'female';
+function determineGender(index: number): 'Man' | 'Woman' {
+  return index < 21 ? 'Man' : 'Woman';
 }
 
 function shouldHaveUNExperience(index: number): boolean {
@@ -532,7 +532,7 @@ const handler = async (req: Request): Promise<Response> => {
       const hasUNExp = shouldHaveUNExperience(i);
       const hasUNRelatives = shouldHaveUNRelatives(i);
 
-      const firstName = gender === 'male' ? randomItem(maleFirstNames) : randomItem(femaleFirstNames);
+      const firstName = gender === 'Man' ? randomItem(maleFirstNames) : randomItem(femaleFirstNames);
       const lastName = randomItem(lastNames);
       const email = `test.${firstName.toLowerCase()}.${lastName.toLowerCase()}.${Date.now()}.${i}@example.com`;
       const phone = generatePhone();
@@ -558,9 +558,9 @@ const handler = async (req: Request): Promise<Response> => {
         personalDetails: {
           familyName: lastName,
           firstNames: firstName,
-          title: gender === 'male' ? 'Mr' : randomItem(['Ms', 'Mrs', 'Miss']),
+          title: gender === 'Man' ? 'Mr' : randomItem(['Ms', 'Mrs', 'Miss']),
           maidenName: '',
-          sex: gender === 'male' ? 'Male' : 'Female',
+          sex: gender,
           dateOfBirth: dob.toISOString().split('T')[0],
           placeOfBirth: location.city,
           countryOfBirth: location.country,
