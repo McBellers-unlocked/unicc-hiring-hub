@@ -1,20 +1,26 @@
 import { Button } from "@/components/ui/button";
-import { Plus, X, Video } from "lucide-react";
+import { Plus, X, Video, Ban } from "lucide-react";
 
 interface ApplicationSelectionActionBarProps {
   selectedCount: number;
-  showLonglistActions: boolean;
+  showAddToLonglist: boolean;
+  showRemoveFromLonglist: boolean;
+  showReject: boolean;
   onAddToLonglist: () => void;
   onRemoveFromLonglist: () => void;
+  onReject: () => void;
   onBulkVideoAssignment: () => void;
   onClearSelection: () => void;
 }
 
 export function ApplicationSelectionActionBar({
   selectedCount,
-  showLonglistActions,
+  showAddToLonglist,
+  showRemoveFromLonglist,
+  showReject,
   onAddToLonglist,
   onRemoveFromLonglist,
+  onReject,
   onBulkVideoAssignment,
   onClearSelection,
 }: ApplicationSelectionActionBarProps) {
@@ -26,26 +32,39 @@ export function ApplicationSelectionActionBar({
         {selectedCount} selected
       </span>
       
-      {showLonglistActions && (
-        <>
-          <Button
-            size="sm"
-            onClick={onAddToLonglist}
-            className="bg-green-600 hover:bg-green-700 gap-1.5"
-          >
-            <Plus className="h-4 w-4" />
-            Add to Longlist
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={onRemoveFromLonglist}
-            className="gap-1.5"
-          >
-            <X className="h-4 w-4" />
-            Remove
-          </Button>
-        </>
+      {showAddToLonglist && (
+        <Button
+          size="sm"
+          onClick={onAddToLonglist}
+          className="bg-green-600 hover:bg-green-700 gap-1.5"
+        >
+          <Plus className="h-4 w-4" />
+          Add to Longlist
+        </Button>
+      )}
+      
+      {showRemoveFromLonglist && (
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={onRemoveFromLonglist}
+          className="gap-1.5"
+        >
+          <X className="h-4 w-4" />
+          Remove from Longlist
+        </Button>
+      )}
+      
+      {showReject && (
+        <Button
+          size="sm"
+          variant="destructive"
+          onClick={onReject}
+          className="gap-1.5"
+        >
+          <Ban className="h-4 w-4" />
+          Reject
+        </Button>
       )}
       
       <Button

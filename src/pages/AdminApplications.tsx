@@ -1060,7 +1060,7 @@ export default function AdminApplications() {
     }
   };
 
-  const addToLonglist = async (applicationIds: string[], reason?: string) => {
+  const addToLonglist = async (applicationIds: string[], reason?: string, rating?: string) => {
     try {
       // Get current user
       const { data: user } = await supabase.auth.getUser();
@@ -1077,7 +1077,8 @@ export default function AdminApplications() {
           .from('applications')
           .update({ 
             suggested_for_longlist: !isCurrentlyLonglisted,
-            status: newStatus
+            status: newStatus,
+            longlist_rating: isCurrentlyLonglisted ? null : (rating || null)
           })
           .eq('id', applicationIds[0]);
 
@@ -1106,7 +1107,11 @@ export default function AdminApplications() {
         // For multiple applications, just add them to longlist
         const { error } = await supabase
           .from('applications')
-          .update({ suggested_for_longlist: true, status: 'Longlist' })
+          .update({ 
+            suggested_for_longlist: true, 
+            status: 'Longlist',
+            longlist_rating: rating || null
+          })
           .in('id', applicationIds);
 
         if (error) throw error;
@@ -1694,12 +1699,12 @@ export default function AdminApplications() {
     });
   };
 
-  const handleDialogConfirm = async (reason: string) => {
+  const handleDialogConfirm = async (reason: string, rating?: string) => {
     const { action, applicationId } = dialogState;
     
     switch (action) {
       case 'longlist':
-        await addToLonglist([applicationId], reason);
+        await addToLonglist([applicationId], reason, rating);
         break;
       case 'shortlist':
         await directShortlist(applicationId, reason);
@@ -2026,14 +2031,28 @@ export default function AdminApplications() {
               {/* Floating Selection Action Bar */}
               <ApplicationSelectionActionBar
                 selectedCount={selectedApplications.size}
-                showLonglistActions={(() => {
+                showAddToLonglist={(() => {
                   const selectedApps = applications.filter(app => selectedApplications.has(app.id));
-                  return selectedApps.every(app => 
-                    app.status === 'Application' || app.status === 'Longlist'
-                  );
+                  return selectedApps.every(app => app.status === 'Application');
+                })()}
+                showRemoveFromLonglist={(() => {
+                  const selectedApps = applications.filter(app => selectedApplications.has(app.id));
+                  return selectedApps.every(app => app.status === 'Longlist');
+                })()}
+                showReject={(() => {
+                  const selectedApps = applications.filter(app => selectedApplications.has(app.id));
+                  return selectedApps.every(app => app.status === 'Application');
                 })()}
                 onAddToLonglist={() => addToLonglist(Array.from(selectedApplications))}
                 onRemoveFromLonglist={() => removeFromLonglist(Array.from(selectedApplications))}
+                onReject={async () => {
+                  // Bulk reject
+                  for (const appId of selectedApplications) {
+                    await rejectApplication(appId, 'Bulk rejection');
+                  }
+                  setSelectedApplications(new Set());
+                  fetchApplications();
+                }}
                 onBulkVideoAssignment={() => setBulkVideoAssignmentDialog(true)}
                 onClearSelection={() => setSelectedApplications(new Set())}
               />

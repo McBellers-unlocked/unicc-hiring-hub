@@ -10,7 +10,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Plus, X, AlertCircle, Video, Check, Award, Users } from 'lucide-react';
+import { CheckCircle, Plus, X, AlertCircle, Video, Check, Award, Users, Star } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ActionConfirmationDialogProps {
   open: boolean;
@@ -19,8 +20,36 @@ interface ActionConfirmationDialogProps {
   candidateName: string;
   currentStatus: string;
   isToggleAction?: boolean; // For longlist toggle
-  onConfirm: (reason: string) => void;
+  onConfirm: (reason: string, rating?: string) => void;
 }
+
+const ratingOptions = [
+  { 
+    value: 'eligible', 
+    label: 'Eligible', 
+    description: 'Meets basic requirements',
+    bgColor: 'bg-blue-50 hover:bg-blue-100 border-blue-200',
+    selectedBg: 'bg-blue-100 border-blue-500 ring-2 ring-blue-500/20',
+    textColor: 'text-blue-700'
+  },
+  { 
+    value: 'above_average', 
+    label: 'Above Average', 
+    description: 'Good experience',
+    bgColor: 'bg-amber-50 hover:bg-amber-100 border-amber-200',
+    selectedBg: 'bg-amber-100 border-amber-500 ring-2 ring-amber-500/20',
+    textColor: 'text-amber-700'
+  },
+  { 
+    value: 'excellent', 
+    label: 'Excellent', 
+    description: 'Gold star candidate',
+    bgColor: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200',
+    selectedBg: 'bg-emerald-100 border-emerald-500 ring-2 ring-emerald-500/20',
+    textColor: 'text-emerald-700',
+    icon: Star
+  }
+];
 
 export function ActionConfirmationDialog({
   open,
@@ -32,12 +61,13 @@ export function ActionConfirmationDialog({
   onConfirm
 }: ActionConfirmationDialogProps) {
   const [reason, setReason] = useState('');
+  const [rating, setRating] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleConfirm = async () => {
     setIsSubmitting(true);
     try {
-      await onConfirm(reason);
+      await onConfirm(reason, rating || undefined);
       handleClose();
     } finally {
       setIsSubmitting(false);
@@ -46,6 +76,7 @@ export function ActionConfirmationDialog({
 
   const handleClose = () => {
     setReason('');
+    setRating(null);
     onOpenChange(false);
   };
 
@@ -148,6 +179,7 @@ export function ActionConfirmationDialog({
 
   const config = getActionConfig();
   const isRequired = action === 'reject'; // Only rejection requires a reason
+  const showRatingSelector = action === 'longlist' && !isToggleAction;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -169,6 +201,41 @@ export function ActionConfirmationDialog({
               {currentStatus}
             </Badge>
           </div>
+          
+          {showRatingSelector && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Candidate Rating <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {ratingOptions.map((option) => {
+                  const isSelected = rating === option.value;
+                  const Icon = option.icon;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setRating(isSelected ? null : option.value)}
+                      className={cn(
+                        "flex flex-col items-center p-3 rounded-lg border transition-all text-center",
+                        isSelected ? option.selectedBg : option.bgColor
+                      )}
+                    >
+                      <div className="flex items-center gap-1">
+                        {Icon && <Icon className={cn("h-3.5 w-3.5", option.textColor)} />}
+                        <span className={cn("text-sm font-medium", option.textColor)}>
+                          {option.label}
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground mt-0.5">
+                        {option.description}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           
           <div className="space-y-2">
             <label htmlFor="reason" className="text-sm font-medium">

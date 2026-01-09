@@ -24,6 +24,7 @@ export type Database = {
           files: Json | null
           id: string
           job_id: string
+          longlist_rating: string | null
           phf_completed: boolean | null
           phf_data: Json | null
           phf_pdf_url: string | null
@@ -43,6 +44,7 @@ export type Database = {
           files?: Json | null
           id?: string
           job_id: string
+          longlist_rating?: string | null
           phf_completed?: boolean | null
           phf_data?: Json | null
           phf_pdf_url?: string | null
@@ -62,6 +64,7 @@ export type Database = {
           files?: Json | null
           id?: string
           job_id?: string
+          longlist_rating?: string | null
           phf_completed?: boolean | null
           phf_data?: Json | null
           phf_pdf_url?: string | null
