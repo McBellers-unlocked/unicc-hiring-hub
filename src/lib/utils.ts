@@ -49,7 +49,47 @@ export function generateUniqueSlug(baseSlug: string, existingSlugs: string[]): s
 export function fixMarkdownFormatting(text: string): string {
   if (!text) return text;
   
+  // Normalize line endings and non-breaking spaces
+  let result = text.replace(/\r\n/g, '\n').replace(/\u00A0/g, ' ');
+  
+  // Split by fenced code blocks to preserve them
+  const fencePattern = /(```[\s\S]*?```)/g;
+  const parts = result.split(fencePattern);
+  
+  result = parts.map((part, index) => {
+    // Odd indices are fenced code blocks - preserve them
+    if (index % 2 === 1) return part;
+    
+    // Process non-code segments
+    let processed = part;
+    
+    // Convert Word-style bullets to markdown lists
+    // Matches lines starting with optional whitespace + bullet characters
+    processed = processed.replace(/^[ \t]*[·•‧∙●○◦▪▸►]\s*/gm, '- ');
+    
+    // Remove leading indentation that would create code blocks (4+ spaces/tabs)
+    // But preserve intentional nested list indentation (2-3 spaces)
+    processed = processed.split('\n').map(line => {
+      // If line starts with 4+ spaces/tabs and is not a list continuation
+      const match = line.match(/^([ \t]{4,})(.*)/);
+      if (match) {
+        const content = match[2];
+        // If content starts with a list marker, keep 2 spaces for nesting
+        if (/^[-*+]\s/.test(content)) {
+          return '  ' + content;
+        }
+        // Otherwise remove all leading indentation
+        return content;
+      }
+      return line;
+    }).join('\n');
+    
+    return processed;
+  }).join('');
+  
   // Fix bold formatting with spaces before closing markers
   // **text ** -> **text**
-  return text.replace(/(\*\*[^*]+?)\s+(\*\*)/g, '$1$2');
+  result = result.replace(/(\*\*[^*]+?)\s+(\*\*)/g, '$1$2');
+  
+  return result;
 }
