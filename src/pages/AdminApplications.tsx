@@ -524,10 +524,28 @@ export default function AdminApplications() {
       const otherLangs = languages.other_languages || [];
       
       const activeUnLangs = Object.entries(unLangs)
-        .filter(([_, v]: [string, any]) => v && v.read && v.read !== 'none')
+        .filter(([_, v]: [string, any]) => {
+          if (!v) return false;
+          // Handle object format {read, speak, write}
+          if (typeof v === 'object') {
+            return (v.read && v.read !== 'none') || (v.speak && v.speak !== 'none') || (v.write && v.write !== 'none');
+          }
+          // Handle string format
+          return v !== 'none' && v !== 'not_applicable';
+        })
         .map(([k]) => k.charAt(0).toUpperCase() + k.slice(1));
       
-      const otherLangNames = otherLangs.map((l: any) => l.language || '').filter(Boolean);
+      // Filter other languages to only those with actual levels
+      const otherLangNames = otherLangs
+        .filter((l: any) => {
+          if (l.read || l.speak || l.write) {
+            return (l.read && l.read !== 'none') || (l.speak && l.speak !== 'none') || (l.write && l.write !== 'none');
+          }
+          return l.proficiency && l.proficiency !== 'none';
+        })
+        .map((l: any) => l.language || l.name || '')
+        .filter(Boolean);
+      
       const allLangs = [...activeUnLangs, ...otherLangNames];
       
       if (allLangs.length === 0) return 'Not specified';
