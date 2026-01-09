@@ -456,12 +456,12 @@ export default function JobDetail() {
                     <div className="prose prose-sm max-w-none break-words overflow-hidden">
                       <ReactMarkdown 
                         components={{
-                          h1: ({ children }) => <h1 className="text-lg font-semibold mb-2 border-b pb-1">{children}</h1>,
-                          h2: ({ children }) => <h2 className="text-base font-semibold mb-2 border-b pb-1">{children}</h2>,
-                          h3: ({ children }) => <h3 className="text-sm font-semibold mb-1">{children}</h3>,
+                          h1: ({ children }) => <h1 className="text-lg font-semibold mb-2 border-b pb-1 break-words">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-base font-semibold mb-2 border-b pb-1 break-words">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-sm font-semibold mb-1 break-words">{children}</h3>,
                           ul: ({ children }) => <ul className="list-disc ml-4 space-y-1">{children}</ul>,
-                          li: ({ children }) => <li className="text-sm">{children}</li>,
-                          p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                          li: ({ children }) => <li className="text-sm break-words">{children}</li>,
+                          p: ({ children }) => <p className="mb-2 text-sm break-words">{children}</p>,
                           strong: ({ children }) => <strong className="font-semibold">{children}</strong>
                         }}
                       >
@@ -481,12 +481,12 @@ export default function JobDetail() {
                     <div className="prose prose-sm max-w-none break-words overflow-hidden">
                       <ReactMarkdown 
                         components={{
-                          h1: ({ children }) => <h1 className="text-lg font-semibold mb-2 border-b pb-1">{children}</h1>,
-                          h2: ({ children }) => <h2 className="text-base font-semibold mb-2 border-b pb-1">{children}</h2>,
-                          h3: ({ children }) => <h3 className="text-sm font-semibold mb-1">{children}</h3>,
+                          h1: ({ children }) => <h1 className="text-lg font-semibold mb-2 border-b pb-1 break-words">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-base font-semibold mb-2 border-b pb-1 break-words">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-sm font-semibold mb-1 break-words">{children}</h3>,
                           ul: ({ children }) => <ul className="list-disc ml-4 space-y-1">{children}</ul>,
-                          li: ({ children }) => <li className="text-sm">{children}</li>,
-                          p: ({ children }) => <p className="mb-2 text-sm">{children}</p>,
+                          li: ({ children }) => <li className="text-sm break-words">{children}</li>,
+                          p: ({ children }) => <p className="mb-2 text-sm break-words">{children}</p>,
                           strong: ({ children }) => <strong className="font-semibold">{children}</strong>
                         }}
                       >
