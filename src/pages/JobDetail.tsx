@@ -452,8 +452,8 @@ export default function JobDetail() {
                   <CardHeader>
                     <CardTitle>Job Description</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="prose prose-sm max-w-none">
+                  <CardContent className="overflow-hidden">
+                    <div className="prose prose-sm max-w-none break-words overflow-hidden">
                       <ReactMarkdown 
                         components={{
                           h1: ({ children }) => <h1 className="text-lg font-semibold mb-2 border-b pb-1">{children}</h1>,
@@ -477,8 +477,8 @@ export default function JobDetail() {
                   <CardHeader>
                     <CardTitle>Requirements</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="prose prose-sm max-w-none">
+                  <CardContent className="overflow-hidden">
+                    <div className="prose prose-sm max-w-none break-words overflow-hidden">
                       <ReactMarkdown 
                         components={{
                           h1: ({ children }) => <h1 className="text-lg font-semibold mb-2 border-b pb-1">{children}</h1>,
@@ -546,8 +546,8 @@ export default function JobDetail() {
                   <CardHeader>
                     <CardTitle>Language Requirements</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="prose prose-sm max-w-none">
+                  <CardContent className="overflow-hidden">
+                    <div className="prose prose-sm max-w-none break-words overflow-hidden">
                       {(() => {
                         const lines = job.language_requirements
                           .replace(/<br\s*\/?>/gi, '\n')
