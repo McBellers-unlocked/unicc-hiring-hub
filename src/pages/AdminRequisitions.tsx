@@ -25,7 +25,8 @@ import {
   MoreHorizontal,
   Pause,
   Play,
-  Archive
+  Archive,
+  Briefcase
 } from "lucide-react";
 import { format } from "date-fns";
 import { ChiefHRReviewDialog } from "@/components/ChiefHRReviewDialog";
@@ -82,6 +83,7 @@ interface JobRequisition {
   finance_controller_approval: boolean;
   finance_controller_approved_at: string | null;
   converted_to_job_id?: string;
+  job_status?: string;
   initial_request_approved?: boolean;
   initial_request_approved_at?: string | null;
   funding_status?: string;
@@ -237,6 +239,7 @@ export default function AdminRequisitions() {
     requisitionId: string;
     requisitionTitle: string;
   } | null>(null);
+  const [convertingToJob, setConvertingToJob] = useState<string | null>(null);
   const { user, userRoles } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -381,16 +384,20 @@ export default function AdminRequisitions() {
           *,
           users!job_requisitions_created_by_fkey (
             name
+          ),
+          jobs!job_requisitions_converted_to_job_id_fkey (
+            status
           )
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       
-      // Map the data to include hiring manager name
+      // Map the data to include hiring manager name and job status
       const mappedData = data?.map(req => ({
         ...req,
-        hiring_manager_name: (req as any).users?.name
+        hiring_manager_name: (req as any).users?.name,
+        job_status: (req as any).jobs?.status
       })) || [];
       
       setRequisitions(mappedData);
@@ -597,10 +604,47 @@ export default function AdminRequisitions() {
     }
   };
 
+  const handleConvertToJob = async (requisitionId: string) => {
+    setConvertingToJob(requisitionId);
+    try {
+      const { data, error } = await supabase.functions.invoke('convert-requisition-to-job', {
+        body: { requisitionId }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Requisition has been converted to a job posting. You can now publish it.",
+      });
+
+      // Navigate to the job detail page
+      if (data?.jobId) {
+        navigate(`/jobs/${data.jobId}`);
+      } else {
+        fetchRequisitions();
+      }
+    } catch (error: any) {
+      console.error('Error converting to job:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to convert requisition to job",
+        variant: "destructive",
+      });
+    } finally {
+      setConvertingToJob(null);
+    }
+  };
+
   const getStatusInfo = (requisition: JobRequisition) => {
-    // Check if converted to job (published)
-    if ((requisition as any).converted_to_job_id) {
-      return { label: 'Published', color: 'success', icon: CheckCircle2 };
+    // Check if converted to job
+    if (requisition.converted_to_job_id) {
+      // Only show "Published" if the job is actually active
+      if (requisition.job_status === 'active') {
+        return { label: 'Published', color: 'success', icon: CheckCircle2 };
+      }
+      // Job exists but not yet published (draft/paused)
+      return { label: 'Converted', color: 'info', icon: Briefcase };
     }
     
     switch (requisition.status) {
@@ -684,7 +728,7 @@ export default function AdminRequisitions() {
         break;
       case 'published':
         filtered = activeRequisitions.filter(r => 
-          ['approved'].includes(r.status) || r.converted_to_job_id
+          ['approved'].includes(r.status) || (r.converted_to_job_id && r.job_status === 'active')
         );
         break;
       case 'closed':
@@ -855,7 +899,7 @@ export default function AdminRequisitions() {
             <TabsTrigger value="published">
               Published
               <Badge variant="secondary" className="ml-2">
-                {applyDivisionFilter(requisitions.filter(r => !r.closed_status && (['approved'].includes(r.status) || r.converted_to_job_id))).length}
+                {applyDivisionFilter(requisitions.filter(r => !r.closed_status && (['approved'].includes(r.status) || (r.converted_to_job_id && r.job_status === 'active')))).length}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="closed">
@@ -1003,6 +1047,19 @@ export default function AdminRequisitions() {
                               <Eye className="h-4 w-4 mr-1" />
                               View
                             </Button>
+                            
+                            {/* Convert to Job button for director-approved requisitions */}
+                            {requisition.director_approval && !requisition.converted_to_job_id && (isAdmin || isHR) && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleConvertToJob(requisition.id)}
+                                disabled={convertingToJob === requisition.id}
+                                className="bg-blue-600 hover:bg-blue-700"
+                              >
+                                <Briefcase className="h-4 w-4 mr-1" />
+                                {convertingToJob === requisition.id ? 'Converting...' : 'Convert to Job'}
+                              </Button>
+                            )}
                             
                             {/* HR Initial Review Actions */}
                             {requisition.status === 'hr_review' && requisition.hr_internal_status === 'pending_initial_review' && (isAdmin || isHR) && (
