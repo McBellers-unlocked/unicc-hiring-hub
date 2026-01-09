@@ -384,20 +384,39 @@ export default function AdminRequisitions() {
           *,
           users!job_requisitions_created_by_fkey (
             name
-          ),
-          jobs!job_requisitions_converted_to_job_id_fkey (
-            status
           )
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       
+      // Get unique job IDs from converted requisitions
+      const jobIds = data
+        ?.filter(req => req.converted_to_job_id)
+        .map(req => req.converted_to_job_id) || [];
+      
+      // Fetch job statuses for those IDs
+      let jobStatuses: Record<string, string> = {};
+      if (jobIds.length > 0) {
+        const { data: jobsData, error: jobsError } = await supabase
+          .from('jobs')
+          .select('id, status')
+          .in('id', jobIds);
+        
+        if (!jobsError && jobsData) {
+          jobStatuses = Object.fromEntries(
+            jobsData.map(job => [job.id, job.status])
+          );
+        }
+      }
+      
       // Map the data to include hiring manager name and job status
       const mappedData = data?.map(req => ({
         ...req,
         hiring_manager_name: (req as any).users?.name,
-        job_status: (req as any).jobs?.status
+        job_status: req.converted_to_job_id 
+          ? jobStatuses[req.converted_to_job_id] 
+          : null
       })) || [];
       
       setRequisitions(mappedData);
