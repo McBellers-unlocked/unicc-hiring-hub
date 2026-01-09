@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { FileText, Calendar, MapPin, Video, Clock, AlertCircle, CheckCircle2, PlayCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow, differenceInDays } from 'date-fns';
+import { getPublicSiteUrl } from '@/lib/utils';
 
 interface VideoAssignment {
   id: string;
@@ -423,7 +424,7 @@ export default function MyApplicationsContent() {
                           size="sm"
                           onClick={() => {
                             const token = application.video_assignment!.token;
-                            const targetUrl = `${window.location.origin}/video-interview/${token}`;
+                            const targetUrl = `${getPublicSiteUrl()}/video-interview/${token}`;
                             console.log('=== ABSOLUTE NAVIGATION ===');
                             console.log('Token:', token);
                             console.log('Full URL:', targetUrl);
