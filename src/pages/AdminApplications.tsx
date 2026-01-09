@@ -23,6 +23,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { TriggerScoringButton } from '@/components/TriggerScoringButton';
 import { ApplicationSelectionActionBar } from '@/components/ApplicationSelectionActionBar';
 import { BulkRejectDialog } from '@/components/BulkRejectDialog';
+import { LonglistCompleteNotification } from '@/components/LonglistCompleteNotification';
 
 interface Application {
   id: string;
@@ -123,6 +124,9 @@ export default function AdminApplications() {
 
   // Test data generation state
   const [generatingTestData, setGeneratingTestData] = useState(false);
+
+  // Longlist notification state
+  const [showLonglistNotification, setShowLonglistNotification] = useState(true);
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
@@ -1081,6 +1085,28 @@ export default function AdminApplications() {
   const totalWomenCount = applications.filter(app => app.candidate.gender === 'Woman' || app.candidate.gender === 'Female').length;
   const totalWomenPercentage = totalApplications > 0 ? Math.round((totalWomenCount / totalApplications) * 100) : 0;
 
+  // Calculate longlist stats for notification
+  const applicationPhase = phaseStats.find(p => p.status === 'Application');
+  const longlistPhase = phaseStats.find(p => p.status === 'Longlist');
+  const rejectedPhase = phaseStats.find(p => p.status === 'Rejected');
+  
+  const longlistApps = applications.filter(app => app.status === 'Longlist');
+  const longlistStats = {
+    tier1: longlistApps.filter(app => (app as any).longlist_rating === 'tier_1').length,
+    tier2: longlistApps.filter(app => (app as any).longlist_rating === 'tier_2').length,
+    eligible: longlistApps.filter(app => (app as any).longlist_rating === 'eligible' || !(app as any).longlist_rating).length,
+    rejected: rejectedPhase?.count || 0,
+    total: longlistPhase?.count || 0
+  };
+  
+  // Show notification when all applications have been processed (Application bucket is empty and Longlist has candidates)
+  const showLonglistCompleteCondition = 
+    selectedJobId && 
+    applications.length > 0 &&
+    (applicationPhase?.count || 0) === 0 && 
+    (longlistPhase?.count || 0) > 0 &&
+    showLonglistNotification;
+
   const getScoreBadge = (application: Application) => {
     // Get the score directly from the screening_scores object
     const score = application.screening_scores?.ai_score;
@@ -1953,6 +1979,17 @@ export default function AdminApplications() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Longlist Complete Notification */}
+        {showLonglistCompleteCondition && selectedJob && (
+          <LonglistCompleteNotification
+            jobId={selectedJobId}
+            jobTitle={selectedJob.title}
+            longlistStats={longlistStats}
+            hasVideoStage={jobVideoQuestions[selectedJobId] || false}
+            onDismiss={() => setShowLonglistNotification(false)}
+          />
         )}
 
         {/* Application List */}
