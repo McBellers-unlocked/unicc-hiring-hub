@@ -1872,10 +1872,17 @@ export default function AdminApplications() {
                 <span>Applications</span>
                 <div className="flex items-center space-x-2">
                   {userRoles.includes('Admin') && (
-                    <TriggerScoringButton 
-                      jobId={selectedJobId} 
-                      onComplete={() => fetchApplications(selectedJobId)}
-                    />
+                    <>
+                      <TriggerScoringButton 
+                        jobId={selectedJobId} 
+                        onComplete={() => fetchApplications(selectedJobId)}
+                      />
+                      <TriggerScoringButton 
+                        jobId={selectedJobId} 
+                        onComplete={() => fetchApplications(selectedJobId)}
+                        forceRescore={true}
+                      />
+                    </>
                   )}
                   {selectedJobId === 'aacafec6-4d2b-4a3b-826a-5608ec28418e' && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
                     <Button 
