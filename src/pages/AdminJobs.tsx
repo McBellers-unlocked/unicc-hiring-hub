@@ -171,6 +171,18 @@ export default function AdminJobs() {
 
       if (error) throw error;
       
+      // Send notification to hiring manager when job is published
+      if (newStatus === 'active') {
+        try {
+          await supabase.functions.invoke('send-vacancy-published-notification', {
+            body: { jobId }
+          });
+        } catch (emailError) {
+          console.error('Failed to send vacancy published notification:', emailError);
+          // Don't block the publish - just log the error
+        }
+      }
+      
       toast({
         title: "Success",
         description: `Job ${newStatus === 'active' ? 'published' : 'unpublished'} successfully`,
