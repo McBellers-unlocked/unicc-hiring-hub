@@ -32,6 +32,7 @@ interface Application {
   suggested_for_longlist: boolean;
   phf_completed: boolean;
   source?: string;
+  longlist_rating?: string | null;
   candidate: {
     id: string;
     name: string;
@@ -1033,6 +1034,16 @@ export default function AdminApplications() {
       const videoA = a.videoScore || 0;
       const videoB = b.videoScore || 0;
       return videoB - videoA; // Higher scores first
+    });
+  }
+
+  // Auto-sort Longlist phase by tier rating (Tier 1 first, then Tier 2, then Eligible)
+  if (statusFilter === 'Longlist') {
+    const tierOrder: Record<string, number> = { 'tier_1': 1, 'tier_2': 2, 'eligible': 3 };
+    filteredApplications.sort((a, b) => {
+      const tierA = tierOrder[a.longlist_rating || ''] || 4;
+      const tierB = tierOrder[b.longlist_rating || ''] || 4;
+      return tierA - tierB;
     });
   }
 
