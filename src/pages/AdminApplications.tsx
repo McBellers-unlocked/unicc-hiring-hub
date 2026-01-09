@@ -192,13 +192,30 @@ export default function AdminApplications() {
   }
 
   // Helper to transform Supabase data - extracts first screening_score from array
-  const transformApplications = (apps: any[]): Application[] => {
-    return apps.map(app => ({
-      ...app,
-      screening_scores: Array.isArray(app.screening_scores) 
-        ? app.screening_scores[0] || null 
-        : app.screening_scores
-    }));
+  // and merges stage_events comments if provided
+  const transformApplications = (
+    apps: any[], 
+    stageEvents?: any[], 
+    reviewers?: any[]
+  ): Application[] => {
+    return apps.map(app => {
+      // Find the most recent stage event with a reason for this application
+      const latestEvent = stageEvents?.find(e => e.application_id === app.id);
+      const reviewer = reviewers?.find(u => u.id === latestEvent?.by_user);
+      
+      return {
+        ...app,
+        screening_scores: Array.isArray(app.screening_scores) 
+          ? app.screening_scores[0] || null 
+          : app.screening_scores,
+        longlister_comment: latestEvent ? {
+          reason: latestEvent.reason,
+          to_stage: latestEvent.to_stage,
+          at: latestEvent.at,
+          reviewer_name: reviewer?.name || null
+        } : null
+      };
+    });
   };
 
   const fetchApplications = async (jobId?: string) => {
@@ -226,6 +243,7 @@ export default function AdminApplications() {
           submitted_at,
           updated_at,
           suggested_for_longlist,
+          longlist_rating,
           phf_completed,
           phf_data,
           source,
@@ -278,6 +296,7 @@ export default function AdminApplications() {
                   submitted_at,
                   updated_at,
                   suggested_for_longlist,
+                  longlist_rating,
                   phf_completed,
                   phf_data,
                   source,
@@ -414,6 +433,55 @@ export default function AdminApplications() {
         ...prev,
         [jobId]: questionSets && questionSets.length > 0
       }));
+
+      // Fetch stage events with reasons (longlister comments) for applications
+      if (data && data.length > 0) {
+        const appIds = data.map((app: any) => app.id);
+        
+        // Fetch stage events with reasons
+        const { data: stageEvents } = await supabase
+          .from('stage_events')
+          .select('application_id, reason, to_stage, at, by_user')
+          .in('application_id', appIds)
+          .not('reason', 'is', null)
+          .order('at', { ascending: false });
+
+        if (stageEvents && stageEvents.length > 0) {
+          // Get unique user IDs for reviewer names
+          const userIds = [...new Set(stageEvents.map(e => e.by_user).filter(Boolean))];
+          
+          const { data: reviewers } = await supabase
+            .from('users')
+            .select('id, name')
+            .in('id', userIds);
+
+          // Deduplicate: keep only the most recent event per application
+          const latestEventByApp = new Map<string, any>();
+          stageEvents.forEach(event => {
+            if (!latestEventByApp.has(event.application_id)) {
+              latestEventByApp.set(event.application_id, event);
+            }
+          });
+          const dedupedEvents = Array.from(latestEventByApp.values());
+
+          // Merge stage event data into applications
+          setApplications(prev => 
+            prev.map(app => {
+              const event = dedupedEvents.find(e => e.application_id === app.id);
+              const reviewer = reviewers?.find(u => u.id === event?.by_user);
+              return {
+                ...app,
+                longlister_comment: event ? {
+                  reason: event.reason,
+                  to_stage: event.to_stage,
+                  at: event.at,
+                  reviewer_name: reviewer?.name || null
+                } : (app as any).longlister_comment || null
+              };
+            })
+          );
+        }
+      }
     } catch (error) {
       console.error('Error fetching applications:', error);
       toast({
