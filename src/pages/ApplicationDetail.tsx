@@ -48,7 +48,11 @@ import {
   Briefcase,
   Languages as LanguagesIcon,
   Award,
-  Calculator
+  Calculator,
+  Users,
+  Info,
+  Clock,
+  Building
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -975,6 +979,60 @@ export default function ApplicationDetail() {
                               </div>
                             )}
                             
+                            {/* Supervisor Details */}
+                            {(job.supervisor_name || job.supervisor_email || job.supervisor_phone) && (
+                              <div className="mt-3 p-3 bg-blue-50/50 rounded-md border border-blue-100">
+                                <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+                                  <User className="w-4 h-4" />
+                                  Supervisor Details
+                                </h5>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                  {job.supervisor_name && (
+                                    <div>
+                                      <span className="text-muted-foreground">Name:</span>{' '}
+                                      <span className="font-medium">{job.supervisor_name}</span>
+                                      {job.supervisor_title && (
+                                        <span className="text-muted-foreground"> ({job.supervisor_title})</span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {job.supervisor_email && (
+                                    <div className="flex items-center gap-1">
+                                      <Mail className="w-3 h-3 text-muted-foreground" />
+                                      <a href={`mailto:${job.supervisor_email}`} className="text-primary hover:underline">
+                                        {job.supervisor_email}
+                                      </a>
+                                    </div>
+                                  )}
+                                  {job.supervisor_phone && (
+                                    <div className="flex items-center gap-1">
+                                      <Phone className="w-3 h-3 text-muted-foreground" />
+                                      <span>{job.supervisor_phone}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Additional Employment Details */}
+                            {(job.un_grade || job.employees_supervised_number || job.annual_income_most_recent) && (
+                              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                                {job.un_grade && (
+                                  <Badge variant="secondary">UN Grade: {job.un_grade}</Badge>
+                                )}
+                                {job.employees_supervised_number > 0 && (
+                                  <Badge variant="outline">
+                                    Supervised: {job.employees_supervised_number} {job.employees_supervised_type || 'staff'}
+                                  </Badge>
+                                )}
+                                {job.annual_income_most_recent && (
+                                  <Badge variant="outline">
+                                    Salary: ${Number(job.annual_income_most_recent).toLocaleString()}
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+
                             {job.reason_for_leaving && !(job.isCurrent || job.is_present) && (
                               <div className="mt-2">
                                 <h5 className="font-medium text-sm mb-1">Reason for Leaving:</h5>
@@ -1052,6 +1110,20 @@ export default function ApplicationDetail() {
                             <p className="text-sm">
                               <span className="font-medium">Honors:</span> {edu.distinguish_honors_obtained}
                             </p>
+                          )}
+                          {edu.is_completed === false && (
+                            <Badge variant="outline" className="mt-1 bg-amber-50 text-amber-700 border-amber-200">In Progress</Badge>
+                          )}
+                          {edu.certificate_url && (
+                            <a 
+                              href={edu.certificate_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
+                            >
+                              <FileText className="w-3 h-3" />
+                              View Certificate
+                            </a>
                           )}
                         </div>
                       ))}
@@ -1151,6 +1223,139 @@ export default function ApplicationDetail() {
                 })()}
               </CardContent>
             </Card>
+
+            {/* References Section */}
+            {application.phf_data?.references && application.phf_data.references.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Users className="w-5 h-5" />
+                    <span>References ({application.phf_data.references.length})</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {application.phf_data.references.map((ref: any, index: number) => (
+                      <div key={index} className="p-4 border rounded-lg bg-muted/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          <User className="w-4 h-4 text-primary" />
+                          <span className="font-semibold">{ref.name}</span>
+                        </div>
+                        {ref.occupation_title && (
+                          <p className="text-sm text-muted-foreground mb-1">
+                            {ref.occupation_title}
+                          </p>
+                        )}
+                        {ref.full_address && (
+                          <p className="text-xs text-muted-foreground whitespace-pre-line">
+                            {ref.full_address}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Additional PHF Information */}
+            {(application.phf_data?.availability || 
+              (application.phf_data?.dependants?.length > 0 && !application.phf_data?.noDependants) || 
+              (application.phf_data?.relatives?.length > 0 && !application.phf_data?.noUNRelatives) ||
+              application.phf_data?.mobilityMedical?.assessment_accommodations_needed) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Info className="w-5 h-5" />
+                    <span>Additional Information</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Availability */}
+                  {application.phf_data?.availability && (
+                    <div>
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        Availability
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        {application.phf_data.availability.availability_mode === 'date' 
+                          ? `Available from: ${application.phf_data.availability.availability_date ? format(new Date(application.phf_data.availability.availability_date), 'dd/MM/yyyy') : 'Not specified'}`
+                          : `Notice period: ${application.phf_data.availability.notice_period_days || 'Not specified'} days`}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Dependants */}
+                  {application.phf_data?.dependants?.length > 0 && !application.phf_data?.noDependants && (
+                    <div>
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Dependants ({application.phf_data.dependants.length})
+                      </h4>
+                      <div className="space-y-1">
+                        {application.phf_data.dependants.map((dep: any, idx: number) => (
+                          <p key={idx} className="text-sm text-muted-foreground">
+                            {dep.name} ({dep.relationship})
+                            {dep.date_of_birth && ` - Born: ${dep.date_of_birth}`}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* UN Relatives */}
+                  {application.phf_data?.relatives?.length > 0 && !application.phf_data?.noUNRelatives && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                      <h4 className="font-medium mb-2 flex items-center gap-2 text-amber-700">
+                        <Building className="w-4 h-4" />
+                        UN System Relatives (Potential Conflict of Interest)
+                      </h4>
+                      <div className="space-y-1">
+                        {application.phf_data.relatives.map((rel: any, idx: number) => (
+                          <p key={idx} className="text-sm text-muted-foreground">
+                            <span className="font-medium">{rel.name}</span> - {rel.position || rel.relationship} 
+                            {rel.organization && ` at ${rel.organization}`}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Accommodation Needs */}
+                  {application.phf_data?.mobilityMedical?.assessment_accommodations_needed && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                      <h4 className="font-medium mb-2 flex items-center gap-2 text-blue-700">
+                        <Info className="w-4 h-4" />
+                        Assessment Accommodations Requested
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {application.phf_data.mobilityMedical.accommodation_extended_time && (
+                          <Badge variant="outline">Extended Time</Badge>
+                        )}
+                        {application.phf_data.mobilityMedical.accommodation_breaks && (
+                          <Badge variant="outline">Additional Breaks</Badge>
+                        )}
+                        {application.phf_data.mobilityMedical.accommodation_accessible_location && (
+                          <Badge variant="outline">Accessible Location</Badge>
+                        )}
+                        {application.phf_data.mobilityMedical.accommodation_sign_language && (
+                          <Badge variant="outline">Sign Language</Badge>
+                        )}
+                        {application.phf_data.mobilityMedical.accommodation_screen_reader && (
+                          <Badge variant="outline">Screen Reader</Badge>
+                        )}
+                      </div>
+                      {application.phf_data.mobilityMedical.accommodation_details && (
+                        <p className="text-sm mt-2 p-2 bg-white/50 rounded">
+                          {application.phf_data.mobilityMedical.accommodation_details}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="motivation">
