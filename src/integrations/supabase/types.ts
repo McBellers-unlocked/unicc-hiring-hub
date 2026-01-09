@@ -463,6 +463,7 @@ export type Database = {
           error_message: string | null
           id: string
           job_id: string
+          last_updated_at: string | null
           scored_count: number
           skipped_count: number
           started_at: string | null
@@ -476,6 +477,7 @@ export type Database = {
           error_message?: string | null
           id?: string
           job_id: string
+          last_updated_at?: string | null
           scored_count?: number
           skipped_count?: number
           started_at?: string | null
@@ -489,6 +491,7 @@ export type Database = {
           error_message?: string | null
           id?: string
           job_id?: string
+          last_updated_at?: string | null
           scored_count?: number
           skipped_count?: number
           started_at?: string | null

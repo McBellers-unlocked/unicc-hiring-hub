@@ -9,6 +9,7 @@ const corsHeaders = {
 const BATCH_SIZE = 3;
 const BATCH_DELAY_MS = 2000;
 const MAX_RETRIES = 2;
+const STALL_THRESHOLD_MS = 120000; // 2 minutes
 
 async function scoreWithRetry(
   supabase: any, 
@@ -21,9 +22,8 @@ async function scoreWithRetry(
     });
 
     if (error) {
-      // Check if we should retry (rate limit or transient error)
       if (retries < MAX_RETRIES) {
-        const delay = 3000 * (retries + 1); // Exponential backoff: 3s, 6s
+        const delay = 3000 * (retries + 1);
         console.log(`Retrying ${appId} after error (attempt ${retries + 1}/${MAX_RETRIES}), waiting ${delay}ms`);
         await new Promise(r => setTimeout(r, delay));
         return scoreWithRetry(supabase, appId, retries + 1);
@@ -55,9 +55,12 @@ async function processScoringInBackground(
   try {
     console.log(`Background processing started for batch job ${batchJobId}`);
     
-    // Update status to processing
+    // Update status to processing with timestamp
     await supabase.from('batch_scoring_jobs')
-      .update({ status: 'processing' })
+      .update({ 
+        status: 'processing',
+        last_updated_at: new Date().toISOString()
+      })
       .eq('id', batchJobId);
 
     let scoredCount = 0;
@@ -82,11 +85,12 @@ async function processScoringInBackground(
         else if (result.status === 'error') errorCount++;
       }
       
-      // Update progress in database
+      // Update progress in database with last_updated_at
       await supabase.from('batch_scoring_jobs')
         .update({ 
           scored_count: scoredCount, 
-          error_count: errorCount 
+          error_count: errorCount,
+          last_updated_at: new Date().toISOString()
         })
         .eq('id', batchJobId);
       
@@ -104,6 +108,7 @@ async function processScoringInBackground(
       .update({ 
         status: 'completed',
         completed_at: new Date().toISOString(),
+        last_updated_at: new Date().toISOString(),
         scored_count: scoredCount,
         skipped_count: skippedCount,
         error_count: errorCount
@@ -120,6 +125,7 @@ async function processScoringInBackground(
       .update({ 
         status: 'failed',
         completed_at: new Date().toISOString(),
+        last_updated_at: new Date().toISOString(),
         error_message: error.message
       })
       .eq('id', batchJobId);
@@ -140,7 +146,29 @@ Deno.serve(async (req) => {
 
     console.log(`Batch scoring for job ${jobId}, forceRescore: ${forceRescore}`);
 
-    // Get all applications for this job that have PHF completed
+    // Step 1: Check for stalled jobs (processing but no update in 2+ minutes)
+    const twoMinutesAgo = new Date(Date.now() - STALL_THRESHOLD_MS).toISOString();
+    const { data: stalledJobs } = await supabase
+      .from('batch_scoring_jobs')
+      .select('id')
+      .eq('job_id', jobId)
+      .eq('status', 'processing')
+      .lt('last_updated_at', twoMinutesAgo);
+
+    // Mark stalled jobs as incomplete
+    if (stalledJobs?.length) {
+      console.log(`Found ${stalledJobs.length} stalled jobs, marking as incomplete`);
+      await supabase
+        .from('batch_scoring_jobs')
+        .update({ 
+          status: 'incomplete', 
+          completed_at: new Date().toISOString(),
+          last_updated_at: new Date().toISOString()
+        })
+        .in('id', stalledJobs.map((j: any) => j.id));
+    }
+
+    // Step 2: Get all applications for this job that have PHF completed
     const { data: applications, error: fetchError } = await supabase
       .from('applications')
       .select('id')
@@ -149,66 +177,84 @@ Deno.serve(async (req) => {
 
     if (fetchError) throw fetchError;
 
-    console.log(`Found ${applications?.length || 0} applications to process`);
+    console.log(`Found ${applications?.length || 0} PHF-completed applications`);
 
-    // Filter applications based on existing scores
-    const applicationsToScore: { id: string }[] = [];
-    const skippedApplications: { id: string }[] = [];
+    // Step 3: Get applications that already have scores (batch query - more efficient)
+    const applicationIds = applications?.map(a => a.id) || [];
+    const { data: existingScores } = await supabase
+      .from('screening_scores')
+      .select('application_id')
+      .in('application_id', applicationIds);
 
-    for (const app of applications || []) {
-      const { data: existingScore } = await supabase
-        .from('screening_scores')
-        .select('id')
-        .eq('application_id', app.id)
-        .maybeSingle();
+    const alreadyScoredIds = new Set(existingScores?.map(s => s.application_id) || []);
+    console.log(`${alreadyScoredIds.size} applications already have scores`);
 
-      if (existingScore) {
-        if (forceRescore) {
-          // Delete existing score to allow re-scoring
-          const { error: deleteError } = await supabase
-            .from('screening_scores')
-            .delete()
-            .eq('application_id', app.id);
-          
-          if (deleteError) {
-            console.error(`Failed to delete score for ${app.id}:`, deleteError);
-            continue;
-          }
-          console.log(`Deleted existing score for ${app.id}, will rescore`);
-          applicationsToScore.push(app);
-        } else {
-          console.log(`Application ${app.id} already has a score, skipping`);
-          skippedApplications.push(app);
+    // Step 4: Filter applications based on scoring status
+    let applicationsToScore: { id: string }[];
+    let skippedCount: number;
+
+    if (forceRescore) {
+      // For force rescore: delete existing scores first, then score all
+      if (alreadyScoredIds.size > 0) {
+        console.log(`Force rescore: deleting ${alreadyScoredIds.size} existing scores`);
+        const { error: deleteError } = await supabase
+          .from('screening_scores')
+          .delete()
+          .in('application_id', Array.from(alreadyScoredIds));
+        
+        if (deleteError) {
+          console.error('Error deleting existing scores:', deleteError);
         }
-      } else {
-        applicationsToScore.push(app);
       }
+      applicationsToScore = applications || [];
+      skippedCount = 0;
+    } else {
+      // Normal scoring: skip applications that already have scores
+      applicationsToScore = (applications || []).filter(app => !alreadyScoredIds.has(app.id));
+      skippedCount = alreadyScoredIds.size;
     }
 
-    console.log(`Will score ${applicationsToScore.length} applications, skipping ${skippedApplications.length}`);
+    console.log(`Will score ${applicationsToScore.length} applications, skipping ${skippedCount}`);
 
-    // Create batch job record
+    // If nothing to score, return early
+    if (applicationsToScore.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          message: 'No applications to score',
+          total: applications?.length || 0,
+          toScore: 0,
+          skipped: skippedCount
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      );
+    }
+
+    // Step 5: Create batch job record
     const { data: batchJob, error: insertError } = await supabase
       .from('batch_scoring_jobs')
       .insert({
         job_id: jobId,
         status: 'pending',
         total_applications: applications?.length || 0,
-        skipped_count: skippedApplications.length
+        skipped_count: skippedCount,
+        last_updated_at: new Date().toISOString()
       })
       .select()
       .single();
 
     if (insertError) throw insertError;
 
-    // Start background processing (non-blocking)
+    // Step 6: Start background processing (non-blocking)
     // @ts-ignore - EdgeRuntime is available in Supabase Edge Functions
     EdgeRuntime.waitUntil(
       processScoringInBackground(
         supabase,
         batchJob.id,
         applicationsToScore,
-        skippedApplications.length
+        skippedCount
       )
     );
 
@@ -219,7 +265,7 @@ Deno.serve(async (req) => {
         batchJobId: batchJob.id,
         total: applications?.length || 0,
         toScore: applicationsToScore.length,
-        skipped: skippedApplications.length
+        skipped: skippedCount
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
