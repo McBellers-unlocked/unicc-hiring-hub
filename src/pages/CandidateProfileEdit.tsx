@@ -852,7 +852,7 @@ export default function CandidateProfileEdit() {
               email: profile.email,
               phone: profile.phone,
               maiden_name: profile.maiden_name,
-              gender: profile.gender as 'Male' | 'Female' | undefined,
+              gender: profile.gender as 'Man' | 'Woman' | undefined,
               date_of_birth: (() => {
                 if (!profile.date_of_birth) return undefined;
                 const val = profile.date_of_birth;
