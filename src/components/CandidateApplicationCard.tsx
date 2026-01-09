@@ -444,11 +444,11 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
             "flex items-start gap-3 p-3 rounded-lg my-4 border",
             application.status === 'Rejected' 
               ? "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800"
-              : "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800"
+              : "bg-slate-50 border-slate-200 dark:bg-slate-900/50 dark:border-slate-700"
           )}>
             <MessageSquare className={cn(
               "w-4 h-4 mt-0.5 flex-shrink-0",
-              application.status === 'Rejected' ? "text-red-600" : "text-amber-600"
+              application.status === 'Rejected' ? "text-red-600" : "text-slate-500"
             )} />
             <div className="flex-1 text-sm">
               <div className="flex items-center gap-2 flex-wrap">
@@ -473,7 +473,7 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                 {application.longlister_comment?.reason && (
                   <span className={cn(
                     "font-medium",
-                    application.status === 'Rejected' ? "text-red-700 dark:text-red-400" : "text-amber-700 dark:text-amber-400"
+                    application.status === 'Rejected' ? "text-red-700 dark:text-red-400" : "text-slate-600 dark:text-slate-400"
                   )}>
                     {application.status === 'Rejected' ? 'Rejection reason:' : 'Longlister note:'}
                   </span>
@@ -484,7 +484,7 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
               {application.longlister_comment?.reason && (
                 <p className={cn(
                   "mt-1",
-                  application.status === 'Rejected' ? "text-red-900 dark:text-red-200" : "text-amber-900 dark:text-amber-200"
+                  application.status === 'Rejected' ? "text-red-900 dark:text-red-200" : "text-slate-700 dark:text-slate-300"
                 )}>
                   "{application.longlister_comment.reason}"
                 </p>
