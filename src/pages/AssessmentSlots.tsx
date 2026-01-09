@@ -28,6 +28,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { getPublicSiteUrl } from "@/lib/utils";
 import { ArrowLeft, Plus, Mail, Calendar, Clock, Copy, ExternalLink, Trash2, AlertCircle } from "lucide-react";
 import { format, addMinutes, addHours } from "date-fns";
 import DatePicker from "react-datepicker";
@@ -162,7 +163,7 @@ export default function AssessmentSlots() {
   };
 
   const copyAssessmentLink = (token: string) => {
-    const link = `${window.location.origin}/assessment/${token}`;
+    const link = `${getPublicSiteUrl()}/assessment/${token}`;
     navigator.clipboard.writeText(link);
     toast.success("Link copied to clipboard");
   };

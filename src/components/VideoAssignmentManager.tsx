@@ -24,6 +24,7 @@ import {
   Settings
 } from 'lucide-react';
 import { format, addDays, addHours } from 'date-fns';
+import { getPublicSiteUrl } from '@/lib/utils';
 
 interface VideoAssignment {
   id: string;
@@ -218,7 +219,7 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
     if (!assignment) return;
 
     try {
-      const videoLink = `${window.location.origin}/video/${assignment.token}`;
+      const videoLink = `${getPublicSiteUrl()}/video/${assignment.token}`;
       const deadline = format(new Date(assignment.deadline_at), 'dd/MM/yyyy HH:mm');
 
       const { error } = await supabase.functions.invoke('send-video-invite', {
@@ -279,7 +280,7 @@ export const VideoAssignmentManager: React.FC<VideoAssignmentManagerProps> = ({ 
           candidateName: assignment.applications.candidates.name,
           candidateEmail: assignment.applications.candidates.email,
           jobTitle: assignment.applications.jobs.title,
-          videoLink: `${window.location.origin}/video/${assignment.token}`,
+          videoLink: `${getPublicSiteUrl()}/video/${assignment.token}`,
           deadline: format(newDeadline, 'dd/MM/yyyy HH:mm'),
           jobTimezone: 'Europe/Zurich',
           retakesAllowed: assignment.video_question_sets.allow_retakes,

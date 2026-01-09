@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Video, Play, User, Clock, Calendar } from 'lucide-react';
+import { getPublicSiteUrl } from '@/lib/utils';
 
 interface Application {
   id: string;
@@ -160,11 +161,11 @@ export default function VideoTestInterface() {
   };
 
   const getCandidateLink = (token: string) => {
-    return `${window.location.origin}/video-interview/${token}`;
+    return `${getPublicSiteUrl()}/video-interview/${token}`;
   };
 
   const getHiringManagerLink = (applicationId: string) => {
-    return `${window.location.origin}/admin/applications/${applicationId}`;
+    return `${getPublicSiteUrl()}/admin/applications/${applicationId}`;
   };
 
   const simulateVideoSubmissions = async () => {

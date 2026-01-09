@@ -10,6 +10,7 @@ import { ArrowLeft, CheckCircle, AlertTriangle, Eye, Copy, Save, Globe } from 'l
 import { JobFormData } from '@/pages/JobWizard';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { getPublicSiteUrl } from '@/lib/utils';
 
 interface Props {
   data: JobFormData;
@@ -48,7 +49,7 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
   // Set public URL
   useEffect(() => {
     if (slug) {
-      setPublicUrl(`${window.location.origin}/jobs/${slug}`);
+      setPublicUrl(`${getPublicSiteUrl()}/jobs/${slug}`);
     }
   }, [slug]);
 
