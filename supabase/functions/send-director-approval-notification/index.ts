@@ -21,13 +21,13 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Fetch requisition with creator
     const { data: requisition, error } = await supabase
       .from("job_requisitions")
       .select(`
         id, reference_number, position_title, unit_section_division,
-        grade, nature_of_position, director_approved_at,
-        users!job_requisitions_created_by_fkey(name, email),
-        director_approver:users!job_requisitions_director_approved_by_fkey(name)
+        grade, nature_of_position, director_approved_at, director_approved_by,
+        users!job_requisitions_created_by_fkey(name, email)
       `)
       .eq("id", requisitionId)
       .single();
@@ -38,7 +38,19 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const hiringManager = requisition.users as { name: string; email: string };
-    const directorName = (requisition.director_approver as { name: string } | null)?.name || "Director";
+    
+    // Fetch director name separately if director_approved_by exists
+    let directorName = "Director";
+    if (requisition.director_approved_by) {
+      const { data: directorData } = await supabase
+        .from("users")
+        .select("name")
+        .eq("id", requisition.director_approved_by)
+        .single();
+      if (directorData?.name) {
+        directorName = directorData.name;
+      }
+    }
 
     const approvedDate = requisition.director_approved_at 
       ? new Date(requisition.director_approved_at).toLocaleDateString("en-US", {
