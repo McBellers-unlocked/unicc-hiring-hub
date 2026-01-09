@@ -148,9 +148,10 @@ export default function JobRequisitionDetail() {
   };
 
   const generatePDF = async () => {
+    if (!requisition?.id) return;
     try {
       const { data, error } = await supabase.functions.invoke('generate-requisition-pdf', {
-        body: { requisitionId: id }
+        body: { requisitionId: requisition.id }
       });
 
       if (error) throw error;
@@ -196,9 +197,10 @@ export default function JobRequisitionDetail() {
   };
 
   const convertToJob = async () => {
+    if (!requisition?.id) return;
     try {
       const { data, error } = await supabase.functions.invoke('convert-requisition-to-job', {
-        body: { requisitionId: id }
+        body: { requisitionId: requisition.id }
       });
 
       if (error) throw error;
