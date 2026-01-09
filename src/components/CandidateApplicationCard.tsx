@@ -725,26 +725,6 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
               </>
             ) : (
               <>
-                {/* Longlist toggle */}
-                <Button
-                  size="sm"
-                  variant={application.suggested_for_longlist ? "default" : "outline"}
-                  onClick={() => onAddToLonglist(application.id)}
-                  className="whitespace-nowrap"
-                >
-                  {application.suggested_for_longlist ? (
-                    <>
-                      <Check className="w-3 h-3 mr-1.5" />
-                      Listed
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-3 h-3 mr-1.5" />
-                      Add
-                    </>
-                  )}
-                </Button>
-
                 {/* View button */}
                 <Button
                   size="sm"
@@ -756,44 +736,16 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                   View
                 </Button>
 
-                {/* Add to Shortlist button - for applications suggested for longlist */}
-                {onAddToShortlist && application.suggested_for_longlist && (
+                {/* Add to Longlist button - only show if not already on longlist */}
+                {!application.suggested_for_longlist && (
                   <Button
                     size="sm"
                     variant="default"
-                    onClick={() => onAddToShortlist(application.id)}
+                    onClick={() => onAddToLonglist(application.id)}
                     className="whitespace-nowrap bg-green-600 hover:bg-green-700 text-white"
                   >
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    Add to Shortlist
-                  </Button>
-                )}
-
-                {/* Direct Shortlist button - only for Associate Policy (Legal) Officer */}
-                {application.job?.title?.includes('Associate Policy (Legal) Officer') && 
-                 (userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Hiring Manager')) && 
-                 onDirectShortlist && (
-                  <Button
-                    size="sm"
-                    variant="default"
-                    onClick={() => onDirectShortlist(application.id)}
-                    className={`whitespace-nowrap ${
-                      application.status === 'Shortlist' 
-                        ? 'bg-purple-600 hover:bg-purple-700 text-white' 
-                        : 'bg-green-600 hover:bg-green-700 text-white'
-                    }`}
-                  >
-                    {application.status === 'Shortlist' ? (
-                      <>
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Shortlisted
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Direct Shortlist
-                      </>
-                    )}
+                    <Plus className="w-3 h-3 mr-1" />
+                    Add to Longlist
                   </Button>
                 )}
 
