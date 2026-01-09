@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Brain } from 'lucide-react';
+import { Brain, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
@@ -7,9 +7,10 @@ import { useState } from 'react';
 interface TriggerScoringButtonProps {
   jobId: string;
   onComplete?: () => void;
+  forceRescore?: boolean;
 }
 
-export function TriggerScoringButton({ jobId, onComplete }: TriggerScoringButtonProps) {
+export function TriggerScoringButton({ jobId, onComplete, forceRescore = false }: TriggerScoringButtonProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -17,13 +18,13 @@ export function TriggerScoringButton({ jobId, onComplete }: TriggerScoringButton
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('trigger-batch-scoring', {
-        body: { jobId }
+        body: { jobId, forceRescore }
       });
 
       if (error) throw error;
 
       toast({
-        title: "Scoring Complete",
+        title: forceRescore ? "Re-Scoring Complete" : "Scoring Complete",
         description: `Successfully scored ${data.success} applications. ${data.skipped} already scored. ${data.errors} errors.`,
       });
 
@@ -47,8 +48,12 @@ export function TriggerScoringButton({ jobId, onComplete }: TriggerScoringButton
       variant="outline"
       size="sm"
     >
-      <Brain className="w-4 h-4 mr-2" />
-      {loading ? 'Scoring...' : 'Score All Applications'}
+      {forceRescore ? (
+        <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+      ) : (
+        <Brain className="w-4 h-4 mr-2" />
+      )}
+      {loading ? 'Scoring...' : forceRescore ? 'Re-Score All' : 'Score All Applications'}
     </Button>
   );
 }

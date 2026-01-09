@@ -11,13 +11,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { jobId } = await req.json();
+    const { jobId, forceRescore } = await req.json();
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get all applications for this job that have PHF completed but no scores
+    console.log(`Batch scoring for job ${jobId}, forceRescore: ${forceRescore}`);
+
+    // Get all applications for this job that have PHF completed
     const { data: applications, error: fetchError } = await supabase
       .from('applications')
       .select('id')
@@ -38,8 +40,22 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (existingScore) {
-          console.log(`Application ${app.id} already has a score, skipping`);
-          return { id: app.id, status: 'skipped' };
+          if (forceRescore) {
+            // Delete existing score to allow re-scoring
+            const { error: deleteError } = await supabase
+              .from('screening_scores')
+              .delete()
+              .eq('application_id', app.id);
+            
+            if (deleteError) {
+              console.error(`Failed to delete score for ${app.id}:`, deleteError);
+              return { id: app.id, status: 'error', error: deleteError };
+            }
+            console.log(`Deleted existing score for ${app.id}, will rescore`);
+          } else {
+            console.log(`Application ${app.id} already has a score, skipping`);
+            return { id: app.id, status: 'skipped' };
+          }
         }
 
         // Trigger scoring
