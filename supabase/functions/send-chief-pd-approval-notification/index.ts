@@ -21,13 +21,13 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Fetch requisition with creator
     const { data: requisition, error } = await supabase
       .from("job_requisitions")
       .select(`
         id, reference_number, position_title, unit_section_division,
-        grade, nature_of_position, chief_pd_approved_at, chief_pd_comments,
-        users!job_requisitions_created_by_fkey(name, email),
-        chief_approver:users!job_requisitions_chief_pd_approved_by_fkey(name)
+        grade, nature_of_position, chief_pd_approved_at, chief_pd_comments, chief_pd_approved_by,
+        users!job_requisitions_created_by_fkey(name, email)
       `)
       .eq("id", requisitionId)
       .single();
@@ -38,7 +38,19 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const hiringManager = requisition.users as { name: string; email: string };
-    const chiefName = (requisition.chief_approver as { name: string } | null)?.name || "Chief of Division";
+    
+    // Fetch chief name separately if chief_pd_approved_by exists
+    let chiefName = "Chief of Division";
+    if (requisition.chief_pd_approved_by) {
+      const { data: chiefData } = await supabase
+        .from("users")
+        .select("name")
+        .eq("id", requisition.chief_pd_approved_by)
+        .single();
+      if (chiefData?.name) {
+        chiefName = chiefData.name;
+      }
+    }
 
     const approvedDate = requisition.chief_pd_approved_at 
       ? new Date(requisition.chief_pd_approved_at).toLocaleDateString("en-US", {
