@@ -709,9 +709,9 @@ Deno.serve(async (req) => {
       .upsert({
         application_id: applicationId,
         rubric_breakdown: result,
-        total_score: result.overallScore,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        ai_score: result.overallScore,
+        version: '3.0',
+        created_at: new Date().toISOString()
       }, {
         onConflict: 'application_id'
       });
