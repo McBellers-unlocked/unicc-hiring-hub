@@ -76,6 +76,8 @@ interface ApplicationData {
     email: string;
     phone: string | null;
     location: string | null;
+    present_city: string | null;
+    present_country: string | null;
     linkedin_url: string | null;
     languages: any;
     work_auth: string | null;
@@ -769,10 +771,14 @@ export default function ApplicationDetail() {
                             <span className="text-sm">{application.candidate.phone}</span>
                           </div>
                         )}
-                        {application.candidate.location && (
+                        {(application.candidate.present_city || application.candidate.present_country || application.candidate.location) && (
                           <div className="flex items-center space-x-2">
                             <MapPin className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm">{application.candidate.location}</span>
+                            <span className="text-sm">
+                              {application.candidate.present_city && application.candidate.present_country 
+                                ? `${application.candidate.present_city}, ${application.candidate.present_country}`
+                                : application.candidate.location || [application.candidate.present_city, application.candidate.present_country].filter(Boolean).join(', ')}
+                            </span>
                           </div>
                         )}
                         {application.candidate.linkedin_url && (
@@ -821,65 +827,131 @@ export default function ApplicationDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {application.phf_data?.languages && (Object.keys(application.phf_data.languages.un_languages || {}).length > 0 || (application.phf_data.languages.other_languages && application.phf_data.languages.other_languages.length > 0)) ? (
-                  <div className="space-y-3">
-                    {/* UN Languages */}
-                    {application.phf_data.languages.un_languages && Object.entries(application.phf_data.languages.un_languages).map(([lang, proficiency]: [string, any]) => {
-                      const profLevel = typeof proficiency === 'string' && proficiency
-                        ? proficiency 
-                        : (proficiency?.english || proficiency?.level || 'Not specified');
-                      
-                      return (
-                        <div key={lang} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                          <div>
-                            <span className="font-medium capitalize">{lang}</span>
-                            <Badge variant="secondary" className="ml-2 text-xs">UN Language</Badge>
-                          </div>
-                          <Badge variant="outline" className="capitalize">
-                            {profLevel}
-                          </Badge>
-                        </div>
-                      );
-                    })}
-                    
-                    {/* Other Languages */}
-                    {application.phf_data.languages.other_languages && application.phf_data.languages.other_languages.length > 0 && 
-                      application.phf_data.languages.other_languages.map((lang: any, index: number) => (
-                        <div key={`other-${index}`} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                          <span className="font-medium">{lang.language || lang.name}</span>
-                          <div className="flex gap-2">
-                            {/* Handle simple proficiency field (from profile editor) */}
-                            {lang.proficiency && !lang.speaking && !lang.reading && !lang.writing && (
-                              <Badge variant="outline" className="capitalize">
-                                {lang.proficiency === 'professional' ? 'Professional Working' :
-                                 lang.proficiency === 'limited' ? 'Limited Working' :
-                                 lang.proficiency === 'native' ? 'Native/Bilingual' :
-                                 lang.proficiency === 'elementary' ? 'Elementary' :
-                                 lang.proficiency}
-                              </Badge>
-                            )}
-                            {/* Handle separate speaking/reading/writing fields (from PHF import) */}
-                            {lang.speaking && (
-                              <Badge variant="outline" className="text-xs">
-                                S: {getLanguageProficiency(lang.speaking)}
-                              </Badge>
-                            )}
-                            {lang.reading && (
-                              <Badge variant="outline" className="text-xs">
-                                R: {getLanguageProficiency(lang.reading)}
-                              </Badge>
-                            )}
-                            {lang.writing && (
-                              <Badge variant="outline" className="text-xs">
-                                W: {getLanguageProficiency(lang.writing)}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      ))
+                {application.phf_data?.languages && (() => {
+                  const unLangs = application.phf_data.languages.un_languages || {};
+                  const otherLangs = application.phf_data.languages.other_languages || [];
+                  
+                  // Helper to check if a language has any selected level
+                  const hasSelectedLevel = (prof: any) => {
+                    if (typeof prof === 'string') return prof && prof !== 'none' && prof !== 'not_applicable';
+                    if (typeof prof === 'object' && prof) {
+                      return (prof.read && prof.read !== 'none') || 
+                             (prof.speak && prof.speak !== 'none') || 
+                             (prof.write && prof.write !== 'none');
                     }
-                  </div>
-                ) : (
+                    return false;
+                  };
+                  
+                  // Filter UN languages to only those with selected levels
+                  const activeUnLangs = Object.entries(unLangs).filter(([_, prof]) => hasSelectedLevel(prof));
+                  
+                  // Filter other languages to only those with selected levels
+                  const activeOtherLangs = otherLangs.filter((lang: any) => 
+                    hasSelectedLevel(lang) || hasSelectedLevel(lang.proficiency) || 
+                    (lang.speaking && lang.speaking !== 'none') || 
+                    (lang.reading && lang.reading !== 'none') || 
+                    (lang.writing && lang.writing !== 'none')
+                  );
+                  
+                  if (activeUnLangs.length === 0 && activeOtherLangs.length === 0) return null;
+                  
+                  return (
+                    <div className="space-y-3">
+                      {/* UN Languages - only those with levels selected */}
+                      {activeUnLangs.map(([lang, proficiency]: [string, any]) => {
+                        // Handle object format {read, speak, write}
+                        if (typeof proficiency === 'object' && proficiency) {
+                          const { read, speak, write } = proficiency;
+                          const allSame = read === speak && speak === write && read !== 'none';
+                          
+                          return (
+                            <div key={lang} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                              <div>
+                                <span className="font-medium capitalize">{lang}</span>
+                                <Badge variant="secondary" className="ml-2 text-xs">UN Language</Badge>
+                              </div>
+                              <div className="flex gap-2">
+                                {allSame ? (
+                                  <Badge variant="outline" className="capitalize">{getLanguageProficiency(read)}</Badge>
+                                ) : (
+                                  <>
+                                    {read && read !== 'none' && <Badge variant="outline" className="text-xs">R: {getLanguageProficiency(read)}</Badge>}
+                                    {speak && speak !== 'none' && <Badge variant="outline" className="text-xs">S: {getLanguageProficiency(speak)}</Badge>}
+                                    {write && write !== 'none' && <Badge variant="outline" className="text-xs">W: {getLanguageProficiency(write)}</Badge>}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        }
+                        
+                        // Handle string format
+                        return (
+                          <div key={lang} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                            <div>
+                              <span className="font-medium capitalize">{lang}</span>
+                              <Badge variant="secondary" className="ml-2 text-xs">UN Language</Badge>
+                            </div>
+                            <Badge variant="outline" className="capitalize">{getLanguageProficiency(String(proficiency))}</Badge>
+                          </div>
+                        );
+                      })}
+                      
+                      {/* Other Languages */}
+                      {activeOtherLangs.map((lang: any, index: number) => {
+                        // Handle object format {read, speak, write}
+                        if (lang.read || lang.speak || lang.write) {
+                          const { read, speak, write } = lang;
+                          const allSame = read === speak && speak === write && read !== 'none';
+                          
+                          return (
+                            <div key={`other-${index}`} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                              <span className="font-medium">{lang.language || lang.name}</span>
+                              <div className="flex gap-2">
+                                {allSame ? (
+                                  <Badge variant="outline" className="capitalize">{getLanguageProficiency(read)}</Badge>
+                                ) : (
+                                  <>
+                                    {read && read !== 'none' && <Badge variant="outline" className="text-xs">R: {getLanguageProficiency(read)}</Badge>}
+                                    {speak && speak !== 'none' && <Badge variant="outline" className="text-xs">S: {getLanguageProficiency(speak)}</Badge>}
+                                    {write && write !== 'none' && <Badge variant="outline" className="text-xs">W: {getLanguageProficiency(write)}</Badge>}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        }
+                        
+                        // Handle legacy format with proficiency/speaking/reading/writing
+                        return (
+                          <div key={`other-${index}`} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                            <span className="font-medium">{lang.language || lang.name}</span>
+                            <div className="flex gap-2">
+                              {lang.proficiency && !lang.speaking && !lang.reading && !lang.writing && (
+                                <Badge variant="outline" className="capitalize">
+                                  {lang.proficiency === 'professional' ? 'Professional Working' :
+                                   lang.proficiency === 'limited' ? 'Limited Working' :
+                                   lang.proficiency === 'native' ? 'Native/Bilingual' :
+                                   lang.proficiency === 'elementary' ? 'Elementary' :
+                                   lang.proficiency}
+                                </Badge>
+                              )}
+                              {lang.speaking && lang.speaking !== 'none' && (
+                                <Badge variant="outline" className="text-xs">S: {getLanguageProficiency(lang.speaking)}</Badge>
+                              )}
+                              {lang.reading && lang.reading !== 'none' && (
+                                <Badge variant="outline" className="text-xs">R: {getLanguageProficiency(lang.reading)}</Badge>
+                              )}
+                              {lang.writing && lang.writing !== 'none' && (
+                                <Badge variant="outline" className="text-xs">W: {getLanguageProficiency(lang.writing)}</Badge>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })() || (
                   <div className="text-center py-6 text-muted-foreground">
                     <LanguagesIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">No languages listed</p>

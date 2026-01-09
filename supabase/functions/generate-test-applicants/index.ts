@@ -458,21 +458,20 @@ function generateEmploymentPHF(quality: string, shouldHaveUNExp: boolean): any[]
 
 function generateLanguagesPHF(): any {
   const unLanguages = ['english', 'french', 'spanish', 'arabic', 'chinese', 'russian'];
-  const proficiencies = ['fluent', 'working_knowledge', 'limited', 'none'];
+  const proficiencies = ['fluent', 'working_knowledge', 'limited'];
 
   const unLangs: Record<string, { read: string; write: string; speak: string }> = {};
   
   // Always fluent in English
   unLangs['english'] = { read: 'fluent', write: 'fluent', speak: 'fluent' };
   
-  // Random proficiency for other UN languages
+  // Random proficiency for other UN languages - only add if they have a level (not none)
   for (const lang of unLanguages.slice(1)) {
     if (Math.random() > 0.6) {
-      const level = randomItem(proficiencies.slice(0, 3));
+      const level = randomItem(proficiencies);
       unLangs[lang] = { read: level, write: level, speak: level };
-    } else {
-      unLangs[lang] = { read: 'none', write: 'none', speak: 'none' };
     }
+    // Don't add languages with 'none' - just skip them entirely
   }
 
   const otherLanguageNames = ['German', 'Portuguese', 'Italian', 'Japanese', 'Hindi', 'Korean', 'Dutch', 'Swedish'];
