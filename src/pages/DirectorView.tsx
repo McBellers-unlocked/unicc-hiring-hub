@@ -60,17 +60,36 @@ export default function DirectorView() {
   const { data: requisitions, isLoading } = useQuery({
     queryKey: ["requisitions-director-approval"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("job_requisitions")
-        .select(`
-          *,
-          creator:users!created_by(name, email)
-        `)
-        .eq("status", "director_review")
-        .order("created_at", { ascending: false });
+      // Fetch both director_review and DO division chief_of_division_review requisitions
+      const [directorReview, chiefReview] = await Promise.all([
+        supabase
+          .from("job_requisitions")
+          .select(`*, creator:users!created_by(name, email)`)
+          .eq("status", "director_review")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("job_requisitions")
+          .select(`*, creator:users!created_by(name, email)`)
+          .in("status", ["chief_of_division_review", "chief_division_review"])
+          .eq("hr_final_review_completed", true)
+          .or("chief_pd_approval.is.null,chief_pd_approval.eq.false")
+          .order("created_at", { ascending: false })
+      ]);
 
-      if (error) throw error;
-      return data;
+      if (directorReview.error) throw directorReview.error;
+      if (chiefReview.error) throw chiefReview.error;
+
+      // Filter chief review to only include DO division requisitions
+      const doChiefRequisitions = (chiefReview.data || []).filter(r => {
+        const divisionCode = getDivisionCode(r.unit_section_division);
+        return divisionCode === 'DO';
+      });
+
+      // Combine and mark DO requisitions
+      return [
+        ...(directorReview.data || []).map(r => ({ ...r, _isDoChiefReview: false })),
+        ...doChiefRequisitions.map(r => ({ ...r, _isDoChiefReview: true }))
+      ];
     },
   });
 
@@ -189,31 +208,58 @@ export default function DirectorView() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: async ({ id, approved }: { id: string; approved: boolean }) => {
+    mutationFn: async ({ id, approved, isDoChiefReview }: { id: string; approved: boolean; isDoChiefReview?: boolean }) => {
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+      const now = new Date().toISOString();
+      
+      let updateData: Record<string, any> = {};
+      
+      if (isDoChiefReview) {
+        // DO division at chief review: set both chief AND director approvals
+        updateData = {
+          chief_pd_approval: approved,
+          chief_pd_approved_by: userId,
+          chief_pd_approved_at: now,
+          director_approval: approved,
+          director_approved_at: now,
+          director_approved_by: userId,
+          status: approved ? "approved" : "rejected"
+        };
+      } else {
+        // Normal director approval
+        updateData = {
+          director_approval: approved,
+          director_approved_at: now,
+          director_approved_by: userId,
+          status: approved ? "approved" : "rejected"
+        };
+      }
+
       const { error } = await supabase
         .from("job_requisitions")
-        .update({
-          director_approval: approved,
-          director_approved_at: new Date().toISOString(),
-          director_approved_by: (await supabase.auth.getUser()).data.user?.id,
-          status: approved ? "approved" : "rejected"
-        })
+        .update(updateData)
         .eq("id", id);
 
       if (error) throw error;
-      return { id, approved };
+      return { id, approved, isDoChiefReview };
     },
     onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["requisitions-director-approval"] });
       
-      // Send email notification when Director approves
+      // Send email notifications when approved
       if (data.approved) {
         try {
+          // For DO division chief review, send both notifications
+          if (data.isDoChiefReview) {
+            await supabase.functions.invoke("send-chief-pd-approval-notification", {
+              body: { requisitionId: data.id }
+            });
+          }
           await supabase.functions.invoke("send-director-approval-notification", {
             body: { requisitionId: data.id }
           });
         } catch (emailError) {
-          console.error("Failed to send director approval notification:", emailError);
+          console.error("Failed to send approval notification:", emailError);
         }
       }
       
@@ -247,8 +293,8 @@ export default function DirectorView() {
     },
   });
 
-  const handleApproval = (id: string, approved: boolean) => {
-    approveMutation.mutate({ id, approved });
+  const handleApproval = (id: string, approved: boolean, isDoChiefReview?: boolean) => {
+    approveMutation.mutate({ id, approved, isDoChiefReview });
   };
 
   const handleCommitteeApproval = (id: string, approved: boolean) => {
@@ -468,9 +514,14 @@ export default function DirectorView() {
                         <div className="flex gap-2 mt-2">
                           <Badge variant="outline">{requisition.grade}</Badge>
                           <Badge variant="outline">{requisition.nature_of_position}</Badge>
+                          {(requisition as any)._isDoChiefReview && (
+                            <Badge className="bg-purple-600">Chief + Director</Badge>
+                          )}
                         </div>
                       </div>
-                      <Badge variant="secondary">Pending Director Approval</Badge>
+                      <Badge variant="secondary">
+                        {(requisition as any)._isDoChiefReview ? 'Pending Chief & Director Approval' : 'Pending Director Approval'}
+                      </Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -882,7 +933,7 @@ export default function DirectorView() {
 
                     <div className="flex gap-2">
                       <Button
-                        onClick={() => handleApproval(requisition.id, true)}
+                        onClick={() => handleApproval(requisition.id, true, (requisition as any)._isDoChiefReview)}
                         disabled={approveMutation.isPending}
                         className="bg-green-600 hover:bg-green-700"
                       >
@@ -890,7 +941,7 @@ export default function DirectorView() {
                       </Button>
                       <Button
                         variant="destructive"
-                        onClick={() => handleApproval(requisition.id, false)}
+                        onClick={() => handleApproval(requisition.id, false, (requisition as any)._isDoChiefReview)}
                         disabled={approveMutation.isPending}
                       >
                         Reject
