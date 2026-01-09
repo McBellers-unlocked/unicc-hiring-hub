@@ -188,6 +188,16 @@ export default function AdminApplications() {
     );
   }
 
+  // Helper to transform Supabase data - extracts first screening_score from array
+  const transformApplications = (apps: any[]): Application[] => {
+    return apps.map(app => ({
+      ...app,
+      screening_scores: Array.isArray(app.screening_scores) 
+        ? app.screening_scores[0] || null 
+        : app.screening_scores
+    }));
+  };
+
   const fetchApplications = async (jobId?: string) => {
     if (!jobId) return;
     
@@ -280,15 +290,15 @@ export default function AdminApplications() {
                 .neq('status', 'Draft')
                 .order('submitted_at', { ascending: false });
               
-              setApplications(updatedData || []);
+              setApplications(transformApplications(updatedData || []));
             } else {
-              setApplications(data);
+              setApplications(transformApplications(data));
             }
           } else {
-            setApplications(data);
+            setApplications(transformApplications(data));
           }
         } else {
-          setApplications(data);
+          setApplications(transformApplications(data));
         }
       } else {
         setApplications([]);
@@ -321,7 +331,7 @@ export default function AdminApplications() {
           });
 
           // Merge scores into applications
-          const updatedApps = (data || []).map(app => ({
+          const updatedApps = transformApplications(data || []).map(app => ({
             ...app,
             videoScore: scoresByApp[app.id] 
               ? scoresByApp[app.id].total / scoresByApp[app.id].count 
@@ -990,7 +1000,7 @@ export default function AdminApplications() {
   const totalWomenPercentage = totalApplications > 0 ? Math.round((totalWomenCount / totalApplications) * 100) : 0;
 
   const getScoreBadge = (application: Application) => {
-    // Get the score directly (now a single object, not array)
+    // Get the score directly from the screening_scores object
     const score = application.screening_scores?.ai_score;
     if (score === null || score === undefined) {
       return (
