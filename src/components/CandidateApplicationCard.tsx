@@ -82,8 +82,8 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
 }) => {
   const navigate = useNavigate();
   
-  // Extract AI scoring data
-  const screeningScore = application.screening_scores?.[0];
+  // Extract AI scoring data (screening_scores is now a single object after transformation)
+  const screeningScore = application.screening_scores;
   const aiScore = screeningScore?.ai_score;
   const rubricBreakdown = screeningScore?.rubric_breakdown;
 
@@ -137,11 +137,11 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
   };
 
   const getScoreBadge = (app: any) => {
-    if (!application.screening_scores || !application.screening_scores[0]?.ai_score) {
+    if (!application.screening_scores?.ai_score) {
       return <Badge variant="outline" className="text-xs">No Score</Badge>;
     }
 
-    const score = application.screening_scores[0].ai_score;
+    const score = application.screening_scores.ai_score;
     let colorClass = 'bg-gray-100 text-gray-700';
     
     if (score >= 80) colorClass = 'bg-green-100 text-green-700';
