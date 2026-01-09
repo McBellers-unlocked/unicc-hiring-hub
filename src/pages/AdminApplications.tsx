@@ -225,6 +225,7 @@ export default function AdminApplications() {
           screening_scores(ai_score, created_at)
         `)
         .eq('job_id', jobId)
+        .neq('status', 'Draft')
         .order('submitted_at', { ascending: false });
 
       if (error) throw error;
@@ -276,6 +277,7 @@ export default function AdminApplications() {
                   screening_scores(ai_score, created_at)
                 `)
                 .eq('job_id', jobId)
+                .neq('status', 'Draft')
                 .order('submitted_at', { ascending: false });
               
               setApplications(updatedData || []);
