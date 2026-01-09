@@ -276,22 +276,33 @@ function calculateTotalExperienceYears(experience: any[]): number {
     let startDate: Date | null = null;
     let endDate: Date | null = null;
     
-    // Handle PHF format (period_from_year, period_to_year)
+    // Handle PHF format with period_from_year, period_to_year
     if (exp.period_from_year) {
       const month = exp.period_from_month ? parseInt(exp.period_from_month) - 1 : 0;
       startDate = new Date(parseInt(exp.period_from_year), month, 1);
       
-      if (exp.is_present) {
+      if (exp.is_present === true) {
         endDate = new Date();
       } else if (exp.period_to_year) {
         const toMonth = exp.period_to_month ? parseInt(exp.period_to_month) - 1 : 11;
         endDate = new Date(parseInt(exp.period_to_year), toMonth, 28);
       }
     } 
+    // Handle PHF format with from_year, to_year (numeric years)
+    else if (exp.from_year) {
+      const month = exp.from_month ? parseInt(exp.from_month) - 1 : 0;
+      startDate = new Date(parseInt(exp.from_year), month, 1);
+      
+      if (exp.is_present === true || exp.to_year === null || exp.to_year === undefined) {
+        endDate = new Date();
+      } else {
+        const toMonth = exp.to_month ? parseInt(exp.to_month) - 1 : 11;
+        endDate = new Date(parseInt(exp.to_year), toMonth, 28);
+      }
+    }
     // Handle camelCase format (startDate, endDate)
     else if (exp.startDate) {
       startDate = new Date(exp.startDate);
-      // Explicit null/undefined check - isCurrent or missing/null endDate = current job
       if (exp.isCurrent === true || exp.endDate === null || exp.endDate === undefined) {
         endDate = new Date();
       } else {
@@ -301,7 +312,6 @@ function calculateTotalExperienceYears(experience: any[]): number {
     // Handle snake_case format (start_date, end_date)
     else if (exp.start_date) {
       startDate = new Date(exp.start_date);
-      // Explicit null/undefined check - is_current or missing/null end_date = current job
       if (exp.is_current === true || exp.end_date === null || exp.end_date === undefined) {
         endDate = new Date();
       } else {
@@ -381,8 +391,8 @@ function getHighestEducationLevel(educationEntries: any[]): EducationLevel {
   if (!educationEntries || !educationEntries.length) return 'Other';
   
   const levels = educationEntries.map(entry => {
-    // Support both field naming conventions: degree_type and degree
-    const degreeType = entry.degree_type || entry.degree || '';
+    // Support all field naming conventions: degree_type, degree, degree_or_certificate_title
+    const degreeType = entry.degree_type || entry.degree || entry.degree_or_certificate_title || '';
     return getEducationLevel(degreeType);
   });
   
@@ -405,9 +415,11 @@ function checkEducationEligibility(
   candidateEducation: any[],
   requiredLevel: EducationLevel
 ): { eligible: boolean; candidateLevel: EducationLevel; details: string } {
-  // Handle both: filter by is_completed if present, or include all if field is missing
+  // Handle all field naming: is_completed, completed, or missing (assume completed)
   const completedEducation = candidateEducation.filter(edu => 
-    edu.is_completed === true || edu.is_completed === undefined
+    edu.is_completed === true || 
+    edu.completed === true || 
+    (edu.is_completed === undefined && edu.completed === undefined)
   );
   const candidateLevel = getHighestEducationLevel(completedEducation);
   
