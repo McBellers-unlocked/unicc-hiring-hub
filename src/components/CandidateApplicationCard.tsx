@@ -23,8 +23,10 @@ import {
   Star,
   Award,
   Wrench,
-  Users
+  Users,
+  MessageSquare
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
 
 interface CandidateApplicationCardProps {
@@ -435,6 +437,68 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
             </div>
           </div>
         </div>
+
+        {/* Longlister Assessment Row - Shows tier and/or comment if available */}
+        {(application.longlist_rating || application.longlister_comment?.reason) && (
+          <div className={cn(
+            "flex items-start gap-3 p-3 rounded-lg my-4 border",
+            application.status === 'Rejected' 
+              ? "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800"
+              : "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800"
+          )}>
+            <MessageSquare className={cn(
+              "w-4 h-4 mt-0.5 flex-shrink-0",
+              application.status === 'Rejected' ? "text-red-600" : "text-amber-600"
+            )} />
+            <div className="flex-1 text-sm">
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Tier Badge */}
+                {application.longlist_rating && (
+                  <Badge 
+                    variant="outline" 
+                    className={cn(
+                      "text-xs",
+                      application.longlist_rating === 'tier_1' && "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-700",
+                      application.longlist_rating === 'tier_2' && "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-700",
+                      application.longlist_rating === 'eligible' && "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-700"
+                    )}
+                  >
+                    {application.longlist_rating === 'tier_1' && <Star className="w-3 h-3 mr-1 fill-current" />}
+                    {application.longlist_rating === 'tier_1' ? 'Tier 1' : 
+                     application.longlist_rating === 'tier_2' ? 'Tier 2' : 'Eligible'}
+                  </Badge>
+                )}
+                
+                {/* Label */}
+                {application.longlister_comment?.reason && (
+                  <span className={cn(
+                    "font-medium",
+                    application.status === 'Rejected' ? "text-red-700 dark:text-red-400" : "text-amber-700 dark:text-amber-400"
+                  )}>
+                    {application.status === 'Rejected' ? 'Rejection reason:' : 'Longlister note:'}
+                  </span>
+                )}
+              </div>
+              
+              {/* Comment Text */}
+              {application.longlister_comment?.reason && (
+                <p className={cn(
+                  "mt-1",
+                  application.status === 'Rejected' ? "text-red-900 dark:text-red-200" : "text-amber-900 dark:text-amber-200"
+                )}>
+                  "{application.longlister_comment.reason}"
+                </p>
+              )}
+              
+              {/* Reviewer Attribution */}
+              {application.longlister_comment?.reviewer_name && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {application.status === 'Rejected' ? 'Rejected' : 'Reviewed'} by {application.longlister_comment.reviewer_name}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Action row - This replaces the table columns that were causing horizontal scroll */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-border">
