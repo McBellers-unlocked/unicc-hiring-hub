@@ -127,6 +127,20 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground font-sans;
   }
+
+  /* Prose overflow handling for markdown content */
+  .prose {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .prose pre,
+  .prose code {
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
 }
 
 /* React DatePicker styling */
