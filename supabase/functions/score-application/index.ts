@@ -299,20 +299,52 @@ function calculateTotalExperienceYears(experience: any[]): number {
 // =============================================================================
 
 const DEGREE_TYPE_LEVELS: Record<string, EducationLevel> = {
+  // Secondary education
   'High School Diploma': 'Secondary',
   'Secondary Education Certificate': 'Secondary',
   'A-Levels': 'Secondary',
+  'International Baccalaureate': 'Secondary',
+  
+  // First Level University (Bachelor's)
   "Bachelor's Degree": 'First Level University',
   "Bachelor's Degree (Honors)": 'First Level University',
-  "Master's Degree": 'Advanced University',
-  'PhD': 'Advanced University',
-  'Post-Doctoral': 'Advanced University',
-  'Professional Certificate': 'Professional',
   "Bachelor's": 'First Level University',
-  "Master's": 'Advanced University',
-  'JD': 'Advanced University',
+  'Bachelor of Science': 'First Level University',
+  'Bachelor of Arts': 'First Level University',
+  'Bachelor of Engineering': 'First Level University',
+  'BSc': 'First Level University',
+  'BA': 'First Level University',
+  'BEng': 'First Level University',
   'LLB': 'First Level University',
+  
+  // Advanced University (Master's and Doctorate)
+  "Master's Degree": 'Advanced University',
+  "Master's": 'Advanced University',
+  'Master of Science': 'Advanced University',
+  'Master of Arts': 'Advanced University',
+  'Master of Engineering': 'Advanced University',
+  'MSc': 'Advanced University',
+  'MA': 'Advanced University',
+  'MEng': 'Advanced University',
+  'MBA': 'Advanced University',
   'LLM': 'Advanced University',
+  'PhD': 'Advanced University',
+  'Ph.D.': 'Advanced University',
+  'Doctorate': 'Advanced University',
+  'Doctor of Philosophy': 'Advanced University',
+  'DPhil': 'Advanced University',
+  'EdD': 'Advanced University',
+  'MD': 'Advanced University',
+  'Post-Doctoral': 'Advanced University',
+  'JD': 'Advanced University',
+  
+  // Professional
+  'Professional Certificate': 'Professional',
+  'Technical Diploma': 'Professional',
+  'Professional License': 'Professional',
+  'Associate': 'Professional',
+  'Certificate': 'Professional',
+  'Diploma': 'Professional',
 };
 
 function getEducationLevel(degreeType: string): EducationLevel {
