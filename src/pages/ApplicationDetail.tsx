@@ -30,6 +30,9 @@ import { CompactCandidateView } from '@/components/CompactCandidateView';
 import { InterviewScoreMatrix } from '@/components/InterviewScoreMatrix';
 import { InterviewRecommendationStatus } from '@/components/InterviewRecommendationStatus';
 import StepDeterminationCalculator from '@/components/StepDeterminationCalculator';
+import { ActionConfirmationDialog } from '@/components/ActionConfirmationDialog';
+import { ApplicationDetailActionBar } from '@/components/ApplicationDetailActionBar';
+import { ScrollToTopButton } from '@/components/ScrollToTopButton';
 import {
   ArrowLeft, 
   User, 
@@ -113,6 +116,8 @@ export default function ApplicationDetail() {
   const [hasVideoAssignment, setHasVideoAssignment] = useState(false);
   const [emailLogs, setEmailLogs] = useState<any[]>([]);
   const [emailsLoading, setEmailsLoading] = useState(false);
+  const [showLonglistDialog, setShowLonglistDialog] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
 
   // Check access permissions
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
@@ -331,6 +336,86 @@ export default function ApplicationDetail() {
       toast({
         title: "Error",
         description: "Failed to update application status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddToLonglistConfirm = async (reason: string, rating?: string) => {
+    try {
+      const { error: updateError } = await supabase
+        .from('applications')
+        .update({ 
+          status: 'Longlist' as any,
+          suggested_for_longlist: true,
+          longlist_rating: rating || null
+        })
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+
+      const { error: logError } = await supabase
+        .from('stage_events')
+        .insert({
+          application_id: id!,
+          from_stage: application?.status as any,
+          to_stage: 'Longlist' as any,
+          by_user: (await supabase.auth.getUser()).data.user?.id,
+          reason: reason || null
+        });
+
+      if (logError) throw logError;
+
+      toast({
+        title: "Success",
+        description: "Application added to longlist",
+      });
+
+      setShowLonglistDialog(false);
+      fetchApplication();
+    } catch (error) {
+      console.error('Error adding to longlist:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add to longlist",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRejectConfirm = async (reason: string) => {
+    try {
+      const { error: updateError } = await supabase
+        .from('applications')
+        .update({ status: 'Rejected' as any })
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+
+      const { error: logError } = await supabase
+        .from('stage_events')
+        .insert({
+          application_id: id!,
+          from_stage: application?.status as any,
+          to_stage: 'Rejected' as any,
+          by_user: (await supabase.auth.getUser()).data.user?.id,
+          reason: reason || null
+        });
+
+      if (logError) throw logError;
+
+      toast({
+        title: "Success",
+        description: "Application rejected",
+      });
+
+      setShowRejectDialog(false);
+      fetchApplication();
+    } catch (error) {
+      console.error('Error rejecting application:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject application",
         variant: "destructive",
       });
     }
@@ -1691,6 +1776,37 @@ export default function ApplicationDetail() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Floating Action Bar */}
+      <ApplicationDetailActionBar
+        applicationStatus={application.status}
+        canMoveToLonglist={canMoveToLonglist}
+        onAddToLonglist={() => setShowLonglistDialog(true)}
+        onReject={() => setShowRejectDialog(true)}
+      />
+
+      {/* Scroll to Top Button */}
+      <ScrollToTopButton threshold={300} />
+
+      {/* Add to Longlist Dialog */}
+      <ActionConfirmationDialog
+        open={showLonglistDialog}
+        onOpenChange={setShowLonglistDialog}
+        action="longlist"
+        candidateName={application.candidate.name}
+        currentStatus={application.status}
+        onConfirm={handleAddToLonglistConfirm}
+      />
+
+      {/* Reject Dialog */}
+      <ActionConfirmationDialog
+        open={showRejectDialog}
+        onOpenChange={setShowRejectDialog}
+        action="reject"
+        candidateName={application.candidate.name}
+        currentStatus={application.status}
+        onConfirm={handleRejectConfirm}
+      />
     </Layout>
   );
 }
