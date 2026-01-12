@@ -60,7 +60,7 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
 
   const togglePublish = (published: boolean) => {
     setIsPublished(published);
-    onUpdate({ status: published ? 'active' : 'draft' });
+    onUpdate({ status: published ? 'active' : 'paused' });
   };
 
   // Validation checklist
@@ -126,7 +126,7 @@ export function JobWizardStep6({ data, onUpdate, onPrev, isEditing, jobId }: Pro
       const finalJobData = {
         ...jobData,
         location: Array.isArray(jobData.location) ? jobData.location.join(', ') : jobData.location,
-        status: publish ? 'active' : 'draft',
+        status: publish ? 'active' : 'paused',
         slug: slug,
         updated_at: new Date().toISOString(),
       };
