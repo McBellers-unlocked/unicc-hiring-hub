@@ -6,7 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, MapPin, Calendar, Briefcase, Users, ExternalLink, Share2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Briefcase, Users, ExternalLink, Share2, Copy, Mail, Linkedin, MessageCircle } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow, format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -112,25 +118,33 @@ export default function JobDetail() {
     }
   };
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: job?.title,
-          text: `Check out this job opportunity at UNICC: ${job?.title}`,
-          url: window.location.href,
-        });
-      } catch (error) {
-        // User cancelled sharing
-      }
-    } else {
-      // Fallback to copying URL
-      await navigator.clipboard.writeText(window.location.href);
-      toast({
-        title: "Link copied",
-        description: "Job link has been copied to your clipboard.",
-      });
-    }
+  const jobUrl = `${window.location.origin}/jobs/${slug}`;
+  const shareTitle = job?.title || 'Job Opportunity';
+  const shareText = `Check out this job: ${shareTitle} at UNICC`;
+
+  const copyToClipboard = async () => {
+    await navigator.clipboard.writeText(jobUrl);
+    toast({ title: "Link copied!", description: "Job link copied to clipboard" });
+  };
+
+  const shareToTeams = () => {
+    const teamsUrl = `https://teams.microsoft.com/share?href=${encodeURIComponent(jobUrl)}&msgText=${encodeURIComponent(shareText)}`;
+    window.open(teamsUrl, '_blank');
+  };
+
+  const shareToLinkedIn = () => {
+    const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(jobUrl)}`;
+    window.open(linkedInUrl, '_blank');
+  };
+
+  const shareViaEmail = () => {
+    const emailUrl = `mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(`${shareText}\n\n${jobUrl}`)}`;
+    window.location.href = emailUrl;
+  };
+
+  const shareToWhatsApp = () => {
+    const whatsAppUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${jobUrl}`)}`;
+    window.open(whatsAppUrl, '_blank');
   };
 
   if (loading) {
@@ -249,10 +263,36 @@ export default function JobDetail() {
                       <p className="text-muted-foreground mb-4">Notice No: {job.notice_no}</p>
                     )}
                   </div>
-                  <Button variant="outline" size="sm" onClick={handleShare}>
-                    <Share2 className="h-4 w-4 mr-2" />
-                    Share
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Share2 className="h-4 w-4 mr-2" />
+                        Share
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={copyToClipboard}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy Link
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={shareToTeams}>
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        Share to Teams
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={shareToLinkedIn}>
+                        <Linkedin className="h-4 w-4 mr-2" />
+                        Share to LinkedIn
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={shareViaEmail}>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Share via Email
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={shareToWhatsApp}>
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        Share to WhatsApp
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
