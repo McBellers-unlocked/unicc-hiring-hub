@@ -161,7 +161,7 @@ export default function AdminJobs() {
   };
 
   const toggleStatus = async (jobId: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'active' ? 'draft' : 'active';
+    const newStatus = currentStatus === 'active' ? 'paused' : 'active';
     
     try {
       const { error } = await supabase
