@@ -179,9 +179,8 @@ export function LonglistCompleteNotification({
 
             {/* Next step hint */}
             <p className="text-xs text-blue-600 dark:text-blue-400 mt-3">
-              {hasVideoStage 
-                ? 'The Hiring Manager will be asked to move candidates to Video Interview or reject them.'
-                : 'The Hiring Manager will be asked to move candidates to Shortlist or reject them.'}
+              The Hiring Manager will be asked to move candidates to Pre-Recorded Video Interview 
+              or directly to Shortlist (for panel interviews).
             </p>
           </div>
           

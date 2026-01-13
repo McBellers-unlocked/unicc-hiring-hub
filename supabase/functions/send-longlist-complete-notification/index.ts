@@ -116,10 +116,19 @@ const handler = async (req: Request): Promise<Response> => {
     const siteUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://cxpnvbphjpntrvvgjhli.lovable.app';
     const longlistUrl = `${siteUrl}/applications/manage?job=${jobId}&status=Longlist`;
 
-    // Build the instruction text based on video stage
-    const nextStepInstruction = hasVideoStage
-      ? `<li><strong>Move candidates to "Add to Video":</strong> For candidates you want to proceed with, move them to the Video Interview stage so they can record their responses.</li>`
-      : `<li><strong>Move candidates to "Shortlist":</strong> For candidates you want to proceed with, add them to the shortlist to continue to the next interview stage.</li>`;
+    // Build the instruction text with both pathways
+    const nextStepInstruction = `
+      <li style="margin-bottom: 12px;">
+        <strong>If using pre-recorded video interviews:</strong> 
+        Move candidates to <span style="background-color: #dbeafe; padding: 2px 6px; border-radius: 4px; font-weight: 600;">"Pre-Recorded Video"</span> status. 
+        They will receive an invitation to complete their video interview.
+      </li>
+      <li style="margin-bottom: 12px;">
+        <strong>If proceeding directly to panel interview:</strong> 
+        Move candidates to <span style="background-color: #dcfce7; padding: 2px 6px; border-radius: 4px; font-weight: 600;">"Shortlist"</span> status. 
+        They will be scheduled for an interview with the panel.
+      </li>
+    `;
 
     // Build tier breakdown
     let tierBreakdown = '';
@@ -191,6 +200,10 @@ const handler = async (req: Request): Promise<Response> => {
                           <li><strong>Reject remaining candidates:</strong> For candidates you don't want to proceed with, please reject them with a brief explanation.</li>
                           <li><strong>Leave comments:</strong> Please add notes to candidates to help the team understand your decisions.</li>
                         </ol>
+                        <p style="color: #6b7280; font-size: 13px; font-style: italic; margin-top: 15px;">
+                          💡 <strong>Note:</strong> If you plan to use pre-recorded video interviews and they haven't been configured yet, 
+                          please contact HR to set up the video questions before moving candidates.
+                        </p>
                       </div>
 
                       <!-- Deadline -->
