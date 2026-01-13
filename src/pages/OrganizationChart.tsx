@@ -1,0 +1,284 @@
+import { useState, useMemo, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Layout } from '@/components/Layout';
+import { OrganizationChart as OrgChartComponent } from '@/components/org-chart/OrganizationChart';
+import { OrgChartControls } from '@/components/org-chart/OrgChartControls';
+import { 
+  buildOrgTree, 
+  filterTreeByDivision, 
+  filterTreeByPersonnelType, 
+  limitTreeDepth,
+  getTreeStats,
+  OrgNode,
+  UserData
+} from '@/lib/orgChartUtils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Users, Layers, Building2, TrendingUp, Network } from 'lucide-react';
+import { toPng } from 'html-to-image';
+import { toast } from 'sonner';
+
+export default function OrganizationChartPage() {
+  const chartRef = useRef<HTMLDivElement>(null);
+  const [selectedDivision, setSelectedDivision] = useState('all');
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedDepth, setSelectedDepth] = useState(99);
+  const [orientation, setOrientation] = useState<'vertical' | 'horizontal'>('vertical');
+  const [zoom, setZoom] = useState(0.7);
+
+  // Fetch users with line_manager data
+  const { data: users, isLoading } = useQuery({
+    queryKey: ['org-chart-users'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, email, job_title, division, current_grade, personnel_type, affiliate_type, line_manager, duty_station')
+        .not('name', 'is', null)
+        .order('name');
+      
+      if (error) throw error;
+      return data as UserData[];
+    },
+  });
+
+  // Build and filter org tree
+  const { orgTree, stats, divisions, personnelTypes } = useMemo(() => {
+    if (!users) return { orgTree: [], stats: null, divisions: [], personnelTypes: [] };
+
+    // Get unique divisions and personnel types
+    const divSet = new Set<string>();
+    const typeSet = new Set<string>();
+    
+    users.forEach(u => {
+      if (u.division) divSet.add(u.division);
+      if (u.personnel_type) typeSet.add(u.personnel_type);
+    });
+
+    // Build tree
+    let tree = buildOrgTree(users);
+    
+    // Apply filters
+    tree = filterTreeByDivision(tree, selectedDivision);
+    tree = filterTreeByPersonnelType(tree, selectedTypes);
+    tree = limitTreeDepth(tree, selectedDepth);
+    
+    const treeStats = getTreeStats(tree);
+
+    return {
+      orgTree: tree,
+      stats: treeStats,
+      divisions: Array.from(divSet).sort(),
+      personnelTypes: Array.from(typeSet).sort(),
+    };
+  }, [users, selectedDivision, selectedTypes, selectedDepth]);
+
+  const handleZoomIn = () => setZoom(z => Math.min(z + 0.1, 2));
+  const handleZoomOut = () => setZoom(z => Math.max(z - 0.1, 0.3));
+  const handleReset = () => setZoom(0.7);
+
+  const handleExport = async () => {
+    if (!chartRef.current) return;
+    
+    try {
+      const dataUrl = await toPng(chartRef.current, { 
+        backgroundColor: '#ffffff',
+        quality: 1,
+      });
+      
+      const link = document.createElement('a');
+      link.download = 'unicc-org-chart.png';
+      link.href = dataUrl;
+      link.click();
+      
+      toast.success('Organization chart exported as PNG');
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error('Failed to export chart');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <Skeleton className="h-12 w-64 mb-6" />
+          <Skeleton className="h-[600px] w-full rounded-lg" />
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <Network className="h-8 w-8 text-primary" />
+            Organization Chart
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Interactive visualization of the UNICC organizational structure
+          </p>
+        </div>
+
+        {/* Stats cards */}
+        {stats && (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-blue-500" />
+                  <div>
+                    <div className="text-2xl font-bold">{stats.totalNodes}</div>
+                    <div className="text-xs text-muted-foreground">Total People</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2">
+                  <Layers className="h-5 w-5 text-purple-500" />
+                  <div>
+                    <div className="text-2xl font-bold">{stats.maxDepth}</div>
+                    <div className="text-xs text-muted-foreground">Max Depth</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-green-500" />
+                  <div>
+                    <div className="text-2xl font-bold">{stats.managersCount}</div>
+                    <div className="text-xs text-muted-foreground">Managers</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-orange-500" />
+                  <div>
+                    <div className="text-2xl font-bold">{stats.averageSpanOfControl}</div>
+                    <div className="text-xs text-muted-foreground">Avg Span of Control</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2">
+                  <Network className="h-5 w-5 text-cyan-500" />
+                  <div>
+                    <div className="text-2xl font-bold">{Object.keys(stats.divisionCounts).length}</div>
+                    <div className="text-xs text-muted-foreground">Divisions</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Controls */}
+        <OrgChartControls
+          divisions={divisions}
+          selectedDivision={selectedDivision}
+          onDivisionChange={setSelectedDivision}
+          personnelTypes={personnelTypes}
+          selectedTypes={selectedTypes}
+          onTypesChange={setSelectedTypes}
+          maxDepth={stats?.maxDepth || 5}
+          selectedDepth={selectedDepth}
+          onDepthChange={setSelectedDepth}
+          orientation={orientation}
+          onOrientationChange={setOrientation}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onReset={handleReset}
+          onExport={handleExport}
+        />
+
+        {/* Chart */}
+        <Card className="mt-6">
+          <CardContent className="p-0">
+            <div 
+              ref={chartRef}
+              className="h-[600px] w-full overflow-hidden rounded-lg bg-background"
+            >
+              <OrgChartComponent 
+                data={orgTree} 
+                orientation={orientation}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Division breakdown */}
+        {stats && (
+          <div className="grid md:grid-cols-2 gap-6 mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">By Division</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {Object.entries(stats.divisionCounts)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([div, count]) => (
+                      <div key={div} className="flex items-center justify-between">
+                        <span className="text-sm">{div}</span>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="h-2 bg-primary rounded-full"
+                            style={{ width: `${(count / stats.totalNodes) * 200}px` }}
+                          />
+                          <span className="text-sm text-muted-foreground w-8 text-right">
+                            {count}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">By Personnel Type</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {Object.entries(stats.typeCounts)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([type, count]) => (
+                      <div key={type} className="flex items-center justify-between">
+                        <span className="text-sm">{type}</span>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="h-2 bg-secondary rounded-full"
+                            style={{ width: `${(count / stats.totalNodes) * 200}px` }}
+                          />
+                          <span className="text-sm text-muted-foreground w-8 text-right">
+                            {count}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+    </Layout>
+  );
+}
