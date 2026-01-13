@@ -385,7 +385,7 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
   const canSendForApproval = 
     isCommitteeComplete && 
     !hasValidationErrors &&
-    (!job?.review_committee_status || job.review_committee_status === "draft");
+    (!job?.review_committee_status || job.review_committee_status === "draft" || job.review_committee_status === "rejected");
 
   const isPendingOrApproved = 
     job?.review_committee_status === "pending_approval" || 
@@ -410,15 +410,20 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
         <CardContent className="space-y-6">
           {/* Status Badge */}
           {job?.review_committee_status && job.review_committee_status !== "draft" && (
-            <Alert>
+            <Alert variant={job.review_committee_status === "rejected" ? "destructive" : undefined}>
               <AlertDescription className="flex items-center gap-2">
                 <Badge variant={
                   job.review_committee_status === "pending_approval" ? "secondary" :
-                  job.review_committee_approved ? "default" : "destructive"
+                  job.review_committee_status === "rejected" ? "destructive" :
+                  job.review_committee_approved ? "default" : "secondary"
                 }>
                   {job.review_committee_status === "pending_approval" ? "Pending Director Approval" :
+                   job.review_committee_status === "rejected" ? "Rejected by Director" :
                    job.review_committee_approved ? "Approved" : job.review_committee_status}
                 </Badge>
+                {job.review_committee_status === "rejected" && (
+                  <span className="text-sm">Please review the composition and resubmit</span>
+                )}
               </AlertDescription>
             </Alert>
           )}
@@ -603,7 +608,9 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
                 className="w-full"
               >
                 <Send className="h-4 w-4 mr-2" />
-                Send for Director Approval
+                {job?.review_committee_status === "rejected" 
+                  ? "Resubmit for Director Approval" 
+                  : "Send for Director Approval"}
               </Button>
             </div>
           )}
