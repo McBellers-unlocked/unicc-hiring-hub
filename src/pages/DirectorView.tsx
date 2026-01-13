@@ -159,14 +159,29 @@ export default function DirectorView() {
 
         // Fetch committee members for all jobs
         const jobIds = data.map(d => d.id);
-        const { data: committeeMembers } = await supabase
+        const { data: committeeMembers, error: membersError } = await supabase
           .from("job_review_committee_members")
-          .select(`
-            job_id,
-            role,
-            user:users(id, name, email, current_grade)
-          `)
+          .select("job_id, role, user_id")
           .in("job_id", jobIds);
+
+        if (membersError) {
+          console.error("Error fetching committee members:", membersError);
+        }
+
+        // Get unique user IDs from committee members and fetch their details separately
+        const memberUserIds = [...new Set((committeeMembers || []).map(m => m.user_id))];
+        let memberUsers: any[] = [];
+        if (memberUserIds.length > 0) {
+          const { data: usersData, error: usersError } = await supabase
+            .from("users")
+            .select("id, name, email, current_grade")
+            .in("id", memberUserIds);
+          
+          if (usersError) {
+            console.error("Error fetching member users:", usersError);
+          }
+          memberUsers = usersData || [];
+        }
 
         // Sort committee members by role
         const roleOrder = { "Chair": 1, "Member": 2, "Staff Representative": 3 };
@@ -176,6 +191,10 @@ export default function DirectorView() {
           sender: senders?.find(s => s.id === job.review_committee_sent_by),
           committee_members: (committeeMembers || [])
             .filter(m => m.job_id === job.id)
+            .map(m => ({
+              ...m,
+              user: memberUsers.find(u => u.id === m.user_id)
+            }))
             .sort((a, b) => (roleOrder[a.role as keyof typeof roleOrder] || 99) - (roleOrder[b.role as keyof typeof roleOrder] || 99))
         }));
       }
