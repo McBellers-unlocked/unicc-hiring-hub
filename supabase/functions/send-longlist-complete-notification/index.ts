@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { Resend } from "npm:resend@2.0.0";
+import { Resend } from "npm:resend@4.0.0";
 import { corsHeaders } from '../_shared/cors.ts';
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -113,8 +113,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Sending notifications to:', users.map(u => u.email));
 
-    const siteUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://cxpnvbphjpntrvvgjhli.lovable.app';
+    const siteUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://staging.unicconnect.org';
     const longlistUrl = `${siteUrl}/applications/manage?job=${jobId}&status=Longlist`;
+    const logoUrl = 'https://staging.unicconnect.org/email-assets/unicc_logo.jpg';
 
     // Build the instruction text with both pathways
     const nextStepInstruction = `
@@ -164,8 +165,8 @@ const handler = async (req: Request): Promise<Response> => {
                 <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                   <!-- Header -->
                   <tr>
-                    <td style="background-color: #0073b1; padding: 30px; text-align: center;">
-                      <img src="${siteUrl}/assets/unicc_logo.jpg" alt="UNICC" style="height: 50px; margin-bottom: 10px;" />
+                    <td style="background-color: #0066cc; padding: 30px; text-align: center;">
+                      <img src="${logoUrl}" alt="UNICC" style="height: 50px; margin-bottom: 10px;" />
                       <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">Longlist Complete</h1>
                     </td>
                   </tr>
@@ -247,8 +248,9 @@ const handler = async (req: Request): Promise<Response> => {
 
       try {
         const emailResponse = await resend.emails.send({
-          from: 'UNICC Talent <notifications@unicc.email>',
+          from: 'UNICC Recruitment <recruitment@unicconnect.org>',
           to: [user.email],
+          cc: ['hrselection@unicc.org'],
           subject: `Longlist Complete: ${job.title} Ready for Your Review`,
           html: emailHtml,
         });
