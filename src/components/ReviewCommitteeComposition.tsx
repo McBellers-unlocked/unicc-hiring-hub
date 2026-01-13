@@ -433,10 +433,33 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Select Staff Member</label>
-                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                <label className="text-sm font-medium mb-2 block">Select Role</label>
+                <Select value={selectedRole} onValueChange={(value) => {
+                  setSelectedRole(value);
+                  setSelectedUserId(""); // Clear staff selection when role changes
+                }}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a staff member" />
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REQUIRED_ROLES.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Select Staff Member</label>
+                <Select 
+                  value={selectedUserId} 
+                  onValueChange={setSelectedUserId}
+                  disabled={!selectedRole}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={selectedRole ? "Select a staff member" : "Select a role first"} />
                   </SelectTrigger>
                   <SelectContent>
                     {staffUsers
@@ -456,22 +479,6 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
                           {user.name}
                         </SelectItem>
                       ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Role</label>
-                <Select value={selectedRole} onValueChange={setSelectedRole}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {REQUIRED_ROLES.map((role) => (
-                      <SelectItem key={role.value} value={role.value}>
-                        {role.label}
-                      </SelectItem>
-                    ))}
                   </SelectContent>
                 </Select>
               </div>
