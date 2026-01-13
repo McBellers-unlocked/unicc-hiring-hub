@@ -53,6 +53,50 @@ interface DivisionImpact {
 const COVERAGE_TARGET = 70;
 const CRITICALITY_THRESHOLD = 3;
 
+// Demo data for presentations when no real data is available
+const DEMO_DATA: SkillQuadrantData[] = [
+  // URGENT quadrant (high criticality, low coverage)
+  { id: "demo-1", name: "Cloud Security", criticality: 4.5, coverage: 35, staffCount: 28, belowRequired: 18, 
+    topDivisions: [{ division: "DS", count: 8 }, { division: "CS", count: 6 }], 
+    status: "emerging", quadrant: "urgent", avgLevel: 2.1, requiredLevel: 4 },
+  { id: "demo-2", name: "AI/ML Operations", criticality: 4.8, coverage: 25, staffCount: 22, belowRequired: 16,
+    topDivisions: [{ division: "DD", count: 7 }, { division: "DS", count: 5 }],
+    status: "new", quadrant: "urgent", avgLevel: 1.8, requiredLevel: 4 },
+  { id: "demo-3", name: "Zero Trust Architecture", criticality: 4.2, coverage: 42, staffCount: 19, belowRequired: 11,
+    topDivisions: [{ division: "CS", count: 5 }, { division: "DS", count: 4 }],
+    status: "emerging", quadrant: "urgent", avgLevel: 2.5, requiredLevel: 4 },
+  
+  // WATCH quadrant (low criticality, low coverage)  
+  { id: "demo-4", name: "Legacy Systems", criticality: 2.2, coverage: 45, staffCount: 15, belowRequired: 8,
+    topDivisions: [{ division: "OP", count: 4 }],
+    status: "legacy", quadrant: "watch", avgLevel: 2.8, requiredLevel: 3 },
+  { id: "demo-5", name: "Desktop Support", criticality: 1.8, coverage: 55, staffCount: 12, belowRequired: 5,
+    topDivisions: [{ division: "DO", count: 3 }],
+    status: "established", quadrant: "watch", avgLevel: 3.2, requiredLevel: 3 },
+    
+  // HEALTHY quadrant (high criticality, high coverage)
+  { id: "demo-6", name: "Project Management", criticality: 4.0, coverage: 82, staffCount: 45, belowRequired: 8,
+    topDivisions: [{ division: "DD", count: 3 }],
+    status: "established", quadrant: "healthy", avgLevel: 3.8, requiredLevel: 3.5 },
+  { id: "demo-7", name: "Stakeholder Engagement", criticality: 3.8, coverage: 78, staffCount: 38, belowRequired: 8,
+    topDivisions: [{ division: "OP", count: 4 }],
+    status: "established", quadrant: "healthy", avgLevel: 3.6, requiredLevel: 3 },
+  { id: "demo-8", name: "Strategic Planning", criticality: 4.2, coverage: 75, staffCount: 32, belowRequired: 8,
+    topDivisions: [{ division: "DD", count: 3 }],
+    status: "established", quadrant: "healthy", avgLevel: 3.5, requiredLevel: 3 },
+  { id: "demo-9", name: "Agile Methodology", criticality: 3.5, coverage: 85, staffCount: 42, belowRequired: 6,
+    topDivisions: [{ division: "DD", count: 2 }],
+    status: "established", quadrant: "healthy", avgLevel: 4.0, requiredLevel: 3.5 },
+    
+  // DEPRIORITIZE quadrant (low criticality, high coverage)
+  { id: "demo-10", name: "Email Administration", criticality: 1.5, coverage: 92, staffCount: 50, belowRequired: 4,
+    topDivisions: [{ division: "DO", count: 2 }],
+    status: "legacy", quadrant: "deprioritize", avgLevel: 4.2, requiredLevel: 3 },
+  { id: "demo-11", name: "Documentation", criticality: 2.0, coverage: 88, staffCount: 48, belowRequired: 6,
+    topDivisions: [{ division: "MS", count: 3 }],
+    status: "established", quadrant: "deprioritize", avgLevel: 4.0, requiredLevel: 3 },
+];
+
 export default function SkillRiskQuadrant({ skills }: Props) {
   const [quadrantData, setQuadrantData] = useState<SkillQuadrantData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -189,7 +233,14 @@ export default function SkillRiskQuadrant({ skills }: Props) {
         };
       });
 
-      setQuadrantData(data.filter((d) => d.staffCount > 0));
+      const filteredData = data.filter((d) => d.staffCount > 0);
+      
+      // Use demo data if no real data available (for demo purposes)
+      if (filteredData.length === 0) {
+        setQuadrantData(DEMO_DATA);
+      } else {
+        setQuadrantData(filteredData);
+      }
     } catch (error) {
       console.error("Error fetching quadrant data:", error);
     } finally {
