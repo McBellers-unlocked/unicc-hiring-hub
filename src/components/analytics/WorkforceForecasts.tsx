@@ -36,20 +36,18 @@ interface WorkforceForecastsProps {
   isLoading: boolean;
 }
 
-// Time-to-hire estimates by stage (in months)
+// Time-to-hire estimates by stage (in months) - only for approved initial requests onwards
 const STAGE_MONTHS_TO_HIRE: Record<string, number> = {
-  'Initial Request': 6,
+  'PD Preparation': 6,
   'PD Review': 4,
   'Selection': 3,
-  'Offer': 1,
   'Onboarding': 0,
 };
 
 const OPTIMISTIC_STAGE_MONTHS_TO_HIRE: Record<string, number> = {
-  'Initial Request': 5,
+  'PD Preparation': 5,
   'PD Review': 3,
   'Selection': 2,
-  'Offer': 0.5,
   'Onboarding': 0,
 };
 
