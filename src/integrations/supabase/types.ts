@@ -3113,6 +3113,9 @@ export type Database = {
       }
       users: {
         Row: {
+          affiliate_type: string | null
+          contract_end_date: string | null
+          contract_start_date: string | null
           created_at: string
           current_grade: string | null
           department: string | null
@@ -3126,15 +3129,20 @@ export type Database = {
           line_manager: string | null
           name: string
           nationality: string | null
+          personnel_type: string | null
           probation_end_date: string | null
           role: Database["public"]["Enums"]["user_role"]
           second_line_manager: string | null
           skills: Json | null
+          staff_number: string | null
           unit: string | null
           updated_at: string
           worker_type: string | null
         }
         Insert: {
+          affiliate_type?: string | null
+          contract_end_date?: string | null
+          contract_start_date?: string | null
           created_at?: string
           current_grade?: string | null
           department?: string | null
@@ -3148,15 +3156,20 @@ export type Database = {
           line_manager?: string | null
           name: string
           nationality?: string | null
+          personnel_type?: string | null
           probation_end_date?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           second_line_manager?: string | null
           skills?: Json | null
+          staff_number?: string | null
           unit?: string | null
           updated_at?: string
           worker_type?: string | null
         }
         Update: {
+          affiliate_type?: string | null
+          contract_end_date?: string | null
+          contract_start_date?: string | null
           created_at?: string
           current_grade?: string | null
           department?: string | null
@@ -3170,10 +3183,12 @@ export type Database = {
           line_manager?: string | null
           name?: string
           nationality?: string | null
+          personnel_type?: string | null
           probation_end_date?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           second_line_manager?: string | null
           skills?: Json | null
+          staff_number?: string | null
           unit?: string | null
           updated_at?: string
           worker_type?: string | null

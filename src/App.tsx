@@ -66,6 +66,8 @@ import AssessmentComplete from "./pages/AssessmentComplete";
 import Performance from "./pages/Performance";
 import WorkplanDetail from "./pages/WorkplanDetail";
 import AdminPerformanceCycles from "./pages/AdminPerformanceCycles";
+import AffiliatePersonnel from "./pages/AffiliatePersonnel";
+import ImportAffiliatePersonnel from "./pages/ImportAffiliatePersonnel";
 
 const queryClient = new QueryClient();
 
@@ -147,6 +149,8 @@ const App = () => (
             <Route path="/performance/workplan/:id" element={<WorkplanDetail />} />
             <Route path="/performance/team" element={<Performance />} />
             <Route path="/admin/performance-cycles" element={<AdminPerformanceCycles />} />
+            <Route path="/admin/affiliate-personnel" element={<AffiliatePersonnel />} />
+            <Route path="/admin/import-affiliates" element={<ImportAffiliatePersonnel />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
