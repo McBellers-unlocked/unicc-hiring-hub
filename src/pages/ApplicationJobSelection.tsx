@@ -170,7 +170,6 @@ export default function ApplicationJobSelection() {
     if (totalApps > 0 && statuses.length > 0) {
       const inApplication = statuses.find(s => s.status === 'Application')?.count || 0;
       const inLonglist = statuses.find(s => s.status === 'Longlist')?.count || 0;
-      const inShortlist = statuses.find(s => s.status === 'Shortlist')?.count || 0;
       const inVideoInterview = (statuses.find(s => s.status === 'Video Interview')?.count || 0) + 
                                (statuses.find(s => s.status === 'Pre-Recorded Video')?.count || 0);
       const inPanelInterview = statuses.find(s => s.status === 'Panel Interview')?.count || 0;
@@ -180,10 +179,9 @@ export default function ApplicationJobSelection() {
         console.log('Digital Public Solutions Officer stage calculation:', {
           title: job.title,
           inLonglist,
-          inShortlist,
           inVideoInterview,
           inPanelInterview,
-          hmShortlistingTotal: inLonglist + inShortlist,
+          hmShortlistingTotal: inLonglist,
           statuses: job.application_statuses
         });
       }
@@ -192,7 +190,7 @@ export default function ApplicationJobSelection() {
       const stageCounts = [
         { stage: 'panel_interview' as const, count: inPanelInterview },
         { stage: 'video_interview' as const, count: inVideoInterview },
-        { stage: 'hm_shortlisting' as const, count: inLonglist + inShortlist },
+        { stage: 'hm_shortlisting' as const, count: inLonglist },
       ];
       
       // Sort by count descending

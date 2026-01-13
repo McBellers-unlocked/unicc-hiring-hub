@@ -284,7 +284,6 @@ export default function AdminJobs() {
     if (closingDatePassed && totalApps > 0 && statuses.length > 0) {
       const inApplication = statuses.find(s => s.status === 'Application')?.count || 0;
       const inLonglist = statuses.find(s => s.status === 'Longlist')?.count || 0;
-      const inShortlist = statuses.find(s => s.status === 'Shortlist')?.count || 0;
       const inVideoInterview = (statuses.find(s => s.status === 'Video Interview')?.count || 0) + 
                                (statuses.find(s => s.status === 'Pre-Recorded Video')?.count || 0);
       const inPanelInterview = statuses.find(s => s.status === 'Panel Interview')?.count || 0;
@@ -305,7 +304,7 @@ export default function AdminJobs() {
       const fourteenDaysPassed = now >= fourteenDaysAfterClosing;
       
       // HM Shortlisting - only if ALL applications moved out of "Application" status
-      if (inApplication === 0 && (inLonglist > 0 || inShortlist > 0)) {
+      if (inApplication === 0 && inLonglist > 0) {
         return 'hm_shortlisting';
       }
       
@@ -315,7 +314,7 @@ export default function AdminJobs() {
       }
       
       // After 14 days, if all apps processed but still in early stages
-      if (inLonglist > 0 || inShortlist > 0) {
+      if (inLonglist > 0) {
         return 'hm_shortlisting';
       }
     }

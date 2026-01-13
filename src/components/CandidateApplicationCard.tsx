@@ -36,10 +36,9 @@ interface CandidateApplicationCardProps {
   onToggleSelection: (id: string) => void;
   onDelete: (applicationId: string, candidateId: string, e: React.MouseEvent) => void;
   onAddToLonglist: (applicationId: string) => void;
-  onDirectShortlist?: (applicationId: string) => void;
   onReject?: (applicationId: string) => void;
-  onAddToShortlist?: (applicationId: string) => void;
   onAddToVideoInterview?: (applicationId: string) => void;
+  onMoveToPanelInterviewFromLonglist?: (applicationId: string) => void;
   onVideoAssignment?: (applicationId: string) => void;
   onReviewVideos?: (applicationId: string) => void;
   onMoveToPanelInterview?: (applicationId: string) => void;
@@ -63,7 +62,6 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
   onToggleSelection,
   onDelete,
   onAddToLonglist,
-  onDirectShortlist,
   onVideoAssignment,
   onReviewVideos,
   onMoveToPanelInterview,
@@ -73,8 +71,8 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
   interviewScore,
   interviewRank,
   onReject,
-  onAddToShortlist,
   onAddToVideoInterview,
+  onMoveToPanelInterviewFromLonglist,
   getFlagEmoji,
   getEducationSummary,
   getWorkExperienceSummary,
@@ -116,12 +114,11 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
   const country = getFlagEmoji(application.candidate.location);
   const flagUrl = country ? getCountryFlagUrl(country) : '';
 
-  const getStatusBadge = (status: string) => {
+const getStatusBadge = (status: string) => {
     const statusConfig = {
       'Application': { color: 'bg-blue-100 text-blue-700', label: 'Application' },
       'Screening': { color: 'bg-yellow-100 text-yellow-700', label: 'Screening' },
       'Longlist': { color: 'bg-purple-100 text-purple-700', label: 'Longlist' },
-      'Shortlist': { color: 'bg-green-100 text-green-700', label: 'Shortlist' },
       'Pre-Recorded Video': { color: 'bg-indigo-100 text-indigo-700', label: 'Video' },
       'Panel Interview': { color: 'bg-orange-100 text-orange-700', label: 'Interview' },
       'Recommended': { color: 'bg-emerald-100 text-emerald-700', label: 'Recommended' },
@@ -592,19 +589,6 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                   View
                 </Button>
 
-                {/* Add to Shortlist button */}
-                {onAddToShortlist && (
-                  <Button
-                    size="sm"
-                    variant="default"
-                    onClick={() => onAddToShortlist(application.id)}
-                    className="whitespace-nowrap bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    Add to Shortlist
-                  </Button>
-                )}
-
                 {/* Add to Video Interview button */}
                 {onAddToVideoInterview && (
                   <Button
@@ -615,6 +599,19 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
                   >
                     <Video className="w-3 h-3 mr-1" />
                     Add to Video
+                  </Button>
+                )}
+
+                {/* Move directly to Panel Interview (skip video) */}
+                {onMoveToPanelInterviewFromLonglist && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => onMoveToPanelInterviewFromLonglist(application.id)}
+                    className="whitespace-nowrap bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    <Users className="w-3 h-3 mr-1" />
+                    Move to Panel
                   </Button>
                 )}
 

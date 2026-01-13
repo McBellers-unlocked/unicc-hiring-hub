@@ -180,8 +180,7 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({ filters 
 
     const stages = [
       { name: 'Application', next: 'Longlist' },
-      { name: 'Longlist', next: 'Shortlist' },
-      { name: 'Shortlist', next: 'Pre-Recorded Video' },
+      { name: 'Longlist', next: 'Pre-Recorded Video' },
       { name: 'Pre-Recorded Video', next: 'Panel Interview' },
       { name: 'Panel Interview', next: 'Offer' },
       { name: 'Offer', next: 'Roster' }

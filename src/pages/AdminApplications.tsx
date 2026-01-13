@@ -89,7 +89,7 @@ export default function AdminApplications() {
   // Dialog state
   const [dialogState, setDialogState] = useState<{
     open: boolean;
-    action: 'longlist' | 'shortlist' | 'reject' | 'add-to-shortlist' | 'add-to-video' | 'move-to-panel-interview' | 'move-to-recommended' | 'move-to-roster';
+    action: 'longlist' | 'reject' | 'add-to-video' | 'move-to-panel-interview' | 'move-to-panel-from-longlist' | 'move-to-recommended' | 'move-to-roster';
     applicationId: string;
     candidateName: string;
     currentStatus: string;
@@ -1051,11 +1051,10 @@ export default function AdminApplications() {
     });
   }
 
-  // Define status phases in the correct order
+  // Define status phases in the correct order (Shortlist removed)
   const statusPhases = [
     { status: 'Application', title: 'Applications', color: 'bg-blue-100 text-blue-800' },
     { status: 'Longlist', title: 'Longlist', color: 'bg-yellow-100 text-yellow-800' },
-    { status: 'Shortlist', title: 'Shortlist', color: 'bg-purple-100 text-purple-800' },
     { status: 'Pre-Recorded Video', title: 'Video Interview', color: 'bg-indigo-100 text-indigo-800' },
     { status: 'Panel Interview', title: 'Panel Interview', color: 'bg-orange-100 text-orange-800' },
     { status: 'Recommended', title: 'Recommended Candidates', color: 'bg-cyan-100 text-cyan-800' },
@@ -1133,7 +1132,6 @@ export default function AdminApplications() {
     const variants = {
       'Application': 'bg-blue-100 text-blue-800',
       'Longlist': 'bg-yellow-100 text-yellow-800',
-      'Shortlist': 'bg-purple-100 text-purple-800',
       'Video Interview': 'bg-indigo-100 text-indigo-800',
       'Panel Interview': 'bg-orange-100 text-orange-800',
       'Recommended': 'bg-cyan-100 text-cyan-800',
@@ -1317,70 +1315,8 @@ export default function AdminApplications() {
     }
   };
 
-  const directShortlist = async (applicationId: string, reason?: string) => {
-    try {
-      // Get current user
-      const { data: user } = await supabase.auth.getUser();
-      const currentUserId = user?.user?.id;
-
-      // Find the current application to check its status
-      const currentApp = applications.find(app => app.id === applicationId);
-      const isCurrentlyShortlisted = currentApp?.status === 'Shortlist';
-      
-      // Check if this is the Associate Policy (Legal) Officer job
-      const isAssociatePolicyJob = currentApp?.job?.title?.includes('Associate Policy (Legal) Officer');
-      
-      const newStatus = isCurrentlyShortlisted 
-        ? (isAssociatePolicyJob ? 'Application' : 'Longlist')  // Move to Application pool for Associate Policy job, otherwise Longlist
-        : 'Shortlist';
-      
-      const { error } = await supabase
-        .from('applications')
-        .update({ 
-          status: newStatus,
-          suggested_for_longlist: isCurrentlyShortlisted 
-            ? false  // Remove from longlist when moving back
-            : false  // Don't add to longlist when moving to shortlist
-        })
-        .eq('id', applicationId);
-
-      if (error) throw error;
-
-      // Log stage change with reason and proper user attribution
-      if (currentUserId) {
-        await supabase
-          .from('stage_events')
-          .insert({
-            application_id: applicationId,
-            from_stage: currentApp?.status as any,
-            to_stage: newStatus as any,
-            by_user: currentUserId,
-            reason: reason || null
-          });
-      }
-
-      toast({
-        title: "Success",
-        description: isCurrentlyShortlisted 
-          ? (isAssociatePolicyJob 
-              ? "Application moved back to applicant pool" 
-              : "Application moved back to longlist"
-            )
-          : "Application moved to shortlist",
-      });
-
-      fetchApplications(selectedJobId);
-    } catch (error) {
-      console.error('Error updating shortlist:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update shortlist",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const addToShortlist = async (applicationId: string, reason?: string) => {
+  // Move directly from Longlist to Panel Interview (skipping video)
+  const moveToPanelInterviewFromLonglist = async (applicationId: string, reason?: string) => {
     try {
       // Get current user
       const { data: user } = await supabase.auth.getUser();
@@ -1391,7 +1327,7 @@ export default function AdminApplications() {
       
       const { error } = await supabase
         .from('applications')
-        .update({ status: 'Shortlist' })
+        .update({ status: 'Panel Interview' })
         .eq('id', applicationId);
 
       if (error) throw error;
@@ -1403,23 +1339,23 @@ export default function AdminApplications() {
           .insert({
             application_id: applicationId,
             from_stage: currentApp?.status as any,
-            to_stage: 'Shortlist' as any,
+            to_stage: 'Panel Interview' as any,
             by_user: currentUserId,
-            reason: reason || 'Moved from Longlist to Shortlist'
+            reason: reason || 'Moved from Longlist directly to Panel Interview (skipping video)'
           });
       }
 
       toast({
         title: "Success",
-        description: "Application moved to Shortlist",
+        description: "Candidate moved to Panel Interview stage",
       });
 
       fetchApplications(selectedJobId);
     } catch (error) {
-      console.error('Error moving to shortlist:', error);
+      console.error('Error moving to panel interview:', error);
       toast({
         title: "Error",
-        description: "Failed to move to shortlist",
+        description: "Failed to move to panel interview",
         variant: "destructive",
       });
     }
@@ -1540,13 +1476,13 @@ export default function AdminApplications() {
     });
   };
 
-  const handleShortlistAction = (applicationId: string) => {
+  const handleMoveToPanelFromLonglist = (applicationId: string) => {
     const app = applications.find(a => a.id === applicationId);
     if (!app) return;
     
     setDialogState({
       open: true,
-      action: 'shortlist',
+      action: 'move-to-panel-from-longlist',
       applicationId,
       candidateName: app.candidate.name,
       currentStatus: app.status
@@ -1560,19 +1496,6 @@ export default function AdminApplications() {
     setDialogState({
       open: true,
       action: 'reject',
-      applicationId,
-      candidateName: app.candidate.name,
-      currentStatus: app.status
-    });
-  };
-
-  const handleAddToShortlist = (applicationId: string) => {
-    const app = applications.find(a => a.id === applicationId);
-    if (!app) return;
-    
-    setDialogState({
-      open: true,
-      action: 'add-to-shortlist',
       applicationId,
       candidateName: app.candidate.name,
       currentStatus: app.status
@@ -1823,17 +1746,14 @@ export default function AdminApplications() {
       case 'longlist':
         await addToLonglist([applicationId], reason, rating);
         break;
-      case 'shortlist':
-        await directShortlist(applicationId, reason);
-        break;
       case 'reject':
         await rejectApplication(applicationId, reason);
         break;
-      case 'add-to-shortlist':
-        await addToShortlist(applicationId, reason);
-        break;
       case 'add-to-video':
         await addToVideoInterview(applicationId, reason);
+        break;
+      case 'move-to-panel-from-longlist':
+        await moveToPanelInterviewFromLonglist(applicationId, reason);
         break;
       case 'move-to-panel-interview':
         await moveToPanelInterview(applicationId, reason);
@@ -2220,10 +2140,9 @@ export default function AdminApplications() {
                          onToggleSelection={toggleApplicationSelection}
                          onDelete={deleteApplication}
                           onAddToLonglist={handleLonglistAction}
-                          onDirectShortlist={handleShortlistAction}
                           onReject={handleRejectAction}
-                          onAddToShortlist={handleAddToShortlist}
                           onAddToVideoInterview={handleAddToVideoInterview}
+                          onMoveToPanelInterviewFromLonglist={handleMoveToPanelFromLonglist}
                           onVideoAssignment={handleVideoAssignment}
                           onReviewVideos={handleReviewVideos}
                           onMoveToPanelInterview={handleMoveToPanelInterview}

@@ -77,7 +77,7 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
     ([key, value]) => key !== 'includeProjections' && value !== undefined
   );
 
-  const statuses = ['Application', 'Longlist', 'Shortlist', 'Pre-Recorded Video', 'Panel Interview', 'Offer', 'Roster'];
+  const statuses = ['Application', 'Longlist', 'Pre-Recorded Video', 'Panel Interview', 'Offer', 'Roster'];
   const grades = ['P-1', 'P-2', 'P-3', 'P-4', 'P-5', 'D-1', 'D-2', 'G-1', 'G-2', 'G-3', 'G-4', 'G-5', 'G-6', 'G-7'];
   const contractTypes = ['Fixed term', 'Temporary', 'STDA', 'Intern', 'Individual Consultant'];
 
