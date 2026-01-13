@@ -11,13 +11,11 @@ interface WorkforceAnalyticsProps {
   filters: AnalyticsFilterState;
 }
 
-// Map requisition status to pipeline stage
+// Map requisition status to pipeline stage (only for approved initial requests onwards)
 const mapStatusToStage = (status: string): string => {
   switch (status) {
-    case 'draft':
-    case 'submitted':
     case 'initial_request_approved':
-      return 'Initial Request';
+      return 'PD Preparation';
     case 'hr_review':
     case 'hr_reviewed':
     case 'chief_hr_review':
@@ -27,13 +25,12 @@ const mapStatusToStage = (status: string): string => {
     case 'deputy_director_review':
     case 'director_review':
     case 'final_review':
+    case 'approved':
       return 'Selection';
-    case 'converted':
-      return 'Offer';
     case 'completed':
       return 'Onboarding';
     default:
-      return 'Initial Request';
+      return 'PD Preparation';
   }
 };
 
@@ -96,7 +93,13 @@ export const WorkforceAnalytics: React.FC<WorkforceAnalyticsProps> = ({ filters 
             created_by,
             users:created_by (name)
           `)
-          .neq('status', 'draft');
+          .neq('status', 'draft')
+          .neq('status', 'initial_request_draft')
+          .neq('status', 'initial_request_submitted')
+          .neq('status', 'initial_request_chief_review')
+          .neq('status', 'initial_request_rejected')
+          .neq('status', 'rejected')
+          .neq('status', 'converted');
 
         if (filters.division) {
           reqQuery = reqQuery.ilike('unit_section_division', `%${filters.division}%`);
@@ -178,11 +181,9 @@ export const WorkforceAnalytics: React.FC<WorkforceAnalyticsProps> = ({ filters 
       count: d.total,
     }));
 
-    // Count open requisitions
-    const openRequisitions = requisitionsData.filter(r => r.status !== 'converted').length;
-    const plannedHires = requisitionsData
-      .filter(r => r.status !== 'converted')
-      .reduce((sum, r) => sum + (r.positions_available || 1), 0);
+    // Count open requisitions (already filtered to approved only)
+    const openRequisitions = requisitionsData.length;
+    const plannedHires = requisitionsData.reduce((sum, r) => sum + (r.positions_available || 1), 0);
 
     return {
       totalHeadcount,
@@ -206,7 +207,7 @@ export const WorkforceAnalytics: React.FC<WorkforceAnalyticsProps> = ({ filters 
       stageMap[stage].positions += req.positions_available || 1;
     });
 
-    const stageOrder = ['Initial Request', 'PD Review', 'Selection', 'Offer', 'Onboarding'];
+    const stageOrder = ['PD Preparation', 'PD Review', 'Selection', 'Onboarding'];
     const stageData: PipelineStage[] = stageOrder
       .filter((stage) => stageMap[stage])
       .map((stage) => ({
