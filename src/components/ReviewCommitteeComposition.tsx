@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Users, UserPlus, X, Send, CheckCircle2 } from "lucide-react";
+import { Users, UserPlus, X, Send, CheckCircle2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -429,17 +429,52 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
             <div className="grid grid-cols-2 gap-2">
               {REQUIRED_ROLES.map((req) => {
                 const current = roleCounts[req.value] || 0;
-                const isFilled = current >= req.count;
+                const isMet = current === req.count;
+                const isExceeded = current > req.count;
+                
+                // Determine badge and container styling based on status
+                let badgeClass = "";
+                let containerClass = "flex items-center justify-between p-2 rounded border";
+                
+                if (isMet) {
+                  badgeClass = "bg-green-500 hover:bg-green-500 text-white border-transparent";
+                  containerClass += " border-green-300 bg-green-50 dark:bg-green-950/30 dark:border-green-800";
+                } else if (isExceeded) {
+                  badgeClass = "bg-red-500 hover:bg-red-500 text-white border-transparent";
+                  containerClass += " border-red-300 bg-red-50 dark:bg-red-950/30 dark:border-red-800";
+                } else {
+                  // Not met (current < required)
+                  badgeClass = "bg-red-500 hover:bg-red-500 text-white border-transparent";
+                  containerClass += " border-red-300 bg-red-50 dark:bg-red-950/30 dark:border-red-800";
+                }
+                
                 return (
-                  <div key={req.value} className="flex items-center justify-between p-2 border rounded">
+                  <div key={req.value} className={containerClass}>
                     <span className="text-sm">{req.label}</span>
-                    <Badge variant={isFilled ? "default" : "secondary"}>
-                      {current}/{req.count}
+                    <Badge className={badgeClass}>
+                      {current}/{req.count} {isMet ? "✓" : "✗"}
                     </Badge>
                   </div>
                 );
               })}
             </div>
+            
+            {/* Overall Validation Summary */}
+            {REQUIRED_ROLES.every((req) => (roleCounts[req.value] || 0) === req.count) ? (
+              <Alert className="border-green-300 bg-green-50 dark:bg-green-950/30 dark:border-green-800">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-700 dark:text-green-400">
+                  Committee composition meets all requirements
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Committee composition does not meet requirements. Please adjust members.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
 
           {/* Add Member Section - Always show to allow dynamic changes */}
