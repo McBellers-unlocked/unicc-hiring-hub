@@ -636,7 +636,14 @@ export default function AdminJobs() {
                   ) : (
                     filteredJobs.map((job) => (
                       <TableRow key={job.id}>
-                        <TableCell className="font-medium">{job.title}</TableCell>
+                        <TableCell className="font-medium">
+                          <button
+                            onClick={() => navigate(`/admin/jobs/${job.id}`)}
+                            className="text-left hover:text-primary hover:underline transition-colors"
+                          >
+                            {job.title}
+                          </button>
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             <MapPin className="w-3 h-3 mr-1 text-muted-foreground" />
@@ -689,18 +696,6 @@ export default function AdminJobs() {
                               <DropdownMenuItem onClick={() => navigate(`/admin/jobs/${job.id}/edit`)}>
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => navigate(`/admin/jobs/${job.id}/questions`)}>
-                                <Users className="w-4 h-4 mr-2" />
-                                Interview Management
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => navigate(`/admin/jobs/${job.id}/review-committee`)}>
-                                <Users className="w-4 h-4 mr-2" />
-                                Review Committee
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => navigate(`/admin/jobs/${job.id}/video-assignment`)}>
-                                <Users className="w-4 h-4 mr-2" />
-                                Manage Video Assignment
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => cloneJob(job.id)}>
                                 <Copy className="w-4 h-4 mr-2" />
