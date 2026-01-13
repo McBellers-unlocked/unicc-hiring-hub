@@ -186,12 +186,16 @@ Deno.serve(async (req) => {
     const errors: string[] = [];
 
     for (const affiliate of affiliateData) {
-      // Check if user exists
-      const { data: existingUser } = await supabase
+      // Check if user already exists in users table (case-insensitive)
+      const { data: existingUser, error: existingUserError } = await supabase
         .from('users')
         .select('id, email')
-        .eq('email', affiliate.email)
-        .single();
+        .ilike('email', affiliate.email)
+        .maybeSingle();
+      
+      if (existingUserError) {
+        console.error(`Error checking for existing user ${affiliate.email}:`, existingUserError);
+      }
 
       const updateData: Record<string, any> = {
         name: affiliate.name,
@@ -228,35 +232,53 @@ Deno.serve(async (req) => {
           updated++;
         }
       } else {
-        // Create new user with auth account
-        const tempPassword = generateTempPassword();
-        
-        const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-          email: affiliate.email,
-          password: tempPassword,
-          email_confirm: true,
-          user_metadata: {
-            name: affiliate.name,
-          }
-        });
+        // Check if auth user already exists (handles case where auth exists but users table record doesn't)
+        const { data: authListResponse } = await supabase.auth.admin.listUsers();
+        const existingAuthUser = authListResponse?.users?.find(
+          u => u.email?.toLowerCase() === affiliate.email.toLowerCase()
+        );
 
-        if (authError) {
-          console.error(`Error creating auth user ${affiliate.email}:`, authError);
-          errors.push(`${affiliate.email}: ${authError.message}`);
-          continue;
-        }
+        let authUserId: string;
 
-        // Create user record
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: authUser.user.id,
-            ...updateData,
+        if (existingAuthUser) {
+          // Auth user exists - use their ID
+          authUserId = existingAuthUser.id;
+          console.log(`Auth user already exists for ${affiliate.email}, using ID: ${authUserId}`);
+        } else {
+          // Create new auth user
+          const tempPassword = generateTempPassword();
+          
+          const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+            email: affiliate.email,
+            password: tempPassword,
+            email_confirm: true,
+            user_metadata: {
+              name: affiliate.name,
+            }
           });
 
-        if (insertError) {
-          console.error(`Error creating user record ${affiliate.email}:`, insertError);
-          errors.push(`${affiliate.email}: ${insertError.message}`);
+          if (authError) {
+            console.error(`Error creating auth user ${affiliate.email}:`, authError);
+            errors.push(`${affiliate.email}: ${authError.message}`);
+            continue;
+          }
+          authUserId = authUser.user.id;
+        }
+
+        // Use upsert to handle any edge cases (insert or update on conflict)
+        const { error: upsertError } = await supabase
+          .from('users')
+          .upsert({
+            id: authUserId,
+            ...updateData,
+          }, { 
+            onConflict: 'id',
+            ignoreDuplicates: false 
+          });
+
+        if (upsertError) {
+          console.error(`Error upserting user record ${affiliate.email}:`, upsertError);
+          errors.push(`${affiliate.email}: ${upsertError.message}`);
         } else {
           created++;
         }
