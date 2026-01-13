@@ -2115,6 +2115,7 @@ export type Database = {
           review_committee_approved: boolean | null
           review_committee_approved_at: string | null
           review_committee_approved_by: string | null
+          review_committee_is_resubmission: boolean | null
           review_committee_sent_by: string | null
           review_committee_sent_for_approval_at: string | null
           review_committee_status: string | null
@@ -2150,6 +2151,7 @@ export type Database = {
           review_committee_approved?: boolean | null
           review_committee_approved_at?: string | null
           review_committee_approved_by?: string | null
+          review_committee_is_resubmission?: boolean | null
           review_committee_sent_by?: string | null
           review_committee_sent_for_approval_at?: string | null
           review_committee_status?: string | null
@@ -2185,6 +2187,7 @@ export type Database = {
           review_committee_approved?: boolean | null
           review_committee_approved_at?: string | null
           review_committee_approved_by?: string | null
+          review_committee_is_resubmission?: boolean | null
           review_committee_sent_by?: string | null
           review_committee_sent_for_approval_at?: string | null
           review_committee_status?: string | null

@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Edit, Video, MessageSquare, Users } from 'lucide-react';
@@ -21,18 +22,25 @@ export default function JobManagement() {
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [applications, setApplications] = useState<any[]>([]);
 
-  // Fetch job details
+  // Fetch job details including review committee status
   const { data: job, isLoading } = useQuery({
     queryKey: ['job', jobId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('jobs')
-        .select('id, title, notice_no')
+        .select('id, title, notice_no, review_committee_status, review_committee_approved, review_committee_is_resubmission')
         .eq('id', jobId)
         .single();
 
       if (error) throw error;
-      return data;
+      return data as {
+        id: string;
+        title: string;
+        notice_no: string | null;
+        review_committee_status: string | null;
+        review_committee_approved: boolean | null;
+        review_committee_is_resubmission: boolean | null;
+      };
     },
     enabled: !!jobId,
   });
@@ -149,6 +157,15 @@ export default function JobManagement() {
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Review Committee</span>
               <span className="sm:hidden">Committee</span>
+              {job?.review_committee_approved && (
+                <Badge variant="default" className="ml-1 text-xs">Approved</Badge>
+              )}
+              {job?.review_committee_status === 'pending_approval' && !job?.review_committee_approved && (
+                <Badge variant="secondary" className="ml-1 text-xs">Pending</Badge>
+              )}
+              {(!job?.review_committee_status || job?.review_committee_status === 'draft') && (
+                <Badge variant="outline" className="ml-1 text-xs">Draft</Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 

@@ -95,12 +95,16 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
     queryFn: async () => {
       const { data, error } = await supabase
         .from("jobs")
-        .select("review_committee_status, review_committee_approved")
+        .select("review_committee_status, review_committee_approved, review_committee_is_resubmission")
         .eq("id", jobId)
         .single();
       
       if (error) throw error;
-      return data;
+      return data as { 
+        review_committee_status: string | null; 
+        review_committee_approved: boolean | null;
+        review_committee_is_resubmission: boolean | null;
+      };
     },
   });
 
@@ -115,15 +119,38 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
         });
       
       if (error) throw error;
+
+      // If committee was already approved, reset status and mark as resubmission
+      if (job?.review_committee_approved === true) {
+        const { error: updateError } = await supabase
+          .from("jobs")
+          .update({
+            review_committee_status: "draft",
+            review_committee_approved: false,
+            review_committee_is_resubmission: true,
+          })
+          .eq("id", jobId);
+        
+        if (updateError) throw updateError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["review-committee-members", jobId] });
+      queryClient.invalidateQueries({ queryKey: ["job-committee-status", jobId] });
       setSelectedUserId("");
       setSelectedRole("Member");
-      toast({
-        title: "Success",
-        description: "Review committee member added successfully",
-      });
+      
+      if (job?.review_committee_approved === true) {
+        toast({
+          title: "Composition Changed",
+          description: "Committee will need re-approval by the Director",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Review committee member added successfully",
+        });
+      }
     },
     onError: (error: any) => {
       toast({
@@ -142,13 +169,36 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
         .eq("id", memberId);
       
       if (error) throw error;
+
+      // If committee was already approved, reset status and mark as resubmission
+      if (job?.review_committee_approved === true) {
+        const { error: updateError } = await supabase
+          .from("jobs")
+          .update({
+            review_committee_status: "draft",
+            review_committee_approved: false,
+            review_committee_is_resubmission: true,
+          })
+          .eq("id", jobId);
+        
+        if (updateError) throw updateError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["review-committee-members", jobId] });
-      toast({
-        title: "Success",
-        description: "Review committee member removed successfully",
-      });
+      queryClient.invalidateQueries({ queryKey: ["job-committee-status", jobId] });
+      
+      if (job?.review_committee_approved === true) {
+        toast({
+          title: "Composition Changed",
+          description: "Committee will need re-approval by the Director",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Review committee member removed successfully",
+        });
+      }
     },
     onError: (error: any) => {
       toast({
@@ -169,6 +219,7 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
           review_committee_status: "pending_approval",
           review_committee_sent_for_approval_at: new Date().toISOString(),
           review_committee_sent_by: user.id,
+          // Preserve resubmission flag if it was set
         })
         .eq("id", jobId);
       
@@ -176,9 +227,12 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["job-committee-status", jobId] });
+      const isResubmission = job?.review_committee_is_resubmission;
       toast({
         title: "Success",
-        description: "Review committee sent for director approval",
+        description: isResubmission 
+          ? "Composition change sent for Director re-approval" 
+          : "Review committee sent for Director approval",
       });
     },
     onError: (error: any) => {
@@ -375,63 +429,59 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
             </div>
           </div>
 
-          {/* Add Member Section - Only show if not pending or approved */}
-          {!isPendingOrApproved && (
-            <>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Select Staff Member</label>
-                    <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a staff member" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {staffUsers
-                          ?.filter((user) => {
-                            // Filter users based on selected role
-                            if (selectedRole === "Chair") {
-                              return EXCO_MEMBERS.includes(user.name);
-                            } else if (selectedRole === "Member") {
-                              return user.current_grade === "P4" || user.current_grade === "P5";
-                            } else if (selectedRole === "Staff Representative") {
-                              return STAFF_REPRESENTATIVES.includes(user.name);
-                            }
-                            return true;
-                          })
-                          .map((user) => (
-                            <SelectItem key={user.id} value={user.id}>
-                              {user.name}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Role</label>
-                    <Select value={selectedRole} onValueChange={setSelectedRole}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {REQUIRED_ROLES.map((role) => (
-                          <SelectItem key={role.value} value={role.value}>
-                            {role.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <Button onClick={handleAddMember} disabled={addMemberMutation.isPending}>
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Add to Committee
-                </Button>
+          {/* Add Member Section - Always show to allow dynamic changes */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Select Staff Member</label>
+                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a staff member" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {staffUsers
+                      ?.filter((user) => {
+                        // Filter users based on selected role
+                        if (selectedRole === "Chair") {
+                          return EXCO_MEMBERS.includes(user.name);
+                        } else if (selectedRole === "Member") {
+                          return user.current_grade === "P4" || user.current_grade === "P5";
+                        } else if (selectedRole === "Staff Representative") {
+                          return STAFF_REPRESENTATIVES.includes(user.name);
+                        }
+                        return true;
+                      })
+                      .map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </>
-          )}
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Role</label>
+                <Select value={selectedRole} onValueChange={setSelectedRole}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REQUIRED_ROLES.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <Button onClick={handleAddMember} disabled={addMemberMutation.isPending}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add to Committee
+            </Button>
+          </div>
 
           {/* Current Committee Members */}
           <div className="space-y-2">
@@ -450,16 +500,14 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
                         <p className="text-sm text-muted-foreground">{member.user?.email}</p>
                       </div>
                     </div>
-                    {!isPendingOrApproved && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveMember(member.id)}
-                        disabled={removeMemberMutation.isPending}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveMember(member.id)}
+                      disabled={removeMemberMutation.isPending}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 ))}
               </div>

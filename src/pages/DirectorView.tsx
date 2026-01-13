@@ -142,7 +142,8 @@ export default function DirectorView() {
           notice_no,
           review_committee_status,
           review_committee_sent_for_approval_at,
-          review_committee_sent_by
+          review_committee_sent_by,
+          review_committee_is_resubmission
         `)
         .eq("review_committee_status", "pending_approval")
         .order("review_committee_sent_for_approval_at", { ascending: false });
@@ -195,7 +196,8 @@ export default function DirectorView() {
               ...m,
               user: memberUsers.find(u => u.id === m.user_id)
             }))
-            .sort((a, b) => (roleOrder[a.role as keyof typeof roleOrder] || 99) - (roleOrder[b.role as keyof typeof roleOrder] || 99))
+            .sort((a, b) => (roleOrder[a.role as keyof typeof roleOrder] || 99) - (roleOrder[b.role as keyof typeof roleOrder] || 99)),
+          is_resubmission: (job as any).review_committee_is_resubmission
         }));
       }
 
@@ -297,7 +299,8 @@ export default function DirectorView() {
           review_committee_approved: approved,
           review_committee_approved_at: new Date().toISOString(),
           review_committee_approved_by: (await supabase.auth.getUser()).data.user?.id,
-          review_committee_status: approved ? "approved" : "rejected"
+          review_committee_status: approved ? "approved" : "rejected",
+          review_committee_is_resubmission: false, // Reset on approval
         })
         .eq("id", id);
 
@@ -998,7 +1001,14 @@ export default function DirectorView() {
                           <Badge variant="outline">{job.notice_no}</Badge>
                         </div>
                       </div>
-                      <Badge variant="secondary">Pending Director Approval</Badge>
+                      <div className="flex gap-2">
+                        <Badge variant="secondary">Pending Director Approval</Badge>
+                        {(job as any).is_resubmission && (
+                          <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+                            Composition Changed
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
