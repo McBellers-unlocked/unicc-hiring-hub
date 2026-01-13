@@ -61,8 +61,8 @@ Deno.serve(async (req) => {
       return description
         .split('\n')
         .map(line => line.trim())
-        .filter(line => line.startsWith('- ') || line.startsWith('• '))
-        .map(line => line.replace(/^[-•]\s*/, '').trim())
+        .filter(line => line.startsWith('- ') || line.startsWith('• ') || line.startsWith('·'))
+        .map(line => line.replace(/^[-•·]\s*/, '').trim())
         .filter(line => line.length > 0);
     };
 
