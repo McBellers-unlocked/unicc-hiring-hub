@@ -120,8 +120,8 @@ const handler = async (req: Request): Promise<Response> => {
     const nextStepInstruction = `
       <li style="margin-bottom: 12px;">
         <strong>If using pre-recorded video interviews:</strong> 
-        Move candidates to <span style="background-color: #dbeafe; padding: 2px 6px; border-radius: 4px; font-weight: 600;">"Pre-Recorded Video"</span> status. 
-        They will receive an invitation to complete their video interview.
+        Move candidates using the <span style="background-color: #dbeafe; padding: 2px 6px; border-radius: 4px; font-weight: 600;">"Add to Video"</span> button. 
+        We will configure the video assignment and send invites when the shortlisting is complete.
       </li>
       <li style="margin-bottom: 12px;">
         <strong>If proceeding directly to panel interview:</strong> 
@@ -200,9 +200,14 @@ const handler = async (req: Request): Promise<Response> => {
                           <li><strong>Reject remaining candidates:</strong> For candidates you don't want to proceed with, please reject them with a brief explanation.</li>
                           <li><strong>Leave comments:</strong> Please add notes to candidates to help the team understand your decisions.</li>
                         </ol>
-                        <p style="color: #6b7280; font-size: 13px; font-style: italic; margin-top: 15px;">
-                          💡 <strong>Note:</strong> If you plan to use pre-recorded video interviews and they haven't been configured yet, 
-                          please contact HR to set up the video questions before moving candidates.
+                      </div>
+
+                      <!-- Next Steps -->
+                      <div style="background-color: #f0fdf4; border-left: 4px solid #22c55e; padding: 15px; margin-top: 20px; border-radius: 4px;">
+                        <h4 style="margin: 0 0 8px 0; color: #166534; font-size: 14px;">Next Steps</h4>
+                        <p style="margin: 0; color: #15803d; font-size: 14px;">
+                          Once you have completed shortlisting, we will either arrange the pre-recorded video interviews 
+                          or begin to prepare the interview panel.
                         </p>
                       </div>
 
