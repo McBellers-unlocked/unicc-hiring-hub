@@ -254,6 +254,19 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
       return;
     }
 
+    // Check if role limit has been reached
+    const roleLimit = REQUIRED_ROLES.find(r => r.value === selectedRole);
+    const currentCount = roleCounts[selectedRole] || 0;
+    
+    if (roleLimit && currentCount >= roleLimit.count) {
+      toast({
+        title: "Error",
+        description: `Maximum ${roleLimit.count} ${roleLimit.label}${roleLimit.count > 1 ? 's' : ''} allowed. Please remove an existing ${roleLimit.label} first.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Validate role eligibility
     const selectedUser = staffUsers?.find(u => u.id === selectedUserId);
     if (!selectedUser) {
@@ -442,11 +455,19 @@ export function ReviewCommitteeComposition({ jobId }: ReviewCommitteeComposition
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
-                    {REQUIRED_ROLES.map((role) => (
-                      <SelectItem key={role.value} value={role.value}>
-                        {role.label}
-                      </SelectItem>
-                    ))}
+                    {REQUIRED_ROLES.map((role) => {
+                      const currentCount = roleCounts[role.value] || 0;
+                      const isAtLimit = currentCount >= role.count;
+                      return (
+                        <SelectItem 
+                          key={role.value} 
+                          value={role.value}
+                          disabled={isAtLimit}
+                        >
+                          {role.label} {isAtLimit ? "(full)" : `(${currentCount}/${role.count})`}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
