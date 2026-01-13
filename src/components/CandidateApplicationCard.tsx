@@ -682,7 +682,7 @@ const getStatusBadge = (status: string) => {
                   </Button>
                 )}
 
-                {userRoles.includes('Hiring Manager') && onMoveToPanelInterview && (
+                {(userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && onMoveToPanelInterview && (
                   <Button
                     size="sm"
                     variant="default"
