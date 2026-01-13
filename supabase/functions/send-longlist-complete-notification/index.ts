@@ -53,7 +53,10 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Get hiring managers for this job
+    // Get hiring managers - first try job_hiring_managers table, then fall back to requisition creator
+    let users: Array<{ id: string; name: string; email: string }> = [];
+
+    // Try job_hiring_managers first
     const { data: hiringManagers, error: hmError } = await supabase
       .from('job_hiring_managers')
       .select('user_id')
@@ -61,33 +64,54 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (hmError) {
       console.error('Error fetching hiring managers:', hmError);
+    }
+
+    if (hiringManagers && hiringManagers.length > 0) {
+      // Use job_hiring_managers if entries exist
+      const userIds = hiringManagers.map(hm => hm.user_id);
+      const { data: hmUsers, error: usersError } = await supabase
+        .from('users')
+        .select('id, name, email')
+        .in('id', userIds);
+
+      if (usersError) {
+        console.error('Error fetching hiring manager user details:', usersError);
+      } else if (hmUsers && hmUsers.length > 0) {
+        users = hmUsers;
+      }
+    }
+
+    // Fall back to requisition creator if no hiring managers found
+    if (users.length === 0) {
+      console.log('No hiring managers in job_hiring_managers, checking requisition creator...');
+      
+      const { data: requisition, error: reqError } = await supabase
+        .from('job_requisitions')
+        .select('id, created_by, users!job_requisitions_created_by_fkey(id, name, email)')
+        .eq('converted_to_job_id', jobId)
+        .single();
+
+      if (reqError) {
+        console.error('Error fetching requisition:', reqError);
+      } else if (requisition?.users) {
+        console.log('Found requisition creator:', requisition.users);
+        users = [requisition.users as { id: string; name: string; email: string }];
+      }
+    }
+
+    // If still no hiring managers found, return error
+    if (users.length === 0) {
+      console.error('No hiring managers found for job:', jobId);
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch hiring managers' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          error: 'No hiring manager found for this job. Please ensure the job has a hiring manager assigned or was converted from a requisition.',
+          code: 'NO_HIRING_MANAGER'
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (!hiringManagers || hiringManagers.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'No hiring managers found for this job' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get user details for hiring managers
-    const userIds = hiringManagers.map(hm => hm.user_id);
-    const { data: users, error: usersError } = await supabase
-      .from('users')
-      .select('id, name, email')
-      .in('id', userIds);
-
-    if (usersError || !users || users.length === 0) {
-      console.error('Error fetching user details:', usersError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch hiring manager details' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log('Sending notifications to:', users.map(u => u.email));
 
     const siteUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://cxpnvbphjpntrvvgjhli.lovable.app';
     const longlistUrl = `${siteUrl}/applications/manage?job=${jobId}&status=Longlist`;
