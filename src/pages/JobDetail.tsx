@@ -118,7 +118,8 @@ export default function JobDetail() {
     }
   };
 
-  const jobUrl = `${window.location.origin}/jobs/${slug}`;
+  const siteUrl = import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin;
+  const jobUrl = `${siteUrl}/jobs/${slug}`;
   const shareTitle = job?.title || 'Job Opportunity';
   const shareText = `Check out this job: ${shareTitle} at UNICC`;
 
