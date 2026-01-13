@@ -11,7 +11,7 @@ import { ArrowLeft, Edit, Video, MessageSquare, Users } from 'lucide-react';
 import { VideoQuestionManager } from '@/components/VideoQuestionManager';
 import { BulkVideoAssignmentDialog } from '@/components/BulkVideoAssignmentDialog';
 import { JobInterviewQuestionsBuilder } from '@/components/JobInterviewQuestionsBuilder';
-import { ReviewCommitteeManager } from '@/components/ReviewCommitteeManager';
+import { ReviewCommitteeComposition } from '@/components/ReviewCommitteeComposition';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 
@@ -202,7 +202,7 @@ export default function JobManagement() {
 
           {/* Review Committee Tab */}
           <TabsContent value="review-committee" className="space-y-6">
-            {jobId && <ReviewCommitteeManager jobId={jobId} />}
+            {jobId && <ReviewCommitteeComposition jobId={jobId} />}
             
             <Card>
               <CardHeader>
