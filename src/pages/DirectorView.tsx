@@ -1051,6 +1051,7 @@ export default function DirectorView() {
                       <Button
                         onClick={() => handleCommitteeApproval(job.id, true)}
                         disabled={approveCommitteeMutation.isPending}
+                        className="bg-green-600 hover:bg-green-700"
                       >
                         Approve
                       </Button>
