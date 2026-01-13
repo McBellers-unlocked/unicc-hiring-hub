@@ -160,7 +160,7 @@ export function ReviewCommitteeScoreMatrix({ jobId }: ReviewCommitteeScoreMatrix
         sections?.forEach((section: any) => {
           totalCriteria += section.criteria.length;
         });
-        totalCriteria += 2; // overall_fit and potential
+        // overall_fit and potential are now included in the template sections
 
         const maxScore = totalCriteria * 5;
         const percentage = (overall / maxScore) * 100;
@@ -236,15 +236,7 @@ export function ReviewCommitteeScoreMatrix({ jobId }: ReviewCommitteeScoreMatrix
       });
     });
 
-    // Add overall_fit and potential
-    rows.push(['Overall Fit', 'R', ...candidateScores.map(c => {
-      const score = c.criterionScores['overall_fit'];
-      return score ? score.toFixed(1) : '-';
-    })]);
-    rows.push(['Potential', 'R', ...candidateScores.map(c => {
-      const score = c.criterionScores['potential'];
-      return score ? score.toFixed(1) : '-';
-    })]);
+    // overall_fit and potential are now exported as part of the OVERALL FIT section
 
     // Add totals
     rows.push(['', '', ...candidateScores.map(() => '')]);
@@ -414,53 +406,7 @@ export function ReviewCommitteeScoreMatrix({ jobId }: ReviewCommitteeScoreMatrix
                 </React.Fragment>
               ))}
 
-              {/* Overall Fit and Potential */}
-              <TableRow>
-                <TableCell className="sticky left-0 bg-background z-10">Overall Fit</TableCell>
-                <TableCell className="text-center">
-                  <Badge variant="default">R</Badge>
-                </TableCell>
-                {candidateScores.map((candidate, idx) => {
-                  const score = candidate.criterionScores['overall_fit'];
-                  return (
-                    <TableCell key={candidate.application_id} className={cn(
-                      "text-center",
-                      idx % 2 === 0 ? "bg-muted/30" : "bg-muted/10"
-                    )}>
-                      {score ? (
-                        <Badge variant="outline" className={getScoreColor(score)}>
-                          {score.toFixed(1)}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-              <TableRow>
-                <TableCell className="sticky left-0 bg-background z-10">Potential</TableCell>
-                <TableCell className="text-center">
-                  <Badge variant="default">R</Badge>
-                </TableCell>
-                {candidateScores.map((candidate, idx) => {
-                  const score = candidate.criterionScores['potential'];
-                  return (
-                    <TableCell key={candidate.application_id} className={cn(
-                      "text-center",
-                      idx % 2 === 0 ? "bg-muted/30" : "bg-muted/10"
-                    )}>
-                      {score ? (
-                        <Badge variant="outline" className={getScoreColor(score)}>
-                          {score.toFixed(1)}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
+              {/* overall_fit and potential are now rendered as part of the OVERALL FIT section above */}
 
               {/* Totals */}
               <TableRow>
