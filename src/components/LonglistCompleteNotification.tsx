@@ -123,14 +123,32 @@ export function LonglistCompleteNotification({
                 Sent to {sentInfo.email} on {format(new Date(sentInfo.sentAt), 'MMM d, yyyy \'at\' h:mm a')}
               </p>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={onDismiss}
-              className="text-green-600 hover:text-green-800 hover:bg-green-100 dark:text-green-400 dark:hover:text-green-200"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleSendNotification}
+                disabled={sending}
+                className="text-green-600 border-green-300 hover:bg-green-100 dark:text-green-400 dark:border-green-700"
+              >
+                {sending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-1" />
+                    Resend
+                  </>
+                )}
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={onDismiss}
+                className="text-green-600 hover:text-green-800 hover:bg-green-100 dark:text-green-400 dark:hover:text-green-200"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
