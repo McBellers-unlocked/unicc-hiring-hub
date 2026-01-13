@@ -51,6 +51,7 @@ import InitialRequestReview from "./pages/InitialRequestReview";
 import JobInterviewQuestions from "./pages/JobInterviewQuestions";
 import ReviewCommittee from "./pages/ReviewCommittee";
 import JobVideoAssignmentManager from "./pages/JobVideoAssignmentManager";
+import JobManagement from "./pages/JobManagement";
 import GenerateFakeVideoResponses from "./pages/GenerateFakeVideoResponses";
 import BookInterviewSlot from "./pages/BookInterviewSlot";
 import SkillsAnalysis from "./pages/SkillsAnalysis";
@@ -98,6 +99,7 @@ const App = () => (
             <Route path="/applications/manage" element={<AdminApplications />} />
             <Route path="/admin/jobs" element={<AdminJobs />} />
             <Route path="/admin/jobs/new" element={<JobWizard />} />
+            <Route path="/admin/jobs/:jobId" element={<JobManagement />} />
             <Route path="/admin/jobs/:jobId/edit" element={<JobWizard />} />
             <Route path="/admin/jobs/:jobId/questions" element={<JobInterviewQuestions />} />
             <Route path="/admin/jobs/:jobId/review-committee" element={<ReviewCommittee />} />
