@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 interface ActionConfirmationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  action: 'longlist' | 'shortlist' | 'reject' | 'add-to-shortlist' | 'add-to-video' | 'move-to-panel-interview' | 'move-to-recommended' | 'move-to-roster';
+  action: 'longlist' | 'reject' | 'add-to-video' | 'move-to-panel-interview' | 'move-to-panel-from-longlist' | 'move-to-recommended' | 'move-to-roster';
   candidateName: string;
   currentStatus: string;
   isToggleAction?: boolean; // For longlist toggle
@@ -110,15 +110,6 @@ export function ActionConfirmationDialog({
             ? 'Optional: Reason for removal...'
             : 'Optional: Reason for adding to longlist...'
         };
-      case 'shortlist':
-        return {
-          title: 'Direct Shortlist',
-          description: `Move ${candidateName} directly to the shortlist?`,
-          icon: <CheckCircle className="w-5 h-5" />,
-          buttonText: 'Shortlist',
-          buttonVariant: 'default',
-          placeholder: 'Reason for shortlisting...'
-        };
       case 'reject':
         return {
           title: 'Reject Application',
@@ -128,14 +119,23 @@ export function ActionConfirmationDialog({
           buttonVariant: 'destructive',
           placeholder: 'Reason for rejection...'
         };
-      case 'add-to-shortlist':
+      case 'add-to-video':
         return {
-          title: 'Add to Shortlist',
-          description: `Move ${candidateName} from Longlist to Shortlist?`,
-          icon: <CheckCircle className="w-5 h-5" />,
-          buttonText: 'Add to Shortlist',
+          title: 'Add to Video Interview',
+          description: `Move ${candidateName} from Longlist to Video Interview stage?`,
+          icon: <Video className="w-5 h-5" />,
+          buttonText: 'Add to Video',
           buttonVariant: 'default',
-          placeholder: 'Reason for moving to shortlist...'
+          placeholder: 'Reason for moving to video interview...'
+        };
+      case 'move-to-panel-from-longlist':
+        return {
+          title: 'Move to Panel Interview',
+          description: `Move ${candidateName} directly from Longlist to Panel Interview stage (skipping video)?`,
+          icon: <Users className="w-5 h-5 text-orange-600" />,
+          buttonText: 'Move to Panel Interview',
+          buttonVariant: 'default',
+          placeholder: 'Reason for moving to panel interview (optional)...'
         };
       case 'add-to-video':
         return {

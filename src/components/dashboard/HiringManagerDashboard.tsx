@@ -75,10 +75,9 @@ export default function HiringManagerDashboard() {
           
           const inApplication = statuses['Application'] || 0;
           const inLonglist = statuses['Longlist'] || 0;
-          const inShortlist = statuses['Shortlist'] || 0;
           
           // HM Shortlisting - only if ALL applications moved out of "Application" status
-          if (inApplication === 0 && (inLonglist > 0 || inShortlist > 0)) {
+          if (inApplication === 0 && inLonglist > 0) {
             hasJobsInShortlisting = true;
             break;
           }
