@@ -20,11 +20,14 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.BITBUCKET_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan bitbucket.org >> ~/.ssh/known_hosts
+          echo "${{ secrets.BITBUCKET_SSH_KEY }}" > ~/.ssh/id_bitbucket
+          chmod 600 ~/.ssh/id_bitbucket
+          ssh-keyscan -H bitbucket.org >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
 
       - name: Mirror to Bitbucket
+        env:
+          GIT_SSH_COMMAND: "ssh -i ~/.ssh/id_bitbucket -o StrictHostKeyChecking=no"
         run: |
           git remote add bitbucket git@bitbucket.org:iccgit/unicc-hireflow.git
           git push --mirror bitbucket
