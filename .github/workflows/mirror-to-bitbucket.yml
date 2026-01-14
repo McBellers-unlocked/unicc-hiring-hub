@@ -1,0 +1,29 @@
+name: Mirror to Bitbucket
+
+on:
+  push:
+    branches:
+      - '**'
+  delete:
+    branches:
+      - '**'
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for proper mirroring
+
+      - name: Mirror to Bitbucket
+        shell: bash
+        env:
+          BITBUCKET_TOKEN: ${{ secrets.BITBUCKET_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          git remote remove bitbucket 2>/dev/null || true
+          git remote add bitbucket https://x-token-auth:${BITBUCKET_TOKEN}@bitbucket.org/iccgit/unicc-hireflow.git
+          git push bitbucket --all
+          git push bitbucket --tags
