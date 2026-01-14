@@ -17,30 +17,12 @@ jobs:
         with:
           fetch-depth: 0  # Full history for proper mirroring
 
-      - name: Set up SSH (deploy key)
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p ~/.ssh
-
-          # Write private key from secret
-          echo "${{ secrets.BITBUCKET_SSH_KEY }}" > ~/.ssh/id_bitbucket
-          chmod 600 ~/.ssh/id_bitbucket
-
-          # Trust Bitbucket host key
-          ssh-keyscan bitbucket.org >> ~/.ssh/known_hosts
-
-          # Validate that the key parses correctly
-          ssh-keygen -l -f ~/.ssh/id_bitbucket >/dev/null
-
       - name: Mirror to Bitbucket
         shell: bash
+        env:
+          BITBUCKET_TOKEN: ${{ secrets.BITBUCKET_ACCESS_TOKEN }}
         run: |
           set -euo pipefail
           git remote remove bitbucket 2>/dev/null || true
-          git remote add bitbucket git@bitbucket.org:iccgit/unicc-hireflow.git
-
-          # Test SSH auth
-          ssh -i ~/.ssh/id_bitbucket -o StrictHostKeyChecking=yes -T git@bitbucket.org || true
-
+          git remote add bitbucket https://x-token-auth:${BITBUCKET_TOKEN}@bitbucket.org/iccgit/unicc-hireflow.git
           git push bitbucket --mirror
