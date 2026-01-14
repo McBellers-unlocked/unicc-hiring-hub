@@ -3,10 +3,7 @@ name: Mirror to Bitbucket
 on:
   push:
     branches:
-      - '**'
-  delete:
-    branches:
-      - '**'
+      - main
 
 jobs:
   mirror:
