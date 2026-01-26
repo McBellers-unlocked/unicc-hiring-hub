@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Upload, ArrowLeft, Users, UserCog, Network, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Upload, ArrowLeft, Users, UserCog, Network, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 interface ImportResult {
@@ -16,6 +16,9 @@ interface ImportResult {
   affiliatesUpdated: number;
   errors: number;
   errorDetails: string[];
+  warnings: number;
+  warningDetails: string[];
+  rowsWithWarnings: number;
   affiliateBreakdown: {
     IC: { created: number; updated: number };
     Intern: { created: number; updated: number };
@@ -126,10 +129,13 @@ export default function ImportStaffList() {
       const totalCreated = data.staffCreated + data.affiliatesCreated;
       const totalUpdated = data.staffUpdated + data.affiliatesUpdated;
       
+      const hasWarnings = data.warnings > 0;
+      const hasErrors = data.errors > 0;
+      
       toast({
         title: 'Import Complete',
-        description: `${totalCreated} created, ${totalUpdated} updated, ${data.errors} errors`,
-        variant: data.errors > 0 ? 'destructive' : 'default',
+        description: `${totalCreated} created, ${totalUpdated} updated${hasWarnings ? `, ${data.rowsWithWarnings} with warnings` : ''}${hasErrors ? `, ${data.errors} errors` : ''}`,
+        variant: hasErrors ? 'destructive' : hasWarnings ? 'default' : 'default',
       });
 
     } catch (error: any) {
@@ -333,14 +339,42 @@ export default function ImportStaffList() {
                   </Card>
                 )}
 
+                {/* Warnings */}
+                {result.warnings > 0 && (
+                  <Card className="border-yellow-500 bg-yellow-50/50">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2 text-yellow-700">
+                        <AlertTriangle className="w-4 h-4" />
+                        Warnings ({result.warnings}) - {result.rowsWithWarnings} rows affected
+                      </CardTitle>
+                      <CardDescription className="text-yellow-600">
+                        These records were imported but have incomplete data
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="max-h-40 overflow-y-auto space-y-1 text-xs text-yellow-700">
+                        {result.warningDetails.slice(0, 30).map((warning, idx) => (
+                          <p key={idx}>• {warning}</p>
+                        ))}
+                        {result.warningDetails.length > 30 && (
+                          <p className="font-medium">... and {result.warningDetails.length - 30} more warnings</p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Errors */}
                 {result.errors > 0 && (
                   <Card className="border-destructive">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base flex items-center gap-2 text-destructive">
                         <XCircle className="w-4 h-4" />
-                        Errors ({result.errors})
+                        Errors ({result.errors}) - rows skipped
                       </CardTitle>
+                      <CardDescription className="text-destructive/70">
+                        These rows could not be imported due to missing or invalid email
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="max-h-40 overflow-y-auto space-y-1 text-xs text-muted-foreground">
@@ -359,7 +393,10 @@ export default function ImportStaffList() {
                 {result.errors === 0 && (result.staffCreated + result.staffUpdated + result.affiliatesCreated + result.affiliatesUpdated > 0) && (
                   <div className="flex items-center gap-2 p-4 bg-green-50 text-green-700 rounded-lg">
                     <CheckCircle className="w-5 h-5" />
-                    <span className="font-medium">Import completed successfully!</span>
+                    <span className="font-medium">
+                      Import completed successfully!
+                      {result.warnings > 0 && ` (${result.rowsWithWarnings} rows have incomplete data)`}
+                    </span>
                   </div>
                 )}
 

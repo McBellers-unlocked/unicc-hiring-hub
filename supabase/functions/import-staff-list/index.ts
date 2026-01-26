@@ -12,10 +12,61 @@ interface ImportResult {
   affiliatesUpdated: number;
   errors: number;
   errorDetails: string[];
+  warnings: number;
+  warningDetails: string[];
+  rowsWithWarnings: number;
   affiliateBreakdown: {
     IC: { created: number; updated: number };
     Intern: { created: number; updated: number };
     UNV: { created: number; updated: number };
+  };
+}
+
+interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+// Validate a row and return errors/warnings
+function validateRow(
+  rowNumber: number,
+  email: string,
+  unit: string,
+  division: string,
+  lineManager: string,
+  jobTitle: string,
+  nationality: string
+): ValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  
+  // Critical: Email is required
+  if (!email || !email.includes('@')) {
+    errors.push(`Row ${rowNumber}: Missing or invalid email`);
+  }
+  
+  // Warnings for recommended fields
+  if (!unit) {
+    warnings.push(`Row ${rowNumber}: Missing unit`);
+  }
+  if (!division) {
+    warnings.push(`Row ${rowNumber}: Missing division`);
+  }
+  if (!lineManager) {
+    warnings.push(`Row ${rowNumber}: Missing line manager`);
+  }
+  if (!jobTitle) {
+    warnings.push(`Row ${rowNumber}: Missing job title`);
+  }
+  if (!nationality) {
+    warnings.push(`Row ${rowNumber}: Missing nationality`);
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings
   };
 }
 
@@ -171,6 +222,9 @@ Deno.serve(async (req) => {
       affiliatesUpdated: 0,
       errors: 0,
       errorDetails: [],
+      warnings: 0,
+      warningDetails: [],
+      rowsWithWarnings: 0,
       affiliateBreakdown: {
         IC: { created: 0, updated: 0 },
         Intern: { created: 0, updated: 0 },
@@ -206,14 +260,39 @@ Deno.serve(async (req) => {
       };
 
       const email = getValue(columnMap.email).toLowerCase();
-      if (!email || !email.includes('@')) {
+      const firstName = getValue(columnMap.firstName);
+      const lastName = getValue(columnMap.lastName);
+      const unit = getValue(columnMap.unit);
+      const division = getValue(columnMap.division);
+      const lineManager = getValue(columnMap.lineManager);
+      const jobTitle = getValue(columnMap.jobTitle);
+      const nationality = getValue(columnMap.nationality);
+
+      // Validate the row
+      const validation = validateRow(
+        i + 1,
+        email,
+        unit,
+        division,
+        lineManager,
+        jobTitle,
+        nationality
+      );
+
+      // If critical errors, skip this row
+      if (!validation.isValid) {
         result.errors++;
-        result.errorDetails.push(`Row ${i + 1}: Invalid or missing email`);
+        result.errorDetails.push(...validation.errors);
         continue;
       }
 
-      const firstName = getValue(columnMap.firstName);
-      const lastName = getValue(columnMap.lastName);
+      // Track warnings but continue with import
+      if (validation.warnings.length > 0) {
+        result.warnings += validation.warnings.length;
+        result.warningDetails.push(...validation.warnings);
+        result.rowsWithWarnings++;
+      }
+
       const name = firstName && lastName 
         ? `${firstName} ${lastName}` 
         : firstName || lastName || email.split('@')[0];
