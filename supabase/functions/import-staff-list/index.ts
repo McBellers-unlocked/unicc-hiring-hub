@@ -302,31 +302,42 @@ Deno.serve(async (req) => {
         getValue(columnMap.workerType)
       );
 
-      const userData: Record<string, any> = {
+      // Build base user data - role is only set for NEW users
+      const baseUserData: Record<string, any> = {
         name,
         email,
-        gender: getValue(columnMap.gender) || null,
-        staff_number: getValue(columnMap.staffNumber) || null,
-        personnel_type: personnelType,
-        affiliate_type: affiliateType,
-        unit: getValue(columnMap.unit) || null,
-        division: getValue(columnMap.division) || null,
-        job_title: getValue(columnMap.jobTitle) || null,
-        line_manager: getValue(columnMap.lineManager) || null,
-        duty_station: getValue(columnMap.dutyStation) || null,
-        nationality: getValue(columnMap.nationality) || null,
-        current_grade: getValue(columnMap.currentGrade) || null,
-        contract_start_date: parseDate(getValue(columnMap.contractStartDate)),
-        contract_end_date: parseDate(getValue(columnMap.contractEndDate)),
-        entry_on_duty_date: parseDate(getValue(columnMap.entryOnDutyDate)),
-        role: 'Hiring Manager',
       };
 
+      // Helper to conditionally add fields only if CSV has value
+      const addIfPresent = (field: string, value: string | null) => {
+        if (value) baseUserData[field] = value;
+      };
+
+      addIfPresent('gender', getValue(columnMap.gender));
+      addIfPresent('staff_number', getValue(columnMap.staffNumber));
+      addIfPresent('personnel_type', personnelType);
+      addIfPresent('affiliate_type', affiliateType);
+      addIfPresent('unit', getValue(columnMap.unit));
+      addIfPresent('division', getValue(columnMap.division));
+      addIfPresent('job_title', getValue(columnMap.jobTitle));
+      addIfPresent('line_manager', getValue(columnMap.lineManager));
+      addIfPresent('duty_station', getValue(columnMap.dutyStation));
+      addIfPresent('nationality', getValue(columnMap.nationality));
+      addIfPresent('current_grade', getValue(columnMap.currentGrade));
+
+      // Handle dates - only add if valid
+      const contractStart = parseDate(getValue(columnMap.contractStartDate));
+      const contractEnd = parseDate(getValue(columnMap.contractEndDate));
+      const entryOnDuty = parseDate(getValue(columnMap.entryOnDutyDate));
+      if (contractStart) baseUserData.contract_start_date = contractStart;
+      if (contractEnd) baseUserData.contract_end_date = contractEnd;
+      if (entryOnDuty) baseUserData.entry_on_duty_date = entryOnDuty;
+
       try {
-        // Check if user exists
+        // Check if user exists - fetch fields we want to preserve
         const { data: existingUser, error: checkError } = await supabase
           .from('users')
-          .select('id')
+          .select('id, skills, role')
           .eq('email', email)
           .maybeSingle();
 
@@ -335,10 +346,11 @@ Deno.serve(async (req) => {
         }
 
         if (existingUser) {
-          // Update existing user
+          // Update existing user - NEVER overwrite role or skills
+          // baseUserData does NOT include role, so existing role is preserved
           const { error: updateError } = await supabase
             .from('users')
-            .update(userData)
+            .update(baseUserData)
             .eq('id', existingUser.id);
 
           if (updateError) {
@@ -361,29 +373,60 @@ Deno.serve(async (req) => {
             user_metadata: { name },
           });
 
+          // For NEW users, add role
+          const insertData = { ...baseUserData, role: 'Hiring Manager' };
+
           if (authError) {
             // User might exist in auth but not in users table
             if (authError.message.includes('already been registered')) {
               // Try to get the auth user
               const { data: { users: existingAuthUsers } } = await supabase.auth.admin.listUsers();
-              const authUser = existingAuthUsers?.find(u => u.email === email);
+              const authUserFound = existingAuthUsers?.find(u => u.email === email);
               
-              if (authUser) {
-                // Insert user record with auth user ID
-                const { error: insertError } = await supabase
+              if (authUserFound) {
+                // Check if user already exists in users table by ID (fix for duplicate key errors)
+                const { data: existingById } = await supabase
                   .from('users')
-                  .insert({ ...userData, id: authUser.id });
+                  .select('id, role')
+                  .eq('id', authUserFound.id)
+                  .maybeSingle();
 
-                if (insertError) {
-                  throw new Error(`Insert error: ${insertError.message}`);
-                }
+                if (existingById) {
+                  // User exists by ID - UPDATE instead of INSERT (preserves role)
+                  const { error: updateError } = await supabase
+                    .from('users')
+                    .update(baseUserData)
+                    .eq('id', authUserFound.id);
 
-                if (personnelType === 'Staff') {
-                  result.staffCreated++;
+                  if (updateError) {
+                    throw new Error(`Update error: ${updateError.message}`);
+                  }
+
+                  if (personnelType === 'Staff') {
+                    result.staffUpdated++;
+                  } else {
+                    result.affiliatesUpdated++;
+                    if (affiliateType && affiliateType in result.affiliateBreakdown) {
+                      result.affiliateBreakdown[affiliateType as keyof typeof result.affiliateBreakdown].updated++;
+                    }
+                  }
                 } else {
-                  result.affiliatesCreated++;
-                  if (affiliateType && affiliateType in result.affiliateBreakdown) {
-                    result.affiliateBreakdown[affiliateType as keyof typeof result.affiliateBreakdown].created++;
+                  // User doesn't exist by ID - safe to INSERT
+                  const { error: insertError } = await supabase
+                    .from('users')
+                    .insert({ ...insertData, id: authUserFound.id });
+
+                  if (insertError) {
+                    throw new Error(`Insert error: ${insertError.message}`);
+                  }
+
+                  if (personnelType === 'Staff') {
+                    result.staffCreated++;
+                  } else {
+                    result.affiliatesCreated++;
+                    if (affiliateType && affiliateType in result.affiliateBreakdown) {
+                      result.affiliateBreakdown[affiliateType as keyof typeof result.affiliateBreakdown].created++;
+                    }
                   }
                 }
               } else {
@@ -396,7 +439,7 @@ Deno.serve(async (req) => {
             // Insert user record with new auth user ID
             const { error: insertError } = await supabase
               .from('users')
-              .insert({ ...userData, id: authUser.user.id });
+              .insert({ ...insertData, id: authUser.user.id });
 
             if (insertError) {
               throw new Error(`Insert error: ${insertError.message}`);
