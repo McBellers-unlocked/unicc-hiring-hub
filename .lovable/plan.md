@@ -1,153 +1,180 @@
 
 
-## Plan: Create Unified Staff Import Function
+## Plan: Add Validity Check with Warning Flags for Staff Import
 
 ### Overview
-Create a new unified import system that can handle both **Staff** and **Affiliate** personnel in a single CSV upload. The importer will:
-1. Detect `personnel_type` from CSV (Staff or Affiliate)
-2. If Affiliate, detect `affiliate_type` (IC, Intern, UNV)
-3. Create new users or update existing ones
+Add a validation layer that checks for missing or incomplete data in the CSV before and during import. Instead of blocking imports, rows with issues like missing `unit` will be flagged with **warnings** and still imported. Only critical issues like missing/invalid `email` will be treated as **errors** that prevent the row from being imported.
 
 ---
 
-### Phase 1: Create Unified Import Edge Function
+### Validation Categories
 
-**New file: `supabase/functions/import-staff-list/index.ts`**
-
-A unified edge function that:
-- Accepts CSV data with both Staff and Affiliate personnel
-- Detects personnel type from `Personnel Type` column
-- Detects affiliate type from `Worker Type` or `App Type Short` columns for affiliates
-- Handles all user fields from your CSV:
-
-| CSV Column | Database Field |
-|------------|----------------|
-| Email / Email Address | `email` |
-| First Name + Last Name | `name` |
-| Gender | `gender` |
-| Staff Number | `staff_number` |
-| Personnel Type | `personnel_type` (Staff/Affiliate) |
-| Worker Type / App Type Short | `affiliate_type` (IC/Intern/UNV) |
-| Unit | `unit` |
-| Division | `division` |
-| Job Title | `job_title` |
-| Line Manager | `line_manager` |
-| DS Short / Office Location | `duty_station` |
-| Nationality | `nationality` |
-| Current Grade | `current_grade` |
-| Contract Start Date | `contract_start_date` |
-| Contract End Date | `contract_end_date` |
-| Entry On Duty Date | `entry_on_duty_date` |
-
-**Key Logic:**
-1. For each row, check `Personnel Type` column
-2. If value is "Staff" → set `personnel_type = 'Staff'`, `affiliate_type = null`
-3. If value is "Affiliate" or empty with IC/Intern/UNV worker type → set `personnel_type = 'Affiliate'`, detect `affiliate_type`
-4. For existing users (match by email): Update their data
-5. For new users: Create auth account and user record
-6. Assign role based on personnel type:
-   - Staff → 'Hiring Manager'
-   - Affiliate → 'Hiring Manager'
+| Category | Fields | Behavior |
+|----------|--------|----------|
+| **Error (blocks import)** | `email` (missing or invalid format) | Row is skipped, counted as error |
+| **Warning (imports anyway)** | `unit`, `division`, `line_manager`, `job_title`, `nationality` | Row is imported, flagged with warning |
 
 ---
 
-### Phase 2: Create Unified Import Page
+### Phase 1: Update Edge Function
 
-**New file: `src/pages/ImportStaffList.tsx`**
+**File: `supabase/functions/import-staff-list/index.ts`**
 
-Route: `/admin/import-staff-list`
-
-Features:
-- Drag-and-drop CSV upload (supports .csv, .xlsx, .xls via xlsx library)
-- Clear explanation that this imports both Staff and Affiliate
-- Shows personnel type badges for context
-- Import summary with breakdown:
-  - Staff: X created, Y updated
-  - Affiliates: X created, Y updated (by type IC/Intern/UNV)
-  - Errors: Z
-- Link to Affiliate Personnel and Organization Chart after import
-
----
-
-### Phase 3: Update Navigation
-
-**Update: `src/components/Layout.tsx`**
-
-Replace separate import links with single "Import Staff List" option that handles both types.
-
-**Update: `src/App.tsx`**
-
-Add route for `/admin/import-staff-list`.
-
----
-
-### Files to Create/Modify
-
-| File | Action |
-|------|--------|
-| `supabase/functions/import-staff-list/index.ts` | Create unified import function |
-| `src/pages/ImportStaffList.tsx` | Create import page |
-| `src/components/Layout.tsx` | Update navigation |
-| `src/App.tsx` | Add route |
-
----
-
-### Data Flow
-
-```text
-CSV with Staff + Affiliates
-        ↓
-Parse & detect Personnel Type per row
-        ↓
-Staff rows → personnel_type='Staff', affiliate_type=null
-Affiliate rows → personnel_type='Affiliate', affiliate_type=IC/Intern/UNV
-        ↓
-Upsert to users table (create or update by email)
-        ↓
-Return summary with Staff/Affiliate breakdown
-```
-
----
-
-### Column Detection Strategy
-
-The function will use flexible column detection to handle various CSV formats:
+#### Add warnings to result interface:
 
 ```typescript
-const findColumn = (patterns: string[]): number => {
-  return headers.findIndex(h => {
-    const lower = h.toLowerCase().trim();
-    return patterns.some(p => lower.includes(p));
-  });
-};
-
-// Example patterns
-personnelTypeIndex = findColumn(['personnel type', 'personnel_type', 'type of personnel']);
-workerTypeIndex = findColumn(['worker type', 'worker_type', 'app type short']);
-```
-
----
-
-### Personnel Type Logic
-
-```typescript
-// Detect personnel type
-let personnelType = 'Staff'; // Default
-let affiliateType = null;
-
-const personnelTypeValue = values[personnelTypeIndex]?.trim().toLowerCase();
-const workerTypeValue = values[workerTypeIndex]?.trim().toUpperCase();
-
-if (personnelTypeValue === 'affiliate' || 
-    ['IC', 'INTERN', 'UNV'].includes(workerTypeValue)) {
-  personnelType = 'Affiliate';
-  
-  // Detect affiliate type
-  if (workerTypeValue === 'IC') affiliateType = 'IC';
-  else if (workerTypeValue.includes('INTERN')) affiliateType = 'Intern';
-  else if (workerTypeValue === 'UNV') affiliateType = 'UNV';
+interface ImportResult {
+  // ... existing fields ...
+  warnings: number;
+  warningDetails: string[];
+  rowsWithWarnings: number;
 }
 ```
 
-This creates a single import system that handles your complete staff member list with proper classification of both Staff and Affiliate personnel.
+#### Add validation function:
+
+```typescript
+interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+function validateRow(rowNumber: number, email: string, unit: string, division: string, lineManager: string, jobTitle: string): ValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  
+  // Critical: Email is required
+  if (!email || !email.includes('@')) {
+    errors.push(`Row ${rowNumber}: Missing or invalid email`);
+  }
+  
+  // Warnings for recommended fields
+  if (!unit) {
+    warnings.push(`Row ${rowNumber}: Missing unit`);
+  }
+  if (!division) {
+    warnings.push(`Row ${rowNumber}: Missing division`);
+  }
+  if (!lineManager) {
+    warnings.push(`Row ${rowNumber}: Missing line manager`);
+  }
+  if (!jobTitle) {
+    warnings.push(`Row ${rowNumber}: Missing job title`);
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings
+  };
+}
+```
+
+#### Update processing loop:
+
+- Call `validateRow()` for each row
+- If `isValid === false`, skip row and add to errors
+- If warnings exist, add to warning list but continue with import
+- Track `rowsWithWarnings` count
+
+---
+
+### Phase 2: Update Import Page UI
+
+**File: `src/pages/ImportStaffList.tsx`**
+
+#### Add warnings display:
+
+```tsx
+{/* Warnings Section */}
+{result.warnings > 0 && (
+  <Card className="border-yellow-500 bg-yellow-50">
+    <CardHeader className="pb-2">
+      <CardTitle className="text-base flex items-center gap-2 text-yellow-700">
+        <AlertTriangle className="w-4 h-4" />
+        Warnings ({result.warnings}) - {result.rowsWithWarnings} rows affected
+      </CardTitle>
+      <CardDescription className="text-yellow-600">
+        These records were imported but have incomplete data
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <div className="max-h-40 overflow-y-auto space-y-1 text-xs text-yellow-700">
+        {result.warningDetails.slice(0, 30).map((warning, idx) => (
+          <p key={idx}>• {warning}</p>
+        ))}
+      </div>
+    </CardContent>
+  </Card>
+)}
+```
+
+#### Update success message:
+- Show warning count alongside success
+- Use yellow/amber styling for warnings to distinguish from errors
+
+---
+
+### Phase 3: Add Pre-Import Validation Preview (Optional Enhancement)
+
+Before importing, show a preview of validation issues:
+
+```tsx
+{/* Pre-Import Validation Preview */}
+{validationPreview && (
+  <Card className="border-blue-500">
+    <CardHeader>
+      <CardTitle className="text-base">Validation Preview</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div className="space-y-2 text-sm">
+        <div className="flex items-center gap-2">
+          <CheckCircle className="w-4 h-4 text-green-500" />
+          <span>{validationPreview.validRows} rows ready to import</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-yellow-500" />
+          <span>{validationPreview.warningRows} rows with missing data (will import)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <XCircle className="w-4 h-4 text-red-500" />
+          <span>{validationPreview.errorRows} rows will be skipped (no email)</span>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+)}
+```
+
+---
+
+### Files to Modify
+
+| File | Changes |
+|------|---------|
+| `supabase/functions/import-staff-list/index.ts` | Add validation logic, warnings tracking |
+| `src/pages/ImportStaffList.tsx` | Add warnings UI section, update result interface |
+
+---
+
+### Expected Result Example
+
+After import, the UI will show:
+
+```text
+✓ Staff: 150 created, 45 updated
+✓ Affiliates: 23 created, 12 updated
+⚠ Warnings: 34 (22 rows affected)
+  • Row 15: Missing unit
+  • Row 15: Missing line manager
+  • Row 28: Missing division
+  • Row 42: Missing unit
+  ...
+✗ Errors: 3 (rows skipped)
+  • Row 7: Missing or invalid email
+  • Row 156: Missing or invalid email
+```
+
+This approach ensures data quality visibility while not blocking imports for non-critical missing fields.
 
