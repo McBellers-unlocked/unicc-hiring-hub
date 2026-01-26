@@ -3,6 +3,9 @@ project_id = "cxpnvbphjpntrvvgjhli"
 [functions.import-staff-masterdb]
 verify_jwt = false
 
+[functions.import-staff-list]
+verify_jwt = false
+
 [functions.send-pd-reminder]
 verify_jwt = false
 
