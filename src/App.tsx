@@ -45,6 +45,7 @@ import ApplicationJobSelection from "./pages/ApplicationJobSelection";
 import ImportUsers from "./pages/ImportUsers";
 import ImportSkills from "./pages/ImportSkills";
 import ImportStaffData from "./pages/ImportStaffData";
+import ImportStaffList from "./pages/ImportStaffList";
 import NotFound from "./pages/NotFound";
 import InitialRequestForm from "./pages/InitialRequestForm";
 import InitialRequestReview from "./pages/InitialRequestReview";
@@ -134,6 +135,7 @@ const App = () => (
             <Route path="/admin/import-users" element={<ImportUsers />} />
             <Route path="/admin/import-skills" element={<ImportSkills />} />
             <Route path="/admin/import-staff-data" element={<ImportStaffData />} />
+            <Route path="/admin/import-staff-list" element={<ImportStaffList />} />
             <Route path="/admin/import-whed" element={<ImportWHED />} />
             <Route path="/admin/skills-review" element={<AdminSkillsReview />} />
             <Route path="/admin/assessments" element={<AdminAssessments />} />
