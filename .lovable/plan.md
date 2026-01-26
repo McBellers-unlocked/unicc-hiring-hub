@@ -1,180 +1,131 @@
 
-
-## Plan: Add Validity Check with Warning Flags for Staff Import
+## Plan: Preserve Existing Data During Staff Import
 
 ### Overview
-Add a validation layer that checks for missing or incomplete data in the CSV before and during import. Instead of blocking imports, rows with issues like missing `unit` will be flagged with **warnings** and still imported. Only critical issues like missing/invalid `email` will be treated as **errors** that prevent the row from being imported.
+Update the staff import function to intelligently preserve existing user data that shouldn't be overwritten, and only update fields that have actual values in the CSV.
 
 ---
 
-### Validation Categories
+### Key Changes Required
 
-| Category | Fields | Behavior |
-|----------|--------|----------|
-| **Error (blocks import)** | `email` (missing or invalid format) | Row is skipped, counted as error |
-| **Warning (imports anyway)** | `unit`, `division`, `line_manager`, `job_title`, `nationality` | Row is imported, flagged with warning |
+#### 1. Preserve the `skills` field explicitly
+
+Currently the `skills` field is NOT in the update payload, so it's already being preserved. However, we should make this explicit to prevent accidental future changes.
+
+#### 2. Preserve the `role` field for existing users
+
+The import currently **overwrites** the `role` to 'Hiring Manager' for ALL users, even if they're Admin or Chief of HR. This is a bug.
+
+**Fix:** Only set role for NEW users, never update role for existing users.
+
+#### 3. Don't overwrite with empty/null values
+
+If a CSV field is empty but the user already has data, preserve the existing data.
 
 ---
 
-### Phase 1: Update Edge Function
+### Implementation Changes
 
-**File: `supabase/functions/import-staff-list/index.ts`**
+**File:** `supabase/functions/import-staff-list/index.ts`
 
-#### Add warnings to result interface:
+#### Change 1: Fetch existing user data before update
 
 ```typescript
-interface ImportResult {
-  // ... existing fields ...
-  warnings: number;
-  warningDetails: string[];
-  rowsWithWarnings: number;
-}
+// Current: Only checks if user exists
+const { data: existingUser } = await supabase
+  .from('users')
+  .select('id')  // ← Only gets ID
+  .eq('email', email)
+  .maybeSingle();
+
+// New: Fetch fields we want to preserve
+const { data: existingUser } = await supabase
+  .from('users')
+  .select('id, skills, role')  // ← Get preservable fields
+  .eq('email', email)
+  .maybeSingle();
 ```
 
-#### Add validation function:
+#### Change 2: Build update object that preserves existing data
 
 ```typescript
-interface ValidationResult {
-  isValid: boolean;
-  errors: string[];
-  warnings: string[];
-}
+// For UPDATES (existing users)
+const updateData: Record<string, any> = {};
 
-function validateRow(rowNumber: number, email: string, unit: string, division: string, lineManager: string, jobTitle: string): ValidationResult {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-  
-  // Critical: Email is required
-  if (!email || !email.includes('@')) {
-    errors.push(`Row ${rowNumber}: Missing or invalid email`);
-  }
-  
-  // Warnings for recommended fields
-  if (!unit) {
-    warnings.push(`Row ${rowNumber}: Missing unit`);
-  }
-  if (!division) {
-    warnings.push(`Row ${rowNumber}: Missing division`);
-  }
-  if (!lineManager) {
-    warnings.push(`Row ${rowNumber}: Missing line manager`);
-  }
-  if (!jobTitle) {
-    warnings.push(`Row ${rowNumber}: Missing job title`);
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors,
-    warnings
-  };
-}
+// Only update fields that have values in CSV
+if (name) updateData.name = name;
+if (getValue(columnMap.email)) updateData.email = email;
+if (getValue(columnMap.gender)) updateData.gender = getValue(columnMap.gender);
+if (getValue(columnMap.staffNumber)) updateData.staff_number = getValue(columnMap.staffNumber);
+// ... etc for all fields
+
+// NEVER update these for existing users:
+// - role (preserve Admin, Chief of HR, etc.)
+// - skills (preserve skills data)
 ```
 
-#### Update processing loop:
+#### Change 3: For NEW users, set role
 
-- Call `validateRow()` for each row
-- If `isValid === false`, skip row and add to errors
-- If warnings exist, add to warning list but continue with import
-- Track `rowsWithWarnings` count
-
----
-
-### Phase 2: Update Import Page UI
-
-**File: `src/pages/ImportStaffList.tsx`**
-
-#### Add warnings display:
-
-```tsx
-{/* Warnings Section */}
-{result.warnings > 0 && (
-  <Card className="border-yellow-500 bg-yellow-50">
-    <CardHeader className="pb-2">
-      <CardTitle className="text-base flex items-center gap-2 text-yellow-700">
-        <AlertTriangle className="w-4 h-4" />
-        Warnings ({result.warnings}) - {result.rowsWithWarnings} rows affected
-      </CardTitle>
-      <CardDescription className="text-yellow-600">
-        These records were imported but have incomplete data
-      </CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className="max-h-40 overflow-y-auto space-y-1 text-xs text-yellow-700">
-        {result.warningDetails.slice(0, 30).map((warning, idx) => (
-          <p key={idx}>• {warning}</p>
-        ))}
-      </div>
-    </CardContent>
-  </Card>
-)}
-```
-
-#### Update success message:
-- Show warning count alongside success
-- Use yellow/amber styling for warnings to distinguish from errors
-
----
-
-### Phase 3: Add Pre-Import Validation Preview (Optional Enhancement)
-
-Before importing, show a preview of validation issues:
-
-```tsx
-{/* Pre-Import Validation Preview */}
-{validationPreview && (
-  <Card className="border-blue-500">
-    <CardHeader>
-      <CardTitle className="text-base">Validation Preview</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div className="space-y-2 text-sm">
-        <div className="flex items-center gap-2">
-          <CheckCircle className="w-4 h-4 text-green-500" />
-          <span>{validationPreview.validRows} rows ready to import</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-yellow-500" />
-          <span>{validationPreview.warningRows} rows with missing data (will import)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <XCircle className="w-4 h-4 text-red-500" />
-          <span>{validationPreview.errorRows} rows will be skipped (no email)</span>
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-)}
+```typescript
+// For INSERTS (new users)
+const insertData = {
+  ...userData,
+  role: 'Hiring Manager',  // ← Only for new users
+};
 ```
 
 ---
 
-### Files to Modify
+### Fields to Preserve (Never Overwrite)
 
-| File | Changes |
-|------|---------|
-| `supabase/functions/import-staff-list/index.ts` | Add validation logic, warnings tracking |
-| `src/pages/ImportStaffList.tsx` | Add warnings UI section, update result interface |
+| Field | Reason |
+|-------|--------|
+| `skills` | Skills analysis data - already preserved but make explicit |
+| `role` | Users may have elevated permissions (Admin, Chief of HR) |
+| `second_line_manager` | May be set via different process |
+| `probation_end_date` | HR sets this separately |
+
+### Fields to Update Only if CSV Has Value
+
+| Field | Behavior |
+|-------|----------|
+| `name`, `gender`, `staff_number` | Update only if CSV value is non-empty |
+| `unit`, `division`, `job_title` | Update only if CSV value is non-empty |
+| `line_manager`, `duty_station` | Update only if CSV value is non-empty |
+| `nationality`, `current_grade` | Update only if CSV value is non-empty |
+| `contract_start_date`, `contract_end_date` | Update only if CSV value is non-empty |
+| `entry_on_duty_date` | Update only if CSV value is non-empty |
+| `personnel_type`, `affiliate_type` | Update only if CSV value is non-empty |
 
 ---
 
-### Expected Result Example
+### Data That Is Already Safe
 
-After import, the UI will show:
+These are stored in **separate tables** and are never affected by staff import:
 
-```text
-✓ Staff: 150 created, 45 updated
-✓ Affiliates: 23 created, 12 updated
-⚠ Warnings: 34 (22 rows affected)
-  • Row 15: Missing unit
-  • Row 15: Missing line manager
-  • Row 28: Missing division
-  • Row 42: Missing unit
-  ...
-✗ Errors: 3 (rows skipped)
-  • Row 7: Missing or invalid email
-  • Row 156: Missing or invalid email
-```
+| Table | Data Type | Safe? |
+|-------|-----------|-------|
+| `skill_assessments` | Skills ratings, manager assessments | Yes - separate table |
+| `skill_definitions` | Skill catalog | Yes - separate table |
+| `candidate_flags` | Talent pool flags | Yes - separate table |
+| `candidate_notes` | Talent pool notes | Yes - separate table |
+| `talent_pool_searches` | Saved searches | Yes - separate table |
+| `candidates` | External candidate profiles | Yes - completely separate |
+| `workplans` + related | Performance data | Yes - separate table |
 
-This approach ensures data quality visibility while not blocking imports for non-critical missing fields.
+---
+
+### Summary
+
+The import will be modified to:
+
+1. **Preserve `skills`** - Already safe, will make explicit
+2. **Preserve `role`** - Never overwrite for existing users
+3. **Conditional updates** - Only update fields where CSV has actual values
+4. **Safe related data** - `skill_assessments`, `candidate_flags`, etc. are in separate tables and untouched
+
+This ensures that importing a new staff list will:
+- Update organizational data (unit, division, manager, grade, etc.)
+- NOT overwrite skills or permissions
+- NOT wipe out data if a CSV field is empty
 
