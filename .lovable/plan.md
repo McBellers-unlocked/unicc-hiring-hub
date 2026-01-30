@@ -1,102 +1,138 @@
 
-## Plan: Show "Not Active" Status for Future Contract Start Dates
+## Plan: Add Contract Break Status for Affiliates
 
-### Problem
-Affiliates with a future `contract_start_date` (e.g., 3 March 2026 when today is 30 Jan 2026) are currently shown as "Active" because the status logic only checks the end date.
-
-### Solution
-Update the `getContractStatus` function to also check the start date:
-- If `contract_start_date` is in the future → show "Not Active" with the start date
-- Add a new filter option for "Not Yet Started" affiliates
+### Goal
+Show different statuses for affiliate personnel based on their contract history:
+- **Contract break**: Has worked before but next contract is in the future → "Non-active: Contract break" (yellow)
+- **No history/data**: No first date recorded → "Non-active" (red)
+- **Starting soon**: New personnel with future start date → "Starts [date]" (outline)
+- **Active**: Currently under contract → "Active" or expiring status
 
 ---
 
-### Changes
+### Database Change
+
+Add a new column `first_incumbency_date` to the `users` table:
+
+```sql
+ALTER TABLE public.users 
+ADD COLUMN first_incumbency_date DATE;
+
+COMMENT ON COLUMN public.users.first_incumbency_date IS 
+  'The date the affiliate first started working with UNICC. Used to distinguish contract breaks from new hires.';
+```
+
+---
+
+### Frontend Changes
 
 **File: `src/pages/AffiliatePersonnel.tsx`**
 
-1. **Update `getContractStatus` function** to accept and check start date:
+1. **Update the interface** to include the new field:
+```typescript
+interface AffiliateUser {
+  // ... existing fields
+  first_incumbency_date: string | null;
+}
+```
+
+2. **Update the query** to fetch the new field:
+```typescript
+.select('..., first_incumbency_date')
+```
+
+3. **Update `getContractStatus` function** to handle all scenarios:
 
 ```typescript
 const getContractStatus = (
-  startDate: string | null, 
-  endDate: string | null
+  startDate: string | null,
+  endDate: string | null,
+  firstIncumbencyDate: string | null
 ): { 
   status: string; 
   variant: 'default' | 'secondary' | 'destructive' | 'outline'; 
   daysRemaining: number | null;
   isNotYetActive: boolean;
+  isContractBreak: boolean;
+  isNoData: boolean;
 } => {
-  // Check if contract hasn't started yet
+  const today = new Date();
+  
+  // Case 1: Contract hasn't started yet
   if (startDate) {
-    const daysUntilStart = differenceInDays(parseISO(startDate), new Date());
+    const daysUntilStart = differenceInDays(parseISO(startDate), today);
     if (daysUntilStart > 0) {
+      // They have worked before → Contract break
+      if (firstIncumbencyDate) {
+        return { 
+          status: 'Non-active: Contract break', 
+          variant: 'secondary',  // yellow
+          daysRemaining: null,
+          isNotYetActive: true,
+          isContractBreak: true,
+          isNoData: false
+        };
+      }
+      // New hire starting soon
       return { 
         status: `Starts ${format(parseISO(startDate), 'dd MMM yyyy')}`, 
         variant: 'outline', 
         daysRemaining: null,
-        isNotYetActive: true
+        isNotYetActive: true,
+        isContractBreak: false,
+        isNoData: false
       };
     }
   }
   
-  // Existing end date logic...
-  if (!endDate) return { status: 'No end date', variant: 'outline', daysRemaining: null, isNotYetActive: false };
+  // Case 2: No start date AND no first incumbency date → No data
+  if (!startDate && !firstIncumbencyDate) {
+    return { 
+      status: 'Non-active', 
+      variant: 'destructive',  // red
+      daysRemaining: null,
+      isNotYetActive: false,
+      isContractBreak: false,
+      isNoData: true
+    };
+  }
   
-  const days = differenceInDays(parseISO(endDate), new Date());
-  
-  if (days < 0) return { status: 'Expired', variant: 'destructive', daysRemaining: days, isNotYetActive: false };
-  if (days <= 30) return { status: `${days}d remaining`, variant: 'destructive', daysRemaining: days, isNotYetActive: false };
-  if (days <= 90) return { status: `${days}d remaining`, variant: 'secondary', daysRemaining: days, isNotYetActive: false };
-  return { status: 'Active', variant: 'default', daysRemaining: days, isNotYetActive: false };
+  // Case 3: Contract has started, check end date for expiry
+  // ... existing end date logic
 };
 ```
 
-2. **Update all calls** to `getContractStatus` to pass both dates:
-
+4. **Update filters** to include "Contract Break" and "No Data" options:
 ```typescript
-const contractStatus = getContractStatus(
-  affiliate.contract_start_date, 
-  affiliate.contract_end_date
-);
+<SelectItem value="contract-break">Contract Break</SelectItem>
+<SelectItem value="no-data">No Data</SelectItem>
 ```
 
-3. **Add a new filter option** for "Not Yet Active":
+5. **Update stats** to show counts for each status type
 
-```typescript
-<SelectItem value="not-started">Not Yet Started</SelectItem>
-```
-
-4. **Update filter logic**:
-
-```typescript
-(statusFilter === 'not-started' && contractStatus.isNotYetActive)
-```
-
-5. **Add a stat card** for "Starting Soon" (optional):
-
-```typescript
-notYetStarted: affiliates?.filter(a => {
-  const status = getContractStatus(a.contract_start_date, a.contract_end_date);
-  return status.isNotYetActive;
-}).length || 0,
-```
-
-6. **Update table display** to show a distinct icon for not-yet-active status:
-
-```typescript
-{contractStatus.isNotYetActive && <Clock className="h-3 w-3 mr-1" />}
-```
+6. **Update table display** with appropriate icons and colors
 
 ---
 
-### Expected Result
+### Import Function Updates
 
-| Scenario | Status Display |
-|----------|----------------|
-| Start: 3 Mar 2026, Today: 30 Jan 2026 | "Starts 03 Mar 2026" (outline badge) |
-| Start: 1 Jan 2026, End: 30 Jun 2026 | "Active" or "Xd remaining" |
-| Start: 1 Jan 2025, End: 1 Jan 2026 | "Expired" |
+**File: `supabase/functions/import-affiliate-personnel/index.ts`**
+**File: `supabase/functions/import-staff-list/index.ts`**
+
+Add support for importing `first_incumbency_date` from CSV:
+- Look for columns like "first incumbency", "original start", "first start date"
+- Map to the new database field
+
+---
+
+### Expected Behavior
+
+| Scenario | first_incumbency_date | contract_start_date | Status Display |
+|----------|----------------------|---------------------|----------------|
+| Contract break | 01 Mar 2025 | 01 Mar 2026 | "Non-active: Contract break" (yellow) |
+| New hire soon | NULL | 01 Mar 2026 | "Starts 01 Mar 2026" (outline) |
+| No data at all | NULL | NULL | "Non-active" (red) |
+| Active contract | 01 Jan 2024 | 01 Jan 2025 | "Active" or "Xd remaining" |
 
 ---
 
@@ -104,4 +140,7 @@ notYetStarted: affiliates?.filter(a => {
 
 | File | Change |
 |------|--------|
-| `src/pages/AffiliatePersonnel.tsx` | Update status logic, filters, and display |
+| Database migration | Add `first_incumbency_date` column |
+| `src/pages/AffiliatePersonnel.tsx` | Update status logic, filters, stats, display |
+| `supabase/functions/import-affiliate-personnel/index.ts` | Support importing the new field |
+| `supabase/functions/import-staff-list/index.ts` | Support importing the new field |
