@@ -1,75 +1,107 @@
 
-Goal
-- Fix “duplicate key value violates unique constraint job_requisitions_slug_key” when creating a new full Position Description (Job Requisition) with a title that already exists (e.g., “Senior Software Developer”), including cases where titles will legitimately repeat.
+## Plan: Show "Not Active" Status for Future Contract Start Dates
 
-What’s happening (root cause)
-- We already added unique-slug generation to InitialRequestForm (initial request drafts/submissions).
-- The same unique-slug logic is NOT implemented in the “full Position Description” creation flow.
-- In `src/pages/JobRequisitionForm.tsx`, the “Create new requisition” branch inserts `slug: baseSlug` without checking if it already exists, so duplicates fail immediately when the same title was used before.
+### Problem
+Affiliates with a future `contract_start_date` (e.g., 3 March 2026 when today is 30 Jan 2026) are currently shown as "Active" because the status logic only checks the end date.
 
-Where the bug is
-- `src/pages/JobRequisitionForm.tsx`, in the “Create new requisition with slug” section:
-  - It computes `baseSlug` and inserts it directly:
-    - `.insert({ ..., slug: baseSlug, ... })`
-  - No collision detection / suffixing.
+### Solution
+Update the `getContractStatus` function to also check the start date:
+- If `contract_start_date` is in the future → show "Not Active" with the start date
+- Add a new filter option for "Not Yet Started" affiliates
 
-Plan (code changes)
-1) Update JobRequisitionForm to generate a unique slug before insert
-- File: `src/pages/JobRequisitionForm.tsx`
-- Changes:
-  - Import `generateUniqueSlug` from `@/lib/utils` (similar to InitialRequestForm).
-  - Before inserting:
-    - Generate `baseSlug` from `position_title`.
-    - Query existing slugs matching the pattern:
-      - `select('slug').like('slug', \`\${baseSlug}%\`)`
-    - Build `slugList` from results.
-    - Compute `finalSlug`:
-      - If `slugList` already contains `baseSlug`, call `generateUniqueSlug(baseSlug, slugList)`
-      - Else use `baseSlug`
-  - Insert with `slug: finalSlug`.
+---
 
-2) Add a small safety net for race conditions (optional but recommended)
-- Still in `src/pages/JobRequisitionForm.tsx`
-- If the insert fails with the unique constraint error anyway (e.g., two people submit at the same time):
-  - Catch the error and:
-    - Re-fetch matching slugs
-    - Regenerate a fresh `finalSlug`
-    - Retry insert once
-  - If it still fails, surface a clearer message (e.g., “A requisition with this title was just created by someone else; please try again.”)
+### Changes
 
-3) (Optional hardening) Improve InitialRequestForm’s slug lookup error handling
-- File: `src/pages/InitialRequestForm.tsx`
-- Right now it ignores the `error` returned from the “matching slugs” query.
-- Add:
-  - If slug lookup query returns an error, throw it (or fall back to the same “retry on unique constraint” pattern).
-- This won’t change normal behavior, but it prevents silent failures if permissions ever change.
+**File: `src/pages/AffiliatePersonnel.tsx`**
 
-Verification / how we’ll confirm it’s fixed
-1) Reproduce in Test (staging/preview)
-- Log in as `valente@unicc.org`
-- Go to Requisitions → create a new full PD
-- Use a title that already exists, like “Senior Software Developer”
-- Expected result:
-  - Save/Submit succeeds
-  - The created requisition has a slug like:
-    - `senior-software-developer` (if none exists)
-    - `senior-software-developer-2` (if already used)
-    - `senior-software-developer-3`, etc.
+1. **Update `getContractStatus` function** to accept and check start date:
 
-2) Confirm via UI navigation
-- After creation, ensure the app navigates to `/requisitions/<slug>` successfully and the record loads.
+```typescript
+const getContractStatus = (
+  startDate: string | null, 
+  endDate: string | null
+): { 
+  status: string; 
+  variant: 'default' | 'secondary' | 'destructive' | 'outline'; 
+  daysRemaining: number | null;
+  isNotYetActive: boolean;
+} => {
+  // Check if contract hasn't started yet
+  if (startDate) {
+    const daysUntilStart = differenceInDays(parseISO(startDate), new Date());
+    if (daysUntilStart > 0) {
+      return { 
+        status: `Starts ${format(parseISO(startDate), 'dd MMM yyyy')}`, 
+        variant: 'outline', 
+        daysRemaining: null,
+        isNotYetActive: true
+      };
+    }
+  }
+  
+  // Existing end date logic...
+  if (!endDate) return { status: 'No end date', variant: 'outline', daysRemaining: null, isNotYetActive: false };
+  
+  const days = differenceInDays(parseISO(endDate), new Date());
+  
+  if (days < 0) return { status: 'Expired', variant: 'destructive', daysRemaining: days, isNotYetActive: false };
+  if (days <= 30) return { status: `${days}d remaining`, variant: 'destructive', daysRemaining: days, isNotYetActive: false };
+  if (days <= 90) return { status: `${days}d remaining`, variant: 'secondary', daysRemaining: days, isNotYetActive: false };
+  return { status: 'Active', variant: 'default', daysRemaining: days, isNotYetActive: false };
+};
+```
 
-3) Regression check
-- Create an initial request with a duplicate title (InitialRequestForm) to confirm that flow still works (it should).
+2. **Update all calls** to `getContractStatus` to pass both dates:
 
-Notes / constraints
-- This is a frontend fix using the current Supabase client with RLS.
-- RLS currently allows Hiring Managers (and HR roles) to SELECT job requisitions, so the slug-collision lookup should work for `valente@unicc.org`.
-- The safety-net retry prevents edge-case failures due to near-simultaneous submissions.
+```typescript
+const contractStatus = getContractStatus(
+  affiliate.contract_start_date, 
+  affiliate.contract_end_date
+);
+```
 
-Files expected to change
-- `src/pages/JobRequisitionForm.tsx` (required)
-- `src/pages/InitialRequestForm.tsx` (optional hardening)
+3. **Add a new filter option** for "Not Yet Active":
 
-After approval
-- I will implement the changes, then you can retry submitting “Senior Software Developer” on staging to verify the error is gone.
+```typescript
+<SelectItem value="not-started">Not Yet Started</SelectItem>
+```
+
+4. **Update filter logic**:
+
+```typescript
+(statusFilter === 'not-started' && contractStatus.isNotYetActive)
+```
+
+5. **Add a stat card** for "Starting Soon" (optional):
+
+```typescript
+notYetStarted: affiliates?.filter(a => {
+  const status = getContractStatus(a.contract_start_date, a.contract_end_date);
+  return status.isNotYetActive;
+}).length || 0,
+```
+
+6. **Update table display** to show a distinct icon for not-yet-active status:
+
+```typescript
+{contractStatus.isNotYetActive && <Clock className="h-3 w-3 mr-1" />}
+```
+
+---
+
+### Expected Result
+
+| Scenario | Status Display |
+|----------|----------------|
+| Start: 3 Mar 2026, Today: 30 Jan 2026 | "Starts 03 Mar 2026" (outline badge) |
+| Start: 1 Jan 2026, End: 30 Jun 2026 | "Active" or "Xd remaining" |
+| Start: 1 Jan 2025, End: 1 Jan 2026 | "Expired" |
+
+---
+
+### Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/pages/AffiliatePersonnel.tsx` | Update status logic, filters, and display |
