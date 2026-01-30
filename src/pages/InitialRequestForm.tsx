@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { isValidUUID } from '@/lib/utils';
+import { isValidUUID, generateUniqueSlug } from '@/lib/utils';
 import { ArrowLeft, Save, Send, CheckCircle, XCircle } from 'lucide-react';
 import { ConsultancyLevelGuidance } from '@/components/ConsultancyLevelGuidance';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -542,13 +542,27 @@ export default function InitialRequestForm() {
 
         if (error) throw error;
       } else {
-        // Create new with slug
+        // Create new with unique slug
         const baseSlug = generateSlug(formData.position_title);
+        
+        // Query existing slugs that match this pattern
+        const { data: matchingSlugs } = await supabase
+          .from('job_requisitions')
+          .select('slug')
+          .like('slug', `${baseSlug}%`);
+
+        const slugList = matchingSlugs?.map(r => r.slug).filter(Boolean) as string[] || [];
+        
+        // Generate unique slug if collision exists
+        const finalSlug = slugList.includes(baseSlug) 
+          ? generateUniqueSlug(baseSlug, slugList) 
+          : baseSlug;
+
         const { error } = await supabase
           .from('job_requisitions')
           .insert({
             ...dataToSave,
-            slug: baseSlug,
+            slug: finalSlug,
             created_by: user?.id,
           });
 
