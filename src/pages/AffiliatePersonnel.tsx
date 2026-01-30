@@ -71,7 +71,7 @@ const getContractStatus = (
   // Case 2: No start date AND no first incumbency date → No data
   if (!startDate && !firstIncumbencyDate) {
     return { 
-      status: 'Non-active', 
+      status: 'No Data', 
       variant: 'destructive',
       daysRemaining: null,
       isNotYetActive: false,
