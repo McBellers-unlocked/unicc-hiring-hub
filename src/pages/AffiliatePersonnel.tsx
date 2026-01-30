@@ -28,15 +28,36 @@ interface AffiliateUser {
   staff_number: string | null;
 }
 
-const getContractStatus = (endDate: string | null): { status: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; daysRemaining: number | null } => {
-  if (!endDate) return { status: 'No end date', variant: 'outline', daysRemaining: null };
+const getContractStatus = (
+  startDate: string | null,
+  endDate: string | null
+): { 
+  status: string; 
+  variant: 'default' | 'secondary' | 'destructive' | 'outline'; 
+  daysRemaining: number | null;
+  isNotYetActive: boolean;
+} => {
+  // Check if contract hasn't started yet
+  if (startDate) {
+    const daysUntilStart = differenceInDays(parseISO(startDate), new Date());
+    if (daysUntilStart > 0) {
+      return { 
+        status: `Starts ${format(parseISO(startDate), 'dd MMM yyyy')}`, 
+        variant: 'outline', 
+        daysRemaining: null,
+        isNotYetActive: true
+      };
+    }
+  }
+  
+  if (!endDate) return { status: 'No end date', variant: 'outline', daysRemaining: null, isNotYetActive: false };
   
   const days = differenceInDays(parseISO(endDate), new Date());
   
-  if (days < 0) return { status: 'Expired', variant: 'destructive', daysRemaining: days };
-  if (days <= 30) return { status: `${days}d remaining`, variant: 'destructive', daysRemaining: days };
-  if (days <= 90) return { status: `${days}d remaining`, variant: 'secondary', daysRemaining: days };
-  return { status: 'Active', variant: 'default', daysRemaining: days };
+  if (days < 0) return { status: 'Expired', variant: 'destructive', daysRemaining: days, isNotYetActive: false };
+  if (days <= 30) return { status: `${days}d remaining`, variant: 'destructive', daysRemaining: days, isNotYetActive: false };
+  if (days <= 90) return { status: `${days}d remaining`, variant: 'secondary', daysRemaining: days, isNotYetActive: false };
+  return { status: 'Active', variant: 'default', daysRemaining: days, isNotYetActive: false };
 };
 
 const getAffiliateTypeBadge = (type: string | null) => {
@@ -88,8 +109,9 @@ export default function AffiliatePersonnel() {
     const matchesDivision = divisionFilter === 'all' || 
       affiliate.division === divisionFilter;
 
-    const contractStatus = getContractStatus(affiliate.contract_end_date);
+    const contractStatus = getContractStatus(affiliate.contract_start_date, affiliate.contract_end_date);
     const matchesStatus = statusFilter === 'all' ||
+      (statusFilter === 'not-started' && contractStatus.isNotYetActive) ||
       (statusFilter === 'expiring' && contractStatus.daysRemaining !== null && contractStatus.daysRemaining <= 90 && contractStatus.daysRemaining >= 0) ||
       (statusFilter === 'expired' && contractStatus.daysRemaining !== null && contractStatus.daysRemaining < 0) ||
       (statusFilter === 'active' && contractStatus.daysRemaining !== null && contractStatus.daysRemaining > 90);
@@ -104,12 +126,16 @@ export default function AffiliatePersonnel() {
     interns: affiliates?.filter(a => a.affiliate_type?.toUpperCase() === 'INTERN').length || 0,
     unvs: affiliates?.filter(a => a.affiliate_type?.toUpperCase() === 'UNV').length || 0,
     expiring30: affiliates?.filter(a => {
-      const status = getContractStatus(a.contract_end_date);
+      const status = getContractStatus(a.contract_start_date, a.contract_end_date);
       return status.daysRemaining !== null && status.daysRemaining >= 0 && status.daysRemaining <= 30;
     }).length || 0,
     expiring90: affiliates?.filter(a => {
-      const status = getContractStatus(a.contract_end_date);
+      const status = getContractStatus(a.contract_start_date, a.contract_end_date);
       return status.daysRemaining !== null && status.daysRemaining >= 0 && status.daysRemaining <= 90;
+    }).length || 0,
+    notYetStarted: affiliates?.filter(a => {
+      const status = getContractStatus(a.contract_start_date, a.contract_end_date);
+      return status.isNotYetActive;
     }).length || 0,
   };
 
@@ -135,7 +161,7 @@ export default function AffiliatePersonnel() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold">{stats.total}</div>
@@ -170,6 +196,12 @@ export default function AffiliatePersonnel() {
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-yellow-600">{stats.expiring90}</div>
               <p className="text-xs text-muted-foreground">Expiring in 90d</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-muted-foreground">{stats.notYetStarted}</div>
+              <p className="text-xs text-muted-foreground">Starting Soon</p>
             </CardContent>
           </Card>
         </div>
@@ -215,6 +247,7 @@ export default function AffiliatePersonnel() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="not-started">Not Yet Started</SelectItem>
                   <SelectItem value="active">Active (&gt;90d)</SelectItem>
                   <SelectItem value="expiring">Expiring (≤90d)</SelectItem>
                   <SelectItem value="expired">Expired</SelectItem>
@@ -264,7 +297,7 @@ export default function AffiliatePersonnel() {
                   </TableHeader>
                   <TableBody>
                     {filteredAffiliates.map((affiliate) => {
-                      const contractStatus = getContractStatus(affiliate.contract_end_date);
+                      const contractStatus = getContractStatus(affiliate.contract_start_date, affiliate.contract_end_date);
                       return (
                         <TableRow key={affiliate.id}>
                           <TableCell>
@@ -299,9 +332,10 @@ export default function AffiliatePersonnel() {
                           </TableCell>
                           <TableCell>
                             <Badge variant={contractStatus.variant}>
-                              {contractStatus.variant === 'destructive' && <AlertTriangle className="h-3 w-3 mr-1" />}
-                              {contractStatus.variant === 'secondary' && <Clock className="h-3 w-3 mr-1" />}
-                              {contractStatus.variant === 'default' && <CheckCircle className="h-3 w-3 mr-1" />}
+                              {contractStatus.isNotYetActive && <Clock className="h-3 w-3 mr-1" />}
+                              {!contractStatus.isNotYetActive && contractStatus.variant === 'destructive' && <AlertTriangle className="h-3 w-3 mr-1" />}
+                              {!contractStatus.isNotYetActive && contractStatus.variant === 'secondary' && <Clock className="h-3 w-3 mr-1" />}
+                              {!contractStatus.isNotYetActive && contractStatus.variant === 'default' && <CheckCircle className="h-3 w-3 mr-1" />}
                               {contractStatus.status}
                             </Badge>
                           </TableCell>
