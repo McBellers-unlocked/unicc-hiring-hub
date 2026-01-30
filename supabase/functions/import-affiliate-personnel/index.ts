@@ -22,6 +22,7 @@ interface AffiliateRow {
   contract_start_date: string;
   contract_end_date: string;
   current_grade: string;
+  first_incumbency_date: string;
 }
 
 Deno.serve(async (req) => {
@@ -110,6 +111,7 @@ Deno.serve(async (req) => {
     const contractStartIndex = findColumn(['contract start']);
     const contractEndIndex = findColumn(['contract end']);
     const currentGradeIndex = findColumn(['current grade', 'grade']);
+    const firstIncumbencyIndex = findColumn(['first incumbency', 'first_incumbency', 'original start', 'first start']);
 
     console.log('Column indices:', { emailIndex, firstNameIndex, lastNameIndex, workerTypeIndex, appTypeShortIndex });
 
@@ -175,6 +177,7 @@ Deno.serve(async (req) => {
         contract_start_date: contractStartIndex !== -1 ? parseDate(values[contractStartIndex]?.trim()) : '',
         contract_end_date: contractEndIndex !== -1 ? parseDate(values[contractEndIndex]?.trim()) : '',
         current_grade: currentGradeIndex !== -1 ? values[currentGradeIndex]?.trim() : '',
+        first_incumbency_date: firstIncumbencyIndex !== -1 ? parseDate(values[firstIncumbencyIndex]?.trim()) : '',
       });
     }
 
@@ -217,6 +220,7 @@ Deno.serve(async (req) => {
       if (affiliate.contract_start_date) updateData.contract_start_date = affiliate.contract_start_date;
       if (affiliate.contract_end_date) updateData.contract_end_date = affiliate.contract_end_date;
       if (affiliate.current_grade) updateData.current_grade = affiliate.current_grade;
+      if (affiliate.first_incumbency_date) updateData.first_incumbency_date = affiliate.first_incumbency_date;
 
       if (existingUser) {
         // Update existing user
