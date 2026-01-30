@@ -17,7 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
-import { cn, isValidUUID } from "@/lib/utils";
+import { cn, isValidUUID, generateUniqueSlug } from "@/lib/utils";
 import { ArrowLeft, Save, Send, FileText, Briefcase, ChevronDown, CheckCircle2, CalendarIcon, Plus } from "lucide-react";
 import MDEditor, { commands, ICommand } from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';
@@ -885,11 +885,26 @@ export default function JobRequisitionForm() {
         
         const baseSlug = generateSlug(formData.position_title);
         
+        // Query existing slugs to ensure uniqueness
+        const { data: matchingSlugs, error: slugError } = await supabase
+          .from('job_requisitions')
+          .select('slug')
+          .like('slug', `${baseSlug}%`);
+        
+        if (slugError) {
+          console.error('Error checking for existing slugs:', slugError);
+        }
+        
+        const slugList = matchingSlugs?.map(r => r.slug).filter(Boolean) as string[] || [];
+        const finalSlug = slugList.includes(baseSlug) 
+          ? generateUniqueSlug(baseSlug, slugList) 
+          : baseSlug;
+        
         const { data: newRequisition, error } = await supabase
           .from('job_requisitions')
           .insert({
             ...cleanFormData,
-            slug: baseSlug,
+            slug: finalSlug,
             duty_station: JSON.stringify(formData.duty_station),
             language_requirements: updatedLanguageRequirements,
             comments: updatedComments,
