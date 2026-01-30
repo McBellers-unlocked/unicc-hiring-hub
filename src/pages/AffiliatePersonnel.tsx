@@ -26,38 +26,69 @@ interface AffiliateUser {
   contract_end_date: string | null;
   current_grade: string | null;
   staff_number: string | null;
+  first_incumbency_date: string | null;
 }
 
 const getContractStatus = (
   startDate: string | null,
-  endDate: string | null
+  endDate: string | null,
+  firstIncumbencyDate: string | null
 ): { 
   status: string; 
   variant: 'default' | 'secondary' | 'destructive' | 'outline'; 
   daysRemaining: number | null;
   isNotYetActive: boolean;
+  isContractBreak: boolean;
+  isNoData: boolean;
 } => {
-  // Check if contract hasn't started yet
+  // Case 1: Contract hasn't started yet
   if (startDate) {
     const daysUntilStart = differenceInDays(parseISO(startDate), new Date());
     if (daysUntilStart > 0) {
+      // They have worked before → Contract break
+      if (firstIncumbencyDate) {
+        return { 
+          status: 'Non-active: Contract break', 
+          variant: 'secondary',
+          daysRemaining: null,
+          isNotYetActive: true,
+          isContractBreak: true,
+          isNoData: false
+        };
+      }
+      // New hire starting soon
       return { 
         status: `Starts ${format(parseISO(startDate), 'dd MMM yyyy')}`, 
         variant: 'outline', 
         daysRemaining: null,
-        isNotYetActive: true
+        isNotYetActive: true,
+        isContractBreak: false,
+        isNoData: false
       };
     }
   }
   
-  if (!endDate) return { status: 'No end date', variant: 'outline', daysRemaining: null, isNotYetActive: false };
+  // Case 2: No start date AND no first incumbency date → No data
+  if (!startDate && !firstIncumbencyDate) {
+    return { 
+      status: 'Non-active', 
+      variant: 'destructive',
+      daysRemaining: null,
+      isNotYetActive: false,
+      isContractBreak: false,
+      isNoData: true
+    };
+  }
+  
+  // Case 3: Check end date for expiry status
+  if (!endDate) return { status: 'No end date', variant: 'outline', daysRemaining: null, isNotYetActive: false, isContractBreak: false, isNoData: false };
   
   const days = differenceInDays(parseISO(endDate), new Date());
   
-  if (days < 0) return { status: 'Expired', variant: 'destructive', daysRemaining: days, isNotYetActive: false };
-  if (days <= 30) return { status: `${days}d remaining`, variant: 'destructive', daysRemaining: days, isNotYetActive: false };
-  if (days <= 90) return { status: `${days}d remaining`, variant: 'secondary', daysRemaining: days, isNotYetActive: false };
-  return { status: 'Active', variant: 'default', daysRemaining: days, isNotYetActive: false };
+  if (days < 0) return { status: 'Expired', variant: 'destructive', daysRemaining: days, isNotYetActive: false, isContractBreak: false, isNoData: false };
+  if (days <= 30) return { status: `${days}d remaining`, variant: 'destructive', daysRemaining: days, isNotYetActive: false, isContractBreak: false, isNoData: false };
+  if (days <= 90) return { status: `${days}d remaining`, variant: 'secondary', daysRemaining: days, isNotYetActive: false, isContractBreak: false, isNoData: false };
+  return { status: 'Active', variant: 'default', daysRemaining: days, isNotYetActive: false, isContractBreak: false, isNoData: false };
 };
 
 const getAffiliateTypeBadge = (type: string | null) => {
@@ -84,7 +115,7 @@ export default function AffiliatePersonnel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, affiliate_type, division, unit, duty_station, job_title, line_manager, contract_start_date, contract_end_date, current_grade, staff_number')
+        .select('id, name, email, affiliate_type, division, unit, duty_station, job_title, line_manager, contract_start_date, contract_end_date, current_grade, staff_number, first_incumbency_date')
         .eq('personnel_type', 'Affiliate')
         .order('name');
 
@@ -109,9 +140,11 @@ export default function AffiliatePersonnel() {
     const matchesDivision = divisionFilter === 'all' || 
       affiliate.division === divisionFilter;
 
-    const contractStatus = getContractStatus(affiliate.contract_start_date, affiliate.contract_end_date);
+    const contractStatus = getContractStatus(affiliate.contract_start_date, affiliate.contract_end_date, affiliate.first_incumbency_date);
     const matchesStatus = statusFilter === 'all' ||
-      (statusFilter === 'not-started' && contractStatus.isNotYetActive) ||
+      (statusFilter === 'not-started' && contractStatus.isNotYetActive && !contractStatus.isContractBreak) ||
+      (statusFilter === 'contract-break' && contractStatus.isContractBreak) ||
+      (statusFilter === 'no-data' && contractStatus.isNoData) ||
       (statusFilter === 'expiring' && contractStatus.daysRemaining !== null && contractStatus.daysRemaining <= 90 && contractStatus.daysRemaining >= 0) ||
       (statusFilter === 'expired' && contractStatus.daysRemaining !== null && contractStatus.daysRemaining < 0) ||
       (statusFilter === 'active' && contractStatus.daysRemaining !== null && contractStatus.daysRemaining > 90);
@@ -126,16 +159,24 @@ export default function AffiliatePersonnel() {
     interns: affiliates?.filter(a => a.affiliate_type?.toUpperCase() === 'INTERN').length || 0,
     unvs: affiliates?.filter(a => a.affiliate_type?.toUpperCase() === 'UNV').length || 0,
     expiring30: affiliates?.filter(a => {
-      const status = getContractStatus(a.contract_start_date, a.contract_end_date);
+      const status = getContractStatus(a.contract_start_date, a.contract_end_date, a.first_incumbency_date);
       return status.daysRemaining !== null && status.daysRemaining >= 0 && status.daysRemaining <= 30;
     }).length || 0,
     expiring90: affiliates?.filter(a => {
-      const status = getContractStatus(a.contract_start_date, a.contract_end_date);
+      const status = getContractStatus(a.contract_start_date, a.contract_end_date, a.first_incumbency_date);
       return status.daysRemaining !== null && status.daysRemaining >= 0 && status.daysRemaining <= 90;
     }).length || 0,
     notYetStarted: affiliates?.filter(a => {
-      const status = getContractStatus(a.contract_start_date, a.contract_end_date);
-      return status.isNotYetActive;
+      const status = getContractStatus(a.contract_start_date, a.contract_end_date, a.first_incumbency_date);
+      return status.isNotYetActive && !status.isContractBreak;
+    }).length || 0,
+    contractBreak: affiliates?.filter(a => {
+      const status = getContractStatus(a.contract_start_date, a.contract_end_date, a.first_incumbency_date);
+      return status.isContractBreak;
+    }).length || 0,
+    noData: affiliates?.filter(a => {
+      const status = getContractStatus(a.contract_start_date, a.contract_end_date, a.first_incumbency_date);
+      return status.isNoData;
     }).length || 0,
   };
 
@@ -161,7 +202,7 @@ export default function AffiliatePersonnel() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-9 gap-4 mb-8">
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold">{stats.total}</div>
@@ -204,6 +245,18 @@ export default function AffiliatePersonnel() {
               <p className="text-xs text-muted-foreground">Starting Soon</p>
             </CardContent>
           </Card>
+          <Card className={stats.contractBreak > 0 ? 'border-yellow-500/50' : ''}>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-yellow-600">{stats.contractBreak}</div>
+              <p className="text-xs text-muted-foreground">Contract Break</p>
+            </CardContent>
+          </Card>
+          <Card className={stats.noData > 0 ? 'border-destructive/50' : ''}>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-destructive">{stats.noData}</div>
+              <p className="text-xs text-muted-foreground">No Data</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Filters */}
@@ -242,12 +295,14 @@ export default function AffiliatePersonnel() {
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-44">
+                <SelectTrigger className="w-full md:w-48">
                   <SelectValue placeholder="Contract Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="not-started">Not Yet Started</SelectItem>
+                  <SelectItem value="contract-break">Contract Break</SelectItem>
+                  <SelectItem value="no-data">No Data</SelectItem>
                   <SelectItem value="active">Active (&gt;90d)</SelectItem>
                   <SelectItem value="expiring">Expiring (≤90d)</SelectItem>
                   <SelectItem value="expired">Expired</SelectItem>
@@ -297,7 +352,7 @@ export default function AffiliatePersonnel() {
                   </TableHeader>
                   <TableBody>
                     {filteredAffiliates.map((affiliate) => {
-                      const contractStatus = getContractStatus(affiliate.contract_start_date, affiliate.contract_end_date);
+                      const contractStatus = getContractStatus(affiliate.contract_start_date, affiliate.contract_end_date, affiliate.first_incumbency_date);
                       return (
                         <TableRow key={affiliate.id}>
                           <TableCell>
@@ -332,10 +387,12 @@ export default function AffiliatePersonnel() {
                           </TableCell>
                           <TableCell>
                             <Badge variant={contractStatus.variant}>
-                              {contractStatus.isNotYetActive && <Clock className="h-3 w-3 mr-1" />}
-                              {!contractStatus.isNotYetActive && contractStatus.variant === 'destructive' && <AlertTriangle className="h-3 w-3 mr-1" />}
-                              {!contractStatus.isNotYetActive && contractStatus.variant === 'secondary' && <Clock className="h-3 w-3 mr-1" />}
-                              {!contractStatus.isNotYetActive && contractStatus.variant === 'default' && <CheckCircle className="h-3 w-3 mr-1" />}
+                              {contractStatus.isContractBreak && <Clock className="h-3 w-3 mr-1" />}
+                              {contractStatus.isNoData && <AlertTriangle className="h-3 w-3 mr-1" />}
+                              {contractStatus.isNotYetActive && !contractStatus.isContractBreak && <Clock className="h-3 w-3 mr-1" />}
+                              {!contractStatus.isNotYetActive && !contractStatus.isNoData && contractStatus.variant === 'destructive' && <AlertTriangle className="h-3 w-3 mr-1" />}
+                              {!contractStatus.isNotYetActive && !contractStatus.isNoData && contractStatus.variant === 'secondary' && <Clock className="h-3 w-3 mr-1" />}
+                              {!contractStatus.isNotYetActive && !contractStatus.isNoData && contractStatus.variant === 'default' && <CheckCircle className="h-3 w-3 mr-1" />}
                               {contractStatus.status}
                             </Badge>
                           </TableCell>

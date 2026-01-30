@@ -204,6 +204,7 @@ Deno.serve(async (req) => {
       contractStartDate: findColumn(headers, ['contract start date', 'contract_start_date', 'start date', 'hire date']),
       contractEndDate: findColumn(headers, ['contract end date', 'contract_end_date', 'end date', 'expiry date']),
       entryOnDutyDate: findColumn(headers, ['entry on duty date', 'entry_on_duty_date', 'eod', 'joining date']),
+      firstIncumbencyDate: findColumn(headers, ['first incumbency date', 'first_incumbency_date', 'first incumbency', 'original start date', 'first start date']),
     };
 
     console.log('Column mapping:', columnMap);
@@ -329,9 +330,11 @@ Deno.serve(async (req) => {
       const contractStart = parseDate(getValue(columnMap.contractStartDate));
       const contractEnd = parseDate(getValue(columnMap.contractEndDate));
       const entryOnDuty = parseDate(getValue(columnMap.entryOnDutyDate));
+      const firstIncumbency = parseDate(getValue(columnMap.firstIncumbencyDate));
       if (contractStart) baseUserData.contract_start_date = contractStart;
       if (contractEnd) baseUserData.contract_end_date = contractEnd;
       if (entryOnDuty) baseUserData.entry_on_duty_date = entryOnDuty;
+      if (firstIncumbency) baseUserData.first_incumbency_date = firstIncumbency;
 
       try {
         // Check if user exists - fetch fields we want to preserve
