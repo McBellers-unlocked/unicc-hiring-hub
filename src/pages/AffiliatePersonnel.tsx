@@ -35,12 +35,26 @@ const getContractStatus = (
   firstIncumbencyDate: string | null
 ): { 
   status: string; 
-  variant: 'default' | 'secondary' | 'destructive' | 'outline'; 
+  colorClass: string;
   daysRemaining: number | null;
   isNotYetActive: boolean;
   isContractBreak: boolean;
   isNoData: boolean;
+  isCritical: boolean;
 } => {
+  // Color classes for each status
+  const colors = {
+    active: 'bg-green-100 text-green-700 border-green-200',
+    noData: 'bg-gray-800 text-white border-gray-700',
+    startingSoon: 'bg-purple-100 text-purple-700 border-purple-200',
+    contractBreak: 'bg-amber-100 text-amber-700 border-amber-200',
+    expiring60: 'bg-purple-100 text-purple-700 border-purple-200',
+    expiring30: 'bg-amber-100 text-amber-700 border-amber-200',
+    critical: 'bg-gradient-to-r from-red-500 via-red-300 to-red-500 bg-[length:200%_100%] animate-pulse text-white border-red-400',
+    expired: 'bg-red-100 text-red-700 border-red-200',
+    noEndDate: 'bg-gray-100 text-gray-600 border-gray-200',
+  };
+
   // Case 1: Contract hasn't started yet
   if (startDate) {
     const daysUntilStart = differenceInDays(parseISO(startDate), new Date());
@@ -48,22 +62,24 @@ const getContractStatus = (
       // They have worked before → Contract break
       if (firstIncumbencyDate) {
         return { 
-          status: 'Non-active: Contract break', 
-          variant: 'secondary',
+          status: 'Contract Break', 
+          colorClass: colors.contractBreak,
           daysRemaining: null,
           isNotYetActive: true,
           isContractBreak: true,
-          isNoData: false
+          isNoData: false,
+          isCritical: false
         };
       }
-      // New hire starting soon
+      // New hire starting soon (within 60 days shows purple)
       return { 
         status: `Starts ${format(parseISO(startDate), 'dd MMM yyyy')}`, 
-        variant: 'outline', 
+        colorClass: daysUntilStart <= 60 ? colors.startingSoon : colors.noEndDate,
         daysRemaining: null,
         isNotYetActive: true,
         isContractBreak: false,
-        isNoData: false
+        isNoData: false,
+        isCritical: false
       };
     }
   }
@@ -72,23 +88,92 @@ const getContractStatus = (
   if (!startDate && !firstIncumbencyDate) {
     return { 
       status: 'No Data', 
-      variant: 'destructive',
+      colorClass: colors.noData,
       daysRemaining: null,
       isNotYetActive: false,
       isContractBreak: false,
-      isNoData: true
+      isNoData: true,
+      isCritical: false
     };
   }
   
   // Case 3: Check end date for expiry status
-  if (!endDate) return { status: 'No end date', variant: 'outline', daysRemaining: null, isNotYetActive: false, isContractBreak: false, isNoData: false };
+  if (!endDate) {
+    return { 
+      status: 'No end date', 
+      colorClass: colors.noEndDate,
+      daysRemaining: null, 
+      isNotYetActive: false, 
+      isContractBreak: false, 
+      isNoData: false,
+      isCritical: false
+    };
+  }
   
   const days = differenceInDays(parseISO(endDate), new Date());
   
-  if (days < 0) return { status: 'Expired', variant: 'destructive', daysRemaining: days, isNotYetActive: false, isContractBreak: false, isNoData: false };
-  if (days <= 30) return { status: `${days}d remaining`, variant: 'destructive', daysRemaining: days, isNotYetActive: false, isContractBreak: false, isNoData: false };
-  if (days <= 90) return { status: `${days}d remaining`, variant: 'secondary', daysRemaining: days, isNotYetActive: false, isContractBreak: false, isNoData: false };
-  return { status: 'Active', variant: 'default', daysRemaining: days, isNotYetActive: false, isContractBreak: false, isNoData: false };
+  // Expired
+  if (days < 0) {
+    return { 
+      status: 'Expired', 
+      colorClass: colors.expired,
+      daysRemaining: days, 
+      isNotYetActive: false, 
+      isContractBreak: false, 
+      isNoData: false,
+      isCritical: false
+    };
+  }
+  
+  // Critical: 0-14 days (striped gradient)
+  if (days <= 14) {
+    return { 
+      status: `${days}d remaining`, 
+      colorClass: colors.critical,
+      daysRemaining: days, 
+      isNotYetActive: false, 
+      isContractBreak: false, 
+      isNoData: false,
+      isCritical: true
+    };
+  }
+  
+  // Warning: 15-30 days (amber)
+  if (days <= 30) {
+    return { 
+      status: `${days}d remaining`, 
+      colorClass: colors.expiring30,
+      daysRemaining: days, 
+      isNotYetActive: false, 
+      isContractBreak: false, 
+      isNoData: false,
+      isCritical: false
+    };
+  }
+  
+  // Attention: 31-60 days (purple)
+  if (days <= 60) {
+    return { 
+      status: `${days}d remaining`, 
+      colorClass: colors.expiring60,
+      daysRemaining: days, 
+      isNotYetActive: false, 
+      isContractBreak: false, 
+      isNoData: false,
+      isCritical: false
+    };
+  }
+  
+  // Active: >60 days (green)
+  return { 
+    status: 'Active', 
+    colorClass: colors.active,
+    daysRemaining: days, 
+    isNotYetActive: false, 
+    isContractBreak: false, 
+    isNoData: false,
+    isCritical: false
+  };
 };
 
 const getAffiliateTypeBadge = (type: string | null) => {
@@ -145,9 +230,10 @@ export default function AffiliatePersonnel() {
       (statusFilter === 'not-started' && contractStatus.isNotYetActive && !contractStatus.isContractBreak) ||
       (statusFilter === 'contract-break' && contractStatus.isContractBreak) ||
       (statusFilter === 'no-data' && contractStatus.isNoData) ||
-      (statusFilter === 'expiring' && contractStatus.daysRemaining !== null && contractStatus.daysRemaining <= 90 && contractStatus.daysRemaining >= 0) ||
+      (statusFilter === 'critical' && contractStatus.isCritical) ||
+      (statusFilter === 'expiring' && contractStatus.daysRemaining !== null && contractStatus.daysRemaining <= 60 && contractStatus.daysRemaining > 14) ||
       (statusFilter === 'expired' && contractStatus.daysRemaining !== null && contractStatus.daysRemaining < 0) ||
-      (statusFilter === 'active' && contractStatus.daysRemaining !== null && contractStatus.daysRemaining > 90);
+      (statusFilter === 'active' && contractStatus.daysRemaining !== null && contractStatus.daysRemaining > 60);
 
     return matchesSearch && matchesType && matchesDivision && matchesStatus;
   }) || [];
@@ -158,13 +244,13 @@ export default function AffiliatePersonnel() {
     ics: affiliates?.filter(a => a.affiliate_type?.toUpperCase() === 'IC').length || 0,
     interns: affiliates?.filter(a => a.affiliate_type?.toUpperCase() === 'INTERN').length || 0,
     unvs: affiliates?.filter(a => a.affiliate_type?.toUpperCase() === 'UNV').length || 0,
-    expiring30: affiliates?.filter(a => {
+    critical14: affiliates?.filter(a => {
       const status = getContractStatus(a.contract_start_date, a.contract_end_date, a.first_incumbency_date);
-      return status.daysRemaining !== null && status.daysRemaining >= 0 && status.daysRemaining <= 30;
+      return status.isCritical;
     }).length || 0,
-    expiring90: affiliates?.filter(a => {
+    expiring60: affiliates?.filter(a => {
       const status = getContractStatus(a.contract_start_date, a.contract_end_date, a.first_incumbency_date);
-      return status.daysRemaining !== null && status.daysRemaining >= 0 && status.daysRemaining <= 90;
+      return status.daysRemaining !== null && status.daysRemaining > 14 && status.daysRemaining <= 60;
     }).length || 0,
     notYetStarted: affiliates?.filter(a => {
       const status = getContractStatus(a.contract_start_date, a.contract_end_date, a.first_incumbency_date);
@@ -227,16 +313,16 @@ export default function AffiliatePersonnel() {
               <p className="text-xs text-muted-foreground">UN Volunteers</p>
             </CardContent>
           </Card>
-          <Card className={stats.expiring30 > 0 ? 'border-destructive/50' : ''}>
+          <Card className={stats.critical14 > 0 ? 'border-red-500 bg-red-50' : ''}>
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-destructive">{stats.expiring30}</div>
-              <p className="text-xs text-muted-foreground">Expiring in 30d</p>
+              <div className="text-2xl font-bold text-red-600">{stats.critical14}</div>
+              <p className="text-xs text-muted-foreground">Critical (≤14d)</p>
             </CardContent>
           </Card>
-          <Card className={stats.expiring90 > 0 ? 'border-yellow-500/50' : ''}>
+          <Card className={stats.expiring60 > 0 ? 'border-purple-500/50' : ''}>
             <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-yellow-600">{stats.expiring90}</div>
-              <p className="text-xs text-muted-foreground">Expiring in 90d</p>
+              <div className="text-2xl font-bold text-purple-600">{stats.expiring60}</div>
+              <p className="text-xs text-muted-foreground">Expiring (15-60d)</p>
             </CardContent>
           </Card>
           <Card>
@@ -303,8 +389,9 @@ export default function AffiliatePersonnel() {
                   <SelectItem value="not-started">Not Yet Started</SelectItem>
                   <SelectItem value="contract-break">Contract Break</SelectItem>
                   <SelectItem value="no-data">No Data</SelectItem>
-                  <SelectItem value="active">Active (&gt;90d)</SelectItem>
-                  <SelectItem value="expiring">Expiring (≤90d)</SelectItem>
+                  <SelectItem value="active">Active (&gt;60d)</SelectItem>
+                  <SelectItem value="expiring">Expiring (15-60d)</SelectItem>
+                  <SelectItem value="critical">Critical (≤14d)</SelectItem>
                   <SelectItem value="expired">Expired</SelectItem>
                 </SelectContent>
               </Select>
@@ -386,13 +473,14 @@ export default function AffiliatePersonnel() {
                             ) : '-'}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={contractStatus.variant}>
+                            <Badge className={contractStatus.colorClass}>
                               {contractStatus.isContractBreak && <Clock className="h-3 w-3 mr-1" />}
                               {contractStatus.isNoData && <AlertTriangle className="h-3 w-3 mr-1" />}
                               {contractStatus.isNotYetActive && !contractStatus.isContractBreak && <Clock className="h-3 w-3 mr-1" />}
-                              {!contractStatus.isNotYetActive && !contractStatus.isNoData && contractStatus.variant === 'destructive' && <AlertTriangle className="h-3 w-3 mr-1" />}
-                              {!contractStatus.isNotYetActive && !contractStatus.isNoData && contractStatus.variant === 'secondary' && <Clock className="h-3 w-3 mr-1" />}
-                              {!contractStatus.isNotYetActive && !contractStatus.isNoData && contractStatus.variant === 'default' && <CheckCircle className="h-3 w-3 mr-1" />}
+                              {contractStatus.isCritical && <AlertTriangle className="h-3 w-3 mr-1" />}
+                              {!contractStatus.isNotYetActive && !contractStatus.isNoData && !contractStatus.isCritical && contractStatus.daysRemaining !== null && contractStatus.daysRemaining < 0 && <AlertTriangle className="h-3 w-3 mr-1" />}
+                              {!contractStatus.isNotYetActive && !contractStatus.isNoData && !contractStatus.isCritical && contractStatus.daysRemaining !== null && contractStatus.daysRemaining > 0 && contractStatus.daysRemaining <= 60 && <Clock className="h-3 w-3 mr-1" />}
+                              {!contractStatus.isNotYetActive && !contractStatus.isNoData && contractStatus.daysRemaining !== null && contractStatus.daysRemaining > 60 && <CheckCircle className="h-3 w-3 mr-1" />}
                               {contractStatus.status}
                             </Badge>
                           </TableCell>
