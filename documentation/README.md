@@ -68,6 +68,36 @@ Comprehensive security, quality, and architecture analysis of the codebase:
 
 ---
 
+### 05. EKS Migration Strategy
+**File**: [05-eks-migration-strategy.md](./05-eks-migration-strategy.md)
+
+Migration strategy and planning for moving to Amazon EKS:
+- Current architecture assessment
+- Target EKS architecture
+- Migration phases and timelines
+- Infrastructure requirements
+- Risk assessment and mitigation
+
+**Intended Audience**: DevOps engineers, infrastructure team, technical architects
+
+---
+
+### 06. OWASP Security Analysis
+**File**: [06-owasp-security-analysis.md](./06-owasp-security-analysis.md)
+
+Comprehensive OWASP Top 10 2021 security assessment:
+- Detailed analysis of all OWASP Top 10 categories
+- Critical, high, and medium-risk findings
+- Security strengths and positive controls
+- 4-phase remediation roadmap (328 hours over 4 months)
+- Compliance considerations (GDPR, ISO 27001, SOC 2)
+- Security metrics and testing recommendations
+- Complete security checklist
+
+**Intended Audience**: Security engineers, CISO, compliance officers, development team, management
+
+---
+
 ## How to Use This Documentation
 
 ### For New Developers
@@ -82,7 +112,8 @@ Comprehensive security, quality, and architecture analysis of the codebase:
   - Security Architecture
   - Scalability Considerations
   - Monitoring & Observability
-- **CRITICAL**: Review **Code Analysis & Issues** for immediate security action items
+- **CRITICAL**: Review **OWASP Security Analysis** for immediate security action items and remediation roadmap
+- Review **Code Analysis & Issues** for code quality and technical debt
 
 ### For Product/Business Stakeholders
 - Read **Data Model & Mental Model** for the recruitment pipeline mental model
@@ -113,11 +144,12 @@ When making significant changes to the system:
    - Modified workflows
    - Updated technical implementations
 
-4. **Security/Quality Updates**: Update `04-code-analysis-and-issues.md`
+4. **Security/Quality Updates**: Update `04-code-analysis-and-issues.md` or `06-owasp-security-analysis.md`
    - Resolved security issues
    - Fixed vulnerabilities
    - Addressed technical debt
    - New issues discovered
+   - Updated remediation status
 
 ---
 
@@ -168,6 +200,7 @@ Documentation changes should be reviewed alongside code changes:
 | 2025-12-01 | 1.0     | Initial comprehensive documentation created | Claude |
 | 2025-12-23 | 1.1     | Added Code Analysis & Issues report         | Claude |
 | 2025-12-23 | 1.2     | Updated data model with ePMDS system (7 new tables), internship fields, and Performance Management user flow | Claude |
+| 2026-01-28 | 1.3     | Added OWASP Security Analysis (NCCNNCT-52) | Pablo ARRIBAS |
 
 ---
 
