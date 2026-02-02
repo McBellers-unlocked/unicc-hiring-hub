@@ -1,93 +1,87 @@
 
+## Plan: Fix CSV Import to Skip Title Rows
 
-## Plan: Add Enhanced Color Coding for Contract Status Badges
+### Problem Identified
+The edge function logs show that the import is failing because:
+1. The CSV file has a **title row** like "HEADCOUNT AS OF END OF THE MONTH" as the first line
+2. The actual column headers (Email, First Name, etc.) are on a **later row** (likely row 2 or 3)
+3. Both import functions parse line 0 as headers, missing the real header row
 
-### Goal
-Implement a more granular visual status system with specific colors:
-- **Green**: Active contracts (more than 60 days remaining)
-- **Black/Gray**: No data available
-- **Purple**: Starting within 60 days
-- **Amber/Yellow**: Expiring within 30 days
-- **Red/Striped gradient**: Critical - within 14 days or expired
+**Log evidence:**
+```
+Headers found: ["HEADCOUNT AS OF END OF THE MONTH", "", "", ...]
+Column indices: { emailIndex: -1, firstNameIndex: -1, ... }
+```
+
+All column indices are `-1` because the function looked for "email" in "HEADCOUNT AS OF END OF THE MONTH".
 
 ---
 
-### Technical Approach
-
-Instead of using the limited Badge `variant` prop, we'll use custom CSS classes for each status type. This gives us full control over colors including the striped gradient for critical items.
+### Solution
+Update both edge functions to **auto-detect the actual header row** by scanning the first few lines for a row that contains expected column names.
 
 ---
 
-### Changes
+### Technical Changes
 
-**File: `src/pages/AffiliatePersonnel.tsx`**
+**Files to modify:**
+1. `supabase/functions/import-staff-list/index.ts`
+2. `supabase/functions/import-affiliate-personnel/index.ts`
 
-1. **Update the return type** of `getContractStatus` to include a `colorClass` property instead of relying on variant:
+**Logic update:**
 
 ```typescript
-const getContractStatus = (...): { 
-  status: string; 
-  colorClass: string;  // Custom CSS class for styling
-  daysRemaining: number | null;
-  isNotYetActive: boolean;
-  isContractBreak: boolean;
-  isNoData: boolean;
-  isCritical: boolean;  // For 14-day striped effect
+// Find the actual header row by scanning first 10 lines
+function findHeaderRow(lines: string[]): { headerIndex: number; headers: string[] } {
+  const maxScan = Math.min(10, lines.length);
+  
+  for (let i = 0; i < maxScan; i++) {
+    const headers = parseCSVLine(lines[i]);
+    const normalizedHeaders = headers.map(h => h.toLowerCase().trim());
+    
+    // Check if this row contains expected column names
+    const hasEmail = normalizedHeaders.some(h => h.includes('email'));
+    const hasName = normalizedHeaders.some(h => 
+      h.includes('first name') || h.includes('last name') || h.includes('name')
+    );
+    
+    if (hasEmail || hasName) {
+      console.log(`Found header row at line ${i + 1}`);
+      return { headerIndex: i, headers };
+    }
+  }
+  
+  // Fallback to first row
+  return { headerIndex: 0, headers: parseCSVLine(lines[0]) };
 }
 ```
 
-2. **Update status logic** with new color classes:
-
-| Scenario | Days | Color Class | Visual |
-|----------|------|-------------|--------|
-| Active | >60 days | `bg-green-100 text-green-700` | Green |
-| No Data | N/A | `bg-gray-800 text-white` | Black |
-| Starting soon (new hire) | <60 days | `bg-purple-100 text-purple-700` | Purple |
-| Contract break | N/A | `bg-yellow-100 text-yellow-700` | Amber |
-| Expiring soon | 31-60 days | `bg-purple-100 text-purple-700` | Purple |
-| Expiring soon | 15-30 days | `bg-amber-100 text-amber-700` | Amber |
-| Critical | 0-14 days | Animated gradient stripes | Red striped |
-| Expired | <0 days | `bg-red-100 text-red-700` | Red |
-
-3. **Add CSS for striped gradient** effect for critical contracts:
-
+Then update the data processing loop:
 ```typescript
-// For 14 days or less - animated striped gradient
-const criticalClass = "bg-gradient-to-r from-red-500 via-red-300 to-red-500 
-  bg-[length:200%_100%] animate-pulse text-white";
+// Instead of: for (let i = 1; i < lines.length; i++)
+// Use: for (let i = headerIndex + 1; i < lines.length; i++)
 ```
-
-4. **Update Badge rendering** to use custom classes instead of variant:
-
-```tsx
-<Badge className={contractStatus.colorClass}>
-  {/* icon logic */}
-  {contractStatus.status}
-</Badge>
-```
-
-5. **Update stats calculation** to include new categories (60d, 30d, 14d thresholds)
 
 ---
 
-### Color Reference
-
-| Status | Background | Text | Notes |
-|--------|-----------|------|-------|
-| Active (>60d) | `green-100` | `green-700` | Healthy |
-| No Data | `gray-800` | `white` | Missing info |
-| Starting <60d | `purple-100` | `purple-700` | Upcoming |
-| Contract Break | `yellow-100` | `yellow-700` | On break |
-| Expiring 31-60d | `purple-100` | `purple-700` | Attention |
-| Expiring 15-30d | `amber-100` | `amber-700` | Warning |
-| Critical (0-14d) | Striped red gradient | `white` | Urgent |
-| Expired | `red-100` | `red-700` | Action needed |
-
----
-
-### Files to Modify
+### Changes Summary
 
 | File | Change |
 |------|--------|
-| `src/pages/AffiliatePersonnel.tsx` | Update status logic and badge styling |
+| `supabase/functions/import-staff-list/index.ts` | Add `findHeaderRow()` function, update header detection |
+| `supabase/functions/import-affiliate-personnel/index.ts` | Add `findHeaderRow()` function, update header detection |
 
+---
+
+### Expected Behavior After Fix
+
+1. Function scans first 10 lines of CSV
+2. Finds the row containing "email", "first name", etc.
+3. Uses that row as headers
+4. Processes data rows starting from the row after headers
+5. Successfully maps columns and imports data
+
+This handles CSV files that have:
+- Title rows (like "HEADCOUNT AS OF END OF THE MONTH")
+- Blank rows before headers
+- Headers on any of the first 10 lines
