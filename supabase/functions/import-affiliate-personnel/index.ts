@@ -82,8 +82,10 @@ Deno.serve(async (req) => {
 
     // Parse CSV - handle quoted fields properly
     const lines = csvData.split('\n');
-    const headers = parseCSVLine(lines[0]);
     
+    // Auto-detect the actual header row by scanning first 10 lines
+    const { headerIndex, headers } = findHeaderRow(lines);
+    console.log(`Found header row at line ${headerIndex + 1}`);
     console.log('Headers found:', headers);
 
     // Find column indices (case-insensitive, flexible matching)
@@ -127,7 +129,7 @@ Deno.serve(async (req) => {
 
     // Parse rows
     const affiliateData: AffiliateRow[] = [];
-    for (let i = 1; i < lines.length; i++) {
+    for (let i = headerIndex + 1; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
       
@@ -339,6 +341,39 @@ function parseCSVLine(line: string): string[] {
   result.push(current);
   
   return result.map(v => v.trim().replace(/^"|"$/g, ''));
+}
+
+// Find the actual header row by scanning first 10 lines for expected column names
+function findHeaderRow(lines: string[]): { headerIndex: number; headers: string[] } {
+  const maxScan = Math.min(10, lines.length);
+  
+  for (let i = 0; i < maxScan; i++) {
+    const headers = parseCSVLine(lines[i]);
+    const normalizedHeaders = headers.map(h => h.toLowerCase().trim());
+    
+    // Check if this row contains expected column names
+    const hasEmail = normalizedHeaders.some(h => h.includes('email'));
+    const hasName = normalizedHeaders.some(h => 
+      h.includes('first name') || h.includes('last name') || h === 'name'
+    );
+    
+    if (hasEmail && hasName) {
+      return { headerIndex: i, headers };
+    }
+  }
+  
+  // Fallback: look for row with just email
+  for (let i = 0; i < maxScan; i++) {
+    const headers = parseCSVLine(lines[i]);
+    const normalizedHeaders = headers.map(h => h.toLowerCase().trim());
+    
+    if (normalizedHeaders.some(h => h.includes('email'))) {
+      return { headerIndex: i, headers };
+    }
+  }
+  
+  // Last resort: first row
+  return { headerIndex: 0, headers: parseCSVLine(lines[0]) };
 }
 
 // Parse various date formats

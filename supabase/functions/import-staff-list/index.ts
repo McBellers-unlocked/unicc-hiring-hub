@@ -70,6 +70,59 @@ function validateRow(
   };
 }
 
+// Find the actual header row by scanning first 10 lines for expected column names
+function findHeaderRow(lines: string[]): { headerIndex: number; headers: string[] } {
+  const maxScan = Math.min(10, lines.length);
+  
+  // Helper to parse a CSV line (simple version for header detection)
+  const parseSimpleLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (const char of line) {
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim().replace(/"/g, ''));
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim().replace(/"/g, ''));
+    return result;
+  };
+  
+  for (let i = 0; i < maxScan; i++) {
+    const headers = parseSimpleLine(lines[i]);
+    const normalizedHeaders = headers.map(h => h.toLowerCase().trim());
+    
+    // Check if this row contains expected column names
+    const hasEmail = normalizedHeaders.some(h => h.includes('email'));
+    const hasName = normalizedHeaders.some(h => 
+      h.includes('first name') || h.includes('last name') || h === 'name'
+    );
+    
+    if (hasEmail && hasName) {
+      return { headerIndex: i, headers };
+    }
+  }
+  
+  // Fallback: look for row with just email
+  for (let i = 0; i < maxScan; i++) {
+    const headers = parseSimpleLine(lines[i]);
+    const normalizedHeaders = headers.map(h => h.toLowerCase().trim());
+    
+    if (normalizedHeaders.some(h => h.includes('email'))) {
+      return { headerIndex: i, headers };
+    }
+  }
+  
+  // Last resort: first row
+  return { headerIndex: 0, headers: parseSimpleLine(lines[0]) };
+}
+
 // Flexible column finder
 function findColumn(headers: string[], patterns: string[]): number {
   const normalizedHeaders = headers.map(h => h.toLowerCase().trim().replace(/\s+/g, ' '));
@@ -182,7 +235,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    const headers = lines[0].split(',').map((h: string) => h.replace(/"/g, '').trim());
+    // Auto-detect the actual header row by scanning first 10 lines
+    const { headerIndex, headers } = findHeaderRow(lines);
+    console.log(`Found header row at line ${headerIndex + 1}`);
     console.log('CSV Headers:', headers);
 
     // Find column indices with flexible matching
@@ -234,7 +289,7 @@ Deno.serve(async (req) => {
     };
 
     // Process each row
-    for (let i = 1; i < lines.length; i++) {
+    for (let i = headerIndex + 1; i < lines.length; i++) {
       const line = lines[i];
       if (!line.trim()) continue;
 
