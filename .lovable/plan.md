@@ -1,87 +1,94 @@
 
-## Plan: Fix CSV Import to Skip Title Rows
+
+## Plan: Add Save Functionality to Each Tab in Assessment Builder
 
 ### Problem Identified
-The edge function logs show that the import is failing because:
-1. The CSV file has a **title row** like "HEADCOUNT AS OF END OF THE MONTH" as the first line
-2. The actual column headers (Email, First Name, etc.) are on a **later row** (likely row 2 or 3)
-3. Both import functions parse line 0 as headers, missing the real header row
-
-**Log evidence:**
-```
-Headers found: ["HEADCOUNT AS OF END OF THE MONTH", "", "", ...]
-Column indices: { emailIndex: -1, firstNameIndex: -1, ... }
-```
-
-All column indices are `-1` because the function looked for "email" in "HEADCOUNT AS OF END OF THE MONTH".
-
----
+Currently, the assessment builder has a 4-tab wizard (Basics, Emails, Curveball, Preview), but the **Save button only exists on the final Preview tab**. When users make edits in earlier tabs and navigate forward/backward, their changes are only held in memory. If they refresh or navigate away, unsaved changes are lost.
 
 ### Solution
-Update both edge functions to **auto-detect the actual header row** by scanning the first few lines for a row that contains expected column names.
+Add a **"Save & Continue"** button pattern to each tab that saves the current state before moving to the next step. Also add a standalone "Save" button so users can save without navigating.
 
 ---
 
 ### Technical Changes
 
-**Files to modify:**
-1. `supabase/functions/import-staff-list/index.ts`
-2. `supabase/functions/import-affiliate-personnel/index.ts`
+**File: `src/pages/AssessmentBuilder.tsx`**
 
-**Logic update:**
-
+1. **Create a reusable save-and-continue handler:**
 ```typescript
-// Find the actual header row by scanning first 10 lines
-function findHeaderRow(lines: string[]): { headerIndex: number; headers: string[] } {
-  const maxScan = Math.min(10, lines.length);
-  
-  for (let i = 0; i < maxScan; i++) {
-    const headers = parseCSVLine(lines[i]);
-    const normalizedHeaders = headers.map(h => h.toLowerCase().trim());
-    
-    // Check if this row contains expected column names
-    const hasEmail = normalizedHeaders.some(h => h.includes('email'));
-    const hasName = normalizedHeaders.some(h => 
-      h.includes('first name') || h.includes('last name') || h.includes('name')
-    );
-    
-    if (hasEmail || hasName) {
-      console.log(`Found header row at line ${i + 1}`);
-      return { headerIndex: i, headers };
-    }
-  }
-  
-  // Fallback to first row
-  return { headerIndex: 0, headers: parseCSVLine(lines[0]) };
-}
+const saveAndContinue = async (nextTab: string) => {
+  await saveMutation.mutateAsync();
+  setActiveTab(nextTab);
+};
 ```
 
-Then update the data processing loop:
-```typescript
-// Instead of: for (let i = 1; i < lines.length; i++)
-// Use: for (let i = headerIndex + 1; i < lines.length; i++)
+2. **Update Basics Tab footer (line 378-380):**
+   - Change from: "Next: Add Emails" button that only switches tabs
+   - Change to: "Save & Continue" button that saves first, then switches
+
+3. **Update Emails Tab footer (line 497-502):**
+   - Add "Save" button alongside navigation
+   - Change "Next" to "Save & Continue"
+
+4. **Update Curveball Tab footer (line 652-657):**
+   - Add "Save" button alongside navigation  
+   - Change "Next" to "Save & Continue"
+
+5. **Add visual feedback for unsaved changes:**
+   - Track if form has been modified since last save
+   - Show indicator when there are unsaved changes
+
+---
+
+### Updated UI Pattern
+
+Each tab will have this footer pattern:
+
+| Button | Action | Placement |
+|--------|--------|-----------|
+| Back | Switch to previous tab | Left |
+| Save | Save current state (no navigation) | Right (secondary) |
+| Save & Continue | Save then go to next tab | Right (primary) |
+
+Example for Basics tab:
+```tsx
+<div className="flex justify-between">
+  <div /> {/* Empty for alignment */}
+  <div className="flex gap-2">
+    <Button 
+      variant="outline" 
+      onClick={() => saveMutation.mutate()}
+      disabled={saveMutation.isPending || !title}
+    >
+      <Save className="w-4 h-4 mr-2" />
+      Save
+    </Button>
+    <Button 
+      onClick={() => saveAndContinue("emails")}
+      disabled={saveMutation.isPending || !title}
+    >
+      Save & Continue
+    </Button>
+  </div>
+</div>
 ```
 
 ---
 
-### Changes Summary
+### Files to Modify
 
 | File | Change |
 |------|--------|
-| `supabase/functions/import-staff-list/index.ts` | Add `findHeaderRow()` function, update header detection |
-| `supabase/functions/import-affiliate-personnel/index.ts` | Add `findHeaderRow()` function, update header detection |
+| `src/pages/AssessmentBuilder.tsx` | Add save-and-continue pattern to all tabs |
 
 ---
 
 ### Expected Behavior After Fix
 
-1. Function scans first 10 lines of CSV
-2. Finds the row containing "email", "first name", etc.
-3. Uses that row as headers
-4. Processes data rows starting from the row after headers
-5. Successfully maps columns and imports data
+1. User edits title in Basics tab
+2. Clicks "Save & Continue" 
+3. Assessment is saved to database (toast: "Assessment updated")
+4. User is navigated to Emails tab
+5. If user clicks just "Save", changes are saved but they stay on current tab
+6. All progress is persisted, even if user refreshes or navigates away
 
-This handles CSV files that have:
-- Title rows (like "HEADCOUNT AS OF END OF THE MONTH")
-- Blank rows before headers
-- Headers on any of the first 10 lines
