@@ -70,6 +70,11 @@ import AdminPerformanceCycles from "./pages/AdminPerformanceCycles";
 import AffiliatePersonnel from "./pages/AffiliatePersonnel";
 import ImportAffiliatePersonnel from "./pages/ImportAffiliatePersonnel";
 import OrganizationChart from "./pages/OrganizationChart";
+import AdminAssessmentSeries from "./pages/AdminAssessmentSeries";
+import AssessmentSeriesBuilder from "./pages/AssessmentSeriesBuilder";
+import SeriesCandidates from "./pages/SeriesCandidates";
+import CandidateSeriesPortal from "./pages/CandidateSeriesPortal";
+import ResearchAssessment from "./pages/ResearchAssessment";
 
 const queryClient = new QueryClient();
 
@@ -143,8 +148,14 @@ const App = () => (
             <Route path="/admin/assessments/:id/edit" element={<AssessmentBuilder />} />
             <Route path="/admin/assessments/:id/slots" element={<AssessmentSlots />} />
             <Route path="/admin/assessments/:id/review" element={<AssessmentReview />} />
+            <Route path="/admin/assessment-series" element={<AdminAssessmentSeries />} />
+            <Route path="/admin/assessment-series/new" element={<AssessmentSeriesBuilder />} />
+            <Route path="/admin/assessment-series/:id/edit" element={<AssessmentSeriesBuilder />} />
+            <Route path="/admin/assessment-series/:id/candidates" element={<SeriesCandidates />} />
             <Route path="/assessment/:token" element={<CandidateAssessment />} />
             <Route path="/assessment/complete" element={<AssessmentComplete />} />
+            <Route path="/series/:token" element={<CandidateSeriesPortal />} />
+            <Route path="/research/:token/:assessmentId" element={<ResearchAssessment />} />
             <Route path="/import-users" element={<ImportUsers />} />
             <Route path="/chief-of-division" element={<ChiefOfDivisionView />} />
             <Route path="/director-view" element={<DirectorView />} />

@@ -342,6 +342,140 @@ export type Database = {
           },
         ]
       }
+      assessment_series: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          series_closes_at: string | null
+          series_opens_at: string | null
+          status: Database["public"]["Enums"]["assessment_status"] | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          series_closes_at?: string | null
+          series_opens_at?: string | null
+          status?: Database["public"]["Enums"]["assessment_status"] | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          series_closes_at?: string | null
+          series_opens_at?: string | null
+          status?: Database["public"]["Enums"]["assessment_status"] | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_series_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_series_candidates: {
+        Row: {
+          access_token: string | null
+          candidate_email: string
+          candidate_name: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          series_id: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          candidate_email: string
+          candidate_name: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          series_id?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          candidate_email?: string
+          candidate_name?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          series_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_series_candidates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_series_candidates_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_series"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_series_parts: {
+        Row: {
+          assessment_id: string | null
+          created_at: string | null
+          id: string
+          part_number: number
+          part_title: string | null
+          series_id: string | null
+          unlock_after_previous: boolean | null
+        }
+        Insert: {
+          assessment_id?: string | null
+          created_at?: string | null
+          id?: string
+          part_number: number
+          part_title?: string | null
+          series_id?: string | null
+          unlock_after_previous?: boolean | null
+        }
+        Update: {
+          assessment_id?: string | null
+          created_at?: string | null
+          id?: string
+          part_number?: number
+          part_title?: string | null
+          series_id?: string | null
+          unlock_after_previous?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_series_parts_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "written_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_series_parts_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_series"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessment_slots: {
         Row: {
           access_token: string
@@ -2748,6 +2882,41 @@ export type Database = {
           },
         ]
       }
+      research_exercise_submissions: {
+        Row: {
+          file_name: string
+          file_size_bytes: number | null
+          file_url: string
+          id: string
+          slot_id: string | null
+          submitted_at: string | null
+        }
+        Insert: {
+          file_name: string
+          file_size_bytes?: number | null
+          file_url: string
+          id?: string
+          slot_id?: string | null
+          submitted_at?: string | null
+        }
+        Update: {
+          file_name?: string
+          file_size_bytes?: number | null
+          file_url?: string
+          id?: string
+          slot_id?: string | null
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_exercise_submissions_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       screening_scores: {
         Row: {
           ai_score: number | null
@@ -3880,6 +4049,7 @@ export type Database = {
       }
       written_assessments: {
         Row: {
+          assessment_type: Database["public"]["Enums"]["assessment_type"] | null
           availability_window_hours: number | null
           created_at: string
           created_by: string | null
@@ -3890,12 +4060,18 @@ export type Database = {
           description: string | null
           id: string
           instructions: string | null
+          reference_document_name: string | null
+          reference_document_url: string | null
           status: Database["public"]["Enums"]["assessment_status"]
+          time_limit_hours: number | null
           time_limit_minutes: number
           title: string
           updated_at: string
         }
         Insert: {
+          assessment_type?:
+            | Database["public"]["Enums"]["assessment_type"]
+            | null
           availability_window_hours?: number | null
           created_at?: string
           created_by?: string | null
@@ -3906,12 +4082,18 @@ export type Database = {
           description?: string | null
           id?: string
           instructions?: string | null
+          reference_document_name?: string | null
+          reference_document_url?: string | null
           status?: Database["public"]["Enums"]["assessment_status"]
+          time_limit_hours?: number | null
           time_limit_minutes?: number
           title: string
           updated_at?: string
         }
         Update: {
+          assessment_type?:
+            | Database["public"]["Enums"]["assessment_type"]
+            | null
           availability_window_hours?: number | null
           created_at?: string
           created_by?: string | null
@@ -3922,7 +4104,10 @@ export type Database = {
           description?: string | null
           id?: string
           instructions?: string | null
+          reference_document_name?: string | null
+          reference_document_url?: string | null
           status?: Database["public"]["Enums"]["assessment_status"]
+          time_limit_hours?: number | null
           time_limit_minutes?: number
           title?: string
           updated_at?: string
@@ -3987,6 +4172,25 @@ export type Database = {
       }
       get_chief_for_division: { Args: { p_division: string }; Returns: string }
       get_current_user_name: { Args: never; Returns: string }
+      get_series_parts_with_status: {
+        Args: { p_candidate_email: string; p_series_id: string }
+        Returns: {
+          assessment_id: string
+          assessment_title: string
+          assessment_type: Database["public"]["Enums"]["assessment_type"]
+          is_unlocked: boolean
+          part_id: string
+          part_number: number
+          part_title: string
+          slot_id: string
+          slot_status: Database["public"]["Enums"]["assessment_slot_status"]
+          started_at: string
+          submitted_at: string
+          time_limit_hours: number
+          time_limit_minutes: number
+          unlock_after_previous: boolean
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
@@ -4061,6 +4265,20 @@ export type Database = {
         }[]
       }
       validate_panel_composition: { Args: { p_job_id: string }; Returns: Json }
+      validate_series_token: {
+        Args: { p_token: string }
+        Returns: {
+          candidate_email: string
+          candidate_id: string
+          candidate_name: string
+          series_closes_at: string
+          series_description: string
+          series_id: string
+          series_opens_at: string
+          series_status: Database["public"]["Enums"]["assessment_status"]
+          series_title: string
+        }[]
+      }
       validate_video_assignment_token: {
         Args: { assignment_token: string }
         Returns: {
@@ -4094,6 +4312,7 @@ export type Database = {
         | "expired"
         | "cancelled"
       assessment_status: "draft" | "active" | "archived"
+      assessment_type: "inbox_simulation" | "research_exercise"
       curveball_trigger_type: "time" | "progress"
       email_urgency: "low" | "normal" | "high" | "urgent"
       input_type: "boolean" | "single" | "multi" | "text"
@@ -4277,6 +4496,7 @@ export const Constants = {
         "cancelled",
       ],
       assessment_status: ["draft", "active", "archived"],
+      assessment_type: ["inbox_simulation", "research_exercise"],
       curveball_trigger_type: ["time", "progress"],
       email_urgency: ["low", "normal", "high", "urgent"],
       input_type: ["boolean", "single", "multi", "text"],
