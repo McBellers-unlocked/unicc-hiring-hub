@@ -56,6 +56,16 @@ export default function AssessmentBuilder() {
   const [emails, setEmails] = useState<AssessmentEmail[]>([]);
   const [activeTab, setActiveTab] = useState("basics");
 
+  // Save and continue to next tab
+  const saveAndContinue = async (nextTab: string) => {
+    try {
+      await saveMutation.mutateAsync();
+      setActiveTab(nextTab);
+    } catch (error) {
+      // Error is already handled by mutation's onError
+    }
+  };
+
   // Fetch existing assessment
   const { data: assessment, isLoading } = useQuery({
     queryKey: ["assessment", id],
@@ -375,8 +385,21 @@ export default function AssessmentBuilder() {
               </CardContent>
             </Card>
 
-            <div className="flex justify-end">
-              <Button onClick={() => setActiveTab("emails")}>Next: Add Emails</Button>
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending || !title}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {saveMutation.isPending ? "Saving..." : "Save"}
+              </Button>
+              <Button 
+                onClick={() => saveAndContinue("emails")}
+                disabled={saveMutation.isPending || !title}
+              >
+                {saveMutation.isPending ? "Saving..." : "Save & Continue"}
+              </Button>
             </div>
           </TabsContent>
 
@@ -498,7 +521,22 @@ export default function AssessmentBuilder() {
               <Button variant="outline" onClick={() => setActiveTab("basics")}>
                 Back
               </Button>
-              <Button onClick={() => setActiveTab("curveball")}>Next: Curveball Settings</Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => saveMutation.mutate()}
+                  disabled={saveMutation.isPending || !title}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {saveMutation.isPending ? "Saving..." : "Save"}
+                </Button>
+                <Button 
+                  onClick={() => saveAndContinue("curveball")}
+                  disabled={saveMutation.isPending || !title}
+                >
+                  {saveMutation.isPending ? "Saving..." : "Save & Continue"}
+                </Button>
+              </div>
             </div>
           </TabsContent>
 
@@ -653,7 +691,22 @@ export default function AssessmentBuilder() {
               <Button variant="outline" onClick={() => setActiveTab("emails")}>
                 Back
               </Button>
-              <Button onClick={() => setActiveTab("preview")}>Next: Preview</Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => saveMutation.mutate()}
+                  disabled={saveMutation.isPending || !title}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {saveMutation.isPending ? "Saving..." : "Save"}
+                </Button>
+                <Button 
+                  onClick={() => saveAndContinue("preview")}
+                  disabled={saveMutation.isPending || !title}
+                >
+                  {saveMutation.isPending ? "Saving..." : "Save & Continue"}
+                </Button>
+              </div>
             </div>
           </TabsContent>
 
