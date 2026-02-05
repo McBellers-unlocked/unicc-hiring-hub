@@ -6,7 +6,6 @@ import { Link2, Link2Off, AlertCircle } from 'lucide-react';
 interface AppointmentStatusBadgeProps {
   status: string;
   tentativeDate?: string | null;
-  noticeDaysRequired?: number;
 }
 
 interface UserLinkBadgeProps {
@@ -14,22 +13,25 @@ interface UserLinkBadgeProps {
   email?: string | null;
 }
 
-export const calculateDaysToNotify = (
-  tentativeDate: string | null | undefined,
-  noticeDaysRequired: number = 30
+export const calculateDaysUntilStart = (
+  tentativeDate: string | null | undefined
 ): number | null => {
   if (!tentativeDate) return null;
   
-  const targetDate = parseISO(tentativeDate);
-  const notifyByDate = new Date(targetDate);
-  notifyByDate.setDate(notifyByDate.getDate() - noticeDaysRequired);
+  const startDate = parseISO(tentativeDate);
+  const today = new Date();
   
-  return differenceInDays(notifyByDate, new Date());
+  // Normalize both dates to start of day for accurate day comparison
+  today.setHours(0, 0, 0, 0);
+  const normalizedStartDate = new Date(startDate);
+  normalizedStartDate.setHours(0, 0, 0, 0);
+  
+  return differenceInDays(normalizedStartDate, today);
 };
 
 export const getStatusInfo = (
   status: string,
-  daysToNotify: number | null
+  daysUntilStart: number | null
 ): { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; pulse?: boolean } => {
   if (status === 'Completed') {
     return { label: 'Completed', variant: 'default' };
@@ -41,16 +43,17 @@ export const getStatusInfo = (
     return { label: 'Not started', variant: 'outline' };
   }
   
-  // In progress - check days
-  if (daysToNotify !== null && daysToNotify < 0) {
+  // In progress - check days until start date
+  if (daysUntilStart !== null && daysUntilStart < 0) {
+    // Start date has passed but still "In progress"
     return { 
-      label: `${Math.abs(daysToNotify)}d overdue`, 
+      label: `${Math.abs(daysUntilStart)}d overdue`, 
       variant: 'destructive',
       pulse: true 
     };
   }
-  if (daysToNotify !== null && daysToNotify <= 7) {
-    return { label: `${daysToNotify}d remaining`, variant: 'secondary' };
+  if (daysUntilStart !== null && daysUntilStart <= 7) {
+    return { label: `${daysUntilStart}d remaining`, variant: 'secondary' };
   }
   
   return { label: 'In progress', variant: 'outline' };
@@ -58,11 +61,10 @@ export const getStatusInfo = (
 
 export const AppointmentStatusBadge = ({ 
   status, 
-  tentativeDate, 
-  noticeDaysRequired = 30 
+  tentativeDate
 }: AppointmentStatusBadgeProps) => {
-  const daysToNotify = calculateDaysToNotify(tentativeDate, noticeDaysRequired);
-  const statusInfo = getStatusInfo(status, daysToNotify);
+  const daysUntilStart = calculateDaysUntilStart(tentativeDate);
+  const statusInfo = getStatusInfo(status, daysUntilStart);
   
   return (
     <Badge 
