@@ -1,185 +1,252 @@
 
-# HR Operations Dashboard
+
+# Staff Autofill + CB Workflow Automation
 
 ## Overview
-Create a new HR Operations Dashboard that serves as the central hub for HR staff, showing upcoming actions across all operational areas. The dashboard aggregates data from appointments, separations, and (future) transfers/extensions into an actionable summary.
+Two connected enhancements to streamline HR operations:
+1. **Staff Autofill** - Search and auto-populate form fields from the users table when creating separations/appointments
+2. **CB Workflow Automation** - Auto-create linked Appointment (CB) when a Separation (CB) is created
 
 ---
 
-## Data Sources
+## Feature 1: Staff Autofill Search
 
-| Category | Table | Key Fields | Priority Logic |
-|----------|-------|------------|----------------|
-| Appointments | `hr_appointments` | `tentative_date`, `operation_type`, `is_international`, `status` | Days until start |
-| Separations | `hr_separations` | `tentative_date`, `separation_type`, `is_international`, `status` | International exits need 90+ days notice for protocol |
-| Transfers | `hr_appointments` (type = Transfer) | `duty_station`, `contract_type` | Location/contract changes |
-| Extensions | Future: `hr_contract_extensions` | For now, placeholder | Contract renewals |
+### How It Works
+When HR starts typing in the form, a search dropdown appears with matching staff members from the users table. Selecting a staff member auto-fills all relevant fields and automatically links the record.
+
+```
++------------------------------------------+
+|  Search Staff  [Type to search...]       |
++------------------------------------------+
+|  > Szilvia PETKOV                        |
+|    P4 - MSL - Valencia                   |
+|    petkov@unicc.org                       |
+|  ----------------------------------------|
+|  > Enrique AGUILAR RICO                  |
+|    P3 - CSA - Valencia                   |
+|    aguilar@unicc.org                      |
++------------------------------------------+
+```
+
+### Data Mapping (Users table to Form)
+
+| Users Field | Separation Form Field | Appointment Form Field |
+|-------------|----------------------|------------------------|
+| `name` | Split to `last_name`, `first_name` | Split to `last_name`, `first_name` |
+| `email` | `email` | `email` |
+| `id` | `user_id` (auto-link) | `user_id` (auto-link) |
+| `current_grade` | `grade` | `grade` |
+| `job_title` | `job_title` | `job_title` |
+| `duty_station` | `duty_station` | `duty_station` |
+| `unit` | `section_unit` | `section_unit` |
+| `line_manager` | `supervisor` | `supervisor` |
+| `worker_type` | `is_international` (Staff = check grade) | `is_international` |
+| `staff_number` | `staff_number` | - |
+
+### Name Parsing Logic
+The `name` field in users is stored as "First LAST" or "LAST, First". Logic:
+```typescript
+// "Szilvia PETKOV" -> last_name: "PETKOV", first_name: "Szilvia"
+// "AGUILAR RICO Enrique" -> detect pattern
+const words = name.split(' ');
+const upperWords = words.filter(w => w === w.toUpperCase());
+const lowerWords = words.filter(w => w !== w.toUpperCase());
+// Usually last name is uppercase: PETKOV, AGUILAR RICO
+```
+
+### International Staff Detection
+- Grade starts with "P" (P1-P5, D1-D2) = International
+- Grade starts with "G" (G1-G7) = Local (General Service)
 
 ---
 
-## Dashboard Sections
+## Feature 2: CB Workflow Automation (from previous plan)
 
-### 1. Summary Stats Row
-Four key metric cards at the top:
+When `operation_type = "Separation (CB)"` or `"Individual Consultancy (CB)"`:
+1. Calculate return date: separation date + 1 month
+2. Create linked Appointment (CB) record
+3. Show confirmation toast
+4. Display link indicator on both records
 
-```
-+-------------------+-------------------+-------------------+-------------------+
-|   Appointments    |   Separations     |   Transfers       |   Extensions      |
-|   Due This Week   |   Due This Week   |   Due This Week   |   Due This Week   |
-|       12          |       5           |       3           |       2           |
-+-------------------+-------------------+-------------------+-------------------+
-```
+---
 
-### 2. Urgent Actions (Red Alert Section)
-Items needing immediate attention:
-- **Overdue appointments** (start date passed, status not Completed)
-- **Overdue separations** (separation date passed, status not Completed)
-- **International exits without protocol clearance** (P-grade staff leaving need 90+ days for visa/protocol)
+## Database Changes
 
-### 3. Upcoming This Week
-Timeline view of what is happening in the next 7 days:
+### New Columns for Linking
 
-| Category | Name | Date | Location | Type | Action |
-|----------|------|------|----------|------|--------|
-| Appointment | SMITH John | 10 Feb | Valencia | Newcomer | View |
-| Separation | JONES Maria | 12 Feb | Remote | Resignation | View |
-| Appointment | DOE Jane | 14 Feb | Brindisi | Transfer | View |
+```sql
+-- Add linking columns
+ALTER TABLE hr_appointments 
+  ADD COLUMN linked_separation_id UUID REFERENCES hr_separations(id);
 
-### 4. International Staff Exits (Special Attention)
-International (P-grade) staff separations need extra lead time for protocol services. This section highlights:
-- Exits in next 30 days (warning)
-- Exits in next 90 days (info)
-
-### 5. Quick Access Cards
-Navigation shortcuts to full operational pages:
-
-```
-+------------------+------------------+------------------+------------------+
-| Appointments     | Separations      | Extensions       | Transfers        |
-| Manage new hires | Manage exits     | Contract renewals| Location changes |
-| [12 pending]     | [5 pending]      | [Coming soon]    | [Coming soon]    |
-+------------------+------------------+------------------+------------------+
+ALTER TABLE hr_separations 
+  ADD COLUMN linked_appointment_id UUID REFERENCES hr_appointments(id);
 ```
 
 ---
 
-## Filtering Logic
+## UI Implementation
 
-### Transfers (from Appointments table)
-Filter by `operation_type`:
-- "Transfer" - duty station change
-- "Transfer (CB)" - transfer from contract break
-- Any appointment where `old_po` and `new_po` differ (position change)
-- Any appointment where duty station changes
+### New Component: StaffSearchCombobox
 
-### Contract Breaks vs Exits
-From separations, distinguish:
-- **Exit**: `separation_type = 'Exit'` or `event_type = 'Exit'`
-- **Contract Break**: `separation_type = 'ContractBreak'`
+A reusable combobox that:
+- Searches users table as you type (debounced)
+- Shows name, grade, unit, email in dropdown
+- Returns selected user data for form population
 
-### International Staff Priority
-- `is_international = true` AND `grade LIKE 'P%'` = high priority for protocol services
-- Need 90-day lead time for visa cancellation, travel arrangements
+```
++----------------------------------------------------------+
+|  SEPARATION FORM                                         |
+|  --------------------------------------------------------|
+|  [ Search existing staff... ] or enter manually          |
+|  --------------------------------------------------------|
+|                                                          |
+|  Last Name *     [ PETKOV          ]  (auto-filled)      |
+|  First Name *    [ Szilvia         ]  (auto-filled)      |
+|  Email           [ petkov@unicc.org]  (auto-filled)      |
+|  Staff Number    [ S123456         ]  (auto-filled)      |
+|  Grade           [ P4              ]  (auto-filled)      |
+|  ...                                                     |
+|                                                          |
+|  [ Linked to: Szilvia PETKOV (Staff) ]  <-- indicator    |
++----------------------------------------------------------+
+```
+
+### CB Type Info Banner
+When "Separation (CB)" is selected:
+
+```
++----------------------------------------------------------+
+|  ℹ️ Contract Break Selected                               |
+|  An Appointment (CB) will be automatically created       |
+|  for this person's return, dated 1 month after the       |
+|  separation date.                                        |
++----------------------------------------------------------+
+```
 
 ---
 
-## Implementation
-
-### Files to Create
+## Files to Create
 
 | File | Purpose |
 |------|---------|
-| `src/pages/operations/HROperationsDashboard.tsx` | Main dashboard page |
-| `src/components/operations/UpcomingEventsTable.tsx` | Combined timeline table |
-| `src/components/operations/InternationalExitsAlert.tsx` | P-staff exit warnings |
+| `src/components/operations/StaffSearchCombobox.tsx` | Reusable staff search component |
 
-### Files to Modify
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/App.tsx` | Add route `/operations` or `/operations/dashboard` |
+| `supabase/migrations/[timestamp].sql` | Add linking columns to both tables |
+| `src/components/operations/SeparationForm.tsx` | Add staff search, CB info banner |
+| `src/components/operations/AppointmentForm.tsx` | Add staff search |
+| `src/pages/operations/Separations.tsx` | Add CB workflow automation logic |
 
 ---
 
-## UI Design Details
+## Implementation Details
 
-### Color Coding by Category
-| Category | Color | Icon |
-|----------|-------|------|
-| Appointment | Blue | UserPlus |
-| Separation (Exit) | Red | UserMinus |
-| Separation (CB) | Orange | Pause |
-| Transfer | Purple | ArrowLeftRight |
-| Extension | Green | FileCheck |
-
-### Alert Priorities
-| Priority | Condition | Style |
-|----------|-----------|-------|
-| Critical | Overdue (date passed, not completed) | Red badge, pulsing |
-| High | International exit in 30 days | Orange badge |
-| Medium | Due this week | Yellow badge |
-| Normal | Due in 30 days | Default |
-
----
-
-## Data Queries
+### StaffSearchCombobox Component
 
 ```typescript
-// Upcoming appointments (next 30 days)
-const appointments = await supabase
-  .from('hr_appointments')
-  .select('*')
-  .in('status', ['Not started', 'In progress'])
-  .gte('tentative_date', today)
-  .lte('tentative_date', thirtyDaysFromNow);
+interface StaffSearchComboboxProps {
+  onSelect: (user: {
+    id: string;
+    name: string;
+    email: string;
+    grade?: string;
+    job_title?: string;
+    duty_station?: string;
+    section_unit?: string;
+    supervisor?: string;
+    staff_number?: string;
+    is_international: boolean;
+  }) => void;
+}
+```
 
-// Upcoming separations (next 30 days)
-const separations = await supabase
-  .from('hr_separations')
-  .select('*')
-  .in('status', ['Not started', 'In progress'])
-  .gte('tentative_date', today)
-  .lte('tentative_date', thirtyDaysFromNow);
+### Form Integration
 
-// Overdue items (past date, not completed)
-const overdueAppointments = await supabase
-  .from('hr_appointments')
-  .select('*')
-  .in('status', ['Not started', 'In progress'])
-  .lt('tentative_date', today);
+In SeparationForm.tsx:
+```typescript
+const handleStaffSelect = (user) => {
+  // Parse name into first/last
+  const { firstName, lastName } = parseName(user.name);
+  
+  form.setValue('last_name', lastName);
+  form.setValue('first_name', firstName);
+  form.setValue('email', user.email);
+  form.setValue('grade', user.grade || '');
+  form.setValue('job_title', user.job_title || '');
+  form.setValue('duty_station', user.duty_station || '');
+  form.setValue('section_unit', user.section_unit || '');
+  form.setValue('supervisor', user.supervisor || '');
+  form.setValue('staff_number', user.staff_number || '');
+  form.setValue('is_international', user.is_international);
+  
+  // Store user_id for linking
+  setSelectedUserId(user.id);
+};
+```
+
+### CB Automation in Separations Page
+
+```typescript
+const createMutation = useMutation({
+  mutationFn: async (data) => {
+    // Create separation
+    const { data: separation, error } = await supabase
+      .from('hr_separations')
+      .insert(separationData)
+      .select()
+      .single();
+
+    // If CB type, create linked appointment
+    if (data.operation_type.includes('(CB)')) {
+      const returnDate = data.tentative_date 
+        ? format(addMonths(parseISO(data.tentative_date), 1), 'yyyy-MM-dd')
+        : null;
+
+      const { data: appointment } = await supabase
+        .from('hr_appointments')
+        .insert({
+          ...copiedFields,
+          operation_type: 'Appointment (CB)',
+          tentative_date: returnDate,
+          recruitment_type: 'CB Return',
+          linked_separation_id: separation.id,
+        })
+        .select()
+        .single();
+
+      // Update separation with link
+      await supabase
+        .from('hr_separations')
+        .update({ linked_appointment_id: appointment.id })
+        .eq('id', separation.id);
+    }
+  }
+});
 ```
 
 ---
 
-## Contract Extensions (Future)
+## User Experience Flow
 
-Since `hr_contract_extensions` does not exist yet, the dashboard will show a placeholder card with "Coming Soon" and link to the ContractExtensions page. When ready, a similar table structure can be added:
-- `staff_id`, `current_end_date`, `new_end_date`, `status`, `approval_date`
+### Creating a Separation for Existing Staff
 
----
+1. HR clicks "Add Separation"
+2. Form opens with staff search at top
+3. HR types "PETKOV"
+4. Dropdown shows matching staff
+5. HR selects "Szilvia PETKOV - P4 - Valencia"
+6. All fields auto-populate
+7. Record is automatically linked to user profile
+8. If CB type selected, info banner appears
+9. HR saves - both separation and return appointment created
 
-## Navigation Integration
+### Visual Indicators
 
-Add to header navigation under "HR Operations" dropdown:
-- **Dashboard** (new) - `/operations`
-- Appointments - `/operations/appointments`
-- Separations - `/operations/separations`
-- etc.
+In the table, show:
+- **Linked to user**: 👤 icon or "Linked" badge
+- **CB pair**: 🔗 icon with tooltip "Linked to Appointment (CB)"
 
----
-
-## Technical Approach
-
-1. Create `HROperationsDashboard.tsx` with:
-   - Combined data fetch from `hr_appointments` and `hr_separations`
-   - Stats computation (overdue, this week, international)
-   - Category filtering and display
-
-2. Reuse existing components:
-   - `StatsCard` from dashboard
-   - `ActionItem` for urgent items
-   - Status badges from Appointments/Separations
-
-3. Add route to App.tsx
-
-4. Update navigation (if needed) to include dashboard link
