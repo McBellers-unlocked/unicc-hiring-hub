@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { UserPlus, Plus, MoreHorizontal, CheckCircle, Pencil, Trash2, Calendar } from 'lucide-react';
+import { UserPlus, Plus, MoreHorizontal, CheckCircle, Pencil, Trash2, Calendar, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
@@ -39,6 +39,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { ImportAppointmentsDialog } from '@/components/operations/ImportAppointmentsDialog';
 
 interface HrAppointment {
   id: string;
@@ -82,6 +83,7 @@ const Appointments = () => {
     dutyStation: '',
     hrFocalPoint: '',
   });
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   // Fetch appointments
   const { data: appointments = [], isLoading } = useQuery({
@@ -292,10 +294,16 @@ const Appointments = () => {
               </p>
             </div>
           </div>
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Appointment
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Import CSV
+            </Button>
+            <Button onClick={() => setFormOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Appointment
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -530,6 +538,15 @@ const Appointments = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Import Dialog */}
+      <ImportAppointmentsDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImportComplete={() => {
+          queryClient.invalidateQueries({ queryKey: ['hr-appointments'] });
+        }}
+      />
     </Layout>
   );
 };
