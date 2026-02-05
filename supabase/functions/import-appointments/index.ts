@@ -166,8 +166,8 @@ Deno.serve(async (req) => {
         }
       }
       
-      if (!lastName && !firstName) {
-        warnings.push(`Row ${i + 1}: Missing name, skipped`);
+      if (!lastName || !firstName) {
+        warnings.push(`Row ${i + 1}: Missing required name field (last: "${lastName}", first: "${firstName}"), skipped`);
         continue;
       }
 
@@ -380,25 +380,44 @@ function normalizeOperationType(value: string): string {
 function parseDate(dateStr: string): string {
   if (!dateStr) return '';
   
-  // Try ISO format first (YYYY-MM-DD)
-  if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
-    return dateStr.substring(0, 10);
+  const trimmed = dateStr.trim();
+  
+  // 1. Check for Excel serial date (5-digit number like 45210)
+  const numericDate = parseFloat(trimmed);
+  if (!isNaN(numericDate) && numericDate > 1000 && numericDate < 100000) {
+    // Excel epoch is December 30, 1899
+    const excelEpoch = new Date(1899, 11, 30);
+    const date = new Date(excelEpoch.getTime() + numericDate * 86400000);
+    if (!isNaN(date.getTime())) {
+      const result = date.toISOString().substring(0, 10);
+      // Validate the year is reasonable (2000-2100)
+      const year = parseInt(result.substring(0, 4));
+      if (year >= 2000 && year <= 2100) {
+        return result;
+      }
+    }
+    return ''; // Invalid Excel date
   }
   
-  // Try DD/MM/YYYY
-  const slashMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  // 2. Try ISO format (YYYY-MM-DD)
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+    return trimmed.substring(0, 10);
+  }
+  
+  // 3. Try DD/MM/YYYY
+  const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (slashMatch) {
     const [, day, month, year] = slashMatch;
     return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   }
   
-  // Try DD-Mon-YY format
+  // 4. Try DD-Mon-YY format
   const monthNames: Record<string, string> = {
     'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
     'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
     'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
   };
-  const shortDateMatch = dateStr.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})$/);
+  const shortDateMatch = trimmed.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})$/);
   if (shortDateMatch) {
     const [, day, month, year] = shortDateMatch;
     const monthNum = monthNames[month.toLowerCase()];
@@ -410,15 +429,6 @@ function parseDate(dateStr: string): string {
     }
   }
   
-  // Try parsing as date string
-  try {
-    const parsed = new Date(dateStr);
-    if (!isNaN(parsed.getTime())) {
-      return parsed.toISOString().substring(0, 10);
-    }
-  } catch {
-    // Ignore parsing errors
-  }
-  
+  // 5. Don't fallback to new Date() - too risky for malformed data
   return '';
 }
