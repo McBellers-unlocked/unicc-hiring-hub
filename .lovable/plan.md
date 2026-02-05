@@ -1,252 +1,90 @@
 
 
-# Staff Autofill + CB Workflow Automation
+## Fix: Staff Search Stuck on "Searching..."
 
-## Overview
-Two connected enhancements to streamline HR operations:
-1. **Staff Autofill** - Search and auto-populate form fields from the users table when creating separations/appointments
-2. **CB Workflow Automation** - Auto-create linked Appointment (CB) when a Separation (CB) is created
+### The Problem
+The staff search combobox shows "Searching..." indefinitely when typing a name. Based on the session replay and testing, the query works correctly on the database side but the UI gets stuck in a loading state.
 
----
+### Root Cause Analysis
+Looking at the `StaffSearchCombobox.tsx` component, there are two potential issues:
 
-## Feature 1: Staff Autofill Search
+1. **No timeout handling** - If the network request hangs or takes too long, there's no timeout to recover
+2. **Debounce effect cleanup issue** - When the search value changes rapidly, multiple requests might be in flight, causing race conditions with the loading state
 
-### How It Works
-When HR starts typing in the form, a search dropdown appears with matching staff members from the users table. Selecting a staff member auto-fills all relevant fields and automatically links the record.
+### Solution
 
-```
-+------------------------------------------+
-|  Search Staff  [Type to search...]       |
-+------------------------------------------+
-|  > Szilvia PETKOV                        |
-|    P4 - MSL - Valencia                   |
-|    petkov@unicc.org                       |
-|  ----------------------------------------|
-|  > Enrique AGUILAR RICO                  |
-|    P3 - CSA - Valencia                   |
-|    aguilar@unicc.org                      |
-+------------------------------------------+
-```
+Add timeout handling and improve the search reliability:
 
-### Data Mapping (Users table to Form)
+**File to modify:** `src/components/operations/StaffSearchCombobox.tsx`
 
-| Users Field | Separation Form Field | Appointment Form Field |
-|-------------|----------------------|------------------------|
-| `name` | Split to `last_name`, `first_name` | Split to `last_name`, `first_name` |
-| `email` | `email` | `email` |
-| `id` | `user_id` (auto-link) | `user_id` (auto-link) |
-| `current_grade` | `grade` | `grade` |
-| `job_title` | `job_title` | `job_title` |
-| `duty_station` | `duty_station` | `duty_station` |
-| `unit` | `section_unit` | `section_unit` |
-| `line_manager` | `supervisor` | `supervisor` |
-| `worker_type` | `is_international` (Staff = check grade) | `is_international` |
-| `staff_number` | `staff_number` | - |
+### Changes
 
-### Name Parsing Logic
-The `name` field in users is stored as "First LAST" or "LAST, First". Logic:
-```typescript
-// "Szilvia PETKOV" -> last_name: "PETKOV", first_name: "Szilvia"
-// "AGUILAR RICO Enrique" -> detect pattern
-const words = name.split(' ');
-const upperWords = words.filter(w => w === w.toUpperCase());
-const lowerWords = words.filter(w => w !== w.toUpperCase());
-// Usually last name is uppercase: PETKOV, AGUILAR RICO
-```
-
-### International Staff Detection
-- Grade starts with "P" (P1-P5, D1-D2) = International
-- Grade starts with "G" (G1-G7) = Local (General Service)
-
----
-
-## Feature 2: CB Workflow Automation (from previous plan)
-
-When `operation_type = "Separation (CB)"` or `"Individual Consultancy (CB)"`:
-1. Calculate return date: separation date + 1 month
-2. Create linked Appointment (CB) record
-3. Show confirmation toast
-4. Display link indicator on both records
-
----
-
-## Database Changes
-
-### New Columns for Linking
-
-```sql
--- Add linking columns
-ALTER TABLE hr_appointments 
-  ADD COLUMN linked_separation_id UUID REFERENCES hr_separations(id);
-
-ALTER TABLE hr_separations 
-  ADD COLUMN linked_appointment_id UUID REFERENCES hr_appointments(id);
-```
-
----
-
-## UI Implementation
-
-### New Component: StaffSearchCombobox
-
-A reusable combobox that:
-- Searches users table as you type (debounced)
-- Shows name, grade, unit, email in dropdown
-- Returns selected user data for form population
-
-```
-+----------------------------------------------------------+
-|  SEPARATION FORM                                         |
-|  --------------------------------------------------------|
-|  [ Search existing staff... ] or enter manually          |
-|  --------------------------------------------------------|
-|                                                          |
-|  Last Name *     [ PETKOV          ]  (auto-filled)      |
-|  First Name *    [ Szilvia         ]  (auto-filled)      |
-|  Email           [ petkov@unicc.org]  (auto-filled)      |
-|  Staff Number    [ S123456         ]  (auto-filled)      |
-|  Grade           [ P4              ]  (auto-filled)      |
-|  ...                                                     |
-|                                                          |
-|  [ Linked to: Szilvia PETKOV (Staff) ]  <-- indicator    |
-+----------------------------------------------------------+
-```
-
-### CB Type Info Banner
-When "Separation (CB)" is selected:
-
-```
-+----------------------------------------------------------+
-|  ℹ️ Contract Break Selected                               |
-|  An Appointment (CB) will be automatically created       |
-|  for this person's return, dated 1 month after the       |
-|  separation date.                                        |
-+----------------------------------------------------------+
-```
-
----
-
-## Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/components/operations/StaffSearchCombobox.tsx` | Reusable staff search component |
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `supabase/migrations/[timestamp].sql` | Add linking columns to both tables |
-| `src/components/operations/SeparationForm.tsx` | Add staff search, CB info banner |
-| `src/components/operations/AppointmentForm.tsx` | Add staff search |
-| `src/pages/operations/Separations.tsx` | Add CB workflow automation logic |
-
----
-
-## Implementation Details
-
-### StaffSearchCombobox Component
+1. **Add AbortController for request cancellation** - Cancel previous requests when a new search is initiated
+2. **Add request timeout** - Automatically fail after 10 seconds to prevent infinite loading
+3. **Track request ID to prevent race conditions** - Ensure only the latest request updates the state
 
 ```typescript
-interface StaffSearchComboboxProps {
-  onSelect: (user: {
-    id: string;
-    name: string;
-    email: string;
-    grade?: string;
-    job_title?: string;
-    duty_station?: string;
-    section_unit?: string;
-    supervisor?: string;
-    staff_number?: string;
-    is_international: boolean;
-  }) => void;
-}
-```
-
-### Form Integration
-
-In SeparationForm.tsx:
-```typescript
-const handleStaffSelect = (user) => {
-  // Parse name into first/last
-  const { firstName, lastName } = parseName(user.name);
-  
-  form.setValue('last_name', lastName);
-  form.setValue('first_name', firstName);
-  form.setValue('email', user.email);
-  form.setValue('grade', user.grade || '');
-  form.setValue('job_title', user.job_title || '');
-  form.setValue('duty_station', user.duty_station || '');
-  form.setValue('section_unit', user.section_unit || '');
-  form.setValue('supervisor', user.supervisor || '');
-  form.setValue('staff_number', user.staff_number || '');
-  form.setValue('is_international', user.is_international);
-  
-  // Store user_id for linking
-  setSelectedUserId(user.id);
-};
-```
-
-### CB Automation in Separations Page
-
-```typescript
-const createMutation = useMutation({
-  mutationFn: async (data) => {
-    // Create separation
-    const { data: separation, error } = await supabase
-      .from('hr_separations')
-      .insert(separationData)
-      .select()
-      .single();
-
-    // If CB type, create linked appointment
-    if (data.operation_type.includes('(CB)')) {
-      const returnDate = data.tentative_date 
-        ? format(addMonths(parseISO(data.tentative_date), 1), 'yyyy-MM-dd')
-        : null;
-
-      const { data: appointment } = await supabase
-        .from('hr_appointments')
-        .insert({
-          ...copiedFields,
-          operation_type: 'Appointment (CB)',
-          tentative_date: returnDate,
-          recruitment_type: 'CB Return',
-          linked_separation_id: separation.id,
-        })
-        .select()
-        .single();
-
-      // Update separation with link
-      await supabase
-        .from('hr_separations')
-        .update({ linked_appointment_id: appointment.id })
-        .eq('id', separation.id);
-    }
+// Add AbortController to cancel stale requests
+const searchStaff = useCallback(async (query: string, signal?: AbortSignal) => {
+  if (query.length < 2) {
+    setStaff([]);
+    setLoading(false);
+    return;
   }
-});
+
+  setLoading(true);
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, name, email, current_grade, job_title, duty_station, unit, line_manager, staff_number')
+      .or(`name.ilike.%${query}%,email.ilike.%${query}%`)
+      .limit(10)
+      .abortSignal(signal);  // Add abort signal
+
+    if (error) throw error;
+    // ... rest of mapping logic
+  } catch (error) {
+    if (error.name !== 'AbortError') {
+      console.error('Error searching staff:', error);
+    }
+    setStaff([]);
+  } finally {
+    setLoading(false);
+  }
+}, []);
+
+// Update effect with AbortController
+useEffect(() => {
+  const controller = new AbortController();
+  
+  const timer = setTimeout(() => {
+    searchStaff(search, controller.signal);
+  }, 300);
+
+  return () => {
+    clearTimeout(timer);
+    controller.abort();  // Cancel previous request
+  };
+}, [search, searchStaff]);
 ```
 
----
+### Additional Safety: Timeout Fallback
+Add a maximum timeout to ensure loading never gets stuck:
 
-## User Experience Flow
+```typescript
+useEffect(() => {
+  if (loading) {
+    const timeout = setTimeout(() => {
+      setLoading(false);
+      console.warn('Search timed out');
+    }, 10000);  // 10 second max
+    return () => clearTimeout(timeout);
+  }
+}, [loading]);
+```
 
-### Creating a Separation for Existing Staff
-
-1. HR clicks "Add Separation"
-2. Form opens with staff search at top
-3. HR types "PETKOV"
-4. Dropdown shows matching staff
-5. HR selects "Szilvia PETKOV - P4 - Valencia"
-6. All fields auto-populate
-7. Record is automatically linked to user profile
-8. If CB type selected, info banner appears
-9. HR saves - both separation and return appointment created
-
-### Visual Indicators
-
-In the table, show:
-- **Linked to user**: 👤 icon or "Linked" badge
-- **CB pair**: 🔗 icon with tooltip "Linked to Appointment (CB)"
+### Why This Fixes the Issue
+- **AbortController** cancels in-flight requests when the user types more characters, preventing race conditions
+- **Timeout fallback** ensures the UI never gets permanently stuck in loading state
+- **Proper cleanup** prevents memory leaks and stale state updates
 
