@@ -1,90 +1,106 @@
 
+# Fix: Edit Appointment Form Not Pre-Populating
 
-## Fix: Staff Search Stuck on "Searching..."
+## The Problem
+When clicking "Edit Appointment" for Matthew VALENTE (or any appointment), the form opens with empty fields instead of showing the existing data.
 
-### The Problem
-The staff search combobox shows "Searching..." indefinitely when typing a name. Based on the session replay and testing, the query works correctly on the database side but the UI gets stuck in a loading state.
+## Root Cause
+In `AppointmentForm.tsx`, React Hook Form's `defaultValues` are only applied on the **first render** of the form component. When the user:
+1. Opens the dialog for one record
+2. Closes it
+3. Opens it again for a different record
 
-### Root Cause Analysis
-Looking at the `StaffSearchCombobox.tsx` component, there are two potential issues:
+...the form doesn't re-initialize because React Hook Form caches the default values.
 
-1. **No timeout handling** - If the network request hangs or takes too long, there's no timeout to recover
-2. **Debounce effect cleanup issue** - When the search value changes rapidly, multiple requests might be in flight, causing race conditions with the loading state
+## Technical Details
 
-### Solution
-
-Add timeout handling and improve the search reliability:
-
-**File to modify:** `src/components/operations/StaffSearchCombobox.tsx`
-
-### Changes
-
-1. **Add AbortController for request cancellation** - Cancel previous requests when a new search is initiated
-2. **Add request timeout** - Automatically fail after 10 seconds to prevent infinite loading
-3. **Track request ID to prevent race conditions** - Ensure only the latest request updates the state
-
+Current code (lines 78-106):
 ```typescript
-// Add AbortController to cancel stale requests
-const searchStaff = useCallback(async (query: string, signal?: AbortSignal) => {
-  if (query.length < 2) {
-    setStaff([]);
-    setLoading(false);
-    return;
-  }
-
-  setLoading(true);
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, name, email, current_grade, job_title, duty_station, unit, line_manager, staff_number')
-      .or(`name.ilike.%${query}%,email.ilike.%${query}%`)
-      .limit(10)
-      .abortSignal(signal);  // Add abort signal
-
-    if (error) throw error;
-    // ... rest of mapping logic
-  } catch (error) {
-    if (error.name !== 'AbortError') {
-      console.error('Error searching staff:', error);
-    }
-    setStaff([]);
-  } finally {
-    setLoading(false);
-  }
-}, []);
-
-// Update effect with AbortController
-useEffect(() => {
-  const controller = new AbortController();
-  
-  const timer = setTimeout(() => {
-    searchStaff(search, controller.signal);
-  }, 300);
-
-  return () => {
-    clearTimeout(timer);
-    controller.abort();  // Cancel previous request
-  };
-}, [search, searchStaff]);
+const form = useForm<AppointmentFormData>({
+  resolver: zodResolver(appointmentSchema),
+  defaultValues: {
+    last_name: '',
+    first_name: '',
+    // ... other defaults
+    ...initialData,  // This only works on FIRST mount
+  },
+});
 ```
 
-### Additional Safety: Timeout Fallback
-Add a maximum timeout to ensure loading never gets stuck:
+The `...initialData` spread only applies when the form is first created. When `initialData` changes (different appointment being edited), the form keeps the old/default values.
+
+## Solution
+Add a `useEffect` to reset the form whenever `initialData` or `open` changes:
 
 ```typescript
+// Reset form when initialData changes (for edit mode)
 useEffect(() => {
-  if (loading) {
-    const timeout = setTimeout(() => {
-      setLoading(false);
-      console.warn('Search timed out');
-    }, 10000);  // 10 second max
-    return () => clearTimeout(timeout);
+  if (open && initialData) {
+    form.reset({
+      last_name: initialData.last_name || '',
+      first_name: initialData.first_name || '',
+      email: initialData.email || '',
+      operation_type: initialData.operation_type || 'Appointment',
+      status: initialData.status || 'Not started',
+      tentative_date: initialData.tentative_date || '',
+      effective_date: initialData.effective_date || '',
+      job_title: initialData.job_title || '',
+      grade: initialData.grade || '',
+      contract_type: initialData.contract_type || '',
+      duty_station: initialData.duty_station || '',
+      section_unit: initialData.section_unit || '',
+      supervisor: initialData.supervisor || '',
+      old_po: initialData.old_po || '',
+      new_po: initialData.new_po || '',
+      vacancy_reference: initialData.vacancy_reference || '',
+      main_hr_focal_point: initialData.main_hr_focal_point || '',
+      recruitment_type: initialData.recruitment_type || 'Newcomer',
+      is_international: initialData.is_international ?? false,
+      notice_days_required: initialData.notice_days_required ?? 30,
+      comments: initialData.comments || '',
+      onboarding_comments: initialData.onboarding_comments || '',
+      actions_in_hr_plan: initialData.actions_in_hr_plan || '',
+    });
+  } else if (open && !initialData) {
+    // Reset to empty for new appointments
+    form.reset({
+      last_name: '',
+      first_name: '',
+      email: '',
+      operation_type: 'Appointment',
+      status: 'Not started',
+      tentative_date: '',
+      effective_date: '',
+      job_title: '',
+      grade: '',
+      contract_type: '',
+      duty_station: '',
+      section_unit: '',
+      supervisor: '',
+      old_po: '',
+      new_po: '',
+      vacancy_reference: '',
+      main_hr_focal_point: '',
+      recruitment_type: 'Newcomer',
+      is_international: false,
+      notice_days_required: 30,
+      comments: '',
+      onboarding_comments: '',
+      actions_in_hr_plan: '',
+    });
   }
-}, [loading]);
+}, [open, initialData, form]);
 ```
 
-### Why This Fixes the Issue
-- **AbortController** cancels in-flight requests when the user types more characters, preventing race conditions
-- **Timeout fallback** ensures the UI never gets permanently stuck in loading state
-- **Proper cleanup** prevents memory leaks and stale state updates
+## File to Modify
 
+| File | Change |
+|------|--------|
+| `src/components/operations/AppointmentForm.tsx` | Add `useEffect` to reset form on `open`/`initialData` change |
+
+## Expected Result
+After this fix:
+- Clicking "Edit" on Matthew VALENTE will show all his data pre-populated
+- Clicking "Edit" on any other appointment will show that appointment's data
+- Clicking "Add Appointment" will show empty fields
+- Form properly clears/resets between different edit operations
