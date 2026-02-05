@@ -94,10 +94,11 @@ export const StaffSearchCombobox = ({
   const [loading, setLoading] = useState(false);
   const [selectedName, setSelectedName] = useState<string | null>(null);
 
-  // Debounced search
-  const searchStaff = useCallback(async (query: string) => {
+  // Debounced search with AbortController
+  const searchStaff = useCallback(async (query: string, signal?: AbortSignal) => {
     if (query.length < 2) {
       setStaff([]);
+      setLoading(false);
       return;
     }
 
@@ -107,7 +108,8 @@ export const StaffSearchCombobox = ({
         .from('users')
         .select('id, name, email, current_grade, job_title, duty_station, unit, line_manager, staff_number')
         .or(`name.ilike.%${query}%,email.ilike.%${query}%`)
-        .limit(10);
+        .limit(10)
+        .abortSignal(signal);
 
       if (error) throw error;
 
@@ -125,7 +127,11 @@ export const StaffSearchCombobox = ({
       }));
 
       setStaff(mapped);
-    } catch (error) {
+    } catch (error: any) {
+      // Don't log or update state for aborted requests
+      if (error?.name === 'AbortError') {
+        return;
+      }
       console.error('Error searching staff:', error);
       setStaff([]);
     } finally {
@@ -133,14 +139,30 @@ export const StaffSearchCombobox = ({
     }
   }, []);
 
-  // Debounce search
+  // Debounce search with AbortController for request cancellation
   useEffect(() => {
+    const controller = new AbortController();
+    
     const timer = setTimeout(() => {
-      searchStaff(search);
+      searchStaff(search, controller.signal);
     }, 300);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort(); // Cancel any in-flight request
+    };
   }, [search, searchStaff]);
+
+  // Safety timeout to prevent permanently stuck loading state
+  useEffect(() => {
+    if (loading) {
+      const timeout = setTimeout(() => {
+        setLoading(false);
+        console.warn('Staff search timed out');
+      }, 10000);
+      return () => clearTimeout(timeout);
+    }
+  }, [loading]);
 
   const handleSelect = (staffMember: StaffMember) => {
     setSelectedName(staffMember.name);
