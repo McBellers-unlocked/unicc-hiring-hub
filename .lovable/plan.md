@@ -1,146 +1,170 @@
 
-## Plan: Add HR Operations Dropdown with Operations Pages
+
+## Updated Plan: HR Appointments Tracker with Users Table Integration
 
 ### Overview
-Add a new "HR Operations" dropdown menu in the header navigation (between "Applications" and "My Career") with 12 sub-pages for various HR operations functions.
+Build the `/operations/appointments` page as a workflow tracker that **links to but doesn't duplicate** the `users` table data. The appointments table tracks the onboarding process before and during staff arrival.
 
 ---
 
-### 1. New Routes and Pages
+### Data Model Clarification
 
-Create 12 placeholder pages under `/operations/*`:
+| Table | Purpose |
+|-------|---------|
+| `users` | Master staff directory (populated by CSV imports) |
+| `hr_appointments` | Workflow tracker for onboarding new/returning staff |
 
-| Route | Page Component | Display Name |
-|-------|----------------|--------------|
-| `/operations/separations` | `Separations.tsx` | Separations |
-| `/operations/appointments` | `Appointments.tsx` | Appointments |
-| `/operations/loans-secondments` | `LoansSecondments.tsx` | Loans and Secondments |
-| `/operations/unv` | `UNVOperations.tsx` | UNV |
-| `/operations/interns` | `Interns.tsx` | Interns |
-| `/operations/stdas` | `STDAs.tsx` | STDAs |
-| `/operations/pd-revisions` | `PDRevisions.tsx` | PD Revisions and Promotions |
-| `/operations/part-time` | `PartTime.tsx` | Part Time |
-| `/operations/slwop` | `SLWOP.tsx` | SLWOP |
-| `/operations/protocol-services` | `ProtocolServices.tsx` | Protocol Services |
-| `/operations/home-leave` | `HomeLeave.tsx` | Home Leave |
-| `/operations/contract-extensions` | `ContractExtensions.tsx` | Contract Extensions |
+**Relationship:** Optional link via `user_id` + lookup by `email`
 
 ---
 
-### 2. Header Navigation Update
+### Database Schema
 
-Add new dropdown in `Layout.tsx` after "Applications" link (around line 229):
+```sql
+CREATE TABLE hr_appointments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  
+  -- Person identification (may not be in users table yet)
+  email TEXT,                    -- For lookup/linking
+  user_id UUID REFERENCES users(id),  -- Linked after arrival (optional)
+  last_name TEXT NOT NULL,
+  first_name TEXT NOT NULL,
+  
+  -- Operation tracking
+  operation_type TEXT NOT NULL CHECK (operation_type IN (
+    'Appointment', 'Appointment (CB)', 'Direct Appointment'
+  )),
+  status TEXT DEFAULT 'In progress' CHECK (status IN (
+    'In progress', 'Completed', 'On hold', 'Cancelled'
+  )),
+  
+  -- Dates
+  tentative_date DATE,           -- Expected start
+  effective_date DATE,           -- Actual start
+  
+  -- Position details (from spreadsheet, may differ from users table during transition)
+  job_title TEXT,
+  grade TEXT,
+  contract_type TEXT,
+  duty_station TEXT,
+  section_unit TEXT,
+  supervisor TEXT,
+  old_po TEXT,
+  new_po TEXT,
+  vacancy_reference TEXT,
+  
+  -- HR tracking
+  main_hr_focal_point TEXT,
+  recruitment_type TEXT DEFAULT 'Newcomer',
+  is_international BOOLEAN DEFAULT FALSE,
+  notice_days_required INTEGER DEFAULT 30,
+  
+  -- Notes & comments
+  comments TEXT,
+  onboarding_comments TEXT,
+  actions_in_hr_plan TEXT,
+  
+  -- Metadata
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  created_by UUID REFERENCES auth.users(id)
+);
 
-```text
-+--------------------------------------------------+
-| Dashboard | Jobs | Life at UNICC | Pipeline v |
-| Manage v | Applications | HR Operations v |
-| My Career v |
-+--------------------------------------------------+
-```
+-- Enable RLS
+ALTER TABLE hr_appointments ENABLE ROW LEVEL SECURITY;
 
-The dropdown will include:
-- Icon: `Cog` or `ClipboardList` 
-- All 12 operation links organized in a single list
-
----
-
-### 3. Page Structure
-
-Each placeholder page will follow a consistent template:
-
-```tsx
-import { Layout } from '@/components/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { IconName } from 'lucide-react';
-
-const PageName = () => {
-  return (
-    <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Page Title</h1>
-          <p className="text-muted-foreground mt-1">
-            Description of what this page will contain
-          </p>
-        </div>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Coming Soon</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              This page is under development.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    </Layout>
+-- Policy for HR access
+CREATE POLICY "HR users can manage appointments" ON hr_appointments
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM users 
+      WHERE id = auth.uid() 
+      AND role IN ('Admin', 'HR Assistant', 'Chief of HR')
+    )
   );
-};
 
-export default PageName;
+-- Index for email lookups
+CREATE INDEX idx_hr_appointments_email ON hr_appointments(email);
 ```
 
 ---
 
-### 4. Files to Create
+### User Linking Logic
 
-| File Path | Purpose |
-|-----------|---------|
-| `src/pages/operations/Separations.tsx` | Staff separations management |
-| `src/pages/operations/Appointments.tsx` | New appointments tracking |
-| `src/pages/operations/LoansSecondments.tsx` | Loans and secondments |
-| `src/pages/operations/UNVOperations.tsx` | UN Volunteers operations |
-| `src/pages/operations/Interns.tsx` | Intern management |
-| `src/pages/operations/STDAs.tsx` | Short-term duty assignments |
-| `src/pages/operations/PDRevisions.tsx` | PD revisions and promotions |
-| `src/pages/operations/PartTime.tsx` | Part-time arrangements |
-| `src/pages/operations/SLWOP.tsx` | Special leave without pay |
-| `src/pages/operations/ProtocolServices.tsx` | Protocol services |
-| `src/pages/operations/HomeLeave.tsx` | Home leave management |
-| `src/pages/operations/ContractExtensions.tsx` | Contract extensions |
+**When creating an appointment:**
+```typescript
+// Check if user already exists (for CB returns)
+const { data: existingUser } = await supabase
+  .from('users')
+  .select('id, name')
+  .eq('email', appointmentEmail)
+  .maybeSingle();
+
+// If found, link it
+if (existingUser) {
+  appointmentData.user_id = existingUser.id;
+}
+```
+
+**In the UI:**
+- If `user_id` exists → Show "View Profile" link
+- If not → Show "Not yet in system" badge
 
 ---
 
-### 5. Files to Modify
+### UI Features
 
-| File | Changes |
+**1. Profile Linking Indicator**
+```text
+| Name             | In System? | ... |
+|------------------|------------|-----|
+| BURSIK Nikola    | ✓ Linked   | ... | ← Click opens profile
+| VILLA SOSPEDRA   | ○ Pending  | ... | ← No link yet
+```
+
+**2. Auto-Link Option**
+- Button to "Link to existing user" if email match found
+- Automatic linking when `effective_date` passes and user appears in `users`
+
+**3. Data Comparison (for CB returns)**
+- Show current `users` data vs appointment data
+- Highlight differences (e.g., new position, new grade)
+
+---
+
+### Workflow Integration
+
+**Import Staff → Appointments sync:**
+1. After staff import, run a query to find appointments with matching emails
+2. Auto-link `user_id` for any matches
+3. Optionally mark as "Completed" if past effective date
+
+**This keeps operations tracking separate from master data while allowing visibility.**
+
+---
+
+### Files to Create
+
+| File | Purpose |
 |------|---------|
-| `src/components/Layout.tsx` | Add HR Operations dropdown with all 12 links |
-| `src/App.tsx` | Add routes for all 12 operations pages |
+| `supabase/migrations/[timestamp]_create_hr_appointments.sql` | Database table with user link |
+| `src/components/operations/AppointmentForm.tsx` | Add/Edit form with user lookup |
+| `src/components/operations/AppointmentStatusBadge.tsx` | Status + user link indicator |
+| `src/components/operations/AppointmentFilters.tsx` | Filter controls |
+
+### Files to Modify
+
+| File | Purpose |
+|------|---------|
+| `src/pages/operations/Appointments.tsx` | Main page with table, user linking |
 
 ---
 
-### 6. Navigation Dropdown Implementation
+### Benefits of This Approach
 
-```tsx
-{hasAdminAccess && (
-  <DropdownMenu>
-    <DropdownMenuTrigger className="flex items-center hover:opacity-80 transition-colors py-2 focus:outline-none">
-      <ClipboardList className="w-4 h-4 mr-1" />
-      HR Operations
-      <ChevronDown className="w-3 h-3 ml-1" />
-    </DropdownMenuTrigger>
-    <DropdownMenuContent align="start" className="bg-popover border border-border shadow-lg">
-      <DropdownMenuItem asChild>
-        <Link to="/operations/separations">Separations</Link>
-      </DropdownMenuItem>
-      <DropdownMenuItem asChild>
-        <Link to="/operations/appointments">Appointments</Link>
-      </DropdownMenuItem>
-      <!-- ... remaining 10 items ... -->
-    </DropdownMenuContent>
-  </DropdownMenu>
-)}
-```
+1. **No data duplication** - `users` remains the source of truth for staff data
+2. **Pre-arrival tracking** - Track people before they exist in the system
+3. **Audit trail** - Keep history of onboarding process separate from profile
+4. **CB return visibility** - See historical appointments for returning staff
+5. **Works with existing imports** - No changes needed to import functions
 
----
-
-### Implementation Order
-
-1. Create `src/pages/operations/` directory
-2. Create all 12 placeholder page components
-3. Add routes to `App.tsx`
-4. Add HR Operations dropdown to `Layout.tsx`
