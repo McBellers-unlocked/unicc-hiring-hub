@@ -25,9 +25,9 @@ const OPERATION_TYPES = [
 ];
 
 const STATUSES = [
+  'Not started',
   'In progress',
   'Completed',
-  'On hold',
   'Cancelled',
 ];
 

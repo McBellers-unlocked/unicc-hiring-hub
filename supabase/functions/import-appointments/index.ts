@@ -251,7 +251,7 @@ Deno.serve(async (req) => {
         last_name: apt.last_name,
         first_name: apt.first_name,
         operation_type: apt.operation_type,
-        status: 'In progress',
+        status: 'Not started',
         created_by: user.id,
       };
 

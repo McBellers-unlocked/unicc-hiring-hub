@@ -1343,6 +1343,41 @@ export type Database = {
           },
         ]
       }
+      hr_appointment_comments: {
+        Row: {
+          appointment_id: string
+          author_id: string | null
+          comment_text: string
+          created_at: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          appointment_id: string
+          author_id?: string | null
+          comment_text: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          appointment_id?: string
+          author_id?: string | null
+          comment_text?: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_appointment_comments_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "hr_appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_appointments: {
         Row: {
           actions_in_hr_plan: string | null

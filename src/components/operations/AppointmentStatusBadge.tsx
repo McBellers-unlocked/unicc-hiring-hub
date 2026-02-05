@@ -37,8 +37,8 @@ export const getStatusInfo = (
   if (status === 'Cancelled') {
     return { label: 'Cancelled', variant: 'secondary' };
   }
-  if (status === 'On hold') {
-    return { label: 'On hold', variant: 'outline' };
+  if (status === 'Not started') {
+    return { label: 'Not started', variant: 'outline' };
   }
   
   // In progress - check days
