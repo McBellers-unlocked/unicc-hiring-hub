@@ -29,7 +29,7 @@ const appointmentSchema = z.object({
   first_name: z.string().min(1, 'First name is required'),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
   operation_type: z.enum(['Appointment', 'Appointment (CB)', 'Direct Appointment']),
-  status: z.enum(['In progress', 'Completed', 'On hold', 'Cancelled']),
+  status: z.enum(['Not started', 'In progress', 'Completed', 'Cancelled']),
   tentative_date: z.string().optional().or(z.literal('')),
   effective_date: z.string().optional().or(z.literal('')),
   job_title: z.string().optional().or(z.literal('')),
@@ -74,7 +74,7 @@ export const AppointmentForm = ({
       first_name: '',
       email: '',
       operation_type: 'Appointment',
-      status: 'In progress',
+      status: 'Not started',
       tentative_date: '',
       effective_date: '',
       job_title: '',
@@ -379,9 +379,9 @@ export const AppointmentForm = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            <SelectItem value="Not started">Not started</SelectItem>
                             <SelectItem value="In progress">In progress</SelectItem>
                             <SelectItem value="Completed">Completed</SelectItem>
-                            <SelectItem value="On hold">On hold</SelectItem>
                             <SelectItem value="Cancelled">Cancelled</SelectItem>
                           </SelectContent>
                         </Select>

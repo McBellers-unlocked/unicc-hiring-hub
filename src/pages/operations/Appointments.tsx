@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,9 +15,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { UserPlus, Plus, MoreHorizontal, CheckCircle, Pencil, Trash2, Calendar, Upload } from 'lucide-react';
+import { UserPlus, Plus, MoreHorizontal, CheckCircle, Pencil, Trash2, Calendar, Upload, ChevronRight, ChevronDown, Link2, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
@@ -40,6 +41,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ImportAppointmentsDialog } from '@/components/operations/ImportAppointmentsDialog';
+import { AppointmentComments, LastCommentPreview } from '@/components/operations/AppointmentComments';
+import { LinkUserDialog } from '@/components/operations/LinkUserDialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface HrAppointment {
   id: string;
@@ -76,6 +80,8 @@ const Appointments = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<HrAppointment | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [linkUserDialog, setLinkUserDialog] = useState<{ open: boolean; appointmentId: string; name: string } | null>(null);
   const [filters, setFilters] = useState<AppointmentFiltersState>({
     search: '',
     operationType: '',
@@ -84,6 +90,16 @@ const Appointments = () => {
     hrFocalPoint: '',
   });
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+
+  // Toggle row expansion
+  const toggleRow = (id: string) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   // Fetch appointments
   const { data: appointments = [], isLoading } = useQuery({
@@ -376,6 +392,7 @@ const Appointments = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[40px]"></TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Tentative Date</TableHead>
@@ -390,94 +407,133 @@ const Appointments = () => {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       Loading appointments...
                     </TableCell>
                   </TableRow>
                 ) : filteredAppointments.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       No appointments found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredAppointments.map((apt) => (
-                    <TableRow key={apt.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{apt.last_name}</p>
-                          <p className="text-sm text-muted-foreground">{apt.first_name}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <OperationTypeBadge type={apt.operation_type} />
-                      </TableCell>
-                      <TableCell>
-                        {apt.tentative_date ? (
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-sm">
-                              {format(parseISO(apt.tentative_date), 'dd MMM yyyy')}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <AppointmentStatusBadge
-                          status={apt.status}
-                          tentativeDate={apt.tentative_date}
-                          noticeDaysRequired={apt.notice_days_required}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="text-sm">{apt.job_title || '—'}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {[apt.grade, apt.section_unit].filter(Boolean).join(' • ')}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{apt.duty_station || '—'}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{apt.main_hr_focal_point || '—'}</span>
-                      </TableCell>
-                      <TableCell>
-                        <UserLinkBadge userId={apt.user_id} email={apt.email} />
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
+                  filteredAppointments.map((apt) => {
+                    const isExpanded = expandedRows.has(apt.id);
+                    return (
+                      <Fragment key={apt.id}>
+                        <TableRow className="cursor-pointer hover:bg-muted/50" onClick={() => toggleRow(apt.id)}>
+                          <TableCell className="w-[40px]">
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); toggleRow(apt.id); }}>
+                              {isExpanded ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {apt.status !== 'Completed' && (
-                              <DropdownMenuItem onClick={() => markCompleteMutation.mutate(apt.id)}>
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Mark Complete
-                              </DropdownMenuItem>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{apt.last_name}</p>
+                              <p className="text-sm text-muted-foreground">{apt.first_name}</p>
+                              {!isExpanded && <LastCommentPreview appointmentId={apt.id} />}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <OperationTypeBadge type={apt.operation_type} />
+                          </TableCell>
+                          <TableCell>
+                            {apt.tentative_date ? (
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-sm">
+                                  {format(parseISO(apt.tentative_date), 'dd MMM yyyy')}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
                             )}
-                            <DropdownMenuItem onClick={() => handleEdit(apt)}>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => setDeleteConfirmId(apt.id)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                          </TableCell>
+                          <TableCell>
+                            <AppointmentStatusBadge
+                              status={apt.status}
+                              tentativeDate={apt.tentative_date}
+                              noticeDaysRequired={apt.notice_days_required}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="text-sm">{apt.job_title || '—'}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {[apt.grade, apt.section_unit].filter(Boolean).join(' • ')}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm">{apt.duty_station || '—'}</span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm">{apt.main_hr_focal_point || '—'}</span>
+                          </TableCell>
+                          <TableCell>
+                            <UserLinkBadge userId={apt.user_id} email={apt.email} />
+                          </TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {apt.status !== 'Completed' && (
+                                  <DropdownMenuItem onClick={() => markCompleteMutation.mutate(apt.id)}>
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Mark Complete
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onClick={() => handleEdit(apt)}>
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                {!apt.user_id && (
+                                  <DropdownMenuItem onClick={() => setLinkUserDialog({ 
+                                    open: true, 
+                                    appointmentId: apt.id, 
+                                    name: `${apt.first_name} ${apt.last_name}` 
+                                  })}>
+                                    <Link2 className="h-4 w-4 mr-2" />
+                                    Link to User
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onClick={() => toggleRow(apt.id)}>
+                                  <MessageSquare className="h-4 w-4 mr-2" />
+                                  {isExpanded ? 'Hide Comments' : 'View Comments'}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => setDeleteConfirmId(apt.id)}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                        {isExpanded && (
+                          <TableRow>
+                            <TableCell colSpan={10} className="bg-muted/20 p-0">
+                              <div className="p-4">
+                                <AppointmentComments appointmentId={apt.id} />
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </Fragment>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -495,7 +551,7 @@ const Appointments = () => {
           first_name: editingAppointment.first_name,
           email: editingAppointment.email || '',
           operation_type: editingAppointment.operation_type as 'Appointment' | 'Appointment (CB)' | 'Direct Appointment',
-          status: editingAppointment.status as 'In progress' | 'Completed' | 'On hold' | 'Cancelled',
+          status: editingAppointment.status as 'Not started' | 'In progress' | 'Completed' | 'Cancelled',
           tentative_date: editingAppointment.tentative_date || '',
           effective_date: editingAppointment.effective_date || '',
           job_title: editingAppointment.job_title || '',
@@ -547,6 +603,16 @@ const Appointments = () => {
           queryClient.invalidateQueries({ queryKey: ['hr-appointments'] });
         }}
       />
+
+      {/* Link User Dialog */}
+      {linkUserDialog && (
+        <LinkUserDialog
+          open={linkUserDialog.open}
+          onOpenChange={(open) => !open && setLinkUserDialog(null)}
+          appointmentId={linkUserDialog.appointmentId}
+          appointmentName={linkUserDialog.name}
+        />
+      )}
     </Layout>
   );
 };
