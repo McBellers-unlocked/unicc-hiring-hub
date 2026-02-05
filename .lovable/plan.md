@@ -1,113 +1,217 @@
 
+# Separations Management Page
 
-## Plan: Fix Overdue Date Calculation
-
-### The Bug
-
-The current "overdue" calculation is based on when HR should have been **notified** (tentative_date minus notice_days_required), not the actual tentative start date.
-
-**Example with current logic:**
-- Tentative Date: Feb 3, 2026
-- Notice Days Required: 30
-- Notify By Date: Jan 4, 2026 (Feb 3 - 30 days)
-- Today: Feb 5, 2026
-- Days to Notify: -32 (Jan 4 was 32 days ago)
-- Result: "32d overdue" ❌
-
-**What it should show:**
-- If the start date (Feb 3) is in the past and status is "In progress" → "2d overdue"
-- If the start date is in the future → "X days remaining" until start
+## Overview
+Build a full-featured Separations management page following the same UX patterns as the Appointments page, with expandable rows, comments, status tracking, and a rich dashboard for HR teams.
 
 ---
 
-### Solution Options
+## Data Analysis from Spreadsheet
 
-**Option A: Show days until/since start date (Recommended)**
-- Calculate days relative to the actual `tentative_date`
-- If passed and still "In progress" → show "Xd overdue"
-- If upcoming → show "Xd remaining"
+### Separation Types Identified
+| Type | Description |
+|------|-------------|
+| **Separation (CB)** | Contract Break - temporary break, staff returns later |
+| **Separation** | Permanent separation (abolition, non-renewal) |
+| **Resignation** | Voluntary departure |
+| **Separation - Retirement** | Voluntary retirement |
+| **Individual Consultancy (CB)** | Consultant contract break |
+| **Individual Consultancy Separation** | Consultant exit |
+| **Individual Consultancy Extension** | Extension ending |
+| **Internship Separation** | Intern departure |
+| **UNV - Separation** | UNV volunteer departure |
+| **Canceled** | Separation was cancelled |
 
-**Option B: Dual indicator**
-- Show notification deadline separately
-- Show start date deadline separately
+### Status Values
+1. Not started
+2. In progress  
+3. Completed (mapped from "6. Completed")
+4. Cancelled (mapped from "5. Cancelled")
+
+### Reason Types
+- **Voluntary**: Resignation, Retirement
+- **Non voluntary**: Contract not renewed, Abolition, Contract break
+
+### Event Types
+- **Exit**: Permanent departure
+- **ContractBreak**: Temporary, staff returns
 
 ---
 
-### Implementation (Option A)
+## Database Design
 
-**Update `calculateDaysToNotify` to `calculateDaysUntilStart`:**
+### New Table: `hr_separations`
 
-```typescript
-export const calculateDaysUntilStart = (
-  tentativeDate: string | null | undefined
-): number | null => {
-  if (!tentativeDate) return null;
-  
-  const startDate = parseISO(tentativeDate);
-  const today = new Date();
-  
-  // Normalize both dates to start of day for accurate day comparison
-  today.setHours(0, 0, 0, 0);
-  startDate.setHours(0, 0, 0, 0);
-  
-  return differenceInDays(startDate, today);
-};
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| user_id | UUID | Link to users table (nullable) |
+| email | TEXT | Staff email |
+| last_name | TEXT | Required |
+| first_name | TEXT | Required |
+| operation_type | TEXT | Separation type (Separation, Separation (CB), Resignation, etc.) |
+| reason | TEXT | Voluntary / Non voluntary |
+| status | TEXT | Not started, In progress, Completed, Cancelled |
+| job_title | TEXT | Position held |
+| grade | TEXT | G3, G4, P2, P3, etc. |
+| contract_type | TEXT | Temporary, Continuing, Fixed term, Intern, UNV |
+| duty_station | TEXT | Valencia, Brindisi, New York, Remote, etc. |
+| pd_number | TEXT | Position Description number |
+| supervisor | TEXT | Supervisor name |
+| section_unit | TEXT | Department/unit |
+| supervisor_staff_number | TEXT | Supervisor ID |
+| separation_type | TEXT | Exit or ContractBreak |
+| event_type | TEXT | Exit or ContractBreak |
+| tentative_date | DATE | Planned last working day |
+| effective_date | DATE | Actual separation date |
+| is_international | BOOLEAN | International vs local staff |
+| notice_days_required | INTEGER | 30 or 45 or 90 days |
+| staff_number | TEXT | Employee ID (S123456) |
+| main_hr_focal_point | TEXT | Assigned HR person |
+| comments | TEXT | General notes |
+| actions_in_hr_plan | TEXT | Actions taken/planned |
+| clearance_status | TEXT | Clearance progress tracking |
+| created_at | TIMESTAMPTZ | |
+| updated_at | TIMESTAMPTZ | |
+
+### New Table: `hr_separation_comments`
+Same structure as `hr_appointment_comments` for threaded comments.
+
+---
+
+## UI Design
+
+### Dashboard Header with Stats Cards
+
+```text
++------------------+------------------+------------------+------------------+
+|    Total: 145    |  In Progress: 8  |   Overdue: 12    |  Completed: 120  |
+|                  |                  |   (past due)     |                  |
++------------------+------------------+------------------+------------------+
 ```
 
-**Update `getStatusInfo`:**
+### Filters Bar
 
-```typescript
-export const getStatusInfo = (
-  status: string,
-  daysUntilStart: number | null
-): { label: string; variant: ...; pulse?: boolean } => {
-  if (status === 'Completed') {
-    return { label: 'Completed', variant: 'default' };
-  }
-  if (status === 'Cancelled') {
-    return { label: 'Cancelled', variant: 'secondary' };
-  }
-  if (status === 'Not started') {
-    return { label: 'Not started', variant: 'outline' };
-  }
-  
-  // In progress - check days until start
-  if (daysUntilStart !== null && daysUntilStart < 0) {
-    // Start date has passed but still "In progress"
-    return { 
-      label: `${Math.abs(daysUntilStart)}d overdue`, 
-      variant: 'destructive',
-      pulse: true 
-    };
-  }
-  if (daysUntilStart !== null && daysUntilStart <= 7) {
-    return { label: `${daysUntilStart}d remaining`, variant: 'secondary' };
-  }
-  
-  return { label: 'In progress', variant: 'outline' };
-};
+```text
+[ Search by name... ] [ Operation Type v ] [ Status v ] [ Duty Station v ] [ HR Focal Point v ] [ Clear ]
+                                                                            [ + Add Separation ] [ Import ]
 ```
+
+### Main Table with Expandable Rows
+
+```text
+| > | Name           | Type          | Reason      | Date       | Status      | HR Focal  | Comments |
+|---|----------------|---------------|-------------|------------|-------------|-----------|----------|
+| v | AIELLO Ilaria  | Separation CB | Non vol.    | 30 Sep 26  | Not started | L. Rodenas| 2        |
+|   +----------------+---------------+-------------+------------+-------------+-----------+----------+
+|   | Comments (2)                                                                                    |
+|   | - Staff needs break after parental leave. Extended due to TA.                                   |
+|   | - [Add new comment...]                                                                          |
+|   +------------------------------------------------------------------------------------------------+
+| > | SROUR Mohamed  | Separation CB | Non vol.    | 07 Jul 26  | Not started |           | 0        |
+| > | PUIG Enrique   | Resignation   | Non vol.    | 07 Jan 26  | In progress | L. Rodenas| 1        |
+```
+
+### Row Actions Dropdown
+- Edit separation
+- Link to user (if not linked)
+- Mark as completed
+- Mark as cancelled
+- Delete
+
+### Expanded Row Content
+- **Comments section** with add new comment capability
+- **Clearance checklist** (future enhancement)
+- **Timeline of actions** from "Actions In HR Plan" field
 
 ---
 
-### Files to Modify
+## Key Features
 
-| File | Changes |
+### 1. Status-Based Badges with Overdue Calculation
+Same logic as Appointments - calculate days until/since effective date:
+- Past date + "In progress" = "Xd overdue" (red, pulsing)
+- Future date within 7 days = "Xd remaining" (yellow)
+- Otherwise show status
+
+### 2. Separation Type Color Coding
+| Type | Color |
+|------|-------|
+| Resignation | Blue |
+| Retirement | Purple |
+| Contract Break | Orange |
+| Separation (permanent) | Red |
+| Internship | Green |
+| Cancelled | Gray |
+
+### 3. Import from Excel
+Reuse same import pattern as Appointments:
+- Upload XLSX/CSV
+- Auto-detect headers
+- Map columns
+- Validate data
+- Show warnings for issues
+
+### 4. Comments System
+- Expandable row shows all comments
+- Last comment preview in table
+- Add new comment inline
+- Author + timestamp display
+
+### 5. User Linking
+- "Link to User" action to connect separation to staff member in system
+- Search by name functionality
+
+---
+
+## Files to Create
+
+| File | Purpose |
 |------|---------|
-| `src/components/operations/AppointmentStatusBadge.tsx` | Fix date calculation logic |
+| `supabase/migrations/[timestamp]_create_separations.sql` | Database tables |
+| `src/pages/operations/Separations.tsx` | Main page (replace placeholder) |
+| `src/components/operations/SeparationForm.tsx` | Add/edit form dialog |
+| `src/components/operations/SeparationFilters.tsx` | Filter controls |
+| `src/components/operations/SeparationStatusBadge.tsx` | Status + type badges |
+| `src/components/operations/SeparationComments.tsx` | Comments component |
+| `src/components/operations/ImportSeparationsDialog.tsx` | Import dialog |
+| `supabase/functions/import-separations/index.ts` | Import edge function |
 
 ---
 
-### Result After Fix
+## Files to Reuse/Extend
 
-- Tentative Date: Feb 3, 2026
-- Today: Feb 5, 2026
-- Days Until Start: -2 (Feb 3 was 2 days ago)
-- Result: "2d overdue" ✅
+| File | What to Reuse |
+|------|---------------|
+| `src/components/operations/LinkUserDialog.tsx` | Reuse directly |
+| `src/components/operations/AppointmentStatusBadge.tsx` | Pattern for overdue calculation |
 
 ---
 
-### Note on `noticeDaysRequired`
+## Implementation Order
 
-The `noticeDaysRequired` field can still be useful for a separate "notification reminder" feature, but it shouldn't drive the overdue status. The overdue badge should reflect whether the actual start date has passed.
+1. **Database migration** - Create `hr_separations` and `hr_separation_comments` tables
+2. **Status badge component** - Separation-specific styling
+3. **Filters component** - With separation-specific options
+4. **Form component** - Add/edit separation dialog
+5. **Comments component** - Based on Appointments pattern
+6. **Main page** - Replace placeholder with full implementation
+7. **Import function** - Edge function for Excel import
+8. **Import dialog** - UI for uploading files
+
+---
+
+## Technical Notes
+
+### Status Mapping from Spreadsheet
+The spreadsheet uses numbered statuses like "1. Not started", "2. In progress", etc. The import function should strip the number prefix.
+
+### Date Parsing
+Same Excel serial date handling as Appointments import - values like `45210` need to be converted.
+
+### Separation vs Exit
+- **separation_type = "ContractBreak"**: Staff will return (temporary)
+- **separation_type = "Exit"**: Staff leaves permanently
+
+This affects which clearance steps are required.
 
