@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,7 +23,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, Info, User } from 'lucide-react';
+import { StaffSearchCombobox, StaffMember, parseName } from './StaffSearchCombobox';
+import { Badge } from '@/components/ui/badge';
 
 const separationSchema = z.object({
   last_name: z.string().min(1, 'Last name is required'),
@@ -52,7 +56,9 @@ const separationSchema = z.object({
   clearance_status: z.string().optional().or(z.literal('')),
 });
 
-export type SeparationFormData = z.infer<typeof separationSchema>;
+export type SeparationFormData = z.infer<typeof separationSchema> & {
+  selectedUserId?: string | null;
+};
 
 interface SeparationFormProps {
   open: boolean;
@@ -92,6 +98,9 @@ export const SeparationForm = ({
   initialData,
   isLoading,
 }: SeparationFormProps) => {
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [linkedStaffName, setLinkedStaffName] = useState<string | null>(null);
+
   const form = useForm<SeparationFormData>({
     resolver: zodResolver(separationSchema),
     defaultValues: {
@@ -124,9 +133,32 @@ export const SeparationForm = ({
     },
   });
 
+  const operationType = form.watch('operation_type');
+  const isCBType = operationType.includes('(CB)');
+
+  const handleStaffSelect = (staff: StaffMember) => {
+    const { firstName, lastName } = parseName(staff.name);
+    
+    form.setValue('last_name', lastName);
+    form.setValue('first_name', firstName);
+    form.setValue('email', staff.email || '');
+    form.setValue('grade', staff.grade || '');
+    form.setValue('job_title', staff.job_title || '');
+    form.setValue('duty_station', staff.duty_station || '');
+    form.setValue('section_unit', staff.section_unit || '');
+    form.setValue('supervisor', staff.supervisor || '');
+    form.setValue('staff_number', staff.staff_number || '');
+    form.setValue('is_international', staff.is_international);
+    
+    setSelectedUserId(staff.id);
+    setLinkedStaffName(staff.name);
+  };
+
   const handleSubmit = async (data: SeparationFormData) => {
-    await onSubmit(data);
+    await onSubmit({ ...data, selectedUserId });
     form.reset();
+    setSelectedUserId(null);
+    setLinkedStaffName(null);
   };
 
   const isEditing = !!initialData?.last_name;
@@ -151,6 +183,37 @@ export const SeparationForm = ({
               </TabsList>
 
               <TabsContent value="person" className="space-y-4 mt-4">
+                {/* Staff Search */}
+                {!isEditing && (
+                  <div className="space-y-2">
+                    <FormLabel>Search Existing Staff</FormLabel>
+                    <StaffSearchCombobox
+                      onSelect={handleStaffSelect}
+                      selectedStaffId={selectedUserId}
+                    />
+                    {linkedStaffName && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <User className="h-4 w-4" />
+                        <span>Linked to: <Badge variant="outline">{linkedStaffName}</Badge></span>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Search by name or email to auto-fill fields, or enter details manually below
+                    </p>
+                  </div>
+                )}
+
+                {/* CB Info Banner */}
+                {isCBType && (
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>Contract Break Selected:</strong> An Appointment (CB) will be automatically created 
+                      for this person's return, dated 1 month after the separation date.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}

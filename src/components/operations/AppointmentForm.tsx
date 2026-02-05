@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,7 +23,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
+import { Loader2, User } from 'lucide-react';
+import { StaffSearchCombobox, StaffMember, parseName } from './StaffSearchCombobox';
+import { Badge } from '@/components/ui/badge';
 
 const appointmentSchema = z.object({
   last_name: z.string().min(1, 'Last name is required'),
@@ -50,7 +53,9 @@ const appointmentSchema = z.object({
   actions_in_hr_plan: z.string().optional().or(z.literal('')),
 });
 
-export type AppointmentFormData = z.infer<typeof appointmentSchema>;
+export type AppointmentFormData = z.infer<typeof appointmentSchema> & {
+  selectedUserId?: string | null;
+};
 
 interface AppointmentFormProps {
   open: boolean;
@@ -67,6 +72,9 @@ export const AppointmentForm = ({
   initialData,
   isLoading,
 }: AppointmentFormProps) => {
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [linkedStaffName, setLinkedStaffName] = useState<string | null>(null);
+
   const form = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
@@ -97,9 +105,28 @@ export const AppointmentForm = ({
     },
   });
 
+  const handleStaffSelect = (staff: StaffMember) => {
+    const { firstName, lastName } = parseName(staff.name);
+    
+    form.setValue('last_name', lastName);
+    form.setValue('first_name', firstName);
+    form.setValue('email', staff.email || '');
+    form.setValue('grade', staff.grade || '');
+    form.setValue('job_title', staff.job_title || '');
+    form.setValue('duty_station', staff.duty_station || '');
+    form.setValue('section_unit', staff.section_unit || '');
+    form.setValue('supervisor', staff.supervisor || '');
+    form.setValue('is_international', staff.is_international);
+    
+    setSelectedUserId(staff.id);
+    setLinkedStaffName(staff.name);
+  };
+
   const handleSubmit = async (data: AppointmentFormData) => {
-    await onSubmit(data);
+    await onSubmit({ ...data, selectedUserId });
     form.reset();
+    setSelectedUserId(null);
+    setLinkedStaffName(null);
   };
 
   const isEditing = !!initialData?.last_name;
@@ -124,6 +151,26 @@ export const AppointmentForm = ({
               </TabsList>
 
               <TabsContent value="person" className="space-y-4 mt-4">
+                {/* Staff Search */}
+                {!isEditing && (
+                  <div className="space-y-2">
+                    <FormLabel>Search Existing Staff</FormLabel>
+                    <StaffSearchCombobox
+                      onSelect={handleStaffSelect}
+                      selectedStaffId={selectedUserId}
+                    />
+                    {linkedStaffName && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <User className="h-4 w-4" />
+                        <span>Linked to: <Badge variant="outline">{linkedStaffName}</Badge></span>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Search by name or email to auto-fill fields, or enter details manually below
+                    </p>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
