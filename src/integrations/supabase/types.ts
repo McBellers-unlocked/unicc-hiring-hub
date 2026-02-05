@@ -1394,6 +1394,7 @@ export type Database = {
           is_international: boolean | null
           job_title: string | null
           last_name: string
+          linked_separation_id: string | null
           main_hr_focal_point: string | null
           new_po: string | null
           notice_days_required: number | null
@@ -1424,6 +1425,7 @@ export type Database = {
           is_international?: boolean | null
           job_title?: string | null
           last_name: string
+          linked_separation_id?: string | null
           main_hr_focal_point?: string | null
           new_po?: string | null
           notice_days_required?: number | null
@@ -1454,6 +1456,7 @@ export type Database = {
           is_international?: boolean | null
           job_title?: string | null
           last_name?: string
+          linked_separation_id?: string | null
           main_hr_focal_point?: string | null
           new_po?: string | null
           notice_days_required?: number | null
@@ -1470,6 +1473,13 @@ export type Database = {
           vacancy_reference?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "hr_appointments_linked_separation_id_fkey"
+            columns: ["linked_separation_id"]
+            isOneToOne: false
+            referencedRelation: "hr_separations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "hr_appointments_user_id_fkey"
             columns: ["user_id"]
@@ -1538,6 +1548,7 @@ export type Database = {
           is_international: boolean | null
           job_title: string | null
           last_name: string
+          linked_appointment_id: string | null
           main_hr_focal_point: string | null
           notice_days_required: number | null
           operation_type: string
@@ -1569,6 +1580,7 @@ export type Database = {
           is_international?: boolean | null
           job_title?: string | null
           last_name: string
+          linked_appointment_id?: string | null
           main_hr_focal_point?: string | null
           notice_days_required?: number | null
           operation_type?: string
@@ -1600,6 +1612,7 @@ export type Database = {
           is_international?: boolean | null
           job_title?: string | null
           last_name?: string
+          linked_appointment_id?: string | null
           main_hr_focal_point?: string | null
           notice_days_required?: number | null
           operation_type?: string
@@ -1616,6 +1629,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "hr_separations_linked_appointment_id_fkey"
+            columns: ["linked_appointment_id"]
+            isOneToOne: false
+            referencedRelation: "hr_appointments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "hr_separations_user_id_fkey"
             columns: ["user_id"]

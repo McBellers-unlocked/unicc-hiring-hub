@@ -21,7 +21,7 @@ import {
 import { UserMinus, Plus, MoreHorizontal, CheckCircle, Pencil, Trash2, Calendar, Upload, ChevronRight, ChevronDown, Link2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, addMonths } from 'date-fns';
 import { SeparationFilters, SeparationFiltersState } from '@/components/operations/SeparationFilters';
 import { SeparationForm, SeparationFormData } from '@/components/operations/SeparationForm';
 import { 
@@ -45,6 +45,7 @@ import { SeparationComments, LastSeparationCommentPreview } from '@/components/o
 import { SeparationLinkUserDialog } from '@/components/operations/SeparationLinkUserDialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { UserLinkBadge } from '@/components/operations/AppointmentStatusBadge';
+import { Badge } from '@/components/ui/badge';
 
 interface HrSeparation {
   id: string;
@@ -74,6 +75,7 @@ interface HrSeparation {
   comments: string | null;
   actions_in_hr_plan: string | null;
   clearance_status: string | null;
+  linked_appointment_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -119,12 +121,12 @@ const Separations = () => {
     },
   });
 
-  // Create mutation
+  // Create mutation with CB workflow automation
   const createMutation = useMutation({
     mutationFn: async (data: SeparationFormData) => {
-      // Check if user exists by email
-      let userId: string | null = null;
-      if (data.email) {
+      // Check if user exists by email or use selected user ID
+      let userId: string | null = data.selectedUserId || null;
+      if (!userId && data.email) {
         const { data: existingUser } = await supabase
           .from('users')
           .select('id')
@@ -162,16 +164,76 @@ const Separations = () => {
         clearance_status: data.clearance_status || null,
       };
 
-      const { error } = await supabase
+      // Create the separation
+      const { data: separation, error } = await supabase
         .from('hr_separations')
-        .insert(insertData);
+        .insert(insertData)
+        .select()
+        .single();
       
       if (error) throw error;
+
+      // CB Workflow: If this is a CB type, create linked appointment
+      const isCBType = data.operation_type.includes('(CB)');
+      if (isCBType && separation) {
+        // Calculate return date: separation date + 1 month
+        const returnDate = data.tentative_date
+          ? format(addMonths(parseISO(data.tentative_date), 1), 'yyyy-MM-dd')
+          : null;
+
+        // Create the appointment record
+        const { data: appointment, error: appointmentError } = await supabase
+          .from('hr_appointments')
+          .insert({
+            user_id: userId,
+            last_name: data.last_name,
+            first_name: data.first_name,
+            email: data.email || null,
+            operation_type: 'Appointment (CB)',
+            status: 'Not started',
+            tentative_date: returnDate,
+            job_title: data.job_title || null,
+            grade: data.grade || null,
+            duty_station: data.duty_station || null,
+            section_unit: data.section_unit || null,
+            supervisor: data.supervisor || null,
+            main_hr_focal_point: data.main_hr_focal_point || null,
+            is_international: data.is_international,
+            recruitment_type: 'CB Return',
+            linked_separation_id: separation.id,
+            comments: `Auto-created from contract break separation on ${format(new Date(), 'dd MMM yyyy')}`,
+          })
+          .select()
+          .single();
+
+        if (appointmentError) {
+          console.error('Failed to create CB appointment:', appointmentError);
+        } else if (appointment) {
+          // Update separation with the appointment link
+          await supabase
+            .from('hr_separations')
+            .update({ linked_appointment_id: appointment.id })
+            .eq('id', separation.id);
+        }
+
+        return { separation, appointment, isCB: true, returnDate };
+      }
+
+      return { separation, isCB: false };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['hr-separations'] });
+      queryClient.invalidateQueries({ queryKey: ['hr-appointments'] });
       setFormOpen(false);
-      toast.success('Separation created successfully');
+      
+      if (result.isCB && result.returnDate) {
+        toast.success(
+          `Separation created. Appointment (CB) for return scheduled for ${format(parseISO(result.returnDate), 'dd MMM yyyy')}.`,
+          { duration: 5000 }
+        );
+      } else {
+        toast.success('Separation created successfully');
+      }
     },
     onError: (error) => {
       toast.error('Failed to create separation: ' + error.message);
