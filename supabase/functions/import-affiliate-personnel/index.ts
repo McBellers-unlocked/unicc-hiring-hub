@@ -114,6 +114,7 @@ Deno.serve(async (req) => {
     const contractEndIndex = findColumn(['contract end']);
     const currentGradeIndex = findColumn(['current grade', 'grade']);
     const firstIncumbencyIndex = findColumn(['first incumbency', 'first_incumbency', 'original start', 'first start']);
+    const officialDutyStationIndex = findColumn(['official duty station']);
 
     console.log('Column indices:', { emailIndex, firstNameIndex, lastNameIndex, workerTypeIndex, appTypeShortIndex });
 
@@ -158,9 +159,17 @@ Deno.serve(async (req) => {
       }
 
       // Parse duty station from office location or ds short
-      const dutyStation = dsShortIndex !== -1 && values[dsShortIndex]?.trim() 
-        ? values[dsShortIndex].trim() 
-        : (officeLocationIndex !== -1 ? values[officeLocationIndex]?.trim() : '');
+      const officeLocation = officeLocationIndex !== -1 ? values[officeLocationIndex]?.trim() : '';
+      const dsShort = dsShortIndex !== -1 ? values[dsShortIndex]?.trim() : '';
+      const officialDutyStation = officialDutyStationIndex !== -1 
+        ? values[officialDutyStationIndex]?.trim() 
+        : '';
+
+      // Build duty station - for Remote workers, append official duty station
+      let dutyStation = dsShort || officeLocation;
+      if (dutyStation.toLowerCase() === 'remote' && officialDutyStation) {
+        dutyStation = `Remote (${officialDutyStation})`;
+      }
 
       affiliateData.push({
         email,
