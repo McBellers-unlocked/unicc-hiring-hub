@@ -1,168 +1,201 @@
 
+## Plan: Fix Import Appointments CSV Parser
 
-## Plan: Add CSV Import for Appointments
+### Issues Identified
 
-### Overview
-Add a CSV import feature to the Appointments page that follows the same pattern as the existing staff import functions. Users will be able to upload their spreadsheet data to bulk-create appointment records.
+**Issue 1: Excel Serial Date Parsing**
+- Values like `45210`, `45215`, `45230`, `45231` are Excel serial dates
+- Currently these pass to `new Date(dateStr)` which creates invalid dates
+- PostgreSQL then rejects them as "time zone displacement out of range: +045210-01"
 
----
-
-### Column Mapping (from Spreadsheet)
-
-Based on the screenshots you provided earlier:
-
-| CSV Column | Database Field | Notes |
-|------------|----------------|-------|
-| Last Name | `last_name` | Required |
-| First Name | `first_name` | Required |
-| Operation Type | `operation_type` | Appointment, Appointment (CB), Direct Appointment |
-| Tentative Date | `tentative_date` | Various date formats supported |
-| Job Title | `job_title` | |
-| Grade | `grade` | P3, G5, etc. |
-| Contract Type | `contract_type` | Temporary, Fixed-term, etc. |
-| Duty Station / Location | `duty_station` | |
-| Unit | `section_unit` | |
-| Supervisor | `supervisor` | |
-| Old PO | `old_po` | For CB returns |
-| New PO | `new_po` | |
-| Vacancy Reference | `vacancy_reference` | |
-| Main HR Focal Point | `main_hr_focal_point` | |
-| Recruitment Type | `recruitment_type` | Newcomer, etc. |
-| Effective Date | `effective_date` | |
-| International | `is_international` | Yes/No → boolean |
-| Notice Days | `notice_days_required` | Number, default 30 |
-| Comments | `comments` | |
-| Onboarding Comments | `onboarding_comments` | |
-| Actions in HR Plan | `actions_in_hr_plan` | |
-| Email | `email` | For user linking |
+**Issue 2: Row Validation - Missing Required Fields**
+- Some rows have malformed data where comment text bleeds into wrong columns
+- Rows like `,Intern to staff. Medical sent ig...` start with a comma, meaning `last_name` is empty
+- The current parser skips empty names but still adds rows with empty `first_name`
 
 ---
 
-### Implementation Approach
+### Root Cause Analysis
 
-**Option 1: Edge Function (Recommended)**
-- Create `import-appointments` edge function
-- Same pattern as `import-affiliate-personnel`
-- Handles CSV parsing, validation, user linking
-- Returns summary of created/updated/errors
-
-**Option 2: Client-side parsing**
-- Parse CSV in browser
-- Call Supabase insert directly
-- Simpler but less robust
-
-**Recommended: Option 1** for consistency with existing imports.
-
----
-
-### UI Changes to Appointments Page
-
-Add an "Import CSV" button next to the "Add Appointment" button:
-
-```text
-[📤 Import CSV]  [+ Add Appointment]
+**Date parsing** at line 380-423:
+```typescript
+// Current code - no Excel serial handling
+function parseDate(dateStr: string): string {
+  // ... tries ISO, DD/MM/YYYY, DD-Mon-YY
+  // Falls through to new Date(dateStr) which fails on "45210"
+  try {
+    const parsed = new Date(dateStr);  // Creates invalid date
+    ...
+  }
+}
 ```
 
-Clicking opens a dialog with:
-1. File picker for CSV
-2. Preview of first few rows
-3. Column mapping verification
-4. Import button
-5. Results summary
-
----
-
-### Files to Create
-
-| File | Purpose |
-|------|---------|
-| `supabase/functions/import-appointments/index.ts` | Edge function for CSV import |
-| `src/components/operations/ImportAppointmentsDialog.tsx` | Import dialog UI |
-
-### Files to Modify
-
-| File | Purpose |
-|------|---------|
-| `src/pages/operations/Appointments.tsx` | Add import button and dialog |
-
----
-
-### Edge Function Logic
-
+**Row validation** at line 169-172:
 ```typescript
-// import-appointments/index.ts
-
-// 1. Parse CSV with auto-header detection
-// 2. Map columns flexibly (case-insensitive, partial matches)
-// 3. For each row:
-//    a. Parse dates (multiple formats supported)
-//    b. Normalize operation_type to valid enum value
-//    c. Check if user exists by email → link user_id
-//    d. Insert into hr_appointments
-// 4. Return summary: { created, skipped, errors }
-```
-
----
-
-### Import Dialog Features
-
-1. **Drag & drop file upload** or click to select
-2. **Auto-detect columns** from header row
-3. **Preview table** showing first 5 rows
-4. **Progress indicator** during import
-5. **Results summary**:
-   - ✅ 15 appointments created
-   - ⚠️ 2 rows skipped (missing required fields)
-   - 🔗 8 linked to existing users
-
----
-
-### Error Handling
-
-- Missing required fields (last_name, first_name, operation_type) → skip row, report warning
-- Invalid date format → try multiple parsers, leave null if failed
-- Invalid operation_type → map to closest match or "Appointment" default
-- Duplicate detection by name + tentative_date (optional)
-
----
-
-### Technical Details
-
-**Date Parsing (reuse from affiliate import):**
-- ISO: `2026-02-09`
-- UK: `09/02/2026`
-- Short: `9-Feb-26`
-- Excel: Handle various date formats
-
-**Operation Type Normalization:**
-```typescript
-const normalizeOperationType = (value: string): string => {
-  const lower = value.toLowerCase().trim();
-  if (lower.includes('cb') || lower.includes('return')) return 'Appointment (CB)';
-  if (lower.includes('direct')) return 'Direct Appointment';
-  return 'Appointment';
-};
-```
-
-**User Linking:**
-```typescript
-// If email provided, check if user exists
-if (email) {
-  const { data: user } = await supabase
-    .from('users')
-    .select('id')
-    .ilike('email', email)
-    .maybeSingle();
-  if (user) appointmentData.user_id = user.id;
+// Current - only checks if BOTH are empty
+if (!lastName && !firstName) {
+  warnings.push(`Row ${i + 1}: Missing name, skipped`);
+  continue;
 }
 ```
 
 ---
 
+### Solution
+
+**1. Add Excel Serial Date Support**
+
+Add detection for numeric date strings (5-digit numbers like 45210):
+
+```typescript
+function parseDate(dateStr: string): string {
+  if (!dateStr) return '';
+  
+  // Check for Excel serial date (5-digit number)
+  const numericDate = parseFloat(dateStr);
+  if (!isNaN(numericDate) && numericDate > 1000 && numericDate < 100000) {
+    const excelEpoch = new Date(1899, 11, 30);
+    const date = new Date(excelEpoch.getTime() + numericDate * 86400000);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().substring(0, 10);
+    }
+  }
+  
+  // ... rest of existing parsing
+}
+```
+
+**2. Improve Row Validation**
+
+Skip rows where EITHER required field is missing:
+
+```typescript
+// Check both required fields independently
+if (!lastName || !firstName) {
+  warnings.push(`Row ${i + 1}: Missing name (last: "${lastName}", first: "${firstName}"), skipped`);
+  continue;
+}
+```
+
+**3. Additional Safety: Validate Date Before Insert**
+
+Add a final validation before inserting to catch any malformed dates:
+
+```typescript
+// Validate parsed dates are reasonable (between 2000 and 2100)
+function isValidDate(dateStr: string): boolean {
+  if (!dateStr) return true; // Empty is ok (optional field)
+  const year = parseInt(dateStr.substring(0, 4));
+  return year >= 2000 && year <= 2100;
+}
+
+// Before insert
+if (apt.tentative_date && !isValidDate(apt.tentative_date)) {
+  warnings.push(`Invalid tentative_date for ${apt.last_name}: ${apt.tentative_date}`);
+  apt.tentative_date = '';
+}
+```
+
+---
+
+### Files to Modify
+
+| File | Changes |
+|------|---------|
+| `supabase/functions/import-appointments/index.ts` | Fix parseDate, improve validation |
+
+---
+
+### Technical Implementation
+
+**Updated `parseDate` function:**
+```typescript
+function parseDate(dateStr: string): string {
+  if (!dateStr) return '';
+  
+  const trimmed = dateStr.trim();
+  
+  // 1. Check for Excel serial date (5-digit number like 45210)
+  const numericDate = parseFloat(trimmed);
+  if (!isNaN(numericDate) && numericDate > 1000 && numericDate < 100000) {
+    const excelEpoch = new Date(1899, 11, 30);
+    const date = new Date(excelEpoch.getTime() + numericDate * 86400000);
+    if (!isNaN(date.getTime())) {
+      const result = date.toISOString().substring(0, 10);
+      // Validate the year is reasonable
+      const year = parseInt(result.substring(0, 4));
+      if (year >= 2000 && year <= 2100) {
+        return result;
+      }
+    }
+    return ''; // Invalid Excel date
+  }
+  
+  // 2. Try ISO format (YYYY-MM-DD)
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+    return trimmed.substring(0, 10);
+  }
+  
+  // 3. Try DD/MM/YYYY
+  const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slashMatch) {
+    const [, day, month, year] = slashMatch;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+  
+  // 4. Try DD-Mon-YY format
+  const monthNames: Record<string, string> = {
+    'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+    'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
+    'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+  };
+  const shortDateMatch = trimmed.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})$/);
+  if (shortDateMatch) {
+    const [, day, month, year] = shortDateMatch;
+    const monthNum = monthNames[month.toLowerCase()];
+    if (monthNum) {
+      const fullYear = year.length === 2 
+        ? (parseInt(year) > 50 ? `19${year}` : `20${year}`)
+        : year;
+      return `${fullYear}-${monthNum}-${day.padStart(2, '0')}`;
+    }
+  }
+  
+  // 5. Don't fallback to new Date() - too risky
+  return '';
+}
+```
+
+**Updated row validation:**
+```typescript
+// At line ~169 - stricter validation
+if (!lastName || !firstName) {
+  warnings.push(`Row ${i + 1}: Missing required name field, skipped`);
+  continue;
+}
+
+// Validate operation_type is a valid enum
+const validOperationTypes = ['Appointment', 'Appointment (CB)', 'Direct Appointment'];
+if (!validOperationTypes.includes(operationType)) {
+  operationType = 'Appointment'; // Default fallback
+}
+```
+
+---
+
+### Testing
+
+After deploying, the import should:
+- Convert `45210` to `2023-10-05` (valid date)
+- Skip rows with empty first_name instead of inserting them
+- Report skipped rows in the warnings array
+
+---
+
 ### Implementation Order
 
-1. Create `import-appointments` edge function with CSV parsing
-2. Create `ImportAppointmentsDialog.tsx` component
-3. Add import button to Appointments page
-4. Test with sample CSV data
-
+1. Update `parseDate()` function with Excel serial date support
+2. Add year validation (2000-2100) to catch outliers
+3. Improve row validation to require BOTH first_name AND last_name
+4. Remove risky `new Date(dateStr)` fallback
+5. Deploy and test with the same CSV
