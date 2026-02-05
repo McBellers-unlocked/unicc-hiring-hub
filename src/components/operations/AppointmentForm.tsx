@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -101,9 +101,70 @@ export const AppointmentForm = ({
       comments: '',
       onboarding_comments: '',
       actions_in_hr_plan: '',
-      ...initialData,
     },
   });
+
+  // Reset form when dialog opens with initialData (for edit mode)
+  useEffect(() => {
+    if (open && initialData) {
+      form.reset({
+        last_name: initialData.last_name || '',
+        first_name: initialData.first_name || '',
+        email: initialData.email || '',
+        operation_type: initialData.operation_type || 'Appointment',
+        status: initialData.status || 'Not started',
+        tentative_date: initialData.tentative_date || '',
+        effective_date: initialData.effective_date || '',
+        job_title: initialData.job_title || '',
+        grade: initialData.grade || '',
+        contract_type: initialData.contract_type || '',
+        duty_station: initialData.duty_station || '',
+        section_unit: initialData.section_unit || '',
+        supervisor: initialData.supervisor || '',
+        old_po: initialData.old_po || '',
+        new_po: initialData.new_po || '',
+        vacancy_reference: initialData.vacancy_reference || '',
+        main_hr_focal_point: initialData.main_hr_focal_point || '',
+        recruitment_type: initialData.recruitment_type || 'Newcomer',
+        is_international: initialData.is_international ?? false,
+        notice_days_required: initialData.notice_days_required ?? 30,
+        comments: initialData.comments || '',
+        onboarding_comments: initialData.onboarding_comments || '',
+        actions_in_hr_plan: initialData.actions_in_hr_plan || '',
+      });
+      setSelectedUserId(initialData.selectedUserId || null);
+      setLinkedStaffName(initialData.first_name && initialData.last_name ? `${initialData.first_name} ${initialData.last_name}` : null);
+    } else if (open && !initialData) {
+      // Reset to empty for new appointments
+      form.reset({
+        last_name: '',
+        first_name: '',
+        email: '',
+        operation_type: 'Appointment',
+        status: 'Not started',
+        tentative_date: '',
+        effective_date: '',
+        job_title: '',
+        grade: '',
+        contract_type: '',
+        duty_station: '',
+        section_unit: '',
+        supervisor: '',
+        old_po: '',
+        new_po: '',
+        vacancy_reference: '',
+        main_hr_focal_point: '',
+        recruitment_type: 'Newcomer',
+        is_international: false,
+        notice_days_required: 30,
+        comments: '',
+        onboarding_comments: '',
+        actions_in_hr_plan: '',
+      });
+      setSelectedUserId(null);
+      setLinkedStaffName(null);
+    }
+  }, [open, initialData, form]);
 
   const handleStaffSelect = (staff: StaffMember) => {
     const { firstName, lastName } = parseName(staff.name);
