@@ -1343,6 +1343,107 @@ export type Database = {
           },
         ]
       }
+      hr_appointments: {
+        Row: {
+          actions_in_hr_plan: string | null
+          comments: string | null
+          contract_type: string | null
+          created_at: string | null
+          created_by: string | null
+          duty_station: string | null
+          effective_date: string | null
+          email: string | null
+          first_name: string
+          grade: string | null
+          id: string
+          is_international: boolean | null
+          job_title: string | null
+          last_name: string
+          main_hr_focal_point: string | null
+          new_po: string | null
+          notice_days_required: number | null
+          old_po: string | null
+          onboarding_comments: string | null
+          operation_type: string
+          recruitment_type: string | null
+          section_unit: string | null
+          status: string | null
+          supervisor: string | null
+          tentative_date: string | null
+          updated_at: string | null
+          user_id: string | null
+          vacancy_reference: string | null
+        }
+        Insert: {
+          actions_in_hr_plan?: string | null
+          comments?: string | null
+          contract_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          duty_station?: string | null
+          effective_date?: string | null
+          email?: string | null
+          first_name: string
+          grade?: string | null
+          id?: string
+          is_international?: boolean | null
+          job_title?: string | null
+          last_name: string
+          main_hr_focal_point?: string | null
+          new_po?: string | null
+          notice_days_required?: number | null
+          old_po?: string | null
+          onboarding_comments?: string | null
+          operation_type: string
+          recruitment_type?: string | null
+          section_unit?: string | null
+          status?: string | null
+          supervisor?: string | null
+          tentative_date?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          vacancy_reference?: string | null
+        }
+        Update: {
+          actions_in_hr_plan?: string | null
+          comments?: string | null
+          contract_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          duty_station?: string | null
+          effective_date?: string | null
+          email?: string | null
+          first_name?: string
+          grade?: string | null
+          id?: string
+          is_international?: boolean | null
+          job_title?: string | null
+          last_name?: string
+          main_hr_focal_point?: string | null
+          new_po?: string | null
+          notice_days_required?: number | null
+          old_po?: string | null
+          onboarding_comments?: string | null
+          operation_type?: string
+          recruitment_type?: string | null
+          section_unit?: string | null
+          status?: string | null
+          supervisor?: string | null
+          tentative_date?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          vacancy_reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_appointments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_talent_saved_searches: {
         Row: {
           created_at: string
