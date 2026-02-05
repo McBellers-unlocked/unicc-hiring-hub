@@ -1479,6 +1479,152 @@ export type Database = {
           },
         ]
       }
+      hr_separation_comments: {
+        Row: {
+          author_id: string | null
+          comment_text: string
+          created_at: string
+          id: string
+          separation_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          comment_text: string
+          created_at?: string
+          id?: string
+          separation_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          comment_text?: string
+          created_at?: string
+          id?: string
+          separation_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_separation_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_separation_comments_separation_id_fkey"
+            columns: ["separation_id"]
+            isOneToOne: false
+            referencedRelation: "hr_separations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_separations: {
+        Row: {
+          actions_in_hr_plan: string | null
+          clearance_status: string | null
+          comments: string | null
+          contract_type: string | null
+          created_at: string
+          duty_station: string | null
+          effective_date: string | null
+          email: string | null
+          event_type: string | null
+          first_name: string
+          grade: string | null
+          id: string
+          is_international: boolean | null
+          job_title: string | null
+          last_name: string
+          main_hr_focal_point: string | null
+          notice_days_required: number | null
+          operation_type: string
+          pd_number: string | null
+          reason: string | null
+          section_unit: string | null
+          separation_type: string | null
+          staff_number: string | null
+          status: string
+          supervisor: string | null
+          supervisor_staff_number: string | null
+          tentative_date: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          actions_in_hr_plan?: string | null
+          clearance_status?: string | null
+          comments?: string | null
+          contract_type?: string | null
+          created_at?: string
+          duty_station?: string | null
+          effective_date?: string | null
+          email?: string | null
+          event_type?: string | null
+          first_name: string
+          grade?: string | null
+          id?: string
+          is_international?: boolean | null
+          job_title?: string | null
+          last_name: string
+          main_hr_focal_point?: string | null
+          notice_days_required?: number | null
+          operation_type?: string
+          pd_number?: string | null
+          reason?: string | null
+          section_unit?: string | null
+          separation_type?: string | null
+          staff_number?: string | null
+          status?: string
+          supervisor?: string | null
+          supervisor_staff_number?: string | null
+          tentative_date?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          actions_in_hr_plan?: string | null
+          clearance_status?: string | null
+          comments?: string | null
+          contract_type?: string | null
+          created_at?: string
+          duty_station?: string | null
+          effective_date?: string | null
+          email?: string | null
+          event_type?: string | null
+          first_name?: string
+          grade?: string | null
+          id?: string
+          is_international?: boolean | null
+          job_title?: string | null
+          last_name?: string
+          main_hr_focal_point?: string | null
+          notice_days_required?: number | null
+          operation_type?: string
+          pd_number?: string | null
+          reason?: string | null
+          section_unit?: string | null
+          separation_type?: string | null
+          staff_number?: string | null
+          status?: string
+          supervisor?: string | null
+          supervisor_staff_number?: string | null
+          tentative_date?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_separations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_talent_saved_searches: {
         Row: {
           created_at: string
