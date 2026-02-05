@@ -28,7 +28,7 @@ import {
   AppointmentStatusBadge, 
   UserLinkBadge, 
   OperationTypeBadge,
-  calculateDaysToNotify 
+  calculateDaysUntilStart 
 } from '@/components/operations/AppointmentStatusBadge';
 import {
   AlertDialog,
@@ -268,7 +268,7 @@ const Appointments = () => {
       completed: appointments.filter(a => a.status === 'Completed').length,
       overdue: appointments.filter(a => {
         if (a.status !== 'In progress') return false;
-        const days = calculateDaysToNotify(a.tentative_date, a.notice_days_required);
+        const days = calculateDaysUntilStart(a.tentative_date);
         return days !== null && days < 0;
       }).length,
       newcomers: appointments.filter(a => a.recruitment_type === 'Newcomer').length,
@@ -458,7 +458,6 @@ const Appointments = () => {
                             <AppointmentStatusBadge
                               status={apt.status}
                               tentativeDate={apt.tentative_date}
-                              noticeDaysRequired={apt.notice_days_required}
                             />
                           </TableCell>
                           <TableCell>
