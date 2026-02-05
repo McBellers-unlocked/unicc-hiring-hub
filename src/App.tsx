@@ -75,6 +75,18 @@ import AssessmentSeriesBuilder from "./pages/AssessmentSeriesBuilder";
 import SeriesCandidates from "./pages/SeriesCandidates";
 import CandidateSeriesPortal from "./pages/CandidateSeriesPortal";
 import ResearchAssessment from "./pages/ResearchAssessment";
+import Separations from "./pages/operations/Separations";
+import Appointments from "./pages/operations/Appointments";
+import LoansSecondments from "./pages/operations/LoansSecondments";
+import UNVOperations from "./pages/operations/UNVOperations";
+import Interns from "./pages/operations/Interns";
+import STDAs from "./pages/operations/STDAs";
+import PDRevisions from "./pages/operations/PDRevisions";
+import PartTime from "./pages/operations/PartTime";
+import SLWOP from "./pages/operations/SLWOP";
+import ProtocolServices from "./pages/operations/ProtocolServices";
+import HomeLeave from "./pages/operations/HomeLeave";
+import ContractExtensions from "./pages/operations/ContractExtensions";
 
 const queryClient = new QueryClient();
 
@@ -166,6 +178,19 @@ const App = () => (
             <Route path="/admin/affiliate-personnel" element={<AffiliatePersonnel />} />
             <Route path="/admin/import-affiliates" element={<ImportAffiliatePersonnel />} />
             <Route path="/admin/org-chart" element={<OrganizationChart />} />
+            {/* HR Operations Routes */}
+            <Route path="/operations/separations" element={<Separations />} />
+            <Route path="/operations/appointments" element={<Appointments />} />
+            <Route path="/operations/loans-secondments" element={<LoansSecondments />} />
+            <Route path="/operations/unv" element={<UNVOperations />} />
+            <Route path="/operations/interns" element={<Interns />} />
+            <Route path="/operations/stdas" element={<STDAs />} />
+            <Route path="/operations/pd-revisions" element={<PDRevisions />} />
+            <Route path="/operations/part-time" element={<PartTime />} />
+            <Route path="/operations/slwop" element={<SLWOP />} />
+            <Route path="/operations/protocol-services" element={<ProtocolServices />} />
+            <Route path="/operations/home-leave" element={<HomeLeave />} />
+            <Route path="/operations/contract-extensions" element={<ContractExtensions />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

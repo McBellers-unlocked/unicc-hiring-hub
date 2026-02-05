@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText, ChevronDown, Building, FileCheck, User, LayoutDashboard, Shield, Heart, GraduationCap, BookOpen, Target, ClipboardList, ClipboardCheck, UserCog, Network, Upload } from 'lucide-react';
+import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText, ChevronDown, Building, FileCheck, User, LayoutDashboard, Shield, Heart, GraduationCap, BookOpen, Target, ClipboardList, ClipboardCheck, UserCog, Network, Upload, Cog } from 'lucide-react';
 import { UNICCLogo } from '@/components/UNICCLogo';
 
 interface LayoutProps {
@@ -226,6 +226,78 @@ export const Layout = ({ children }: LayoutProps) => {
                       <UserCheck className="w-4 h-4 mr-1" />
                       Applications
                     </Link>
+                  )}
+                  
+                  {hasAdminAccess && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="flex items-center hover:opacity-80 transition-colors py-2 focus:outline-none">
+                        <Cog className="w-4 h-4 mr-1" />
+                        HR Operations
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="bg-popover border border-border shadow-lg">
+                        <DropdownMenuItem asChild>
+                          <Link to="/operations/separations" className="flex items-center w-full">
+                            Separations
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/operations/appointments" className="flex items-center w-full">
+                            Appointments
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/operations/loans-secondments" className="flex items-center w-full">
+                            Loans and Secondments
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/operations/unv" className="flex items-center w-full">
+                            UNV
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/operations/interns" className="flex items-center w-full">
+                            Interns
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/operations/stdas" className="flex items-center w-full">
+                            STDAs
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/operations/pd-revisions" className="flex items-center w-full">
+                            PD Revisions and Promotions
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/operations/part-time" className="flex items-center w-full">
+                            Part Time
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/operations/slwop" className="flex items-center w-full">
+                            SLWOP
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/operations/protocol-services" className="flex items-center w-full">
+                            Protocol Services
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/operations/home-leave" className="flex items-center w-full">
+                            Home Leave
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/operations/contract-extensions" className="flex items-center w-full">
+                            Contract Extensions
+                          </Link>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
                   
                   {/* My Career dropdown for staff members */}
