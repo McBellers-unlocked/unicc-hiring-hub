@@ -123,46 +123,49 @@ export const ImportSeparationsDialog = ({
       jsonData.forEach((row: any, index: number) => {
         const rowNum = index + 2; // Account for header row
 
-        // Skip rows without required fields
-        if (!row['Last Name'] && !row['First Name']) {
+        // Skip rows without required fields (support both camelCase and spaced headers)
+        const lastName = row['LastName'] || row['Last Name'];
+        const firstName = row['FirstName'] || row['First Name'];
+        
+        if (!lastName && !firstName) {
           return;
         }
 
         // Validate required fields
-        if (!row['Last Name']) {
+        if (!lastName) {
           newWarnings.push(`Row ${rowNum}: Missing last name`);
         }
-        if (!row['First Name']) {
+        if (!firstName) {
           newWarnings.push(`Row ${rowNum}: Missing first name`);
         }
 
         const parsedRow: ParsedRow = {
-          last_name: String(row['Last Name'] || '').trim(),
-          first_name: String(row['First Name'] || '').trim(),
+          last_name: String(lastName || '').trim(),
+          first_name: String(firstName || '').trim(),
           email: row['Email'] ? String(row['Email']).trim() : undefined,
-          operation_type: String(row['Operation Type'] || row['Type'] || 'Separation').trim(),
+          operation_type: String(row['OperationType'] || row['Operation Type'] || row['Type'] || 'Separation').trim(),
           reason: row['Reason'] ? String(row['Reason']).trim() : undefined,
           status: cleanStatus(String(row['Status'] || '')),
-          job_title: row['Job Title'] || row['Functional Title'] ? String(row['Job Title'] || row['Functional Title']).trim() : undefined,
+          job_title: row['JobTitle'] || row['Job Title'] || row['Functional Title'] ? String(row['JobTitle'] || row['Job Title'] || row['Functional Title']).trim() : undefined,
           grade: row['Grade'] ? String(row['Grade']).trim() : undefined,
-          contract_type: row['Contract Type'] ? String(row['Contract Type']).trim() : undefined,
-          duty_station: row['Duty Station'] || row['Official Duty Station'] ? String(row['Duty Station'] || row['Official Duty Station']).trim() : undefined,
-          pd_number: row['PD Number'] || row['PD'] ? String(row['PD Number'] || row['PD']).trim() : undefined,
+          contract_type: row['ContractType'] || row['Contract Type'] ? String(row['ContractType'] || row['Contract Type']).trim() : undefined,
+          duty_station: row['DutyStation'] || row['Duty Station'] || row['Official Duty Station'] ? String(row['DutyStation'] || row['Duty Station'] || row['Official Duty Station']).trim() : undefined,
+          pd_number: row['PDNumber'] || row['PD Number'] || row['PD'] ? String(row['PDNumber'] || row['PD Number'] || row['PD']).trim() : undefined,
           supervisor: row['Supervisor'] ? String(row['Supervisor']).trim() : undefined,
-          section_unit: row['Section'] || row['Unit'] || row['Section/Unit'] ? String(row['Section'] || row['Unit'] || row['Section/Unit']).trim() : undefined,
-          supervisor_staff_number: row['Supervisor Staff Number'] ? String(row['Supervisor Staff Number']).trim() : undefined,
-          separation_type: row['Separation Type'] ? String(row['Separation Type']).trim() : undefined,
-          event_type: row['Event Type'] ? String(row['Event Type']).trim() : undefined,
-          tentative_date: parseDate(row['Tentative Separation Date'] || row['Tentative Date'] || row['Last Working Day']) || undefined,
-          effective_date: parseDate(row['Effective Date']) || undefined,
-          is_international: String(row['International'] || row['Is International'] || '').toLowerCase() === 'yes' || 
-                           String(row['International'] || row['Is International'] || '').toLowerCase() === 'true',
-          notice_days_required: parseInt(String(row['Notice Days'] || row['Notice Days Required'] || '30')) || 30,
-          staff_number: row['Staff Number'] || row['Index Number'] ? String(row['Staff Number'] || row['Index Number']).trim() : undefined,
-          main_hr_focal_point: row['HR Focal Point'] || row['Main HR Focal Point'] ? String(row['HR Focal Point'] || row['Main HR Focal Point']).trim() : undefined,
+          section_unit: row['SectionUnit'] || row['Section/Unit'] || row['Section'] || row['Unit'] ? String(row['SectionUnit'] || row['Section/Unit'] || row['Section'] || row['Unit']).trim() : undefined,
+          supervisor_staff_number: row['SupervisorStaffNumber'] || row['Supervisor Staff Number'] ? String(row['SupervisorStaffNumber'] || row['Supervisor Staff Number']).trim() : undefined,
+          separation_type: row['SeparationType'] || row['Separation Type'] ? String(row['SeparationType'] || row['Separation Type']).trim() : undefined,
+          event_type: row['EventType'] || row['Event Type'] ? String(row['EventType'] || row['Event Type']).trim() : undefined,
+          tentative_date: parseDate(row['TentativeDate'] || row['Tentative Separation Date'] || row['Tentative Date'] || row['Last Working Day']) || undefined,
+          effective_date: parseDate(row['EffectiveDate'] || row['Effective Date']) || undefined,
+          is_international: String(row['IsInternational'] || row['International'] || row['Is International'] || '').toLowerCase() === 'yes' || 
+                           String(row['IsInternational'] || row['International'] || row['Is International'] || '').toLowerCase() === 'true',
+          notice_days_required: parseInt(String(row['NoticeDaysRequired'] || row['Notice Days'] || row['Notice Days Required'] || '30')) || 30,
+          staff_number: row['StaffNumber'] || row['Staff Number'] || row['Index Number'] ? String(row['StaffNumber'] || row['Staff Number'] || row['Index Number']).trim() : undefined,
+          main_hr_focal_point: row['MainHRFocalPoint'] || row['HR Focal Point'] || row['Main HR Focal Point'] ? String(row['MainHRFocalPoint'] || row['HR Focal Point'] || row['Main HR Focal Point']).trim() : undefined,
           comments: row['Comments'] || row['Notes'] ? String(row['Comments'] || row['Notes']).trim() : undefined,
-          actions_in_hr_plan: row['Actions In HR Plan'] || row['Actions'] ? String(row['Actions In HR Plan'] || row['Actions']).trim() : undefined,
-          clearance_status: row['Clearance Status'] ? String(row['Clearance Status']).trim() : undefined,
+          actions_in_hr_plan: row['ActionsInHRPlan'] || row['Actions In HR Plan'] || row['Actions'] ? String(row['ActionsInHRPlan'] || row['Actions In HR Plan'] || row['Actions']).trim() : undefined,
+          clearance_status: row['ClearanceStatus'] || row['Clearance Status'] ? String(row['ClearanceStatus'] || row['Clearance Status']).trim() : undefined,
         };
 
         // Only add if we have required fields
