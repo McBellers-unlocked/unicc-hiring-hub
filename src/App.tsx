@@ -87,6 +87,7 @@ import SLWOP from "./pages/operations/SLWOP";
 import ProtocolServices from "./pages/operations/ProtocolServices";
 import HomeLeave from "./pages/operations/HomeLeave";
 import ContractExtensions from "./pages/operations/ContractExtensions";
+import HROperationsDashboard from "./pages/operations/HROperationsDashboard";
 
 const queryClient = new QueryClient();
 
@@ -179,6 +180,7 @@ const App = () => (
             <Route path="/admin/import-affiliates" element={<ImportAffiliatePersonnel />} />
             <Route path="/admin/org-chart" element={<OrganizationChart />} />
             {/* HR Operations Routes */}
+            <Route path="/operations" element={<HROperationsDashboard />} />
             <Route path="/operations/separations" element={<Separations />} />
             <Route path="/operations/appointments" element={<Appointments />} />
             <Route path="/operations/loans-secondments" element={<LoansSecondments />} />
