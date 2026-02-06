@@ -238,10 +238,6 @@ const Appointments = () => {
     [appointments]
   );
 
-  const hrFocalPoints = useMemo(() => 
-    [...new Set(appointments.map(a => a.main_hr_focal_point).filter(Boolean) as string[])].sort(),
-    [appointments]
-  );
 
   // Filter appointments
   const filteredAppointments = useMemo(() => {
@@ -388,7 +384,6 @@ const Appointments = () => {
               filters={filters}
               onFiltersChange={setFilters}
               dutyStations={dutyStations}
-              hrFocalPoints={hrFocalPoints}
             />
           </CardContent>
         </Card>

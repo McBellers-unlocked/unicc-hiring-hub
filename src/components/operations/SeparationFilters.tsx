@@ -2,6 +2,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { HR_FOCAL_POINTS } from '@/lib/hrFocalPoints';
 
 export interface SeparationFiltersState {
   search: string;
@@ -16,7 +17,6 @@ interface SeparationFiltersProps {
   filters: SeparationFiltersState;
   onFiltersChange: (filters: SeparationFiltersState) => void;
   dutyStations: string[];
-  hrFocalPoints: string[];
 }
 
 const OPERATION_TYPES = [
@@ -48,7 +48,6 @@ export const SeparationFilters = ({
   filters,
   onFiltersChange,
   dutyStations,
-  hrFocalPoints,
 }: SeparationFiltersProps) => {
   const updateFilter = (key: keyof SeparationFiltersState, value: string) => {
     onFiltersChange({ ...filters, [key]: value });
@@ -133,7 +132,7 @@ export const SeparationFilters = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All HR FPs</SelectItem>
-          {hrFocalPoints.map((fp) => (
+          {HR_FOCAL_POINTS.map((fp) => (
             <SelectItem key={fp} value={fp}>{fp}</SelectItem>
           ))}
         </SelectContent>

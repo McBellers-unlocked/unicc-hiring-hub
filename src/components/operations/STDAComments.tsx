@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, MessageSquare, Send, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { MentionableTextarea, renderCommentWithMentions } from './MentionableTextarea';
 
 interface Comment {
   id: string;
@@ -115,7 +115,7 @@ export const STDAComments = ({ stdaId }: STDACommentsProps) => {
                 </span>
               </div>
               <p className="text-sm text-foreground whitespace-pre-wrap">
-                {comment.comment_text}
+                {renderCommentWithMentions(comment.comment_text)}
               </p>
             </div>
           ))}
@@ -123,11 +123,10 @@ export const STDAComments = ({ stdaId }: STDACommentsProps) => {
       )}
 
       <form onSubmit={handleSubmit} className="flex gap-2">
-        <Textarea
-          placeholder="Add a comment..."
+        <MentionableTextarea
           value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          className="min-h-[60px] resize-none text-sm"
+          onChange={setNewComment}
+          placeholder="Add a comment... (use @ to mention)"
         />
         <Button 
           type="submit" 
