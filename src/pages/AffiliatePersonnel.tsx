@@ -259,6 +259,7 @@ export default function AffiliatePersonnel() {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [editingAffiliate, setEditingAffiliate] = useState<AffiliateUser | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isBackfilling, setIsBackfilling] = useState(false);
 
   const { data: affiliates, isLoading } = useQuery({
     queryKey: ['affiliate-personnel'],
@@ -382,6 +383,58 @@ export default function AffiliatePersonnel() {
     }).length || 0,
   };
 
+  // Backfill first_incumbency_date for affiliates missing it
+  const handleBackfillFirstIncumbency = async () => {
+    setIsBackfilling(true);
+    try {
+      // Get all affiliates where first_incumbency_date is NULL but contract_start_date exists
+      const { data: affiliatesToUpdate, error: fetchError } = await supabase
+        .from('users')
+        .select('id, contract_start_date')
+        .eq('personnel_type', 'Affiliate')
+        .is('first_incumbency_date', null)
+        .not('contract_start_date', 'is', null);
+
+      if (fetchError) throw fetchError;
+
+      if (!affiliatesToUpdate || affiliatesToUpdate.length === 0) {
+        toast.info('No affiliates need backfilling');
+        return;
+      }
+
+      // Update each affiliate individually (Supabase doesn't support column-to-column updates)
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const affiliate of affiliatesToUpdate) {
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ first_incumbency_date: affiliate.contract_start_date })
+          .eq('id', affiliate.id);
+
+        if (updateError) {
+          console.error(`Error updating ${affiliate.id}:`, updateError);
+          errorCount++;
+        } else {
+          successCount++;
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['affiliate-personnel'] });
+      
+      if (errorCount > 0) {
+        toast.warning(`Backfilled ${successCount} affiliates, ${errorCount} failed`);
+      } else {
+        toast.success(`Successfully backfilled ${successCount} affiliates with First Contract dates`);
+      }
+    } catch (error: any) {
+      console.error('Error backfilling first_incumbency_date:', error);
+      toast.error(error.message || 'Failed to backfill first contract dates');
+    } finally {
+      setIsBackfilling(false);
+    }
+  };
+
   // Form handlers
   const handleAddAffiliate = () => {
     setEditingAffiliate(null);
@@ -497,7 +550,7 @@ export default function AffiliatePersonnel() {
               Manage Individual Consultants, Interns, and UN Volunteers
             </p>
           </div>
-          <div className="flex gap-2 mt-4 md:mt-0">
+          <div className="flex gap-2 mt-4 md:mt-0 flex-wrap">
             <Button onClick={handleAddAffiliate}>
               <UserPlus className="w-4 h-4 mr-2" />
               Add Affiliate
@@ -514,6 +567,17 @@ export default function AffiliatePersonnel() {
                 Import
               </Link>
             </Button>
+            {stats.noData > 0 && (
+              <Button 
+                variant="outline" 
+                onClick={handleBackfillFirstIncumbency}
+                disabled={isBackfilling}
+                className="border-amber-500 text-amber-700 hover:bg-amber-50"
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                {isBackfilling ? 'Backfilling...' : 'Backfill First Contract Dates'}
+              </Button>
+            )}
           </div>
         </div>
 

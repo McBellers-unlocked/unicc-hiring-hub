@@ -233,6 +233,13 @@ Deno.serve(async (req) => {
       if (affiliate.current_grade) updateData.current_grade = affiliate.current_grade;
       if (affiliate.first_incumbency_date) updateData.first_incumbency_date = affiliate.first_incumbency_date;
 
+      // For NEW records only: auto-set first_incumbency_date if not provided
+      const isNewRecord = !existingUser;
+      if (isNewRecord && !updateData.first_incumbency_date && affiliate.contract_start_date) {
+        updateData.first_incumbency_date = affiliate.contract_start_date;
+        console.log(`Auto-setting first_incumbency_date for new affiliate ${affiliate.email}`);
+      }
+
       if (existingUser) {
         // Update existing user
         const { error } = await supabase

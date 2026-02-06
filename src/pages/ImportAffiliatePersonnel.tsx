@@ -248,9 +248,11 @@ export default function ImportAffiliatePersonnel() {
                 <span>• Contract Start/End Date</span>
                 <span>• Current Grade</span>
                 <span>• Staff number</span>
+                <span>• First Incumbency Date (original contract start)</span>
               </div>
               <p className="mt-3 text-xs">
                 <strong>Note:</strong> Existing users (matched by email) will be updated. New users will be created with accounts.
+                If "First Incumbency Date" is not provided for new records, it will default to the Contract Start Date.
               </p>
             </div>
           </CardContent>
