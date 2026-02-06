@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { format, addDays, addWeeks, differenceInDays, parseISO, startOfDay } from "date-fns";
+import { format, addDays, addWeeks, differenceInDays, parseISO, startOfDay, endOfMonth } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/Layout";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -60,11 +60,28 @@ interface HRSTDA {
 }
 
 interface DashboardStats {
+  // This Week
   appointmentsThisWeek: number;
   separationsThisWeek: number;
   transfersThisWeek: number;
   extensionsThisWeek: number;
   stdasEndingSoon: number;
+  
+  // This Month
+  appointmentsThisMonth: number;
+  separationsThisMonth: number;
+  transfersThisMonth: number;
+  stdasEndingThisMonth: number;
+  extensionsThisMonth: number;
+  
+  // Next 90 Days
+  appointmentsNext90Days: number;
+  separationsNext90Days: number;
+  transfersNext90Days: number;
+  stdasEndingNext90Days: number;
+  extensionsNext90Days: number;
+  
+  // Other existing fields
   overdueAppointments: HRAppointment[];
   overdueSeparations: HRSeparation[];
   upcomingEvents: UpcomingEvent[];
@@ -92,11 +109,28 @@ export default function HROperationsDashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({
+    // This Week
     appointmentsThisWeek: 0,
     separationsThisWeek: 0,
     transfersThisWeek: 0,
     extensionsThisWeek: 0,
     stdasEndingSoon: 0,
+    
+    // This Month
+    appointmentsThisMonth: 0,
+    separationsThisMonth: 0,
+    transfersThisMonth: 0,
+    stdasEndingThisMonth: 0,
+    extensionsThisMonth: 0,
+    
+    // Next 90 Days
+    appointmentsNext90Days: 0,
+    separationsNext90Days: 0,
+    transfersNext90Days: 0,
+    stdasEndingNext90Days: 0,
+    extensionsNext90Days: 0,
+    
+    // Other existing fields
     overdueAppointments: [],
     overdueSeparations: [],
     upcomingEvents: [],
@@ -113,6 +147,7 @@ export default function HROperationsDashboard() {
     const today = startOfDay(new Date());
     const todayStr = format(today, 'yyyy-MM-dd');
     const weekFromNow = format(addDays(today, 7), 'yyyy-MM-dd');
+    const monthEndStr = format(endOfMonth(today), 'yyyy-MM-dd');
     const ninetyDaysFromNow = format(addDays(today, 90), 'yyyy-MM-dd');
     const eightWeeksFromNow = format(addWeeks(today, 8), 'yyyy-MM-dd');
 
@@ -139,7 +174,7 @@ export default function HROperationsDashboard() {
       const separationsList = (separations || []) as HRSeparation[];
       const stdasList = (stdas || []) as HRSTDA[];
 
-      // Calculate stats
+      // Calculate stats - This Week
       const appointmentsThisWeek = appointmentsList.filter(a => 
         a.tentative_date && 
         a.tentative_date >= todayStr && 
@@ -158,6 +193,60 @@ export default function HROperationsDashboard() {
         s.tentative_date &&
         s.tentative_date >= todayStr &&
         s.tentative_date <= weekFromNow
+      ).length;
+
+      // Calculate stats - This Month
+      const appointmentsThisMonth = appointmentsList.filter(a => 
+        a.tentative_date && 
+        a.tentative_date >= todayStr && 
+        a.tentative_date <= monthEndStr &&
+        !TRANSFER_TYPES.includes(a.operation_type)
+      ).length;
+
+      const transfersThisMonth = appointmentsList.filter(a =>
+        a.tentative_date &&
+        a.tentative_date >= todayStr &&
+        a.tentative_date <= monthEndStr &&
+        TRANSFER_TYPES.includes(a.operation_type)
+      ).length;
+
+      const separationsThisMonth = separationsList.filter(s =>
+        s.tentative_date &&
+        s.tentative_date >= todayStr &&
+        s.tentative_date <= monthEndStr
+      ).length;
+
+      const stdasEndingThisMonth = stdasList.filter(s =>
+        s.end_date &&
+        s.end_date >= todayStr &&
+        s.end_date <= monthEndStr
+      ).length;
+
+      // Calculate stats - Next 90 Days
+      const appointmentsNext90Days = appointmentsList.filter(a => 
+        a.tentative_date && 
+        a.tentative_date >= todayStr && 
+        a.tentative_date <= ninetyDaysFromNow &&
+        !TRANSFER_TYPES.includes(a.operation_type)
+      ).length;
+
+      const transfersNext90Days = appointmentsList.filter(a =>
+        a.tentative_date &&
+        a.tentative_date >= todayStr &&
+        a.tentative_date <= ninetyDaysFromNow &&
+        TRANSFER_TYPES.includes(a.operation_type)
+      ).length;
+
+      const separationsNext90Days = separationsList.filter(s =>
+        s.tentative_date &&
+        s.tentative_date >= todayStr &&
+        s.tentative_date <= ninetyDaysFromNow
+      ).length;
+
+      const stdasEndingNext90Days = stdasList.filter(s =>
+        s.end_date &&
+        s.end_date >= todayStr &&
+        s.end_date <= ninetyDaysFromNow
       ).length;
 
       // STDAs ending within 8 weeks
@@ -245,11 +334,28 @@ export default function HROperationsDashboard() {
         .sort((a, b) => a.daysUntil - b.daysUntil);
 
       setStats({
+        // This Week
         appointmentsThisWeek,
         separationsThisWeek,
         transfersThisWeek,
         extensionsThisWeek: 0, // Placeholder until table exists
         stdasEndingSoon: stdasEndingList.length,
+        
+        // This Month
+        appointmentsThisMonth,
+        separationsThisMonth,
+        transfersThisMonth,
+        stdasEndingThisMonth,
+        extensionsThisMonth: 0, // Placeholder until table exists
+        
+        // Next 90 Days
+        appointmentsNext90Days,
+        separationsNext90Days,
+        transfersNext90Days,
+        stdasEndingNext90Days,
+        extensionsNext90Days: 0, // Placeholder until table exists
+        
+        // Other existing fields
         overdueAppointments,
         overdueSeparations,
         upcomingEvents,
@@ -276,57 +382,175 @@ export default function HROperationsDashboard() {
           </p>
         </div>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          {loading ? (
-            <>
-              <Skeleton className="h-32" />
-              <Skeleton className="h-32" />
-              <Skeleton className="h-32" />
-              <Skeleton className="h-32" />
-              <Skeleton className="h-32" />
-            </>
-          ) : (
-            <>
-              <StatsCard
-                title="Appointments This Week"
-                value={stats.appointmentsThisWeek}
-                icon={UserPlus}
-                subtitle="New hires & returns"
-                onClick={() => navigate('/operations/appointments')}
-              />
-              <StatsCard
-                title="Separations This Week"
-                value={stats.separationsThisWeek}
-                icon={UserMinus}
-                subtitle="Exits & contract breaks"
-                alert={stats.separationsThisWeek > 0}
-                onClick={() => navigate('/operations/separations')}
-              />
-              <StatsCard
-                title="Transfers This Week"
-                value={stats.transfersThisWeek}
-                icon={ArrowLeftRight}
-                subtitle="Location & contract changes"
-                onClick={() => navigate('/operations/appointments')}
-              />
-              <StatsCard
-                title="STDAs Ending Soon"
-                value={stats.stdasEndingSoon}
-                icon={Clock}
-                subtitle="Within 8 weeks"
-                alert={stats.stdasEndingSoon > 0}
-                onClick={() => navigate('/operations/stdas')}
-              />
-              <StatsCard
-                title="Extensions Due"
-                value={stats.extensionsThisWeek}
-                icon={FileCheck}
-                subtitle="Coming soon"
-                onClick={() => navigate('/operations/contract-extensions')}
-              />
-            </>
-          )}
+        {/* Stats Rows */}
+        <div className="space-y-6">
+          {/* This Week */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">This Week</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {loading ? (
+                <>
+                  <Skeleton className="h-32" />
+                  <Skeleton className="h-32" />
+                  <Skeleton className="h-32" />
+                  <Skeleton className="h-32" />
+                  <Skeleton className="h-32" />
+                </>
+              ) : (
+                <>
+                  <StatsCard
+                    title="Appointments"
+                    value={stats.appointmentsThisWeek}
+                    icon={UserPlus}
+                    subtitle="New hires & returns"
+                    onClick={() => navigate('/operations/appointments')}
+                  />
+                  <StatsCard
+                    title="Separations"
+                    value={stats.separationsThisWeek}
+                    icon={UserMinus}
+                    subtitle="Exits & contract breaks"
+                    alert={stats.separationsThisWeek > 0}
+                    onClick={() => navigate('/operations/separations')}
+                  />
+                  <StatsCard
+                    title="Transfers"
+                    value={stats.transfersThisWeek}
+                    icon={ArrowLeftRight}
+                    subtitle="Location & contract changes"
+                    onClick={() => navigate('/operations/appointments')}
+                  />
+                  <StatsCard
+                    title="STDAs Ending"
+                    value={stats.stdasEndingSoon}
+                    icon={Clock}
+                    subtitle="Within 8 weeks"
+                    alert={stats.stdasEndingSoon > 0}
+                    onClick={() => navigate('/operations/stdas')}
+                  />
+                  <StatsCard
+                    title="Extensions Due"
+                    value={stats.extensionsThisWeek}
+                    icon={FileCheck}
+                    subtitle="Coming soon"
+                    onClick={() => navigate('/operations/contract-extensions')}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* This Month */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">This Month</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {loading ? (
+                <>
+                  <Skeleton className="h-32" />
+                  <Skeleton className="h-32" />
+                  <Skeleton className="h-32" />
+                  <Skeleton className="h-32" />
+                  <Skeleton className="h-32" />
+                </>
+              ) : (
+                <>
+                  <StatsCard
+                    title="Appointments"
+                    value={stats.appointmentsThisMonth}
+                    icon={UserPlus}
+                    subtitle="This calendar month"
+                    onClick={() => navigate('/operations/appointments')}
+                  />
+                  <StatsCard
+                    title="Separations"
+                    value={stats.separationsThisMonth}
+                    icon={UserMinus}
+                    subtitle="This calendar month"
+                    alert={stats.separationsThisMonth > 0}
+                    onClick={() => navigate('/operations/separations')}
+                  />
+                  <StatsCard
+                    title="Transfers"
+                    value={stats.transfersThisMonth}
+                    icon={ArrowLeftRight}
+                    subtitle="This calendar month"
+                    onClick={() => navigate('/operations/appointments')}
+                  />
+                  <StatsCard
+                    title="STDAs Ending"
+                    value={stats.stdasEndingThisMonth}
+                    icon={Clock}
+                    subtitle="This calendar month"
+                    alert={stats.stdasEndingThisMonth > 0}
+                    onClick={() => navigate('/operations/stdas')}
+                  />
+                  <StatsCard
+                    title="Extensions Due"
+                    value={stats.extensionsThisMonth}
+                    icon={FileCheck}
+                    subtitle="Coming soon"
+                    onClick={() => navigate('/operations/contract-extensions')}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Next 90 Days */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">Next 90 Days</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {loading ? (
+                <>
+                  <Skeleton className="h-32" />
+                  <Skeleton className="h-32" />
+                  <Skeleton className="h-32" />
+                  <Skeleton className="h-32" />
+                  <Skeleton className="h-32" />
+                </>
+              ) : (
+                <>
+                  <StatsCard
+                    title="Appointments"
+                    value={stats.appointmentsNext90Days}
+                    icon={UserPlus}
+                    subtitle="Coming up"
+                    onClick={() => navigate('/operations/appointments')}
+                  />
+                  <StatsCard
+                    title="Separations"
+                    value={stats.separationsNext90Days}
+                    icon={UserMinus}
+                    subtitle="Coming up"
+                    alert={stats.separationsNext90Days > 3}
+                    onClick={() => navigate('/operations/separations')}
+                  />
+                  <StatsCard
+                    title="Transfers"
+                    value={stats.transfersNext90Days}
+                    icon={ArrowLeftRight}
+                    subtitle="Coming up"
+                    onClick={() => navigate('/operations/appointments')}
+                  />
+                  <StatsCard
+                    title="STDAs Ending"
+                    value={stats.stdasEndingNext90Days}
+                    icon={Clock}
+                    subtitle="Coming up"
+                    alert={stats.stdasEndingNext90Days > 3}
+                    onClick={() => navigate('/operations/stdas')}
+                  />
+                  <StatsCard
+                    title="Extensions Due"
+                    value={stats.extensionsNext90Days}
+                    icon={FileCheck}
+                    subtitle="Coming soon"
+                    onClick={() => navigate('/operations/contract-extensions')}
+                  />
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Urgent Actions */}
