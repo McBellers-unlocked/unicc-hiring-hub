@@ -173,13 +173,39 @@ const STDAs = () => {
   // Update mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: STDAFormData }) => {
+      // Destructure to exclude selectedUserId and map to correct column
+      const { selectedUserId, ...formData } = data;
+      
+      const updateData = {
+        last_name: formData.last_name,
+        first_name: formData.first_name,
+        email: formData.email || null,
+        staff_number: formData.staff_number || null,
+        operation_type: formData.operation_type,
+        status: formData.status,
+        start_date: formData.start_date || null,
+        end_date: formData.end_date || null,
+        job_title: formData.job_title || null,
+        grade: formData.grade || null,
+        contract_type: formData.contract_type || null,
+        duty_station: formData.duty_station || null,
+        section_unit: formData.section_unit || null,
+        supervisor: formData.supervisor || null,
+        old_pd: formData.old_pd || null,
+        new_pd: formData.new_pd || null,
+        vacancy_reference: formData.vacancy_reference || null,
+        main_hr_focal_point: formData.main_hr_focal_point || null,
+        comments: formData.comments || null,
+        actions_in_hr_plan: formData.actions_in_hr_plan || null,
+        original_job_title: formData.original_job_title || null,
+        original_grade: formData.original_grade || null,
+        original_unit: formData.original_unit || null,
+        user_id: selectedUserId || null,
+      };
+
       const { error } = await supabase
         .from('hr_stdas')
-        .update({
-          ...data,
-          start_date: data.start_date || null,
-          end_date: data.end_date || null,
-        })
+        .update(updateData)
         .eq('id', id);
       
       if (error) throw error;
