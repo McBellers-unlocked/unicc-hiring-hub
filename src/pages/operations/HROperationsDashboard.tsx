@@ -440,117 +440,100 @@ export default function HROperationsDashboard() {
             </div>
           </div>
 
-          {/* This Month */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-muted-foreground">This Month</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              {loading ? (
-                <>
-                  <Skeleton className="h-32" />
-                  <Skeleton className="h-32" />
-                  <Skeleton className="h-32" />
-                  <Skeleton className="h-32" />
-                  <Skeleton className="h-32" />
-                </>
-              ) : (
-                <>
-                  <StatsCard
-                    title="Appointments"
-                    value={stats.appointmentsThisMonth}
-                    icon={UserPlus}
-                    subtitle="This calendar month"
-                    onClick={() => navigate('/operations/appointments')}
-                  />
-                  <StatsCard
-                    title="Separations"
-                    value={stats.separationsThisMonth}
-                    icon={UserMinus}
-                    subtitle="This calendar month"
-                    alert={stats.separationsThisMonth > 0}
-                    onClick={() => navigate('/operations/separations')}
-                  />
-                  <StatsCard
-                    title="Transfers"
-                    value={stats.transfersThisMonth}
-                    icon={ArrowLeftRight}
-                    subtitle="This calendar month"
-                    onClick={() => navigate('/operations/appointments')}
-                  />
-                  <StatsCard
-                    title="STDAs Ending"
-                    value={stats.stdasEndingThisMonth}
-                    icon={Clock}
-                    subtitle="This calendar month"
-                    alert={stats.stdasEndingThisMonth > 0}
-                    onClick={() => navigate('/operations/stdas')}
-                  />
-                  <StatsCard
-                    title="Extensions Due"
-                    value={stats.extensionsThisMonth}
-                    icon={FileCheck}
-                    subtitle="Coming soon"
-                    onClick={() => navigate('/operations/contract-extensions')}
-                  />
-                </>
-              )}
-            </div>
-          </div>
+          {/* This Month - Secondary, compact */}
+          <Card className="bg-muted/30 border-none shadow-none">
+            <CardContent className="py-3 px-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <span className="text-xs font-medium text-muted-foreground min-w-[80px]">This Month</span>
+                {loading ? (
+                  <Skeleton className="h-6 w-96" />
+                ) : (
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <StatsCard
+                      variant="compact"
+                      title="Appointments"
+                      value={stats.appointmentsThisMonth}
+                      onClick={() => navigate('/operations/appointments')}
+                    />
+                    <StatsCard
+                      variant="compact"
+                      title="Separations"
+                      value={stats.separationsThisMonth}
+                      alert={stats.separationsThisMonth > 0}
+                      onClick={() => navigate('/operations/separations')}
+                    />
+                    <StatsCard
+                      variant="compact"
+                      title="Transfers"
+                      value={stats.transfersThisMonth}
+                      onClick={() => navigate('/operations/appointments')}
+                    />
+                    <StatsCard
+                      variant="compact"
+                      title="STDAs Ending"
+                      value={stats.stdasEndingThisMonth}
+                      alert={stats.stdasEndingThisMonth > 0}
+                      onClick={() => navigate('/operations/stdas')}
+                    />
+                    <StatsCard
+                      variant="compact"
+                      title="Extensions"
+                      value={stats.extensionsThisMonth}
+                      onClick={() => navigate('/operations/contract-extensions')}
+                    />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Next 90 Days */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Next 90 Days</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              {loading ? (
-                <>
-                  <Skeleton className="h-32" />
-                  <Skeleton className="h-32" />
-                  <Skeleton className="h-32" />
-                  <Skeleton className="h-32" />
-                  <Skeleton className="h-32" />
-                </>
-              ) : (
-                <>
-                  <StatsCard
-                    title="Appointments"
-                    value={stats.appointmentsNext90Days}
-                    icon={UserPlus}
-                    subtitle="Coming up"
-                    onClick={() => navigate('/operations/appointments')}
-                  />
-                  <StatsCard
-                    title="Separations"
-                    value={stats.separationsNext90Days}
-                    icon={UserMinus}
-                    subtitle="Coming up"
-                    alert={stats.separationsNext90Days > 3}
-                    onClick={() => navigate('/operations/separations')}
-                  />
-                  <StatsCard
-                    title="Transfers"
-                    value={stats.transfersNext90Days}
-                    icon={ArrowLeftRight}
-                    subtitle="Coming up"
-                    onClick={() => navigate('/operations/appointments')}
-                  />
-                  <StatsCard
-                    title="STDAs Ending"
-                    value={stats.stdasEndingNext90Days}
-                    icon={Clock}
-                    subtitle="Coming up"
-                    alert={stats.stdasEndingNext90Days > 3}
-                    onClick={() => navigate('/operations/stdas')}
-                  />
-                  <StatsCard
-                    title="Extensions Due"
-                    value={stats.extensionsNext90Days}
-                    icon={FileCheck}
-                    subtitle="Coming soon"
-                    onClick={() => navigate('/operations/contract-extensions')}
-                  />
-                </>
-              )}
-            </div>
-          </div>
+          {/* Next 90 Days - Tertiary, compact */}
+          <Card className="bg-muted/30 border-none shadow-none">
+            <CardContent className="py-3 px-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <span className="text-xs font-medium text-muted-foreground min-w-[80px]">Next 90 Days</span>
+                {loading ? (
+                  <Skeleton className="h-6 w-96" />
+                ) : (
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <StatsCard
+                      variant="compact"
+                      title="Appointments"
+                      value={stats.appointmentsNext90Days}
+                      onClick={() => navigate('/operations/appointments')}
+                    />
+                    <StatsCard
+                      variant="compact"
+                      title="Separations"
+                      value={stats.separationsNext90Days}
+                      alert={stats.separationsNext90Days > 0}
+                      onClick={() => navigate('/operations/separations')}
+                    />
+                    <StatsCard
+                      variant="compact"
+                      title="Transfers"
+                      value={stats.transfersNext90Days}
+                      onClick={() => navigate('/operations/appointments')}
+                    />
+                    <StatsCard
+                      variant="compact"
+                      title="STDAs Ending"
+                      value={stats.stdasEndingNext90Days}
+                      alert={stats.stdasEndingNext90Days > 0}
+                      onClick={() => navigate('/operations/stdas')}
+                    />
+                    <StatsCard
+                      variant="compact"
+                      title="Extensions"
+                      value={stats.extensionsNext90Days}
+                      onClick={() => navigate('/operations/contract-extensions')}
+                    />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
         </div>
 
         {/* Urgent Actions */}

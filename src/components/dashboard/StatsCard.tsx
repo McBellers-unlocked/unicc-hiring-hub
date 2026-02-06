@@ -12,6 +12,7 @@ interface StatsCardProps {
   alert?: boolean;
   className?: string;
   onClick?: () => void;
+  variant?: 'default' | 'compact';
 }
 
 export default function StatsCard({ 
@@ -22,8 +23,34 @@ export default function StatsCard({
   icon: Icon, 
   alert,
   className,
-  onClick
+  onClick,
+  variant = 'default'
 }: StatsCardProps) {
+  // Compact variant - inline display for secondary/tertiary rows
+  if (variant === 'compact') {
+    return (
+      <button
+        onClick={onClick}
+        className={cn(
+          "flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors",
+          "hover:bg-background/80",
+          onClick && "cursor-pointer",
+          alert && "text-destructive",
+          className
+        )}
+      >
+        <span className="text-xs text-muted-foreground">{title}:</span>
+        <span className={cn(
+          "text-sm font-semibold",
+          alert ? "text-destructive" : "text-foreground"
+        )}>
+          {value}
+        </span>
+      </button>
+    );
+  }
+
+  // Default variant - full card display
   return (
     <Card 
       className={cn(
