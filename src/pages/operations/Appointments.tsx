@@ -252,7 +252,14 @@ const Appointments = () => {
         if (!fullName.includes(searchLower)) return false;
       }
       if (filters.operationType && filters.operationType !== 'all' && apt.operation_type !== filters.operationType) return false;
-      if (filters.status && filters.status !== 'all' && apt.status !== filters.status) return false;
+      
+      // Hide completed by default unless explicitly filtering for them
+      if (!filters.status || filters.status === 'all') {
+        if (apt.status === 'Completed') return false;
+      } else if (apt.status !== filters.status) {
+        return false;
+      }
+      
       if (filters.dutyStation && filters.dutyStation !== 'all' && apt.duty_station !== filters.dutyStation) return false;
       if (filters.hrFocalPoint && filters.hrFocalPoint !== 'all' && apt.main_hr_focal_point !== filters.hrFocalPoint) return false;
       return true;
