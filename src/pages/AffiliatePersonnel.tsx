@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout';
@@ -15,10 +15,56 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Users, Search, Upload, Calendar, AlertTriangle, CheckCircle, Clock, Building2, UserPlus, MoreHorizontal, Pencil, ClipboardList, FileSpreadsheet } from 'lucide-react';
+import { Users, Search, Upload, Calendar, AlertTriangle, CheckCircle, Clock, Building2, UserPlus, MoreHorizontal, Pencil, ClipboardList, FileSpreadsheet, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { AffiliateForm, AffiliateFormData } from '@/components/affiliate/AffiliateForm';
+import { cn } from '@/lib/utils';
+
+// Sorting types
+type SortDirection = 'asc' | 'desc' | null;
+type SortField = 'name' | 'affiliate_type' | 'division' | 'job_title' | 'duty_station' | 'first_incumbency_date' | 'status' | 'contract_end_date';
+
+// Sortable table head component
+interface SortableTableHeadProps {
+  field: SortField;
+  currentField: SortField | null;
+  direction: SortDirection;
+  onSort: (field: SortField) => void;
+  children: React.ReactNode;
+  className?: string;
+}
+
+const SortableTableHead = ({ 
+  field, 
+  currentField, 
+  direction, 
+  onSort, 
+  children,
+  className 
+}: SortableTableHeadProps) => {
+  const isActive = currentField === field;
+  
+  return (
+    <TableHead 
+      className={cn("cursor-pointer select-none hover:bg-muted/50 transition-colors", className)}
+      onClick={() => onSort(field)}
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        {isActive ? (
+          direction === 'asc' ? (
+            <ArrowUp className="h-3 w-3" />
+          ) : (
+            <ArrowDown className="h-3 w-3" />
+          )
+        ) : (
+          <ArrowUpDown className="h-3 w-3 text-muted-foreground/50" />
+        )}
+      </div>
+    </TableHead>
+  );
+};
 
 interface AffiliateUser {
   id: string;
@@ -204,6 +250,10 @@ export default function AffiliatePersonnel() {
   const [divisionFilter, setDivisionFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   
+  // Sorting state
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  
   // Form dialog state
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
@@ -252,6 +302,57 @@ export default function AffiliatePersonnel() {
 
     return matchesSearch && matchesType && matchesDivision && matchesStatus;
   }) || [];
+
+  // Sorting handler
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Cycle: asc -> desc -> null
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else if (sortDirection === 'desc') {
+        setSortField(null);
+        setSortDirection(null);
+      }
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Sorted affiliates
+  const sortedAffiliates = useMemo(() => {
+    if (!sortField || !sortDirection) return filteredAffiliates;
+    
+    return [...filteredAffiliates].sort((a, b) => {
+      let valueA: any;
+      let valueB: any;
+      
+      if (sortField === 'status') {
+        // Sort by days remaining (calculated field)
+        const statusA = getContractStatus(a.contract_start_date, a.contract_end_date, a.first_incumbency_date);
+        const statusB = getContractStatus(b.contract_start_date, b.contract_end_date, b.first_incumbency_date);
+        valueA = statusA.daysRemaining ?? Infinity;
+        valueB = statusB.daysRemaining ?? Infinity;
+      } else {
+        valueA = a[sortField];
+        valueB = b[sortField];
+      }
+      
+      // Handle nulls - push to end when ascending
+      if (valueA == null && valueB == null) return 0;
+      if (valueA == null) return sortDirection === 'asc' ? 1 : -1;
+      if (valueB == null) return sortDirection === 'asc' ? -1 : 1;
+      
+      // Compare
+      if (typeof valueA === 'string' && typeof valueB === 'string') {
+        return sortDirection === 'asc' 
+          ? valueA.localeCompare(valueB)
+          : valueB.localeCompare(valueA);
+      }
+      
+      return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
+    });
+  }, [filteredAffiliates, sortField, sortDirection]);
 
   // Calculate stats
   const stats = {
@@ -557,13 +658,13 @@ export default function AffiliatePersonnel() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Affiliate Personnel ({filteredAffiliates.length})</span>
+              <span>Affiliate Personnel ({sortedAffiliates.length})</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">Loading...</div>
-            ) : filteredAffiliates.length === 0 ? (
+            ) : sortedAffiliates.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 {affiliates?.length === 0 ? (
                   <div className="space-y-4">
@@ -582,18 +683,35 @@ export default function AffiliatePersonnel() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Division</TableHead>
-                      <TableHead>Job Title</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead>Contract End</TableHead>
-                      <TableHead>Status</TableHead>
+                      <SortableTableHead field="name" currentField={sortField} direction={sortDirection} onSort={handleSort}>
+                        Name
+                      </SortableTableHead>
+                      <SortableTableHead field="affiliate_type" currentField={sortField} direction={sortDirection} onSort={handleSort}>
+                        Type
+                      </SortableTableHead>
+                      <SortableTableHead field="division" currentField={sortField} direction={sortDirection} onSort={handleSort}>
+                        Division
+                      </SortableTableHead>
+                      <SortableTableHead field="job_title" currentField={sortField} direction={sortDirection} onSort={handleSort}>
+                        Job Title
+                      </SortableTableHead>
+                      <SortableTableHead field="duty_station" currentField={sortField} direction={sortDirection} onSort={handleSort}>
+                        Location
+                      </SortableTableHead>
+                      <SortableTableHead field="first_incumbency_date" currentField={sortField} direction={sortDirection} onSort={handleSort}>
+                        First Contract
+                      </SortableTableHead>
+                      <SortableTableHead field="status" currentField={sortField} direction={sortDirection} onSort={handleSort}>
+                        Status
+                      </SortableTableHead>
+                      <SortableTableHead field="contract_end_date" currentField={sortField} direction={sortDirection} onSort={handleSort}>
+                        Contract End
+                      </SortableTableHead>
                       <TableHead className="w-28">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredAffiliates.map((affiliate) => {
+                    {sortedAffiliates.map((affiliate) => {
                       const contractStatus = getContractStatus(affiliate.contract_start_date, affiliate.contract_end_date, affiliate.first_incumbency_date);
                       return (
                         <TableRow key={affiliate.id}>
@@ -618,11 +736,11 @@ export default function AffiliatePersonnel() {
                           </TableCell>
                           <TableCell>{affiliate.duty_station || '-'}</TableCell>
                           <TableCell>
-                            {affiliate.contract_end_date ? (
+                            {affiliate.first_incumbency_date ? (
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3 text-muted-foreground" />
                                 <span className="text-sm">
-                                  {format(parseISO(affiliate.contract_end_date), 'dd MMM yyyy')}
+                                  {format(parseISO(affiliate.first_incumbency_date), 'dd MMM yyyy')}
                                 </span>
                               </div>
                             ) : '-'}
@@ -638,6 +756,16 @@ export default function AffiliatePersonnel() {
                               {!contractStatus.isNotYetActive && !contractStatus.isNoData && contractStatus.daysRemaining !== null && contractStatus.daysRemaining > 60 && <CheckCircle className="h-3 w-3 mr-1" />}
                               {contractStatus.status}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {affiliate.contract_end_date ? (
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-sm">
+                                  {format(parseISO(affiliate.contract_end_date), 'dd MMM yyyy')}
+                                </span>
+                              </div>
+                            ) : '-'}
                           </TableCell>
                           <TableCell>
                             <DropdownMenu>
