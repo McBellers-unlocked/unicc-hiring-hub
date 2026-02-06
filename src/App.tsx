@@ -69,6 +69,8 @@ import WorkplanDetail from "./pages/WorkplanDetail";
 import AdminPerformanceCycles from "./pages/AdminPerformanceCycles";
 import AffiliatePersonnel from "./pages/AffiliatePersonnel";
 import ImportAffiliatePersonnel from "./pages/ImportAffiliatePersonnel";
+import AffiliateDemographicsEdit from "./pages/AffiliateDemographicsEdit";
+import AffiliateLifecycle from "./pages/AffiliateLifecycle";
 import OrganizationChart from "./pages/OrganizationChart";
 import AdminAssessmentSeries from "./pages/AdminAssessmentSeries";
 import AssessmentSeriesBuilder from "./pages/AssessmentSeriesBuilder";
@@ -177,6 +179,8 @@ const App = () => (
             <Route path="/performance/team" element={<Performance />} />
             <Route path="/admin/performance-cycles" element={<AdminPerformanceCycles />} />
             <Route path="/admin/affiliate-personnel" element={<AffiliatePersonnel />} />
+            <Route path="/admin/affiliate-personnel/edit" element={<AffiliateDemographicsEdit />} />
+            <Route path="/admin/affiliate-personnel/:id/lifecycle" element={<AffiliateLifecycle />} />
             <Route path="/admin/import-affiliates" element={<ImportAffiliatePersonnel />} />
             <Route path="/admin/org-chart" element={<OrganizationChart />} />
             {/* HR Operations Routes */}
