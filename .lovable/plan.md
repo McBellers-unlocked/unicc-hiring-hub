@@ -1,220 +1,171 @@
 
-# Add Multi-Timeframe Stats Rows to HR Operations Dashboard
 
-## Overview
-Add two additional rows of stats cards below the existing "This Week" row:
-1. **Row 1**: This Week (existing)
-2. **Row 2**: This Month
-3. **Row 3**: Next 90 Days
+# Visual Hierarchy Refinement for Stats Rows
 
-Each row will show the same categories of data (Appointments, Separations, Transfers, STDAs Ending, Extensions) but for different time horizons.
+## Current Issue
+All three timeframe rows (This Week, This Month, Next 90 Days) use identical full-sized stats cards with the same visual weight. This creates an overwhelming, repetitive appearance where nothing stands out as primary.
+
+## Solution: Progressive Visual De-emphasis
+
+Create a clear hierarchy where **This Week** is the primary focus (most actionable), while **This Month** and **Next 90 Days** serve as secondary/tertiary planning views with progressively reduced visual prominence.
 
 ---
 
-## Visual Layout
+## Visual Design Approach
 
 ```text
-+--------------------+--------------------+--------------------+--------------------+--------------------+
-| Appointments       | Separations        | Transfers          | STDAs Ending Soon  | Extensions Due     |
-| This Week: 2       | This Week: 1       | This Week: 0       | Within 8 weeks: 0  | Coming soon: 0     |
-+--------------------+--------------------+--------------------+--------------------+--------------------+
+THIS WEEK (Primary - Full prominence)
++====================+====================+====================+====================+====================+
+|  ■ Appointments    |  ■ Separations     |  ■ Transfers       |  ■ STDAs Ending    |  ■ Extensions      |
+|     2              |     1              |     0              |     3              |     0              |
+|  New hires...      |  Exits & breaks    |  Location changes  |  Within 8 weeks    |  Coming soon       |
++====================+====================+====================+====================+====================+
 
-+--------------------+--------------------+--------------------+--------------------+--------------------+
-| Appointments       | Separations        | Transfers          | STDAs Ending       | Extensions Due     |
-| This Month: 5      | This Month: 3      | This Month: 2      | This Month: 1      | This Month: 0      |
-+--------------------+--------------------+--------------------+--------------------+--------------------+
+THIS MONTH (Secondary - Compact, muted background)
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Appointments: 5  │  Separations: 3  │  Transfers: 2  │  STDAs Ending: 4  │  Extensions: 0          │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
-+--------------------+--------------------+--------------------+--------------------+--------------------+
-| Appointments       | Separations        | Transfers          | STDAs Ending       | Extensions Due     |
-| Next 90 Days: 12   | Next 90 Days: 8    | Next 90 Days: 4    | Next 90 Days: 6    | Coming soon: 0     |
-+--------------------+--------------------+--------------------+--------------------+--------------------+
+NEXT 90 DAYS (Tertiary - Inline, smallest)
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Appointments: 12  │  Separations: 8  │  Transfers: 4  │  STDAs Ending: 6  │  Extensions: 0         │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
-
----
-
-## Technical Changes
-
-### 1. Expand DashboardStats Interface
-
-Add new fields for monthly and 90-day timeframes:
-
-```typescript
-interface DashboardStats {
-  // Existing (This Week)
-  appointmentsThisWeek: number;
-  separationsThisWeek: number;
-  transfersThisWeek: number;
-  extensionsThisWeek: number;
-  stdasEndingSoon: number;
-  
-  // New: This Month
-  appointmentsThisMonth: number;
-  separationsThisMonth: number;
-  transfersThisMonth: number;
-  stdasEndingThisMonth: number;
-  extensionsThisMonth: number;
-  
-  // New: Next 90 Days
-  appointmentsNext90Days: number;
-  separationsNext90Days: number;
-  transfersNext90Days: number;
-  stdasEndingNext90Days: number;
-  extensionsNext90Days: number;
-  
-  // Other existing fields...
-}
-```
-
-### 2. Calculate Additional Date Ranges
-
-```typescript
-const fetchDashboardData = async () => {
-  const today = startOfDay(new Date());
-  const todayStr = format(today, 'yyyy-MM-dd');
-  const weekFromNow = format(addDays(today, 7), 'yyyy-MM-dd');
-  
-  // New date calculations
-  const endOfMonth = format(endOfMonth(today), 'yyyy-MM-dd');
-  const ninetyDaysFromNow = format(addDays(today, 90), 'yyyy-MM-dd');
-  // ...
-```
-
-### 3. Filter Data for Each Timeframe
-
-For each category (appointments, separations, transfers, STDAs), calculate counts for:
-- This Week: today to +7 days (existing)
-- This Month: today to end of current month
-- Next 90 Days: today to +90 days
-
-### 4. Render Three Stats Rows
-
-Add section headers and two additional grid rows:
-
-```tsx
-{/* This Week Stats */}
-<div className="space-y-2">
-  <h3 className="text-sm font-medium text-muted-foreground">This Week</h3>
-  <div className="grid grid-cols-5 gap-4">
-    {/* 5 stats cards */}
-  </div>
-</div>
-
-{/* This Month Stats */}
-<div className="space-y-2">
-  <h3 className="text-sm font-medium text-muted-foreground">This Month</h3>
-  <div className="grid grid-cols-5 gap-4">
-    {/* 5 stats cards with monthly data */}
-  </div>
-</div>
-
-{/* Next 90 Days Stats */}
-<div className="space-y-2">
-  <h3 className="text-sm font-medium text-muted-foreground">Next 90 Days</h3>
-  <div className="grid grid-cols-5 gap-4">
-    {/* 5 stats cards with 90-day data */}
-  </div>
-</div>
-```
-
----
-
-## File to Modify
-
-| File | Changes |
-|------|---------|
-| `src/pages/operations/HROperationsDashboard.tsx` | Add date calculations, expand stats interface, add filtering logic, render three rows of stats |
 
 ---
 
 ## Implementation Details
 
-### Date Calculations
+### Approach: Modify StatsCard to Support Variants
 
-```typescript
-import { endOfMonth } from "date-fns"; // Add to imports
+Add a `variant` prop to StatsCard:
 
-// In fetchDashboardData:
-const monthEndStr = format(endOfMonth(today), 'yyyy-MM-dd');
-```
+| Variant | Usage | Characteristics |
+|---------|-------|-----------------|
+| `default` | This Week | Full card with icon, large text, shadow, padding |
+| `compact` | This Month / Next 90 Days | Single-row inline display, smaller text, no icon, minimal padding |
 
-### Filtering Logic Examples
+### StatsCard Changes
 
-```typescript
-// This Month - Appointments (non-transfer)
-const appointmentsThisMonth = appointmentsList.filter(a => 
-  a.tentative_date && 
-  a.tentative_date >= todayStr && 
-  a.tentative_date <= monthEndStr &&
-  !TRANSFER_TYPES.includes(a.operation_type)
-).length;
+Add a `variant?: 'default' | 'compact'` prop:
 
-// Next 90 Days - Appointments
-const appointmentsNext90Days = appointmentsList.filter(a => 
-  a.tentative_date && 
-  a.tentative_date >= todayStr && 
-  a.tentative_date <= ninetyDaysFromNow &&
-  !TRANSFER_TYPES.includes(a.operation_type)
-).length;
+**Default variant** (current behavior):
+- Full card with `p-6` padding
+- Large `text-3xl` value
+- Icon on right side
+- Full height
 
-// This Month - STDAs ending
-const stdasEndingThisMonth = stdasList.filter(s => 
-  s.end_date && 
-  s.end_date >= todayStr && 
-  s.end_date <= monthEndStr
-).length;
-```
+**Compact variant** (new):
+- Inline layout with `p-3` padding
+- Smaller `text-lg` value
+- No icon (cleaner look)
+- Single horizontal row
+- Subtle background (`bg-muted/50`)
 
-### Stats Card Subtitle Adjustments
+### Dashboard Layout Changes
 
-For each timeframe, update subtitles to reflect the period:
-- This Week: "New hires & returns" (existing)
-- This Month: "This calendar month"
-- Next 90 Days: "Coming up"
+**This Week:** Keep as-is with full StatsCards (primary focus)
+
+**This Month & Next 90 Days:** 
+- Wrap each row in a single muted Card container
+- Use compact variant stats displayed inline
+- Show as a horizontal bar rather than grid of individual cards
 
 ---
 
-## State Structure
+## Refined Render Structure
 
-```typescript
-const [stats, setStats] = useState<DashboardStats>({
-  // This Week
-  appointmentsThisWeek: 0,
-  separationsThisWeek: 0,
-  transfersThisWeek: 0,
-  extensionsThisWeek: 0,
-  stdasEndingSoon: 0,
+```tsx
+{/* This Week - Primary Focus */}
+<div className="space-y-2">
+  <h3 className="text-sm font-semibold text-foreground">This Week</h3>
+  <div className="grid grid-cols-5 gap-4">
+    <StatsCard variant="default" ... />
+    {/* 5 full cards */}
+  </div>
+</div>
+
+{/* This Month - Secondary */}
+<Card className="bg-muted/30 border-none shadow-none">
+  <CardContent className="py-3 px-4">
+    <div className="flex items-center justify-between">
+      <span className="text-xs font-medium text-muted-foreground">This Month</span>
+      <div className="flex items-center gap-6">
+        <StatsCard variant="compact" title="Appointments" value={5} />
+        <StatsCard variant="compact" title="Separations" value={3} />
+        <StatsCard variant="compact" title="Transfers" value={2} />
+        <StatsCard variant="compact" title="STDAs Ending" value={4} />
+        <StatsCard variant="compact" title="Extensions" value={0} />
+      </div>
+    </div>
+  </CardContent>
+</Card>
+
+{/* Next 90 Days - Tertiary (same pattern) */}
+```
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/components/dashboard/StatsCard.tsx` | Add `variant` prop with `default` and `compact` options |
+| `src/pages/operations/HROperationsDashboard.tsx` | Keep This Week as full cards, convert This Month and Next 90 Days to compact inline bars |
+
+---
+
+## StatsCard Variant Implementation
+
+```tsx
+interface StatsCardProps {
+  // ... existing props
+  variant?: 'default' | 'compact';
+}
+
+export default function StatsCard({ 
+  variant = 'default',
+  // ... other props
+}: StatsCardProps) {
   
-  // This Month
-  appointmentsThisMonth: 0,
-  separationsThisMonth: 0,
-  transfersThisMonth: 0,
-  stdasEndingThisMonth: 0,
-  extensionsThisMonth: 0,
-  
-  // Next 90 Days
-  appointmentsNext90Days: 0,
-  separationsNext90Days: 0,
-  transfersNext90Days: 0,
-  stdasEndingNext90Days: 0,
-  extensionsNext90Days: 0,
-  
-  // Other existing fields...
-  overdueAppointments: [],
-  overdueSeparations: [],
-  upcomingEvents: [],
-  internationalExits: [],
-  stdasEndingList: [],
-});
+  if (variant === 'compact') {
+    return (
+      <button
+        onClick={onClick}
+        className={cn(
+          "flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors",
+          "hover:bg-background/80",
+          onClick && "cursor-pointer",
+          alert && "text-destructive"
+        )}
+      >
+        <span className="text-xs text-muted-foreground">{title}:</span>
+        <span className={cn(
+          "text-sm font-semibold",
+          alert ? "text-destructive" : "text-foreground"
+        )}>
+          {value}
+        </span>
+      </button>
+    );
+  }
+
+  // Default variant - existing full card implementation
+  return (
+    <Card ... >
+      {/* existing implementation */}
+    </Card>
+  );
+}
 ```
 
 ---
 
 ## Expected Result
 
-After implementation, the dashboard will display:
+- **This Week** remains prominent with full cards, icons, and shadows - the actionable focus
+- **This Month** and **Next 90 Days** become subtle horizontal bars with inline stats
+- Clear visual hierarchy: primary > secondary > tertiary
+- Less visual noise while maintaining all the same data and clickability
+- Dashboard feels lighter and more scannable
 
-1. **This Week row** - Same as current, showing next 7 days
-2. **This Month row** - Shows counts from today through end of current calendar month
-3. **Next 90 Days row** - Shows counts from today through +90 days
-
-Each row will have section headers making it clear which timeframe is being displayed. All stats cards remain clickable, navigating to the relevant operations page.
