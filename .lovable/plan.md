@@ -1,329 +1,222 @@
 
 
-# Affiliate Personnel: Edit Demographics + Lifecycle Manager
+# Restructure Affiliate Personnel to Match Appointments/Separations Pattern
 
 ## Overview
 
-This implementation adds two major features to the Affiliate Personnel management system:
+Transform the Affiliate Personnel management to follow the same UX pattern as Appointments and Separations:
 
-1. **Edit Demographics** - An editable table view for HR focal points to directly modify affiliate data (same fields as the CSV import)
-2. **Manage Lifecycle** - A contract break/onboarding timeline with checklist tasks for each affiliate
-
----
-
-## Feature 1: Edit Demographics
-
-### User Experience
-
-- Click "Edit demographics" button in the table header
-- Opens a new page with an editable data table
-- Each row is an affiliate, columns match the CSV import fields
-- Inline editing with auto-save on blur
-- Bulk editing support for common fields
-
-### Route
-
-```
-/admin/affiliate-personnel/edit
-```
-
-### Editable Fields (matching CSV import)
-
-| Field | Type | Notes |
-|-------|------|-------|
-| Name | Text | Full name |
-| Email | Text | Read-only (unique identifier) |
-| Affiliate Type | Select | IC, Intern, UNV |
-| Division | Text | Org division |
-| Unit | Text | Sub-unit |
-| Job Title | Text | Current role |
-| Line Manager | Text | Supervisor name |
-| Duty Station | Text | Location |
-| Contract Start Date | Date | Start of current contract |
-| Contract End Date | Date | End of current contract |
-| Current Grade | Text | Pay grade |
-| Staff Number | Text | Employee ID |
-| Nationality | Text | Country of citizenship |
-| Gender | Select | Male, Female |
-| First Incumbency Date | Date | Original start date |
-
-### Components to Create
-
-**`src/pages/AffiliateDemographicsEdit.tsx`**
-- Full-page editable table with filters
-- Uses React Table for inline editing
-- Auto-saves changes to Supabase `users` table
-- Shows validation errors inline
-- Back button returns to main affiliate list
+1. **Main List Page** - Add "Add Affiliate" button that opens a form dialog with staff search/autofill
+2. **Row Actions** - Each affiliate row has "Edit" and "Lifecycle" buttons
+3. **Form Dialog** - Create/edit affiliate using the same dialog pattern with staff search combobox
 
 ---
 
-## Feature 2: Manage Lifecycle
+## Current vs New Structure
 
-### User Experience
-
-1. Click "Manage lifecycle" button on any affiliate row
-2. Opens a dedicated lifecycle management page showing:
-   - Affiliate name and email (header)
-   - Contract break dates (calculated from current end date + next start date)
-   - Days to onboard date (countdown)
-   - Visual timeline from Day -45 to Day 0
-   - Checklist steps with color-coded status
-
-### Route
-
-```
-/admin/affiliate-personnel/:id/lifecycle
-```
-
-### Timeline Stages (from mockup)
-
-| Stage | Day Marker | KPI Target |
-|-------|------------|------------|
-| Contract Break Preparations | Day -45 | By Day -45 |
-| Purchase Request | Day -30 | By Day -30 |
-| Documentation | Day -20 | By Day -20 |
-| Purchase Order | Day -14 | By Day -14 |
-| Stakeholders Update | Day 0 | By Day 0 |
-
-### Checklist Items per Stage
-
-**Day -45: Contract Break Preparations**
-- Remind consultant of Timesheet
-- Evaluation form reminder
-- Send Contract Break ticket
-
-**Day -30: Purchase Request**
-- Confirm account codes
-- Raise PR
-- PR completed
-
-**Day -20: Documentation**
-- (Configurable items)
-
-**Day -14: Purchase Order**
-- (Configurable items)
-
-**Day 0: Stakeholders Update**
-- (Configurable items)
-
-### Stage Color Logic
-
-| Condition | Color |
-|-----------|-------|
-| All actions completed | Green |
-| Actions pending, within KPI | Blue/Neutral |
-| Actions pending, KPI date passed | Red |
-
-### Database Schema
-
-**New Table: `affiliate_lifecycle_checklists`**
-```sql
-CREATE TABLE affiliate_lifecycle_checklists (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  contract_cycle_start DATE, -- Start of this contract cycle
-  contract_cycle_end DATE,   -- End of this contract cycle
-  next_contract_start DATE,  -- When the next contract begins
-  stage TEXT NOT NULL,       -- 'contract_break_prep', 'purchase_request', etc.
-  item_key TEXT NOT NULL,    -- 'remind_timesheet', 'raise_pr', etc.
-  item_label TEXT NOT NULL,  -- Display text
-  completed BOOLEAN DEFAULT false,
-  completed_at TIMESTAMPTZ,
-  completed_by UUID REFERENCES users(id),
-  notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id, contract_cycle_end, stage, item_key)
-);
-```
-
-### Lifecycle Page Components
-
-**`src/pages/AffiliateLifecycle.tsx`**
-- Main lifecycle management page
-- Fetches affiliate data and checklist items
-- Displays timeline visualization
-- Handles checkbox interactions
-
-**`src/components/affiliate/AffiliateLifecycleTimeline.tsx`**
-- Visual timeline component (Day -45 to Day 0)
-- Circular markers with color-coded status
-- Horizontal connector lines
-- Responsive layout
-
-**`src/components/affiliate/AffiliateLifecycleChecklist.tsx`**
-- Checklist section for each stage
-- Checkbox items with labels
-- Completion timestamps
-- Notes field (optional)
-
-**`src/lib/affiliateLifecycleConfig.ts`**
-- Default checklist items per stage
-- Stage definitions with KPI targets
+| Current | New |
+|---------|-----|
+| Separate "Edit Demographics" page with editable table | Form dialog on main page (like Appointments) |
+| No ability to create new affiliates in-app | "Add Affiliate" button opens creation form |
+| Single "Lifecycle" button per row | Two buttons: "Edit" + "Lifecycle" |
 
 ---
 
-## Implementation Details
+## Implementation
 
-### Route Updates (App.tsx)
+### 1. Create AffiliateForm Component
 
-```tsx
-import AffiliateDemographicsEdit from "./pages/AffiliateDemographicsEdit";
-import AffiliateLifecycle from "./pages/AffiliateLifecycle";
+**New File: `src/components/affiliate/AffiliateForm.tsx`**
 
-// Add routes
-<Route path="/admin/affiliate-personnel/edit" element={<AffiliateDemographicsEdit />} />
-<Route path="/admin/affiliate-personnel/:id/lifecycle" element={<AffiliateLifecycle />} />
-```
+A dialog-based form component matching the AppointmentForm pattern:
+- Uses `StaffSearchCombobox` to search existing users and auto-populate fields
+- Tabs for organizing fields: "Personal", "Contract", "Assignment"
+- HR Focal Point dropdown using the fixed `HR_FOCAL_POINTS` list
+- Creates new affiliate or updates existing one
 
-### Affiliate Table Updates (AffiliatePersonnel.tsx)
+**Form Fields (matching CSV import):**
 
-Add two new elements:
-1. "Edit demographics" button in header (links to edit page)
-2. "Manage lifecycle" button in each row's action column
+| Tab | Fields |
+|-----|--------|
+| Personal | Name, Email, Affiliate Type, Staff Number, Nationality, Gender |
+| Contract | Contract Start, Contract End, First Incumbency Date |
+| Assignment | Division, Unit, Job Title, Line Manager, Duty Station, Grade |
 
-```tsx
-// Header button
-<Button variant="outline" asChild className="ml-4">
-  <Link to="/admin/affiliate-personnel/edit">
-    <Edit className="w-4 h-4 mr-2" />
-    Edit demographics
-  </Link>
-</Button>
+**Staff Search Autofill:**
+When an existing user is selected from the combobox:
+- Populates Name, Email, Job Title, Division, etc.
+- Links the affiliate record to the user via `id`
+- If person doesn't exist in system, allows manual entry
 
-// Row action
-<TableCell>
-  <Button variant="outline" size="sm" asChild>
-    <Link to={`/admin/affiliate-personnel/${affiliate.id}/lifecycle`}>
-      Manage lifecycle
-    </Link>
-  </Button>
-</TableCell>
-```
+### 2. Update Main Page (AffiliatePersonnel.tsx)
 
-### Contract Break Detection Logic
+**Header Changes:**
+- Add "Add Affiliate" button (primary) next to "Import Affiliates"
+- Opens `AffiliateForm` in create mode
 
-Determine if an affiliate is in a contract break:
-```typescript
-const isContractBreak = (affiliate: AffiliateUser) => {
-  if (!affiliate.contract_start_date) return false;
-  const startDate = parseISO(affiliate.contract_start_date);
-  const today = new Date();
-  // Future start date + has worked before = contract break
-  return startDate > today && affiliate.first_incumbency_date;
-};
+**Table Row Actions:**
+- Replace single "Lifecycle" button with dropdown menu:
+  - "Edit" - Opens `AffiliateForm` in edit mode
+  - "Manage Lifecycle" - Links to lifecycle page
+  - "Mark Inactive" (optional) - For completed affiliates
 
-const getContractBreakDates = (affiliate: AffiliateUser) => {
-  // Previous contract end = day before new contract start
-  // Or use a separate field if available
-  return {
-    breakStart: affiliate.contract_end_date, // Previous end
-    breakEnd: affiliate.contract_start_date, // New start
-    daysToOnboard: differenceInDays(parseISO(affiliate.contract_start_date), new Date())
-  };
-};
-```
+**Stats Cards:** Keep as-is (they provide useful overview)
 
-### Timeline Calculation
+### 3. Update/Remove Edit Demographics Page
 
-```typescript
-const LIFECYCLE_STAGES = [
-  { key: 'contract_break_prep', label: 'Contract Break Preparations', dayMarker: -45 },
-  { key: 'purchase_request', label: 'Purchase Request', dayMarker: -30 },
-  { key: 'documentation', label: 'Documentation', dayMarker: -20 },
-  { key: 'purchase_order', label: 'Purchase Order', dayMarker: -14 },
-  { key: 'stakeholders_update', label: 'Stakeholders Update', dayMarker: 0 },
-];
+**Option A (Recommended):** Keep `AffiliateDemographicsEdit.tsx` as a bulk edit tool for advanced users, but make the primary flow use the form dialog.
 
-const getStageStatus = (
-  stage: Stage,
-  daysToOnboard: number,
-  checklist: ChecklistItem[]
-) => {
-  const stageItems = checklist.filter(item => item.stage === stage.key);
-  const allComplete = stageItems.every(item => item.completed);
-  const kpiPassed = daysToOnboard < Math.abs(stage.dayMarker);
-  
-  if (allComplete) return 'complete'; // Green
-  if (kpiPassed) return 'overdue';    // Red
-  return 'pending';                    // Blue
-};
-```
+**Option B:** Remove the separate page entirely and rely on the row-level edit button.
+
+For this implementation, we'll go with Option A - keep both flows available.
 
 ---
 
-## Extension Without Contract Break
+## File Changes
 
-For cases where an extension does not involve a contract break (continuous contract), the lifecycle view will:
-- Show only relevant stages (stakeholders update, documentation)
-- Hide contract break-specific items
-- Use contract end date as Day 0
-
-A toggle or automatic detection based on `first_incumbency_date` vs `contract_start_date` comparison can determine which workflow to show.
-
----
-
-## Files to Create
+### Files to Create
 
 | File | Purpose |
 |------|---------|
-| `src/pages/AffiliateDemographicsEdit.tsx` | Editable table page |
-| `src/pages/AffiliateLifecycle.tsx` | Lifecycle management page |
-| `src/components/affiliate/AffiliateLifecycleTimeline.tsx` | Timeline visualization |
-| `src/components/affiliate/AffiliateLifecycleChecklist.tsx` | Checklist component |
-| `src/lib/affiliateLifecycleConfig.ts` | Stage and item definitions |
+| `src/components/affiliate/AffiliateForm.tsx` | Dialog form for create/edit affiliate |
 
-## Files to Modify
+### Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/App.tsx` | Add two new routes |
-| `src/pages/AffiliatePersonnel.tsx` | Add "Edit demographics" button + "Manage lifecycle" column |
+| `src/pages/AffiliatePersonnel.tsx` | Add "Add Affiliate" button, AffiliateForm dialog, row edit action |
 
-## Database Migration
+---
 
-```sql
--- Affiliate lifecycle checklists
-CREATE TABLE affiliate_lifecycle_checklists (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  contract_cycle_start DATE,
-  contract_cycle_end DATE,
-  next_contract_start DATE,
-  stage TEXT NOT NULL,
-  item_key TEXT NOT NULL,
-  item_label TEXT NOT NULL,
-  completed BOOLEAN DEFAULT false,
-  completed_at TIMESTAMPTZ,
-  completed_by UUID REFERENCES users(id),
-  notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id, contract_cycle_end, stage, item_key)
-);
+## Technical Details
 
--- Enable RLS
-ALTER TABLE affiliate_lifecycle_checklists ENABLE ROW LEVEL SECURITY;
+### AffiliateForm Component Structure
 
--- Allow HR roles to manage
-CREATE POLICY "HR can manage affiliate checklists" ON affiliate_lifecycle_checklists
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM users 
-      WHERE users.id = auth.uid() 
-      AND users.role IN ('Admin', 'HR Assistant', 'Chief of HR')
-    )
-  );
+```tsx
+interface AffiliateFormProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (data: AffiliateFormData) => Promise<void>;
+  initialData?: Partial<AffiliateFormData>;
+  isLoading?: boolean;
+}
+
+const affiliateSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email'),
+  affiliate_type: z.enum(['IC', 'Intern', 'UNV']),
+  division: z.string().optional(),
+  unit: z.string().optional(),
+  job_title: z.string().optional(),
+  line_manager: z.string().optional(),
+  duty_station: z.string().optional(),
+  contract_start_date: z.string().optional(),
+  contract_end_date: z.string().optional(),
+  current_grade: z.string().optional(),
+  staff_number: z.string().optional(),
+  nationality: z.string().optional(),
+  gender: z.enum(['Male', 'Female']).optional(),
+  first_incumbency_date: z.string().optional(),
+});
 ```
+
+### Staff Search Integration
+
+```tsx
+// When staff is selected from combobox
+const handleStaffSelect = (staff: StaffMember) => {
+  form.setValue('name', staff.name);
+  form.setValue('email', staff.email);
+  form.setValue('job_title', staff.job_title || '');
+  form.setValue('duty_station', staff.duty_station || '');
+  form.setValue('current_grade', staff.grade || '');
+  form.setValue('line_manager', staff.supervisor || '');
+  // Store user ID for linking
+  setSelectedUserId(staff.id);
+};
+```
+
+### Create/Update Logic
+
+For **new affiliates** not in the system:
+```tsx
+// Insert new user with personnel_type = 'Affiliate'
+const { error } = await supabase
+  .from('users')
+  .insert({
+    ...formData,
+    personnel_type: 'Affiliate',
+  });
+```
+
+For **existing users** being converted to affiliate:
+```tsx
+// Update existing user to set personnel_type and affiliate fields
+const { error } = await supabase
+  .from('users')
+  .update({
+    personnel_type: 'Affiliate',
+    affiliate_type: formData.affiliate_type,
+    // ... other affiliate fields
+  })
+  .eq('id', selectedUserId);
+```
+
+### Row Actions Dropdown
+
+```tsx
+<DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button variant="ghost" size="icon">
+      <MoreHorizontal className="h-4 w-4" />
+    </Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent align="end">
+    <DropdownMenuItem onClick={() => handleEdit(affiliate)}>
+      <Pencil className="h-4 w-4 mr-2" />
+      Edit
+    </DropdownMenuItem>
+    <DropdownMenuItem asChild>
+      <Link to={`/admin/affiliate-personnel/${affiliate.id}/lifecycle`}>
+        <ClipboardList className="h-4 w-4 mr-2" />
+        Manage Lifecycle
+      </Link>
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
+```
+
+---
+
+## User Experience Flow
+
+### Creating a New Affiliate
+
+1. Click "Add Affiliate" button in header
+2. Dialog opens with staff search combobox
+3. Search for existing person OR enter details manually
+4. Fill in affiliate-specific fields (type, contract dates)
+5. Save - creates/updates user record with `personnel_type = 'Affiliate'`
+
+### Editing an Affiliate
+
+1. Click "Edit" from row actions dropdown
+2. Dialog opens pre-populated with affiliate's current data
+3. Modify fields as needed
+4. Save - updates the user record
+
+### Managing Lifecycle
+
+1. Click "Manage Lifecycle" from row actions dropdown
+2. Navigates to the dedicated lifecycle page (already implemented)
 
 ---
 
 ## Summary
 
-This implementation provides:
-1. **Edit Demographics**: Direct inline editing of all affiliate data fields in a table format
-2. **Manage Lifecycle**: A timeline-based onboarding checklist with KPI tracking and color-coded status indicators
-
-The design follows existing patterns from the HR Operations module (threaded comments, status tracking) and the RequisitionWorkflowTimeline component (KPI-based color coding).
+This restructure brings the Affiliate Personnel management in line with the established Appointments/Separations pattern:
+- Unified form dialog for create/edit operations
+- Staff search autofill from existing database
+- Row-level actions for quick access to edit and lifecycle
+- Keeps bulk edit page available for advanced users
 
