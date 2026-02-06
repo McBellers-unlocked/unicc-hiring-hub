@@ -1645,6 +1645,176 @@ export type Database = {
           },
         ]
       }
+      hr_stda_comments: {
+        Row: {
+          author_id: string | null
+          comment_text: string
+          created_at: string | null
+          id: string
+          stda_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          comment_text: string
+          created_at?: string | null
+          id?: string
+          stda_id: string
+        }
+        Update: {
+          author_id?: string | null
+          comment_text?: string
+          created_at?: string | null
+          id?: string
+          stda_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_stda_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_stda_comments_stda_id_fkey"
+            columns: ["stda_id"]
+            isOneToOne: false
+            referencedRelation: "hr_stdas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_stdas: {
+        Row: {
+          actions_in_hr_plan: string | null
+          comments: string | null
+          contract_type: string | null
+          created_at: string | null
+          created_by: string | null
+          duty_station: string | null
+          email: string | null
+          end_date: string | null
+          first_name: string
+          grade: string | null
+          id: string
+          job_title: string | null
+          last_name: string
+          main_hr_focal_point: string | null
+          new_pd: string | null
+          old_pd: string | null
+          operation_type: string
+          original_grade: string | null
+          original_job_title: string | null
+          original_unit: string | null
+          section_unit: string | null
+          source_application_id: string | null
+          source_requisition_id: string | null
+          staff_number: string | null
+          start_date: string | null
+          status: string | null
+          supervisor: string | null
+          supervisor_staff_number: string | null
+          updated_at: string | null
+          user_id: string | null
+          vacancy_reference: string | null
+        }
+        Insert: {
+          actions_in_hr_plan?: string | null
+          comments?: string | null
+          contract_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          duty_station?: string | null
+          email?: string | null
+          end_date?: string | null
+          first_name: string
+          grade?: string | null
+          id?: string
+          job_title?: string | null
+          last_name: string
+          main_hr_focal_point?: string | null
+          new_pd?: string | null
+          old_pd?: string | null
+          operation_type?: string
+          original_grade?: string | null
+          original_job_title?: string | null
+          original_unit?: string | null
+          section_unit?: string | null
+          source_application_id?: string | null
+          source_requisition_id?: string | null
+          staff_number?: string | null
+          start_date?: string | null
+          status?: string | null
+          supervisor?: string | null
+          supervisor_staff_number?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          vacancy_reference?: string | null
+        }
+        Update: {
+          actions_in_hr_plan?: string | null
+          comments?: string | null
+          contract_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          duty_station?: string | null
+          email?: string | null
+          end_date?: string | null
+          first_name?: string
+          grade?: string | null
+          id?: string
+          job_title?: string | null
+          last_name?: string
+          main_hr_focal_point?: string | null
+          new_pd?: string | null
+          old_pd?: string | null
+          operation_type?: string
+          original_grade?: string | null
+          original_job_title?: string | null
+          original_unit?: string | null
+          section_unit?: string | null
+          source_application_id?: string | null
+          source_requisition_id?: string | null
+          staff_number?: string | null
+          start_date?: string | null
+          status?: string | null
+          supervisor?: string | null
+          supervisor_staff_number?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          vacancy_reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_stdas_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_stdas_source_application_id_fkey"
+            columns: ["source_application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_stdas_source_requisition_id_fkey"
+            columns: ["source_requisition_id"]
+            isOneToOne: false
+            referencedRelation: "job_requisitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_stdas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_talent_saved_searches: {
         Row: {
           created_at: string
@@ -3589,6 +3759,7 @@ export type Database = {
           contract_start_date: string | null
           created_at: string
           current_grade: string | null
+          current_stda_id: string | null
           department: string | null
           division: string | null
           duty_station: string | null
@@ -3607,6 +3778,8 @@ export type Database = {
           second_line_manager: string | null
           skills: Json | null
           staff_number: string | null
+          stda_grade: string | null
+          stda_job_title: string | null
           unit: string | null
           updated_at: string
           worker_type: string | null
@@ -3617,6 +3790,7 @@ export type Database = {
           contract_start_date?: string | null
           created_at?: string
           current_grade?: string | null
+          current_stda_id?: string | null
           department?: string | null
           division?: string | null
           duty_station?: string | null
@@ -3635,6 +3809,8 @@ export type Database = {
           second_line_manager?: string | null
           skills?: Json | null
           staff_number?: string | null
+          stda_grade?: string | null
+          stda_job_title?: string | null
           unit?: string | null
           updated_at?: string
           worker_type?: string | null
@@ -3645,6 +3821,7 @@ export type Database = {
           contract_start_date?: string | null
           created_at?: string
           current_grade?: string | null
+          current_stda_id?: string | null
           department?: string | null
           division?: string | null
           duty_station?: string | null
@@ -3663,11 +3840,21 @@ export type Database = {
           second_line_manager?: string | null
           skills?: Json | null
           staff_number?: string | null
+          stda_grade?: string | null
+          stda_job_title?: string | null
           unit?: string | null
           updated_at?: string
           worker_type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "users_current_stda_id_fkey"
+            columns: ["current_stda_id"]
+            isOneToOne: false
+            referencedRelation: "hr_stdas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       video_answers: {
         Row: {

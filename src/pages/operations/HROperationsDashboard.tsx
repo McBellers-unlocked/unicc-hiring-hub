@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { format, addDays, differenceInDays, parseISO, startOfDay } from "date-fns";
+import { format, addDays, addWeeks, differenceInDays, parseISO, startOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/Layout";
 import StatsCard from "@/components/dashboard/StatsCard";
@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   Calendar,
   ChevronRight,
+  Clock,
 } from "lucide-react";
 
 interface HRAppointment {
@@ -46,11 +47,24 @@ interface HRSeparation {
   grade: string;
 }
 
+interface HRSTDA {
+  id: string;
+  last_name: string;
+  first_name: string;
+  end_date: string;
+  duty_station: string;
+  operation_type: string;
+  status: string;
+  job_title: string;
+  grade: string;
+}
+
 interface DashboardStats {
   appointmentsThisWeek: number;
   separationsThisWeek: number;
   transfersThisWeek: number;
   extensionsThisWeek: number;
+  stdasEndingSoon: number;
   overdueAppointments: HRAppointment[];
   overdueSeparations: HRSeparation[];
   upcomingEvents: UpcomingEvent[];
@@ -59,6 +73,14 @@ interface DashboardStats {
     name: string;
     tentative_date: string;
     duty_station: string;
+    grade: string;
+    daysUntil: number;
+  }>;
+  stdasEndingList: Array<{
+    id: string;
+    name: string;
+    end_date: string;
+    job_title: string;
     grade: string;
     daysUntil: number;
   }>;
@@ -74,10 +96,12 @@ export default function HROperationsDashboard() {
     separationsThisWeek: 0,
     transfersThisWeek: 0,
     extensionsThisWeek: 0,
+    stdasEndingSoon: 0,
     overdueAppointments: [],
     overdueSeparations: [],
     upcomingEvents: [],
     internationalExits: [],
+    stdasEndingList: [],
   });
 
   useEffect(() => {
@@ -90,6 +114,7 @@ export default function HROperationsDashboard() {
     const todayStr = format(today, 'yyyy-MM-dd');
     const weekFromNow = format(addDays(today, 7), 'yyyy-MM-dd');
     const ninetyDaysFromNow = format(addDays(today, 90), 'yyyy-MM-dd');
+    const eightWeeksFromNow = format(addWeeks(today, 8), 'yyyy-MM-dd');
 
     try {
       // Fetch appointments
@@ -104,8 +129,15 @@ export default function HROperationsDashboard() {
         .select('*')
         .in('status', ['Not started', 'In progress']);
 
+      // Fetch STDAs
+      const { data: stdas } = await supabase
+        .from('hr_stdas')
+        .select('*')
+        .in('status', ['Not started', 'In progress']);
+
       const appointmentsList = (appointments || []) as HRAppointment[];
       const separationsList = (separations || []) as HRSeparation[];
+      const stdasList = (stdas || []) as HRSTDA[];
 
       // Calculate stats
       const appointmentsThisWeek = appointmentsList.filter(a => 
@@ -127,6 +159,23 @@ export default function HROperationsDashboard() {
         s.tentative_date >= todayStr &&
         s.tentative_date <= weekFromNow
       ).length;
+
+      // STDAs ending within 8 weeks
+      const stdasEndingList = stdasList
+        .filter(s => 
+          s.end_date &&
+          s.end_date >= todayStr &&
+          s.end_date <= eightWeeksFromNow
+        )
+        .map(s => ({
+          id: s.id,
+          name: `${s.last_name?.toUpperCase() || ''} ${s.first_name || ''}`.trim(),
+          end_date: s.end_date,
+          job_title: s.job_title || '',
+          grade: s.grade || '',
+          daysUntil: differenceInDays(parseISO(s.end_date), today),
+        }))
+        .sort((a, b) => a.daysUntil - b.daysUntil);
 
       // Overdue items
       const overdueAppointments = appointmentsList.filter(a =>
@@ -200,10 +249,12 @@ export default function HROperationsDashboard() {
         separationsThisWeek,
         transfersThisWeek,
         extensionsThisWeek: 0, // Placeholder until table exists
+        stdasEndingSoon: stdasEndingList.length,
         overdueAppointments,
         overdueSeparations,
         upcomingEvents,
         internationalExits,
+        stdasEndingList,
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -226,9 +277,10 @@ export default function HROperationsDashboard() {
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {loading ? (
             <>
+              <Skeleton className="h-32" />
               <Skeleton className="h-32" />
               <Skeleton className="h-32" />
               <Skeleton className="h-32" />
@@ -257,6 +309,14 @@ export default function HROperationsDashboard() {
                 icon={ArrowLeftRight}
                 subtitle="Location & contract changes"
                 onClick={() => navigate('/operations/appointments')}
+              />
+              <StatsCard
+                title="STDAs Ending Soon"
+                value={stats.stdasEndingSoon}
+                icon={Clock}
+                subtitle="Within 8 weeks"
+                alert={stats.stdasEndingSoon > 0}
+                onClick={() => navigate('/operations/stdas')}
               />
               <StatsCard
                 title="Extensions Due"
