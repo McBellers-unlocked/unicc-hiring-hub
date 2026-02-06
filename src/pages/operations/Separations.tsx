@@ -350,7 +350,14 @@ const Separations = () => {
         if (!fullName.includes(searchLower)) return false;
       }
       if (filters.operationType && filters.operationType !== 'all' && sep.operation_type !== filters.operationType) return false;
-      if (filters.status && filters.status !== 'all' && sep.status !== filters.status) return false;
+      
+      // Hide completed by default unless explicitly filtering for them
+      if (!filters.status || filters.status === 'all') {
+        if (sep.status === 'Completed') return false;
+      } else if (sep.status !== filters.status) {
+        return false;
+      }
+      
       if (filters.dutyStation && filters.dutyStation !== 'all' && sep.duty_station !== filters.dutyStation) return false;
       if (filters.hrFocalPoint && filters.hrFocalPoint !== 'all' && sep.main_hr_focal_point !== filters.hrFocalPoint) return false;
       if (filters.reason && filters.reason !== 'all' && sep.reason !== filters.reason) return false;
