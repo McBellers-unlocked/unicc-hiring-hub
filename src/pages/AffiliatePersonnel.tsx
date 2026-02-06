@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -8,9 +9,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, Search, Upload, Calendar, AlertTriangle, CheckCircle, Clock, Building2, Edit, ClipboardList } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Users, Search, Upload, Calendar, AlertTriangle, CheckCircle, Clock, Building2, UserPlus, MoreHorizontal, Pencil, ClipboardList, FileSpreadsheet } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
+import { toast } from 'sonner';
+import { AffiliateForm, AffiliateFormData } from '@/components/affiliate/AffiliateForm';
 
 interface AffiliateUser {
   id: string;
@@ -190,10 +198,17 @@ const getAffiliateTypeBadge = (type: string | null) => {
 };
 
 export default function AffiliatePersonnel() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [divisionFilter, setDivisionFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  
+  // Form dialog state
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  const [editingAffiliate, setEditingAffiliate] = useState<AffiliateUser | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: affiliates, isLoading } = useQuery({
     queryKey: ['affiliate-personnel'],
@@ -266,6 +281,108 @@ export default function AffiliatePersonnel() {
     }).length || 0,
   };
 
+  // Form handlers
+  const handleAddAffiliate = () => {
+    setEditingAffiliate(null);
+    setFormMode('create');
+    setFormOpen(true);
+  };
+
+  const handleEditAffiliate = (affiliate: AffiliateUser) => {
+    setEditingAffiliate(affiliate);
+    setFormMode('edit');
+    setFormOpen(true);
+  };
+
+  const handleFormSubmit = async (data: AffiliateFormData, existingUserId?: string) => {
+    setIsSubmitting(true);
+    try {
+      if (formMode === 'edit' && editingAffiliate) {
+        // Update existing affiliate
+        const { error } = await supabase
+          .from('users')
+          .update({
+            name: data.name,
+            affiliate_type: data.affiliate_type,
+            division: data.division || null,
+            unit: data.unit || null,
+            job_title: data.job_title || null,
+            line_manager: data.line_manager || null,
+            duty_station: data.duty_station || null,
+            contract_start_date: data.contract_start_date || null,
+            contract_end_date: data.contract_end_date || null,
+            current_grade: data.current_grade || null,
+            staff_number: data.staff_number || null,
+            nationality: data.nationality || null,
+            gender: data.gender || null,
+            first_incumbency_date: data.first_incumbency_date || null,
+          })
+          .eq('id', editingAffiliate.id);
+
+        if (error) throw error;
+        toast.success('Affiliate updated successfully');
+      } else if (existingUserId) {
+        // Convert existing user to affiliate
+        const { error } = await supabase
+          .from('users')
+          .update({
+            personnel_type: 'Affiliate',
+            affiliate_type: data.affiliate_type,
+            division: data.division || null,
+            unit: data.unit || null,
+            job_title: data.job_title || null,
+            line_manager: data.line_manager || null,
+            duty_station: data.duty_station || null,
+            contract_start_date: data.contract_start_date || null,
+            contract_end_date: data.contract_end_date || null,
+            current_grade: data.current_grade || null,
+            staff_number: data.staff_number || null,
+            nationality: data.nationality || null,
+            gender: data.gender || null,
+            first_incumbency_date: data.first_incumbency_date || null,
+          })
+          .eq('id', existingUserId);
+
+        if (error) throw error;
+        toast.success('Affiliate added successfully');
+      } else {
+        // Create new affiliate
+        const { error } = await supabase
+          .from('users')
+          .insert([{
+            id: crypto.randomUUID(),
+            name: data.name,
+            email: data.email,
+            personnel_type: 'Affiliate',
+            affiliate_type: data.affiliate_type,
+            division: data.division || null,
+            unit: data.unit || null,
+            job_title: data.job_title || null,
+            line_manager: data.line_manager || null,
+            duty_station: data.duty_station || null,
+            contract_start_date: data.contract_start_date || null,
+            contract_end_date: data.contract_end_date || null,
+            current_grade: data.current_grade || null,
+            staff_number: data.staff_number || null,
+            nationality: data.nationality || null,
+            gender: data.gender || null,
+            first_incumbency_date: data.first_incumbency_date || null,
+          }]);
+
+        if (error) throw error;
+        toast.success('New affiliate created successfully');
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['affiliate-personnel'] });
+      setFormOpen(false);
+    } catch (error: any) {
+      console.error('Error saving affiliate:', error);
+      toast.error(error.message || 'Failed to save affiliate');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="container mx-auto py-8 px-4">
@@ -280,20 +397,49 @@ export default function AffiliatePersonnel() {
             </p>
           </div>
           <div className="flex gap-2 mt-4 md:mt-0">
+            <Button onClick={handleAddAffiliate}>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add Affiliate
+            </Button>
             <Button asChild variant="outline">
               <Link to="/admin/affiliate-personnel/edit">
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Demographics
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Bulk Edit
               </Link>
             </Button>
-            <Button asChild>
+            <Button asChild variant="outline">
               <Link to="/admin/import-affiliates">
                 <Upload className="w-4 h-4 mr-2" />
-                Import Affiliates
+                Import
               </Link>
             </Button>
           </div>
         </div>
+
+        {/* Form Dialog */}
+        <AffiliateForm
+          open={formOpen}
+          onOpenChange={setFormOpen}
+          onSubmit={handleFormSubmit}
+          initialData={editingAffiliate ? {
+            id: editingAffiliate.id,
+            name: editingAffiliate.name,
+            email: editingAffiliate.email,
+            affiliate_type: editingAffiliate.affiliate_type || '',
+            division: editingAffiliate.division || '',
+            unit: editingAffiliate.unit || '',
+            job_title: editingAffiliate.job_title || '',
+            line_manager: editingAffiliate.line_manager || '',
+            duty_station: editingAffiliate.duty_station || '',
+            contract_start_date: editingAffiliate.contract_start_date || '',
+            contract_end_date: editingAffiliate.contract_end_date || '',
+            current_grade: editingAffiliate.current_grade || '',
+            staff_number: editingAffiliate.staff_number || '',
+            first_incumbency_date: editingAffiliate.first_incumbency_date || '',
+          } : undefined}
+          isLoading={isSubmitting}
+          mode={formMode}
+        />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-9 gap-4 mb-8">
@@ -494,12 +640,25 @@ export default function AffiliatePersonnel() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Button asChild variant="outline" size="sm">
-                              <Link to={`/admin/affiliate-personnel/${affiliate.id}/lifecycle`}>
-                                <ClipboardList className="h-3 w-3 mr-1" />
-                                Lifecycle
-                              </Link>
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleEditAffiliate(affiliate)}>
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                  <Link to={`/admin/affiliate-personnel/${affiliate.id}/lifecycle`}>
+                                    <ClipboardList className="h-4 w-4 mr-2" />
+                                    Manage Lifecycle
+                                  </Link>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       );
