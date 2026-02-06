@@ -1,240 +1,102 @@
 
-# Add Sortable Columns to Affiliate Personnel Table
 
-## Overview
+# Fix First Contract Date Display Issue
 
-This implementation adds sorting functionality to all columns in the Affiliate Personnel table and rearranges columns to include "First Contract Date" (first_incumbency_date) and place Status before Contract End.
+## Problem
 
----
+The "First Contract" column shows no data because `first_incumbency_date` is NULL for all affiliates in the database. This is a **data gap**, not a code bug.
 
-## New Column Order
-
-| Order | Column | Sortable | Field |
-|-------|--------|----------|-------|
-| 1 | Name | Yes | `name` |
-| 2 | Type | Yes | `affiliate_type` |
-| 3 | Division | Yes | `division` |
-| 4 | Job Title | Yes | `job_title` |
-| 5 | Location | Yes | `duty_station` |
-| 6 | First Contract | Yes (NEW) | `first_incumbency_date` |
-| 7 | Status | Yes (MOVED) | Calculated status |
-| 8 | Contract End | Yes (MOVED) | `contract_end_date` |
-| 9 | Actions | No | - |
+**Root cause:** 
+- The CSV import function supports a "First Incumbency" column (line 116)
+- But it's not listed in the expected columns on the Import page
+- So the source CSVs being imported don't include this field
 
 ---
 
-## Sorting Implementation
+## Solution
 
-### State Management
+### 1. Update Import Page Documentation
 
-Add sorting state to track current column and direction:
+Add "First Incumbency Date" to the expected CSV columns list so HR knows to include it:
 
-```typescript
-type SortDirection = 'asc' | 'desc' | null;
-type SortField = 'name' | 'affiliate_type' | 'division' | 'job_title' | 
-                 'duty_station' | 'first_incumbency_date' | 'status' | 'contract_end_date';
+**File:** `src/pages/ImportAffiliatePersonnel.tsx`
 
-const [sortField, setSortField] = useState<SortField | null>(null);
-const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+```
+Expected columns list additions:
+• First Incumbency Date (original contract start)
 ```
 
-### Toggle Sort Function
+### 2. Auto-Set First Incumbency on Initial Import
+
+Update the import function to automatically set `first_incumbency_date` equal to `contract_start_date` **when it's a new record AND first_incumbency_date is not provided**.
+
+This ensures:
+- New affiliates get their first contract date recorded automatically
+- Re-imports preserve the original first incumbency date
+- CSV can override if a "First Incumbency Date" column is provided
+
+**File:** `supabase/functions/import-affiliate-personnel/index.ts`
 
 ```typescript
-const handleSort = (field: SortField) => {
-  if (sortField === field) {
-    // Cycle: asc -> desc -> null
-    if (sortDirection === 'asc') {
-      setSortDirection('desc');
-    } else if (sortDirection === 'desc') {
-      setSortField(null);
-      setSortDirection(null);
-    }
-  } else {
-    setSortField(field);
-    setSortDirection('asc');
-  }
-};
-```
-
-### Sorted Data Computation
-
-```typescript
-const sortedAffiliates = useMemo(() => {
-  if (!sortField || !sortDirection) return filteredAffiliates;
-  
-  return [...filteredAffiliates].sort((a, b) => {
-    let valueA: any;
-    let valueB: any;
-    
-    if (sortField === 'status') {
-      // Sort by days remaining (calculated field)
-      const statusA = getContractStatus(a.contract_start_date, a.contract_end_date, a.first_incumbency_date);
-      const statusB = getContractStatus(b.contract_start_date, b.contract_end_date, b.first_incumbency_date);
-      valueA = statusA.daysRemaining ?? Infinity;
-      valueB = statusB.daysRemaining ?? Infinity;
-    } else {
-      valueA = a[sortField];
-      valueB = b[sortField];
-    }
-    
-    // Handle nulls
-    if (valueA == null && valueB == null) return 0;
-    if (valueA == null) return sortDirection === 'asc' ? 1 : -1;
-    if (valueB == null) return sortDirection === 'asc' ? -1 : 1;
-    
-    // Compare
-    if (typeof valueA === 'string' && typeof valueB === 'string') {
-      return sortDirection === 'asc' 
-        ? valueA.localeCompare(valueB)
-        : valueB.localeCompare(valueA);
-    }
-    
-    return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
-  });
-}, [filteredAffiliates, sortField, sortDirection]);
-```
-
----
-
-## Sortable Table Header Component
-
-Create a reusable sortable header that shows sort indicators:
-
-```tsx
-interface SortableTableHeadProps {
-  field: SortField;
-  currentField: SortField | null;
-  direction: SortDirection;
-  onSort: (field: SortField) => void;
-  children: React.ReactNode;
-  className?: string;
+// When creating a NEW affiliate record (not updating)
+// If no first_incumbency_date is provided, use contract_start_date
+if (!affiliate.first_incumbency_date && affiliate.contract_start_date) {
+  updateData.first_incumbency_date = affiliate.contract_start_date;
 }
-
-const SortableTableHead = ({ 
-  field, 
-  currentField, 
-  direction, 
-  onSort, 
-  children,
-  className 
-}: SortableTableHeadProps) => {
-  const isActive = currentField === field;
-  
-  return (
-    <TableHead 
-      className={cn("cursor-pointer select-none hover:bg-muted/50", className)}
-      onClick={() => onSort(field)}
-    >
-      <div className="flex items-center gap-1">
-        {children}
-        {isActive ? (
-          direction === 'asc' ? (
-            <ArrowUp className="h-3 w-3" />
-          ) : (
-            <ArrowDown className="h-3 w-3" />
-          )
-        ) : (
-          <ArrowUpDown className="h-3 w-3 text-muted-foreground/50" />
-        )}
-      </div>
-    </TableHead>
-  );
-};
 ```
 
----
+### 3. Add Bulk Update for Existing Data (Optional UI Action)
 
-## Updated Table Structure
+Add an action button on the Affiliate Personnel page to backfill missing `first_incumbency_date` values using each affiliate's `contract_start_date`.
 
-```tsx
-<TableHeader>
-  <TableRow>
-    <SortableTableHead field="name" currentField={sortField} direction={sortDirection} onSort={handleSort}>
-      Name
-    </SortableTableHead>
-    <SortableTableHead field="affiliate_type" currentField={sortField} direction={sortDirection} onSort={handleSort}>
-      Type
-    </SortableTableHead>
-    <SortableTableHead field="division" currentField={sortField} direction={sortDirection} onSort={handleSort}>
-      Division
-    </SortableTableHead>
-    <SortableTableHead field="job_title" currentField={sortField} direction={sortDirection} onSort={handleSort}>
-      Job Title
-    </SortableTableHead>
-    <SortableTableHead field="duty_station" currentField={sortField} direction={sortDirection} onSort={handleSort}>
-      Location
-    </SortableTableHead>
-    <SortableTableHead field="first_incumbency_date" currentField={sortField} direction={sortDirection} onSort={handleSort}>
-      First Contract
-    </SortableTableHead>
-    <SortableTableHead field="status" currentField={sortField} direction={sortDirection} onSort={handleSort}>
-      Status
-    </SortableTableHead>
-    <SortableTableHead field="contract_end_date" currentField={sortField} direction={sortDirection} onSort={handleSort}>
-      Contract End
-    </SortableTableHead>
-    <TableHead className="w-28">Actions</TableHead>
-  </TableRow>
-</TableHeader>
-```
-
----
-
-## New "First Contract" Column Cell
-
-Add a new table cell for the first incumbency date:
-
-```tsx
-<TableCell>
-  {affiliate.first_incumbency_date ? (
-    <div className="flex items-center gap-1">
-      <Calendar className="h-3 w-3 text-muted-foreground" />
-      <span className="text-sm">
-        {format(parseISO(affiliate.first_incumbency_date), 'dd MMM yyyy')}
-      </span>
-    </div>
-  ) : '-'}
-</TableCell>
-```
-
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/pages/AffiliatePersonnel.tsx` | Add sorting state, SortableTableHead component, sort logic, new column, reorder columns |
+**This is a one-time data fix for existing records.**
 
 ---
 
 ## Implementation Details
 
-### Imports to Add
+### File Changes
+
+| File | Changes |
+|------|---------|
+| `src/pages/ImportAffiliatePersonnel.tsx` | Add "First Incumbency Date" to expected columns |
+| `supabase/functions/import-affiliate-personnel/index.ts` | Auto-set first_incumbency_date for new records |
+| `src/pages/AffiliatePersonnel.tsx` | Add "Backfill First Contract Dates" button |
+
+### Backfill Button Logic
+
 ```typescript
-import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
-import { useMemo } from 'react';
-import { cn } from '@/lib/utils';
+const handleBackfillFirstIncumbency = async () => {
+  // Update all affiliates where first_incumbency_date is NULL
+  // Set it to their contract_start_date
+  const { error } = await supabase
+    .from('users')
+    .update({ first_incumbency_date: supabase.raw('contract_start_date') })
+    .eq('personnel_type', 'Affiliate')
+    .is('first_incumbency_date', null)
+    .not('contract_start_date', 'is', null);
+  
+  // Refetch data
+  queryClient.invalidateQueries({ queryKey: ['affiliate-personnel'] });
+};
 ```
-
-### Changes Summary
-
-1. **State**: Add `sortField` and `sortDirection` state variables
-2. **Handler**: Add `handleSort` function to toggle sorting
-3. **Memoization**: Create `sortedAffiliates` with useMemo for sorted data
-4. **Component**: Add inline `SortableTableHead` component for clickable headers
-5. **Columns**: 
-   - Add "First Contract" column showing `first_incumbency_date`
-   - Move "Status" column before "Contract End"
-6. **Rendering**: Update table body to use `sortedAffiliates` and add new cell
 
 ---
 
-## User Experience
+## Expected Outcome
 
-- Click any column header to sort ascending (shows ↑ icon)
-- Click again to sort descending (shows ↓ icon)
-- Click a third time to remove sorting (shows ↕ dim icon)
-- Clicking a different column resets and sorts that column ascending
-- Null/empty values sort to the end when ascending, beginning when descending
-- Status column sorts by days remaining (urgency-based)
+After implementation:
+1. Existing affiliates can have their first contract date backfilled with one click
+2. Future imports will auto-capture first incumbency date
+3. The "First Contract" column will display properly
+
+---
+
+## Summary
+
+| Change | Purpose |
+|--------|---------|
+| Document column in import page | HR knows to include it in CSVs |
+| Auto-set on new imports | Future affiliates get date automatically |
+| Backfill button | Fix existing data with one click |
+
