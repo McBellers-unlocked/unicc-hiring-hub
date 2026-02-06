@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, Search, Upload, Calendar, AlertTriangle, CheckCircle, Clock, Building2 } from 'lucide-react';
+import { Users, Search, Upload, Calendar, AlertTriangle, CheckCircle, Clock, Building2, Edit, ClipboardList } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { format, differenceInDays, parseISO } from 'date-fns';
 
@@ -279,12 +279,20 @@ export default function AffiliatePersonnel() {
               Manage Individual Consultants, Interns, and UN Volunteers
             </p>
           </div>
-          <Button asChild className="mt-4 md:mt-0">
-            <Link to="/admin/import-affiliates">
-              <Upload className="w-4 h-4 mr-2" />
-              Import Affiliates
-            </Link>
-          </Button>
+          <div className="flex gap-2 mt-4 md:mt-0">
+            <Button asChild variant="outline">
+              <Link to="/admin/affiliate-personnel/edit">
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Demographics
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link to="/admin/import-affiliates">
+                <Upload className="w-4 h-4 mr-2" />
+                Import Affiliates
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -435,6 +443,7 @@ export default function AffiliatePersonnel() {
                       <TableHead>Location</TableHead>
                       <TableHead>Contract End</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="w-28">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -483,6 +492,14 @@ export default function AffiliatePersonnel() {
                               {!contractStatus.isNotYetActive && !contractStatus.isNoData && contractStatus.daysRemaining !== null && contractStatus.daysRemaining > 60 && <CheckCircle className="h-3 w-3 mr-1" />}
                               {contractStatus.status}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button asChild variant="outline" size="sm">
+                              <Link to={`/admin/affiliate-personnel/${affiliate.id}/lifecycle`}>
+                                <ClipboardList className="h-3 w-3 mr-1" />
+                                Lifecycle
+                              </Link>
+                            </Button>
                           </TableCell>
                         </TableRow>
                       );

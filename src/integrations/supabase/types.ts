@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliate_lifecycle_checklists: {
+        Row: {
+          completed: boolean | null
+          completed_at: string | null
+          completed_by: string | null
+          contract_cycle_end: string | null
+          contract_cycle_start: string | null
+          created_at: string | null
+          id: string
+          item_key: string
+          item_label: string
+          next_contract_start: string | null
+          notes: string | null
+          stage: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean | null
+          completed_at?: string | null
+          completed_by?: string | null
+          contract_cycle_end?: string | null
+          contract_cycle_start?: string | null
+          created_at?: string | null
+          id?: string
+          item_key: string
+          item_label: string
+          next_contract_start?: string | null
+          notes?: string | null
+          stage: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed?: boolean | null
+          completed_at?: string | null
+          completed_by?: string | null
+          contract_cycle_end?: string | null
+          contract_cycle_start?: string | null
+          created_at?: string | null
+          id?: string
+          item_key?: string
+          item_label?: string
+          next_contract_start?: string | null
+          notes?: string | null
+          stage?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_lifecycle_checklists_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliate_lifecycle_checklists_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       applications: {
         Row: {
           answers: Json | null
