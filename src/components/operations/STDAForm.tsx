@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, User } from 'lucide-react';
 import { StaffSearchCombobox, StaffMember, parseName } from './StaffSearchCombobox';
 import { Badge } from '@/components/ui/badge';
+import { HR_FOCAL_POINTS } from '@/lib/hrFocalPoints';
 
 const stdaSchema = z.object({
   last_name: z.string().min(1, 'Last name is required'),
@@ -535,9 +536,18 @@ export const STDAForm = ({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>HR Focal Point</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="HERRERO Esther" />
-                      </FormControl>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select HR focal point" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {HR_FOCAL_POINTS.map((name) => (
+                            <SelectItem key={name} value={name}>{name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

@@ -263,10 +263,6 @@ const STDAs = () => {
     [stdas]
   );
 
-  const hrFocalPoints = useMemo(() => 
-    [...new Set(stdas.map(a => a.main_hr_focal_point).filter(Boolean) as string[])].sort(),
-    [stdas]
-  );
 
   // Filter STDAs
   const filteredSTDAs = useMemo(() => {
@@ -409,7 +405,6 @@ const STDAs = () => {
               filters={filters}
               onFiltersChange={setFilters}
               dutyStations={dutyStations}
-              hrFocalPoints={hrFocalPoints}
             />
           </CardContent>
         </Card>

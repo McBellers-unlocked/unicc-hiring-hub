@@ -336,10 +336,6 @@ const Separations = () => {
     [separations]
   );
 
-  const hrFocalPoints = useMemo(() => 
-    [...new Set(separations.map(s => s.main_hr_focal_point).filter(Boolean) as string[])].sort(),
-    [separations]
-  );
 
   // Filter separations
   const filteredSeparations = useMemo(() => {
@@ -486,7 +482,6 @@ const Separations = () => {
               filters={filters}
               onFiltersChange={setFilters}
               dutyStations={dutyStations}
-              hrFocalPoints={hrFocalPoints}
             />
           </CardContent>
         </Card>
