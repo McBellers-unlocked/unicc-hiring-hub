@@ -1,212 +1,120 @@
 
 
-# Fix MCQ Assessment Candidate Experience
+# Procurement TOR Request Feature
 
-## Problem
+## Overview
+Add a new "Procurement TOR" request type alongside the existing "Create a Position" initial request. When users navigate to `/requisitions/initial/new`, they will see a selector page offering two options. Choosing "Procurement TOR" routes to a dedicated form based on the UNICC RFP Terms of Reference template.
 
-When candidates click the assessment link from their email, they are shown the **Inbox Simulation** interface instead of the **Multiple Choice Test** interface. This happens because:
+## User Flow
 
-1. The `validate_assessment_token` database function doesn't return `assessment_type`
-2. The `CandidateAssessment.tsx` page doesn't check the assessment type
-3. There's no MCQ test-taking interface for candidates
+1. User clicks "New Initial Request" (from dashboard, requisitions page, etc.)
+2. Lands on a **selector page** at `/requisitions/initial/new` with two cards:
+   - **Create a Position** -- existing HR initial request flow
+   - **Procurement TOR** -- new TOR request form
+3. Selecting "Create a Position" navigates to `/requisitions/initial/new?type=position` (renders existing `InitialRequestForm`)
+4. Selecting "Procurement TOR" navigates to `/requisitions/initial/new?type=tor` (renders new `ProcurementTORForm`)
 
----
+## TOR Form Fields (derived from uploaded RFP document)
 
-## Solution Overview
+Based on the uploaded UNICC RFP TOR template, the form will have the following sections:
 
-Update the candidate assessment flow to:
-1. Include `assessment_type` in the token validation response
-2. Render the appropriate interface based on assessment type
-3. Create a full MCQ test-taking experience for candidates
+### Section 1: Basic Information
+- **Title of Required Services** (text input, required)
+- **Requesting Division** (dropdown -- same division list as InitialRequestForm)
+- **Requesting Unit** (dropdown -- filtered by division, same as InitialRequestForm)
+- **Requested by** (auto-filled from logged-in user)
 
----
+### Section 2: Background & Scope
+- **Background Information** (rich textarea -- context for the requirement)
+- **Required Profile** (textarea -- description of the type of individual/firm needed)
+- **Scope of Work / Duties** (textarea -- responsibilities and deliverables)
+
+### Section 3: Required Skills
+- **Required Technical Skills (MUST have)** (textarea -- mandatory skills/experience)
+- **Desired Technical Skills (SHOULD have)** (textarea -- preferred skills/experience)
+- **Required Soft Skills** (textarea -- behavioral competencies)
+- **Desirable Certifications** (textarea -- relevant certifications)
+
+### Section 4: Logistics
+- **Duty Station** (checkbox group -- Valencia, Brindisi, New York, Geneva, Rome, Remote; same as InitialRequestForm)
+- **On-call Requirements** (radio group):
+  - One week per month
+  - May be required on an exceptional basis
+  - Not required
+- **Estimated Duration** (text input -- e.g., "12 months")
+- **Estimated Start Date** (date picker)
+
+### Section 5: Funding
+- **Funding Status** (radio group -- same options as InitialRequestForm)
+- **Funding Comments** (textarea, optional)
+
+### Section 6: Additional Notes
+- **Additional Comments** (textarea, optional)
 
 ## Database Changes
 
-### Update `validate_assessment_token` Function
+### New table: `procurement_tors`
 
-Add `assessment_type` to the return columns:
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | uuid (PK) | Default `gen_random_uuid()` |
+| `title` | text | Required -- title of required services |
+| `division` | text | Division code (CS, DD, DS, etc.) |
+| `unit` | text | Unit name |
+| `requested_by` | uuid (FK users.id) | Auto-set from auth |
+| `background` | text | Background information |
+| `required_profile` | text | Required profile description |
+| `scope_of_work` | text | Duties and responsibilities |
+| `required_technical_skills` | text | MUST-have skills |
+| `desired_technical_skills` | text | SHOULD-have skills |
+| `required_soft_skills` | text | Soft skills |
+| `desirable_certifications` | text | Certifications |
+| `duty_station` | text | JSON array of locations |
+| `on_call_requirement` | text | On-call option selected |
+| `estimated_duration` | text | e.g., "12 months" |
+| `estimated_start_date` | date | Target start |
+| `funding_status` | text | Funding selection |
+| `funding_comments` | text | Optional |
+| `additional_comments` | text | Optional |
+| `status` | text | Default 'draft' (draft, submitted) |
+| `slug` | text (unique) | URL-friendly slug |
+| `created_at` | timestamptz | Default `now()` |
+| `updated_at` | timestamptz | Default `now()` |
 
-```sql
-CREATE OR REPLACE FUNCTION public.validate_assessment_token(p_token TEXT)
-RETURNS TABLE (
-  slot_id UUID,
-  assessment_id UUID,
-  candidate_name TEXT,
-  candidate_email TEXT,
-  status assessment_slot_status,
-  scheduled_start TIMESTAMP WITH TIME ZONE,
-  scheduled_end TIMESTAMP WITH TIME ZONE,
-  started_at TIMESTAMP WITH TIME ZONE,
-  time_limit_minutes INTEGER,
-  curveball_trigger_type curveball_trigger_type,
-  curveball_trigger_value INTEGER,
-  instructions TEXT,
-  title TEXT,
-  assessment_type assessment_type  -- NEW
-)
-...
-SELECT 
-  ...
-  a.assessment_type  -- NEW
-FROM ...
-```
+**RLS Policies:**
+- Users can read their own TORs (`requested_by = auth.uid()`)
+- Admin/HR Assistant can read all TORs
+- Users can insert TORs (with `requested_by` set to their own ID)
+- Users can update their own draft TORs
 
----
+## Code Changes
 
-## UI Changes
+### 1. New selector page: `src/pages/InitialRequestSelector.tsx`
+- Two cards side by side: "Create a Position" and "Procurement TOR"
+- Each card has an icon, title, short description, and a button
+- Clicking navigates to the appropriate form
 
-### Update CandidateAssessment.tsx
+### 2. New TOR form page: `src/pages/ProcurementTORForm.tsx`
+- Full form matching the fields above
+- Reuses shared constants (DIVISIONS, DIVISION_UNITS, LOCATIONS, FUNDING_OPTIONS) extracted or imported from InitialRequestForm
+- Save as draft and Submit functionality
+- View/edit existing TOR via `/requisitions/tor/:id`
 
-Check the assessment type and render the appropriate interface:
+### 3. Update routing in `src/App.tsx`
+- Change `/requisitions/initial/new` to render `InitialRequestSelector`
+- Add `/requisitions/initial/new/position` for `InitialRequestForm`
+- Add `/requisitions/tor/new` for `ProcurementTORForm`
+- Add `/requisitions/tor/:id` for viewing/editing existing TORs
 
-```tsx
-// After fetching assessment data, check type
-if (assessmentData?.assessment_type === 'multiple_choice') {
-  return <MCQCandidateInterface data={assessmentData} />;
-}
+### 4. Update `InitialRequestForm.tsx`
+- No major changes needed; it will still work as-is, just accessed via a slightly different route
 
-// Otherwise show existing inbox simulation
-return <InboxSimulationInterface />;
-```
+### 5. Database migration
+- Create `procurement_tors` table with RLS policies
+- Add `updated_at` trigger
 
-### Create MCQ Candidate Interface
+## Technical Notes
 
-New component within CandidateAssessment or as separate internal component:
-
-**Pre-Start Screen:**
-- Welcome message with candidate name
-- Assessment title and instructions
-- Number of questions and time limit
-- "Start Assessment" button
-
-**Test-Taking Interface:**
-
-```
-+------------------------------------------+
-| Timer: 45:00        Question 3 of 20     |
-+------------------------------------------+
-|                                          |
-| What is the primary purpose of...?       |
-|                                          |
-| ( ) Option A                             |
-| ( ) Option B                             |
-| (●) Option C                             |
-| ( ) Option D                             |
-|                                          |
-+------------------------------------------+
-| [Previous]                      [Next]   |
-+------------------------------------------+
-| Progress: ●●●○○○○○○○○○○○○○○○○○           |
-+------------------------------------------+
-```
-
-**Features:**
-- Timer countdown (same as inbox simulation)
-- Question navigation (sequential or all-at-once based on settings)
-- Progress indicator showing answered vs unanswered
-- Answer selection (radio for single, checkbox for multi)
-- Auto-save responses
-- Submit button with confirmation dialog
-
----
-
-## File Changes
-
-| File | Changes |
-|------|---------|
-| **Migration** | Update `validate_assessment_token` to return `assessment_type` |
-| `src/integrations/supabase/types.ts` | Add `assessment_type` to function return type |
-| `src/pages/CandidateAssessment.tsx` | Add type check and MCQ interface |
-
----
-
-## MCQ Interface Component Structure
-
-```tsx
-// Inside CandidateAssessment.tsx or as new component
-
-interface MCQCandidateViewProps {
-  assessmentData: AssessmentData;
-  onSubmit: () => void;
-}
-
-function MCQCandidateView({ assessmentData, onSubmit }: MCQCandidateViewProps) {
-  // State for current question, answers, timer
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string[]>>({});
-  
-  // Fetch questions with options
-  const { data: questions } = useQuery({
-    queryKey: ["mcq-questions", assessmentData.assessment_id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("assessment_mcq_questions")
-        .select("*, assessment_mcq_options(*)")
-        .eq("assessment_id", assessmentData.assessment_id)
-        .order("order_index");
-      return data;
-    }
-  });
-  
-  // Render question with options
-  // Handle answer selection
-  // Save responses to assessment_mcq_responses table
-  // Submit when complete or time runs out
-}
-```
-
----
-
-## Data Flow
-
-```text
-1. Candidate clicks email link
-   ↓
-2. /assessment/:token loads CandidateAssessment.tsx
-   ↓
-3. validate_assessment_token RPC called
-   ↓
-4. Response includes assessment_type: "multiple_choice"
-   ↓
-5. Component renders MCQ interface instead of inbox
-   ↓
-6. Questions fetched from assessment_mcq_questions
-   ↓
-7. Candidate answers, responses saved to assessment_mcq_responses
-   ↓
-8. On submit, calculate score and mark slot as completed
-```
-
----
-
-## Scoring on Submit
-
-When the candidate submits:
-
-1. Fetch all questions with correct answers
-2. Compare against candidate's responses
-3. Calculate:
-   - Points earned per question
-   - Total score
-   - Percentage
-   - Pass/fail status
-4. Update assessment_slot with:
-   - `status: 'completed'`
-   - `submitted_at: now()`
-   - `score: calculated_score`
-   - `score_percentage: calculated_percentage`
-
----
-
-## Implementation Summary
-
-| Step | Description |
-|------|-------------|
-| 1 | Create migration to update `validate_assessment_token` |
-| 2 | Regenerate Supabase types |
-| 3 | Add `assessment_type` to AssessmentData interface |
-| 4 | Create MCQ candidate interface component |
-| 5 | Add conditional rendering in CandidateAssessment.tsx |
-| 6 | Implement answer saving and scoring logic |
-
+- The shared organizational constants (DIVISIONS, DIVISION_UNITS, LOCATIONS, FUNDING_OPTIONS) will be extracted into a shared file `src/lib/organizationConstants.ts` to avoid duplication between the two forms
+- No approval workflow for now (as confirmed) -- TORs can be saved as draft or submitted
+- The TOR form will follow the same visual style and layout patterns as InitialRequestForm for consistency
