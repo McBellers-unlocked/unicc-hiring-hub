@@ -1,273 +1,212 @@
 
 
-# Add Timed Multiple Choice Test Assessment Type
+# Fix MCQ Assessment Candidate Experience
 
-## Overview
+## Problem
 
-Add a new assessment type "Timed Multiple Choice Test" to the existing assessment builder. This will allow HR to create timed MCQ tests where candidates answer questions with single or multiple correct answers.
+When candidates click the assessment link from their email, they are shown the **Inbox Simulation** interface instead of the **Multiple Choice Test** interface. This happens because:
 
----
-
-## Current State
-
-The assessment system currently supports two types:
-- **Inbox Simulation**: Candidates respond to simulated emails
-- **Research Exercise**: Candidates download documents, work offline, and upload responses
-
-**Database enum**: `assessment_type: ["inbox_simulation", "research_exercise"]`
+1. The `validate_assessment_token` database function doesn't return `assessment_type`
+2. The `CandidateAssessment.tsx` page doesn't check the assessment type
+3. There's no MCQ test-taking interface for candidates
 
 ---
 
-## New Feature: Multiple Choice Test
+## Solution Overview
 
-A timed multiple-choice assessment where:
-- Admin creates questions with 2-6 answer options
-- Each question can have one correct answer (single) or multiple correct answers (multi-select)
-- Candidates see questions sequentially or all at once
-- Timer runs during the test (like inbox simulation)
-- Automatic scoring based on correct answers
+Update the candidate assessment flow to:
+1. Include `assessment_type` in the token validation response
+2. Render the appropriate interface based on assessment type
+3. Create a full MCQ test-taking experience for candidates
 
 ---
 
 ## Database Changes
 
-### 1. Extend the `assessment_type` Enum
+### Update `validate_assessment_token` Function
+
+Add `assessment_type` to the return columns:
 
 ```sql
-ALTER TYPE assessment_type ADD VALUE 'multiple_choice';
+CREATE OR REPLACE FUNCTION public.validate_assessment_token(p_token TEXT)
+RETURNS TABLE (
+  slot_id UUID,
+  assessment_id UUID,
+  candidate_name TEXT,
+  candidate_email TEXT,
+  status assessment_slot_status,
+  scheduled_start TIMESTAMP WITH TIME ZONE,
+  scheduled_end TIMESTAMP WITH TIME ZONE,
+  started_at TIMESTAMP WITH TIME ZONE,
+  time_limit_minutes INTEGER,
+  curveball_trigger_type curveball_trigger_type,
+  curveball_trigger_value INTEGER,
+  instructions TEXT,
+  title TEXT,
+  assessment_type assessment_type  -- NEW
+)
+...
+SELECT 
+  ...
+  a.assessment_type  -- NEW
+FROM ...
 ```
-
-### 2. Create `assessment_mcq_questions` Table
-
-Stores the questions for multiple choice assessments.
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| assessment_id | uuid | FK to written_assessments |
-| order_index | integer | Question order |
-| question_text | text | The question |
-| question_type | text | 'single' or 'multi' |
-| points | integer | Points for correct answer (default 1) |
-| explanation | text | Optional explanation shown after test |
-| created_at | timestamp | Auto-set |
-
-### 3. Create `assessment_mcq_options` Table
-
-Stores the answer options for each question.
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| question_id | uuid | FK to assessment_mcq_questions |
-| order_index | integer | Option order (A, B, C, D...) |
-| option_text | text | The answer text |
-| is_correct | boolean | Whether this is a correct answer |
-| created_at | timestamp | Auto-set |
-
-### 4. Create `assessment_mcq_responses` Table
-
-Stores candidate responses.
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| slot_id | uuid | FK to assessment_slots |
-| question_id | uuid | FK to assessment_mcq_questions |
-| selected_options | uuid[] | Array of selected option IDs |
-| is_correct | boolean | Whether the answer is correct |
-| points_earned | integer | Points earned for this question |
-| answered_at | timestamp | When answered |
-
-### 5. Add Columns to `written_assessments`
-
-| Column | Type | Description |
-|--------|------|-------------|
-| mcq_display_mode | text | 'sequential' or 'all_at_once' |
-| mcq_shuffle_questions | boolean | Randomize question order |
-| mcq_shuffle_options | boolean | Randomize option order |
-| mcq_show_results | boolean | Show results after completion |
-| mcq_passing_score | integer | Minimum percentage to pass |
 
 ---
 
 ## UI Changes
 
-### Assessment Builder (AssessmentBuilder.tsx)
+### Update CandidateAssessment.tsx
 
-**Tab Structure for Multiple Choice:**
-1. **Basics** - Title, description, time limit, settings
-2. **Questions** - Add/edit/reorder MCQ questions
-3. **Preview** - Review all questions and settings
-
-**Basics Tab Additions:**
-- Display mode selector (sequential vs all at once)
-- Shuffle questions toggle
-- Shuffle options toggle
-- Show results after completion toggle
-- Passing score percentage input
-
-**New Questions Tab:**
-- Question list with drag-to-reorder
-- Add Question button
-- For each question:
-  - Question text (textarea)
-  - Question type (single/multi select)
-  - Points value
-  - Options list (2-6 options)
-  - Mark correct answer(s)
-  - Optional explanation
-
-### New Component: MCQQuestionEditor
+Check the assessment type and render the appropriate interface:
 
 ```tsx
-interface MCQQuestion {
-  id?: string;
-  order_index: number;
-  question_text: string;
-  question_type: 'single' | 'multi';
-  points: number;
-  explanation?: string;
-  options: MCQOption[];
+// After fetching assessment data, check type
+if (assessmentData?.assessment_type === 'multiple_choice') {
+  return <MCQCandidateInterface data={assessmentData} />;
 }
 
-interface MCQOption {
-  id?: string;
-  order_index: number;
-  option_text: string;
-  is_correct: boolean;
-}
+// Otherwise show existing inbox simulation
+return <InboxSimulationInterface />;
 ```
 
-### Candidate Interface Updates
+### Create MCQ Candidate Interface
 
-**New Page: CandidateMCQAssessment.tsx** (or extend existing)
+New component within CandidateAssessment or as separate internal component:
 
-Sequential mode:
-- One question per screen
-- Previous/Next navigation
-- Question number indicator (e.g., "Question 3 of 20")
-- Timer always visible
+**Pre-Start Screen:**
+- Welcome message with candidate name
+- Assessment title and instructions
+- Number of questions and time limit
+- "Start Assessment" button
 
-All-at-once mode:
-- Scrollable list of all questions
-- Question navigation sidebar
-- Answered/unanswered indicators
+**Test-Taking Interface:**
+
+```
++------------------------------------------+
+| Timer: 45:00        Question 3 of 20     |
++------------------------------------------+
+|                                          |
+| What is the primary purpose of...?       |
+|                                          |
+| ( ) Option A                             |
+| ( ) Option B                             |
+| (●) Option C                             |
+| ( ) Option D                             |
+|                                          |
++------------------------------------------+
+| [Previous]                      [Next]   |
++------------------------------------------+
+| Progress: ●●●○○○○○○○○○○○○○○○○○           |
++------------------------------------------+
+```
+
+**Features:**
+- Timer countdown (same as inbox simulation)
+- Question navigation (sequential or all-at-once based on settings)
+- Progress indicator showing answered vs unanswered
+- Answer selection (radio for single, checkbox for multi)
+- Auto-save responses
+- Submit button with confirmation dialog
 
 ---
 
 ## File Changes
 
-### Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/components/assessment/MCQQuestionEditor.tsx` | Question editing component |
-| `src/components/assessment/MCQQuestionCard.tsx` | Individual question display |
-| `src/pages/CandidateMCQAssessment.tsx` | Candidate test-taking interface |
-
-### Files to Modify
-
 | File | Changes |
 |------|---------|
-| `src/pages/AssessmentBuilder.tsx` | Add MCQ type, questions tab, settings |
-| `src/pages/AdminAssessments.tsx` | Show question count for MCQ type |
-| `src/pages/AssessmentReview.tsx` | Add MCQ results review |
-
-### Database Migrations Required
-
-1. Add `multiple_choice` to `assessment_type` enum
-2. Create `assessment_mcq_questions` table
-3. Create `assessment_mcq_options` table
-4. Create `assessment_mcq_responses` table
-5. Add MCQ settings columns to `written_assessments`
+| **Migration** | Update `validate_assessment_token` to return `assessment_type` |
+| `src/integrations/supabase/types.ts` | Add `assessment_type` to function return type |
+| `src/pages/CandidateAssessment.tsx` | Add type check and MCQ interface |
 
 ---
 
-## Assessment Builder Type Toggle
+## MCQ Interface Component Structure
 
 ```tsx
-type AssessmentType = "inbox_simulation" | "research_exercise" | "multiple_choice";
+// Inside CandidateAssessment.tsx or as new component
 
-// In the select component:
-<SelectItem value="multiple_choice">
-  <div className="flex items-center gap-2">
-    <ListChecks className="w-4 h-4" />
-    <span>Multiple Choice Test</span>
-  </div>
-</SelectItem>
+interface MCQCandidateViewProps {
+  assessmentData: AssessmentData;
+  onSubmit: () => void;
+}
+
+function MCQCandidateView({ assessmentData, onSubmit }: MCQCandidateViewProps) {
+  // State for current question, answers, timer
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string[]>>({});
+  
+  // Fetch questions with options
+  const { data: questions } = useQuery({
+    queryKey: ["mcq-questions", assessmentData.assessment_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("assessment_mcq_questions")
+        .select("*, assessment_mcq_options(*)")
+        .eq("assessment_id", assessmentData.assessment_id)
+        .order("order_index");
+      return data;
+    }
+  });
+  
+  // Render question with options
+  // Handle answer selection
+  // Save responses to assessment_mcq_responses table
+  // Submit when complete or time runs out
+}
 ```
 
 ---
 
-## MCQ Question Editor Design
+## Data Flow
 
-```
-+------------------------------------------+
-| Question 1                         [x]   |
-+------------------------------------------+
-| Question Text:                           |
-| [                                     ]  |
-| [                                     ]  |
-+------------------------------------------+
-| Type: (Single) (Multi)    Points: [1]    |
-+------------------------------------------+
-| Options:                                 |
-| [A] [ Option text here           ] [O]   |
-| [B] [ Option text here           ] [O]   |
-| [C] [ Option text here           ] [●]   |
-| [D] [ Option text here           ] [O]   |
-|                        [+ Add Option]    |
-+------------------------------------------+
-| Explanation (shown after test):          |
-| [                                     ]  |
-+------------------------------------------+
+```text
+1. Candidate clicks email link
+   ↓
+2. /assessment/:token loads CandidateAssessment.tsx
+   ↓
+3. validate_assessment_token RPC called
+   ↓
+4. Response includes assessment_type: "multiple_choice"
+   ↓
+5. Component renders MCQ interface instead of inbox
+   ↓
+6. Questions fetched from assessment_mcq_questions
+   ↓
+7. Candidate answers, responses saved to assessment_mcq_responses
+   ↓
+8. On submit, calculate score and mark slot as completed
 ```
 
-Legend:
-- [O] = Radio/checkbox for marking correct answer
-- [●] = Marked as correct
-- [x] = Delete question
+---
+
+## Scoring on Submit
+
+When the candidate submits:
+
+1. Fetch all questions with correct answers
+2. Compare against candidate's responses
+3. Calculate:
+   - Points earned per question
+   - Total score
+   - Percentage
+   - Pass/fail status
+4. Update assessment_slot with:
+   - `status: 'completed'`
+   - `submitted_at: now()`
+   - `score: calculated_score`
+   - `score_percentage: calculated_percentage`
 
 ---
 
-## Scoring Logic
+## Implementation Summary
 
-**Single-select questions:**
-- Full points if correct answer selected
-- 0 points if wrong
-
-**Multi-select questions:**
-- Full points only if ALL correct options selected AND no incorrect options
-- Partial scoring option: (correct selections - incorrect selections) / total correct options
-
-**Auto-calculated after submission:**
-- Total score, percentage, pass/fail status stored in assessment_slots
-
----
-
-## Preview Tab Updates for MCQ
-
-Show:
-- Total number of questions
-- Total possible points
-- Time limit
-- Display mode
-- Shuffle settings
-- Passing score threshold
-- List of questions with correct answers (for admin review)
-
----
-
-## Summary
-
-| Component | Description |
-|-----------|-------------|
-| Database | 3 new tables + enum extension + new columns |
-| Builder | New Questions tab with drag-reorder editor |
-| Candidate | New MCQ test interface with timer |
-| Review | Score breakdown and answer review |
-| Settings | Shuffle, display mode, passing score options |
-
-This implementation follows the existing pattern of the assessment builder with type-specific tabs and reuses the slot/invitation system already in place.
+| Step | Description |
+|------|-------------|
+| 1 | Create migration to update `validate_assessment_token` |
+| 2 | Regenerate Supabase types |
+| 3 | Add `assessment_type` to AssessmentData interface |
+| 4 | Create MCQ candidate interface component |
+| 5 | Add conditional rendering in CandidateAssessment.tsx |
+| 6 | Implement answer saving and scoring logic |
 
