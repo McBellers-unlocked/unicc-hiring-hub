@@ -12,7 +12,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { ArrowLeft, Save, Send } from 'lucide-react';
+import { ArrowLeft, Save, Send, Check } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { CustomDatePicker } from '@/components/ui/date-picker';
 import { DIVISIONS, DIVISION_UNITS, LOCATIONS, FUNDING_OPTIONS, ON_CALL_OPTIONS } from '@/lib/organizationConstants';
 import { isValidUUID } from '@/lib/utils';
@@ -36,7 +37,7 @@ export default function ProcurementTORForm() {
     scope_of_work: '',
     required_technical_skills: '',
     desired_technical_skills: '',
-    required_soft_skills: '',
+    required_soft_skills: [] as string[],
     desirable_certifications: '',
     duty_station: [] as string[],
     on_call_requirement: '',
@@ -86,7 +87,7 @@ export default function ProcurementTORForm() {
           scope_of_work: data.scope_of_work || '',
           required_technical_skills: data.required_technical_skills || '',
           desired_technical_skills: data.desired_technical_skills || '',
-          required_soft_skills: data.required_soft_skills || '',
+          required_soft_skills: (() => { try { return data.required_soft_skills ? JSON.parse(data.required_soft_skills) : []; } catch { return []; } })(),
           desirable_certifications: data.desirable_certifications || '',
           duty_station: dutyStation,
           on_call_requirement: data.on_call_requirement || '',
@@ -146,7 +147,7 @@ export default function ProcurementTORForm() {
         scope_of_work: formData.scope_of_work,
         required_technical_skills: formData.required_technical_skills,
         desired_technical_skills: formData.desired_technical_skills,
-        required_soft_skills: formData.required_soft_skills,
+        required_soft_skills: JSON.stringify(formData.required_soft_skills),
         desirable_certifications: formData.desirable_certifications,
         duty_station: JSON.stringify(formData.duty_station),
         on_call_requirement: formData.on_call_requirement,
@@ -339,13 +340,50 @@ export default function ProcurementTORForm() {
                 />
               </div>
               <div>
-                <Label htmlFor="required_soft_skills">Required Soft Skills</Label>
-                <Textarea
-                  id="required_soft_skills"
-                  value={formData.required_soft_skills}
-                  onChange={e => setFormData(prev => ({ ...prev, required_soft_skills: e.target.value }))}
-                  placeholder="List behavioral competencies..."
-                />
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Required Soft Skills / Competencies</Label>
+                  <Badge variant={formData.required_soft_skills.length === 6 ? 'default' : 'secondary'}>
+                    {formData.required_soft_skills.length} / 6 selected
+                  </Badge>
+                </div>
+                {[
+                  { label: 'Core Competencies', items: ['Communication', 'Teamwork and Collaboration', 'Planning and Organizing', 'Accountability', 'Creativity', 'Client Orientation', 'Commitment to Continuous Learning', 'Technological Awareness'] },
+                  { label: 'Management Competencies', items: ['Leadership', 'Vision', 'Empowering Others', 'Building Trust', 'Managing Performance', 'Judgement/Decision Making'] },
+                  { label: 'Leadership Competencies', items: ['Strategic Direction', 'Managing Change', 'Building Coalitions', 'Influencing', 'Results Focus', 'Innovation'] },
+                ].map(group => (
+                  <div key={group.label} className="mb-3">
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5">{group.label}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {group.items.map(comp => {
+                        const isSelected = formData.required_soft_skills.includes(comp);
+                        const atLimit = formData.required_soft_skills.length >= 6;
+                        return (
+                          <button
+                            key={comp}
+                            type="button"
+                            disabled={!isSelected && atLimit}
+                            onClick={() => setFormData(prev => ({
+                              ...prev,
+                              required_soft_skills: isSelected
+                                ? prev.required_soft_skills.filter(s => s !== comp)
+                                : [...prev.required_soft_skills, comp]
+                            }))}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                              isSelected
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : atLimit
+                                  ? 'bg-muted text-muted-foreground border-border opacity-50 cursor-not-allowed'
+                                  : 'bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground'
+                            }`}
+                          >
+                            {isSelected && <Check className="h-3.5 w-3.5" />}
+                            {comp}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
               <div>
                 <Label htmlFor="desirable_certifications">Desirable Certifications</Label>
