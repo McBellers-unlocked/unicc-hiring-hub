@@ -11,12 +11,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Plus, Trash2, GripVertical, Mail, AlertTriangle, Save, Eye, Users, Upload, FileText, Download, X } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, GripVertical, Mail, AlertTriangle, Save, Eye, Users, Upload, FileText, Download, X, ListChecks, CheckCircle2 } from "lucide-react";
 import { EmailReplySettings } from "@/components/assessment/EmailReplySettings";
 import { TemplateVariablesHelper } from "@/components/assessment/TemplateVariablesHelper";
+import { MCQQuestionEditor, MCQQuestion } from "@/components/assessment/MCQQuestionEditor";
 
 interface AssessmentEmail {
   id?: string;
@@ -37,7 +39,7 @@ interface AssessmentEmail {
   reply_delay_max?: number;
 }
 
-type AssessmentType = "inbox_simulation" | "research_exercise";
+type AssessmentType = "inbox_simulation" | "research_exercise" | "multiple_choice";
 
 export default function AssessmentBuilder() {
   const { id } = useParams();
@@ -65,6 +67,14 @@ export default function AssessmentBuilder() {
   const [referenceDocumentName, setReferenceDocumentName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
+  // MCQ-specific state
+  const [mcqQuestions, setMcqQuestions] = useState<MCQQuestion[]>([]);
+  const [mcqDisplayMode, setMcqDisplayMode] = useState<"sequential" | "all_at_once">("sequential");
+  const [mcqShuffleQuestions, setMcqShuffleQuestions] = useState(false);
+  const [mcqShuffleOptions, setMcqShuffleOptions] = useState(false);
+  const [mcqShowResults, setMcqShowResults] = useState(true);
+  const [mcqPassingScore, setMcqPassingScore] = useState(70);
+
   // Save and continue to next tab
   const saveAndContinue = async (nextTab: string) => {
     try {
@@ -91,6 +101,22 @@ export default function AssessmentBuilder() {
     enabled: isEditing,
   });
 
+  // Fetch MCQ questions when editing
+  const { data: mcqData } = useQuery({
+    queryKey: ["assessment-mcq-questions", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const { data: questions, error } = await supabase
+        .from("assessment_mcq_questions")
+        .select("*, assessment_mcq_options(*)")
+        .eq("assessment_id", id)
+        .order("order_index");
+      if (error) throw error;
+      return questions;
+    },
+    enabled: isEditing && assessmentType === "multiple_choice",
+  });
+
   // Populate form when assessment loads
   useEffect(() => {
     if (assessment) {
@@ -104,10 +130,18 @@ export default function AssessmentBuilder() {
       setStatus(assessment.status);
       
       // Load assessment type fields
-      setAssessmentType((assessment.assessment_type as AssessmentType) || "inbox_simulation");
+      const loadedType = (assessment.assessment_type as AssessmentType) || "inbox_simulation";
+      setAssessmentType(loadedType);
       setTimeLimitHours(assessment.time_limit_hours || 48);
       setReferenceDocumentUrl(assessment.reference_document_url || "");
       setReferenceDocumentName(assessment.reference_document_name || "");
+      
+      // Load MCQ settings
+      setMcqDisplayMode((assessment as any).mcq_display_mode || "sequential");
+      setMcqShuffleQuestions((assessment as any).mcq_shuffle_questions || false);
+      setMcqShuffleOptions((assessment as any).mcq_shuffle_options || false);
+      setMcqShowResults((assessment as any).mcq_show_results ?? true);
+      setMcqPassingScore((assessment as any).mcq_passing_score || 70);
       
       setEmails(
         (assessment.assessment_emails || [])
@@ -133,6 +167,29 @@ export default function AssessmentBuilder() {
       );
     }
   }, [assessment]);
+
+  // Load MCQ questions when data arrives
+  useEffect(() => {
+    if (mcqData) {
+      const questions: MCQQuestion[] = mcqData.map((q: any) => ({
+        id: q.id,
+        order_index: q.order_index,
+        question_text: q.question_text,
+        question_type: q.question_type,
+        points: q.points,
+        explanation: q.explanation || "",
+        options: (q.assessment_mcq_options || [])
+          .sort((a: any, b: any) => a.order_index - b.order_index)
+          .map((o: any) => ({
+            id: o.id,
+            order_index: o.order_index,
+            option_text: o.option_text,
+            is_correct: o.is_correct,
+          })),
+      }));
+      setMcqQuestions(questions);
+    }
+  }, [mcqData]);
 
   // Handle document upload
   const handleDocumentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -178,7 +235,9 @@ export default function AssessmentBuilder() {
         title,
         description,
         instructions,
-        time_limit_minutes: assessmentType === "inbox_simulation" ? timeLimit : timeLimitHours * 60,
+        time_limit_minutes: assessmentType === "inbox_simulation" ? timeLimit : 
+                           assessmentType === "multiple_choice" ? timeLimit : 
+                           timeLimitHours * 60,
         availability_window_hours: availabilityWindowHours,
         curveball_trigger_type: curveballTriggerType,
         curveball_trigger_value: curveballTriggerValue,
@@ -188,6 +247,12 @@ export default function AssessmentBuilder() {
         time_limit_hours: assessmentType === "research_exercise" ? timeLimitHours : null,
         reference_document_url: assessmentType === "research_exercise" ? referenceDocumentUrl : null,
         reference_document_name: assessmentType === "research_exercise" ? referenceDocumentName : null,
+        // MCQ settings
+        mcq_display_mode: assessmentType === "multiple_choice" ? mcqDisplayMode : null,
+        mcq_shuffle_questions: assessmentType === "multiple_choice" ? mcqShuffleQuestions : null,
+        mcq_shuffle_options: assessmentType === "multiple_choice" ? mcqShuffleOptions : null,
+        mcq_show_results: assessmentType === "multiple_choice" ? mcqShowResults : null,
+        mcq_passing_score: assessmentType === "multiple_choice" ? mcqPassingScore : null,
       };
 
       let assessmentId = id;
@@ -237,12 +302,57 @@ export default function AssessmentBuilder() {
         }
       }
 
+      // Handle MCQ questions - only for multiple choice
+      if (assessmentId && assessmentType === "multiple_choice") {
+        // Delete existing questions (cascade deletes options)
+        await supabase.from("assessment_mcq_questions").delete().eq("assessment_id", assessmentId);
+
+        if (mcqQuestions.length > 0) {
+          for (let i = 0; i < mcqQuestions.length; i++) {
+            const question = mcqQuestions[i];
+            
+            // Insert question
+            const { data: questionData, error: questionError } = await supabase
+              .from("assessment_mcq_questions")
+              .insert({
+                assessment_id: assessmentId,
+                order_index: i,
+                question_text: question.question_text,
+                question_type: question.question_type,
+                points: question.points,
+                explanation: question.explanation || null,
+              })
+              .select()
+              .single();
+
+            if (questionError) throw questionError;
+
+            // Insert options for this question
+            if (question.options.length > 0) {
+              const optionsToInsert = question.options.map((opt, optIndex) => ({
+                question_id: questionData.id,
+                order_index: optIndex,
+                option_text: opt.option_text,
+                is_correct: opt.is_correct,
+              }));
+
+              const { error: optionsError } = await supabase
+                .from("assessment_mcq_options")
+                .insert(optionsToInsert);
+
+              if (optionsError) throw optionsError;
+            }
+          }
+        }
+      }
+
       return assessmentId;
     },
     onSuccess: (assessmentId) => {
       toast.success(isEditing ? "Assessment updated" : "Assessment created");
       queryClient.invalidateQueries({ queryKey: ["written-assessments"] });
       queryClient.invalidateQueries({ queryKey: ["assessment", id] });
+      queryClient.invalidateQueries({ queryKey: ["assessment-mcq-questions", id] });
       if (!isEditing) {
         navigate(`/admin/assessments/${assessmentId}/edit`);
       }
@@ -303,6 +413,11 @@ export default function AssessmentBuilder() {
 
   // Determine which tabs to show based on assessment type
   const isResearchExercise = assessmentType === "research_exercise";
+  const isMultipleChoice = assessmentType === "multiple_choice";
+  const isInboxSimulation = assessmentType === "inbox_simulation";
+
+  // Calculate total MCQ points for preview
+  const totalMcqPoints = mcqQuestions.reduce((sum, q) => sum + q.points, 0);
 
   if (isLoading) {
     return (
@@ -346,15 +461,24 @@ export default function AssessmentBuilder() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           {/* Conditional tabs based on assessment type */}
-          <TabsList className={`grid w-full ${isResearchExercise ? "grid-cols-2" : "grid-cols-4"}`}>
+          <TabsList className={`grid w-full ${
+            isInboxSimulation ? "grid-cols-4" : 
+            isMultipleChoice ? "grid-cols-3" : 
+            "grid-cols-2"
+          }`}>
             <TabsTrigger value="basics">1. Basics</TabsTrigger>
-            {!isResearchExercise && (
+            {isInboxSimulation && (
               <>
                 <TabsTrigger value="emails">2. Emails</TabsTrigger>
                 <TabsTrigger value="curveball">3. Curveball</TabsTrigger>
               </>
             )}
-            <TabsTrigger value="preview">{isResearchExercise ? "2. Preview" : "4. Preview"}</TabsTrigger>
+            {isMultipleChoice && (
+              <TabsTrigger value="questions">2. Questions</TabsTrigger>
+            )}
+            <TabsTrigger value="preview">
+              {isInboxSimulation ? "4. Preview" : isMultipleChoice ? "3. Preview" : "2. Preview"}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="basics" className="space-y-6 mt-6">
@@ -392,11 +516,19 @@ export default function AssessmentBuilder() {
                           <span>Research Exercise</span>
                         </div>
                       </SelectItem>
+                      <SelectItem value="multiple_choice">
+                        <div className="flex items-center gap-2">
+                          <ListChecks className="w-4 h-4" />
+                          <span>Multiple Choice Test</span>
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
                     {isResearchExercise 
                       ? "Candidate downloads a document, works offline, and uploads their response"
+                      : isMultipleChoice
+                      ? "Candidate answers timed multiple choice questions with automatic scoring"
                       : "Candidate responds to simulated emails in a timed inbox environment"
                     }
                   </p>
@@ -475,6 +607,109 @@ export default function AssessmentBuilder() {
                       </Select>
                     </div>
                   </div>
+                ) : isMultipleChoice ? (
+                  <>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="timeLimit">Time Limit (minutes)</Label>
+                        <Input
+                          id="timeLimit"
+                          type="number"
+                          min={5}
+                          max={180}
+                          value={timeLimit}
+                          onChange={(e) => setTimeLimit(parseInt(e.target.value) || 30)}
+                        />
+                        <p className="text-xs text-muted-foreground">Once started</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="passingScore">Passing Score (%)</Label>
+                        <Input
+                          id="passingScore"
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={mcqPassingScore}
+                          onChange={(e) => setMcqPassingScore(parseInt(e.target.value) || 70)}
+                        />
+                        <p className="text-xs text-muted-foreground">Minimum to pass</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="status">Status</Label>
+                        <Select value={status} onValueChange={(v: any) => setStatus(v)}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="archived">Archived</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* MCQ Display Settings */}
+                    <div className="space-y-4 pt-4 border-t">
+                      <h4 className="font-medium">Display Settings</h4>
+                      
+                      <div className="space-y-2">
+                        <Label>Question Display Mode</Label>
+                        <Select 
+                          value={mcqDisplayMode} 
+                          onValueChange={(v: "sequential" | "all_at_once") => setMcqDisplayMode(v)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="sequential">Sequential (one at a time)</SelectItem>
+                            <SelectItem value="all_at_once">All at Once (scrollable list)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <Label htmlFor="shuffleQuestions" className="font-normal">Shuffle Questions</Label>
+                            <p className="text-xs text-muted-foreground">Randomize order</p>
+                          </div>
+                          <Switch
+                            id="shuffleQuestions"
+                            checked={mcqShuffleQuestions}
+                            onCheckedChange={setMcqShuffleQuestions}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <Label htmlFor="shuffleOptions" className="font-normal">Shuffle Options</Label>
+                            <p className="text-xs text-muted-foreground">Randomize choices</p>
+                          </div>
+                          <Switch
+                            id="shuffleOptions"
+                            checked={mcqShuffleOptions}
+                            onCheckedChange={setMcqShuffleOptions}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <Label htmlFor="showResults" className="font-normal">Show Results</Label>
+                            <p className="text-xs text-muted-foreground">After completion</p>
+                          </div>
+                          <Switch
+                            id="showResults"
+                            checked={mcqShowResults}
+                            onCheckedChange={setMcqShowResults}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </>
                 ) : (
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
@@ -578,7 +813,9 @@ export default function AssessmentBuilder() {
                 {/* How timing works explanation */}
                 <div className="bg-muted/50 p-4 rounded-lg border">
                   <h4 className="font-medium mb-2">
-                    {isResearchExercise ? "How research exercise timing works:" : "How the two-stage timing works:"}
+                    {isResearchExercise ? "How research exercise timing works:" : 
+                     isMultipleChoice ? "How the multiple choice test works:" :
+                     "How the two-stage timing works:"}
                   </h4>
                   {isResearchExercise ? (
                     <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
@@ -587,6 +824,14 @@ export default function AssessmentBuilder() {
                       <li>They download the reference document and work on their response</li>
                       <li>They can upload their response anytime before the timer expires</li>
                       <li>Multiple uploads allowed - only the final submission is reviewed</li>
+                    </ol>
+                  ) : isMultipleChoice ? (
+                    <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
+                      <li>Candidate receives access to the assessment</li>
+                      <li>When they click "Start", the <strong>{timeLimit}-minute</strong> timer begins</li>
+                      <li>They answer {mcqQuestions.length > 0 ? mcqQuestions.length : "the"} multiple choice question{mcqQuestions.length !== 1 ? "s" : ""}</li>
+                      <li>Answers are automatically scored when submitted</li>
+                      <li>Pass threshold: <strong>{mcqPassingScore}%</strong> correct</li>
                     </ol>
                   ) : (
                     <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
@@ -610,7 +855,11 @@ export default function AssessmentBuilder() {
                 {saveMutation.isPending ? "Saving..." : "Save"}
               </Button>
               <Button 
-                onClick={() => saveAndContinue(isResearchExercise ? "preview" : "emails")}
+                onClick={() => saveAndContinue(
+                  isResearchExercise ? "preview" : 
+                  isMultipleChoice ? "questions" : 
+                  "emails"
+                )}
                 disabled={saveMutation.isPending || !title}
               >
                 {saveMutation.isPending ? "Saving..." : "Save & Continue"}
@@ -618,8 +867,73 @@ export default function AssessmentBuilder() {
             </div>
           </TabsContent>
 
+          {/* Questions tab - only for multiple choice */}
+          {isMultipleChoice && (
+            <TabsContent value="questions" className="space-y-6 mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ListChecks className="w-5 h-5" />
+                    Questions
+                  </CardTitle>
+                  <CardDescription>
+                    Create the multiple choice questions for this assessment. Each question can have 2-6 answer options.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <MCQQuestionEditor 
+                    questions={mcqQuestions} 
+                    onQuestionsChange={setMcqQuestions} 
+                  />
+                </CardContent>
+              </Card>
+
+              {mcqQuestions.length > 0 && (
+                <Card>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-4">
+                        <span className="text-muted-foreground">
+                          Total: <strong>{mcqQuestions.length}</strong> question{mcqQuestions.length !== 1 ? "s" : ""}
+                        </span>
+                        <span className="text-muted-foreground">
+                          Points: <strong>{totalMcqPoints}</strong>
+                        </span>
+                      </div>
+                      <div className="text-muted-foreground">
+                        Passing: <strong>{Math.ceil(totalMcqPoints * mcqPassingScore / 100)}</strong> points ({mcqPassingScore}%)
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => setActiveTab("basics")}>
+                  Back
+                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => saveMutation.mutate()}
+                    disabled={saveMutation.isPending || !title}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {saveMutation.isPending ? "Saving..." : "Save"}
+                  </Button>
+                  <Button 
+                    onClick={() => saveAndContinue("preview")}
+                    disabled={saveMutation.isPending || !title || mcqQuestions.length === 0}
+                  >
+                    {saveMutation.isPending ? "Saving..." : "Save & Continue"}
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+          )}
+
           {/* Emails tab - only for inbox simulation */}
-          {!isResearchExercise && (
+          {isInboxSimulation && (
             <TabsContent value="emails" className="space-y-6 mt-6">
               <Card>
                 <CardHeader>
@@ -957,6 +1271,11 @@ export default function AssessmentBuilder() {
                               <FileText className="w-4 h-4" />
                               Research Exercise
                             </>
+                          ) : isMultipleChoice ? (
+                            <>
+                              <ListChecks className="w-4 h-4" />
+                              Multiple Choice Test
+                            </>
                           ) : (
                             <>
                               <Mail className="w-4 h-4" />
@@ -1002,6 +1321,28 @@ export default function AssessmentBuilder() {
                         <p className="text-sm text-muted-foreground">No document uploaded</p>
                       )}
                     </div>
+                  ) : isMultipleChoice ? (
+                    <div>
+                      <h4 className="font-semibold mb-2">Questions</h4>
+                      <dl className="space-y-2 text-sm">
+                        <div>
+                          <dt className="text-muted-foreground">Total Questions</dt>
+                          <dd className="font-medium">{mcqQuestions.length}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Total Points</dt>
+                          <dd className="font-medium">{totalMcqPoints}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Passing Score</dt>
+                          <dd className="font-medium">{mcqPassingScore}% ({Math.ceil(totalMcqPoints * mcqPassingScore / 100)} pts)</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Display Mode</dt>
+                          <dd className="font-medium">{mcqDisplayMode === "sequential" ? "One at a time" : "All at once"}</dd>
+                        </div>
+                      </dl>
+                    </div>
                   ) : (
                     <div>
                       <h4 className="font-semibold mb-2">Emails</h4>
@@ -1028,7 +1369,34 @@ export default function AssessmentBuilder() {
                   )}
                 </div>
 
-                {!isResearchExercise && (
+                {/* MCQ Question Summary */}
+                {isMultipleChoice && mcqQuestions.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Question Summary</h4>
+                    <div className="space-y-2">
+                      {mcqQuestions.map((question, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center gap-3 p-2 bg-muted rounded-lg text-sm"
+                        >
+                          <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium">
+                            {i + 1}
+                          </div>
+                          <Badge variant="outline">
+                            {question.question_type === "single" ? "Single" : "Multi"}
+                          </Badge>
+                          <span className="font-medium flex-1 truncate">{question.question_text || "No question text"}</span>
+                          <span className="text-muted-foreground">{question.points} pt{question.points !== 1 ? "s" : ""}</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {question.options.filter(o => o.is_correct).length} correct
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {isInboxSimulation && (
                   <div>
                     <h4 className="font-semibold mb-2">Email Summary</h4>
                     <div className="space-y-2">
@@ -1067,7 +1435,7 @@ export default function AssessmentBuilder() {
                   </div>
                 )}
 
-                {isResearchExercise && instructions && (
+                {(isResearchExercise || isMultipleChoice) && instructions && (
                   <div>
                     <h4 className="font-semibold mb-2">Candidate Instructions</h4>
                     <div className="p-3 bg-muted rounded-lg text-sm whitespace-pre-wrap">
@@ -1079,7 +1447,11 @@ export default function AssessmentBuilder() {
             </Card>
 
             <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setActiveTab(isResearchExercise ? "basics" : "curveball")}>
+              <Button variant="outline" onClick={() => setActiveTab(
+                isResearchExercise ? "basics" : 
+                isMultipleChoice ? "questions" : 
+                "curveball"
+              )}>
                 Back
               </Button>
               <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !title}>

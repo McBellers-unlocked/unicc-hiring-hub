@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, ClipboardList, Calendar, Users, Eye, Edit, Clock } from "lucide-react";
+import { Plus, ClipboardList, Calendar, Users, Eye, Edit, Clock, ListChecks } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
@@ -22,7 +22,8 @@ export default function AdminAssessments() {
           assessment_slots(
             id,
             status
-          )
+          ),
+          assessment_mcq_questions(count)
         `)
         .order("created_at", { ascending: false });
 
@@ -113,6 +114,8 @@ export default function AdminAssessments() {
             {assessments?.map((assessment) => {
               const slotStats = getSlotStats(assessment.assessment_slots as any[]);
               const emailCount = (assessment.assessment_emails as any)?.[0]?.count || 0;
+              const questionCount = (assessment.assessment_mcq_questions as any)?.[0]?.count || 0;
+              const isMCQ = assessment.assessment_type === "multiple_choice";
 
               return (
                 <Card key={assessment.id} className="hover:shadow-md transition-shadow">
@@ -138,10 +141,10 @@ export default function AdminAssessments() {
                       </div>
                       <div className="text-center">
                         <div className="flex items-center justify-center text-muted-foreground mb-1">
-                          <ClipboardList className="w-4 h-4 mr-1" />
+                          {isMCQ ? <ListChecks className="w-4 h-4 mr-1" /> : <ClipboardList className="w-4 h-4 mr-1" />}
                         </div>
-                        <p className="font-semibold">{emailCount}</p>
-                        <p className="text-xs text-muted-foreground">Emails</p>
+                        <p className="font-semibold">{isMCQ ? questionCount : emailCount}</p>
+                        <p className="text-xs text-muted-foreground">{isMCQ ? "Questions" : "Emails"}</p>
                       </div>
                       <div className="text-center">
                         <div className="flex items-center justify-center text-muted-foreground mb-1">
