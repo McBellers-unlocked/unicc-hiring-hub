@@ -47,6 +47,7 @@ export default function InitialRequestForm() {
   const { toast } = useToast();
   const { user, userRoles } = useAuth();
   const queryClient = useQueryClient();
+  const [requisitionUUID, setRequisitionUUID] = useState<string | null>(null);
   
   // Admins viewing existing requests should always be in view mode
   const isAdmin = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR');
@@ -131,6 +132,7 @@ export default function InitialRequestForm() {
       if (error) throw error;
       
       if (data) {
+        setRequisitionUUID(data.id);
         // Try to extract remote_region and consultancy_level from comments if it exists
         let remoteRegion = '';
         let consultancy = '';
@@ -512,10 +514,11 @@ export default function InitialRequestForm() {
       
       // Preserve existing comment metadata (consultancy_level, remote_region, etc.)
       // while adding approval comments to approval_history
+      const resolvedId = requisitionUUID || id;
       const { data: existingRequisition } = await supabase
         .from("job_requisitions")
         .select("comments")
-        .eq("id", id)
+        .eq("id", resolvedId)
         .single();
       
       const existingComments = existingRequisition?.comments || {};
@@ -542,7 +545,7 @@ export default function InitialRequestForm() {
       const { error } = await supabase
         .from("job_requisitions")
         .update(updateData)
-        .eq("id", id);
+        .eq("id", resolvedId);
 
       if (error) throw error;
     },
