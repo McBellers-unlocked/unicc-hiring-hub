@@ -3461,6 +3461,92 @@ export type Database = {
           },
         ]
       }
+      procurement_tors: {
+        Row: {
+          additional_comments: string | null
+          background: string | null
+          created_at: string
+          desirable_certifications: string | null
+          desired_technical_skills: string | null
+          division: string | null
+          duty_station: string | null
+          estimated_duration: string | null
+          estimated_start_date: string | null
+          funding_comments: string | null
+          funding_status: string | null
+          id: string
+          on_call_requirement: string | null
+          requested_by: string
+          required_profile: string | null
+          required_soft_skills: string | null
+          required_technical_skills: string | null
+          scope_of_work: string | null
+          slug: string | null
+          status: string
+          title: string
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          additional_comments?: string | null
+          background?: string | null
+          created_at?: string
+          desirable_certifications?: string | null
+          desired_technical_skills?: string | null
+          division?: string | null
+          duty_station?: string | null
+          estimated_duration?: string | null
+          estimated_start_date?: string | null
+          funding_comments?: string | null
+          funding_status?: string | null
+          id?: string
+          on_call_requirement?: string | null
+          requested_by: string
+          required_profile?: string | null
+          required_soft_skills?: string | null
+          required_technical_skills?: string | null
+          scope_of_work?: string | null
+          slug?: string | null
+          status?: string
+          title: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          additional_comments?: string | null
+          background?: string | null
+          created_at?: string
+          desirable_certifications?: string | null
+          desired_technical_skills?: string | null
+          division?: string | null
+          duty_station?: string | null
+          estimated_duration?: string | null
+          estimated_start_date?: string | null
+          funding_comments?: string | null
+          funding_status?: string | null
+          id?: string
+          on_call_requirement?: string | null
+          requested_by?: string
+          required_profile?: string | null
+          required_soft_skills?: string | null
+          required_technical_skills?: string | null
+          scope_of_work?: string | null
+          slug?: string | null
+          status?: string
+          title?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "procurement_tors_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       requisition_field_comments: {
         Row: {
           author_id: string
@@ -4847,6 +4933,10 @@ export type Database = {
       }
       generate_requisition_slug: {
         Args: { req_id: string; title: string }
+        Returns: string
+      }
+      generate_tor_slug: {
+        Args: { tor_id: string; tor_title: string }
         Returns: string
       }
       get_all_reports: {
