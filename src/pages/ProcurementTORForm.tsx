@@ -340,44 +340,86 @@ export default function ProcurementTORForm() {
                 />
               </div>
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Required Soft Skills / Competencies</Label>
+                <Label className="mb-3 block">Required Soft Skills / Competencies</Label>
+
+                {/* Mandatory Competencies - read-only */}
+                <div className="bg-muted/50 border border-border rounded-lg p-4 mb-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Mandatory Competencies (always included)</p>
+                  <div className="space-y-3">
+                    {[
+                      { name: 'Teamwork', definition: 'Develops and promotes effective relationships with colleagues and team members. Deals constructively with conflicts.' },
+                      { name: 'Communicating', definition: 'Expresses oneself clearly in conversations and interactions with others; listens actively. Produces effective written communications. Ensures that information is shared.' },
+                      { name: 'Respecting and promoting individual and cultural differences', definition: 'Demonstrates the ability to work constructively with people of all backgrounds and orientations. Respects differences and ensures that all can contribute.' },
+                    ].map(comp => (
+                      <div key={comp.name} className="flex items-start gap-2">
+                        <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                        <div>
+                          <span className="text-sm font-medium text-foreground">{comp.name}</span>
+                          <p className="text-xs text-muted-foreground mt-0.5">{comp.definition}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Selectable Competencies */}
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm text-muted-foreground">Select up to 6 additional competencies</p>
                   <Badge variant={formData.required_soft_skills.length === 6 ? 'default' : 'secondary'}>
                     {formData.required_soft_skills.length} / 6 selected
                   </Badge>
                 </div>
                 {[
-                  { label: 'Core Competencies', items: ['Communication', 'Teamwork and Collaboration', 'Planning and Organizing', 'Accountability', 'Creativity', 'Client Orientation', 'Commitment to Continuous Learning', 'Technological Awareness'] },
-                  { label: 'Management Competencies', items: ['Leadership', 'Vision', 'Empowering Others', 'Building Trust', 'Managing Performance', 'Judgement/Decision Making'] },
-                  { label: 'Leadership Competencies', items: ['Strategic Direction', 'Managing Change', 'Building Coalitions', 'Influencing', 'Results Focus', 'Innovation'] },
+                  { label: 'Core Competencies', items: [
+                    { name: 'Knowing and managing yourself', definition: 'Manages ambiguity and pressure in a self-reflective way. Uses criticism as a development opportunity. Seeks opportunities for continuous learning and professional growth.' },
+                    { name: 'Producing results', definition: 'Produces and delivers quality results. Is action oriented and committed to achieving outcomes.' },
+                    { name: 'Moving forward in a changing environment', definition: 'Is open to and proposes new approaches and ideas. Adapts and responds positively to change.' },
+                    { name: 'Setting an example', definition: "Acts within UNICC's / WHO's professional, ethical and legal boundaries and encourages others to adhere to these. Behaves consistently in accordance with clear personal ethics and values." },
+                  ]},
+                  { label: 'Management Competencies', items: [
+                    { name: 'Ensuring effective use of resources', definition: "Identifies priorities in accordance with UNICC's strategic directions. Develops and implements action plans, organizes the necessary resources and monitors outcomes." },
+                    { name: 'Building and promoting partnerships across the Organization and beyond', definition: 'Develops and strengthens internal and external partnerships that can provide information, assistance and support to UNICC. Identifies and uses synergies across the Organization and with external partners.' },
+                  ]},
+                  { label: 'Leadership Competencies', items: [
+                    { name: 'Driving UNICC to a successful future', definition: 'Demonstrates a broad-based understanding of the growing complexities of ICT issues and activities. Creates a compelling vision of shared goals, and develops a roadmap for successfully achieving real progress in improving ICT services.' },
+                    { name: 'Promoting innovation and Organizational learning', definition: 'Invigorates the Organization by building a culture which encourages learning and development. Sponsors innovative approaches and solutions.' },
+                    { name: 'Promoting UNICC\'s position', definition: "Positions UNICC as a leader in ICT services. Gains support for UNICC's mission. Coordinates plans and communicates in a way that attracts support from intended audiences." },
+                  ]},
                 ].map(group => (
-                  <div key={group.label} className="mb-3">
-                    <p className="text-xs font-medium text-muted-foreground mb-1.5">{group.label}</p>
-                    <div className="flex flex-wrap gap-2">
+                  <div key={group.label} className="mb-4">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">{group.label}</p>
+                    <div className="space-y-2">
                       {group.items.map(comp => {
-                        const isSelected = formData.required_soft_skills.includes(comp);
+                        const isSelected = formData.required_soft_skills.includes(comp.name);
                         const atLimit = formData.required_soft_skills.length >= 6;
                         return (
                           <button
-                            key={comp}
+                            key={comp.name}
                             type="button"
                             disabled={!isSelected && atLimit}
                             onClick={() => setFormData(prev => ({
                               ...prev,
                               required_soft_skills: isSelected
-                                ? prev.required_soft_skills.filter(s => s !== comp)
-                                : [...prev.required_soft_skills, comp]
+                                ? prev.required_soft_skills.filter(s => s !== comp.name)
+                                : [...prev.required_soft_skills, comp.name]
                             }))}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                            className={`w-full text-left p-3 rounded-lg border transition-colors ${
                               isSelected
-                                ? 'bg-primary text-primary-foreground border-primary'
+                                ? 'bg-primary/10 border-primary'
                                 : atLimit
                                   ? 'bg-muted text-muted-foreground border-border opacity-50 cursor-not-allowed'
-                                  : 'bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground'
+                                  : 'bg-background border-border hover:bg-accent hover:border-accent-foreground/20'
                             }`}
                           >
-                            {isSelected && <Check className="h-3.5 w-3.5" />}
-                            {comp}
+                            <div className="flex items-start gap-2">
+                              <div className={`mt-0.5 shrink-0 h-4 w-4 rounded-sm border flex items-center justify-center ${isSelected ? 'bg-primary border-primary' : 'border-muted-foreground/40'}`}>
+                                {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                              </div>
+                              <div>
+                                <span className="text-sm font-medium text-foreground">{comp.name}</span>
+                                <p className="text-xs text-muted-foreground mt-0.5">{comp.definition}</p>
+                              </div>
+                            </div>
                           </button>
                         );
                       })}
