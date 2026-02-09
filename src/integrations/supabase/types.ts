@@ -4941,6 +4941,7 @@ export type Database = {
         Args: { p_token: string }
         Returns: {
           assessment_id: string
+          assessment_type: Database["public"]["Enums"]["assessment_type"]
           candidate_email: string
           candidate_name: string
           curveball_trigger_type: Database["public"]["Enums"]["curveball_trigger_type"]

@@ -22,6 +22,7 @@ import { Mail, Clock, Send, AlertTriangle, CheckCircle, Inbox, ChevronLeft, Mess
 import { differenceInSeconds, addMinutes } from "date-fns";
 import { EmailThread } from "@/components/assessment/EmailThread";
 import { processEmailVariables, TemplateVariables } from "@/lib/emailTemplateVariables";
+import { MCQCandidateView } from "@/components/assessment/MCQCandidateView";
 
 interface AssessmentEmail {
   id: string;
@@ -67,6 +68,7 @@ interface AssessmentData {
   started_at: string | null;
   available_from: string | null;
   available_until: string | null;
+  assessment_type?: string;
 }
 
 export default function CandidateAssessment() {
@@ -107,6 +109,7 @@ export default function CandidateAssessment() {
         ...slotData,
         available_from: slot?.available_from || null,
         available_until: slot?.available_until || null,
+        assessment_type: slotData.assessment_type,
       } as AssessmentData;
     },
   });
@@ -548,6 +551,17 @@ export default function CandidateAssessment() {
           </CardContent>
         </Card>
       </div>
+    );
+  }
+
+  // Route to MCQ interface for multiple choice assessments
+  if (assessmentData.assessment_type === "multiple_choice") {
+    return (
+      <MCQCandidateView
+        assessmentData={assessmentData}
+        token={token || ""}
+        onComplete={() => navigate("/assessment/complete")}
+      />
     );
   }
 
