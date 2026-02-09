@@ -293,6 +293,127 @@ export type Database = {
           },
         ]
       }
+      assessment_mcq_options: {
+        Row: {
+          created_at: string
+          id: string
+          is_correct: boolean
+          option_text: string
+          order_index: number
+          question_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          option_text: string
+          order_index?: number
+          question_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          option_text?: string
+          order_index?: number
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_mcq_options_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_mcq_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_mcq_questions: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          explanation: string | null
+          id: string
+          order_index: number
+          points: number
+          question_text: string
+          question_type: string
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          order_index?: number
+          points?: number
+          question_text: string
+          question_type?: string
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          order_index?: number
+          points?: number
+          question_text?: string
+          question_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_mcq_questions_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "written_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_mcq_responses: {
+        Row: {
+          answered_at: string
+          id: string
+          is_correct: boolean | null
+          points_earned: number | null
+          question_id: string
+          selected_options: string[] | null
+          slot_id: string
+        }
+        Insert: {
+          answered_at?: string
+          id?: string
+          is_correct?: boolean | null
+          points_earned?: number | null
+          question_id: string
+          selected_options?: string[] | null
+          slot_id: string
+        }
+        Update: {
+          answered_at?: string
+          id?: string
+          is_correct?: boolean | null
+          points_earned?: number | null
+          question_id?: string
+          selected_options?: string[] | null
+          slot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_mcq_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_mcq_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_mcq_responses_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessment_responses: {
         Row: {
           created_at: string
@@ -4615,6 +4736,11 @@ export type Database = {
           description: string | null
           id: string
           instructions: string | null
+          mcq_display_mode: string | null
+          mcq_passing_score: number | null
+          mcq_show_results: boolean | null
+          mcq_shuffle_options: boolean | null
+          mcq_shuffle_questions: boolean | null
           reference_document_name: string | null
           reference_document_url: string | null
           status: Database["public"]["Enums"]["assessment_status"]
@@ -4637,6 +4763,11 @@ export type Database = {
           description?: string | null
           id?: string
           instructions?: string | null
+          mcq_display_mode?: string | null
+          mcq_passing_score?: number | null
+          mcq_show_results?: boolean | null
+          mcq_shuffle_options?: boolean | null
+          mcq_shuffle_questions?: boolean | null
           reference_document_name?: string | null
           reference_document_url?: string | null
           status?: Database["public"]["Enums"]["assessment_status"]
@@ -4659,6 +4790,11 @@ export type Database = {
           description?: string | null
           id?: string
           instructions?: string | null
+          mcq_display_mode?: string | null
+          mcq_passing_score?: number | null
+          mcq_show_results?: boolean | null
+          mcq_shuffle_options?: boolean | null
+          mcq_shuffle_questions?: boolean | null
           reference_document_name?: string | null
           reference_document_url?: string | null
           status?: Database["public"]["Enums"]["assessment_status"]
@@ -4867,7 +5003,10 @@ export type Database = {
         | "expired"
         | "cancelled"
       assessment_status: "draft" | "active" | "archived"
-      assessment_type: "inbox_simulation" | "research_exercise"
+      assessment_type:
+        | "inbox_simulation"
+        | "research_exercise"
+        | "multiple_choice"
       curveball_trigger_type: "time" | "progress"
       email_urgency: "low" | "normal" | "high" | "urgent"
       input_type: "boolean" | "single" | "multi" | "text"
@@ -5051,7 +5190,11 @@ export const Constants = {
         "cancelled",
       ],
       assessment_status: ["draft", "active", "archived"],
-      assessment_type: ["inbox_simulation", "research_exercise"],
+      assessment_type: [
+        "inbox_simulation",
+        "research_exercise",
+        "multiple_choice",
+      ],
       curveball_trigger_type: ["time", "progress"],
       email_urgency: ["low", "normal", "high", "urgent"],
       input_type: ["boolean", "single", "multi", "text"],
