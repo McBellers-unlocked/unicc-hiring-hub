@@ -49,6 +49,8 @@ import ImportStaffList from "./pages/ImportStaffList";
 import NotFound from "./pages/NotFound";
 import InitialRequestForm from "./pages/InitialRequestForm";
 import InitialRequestReview from "./pages/InitialRequestReview";
+import InitialRequestSelector from "./pages/InitialRequestSelector";
+import ProcurementTORForm from "./pages/ProcurementTORForm";
 import JobInterviewQuestions from "./pages/JobInterviewQuestions";
 import ReviewCommittee from "./pages/ReviewCommittee";
 import JobVideoAssignmentManager from "./pages/JobVideoAssignmentManager";
@@ -136,8 +138,10 @@ const App = () => (
             <Route path="/admin/requisitions" element={<AdminRequisitions />} />
             <Route path="/admin/chief-hr-review" element={<ChiefHRReview />} />
             <Route path="/admin/initial-requests" element={<InitialRequestReview />} />
-            <Route path="/requisitions/initial/new" element={<InitialRequestForm />} />
+            <Route path="/requisitions/initial/new" element={<InitialRequestSelector />} />
             <Route path="/requisitions/initial/:id" element={<InitialRequestForm />} />
+            <Route path="/requisitions/tor/new" element={<ProcurementTORForm />} />
+            <Route path="/requisitions/tor/:id" element={<ProcurementTORForm />} />
             <Route path="/requisitions/new" element={<JobRequisitionForm />} />
             <Route path="/requisitions/:id" element={<JobRequisitionDetail />} />
             <Route path="/requisitions/:id/edit" element={<JobRequisitionForm />} />
