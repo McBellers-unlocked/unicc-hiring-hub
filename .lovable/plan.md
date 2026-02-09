@@ -1,53 +1,30 @@
 
 
-# Add On-Call Requirements Info Tooltip
+# Fix: Initial Request Approval Fails When Using Slug URLs
 
-## What Changes
+## Problem
 
-Add a clickable help icon (?) next to the "On-call Requirements" label in the Procurement TOR form. Clicking it opens a popover/tooltip displaying the full on-call billing and overtime rules.
+When a Chief of Division navigates to `/requisitions/initial/xx` (where `xx` is a slug, not a UUID), the approve/reject action fails with "invalid input syntax for type uuid" because the mutation code passes the slug directly to `.eq("id", id)` database queries.
 
-## UI Design
+The `/chief-of-division` page works because it uses the actual UUID from the fetched data.
 
-The label line will change from:
+## Root Cause
 
-```
-On-call Requirements
-```
-
-to:
+In `src/pages/InitialRequestForm.tsx`, the `approveMutation` (lines 515-545) uses the raw `id` from `useParams()` in two places:
 
 ```
-On-call Requirements  [?]
+.eq("id", id)  // line 518 - fetching existing comments
+.eq("id", id)  // line 545 - updating the requisition
 ```
 
-Clicking the `?` icon opens a popover with the formatted rules:
+When the URL contains a slug (e.g., `xx`), this breaks because the `id` column is a UUID.
 
----
+## Fix
 
-**Important Regarding On-Call Requirements and Overtime**
+**File: `src/pages/InitialRequestForm.tsx`**
 
-**If "One week per month":**
-- The daily rate offer must include 1 week of on-call and 3 hours of Overtime per month (those 3 hours can be used during On-Call intervention or for any other reason)
-- Any extra week of on-call requirement in excess of one week per month can be invoiced as one extra working day (as per agreed daily rate)
+1. Add a `requisitionUUID` state variable that stores the actual database UUID after the record is loaded
+2. In `loadRequest`, after fetching the record, save `data.id` to `requisitionUUID`
+3. In `approveMutation`, replace both `.eq("id", id)` calls with `.eq("id", requisitionUUID)` so the correct UUID is always used regardless of whether the URL contains a slug or UUID
 
-**If "May be required on an exceptional basis":**
-- Each on-call week can be invoiced as one extra working day (as per agreed daily rate)
-
-**Overtime rates:**
-- Mondays to Saturdays: 125% of agreed daily rate
-- Sundays and ICC Public Holidays: 150% of agreed daily rate
-
-Overtime should be pre-approved by the Team Leader.
-
----
-
-## Technical Details
-
-### File: `src/pages/ProcurementTORForm.tsx`
-
-- Import `Popover`, `PopoverTrigger`, `PopoverContent` from `@/components/ui/popover`
-- Import `HelpCircle` icon from `lucide-react`
-- Replace the plain `<Label>On-call Requirements</Label>` (around line 464) with a flex row containing the label and a `?` icon button wrapped in a Popover
-- The popover content will contain the formatted on-call/overtime guidance text
-- No database or data model changes
-
+This is a minimal, targeted fix -- only 3 small changes in one file.
