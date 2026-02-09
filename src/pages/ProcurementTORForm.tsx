@@ -12,7 +12,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { ArrowLeft, Save, Send, Check } from 'lucide-react';
+import { ArrowLeft, Save, Send, Check, HelpCircle } from 'lucide-react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { CustomDatePicker } from '@/components/ui/date-picker';
 import { DIVISIONS, DIVISION_UNITS, LOCATIONS, FUNDING_OPTIONS, ON_CALL_OPTIONS } from '@/lib/organizationConstants';
@@ -461,7 +462,38 @@ export default function ProcurementTORForm() {
                 </div>
               </div>
               <div>
-                <Label>On-call Requirements</Label>
+                <div className="flex items-center gap-2">
+                  <Label>On-call Requirements</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button type="button" className="text-muted-foreground hover:text-foreground transition-colors">
+                        <HelpCircle className="h-4 w-4" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[420px] text-sm" side="right" align="start">
+                      <h4 className="font-bold mb-3">Important Regarding On-Call Requirements &amp; Overtime</h4>
+                      
+                      <p className="font-semibold mb-1">If "One week per month":</p>
+                      <ul className="list-disc pl-5 mb-3 space-y-1 text-muted-foreground">
+                        <li>The daily rate offer must include 1 week of on-call &amp; 3 hours of Overtime per month (those 3 hours can be used during On-Call intervention or for any other reason)</li>
+                        <li>Any extra week of on-call requirement in excess of one week per month can be invoiced as one extra working day (as per agreed daily rate)</li>
+                      </ul>
+
+                      <p className="font-semibold mb-1">If "May be required on an exceptional basis":</p>
+                      <ul className="list-disc pl-5 mb-3 space-y-1 text-muted-foreground">
+                        <li>Each on-call week can be invoiced as one extra working day (as per agreed daily rate)</li>
+                      </ul>
+
+                      <p className="font-semibold mb-1">Overtime rates:</p>
+                      <ul className="list-disc pl-5 mb-3 space-y-1 text-muted-foreground">
+                        <li>Mondays to Saturdays: Overtime can be invoiced at 125% of agreed daily rate</li>
+                        <li>Sundays &amp; ICC Public Holidays: Overtime can be invoiced at 150% of agreed daily rate</li>
+                      </ul>
+
+                      <p className="text-muted-foreground italic">Overtime should be pre-approved by the Team Leader.</p>
+                    </PopoverContent>
+                  </Popover>
+                </div>
                 <RadioGroup
                   value={formData.on_call_requirement}
                   onValueChange={val => setFormData(prev => ({ ...prev, on_call_requirement: val }))}
