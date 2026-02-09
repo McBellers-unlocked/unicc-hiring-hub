@@ -1,102 +1,273 @@
 
 
-# Fix First Contract Date Display Issue
+# Add Timed Multiple Choice Test Assessment Type
 
-## Problem
+## Overview
 
-The "First Contract" column shows no data because `first_incumbency_date` is NULL for all affiliates in the database. This is a **data gap**, not a code bug.
-
-**Root cause:** 
-- The CSV import function supports a "First Incumbency" column (line 116)
-- But it's not listed in the expected columns on the Import page
-- So the source CSVs being imported don't include this field
+Add a new assessment type "Timed Multiple Choice Test" to the existing assessment builder. This will allow HR to create timed MCQ tests where candidates answer questions with single or multiple correct answers.
 
 ---
 
-## Solution
+## Current State
 
-### 1. Update Import Page Documentation
+The assessment system currently supports two types:
+- **Inbox Simulation**: Candidates respond to simulated emails
+- **Research Exercise**: Candidates download documents, work offline, and upload responses
 
-Add "First Incumbency Date" to the expected CSV columns list so HR knows to include it:
+**Database enum**: `assessment_type: ["inbox_simulation", "research_exercise"]`
 
-**File:** `src/pages/ImportAffiliatePersonnel.tsx`
+---
 
+## New Feature: Multiple Choice Test
+
+A timed multiple-choice assessment where:
+- Admin creates questions with 2-6 answer options
+- Each question can have one correct answer (single) or multiple correct answers (multi-select)
+- Candidates see questions sequentially or all at once
+- Timer runs during the test (like inbox simulation)
+- Automatic scoring based on correct answers
+
+---
+
+## Database Changes
+
+### 1. Extend the `assessment_type` Enum
+
+```sql
+ALTER TYPE assessment_type ADD VALUE 'multiple_choice';
 ```
-Expected columns list additions:
-• First Incumbency Date (original contract start)
-```
 
-### 2. Auto-Set First Incumbency on Initial Import
+### 2. Create `assessment_mcq_questions` Table
 
-Update the import function to automatically set `first_incumbency_date` equal to `contract_start_date` **when it's a new record AND first_incumbency_date is not provided**.
+Stores the questions for multiple choice assessments.
 
-This ensures:
-- New affiliates get their first contract date recorded automatically
-- Re-imports preserve the original first incumbency date
-- CSV can override if a "First Incumbency Date" column is provided
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| assessment_id | uuid | FK to written_assessments |
+| order_index | integer | Question order |
+| question_text | text | The question |
+| question_type | text | 'single' or 'multi' |
+| points | integer | Points for correct answer (default 1) |
+| explanation | text | Optional explanation shown after test |
+| created_at | timestamp | Auto-set |
 
-**File:** `supabase/functions/import-affiliate-personnel/index.ts`
+### 3. Create `assessment_mcq_options` Table
 
-```typescript
-// When creating a NEW affiliate record (not updating)
-// If no first_incumbency_date is provided, use contract_start_date
-if (!affiliate.first_incumbency_date && affiliate.contract_start_date) {
-  updateData.first_incumbency_date = affiliate.contract_start_date;
+Stores the answer options for each question.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| question_id | uuid | FK to assessment_mcq_questions |
+| order_index | integer | Option order (A, B, C, D...) |
+| option_text | text | The answer text |
+| is_correct | boolean | Whether this is a correct answer |
+| created_at | timestamp | Auto-set |
+
+### 4. Create `assessment_mcq_responses` Table
+
+Stores candidate responses.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| slot_id | uuid | FK to assessment_slots |
+| question_id | uuid | FK to assessment_mcq_questions |
+| selected_options | uuid[] | Array of selected option IDs |
+| is_correct | boolean | Whether the answer is correct |
+| points_earned | integer | Points earned for this question |
+| answered_at | timestamp | When answered |
+
+### 5. Add Columns to `written_assessments`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| mcq_display_mode | text | 'sequential' or 'all_at_once' |
+| mcq_shuffle_questions | boolean | Randomize question order |
+| mcq_shuffle_options | boolean | Randomize option order |
+| mcq_show_results | boolean | Show results after completion |
+| mcq_passing_score | integer | Minimum percentage to pass |
+
+---
+
+## UI Changes
+
+### Assessment Builder (AssessmentBuilder.tsx)
+
+**Tab Structure for Multiple Choice:**
+1. **Basics** - Title, description, time limit, settings
+2. **Questions** - Add/edit/reorder MCQ questions
+3. **Preview** - Review all questions and settings
+
+**Basics Tab Additions:**
+- Display mode selector (sequential vs all at once)
+- Shuffle questions toggle
+- Shuffle options toggle
+- Show results after completion toggle
+- Passing score percentage input
+
+**New Questions Tab:**
+- Question list with drag-to-reorder
+- Add Question button
+- For each question:
+  - Question text (textarea)
+  - Question type (single/multi select)
+  - Points value
+  - Options list (2-6 options)
+  - Mark correct answer(s)
+  - Optional explanation
+
+### New Component: MCQQuestionEditor
+
+```tsx
+interface MCQQuestion {
+  id?: string;
+  order_index: number;
+  question_text: string;
+  question_type: 'single' | 'multi';
+  points: number;
+  explanation?: string;
+  options: MCQOption[];
+}
+
+interface MCQOption {
+  id?: string;
+  order_index: number;
+  option_text: string;
+  is_correct: boolean;
 }
 ```
 
-### 3. Add Bulk Update for Existing Data (Optional UI Action)
+### Candidate Interface Updates
 
-Add an action button on the Affiliate Personnel page to backfill missing `first_incumbency_date` values using each affiliate's `contract_start_date`.
+**New Page: CandidateMCQAssessment.tsx** (or extend existing)
 
-**This is a one-time data fix for existing records.**
+Sequential mode:
+- One question per screen
+- Previous/Next navigation
+- Question number indicator (e.g., "Question 3 of 20")
+- Timer always visible
+
+All-at-once mode:
+- Scrollable list of all questions
+- Question navigation sidebar
+- Answered/unanswered indicators
 
 ---
 
-## Implementation Details
+## File Changes
 
-### File Changes
+### Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/components/assessment/MCQQuestionEditor.tsx` | Question editing component |
+| `src/components/assessment/MCQQuestionCard.tsx` | Individual question display |
+| `src/pages/CandidateMCQAssessment.tsx` | Candidate test-taking interface |
+
+### Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pages/ImportAffiliatePersonnel.tsx` | Add "First Incumbency Date" to expected columns |
-| `supabase/functions/import-affiliate-personnel/index.ts` | Auto-set first_incumbency_date for new records |
-| `src/pages/AffiliatePersonnel.tsx` | Add "Backfill First Contract Dates" button |
+| `src/pages/AssessmentBuilder.tsx` | Add MCQ type, questions tab, settings |
+| `src/pages/AdminAssessments.tsx` | Show question count for MCQ type |
+| `src/pages/AssessmentReview.tsx` | Add MCQ results review |
 
-### Backfill Button Logic
+### Database Migrations Required
 
-```typescript
-const handleBackfillFirstIncumbency = async () => {
-  // Update all affiliates where first_incumbency_date is NULL
-  // Set it to their contract_start_date
-  const { error } = await supabase
-    .from('users')
-    .update({ first_incumbency_date: supabase.raw('contract_start_date') })
-    .eq('personnel_type', 'Affiliate')
-    .is('first_incumbency_date', null)
-    .not('contract_start_date', 'is', null);
-  
-  // Refetch data
-  queryClient.invalidateQueries({ queryKey: ['affiliate-personnel'] });
-};
+1. Add `multiple_choice` to `assessment_type` enum
+2. Create `assessment_mcq_questions` table
+3. Create `assessment_mcq_options` table
+4. Create `assessment_mcq_responses` table
+5. Add MCQ settings columns to `written_assessments`
+
+---
+
+## Assessment Builder Type Toggle
+
+```tsx
+type AssessmentType = "inbox_simulation" | "research_exercise" | "multiple_choice";
+
+// In the select component:
+<SelectItem value="multiple_choice">
+  <div className="flex items-center gap-2">
+    <ListChecks className="w-4 h-4" />
+    <span>Multiple Choice Test</span>
+  </div>
+</SelectItem>
 ```
 
 ---
 
-## Expected Outcome
+## MCQ Question Editor Design
 
-After implementation:
-1. Existing affiliates can have their first contract date backfilled with one click
-2. Future imports will auto-capture first incumbency date
-3. The "First Contract" column will display properly
+```
++------------------------------------------+
+| Question 1                         [x]   |
++------------------------------------------+
+| Question Text:                           |
+| [                                     ]  |
+| [                                     ]  |
++------------------------------------------+
+| Type: (Single) (Multi)    Points: [1]    |
++------------------------------------------+
+| Options:                                 |
+| [A] [ Option text here           ] [O]   |
+| [B] [ Option text here           ] [O]   |
+| [C] [ Option text here           ] [●]   |
+| [D] [ Option text here           ] [O]   |
+|                        [+ Add Option]    |
++------------------------------------------+
+| Explanation (shown after test):          |
+| [                                     ]  |
++------------------------------------------+
+```
+
+Legend:
+- [O] = Radio/checkbox for marking correct answer
+- [●] = Marked as correct
+- [x] = Delete question
+
+---
+
+## Scoring Logic
+
+**Single-select questions:**
+- Full points if correct answer selected
+- 0 points if wrong
+
+**Multi-select questions:**
+- Full points only if ALL correct options selected AND no incorrect options
+- Partial scoring option: (correct selections - incorrect selections) / total correct options
+
+**Auto-calculated after submission:**
+- Total score, percentage, pass/fail status stored in assessment_slots
+
+---
+
+## Preview Tab Updates for MCQ
+
+Show:
+- Total number of questions
+- Total possible points
+- Time limit
+- Display mode
+- Shuffle settings
+- Passing score threshold
+- List of questions with correct answers (for admin review)
 
 ---
 
 ## Summary
 
-| Change | Purpose |
-|--------|---------|
-| Document column in import page | HR knows to include it in CSVs |
-| Auto-set on new imports | Future affiliates get date automatically |
-| Backfill button | Fix existing data with one click |
+| Component | Description |
+|-----------|-------------|
+| Database | 3 new tables + enum extension + new columns |
+| Builder | New Questions tab with drag-reorder editor |
+| Candidate | New MCQ test interface with timer |
+| Review | Score breakdown and answer review |
+| Settings | Shuffle, display mode, passing score options |
+
+This implementation follows the existing pattern of the assessment builder with type-specific tabs and reuses the slot/invitation system already in place.
 
