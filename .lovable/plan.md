@@ -1,38 +1,34 @@
 
 
-# Fix: Preserve User Link When Editing Separations/Appointments
+# Improve Color Coding on Status Badges
 
 ## Problem
+The Separation and Appointment status badges rely on generic Badge variants (`outline`, `secondary`) which render as plain grey. The STDA badges already use explicit color classes (blue for in-progress, green for completed, etc.) and look much better.
 
-When you edit an existing separation (or appointment) that was linked to a user, the link is silently wiped out. Two things go wrong:
+## Changes
 
-1. The form's `selectedUserId` local state starts as `null` and is never initialized from the existing record's `user_id`, so the linked staff name doesn't display either.
-2. The update mutation always sets `user_id: selectedUserId || null`. Since `selectedUserId` is never populated from existing data, every update overwrites `user_id` with `null`.
+### 1. `src/components/operations/SeparationStatusBadge.tsx` -- `SeparationStatusBadge`
 
-## Solution
+Replace the variant-based approach with explicit color classes matching the STDA style:
 
-### 1. `src/components/operations/SeparationForm.tsx`
+| Status | Current Look | New Look |
+|--------|-------------|----------|
+| Completed | Green (already works) | Green -- `bg-green-100 text-green-800` |
+| Cancelled | Grey secondary | Grey outline with muted text |
+| Not started | Grey outline | Grey outline (unchanged) |
+| In progress | Grey outline | Blue -- `bg-blue-100 text-blue-800` |
+| X days remaining | Grey secondary | Amber/orange -- `bg-amber-100 text-amber-800` |
+| Overdue | Red destructive | Red with icon -- `bg-red-100 text-red-800` + alert icon |
 
-- In the `useEffect` that resets form data when `open`/`initialData` changes, also set `selectedUserId` and `linkedStaffName` from `initialData`:
-  - If `initialData.user_id` exists, set `selectedUserId` to that value
-  - If `initialData.first_name` and `initialData.last_name` exist, set `linkedStaffName` so the "Linked to: ..." label appears
-- Clear both when opening a blank form (no `initialData`)
+### 2. `src/components/operations/AppointmentStatusBadge.tsx` -- `AppointmentStatusBadge`
 
-### 2. `src/pages/operations/Separations.tsx`
+Same color mapping as above to keep all three operations pages visually consistent.
 
-- In the `updateMutation`, only include `user_id` in the update payload if `selectedUserId` was explicitly provided (i.e., is not `undefined`). Change from:
-  ```
-  user_id: selectedUserId || null
-  ```
-  to only setting `user_id` when `selectedUserId !== undefined` -- this way, if the user didn't touch the staff picker, the existing `user_id` is left unchanged.
+### No other files affected
 
-### 3. `src/components/operations/AppointmentForm.tsx`
+The STDA badges already look good. The type badges and reason badges in all three pages already have proper colors.
 
-- Same `useEffect` fix: initialize `selectedUserId` and `linkedStaffName` from `initialData` when the form opens for editing.
+## Technical Detail
 
-### 4. `src/pages/operations/Appointments.tsx`
-
-- Same update mutation fix: only include `user_id` in the payload when `selectedUserId` was explicitly provided.
-
-## No other files affected
+Both components will switch from using the `variant` prop to using explicit `className` colors, similar to how `STDAStatusBadge` is built. This avoids the generic grey variants and gives each status a distinct, readable color.
 
