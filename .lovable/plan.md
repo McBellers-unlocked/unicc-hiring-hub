@@ -1,47 +1,23 @@
 
-
-# Contract Break Return Date: Business Day Calculation (Updated)
+# Update Linked Appointment Date When Separation (CB) Is Edited
 
 ## Overview
 
-When creating a Separation (CB), the auto-created Appointment (CB) return date will be calculated as:
-
-1. Separation date + 31 calendar days
-2. Then skip forward past any non-working days (weekends and duty station holidays) until landing on a valid working day
-
-### How Skipping Works
-
-The system checks the candidate date repeatedly. If it is not a working day, it advances by one day and checks again. This naturally handles all chained scenarios:
-
-- **Saturday**: advances through Sunday, lands on Monday (or later if Monday is a holiday)
-- **Friday holiday**: advances to Saturday, then Sunday, then Monday (or later if Monday is also a holiday)
-- **Example**: 31 days lands on Friday 3 April 2026 (Good Friday) in Geneva -- advances to Saturday 4th, Sunday 5th, Monday 6th (Easter Monday, also a holiday), finally lands on **Tuesday 7 April**
+Currently, the CB return date logic only runs when **creating** a new Separation (CB). If the separation date or duty station is later edited, the linked Appointment (CB) keeps the old return date. This change will recalculate and update the linked appointment's tentative date whenever a CB separation is updated.
 
 ## Technical Changes
 
-### 1. New file: `src/lib/officialHolidays.ts`
+### Modified file: `src/pages/operations/Separations.tsx`
 
-Exports a duty-station-to-holidays map (2026 dates) and a utility function:
+In the `updateMutation` (around line 245), after the existing separation update succeeds, add logic to:
 
-```
-calculateCBReturnDate(separationDate: string, dutyStation: string): string
-```
+1. Check if the separation being edited is a CB type (`operation_type` includes "(CB)")
+2. Check if it has a `linked_appointment_id`
+3. If both are true and `tentative_date` is provided, recalculate the return date using `calculateCBReturnDate(data.tentative_date, data.duty_station)`
+4. Update the linked appointment's `tentative_date` with the new calculated date
 
-Duty station matching is case-insensitive with partial matching (e.g. "Valencia, Spain" matches "Valencia").
+The updated mutation will need access to the current separation record (from `editingSeparation`) to get the `linked_appointment_id` and `operation_type`. These fields should already be available since `editingSeparation` holds the full row.
 
-**Holiday data (excluding floating days):**
-- **Geneva**: Jan 1, Apr 3, Apr 6, Sep 10, Sep 11, Dec 25, Dec 28, Dec 31
-- **New York**: Jan 1, Mar 20, Apr 3, May 25, May 27, Jul 3, Sep 7, Nov 26, Dec 25
-- **Rome**: Jan 1, Feb 16, Mar 20, Apr 6, May 1, Nov 2, Dec 25, Dec 28
-- **Brindisi**: Jan 1, Mar 20, Apr 6, May 1, May 27, Aug 14, Dec 8, Dec 25, Dec 28
-- **Valencia**: Jan 1, Mar 20, Apr 3, Apr 6, May 1, May 27, Oct 9, Oct 12, Dec 25
-- **Madrid**: Jan 1, Mar 20, Apr 3, Apr 6, May 1, May 27, Oct 9, Oct 12, Dec 25
+### No other files affected
 
-### 2. Modified file: `src/pages/operations/Separations.tsx`
-
-In the `createSeparation` mutation, replace the `addMonths` return date calculation with a call to `calculateCBReturnDate(separationDate, dutyStation)`.
-
-### 3. No other files affected
-
-The appointment form, filters, and status badges remain unchanged.
-
+The `calculateCBReturnDate` utility and holiday data in `src/lib/officialHolidays.ts` are already in place and will be reused.
