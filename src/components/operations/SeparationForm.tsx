@@ -244,7 +244,7 @@ export const SeparationForm = ({
                     <Info className="h-4 w-4" />
                     <AlertDescription>
                       <strong>Contract Break Selected:</strong> An Appointment (CB) will be automatically created 
-                      for this person's return, dated 1 month after the separation date.
+                      for this person's return, dated 31 calendar days after the separation date (skipping weekends and duty-station public holidays).
                     </AlertDescription>
                   </Alert>
                 )}
