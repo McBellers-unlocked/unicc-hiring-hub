@@ -1,0 +1,1 @@
+DELETE FROM affiliate_lifecycle_checklists WHERE user_id = '7952023c-2891-4b2e-a380-d9cdb30f653f';
