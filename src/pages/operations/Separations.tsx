@@ -254,9 +254,24 @@ const Separations = () => {
         .eq('id', id);
       
       if (error) throw error;
+
+      // Recalculate linked appointment return date for CB separations
+      if (
+        editingSeparation?.operation_type?.includes('(CB)') &&
+        editingSeparation.linked_appointment_id &&
+        data.tentative_date
+      ) {
+        const newReturnDate = calculateCBReturnDate(data.tentative_date, data.duty_station || '');
+        const { error: aptError } = await supabase
+          .from('hr_appointments')
+          .update({ tentative_date: newReturnDate })
+          .eq('id', editingSeparation.linked_appointment_id);
+        if (aptError) throw aptError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hr-separations'] });
+      queryClient.invalidateQueries({ queryKey: ['hr-appointments'] });
       setEditingSeparation(null);
       setFormOpen(false);
       toast.success('Separation updated successfully');
