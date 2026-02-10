@@ -1,34 +1,45 @@
 
 
-# Improve Color Coding on Status Badges
+# Replace Free-Text Inputs with Standardised Dropdowns
 
-## Problem
-The Separation and Appointment status badges rely on generic Badge variants (`outline`, `secondary`) which render as plain grey. The STDA badges already use explicit color classes (blue for in-progress, green for completed, etc.) and look much better.
+## Overview
+Replace the plain text inputs for Grade, Contract Type, Duty Station, and Division/Section-Unit with structured dropdown selects across all three HR Operations forms (Appointments, Separations, STDAs). This aligns with the Job Wizard / PD Creator approach and ensures data consistency.
 
-## Changes
+## What Changes
 
-### 1. `src/components/operations/SeparationStatusBadge.tsx` -- `SeparationStatusBadge`
+### Shared Constants (new)
+Create a small constants block (or add to `organizationConstants.ts`) with:
+- **GRADES**: `['G3', 'G4', 'G5', 'G6', 'G7', 'P1', 'P2', 'P3', 'P4', 'P5', 'D1']`
+- **CONTRACT_TYPES**: `['Fixed Term', 'Temporary']`
+- Reuse existing **LOCATIONS** from `organizationConstants.ts` for Duty Station
+- Reuse existing **DIVISIONS** and **DIVISION_UNITS** from `organizationConstants.ts` for a cascading Division then Section/Unit picker
 
-Replace the variant-based approach with explicit color classes matching the STDA style:
+### Form Changes (applied to all three forms)
 
-| Status | Current Look | New Look |
-|--------|-------------|----------|
-| Completed | Green (already works) | Green -- `bg-green-100 text-green-800` |
-| Cancelled | Grey secondary | Grey outline with muted text |
-| Not started | Grey outline | Grey outline (unchanged) |
-| In progress | Grey outline | Blue -- `bg-blue-100 text-blue-800` |
-| X days remaining | Grey secondary | Amber/orange -- `bg-amber-100 text-amber-800` |
-| Overdue | Red destructive | Red with icon -- `bg-red-100 text-red-800` + alert icon |
+For each of these four fields, the current `<Input>` will be replaced with a `<Select>` dropdown:
 
-### 2. `src/components/operations/AppointmentStatusBadge.tsx` -- `AppointmentStatusBadge`
+| Field | Current | New |
+|-------|---------|-----|
+| Grade | Free text input | Dropdown: G3-G7, P1-P5, D1 |
+| Contract Type | Free text input | Dropdown: Fixed Term, Temporary |
+| Duty Station | Free text input | Dropdown: Valencia, Brindisi, New York, Geneva, Rome, Remote |
+| Section/Unit | Free text input | Two-step: Division dropdown (auto-sets division code) then Section/Unit dropdown filtered by the selected division |
 
-Same color mapping as above to keep all three operations pages visually consistent.
+### Division / Section-Unit Cascading Logic
+- Add a local `selectedDivision` state to each form
+- When Division is selected, filter the Section/Unit dropdown to show only units for that division (from `DIVISION_UNITS`)
+- On edit, derive the division from the existing `section_unit` value by matching it against `DIVISION_UNITS`
+- When staff search auto-fills `section_unit`, also auto-detect and set the division
 
-### No other files affected
+### Files Modified
+1. **`src/lib/organizationConstants.ts`** -- Add `GRADES` and `CONTRACT_TYPES` arrays
+2. **`src/components/operations/AppointmentForm.tsx`** -- Replace 4 Input fields with Select dropdowns, add division state and cascading logic
+3. **`src/components/operations/SeparationForm.tsx`** -- Same changes
+4. **`src/components/operations/STDAForm.tsx`** -- Same changes
 
-The STDA badges already look good. The type badges and reason badges in all three pages already have proper colors.
-
-## Technical Detail
-
-Both components will switch from using the `variant` prop to using explicit `className` colors, similar to how `STDAStatusBadge` is built. This avoids the generic grey variants and gives each status a distinct, readable color.
+### Technical Notes
+- All Select dropdowns will use the existing Radix `Select` component already imported in each form
+- The `value` prop (not `defaultValue`) will be used on the Select to ensure it stays in sync with `react-hook-form` state during edit mode
+- Existing data with free-text values that don't match the new options will still display (the Select allows showing the current value even if not in the list, via `SelectValue`)
+- The division field is a UI-only helper (not stored in the database) -- only `section_unit` is persisted
 
