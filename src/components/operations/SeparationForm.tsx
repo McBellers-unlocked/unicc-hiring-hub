@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -133,6 +133,40 @@ export const SeparationForm = ({
       ...initialData,
     },
   });
+
+  useEffect(() => {
+    if (open) {
+      const defaults = {
+        last_name: '',
+        first_name: '',
+        email: '',
+        operation_type: 'Separation',
+        reason: '',
+        status: 'Not started' as const,
+        tentative_date: '',
+        effective_date: '',
+        job_title: '',
+        grade: '',
+        contract_type: '',
+        duty_station: '',
+        pd_number: '',
+        section_unit: '',
+        supervisor: '',
+        supervisor_staff_number: '',
+        separation_type: '',
+        event_type: '',
+        staff_number: '',
+        main_hr_focal_point: '',
+        is_international: false,
+        notice_days_required: 30,
+        comments: '',
+        actions_in_hr_plan: '',
+        clearance_status: '',
+        ...initialData,
+      };
+      form.reset(defaults);
+    }
+  }, [open, initialData]);
 
   const operationType = form.watch('operation_type');
   const isCBType = operationType.includes('(CB)');
