@@ -244,12 +244,14 @@ const Separations = () => {
   // Update mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: SeparationFormData }) => {
+      const { selectedUserId, ...formData } = data as SeparationFormData & { selectedUserId?: string };
       const { error } = await supabase
         .from('hr_separations')
         .update({
-          ...data,
-          tentative_date: data.tentative_date || null,
-          effective_date: data.effective_date || null,
+          ...formData,
+          user_id: selectedUserId || null,
+          tentative_date: formData.tentative_date || null,
+          effective_date: formData.effective_date || null,
         })
         .eq('id', id);
       

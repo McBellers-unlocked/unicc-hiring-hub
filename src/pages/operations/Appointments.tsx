@@ -174,12 +174,14 @@ const Appointments = () => {
   // Update mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: AppointmentFormData }) => {
+      const { selectedUserId, ...formData } = data as AppointmentFormData & { selectedUserId?: string };
       const { error } = await supabase
         .from('hr_appointments')
         .update({
-          ...data,
-          tentative_date: data.tentative_date || null,
-          effective_date: data.effective_date || null,
+          ...formData,
+          user_id: selectedUserId || null,
+          tentative_date: formData.tentative_date || null,
+          effective_date: formData.effective_date || null,
         })
         .eq('id', id);
       
