@@ -1,20 +1,14 @@
 
 
-# Fix: Replace Old Checklist Items in Database
+# Delete All Separation Records
 
-## Problem
-The config file (`affiliateLifecycleConfig.ts`) was updated correctly, but this affiliate already had checklist items initialized in the database with the **old** labels. The UI reads from the database, not the config, so old items still show.
+## What Will Happen
 
-## Solution
+A database migration will delete all **281 rows** from the `hr_separations` table, giving you a clean slate to manually build the data.
 
-Two changes:
+## Technical Details
 
-1. **Delete the 15 old checklist rows** from the `affiliate_lifecycle_checklists` table for this affiliate (user_id `7952023c-2891-4b2e-a380-d9cdb30f653f`).
-
-2. **After deletion**, the page will show "No checklist items found" with the "Initialize Checklist" button. Clicking it will create the new items from the updated config. Alternatively, we can also add logic so the app **auto-reinitializes** when old items are cleared -- but the simplest path is just clearing the DB rows and clicking the existing "Initialize Checklist" button.
-
-## Technical Steps
-
-- Use a database DELETE to remove all rows from `affiliate_lifecycle_checklists` where `user_id = '7952023c-2891-4b2e-a380-d9cdb30f653f'`
-- No code changes needed -- the existing "Initialize Checklist" button + updated config will produce the correct items
+- Run a single SQL statement: `DELETE FROM hr_separations;`
+- No code changes needed -- the Separations page will simply show an empty list
+- This only affects the **Test** environment. If you have data in **Live**, you would need to run the same query there separately via Cloud View > Run SQL before publishing.
 
