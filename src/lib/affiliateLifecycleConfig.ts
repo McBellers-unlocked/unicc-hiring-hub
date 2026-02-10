@@ -37,29 +37,38 @@ export type LifecycleStageKey = typeof LIFECYCLE_STAGES[number]['key'];
 // Default checklist items for each stage
 export const DEFAULT_CHECKLIST_ITEMS: Record<LifecycleStageKey, { key: string; label: string }[]> = {
   contract_break_prep: [
-    { key: 'remind_timesheet', label: 'Remind consultant of Timesheet' },
-    { key: 'evaluation_form', label: 'Evaluation form reminder' },
-    { key: 'contract_break_ticket', label: 'Send Contract Break ticket' },
+    { key: 'timesheet_reminder', label: 'Timesheet reminder to consultant' },
+    { key: 'evaluation_form_receival', label: 'Evaluation form receival' },
+    { key: 'contract_break_ticket_email', label: 'Contract break ticket email' },
   ],
   purchase_request: [
-    { key: 'confirm_account_codes', label: 'Confirm account codes' },
+    { key: 'confirm_appointment_duration', label: 'Confirm appointment duration' },
+    { key: 'validate_account_codes', label: 'Validate account codes' },
+    { key: 'create_rate_determination', label: 'Create rate determination spreadsheet' },
     { key: 'raise_pr', label: 'Raise PR' },
-    { key: 'pr_completed', label: 'PR completed' },
+    { key: 'wait_pr_approval', label: 'Wait for PR Approval' },
   ],
   documentation: [
-    { key: 'verify_documents', label: 'Verify all documents received' },
-    { key: 'check_compliance', label: 'Check compliance requirements' },
-    { key: 'update_records', label: 'Update personnel records' },
+    { key: 'draft_selection_report', label: 'Draft Selection Report' },
+    { key: 'wait_manager_signature_sr', label: 'Wait for manager signature on SR' },
+    { key: 'wait_division_chief_signature_sr', label: 'Wait for Division Chief signature on SR' },
+    { key: 'wait_director_signature_sr', label: 'Wait for Director signature on SR' },
+    { key: 'issue_contract_hr_signature', label: 'Issue contract for HR signature' },
+    { key: 'issue_contract_incumbent_signature', label: 'Issue contract for incumbent signature' },
+    { key: 'receive_signed_contract', label: 'Receive signed contract' },
   ],
   purchase_order: [
-    { key: 'generate_po', label: 'Generate Purchase Order' },
-    { key: 'po_approval', label: 'PO approved' },
-    { key: 'send_po', label: 'Send PO to consultant' },
+    { key: 'draft_gsm_po', label: 'Draft GSM PO' },
+    { key: 'add_po_attachments', label: 'Add PO attachments' },
+    { key: 'wait_po_approval', label: 'Wait PO approval' },
+    { key: 'insert_reference_dynamics', label: 'Insert reference in Dynamics' },
+    { key: 'countersign_contract', label: 'Countersign contract' },
   ],
   stakeholders_update: [
-    { key: 'notify_division', label: 'Notify division/unit' },
-    { key: 'update_systems', label: 'Update HR systems' },
-    { key: 'welcome_communication', label: 'Send welcome/return communication' },
+    { key: 'share_record_who_insurance', label: 'Share record for WHO Insurance' },
+    { key: 'ask_manager_restore_account', label: 'Ask manager to restore account' },
+    { key: 'inform_accounts_payable', label: 'Inform accounts payable' },
+    { key: 'update_userbase', label: 'Update userbase' },
   ],
 };
 
