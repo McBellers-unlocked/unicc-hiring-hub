@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import Jobs from "./pages/Jobs";
 import JobDetail from "./pages/JobDetail";
 import JobApplication from "./pages/JobApplication";
@@ -106,6 +107,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/my-profile" element={<MyProfile />} />
             <Route path="/my-applications" element={<MyApplications />} />
             <Route path="/hiring-guide" element={<HiringProcessGuide />} />
