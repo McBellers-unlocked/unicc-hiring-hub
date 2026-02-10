@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +15,32 @@ export default function Auth() {
   const { user, signIn, signUp, loading, mfaRequired, clearMfaRequired } = useAuth();
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isSigningUp, setIsSigningUp] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [isSendingReset, setIsSendingReset] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+
+  const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSendingReset(true);
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('reset-email') as string;
+    const siteUrl = import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${siteUrl}/reset-password`,
+    });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      setResetEmailSent(true);
+    }
+    setIsSendingReset(false);
+  };
 
   // Redirect if already authenticated
   if (user) {
@@ -142,31 +169,83 @@ export default function Auth() {
               </TabsList>
               
               <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
-                    <Input
-                      id="signin-email"
-                      name="email"
-                      type="email"
-                      placeholder="Enter your email"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
-                    <Input
-                      id="signin-password"
-                      name="password"
-                      type="password"
-                      placeholder="Enter your password"
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isSigningIn}>
-                    {isSigningIn ? "Signing In..." : "Sign In"}
-                  </Button>
-                </form>
+                {showForgotPassword ? (
+                  resetEmailSent ? (
+                    <div className="space-y-4 text-center">
+                      <p className="text-sm text-muted-foreground">
+                        If an account exists with that email, you'll receive a password reset link shortly.
+                      </p>
+                      <Button
+                        variant="link"
+                        className="w-full"
+                        onClick={() => { setShowForgotPassword(false); setResetEmailSent(false); }}
+                      >
+                        Back to Sign In
+                      </Button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleForgotPassword} className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Enter your email address and we'll send you a link to reset your password.
+                      </p>
+                      <div className="space-y-2">
+                        <Label htmlFor="reset-email">Email</Label>
+                        <Input
+                          id="reset-email"
+                          name="reset-email"
+                          type="email"
+                          placeholder="Enter your email"
+                          required
+                        />
+                      </div>
+                      <Button type="submit" className="w-full" disabled={isSendingReset}>
+                        {isSendingReset ? "Sending..." : "Send Reset Link"}
+                      </Button>
+                      <Button
+                        variant="link"
+                        className="w-full"
+                        type="button"
+                        onClick={() => setShowForgotPassword(false)}
+                      >
+                        Back to Sign In
+                      </Button>
+                    </form>
+                  )
+                ) : (
+                  <form onSubmit={handleSignIn} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signin-email">Email</Label>
+                      <Input
+                        id="signin-email"
+                        name="email"
+                        type="email"
+                        placeholder="Enter your email"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signin-password">Password</Label>
+                      <Input
+                        id="signin-password"
+                        name="password"
+                        type="password"
+                        placeholder="Enter your password"
+                        required
+                      />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isSigningIn}>
+                      {isSigningIn ? "Signing In..." : "Sign In"}
+                    </Button>
+                    <Button
+                      variant="link"
+                      className="w-full"
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                    >
+                      Forgot Password?
+                    </Button>
+                  </form>
+                )}
               </TabsContent>
               
               <TabsContent value="signup">
