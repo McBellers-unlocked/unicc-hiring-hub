@@ -77,6 +77,7 @@ export const AppointmentForm = ({
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [linkedStaffName, setLinkedStaffName] = useState<string | null>(null);
   const [selectedDivision, setSelectedDivision] = useState<string>('');
+  const [supervisorStaffName, setSupervisorStaffName] = useState<string | null>(null);
 
   const form = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentSchema),
@@ -138,6 +139,7 @@ export const AppointmentForm = ({
       setSelectedUserId(initialData.selectedUserId || null);
       setLinkedStaffName(initialData.first_name && initialData.last_name ? `${initialData.first_name} ${initialData.last_name}` : null);
       setSelectedDivision(detectDivisionFromUnit(initialData.section_unit || '') || '');
+      setSupervisorStaffName(initialData.supervisor || null);
     } else if (open && !initialData) {
       form.reset({
         last_name: '',
@@ -167,6 +169,7 @@ export const AppointmentForm = ({
       setSelectedUserId(null);
       setLinkedStaffName(null);
       setSelectedDivision('');
+      setSupervisorStaffName(null);
     }
   }, [open, initialData, form]);
 
@@ -186,6 +189,19 @@ export const AppointmentForm = ({
     setSelectedUserId(staff.id);
     setLinkedStaffName(staff.name);
     setSelectedDivision(detectDivisionFromUnit(staff.section_unit || '') || '');
+  };
+
+  const handleSupervisorSelect = (staff: StaffMember) => {
+    form.setValue('supervisor', staff.name);
+    setSupervisorStaffName(staff.name);
+    if (staff.section_unit) {
+      form.setValue('section_unit', staff.section_unit);
+      const div = detectDivisionFromUnit(staff.section_unit);
+      if (div) setSelectedDivision(div);
+    }
+    if (staff.duty_station) {
+      form.setValue('duty_station', staff.duty_station);
+    }
   };
 
   const handleSubmit = async (data: AppointmentFormData) => {
@@ -477,19 +493,19 @@ export const AppointmentForm = ({
                   </div>
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="supervisor"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Supervisor</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="E. Magallo" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                <div className="space-y-2">
+                  <FormLabel>Supervisor</FormLabel>
+                  <StaffSearchCombobox
+                    onSelect={handleSupervisorSelect}
+                    selectedStaffId={null}
+                    disabled={false}
+                  />
+                  {supervisorStaffName && (
+                    <p className="text-sm text-muted-foreground">
+                      Selected: <Badge variant="outline">{supervisorStaffName}</Badge>
+                    </p>
                   )}
-                />
+                </div>
 
                 <div className="grid grid-cols-3 gap-4">
                   <FormField

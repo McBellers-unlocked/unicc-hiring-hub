@@ -103,6 +103,7 @@ export const SeparationForm = ({
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [linkedStaffName, setLinkedStaffName] = useState<string | null>(null);
   const [selectedDivision, setSelectedDivision] = useState<string>('');
+  const [supervisorStaffName, setSupervisorStaffName] = useState<string | null>(null);
 
   const form = useForm<SeparationFormData>({
     resolver: zodResolver(separationSchema),
@@ -176,6 +177,7 @@ export const SeparationForm = ({
         setLinkedStaffName(null);
       }
       setSelectedDivision(detectDivisionFromUnit(defaults.section_unit || '') || '');
+      setSupervisorStaffName(defaults.supervisor || null);
     }
   }, [open, initialData]);
 
@@ -199,6 +201,20 @@ export const SeparationForm = ({
     setSelectedUserId(staff.id);
     setLinkedStaffName(staff.name);
     setSelectedDivision(detectDivisionFromUnit(staff.section_unit || '') || '');
+  };
+
+  const handleSupervisorSelect = (staff: StaffMember) => {
+    form.setValue('supervisor', staff.name);
+    form.setValue('supervisor_staff_number', staff.staff_number || '');
+    setSupervisorStaffName(staff.name);
+    if (staff.section_unit) {
+      form.setValue('section_unit', staff.section_unit);
+      const div = detectDivisionFromUnit(staff.section_unit);
+      if (div) setSelectedDivision(div);
+    }
+    if (staff.duty_station) {
+      form.setValue('duty_station', staff.duty_station);
+    }
   };
 
   const handleSubmit = async (data: SeparationFormData) => {
@@ -517,19 +533,19 @@ export const SeparationForm = ({
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="supervisor"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Supervisor</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="E. Magallo" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                  <div className="space-y-2">
+                    <FormLabel>Supervisor</FormLabel>
+                    <StaffSearchCombobox
+                      onSelect={handleSupervisorSelect}
+                      selectedStaffId={null}
+                      disabled={false}
+                    />
+                    {supervisorStaffName && (
+                      <p className="text-sm text-muted-foreground">
+                        Selected: <Badge variant="outline">{supervisorStaffName}</Badge>
+                      </p>
                     )}
-                  />
+                  </div>
                   <FormField
                     control={form.control}
                     name="pd_number"
