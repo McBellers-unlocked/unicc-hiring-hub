@@ -1,30 +1,52 @@
 
 
-# Fix: Initial Request Approval Fails When Using Slug URLs
+# Update Affiliate Lifecycle Checklist Items
 
-## Problem
+## What Changes
 
-When a Chief of Division navigates to `/requisitions/initial/xx` (where `xx` is a slug, not a UUID), the approve/reject action fails with "invalid input syntax for type uuid" because the mutation code passes the slug directly to `.eq("id", id)` database queries.
+Replace all default checklist items in `src/lib/affiliateLifecycleConfig.ts` with the exact items specified, removing any that are not in the new list.
 
-The `/chief-of-division` page works because it uses the actual UUID from the fetched data.
+## New Checklist Items by Stage
 
-## Root Cause
+**Contract Break Preparations:**
+- Timesheet reminder to consultant
+- Evaluation form receival
+- Contract break ticket email
 
-In `src/pages/InitialRequestForm.tsx`, the `approveMutation` (lines 515-545) uses the raw `id` from `useParams()` in two places:
+**Purchase Request:**
+- Confirm appointment duration
+- Validate account codes
+- Create rate determination spreadsheet
+- Raise PR
+- Wait for PR Approval
 
-```
-.eq("id", id)  // line 518 - fetching existing comments
-.eq("id", id)  // line 545 - updating the requisition
-```
+**Documentation:**
+- Draft Selection Report
+- Wait for manager signature on SR
+- Wait for Division Chief signature on SR
+- Wait for Director signature on SR
+- Issue contract for HR signature
+- Issue contract for incumbent signature
+- Receive signed contract
 
-When the URL contains a slug (e.g., `xx`), this breaks because the `id` column is a UUID.
+**Purchase Order:**
+- Draft GSM PO
+- Add PO attachments
+- Wait PO approval
+- Insert reference in Dynamics
+- Countersign contract
 
-## Fix
+**Stakeholders Update:**
+- Share record for WHO Insurance
+- Ask manager to restore account
+- Inform accounts payable
+- Update userbase
 
-**File: `src/pages/InitialRequestForm.tsx`**
+## Technical Details
 
-1. Add a `requisitionUUID` state variable that stores the actual database UUID after the record is loaded
-2. In `loadRequest`, after fetching the record, save `data.id` to `requisitionUUID`
-3. In `approveMutation`, replace both `.eq("id", id)` calls with `.eq("id", requisitionUUID)` so the correct UUID is always used regardless of whether the URL contains a slug or UUID
+### File: `src/lib/affiliateLifecycleConfig.ts`
 
-This is a minimal, targeted fix -- only 3 small changes in one file.
+Replace the entire `DEFAULT_CHECKLIST_ITEMS` object with the new items listed above. Each item gets a snake_case `key` and the exact label text provided. No other files need changes -- the checklist component and lifecycle page already read from this config dynamically.
+
+**Note:** Existing checklists already initialized in the database for current affiliates will not be affected. Only newly initialized checklists will use the updated defaults. If you want existing records updated, that would require a separate database migration.
+
