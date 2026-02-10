@@ -21,7 +21,8 @@ import {
 import { UserMinus, Plus, MoreHorizontal, CheckCircle, Pencil, Trash2, Calendar, Upload, ChevronRight, ChevronDown, Link2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { format, parseISO, addMonths } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { calculateCBReturnDate } from '@/lib/officialHolidays';
 import { SeparationFilters, SeparationFiltersState } from '@/components/operations/SeparationFilters';
 import { SeparationForm, SeparationFormData } from '@/components/operations/SeparationForm';
 import { 
@@ -176,9 +177,9 @@ const Separations = () => {
       // CB Workflow: If this is a CB type, create linked appointment
       const isCBType = data.operation_type.includes('(CB)');
       if (isCBType && separation) {
-        // Calculate return date: separation date + 1 month
+        // Calculate return date: separation date + 31 days, skipping weekends & holidays
         const returnDate = data.tentative_date
-          ? format(addMonths(parseISO(data.tentative_date), 1), 'yyyy-MM-dd')
+          ? calculateCBReturnDate(data.tentative_date, data.duty_station || '')
           : null;
 
         // Create the appointment record
