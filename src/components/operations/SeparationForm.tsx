@@ -165,6 +165,14 @@ export const SeparationForm = ({
         ...initialData,
       };
       form.reset(defaults);
+
+      if (initialData?.selectedUserId) {
+        setSelectedUserId(initialData.selectedUserId);
+        setLinkedStaffName(initialData.first_name && initialData.last_name ? `${initialData.first_name} ${initialData.last_name}` : null);
+      } else {
+        setSelectedUserId(null);
+        setLinkedStaffName(null);
+      }
     }
   }, [open, initialData]);
 

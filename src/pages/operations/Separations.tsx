@@ -245,14 +245,17 @@ const Separations = () => {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: SeparationFormData }) => {
       const { selectedUserId, ...formData } = data as SeparationFormData & { selectedUserId?: string };
+      const updatePayload: any = {
+        ...formData,
+        tentative_date: formData.tentative_date || null,
+        effective_date: formData.effective_date || null,
+      };
+      if (selectedUserId !== undefined) {
+        updatePayload.user_id = selectedUserId || null;
+      }
       const { error } = await supabase
         .from('hr_separations')
-        .update({
-          ...formData,
-          user_id: selectedUserId || null,
-          tentative_date: formData.tentative_date || null,
-          effective_date: formData.effective_date || null,
-        })
+        .update(updatePayload)
         .eq('id', id);
       
       if (error) throw error;
@@ -698,6 +701,7 @@ const Separations = () => {
         initialData={editingSeparation ? {
           ...editingSeparation,
           status: editingSeparation.status as 'Not started' | 'In progress' | 'Completed' | 'Cancelled',
+          selectedUserId: editingSeparation.user_id,
         } : undefined}
         isLoading={createMutation.isPending || updateMutation.isPending}
       />
