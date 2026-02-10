@@ -64,21 +64,38 @@ export const AppointmentStatusBadge = ({
   tentativeDate
 }: AppointmentStatusBadgeProps) => {
   const daysUntilStart = calculateDaysUntilStart(tentativeDate);
-  const statusInfo = getStatusInfo(status, daysUntilStart);
-  
-  return (
-    <Badge 
-      variant={statusInfo.variant}
-      className={cn(
-        statusInfo.pulse && 'animate-pulse',
-        statusInfo.variant === 'default' && 'bg-green-600 hover:bg-green-700',
-        statusInfo.variant === 'destructive' && 'bg-destructive'
-      )}
-    >
-      {statusInfo.pulse && <AlertCircle className="w-3 h-3 mr-1" />}
-      {statusInfo.label}
-    </Badge>
-  );
+
+  if (status === 'Completed') {
+    return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Completed</Badge>;
+  }
+
+  if (status === 'Cancelled') {
+    return <Badge variant="outline" className="text-muted-foreground">Cancelled</Badge>;
+  }
+
+  if (status === 'Not started') {
+    return <Badge variant="outline">Not started</Badge>;
+  }
+
+  // In progress states
+  if (daysUntilStart !== null && daysUntilStart < 0) {
+    return (
+      <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+        <AlertCircle className="w-3 h-3 mr-1" />
+        {Math.abs(daysUntilStart)}d overdue
+      </Badge>
+    );
+  }
+
+  if (daysUntilStart !== null && daysUntilStart <= 7) {
+    return (
+      <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+        {daysUntilStart}d remaining
+      </Badge>
+    );
+  }
+
+  return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">In progress</Badge>;
 };
 
 export const UserLinkBadge = ({ userId, email }: UserLinkBadgeProps) => {
