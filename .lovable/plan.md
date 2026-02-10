@@ -1,52 +1,20 @@
 
 
-# Update Affiliate Lifecycle Checklist Items
+# Fix: Replace Old Checklist Items in Database
 
-## What Changes
+## Problem
+The config file (`affiliateLifecycleConfig.ts`) was updated correctly, but this affiliate already had checklist items initialized in the database with the **old** labels. The UI reads from the database, not the config, so old items still show.
 
-Replace all default checklist items in `src/lib/affiliateLifecycleConfig.ts` with the exact items specified, removing any that are not in the new list.
+## Solution
 
-## New Checklist Items by Stage
+Two changes:
 
-**Contract Break Preparations:**
-- Timesheet reminder to consultant
-- Evaluation form receival
-- Contract break ticket email
+1. **Delete the 15 old checklist rows** from the `affiliate_lifecycle_checklists` table for this affiliate (user_id `7952023c-2891-4b2e-a380-d9cdb30f653f`).
 
-**Purchase Request:**
-- Confirm appointment duration
-- Validate account codes
-- Create rate determination spreadsheet
-- Raise PR
-- Wait for PR Approval
+2. **After deletion**, the page will show "No checklist items found" with the "Initialize Checklist" button. Clicking it will create the new items from the updated config. Alternatively, we can also add logic so the app **auto-reinitializes** when old items are cleared -- but the simplest path is just clearing the DB rows and clicking the existing "Initialize Checklist" button.
 
-**Documentation:**
-- Draft Selection Report
-- Wait for manager signature on SR
-- Wait for Division Chief signature on SR
-- Wait for Director signature on SR
-- Issue contract for HR signature
-- Issue contract for incumbent signature
-- Receive signed contract
+## Technical Steps
 
-**Purchase Order:**
-- Draft GSM PO
-- Add PO attachments
-- Wait PO approval
-- Insert reference in Dynamics
-- Countersign contract
-
-**Stakeholders Update:**
-- Share record for WHO Insurance
-- Ask manager to restore account
-- Inform accounts payable
-- Update userbase
-
-## Technical Details
-
-### File: `src/lib/affiliateLifecycleConfig.ts`
-
-Replace the entire `DEFAULT_CHECKLIST_ITEMS` object with the new items listed above. Each item gets a snake_case `key` and the exact label text provided. No other files need changes -- the checklist component and lifecycle page already read from this config dynamically.
-
-**Note:** Existing checklists already initialized in the database for current affiliates will not be affected. Only newly initialized checklists will use the updated defaults. If you want existing records updated, that would require a separate database migration.
+- Use a database DELETE to remove all rows from `affiliate_lifecycle_checklists` where `user_id = '7952023c-2891-4b2e-a380-d9cdb30f653f'`
+- No code changes needed -- the existing "Initialize Checklist" button + updated config will produce the correct items
 
