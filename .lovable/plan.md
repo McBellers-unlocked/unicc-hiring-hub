@@ -1,39 +1,33 @@
 
 
-# Fix: Allow Null Values in Operations Form Schemas
+# Fix: Strip `selectedUserId` from Database Update Payloads
 
 ## Problem
 
-When editing a Separation, Appointment, or STDA record, fields like "PD Number" and "Actions in HR Plan" show the validation error "Expected string, received null". This happens because Supabase returns `null` for empty database fields, but the Zod schemas only accept `string | undefined | ""` -- not `null`.
+When updating a Separation or Appointment, the form data object includes `selectedUserId` -- a frontend-only property used for linking staff. This property gets spread into the Supabase `.update()` call via `...data`, causing the error: *"Could not find the 'selectedUserId' column of 'hr_separations' in the schema cache"*.
+
+The STDAs page already handles this correctly by destructuring `selectedUserId` out before building the update payload.
 
 ## Solution
 
-Add `.nullable()` to all optional string fields in the three form schemas. The pattern changes from:
-
-```
-z.string().optional().or(z.literal(''))
-```
-
-to:
-
-```
-z.string().optional().nullable().or(z.literal(''))
-```
-
-This tells Zod that `null` is a valid value, which matches what the database returns.
+Apply the same pattern used in STDAs: destructure `selectedUserId` out of `data` before spreading into the database update.
 
 ## Files Modified
 
-### 1. `src/components/operations/SeparationForm.tsx`
+### 1. `src/pages/operations/Separations.tsx` (line ~246)
 
-Update all optional string fields in `separationSchema` (lines 37-57) to include `.nullable()`. Also update `is_international` to `z.boolean().optional().default(false)` and `notice_days_required` to `z.number().min(0).max(365).optional().default(0)` so these don't fail when the database returns null for them.
+In the `updateMutation`, destructure `selectedUserId` out of `data` and map it to the `user_id` database column:
 
-### 2. `src/components/operations/AppointmentForm.tsx`
+```typescript
+const { selectedUserId, ...formData } = data;
+```
 
-Same change to all optional string fields in `appointmentSchema` (lines 37-54), plus `is_international` and `notice_days_required`.
+Then use `formData` (not `data`) in the `.update()` call, and add `user_id: selectedUserId || null` explicitly.
 
-### 3. `src/components/operations/STDAForm.tsx`
+### 2. `src/pages/operations/Appointments.tsx` (line ~176)
 
-Same change to all optional string fields in `stdaSchema` (lines 33-54).
+Same fix: destructure `selectedUserId` out of `data`, use `formData` in `.update()`, and map `user_id: selectedUserId || null`.
 
-## No other files affected
+### No other files affected
+
+The STDAs page already applies this pattern correctly.
