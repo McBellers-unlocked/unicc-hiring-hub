@@ -93,6 +93,28 @@ export const FUNDING_OPTIONS = [
   'This request will be funded by an upcoming agreement, not yet executed',
 ];
 
+export const GRADES = [
+  'G3', 'G4', 'G5', 'G6', 'G7',
+  'P1', 'P2', 'P3', 'P4', 'P5',
+  'D1',
+];
+
+export const CONTRACT_TYPES = [
+  'Fixed Term',
+  'Temporary',
+];
+
+// Helper to detect division from a section_unit value
+export const detectDivisionFromUnit = (sectionUnit: string): string | null => {
+  if (!sectionUnit) return null;
+  for (const [divCode, units] of Object.entries(DIVISION_UNITS)) {
+    if (units.some(u => u.includes(sectionUnit) || sectionUnit.includes(u))) {
+      return divCode;
+    }
+  }
+  return null;
+};
+
 export const ON_CALL_OPTIONS = [
   'One week per month',
   'May be required on an exceptional basis',

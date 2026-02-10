@@ -26,6 +26,7 @@ import { Loader2, User } from 'lucide-react';
 import { StaffSearchCombobox, StaffMember, parseName } from './StaffSearchCombobox';
 import { Badge } from '@/components/ui/badge';
 import { HR_FOCAL_POINTS } from '@/lib/hrFocalPoints';
+import { GRADES, CONTRACT_TYPES, LOCATIONS, DIVISIONS, DIVISION_UNITS, detectDivisionFromUnit } from '@/lib/organizationConstants';
 
 const stdaSchema = z.object({
   last_name: z.string().min(1, 'Last name is required'),
@@ -74,6 +75,7 @@ export const STDAForm = ({
 }: STDAFormProps) => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [linkedStaffName, setLinkedStaffName] = useState<string | null>(null);
+  const [selectedDivision, setSelectedDivision] = useState<string>('');
 
   const form = useForm<STDAFormData>({
     resolver: zodResolver(stdaSchema),
@@ -136,8 +138,8 @@ export const STDAForm = ({
       setLinkedStaffName(initialData.first_name && initialData.last_name 
         ? `${initialData.first_name} ${initialData.last_name}` 
         : null);
+      setSelectedDivision(detectDivisionFromUnit(initialData.section_unit || '') || '');
     } else if (open && !initialData) {
-      // Reset to empty for new STDAs
       form.reset({
         last_name: '',
         first_name: '',
@@ -165,6 +167,7 @@ export const STDAForm = ({
       });
       setSelectedUserId(null);
       setLinkedStaffName(null);
+      setSelectedDivision('');
     }
   }, [open, initialData, form]);
 
@@ -187,6 +190,7 @@ export const STDAForm = ({
     
     setSelectedUserId(staff.id);
     setLinkedStaffName(staff.name);
+    setSelectedDivision(detectDivisionFromUnit(staff.section_unit || '') || '');
   };
 
   const handleSubmit = async (data: STDAFormData) => {
@@ -434,9 +438,18 @@ export const STDAForm = ({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>New Grade</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="P3" />
-                        </FormControl>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select grade" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {GRADES.map((g) => (
+                              <SelectItem key={g} value={g}>{g}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -447,9 +460,18 @@ export const STDAForm = ({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Contract Type</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Fixed-Term" />
-                        </FormControl>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select contract type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {CONTRACT_TYPES.map((ct) => (
+                              <SelectItem key={ct} value={ct}>{ct}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -463,26 +485,65 @@ export const STDAForm = ({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Duty Station</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Valencia" />
-                        </FormControl>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select duty station" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {LOCATIONS.map((loc) => (
+                              <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="section_unit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Section/Unit</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="DBR" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="space-y-4">
+                    <FormItem>
+                      <FormLabel>Division</FormLabel>
+                      <Select
+                        value={selectedDivision}
+                        onValueChange={(val) => {
+                          setSelectedDivision(val);
+                          form.setValue('section_unit', '');
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select division" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(DIVISIONS).map(([code, label]) => (
+                            <SelectItem key={code} value={code}>{label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                    <FormField
+                      control={form.control}
+                      name="section_unit"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Section/Unit</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedDivision}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={selectedDivision ? "Select section/unit" : "Select division first"} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {(DIVISION_UNITS[selectedDivision] || []).map((unit) => (
+                                <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
 
                 <FormField
