@@ -1,33 +1,38 @@
 
 
-# Fix: Strip `selectedUserId` from Database Update Payloads
+# Fix: Preserve User Link When Editing Separations/Appointments
 
 ## Problem
 
-When updating a Separation or Appointment, the form data object includes `selectedUserId` -- a frontend-only property used for linking staff. This property gets spread into the Supabase `.update()` call via `...data`, causing the error: *"Could not find the 'selectedUserId' column of 'hr_separations' in the schema cache"*.
+When you edit an existing separation (or appointment) that was linked to a user, the link is silently wiped out. Two things go wrong:
 
-The STDAs page already handles this correctly by destructuring `selectedUserId` out before building the update payload.
+1. The form's `selectedUserId` local state starts as `null` and is never initialized from the existing record's `user_id`, so the linked staff name doesn't display either.
+2. The update mutation always sets `user_id: selectedUserId || null`. Since `selectedUserId` is never populated from existing data, every update overwrites `user_id` with `null`.
 
 ## Solution
 
-Apply the same pattern used in STDAs: destructure `selectedUserId` out of `data` before spreading into the database update.
+### 1. `src/components/operations/SeparationForm.tsx`
 
-## Files Modified
+- In the `useEffect` that resets form data when `open`/`initialData` changes, also set `selectedUserId` and `linkedStaffName` from `initialData`:
+  - If `initialData.user_id` exists, set `selectedUserId` to that value
+  - If `initialData.first_name` and `initialData.last_name` exist, set `linkedStaffName` so the "Linked to: ..." label appears
+- Clear both when opening a blank form (no `initialData`)
 
-### 1. `src/pages/operations/Separations.tsx` (line ~246)
+### 2. `src/pages/operations/Separations.tsx`
 
-In the `updateMutation`, destructure `selectedUserId` out of `data` and map it to the `user_id` database column:
+- In the `updateMutation`, only include `user_id` in the update payload if `selectedUserId` was explicitly provided (i.e., is not `undefined`). Change from:
+  ```
+  user_id: selectedUserId || null
+  ```
+  to only setting `user_id` when `selectedUserId !== undefined` -- this way, if the user didn't touch the staff picker, the existing `user_id` is left unchanged.
 
-```typescript
-const { selectedUserId, ...formData } = data;
-```
+### 3. `src/components/operations/AppointmentForm.tsx`
 
-Then use `formData` (not `data`) in the `.update()` call, and add `user_id: selectedUserId || null` explicitly.
+- Same `useEffect` fix: initialize `selectedUserId` and `linkedStaffName` from `initialData` when the form opens for editing.
 
-### 2. `src/pages/operations/Appointments.tsx` (line ~176)
+### 4. `src/pages/operations/Appointments.tsx`
 
-Same fix: destructure `selectedUserId` out of `data`, use `formData` in `.update()`, and map `user_id: selectedUserId || null`.
+- Same update mutation fix: only include `user_id` in the payload when `selectedUserId` was explicitly provided.
 
-### No other files affected
+## No other files affected
 
-The STDAs page already applies this pattern correctly.
