@@ -121,8 +121,7 @@ export default function HiringProcessGuide() {
                   
                   {/* Visual Timeline */}
                   <div className="flex items-center justify-between relative">
-                    {/* Connection Line */}
-                    <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-200 -translate-y-1/2 z-0" />
+                    
                     
                     {stages.map((stage, index) => (
                       <div key={stage.key} className="flex flex-col items-center relative z-10 flex-1">
