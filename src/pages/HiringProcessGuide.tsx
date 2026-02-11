@@ -356,11 +356,11 @@ export default function HiringProcessGuide() {
                 If you have any questions about the recruitment process, please contact our HR team:
               </p>
               <a 
-                href="mailto:HRSelection@unicc.org" 
+                href="mailto:personnel@unicc.org" 
                 className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
               >
                 <Mail className="h-4 w-4" />
-                HRSelection@unicc.org
+                personnel@unicc.org
               </a>
             </CardContent>
           </Card>
