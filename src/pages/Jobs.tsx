@@ -33,8 +33,7 @@ export default function Jobs() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedPositionLevels, setSelectedPositionLevels] = useState<string[]>([]);
 
   useEffect(() => {
     fetchJobs();
@@ -103,10 +102,9 @@ export default function Jobs() {
       }
       return jobCities.includes(selectedLoc);
     });
-    const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(job.category);
-    const matchesType = selectedTypes.length === 0 || selectedTypes.includes(getDisplayType(job.type));
+    const matchesPositionLevel = selectedPositionLevels.length === 0 || selectedPositionLevels.includes(getPositionLevel(job));
     
-    return matchesSearch && matchesLocation && matchesCategory && matchesType;
+    return matchesSearch && matchesLocation && matchesPositionLevel;
   });
 
   const getAllLocations = () => {
@@ -145,27 +143,19 @@ export default function Jobs() {
   };
 
   const uniqueLocations = getAllLocations();
-  const uniqueCategories = [...new Set(jobs.map(job => job.category).filter(Boolean))];
-  const uniqueTypes = [...new Set(jobs.map(job => job.type).filter(Boolean))];
+  const POSITION_LEVELS = ['Consultancy', 'Internship', 'P4', 'P3', 'P2', 'P1', 'G4', 'G5', 'G6', 'G7'];
 
-  const getDisplayType = (type: string) => {
-    if (!type) return '';
-    if (type.toLowerCase().includes('fixed') || type.toLowerCase().includes('term')) {
-      return 'Staff - Fixed term';
+  const getPositionLevel = (job: Job): string => {
+    const type = (job.type || '').toLowerCase();
+    const category = (job.category || '').toLowerCase();
+    const grade = (job.grade || '').toUpperCase();
+    if (type.includes('consultant') || category.includes('consultancy') || category.includes('consultant')) return 'Consultancy';
+    if (type.includes('intern') || category.includes('intern')) return 'Internship';
+    for (const lvl of ['P4', 'P3', 'P2', 'P1', 'G4', 'G5', 'G6', 'G7']) {
+      if (grade === lvl) return lvl;
     }
-    if (type.toLowerCase().includes('temporary') || type.toLowerCase().includes('temp')) {
-      return 'Staff - Temporary';
-    }
-    if (type.toLowerCase().includes('consultant')) {
-      return 'Consultant';
-    }
-    if (type.toLowerCase().includes('intern')) {
-      return 'Intern';
-    }
-    return type; // fallback to original
+    return '';
   };
-
-  const uniqueDisplayTypes = [...new Set(jobs.map(job => getDisplayType(job.type)).filter(Boolean))];
 
   const getLocationCount = (location: string) => {
     return jobs.filter(job => {
@@ -200,8 +190,7 @@ export default function Jobs() {
       return jobCities.includes(location);
     }).length;
   };
-  const getCategoryCount = (category: string) => jobs.filter(job => job.category === category).length;
-  const getTypeCount = (displayType: string) => jobs.filter(job => getDisplayType(job.type) === displayType).length;
+  const getPositionLevelCount = (level: string) => jobs.filter(job => getPositionLevel(job) === level).length;
 
   const handleLocationChange = (location: string, checked: boolean) => {
     if (checked) {
@@ -211,27 +200,18 @@ export default function Jobs() {
     }
   };
 
-  const handleCategoryChange = (category: string, checked: boolean) => {
+  const handlePositionLevelChange = (level: string, checked: boolean) => {
     if (checked) {
-      setSelectedCategories([...selectedCategories, category]);
+      setSelectedPositionLevels([...selectedPositionLevels, level]);
     } else {
-      setSelectedCategories(selectedCategories.filter(c => c !== category));
-    }
-  };
-
-  const handleTypeChange = (displayType: string, checked: boolean) => {
-    if (checked) {
-      setSelectedTypes([...selectedTypes, displayType]);
-    } else {
-      setSelectedTypes(selectedTypes.filter(t => t !== displayType));
+      setSelectedPositionLevels(selectedPositionLevels.filter(l => l !== level));
     }
   };
 
   const clearAllFilters = () => {
     setSearchTerm('');
     setSelectedLocations([]);
-    setSelectedCategories([]);
-    setSelectedTypes([]);
+    setSelectedPositionLevels([]);
   };
 
   const valueProps = [
@@ -368,44 +348,22 @@ export default function Jobs() {
                     </div>
                   </div>
 
-                  {/* Category Filter */}
+                  {/* Position Level Filter */}
                   <div className="mb-6">
-                    <label className="text-sm font-medium mb-3 block">Category</label>
+                    <label className="text-sm font-medium mb-3 block">Position Level</label>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {uniqueCategories.map(category => (
-                        <div key={category} className="flex items-center space-x-2">
+                      {POSITION_LEVELS.map(level => (
+                        <div key={level} className="flex items-center space-x-2">
                           <Checkbox
-                            id={`category-${category}`}
-                            checked={selectedCategories.includes(category)}
-                            onCheckedChange={(checked) => handleCategoryChange(category, checked as boolean)}
+                            id={`level-${level}`}
+                            checked={selectedPositionLevels.includes(level)}
+                            onCheckedChange={(checked) => handlePositionLevelChange(level, checked as boolean)}
                           />
                           <label 
-                            htmlFor={`category-${category}`} 
+                            htmlFor={`level-${level}`} 
                             className="text-sm font-normal flex-1 cursor-pointer"
                           >
-                            {category} ({getCategoryCount(category)})
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Type Filter */}
-                  <div className="mb-6">
-                    <label className="text-sm font-medium mb-3 block">Type</label>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {uniqueDisplayTypes.map(displayType => (
-                        <div key={displayType} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`type-${displayType}`}
-                            checked={selectedTypes.includes(displayType)}
-                            onCheckedChange={(checked) => handleTypeChange(displayType, checked as boolean)}
-                          />
-                          <label 
-                            htmlFor={`type-${displayType}`} 
-                            className="text-sm font-normal flex-1 cursor-pointer"
-                          >
-                            {displayType} ({getTypeCount(displayType)})
+                            {level} ({getPositionLevelCount(level)})
                           </label>
                         </div>
                       ))}
@@ -413,7 +371,7 @@ export default function Jobs() {
                   </div>
 
                   {/* Clear Filters */}
-                  {(searchTerm || selectedLocations.length > 0 || selectedCategories.length > 0 || selectedTypes.length > 0) && (
+                  {(searchTerm || selectedLocations.length > 0 || selectedPositionLevels.length > 0) && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -428,7 +386,7 @@ export default function Jobs() {
 
               {/* Jobs Content */}
               <div className="flex-1">
-                {(searchTerm || selectedLocations.length > 0 || selectedCategories.length > 0 || selectedTypes.length > 0) && (
+                {(searchTerm || selectedLocations.length > 0 || selectedPositionLevels.length > 0) && (
                   <div className="mb-6">
                     <p className="text-sm text-muted-foreground">
                       {filteredJobs.length} {filteredJobs.length === 1 ? 'job' : 'jobs'} found
@@ -478,9 +436,9 @@ export default function Jobs() {
                             {/* Contract Type and Grade - prominently displayed */}
                             <div className="flex flex-wrap gap-2">
                               {job.internal_only && <Badge variant="default">Internal Only</Badge>}
-                              {job.type && (
+                              {getPositionLevel(job) && (
                                 <Badge variant="default" className="bg-primary text-primary-foreground">
-                                  {getDisplayType(job.type)}
+                                  {getPositionLevel(job)}
                                 </Badge>
                               )}
                               {job.grade && <Badge variant="outline">{job.grade}</Badge>}
@@ -635,8 +593,8 @@ export default function Jobs() {
                 <JobEmailAlert
                   searchTerm={searchTerm}
                   selectedLocations={selectedLocations}
-                  selectedCategories={selectedCategories}
-                  selectedTypes={selectedTypes}
+                  selectedCategories={selectedPositionLevels}
+                  selectedTypes={[]}
                 />
               </div>
             </div>
