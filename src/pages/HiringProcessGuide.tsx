@@ -236,6 +236,9 @@ export default function HiringProcessGuide() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <CardContent className="pt-0 space-y-4">
+                  <p className="text-muted-foreground">
+                    Our panel interviews are competency-based — past behaviors and experience are the best indicators of future performance. You'll be asked to draw from real-life examples to demonstrate specific competencies.
+                  </p>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
                       <h4 className="font-medium mb-2 flex items-center gap-2">
@@ -243,22 +246,62 @@ export default function HiringProcessGuide() {
                         Format
                       </h4>
                       <ul className="text-sm text-muted-foreground space-y-1">
-                        <li>• 45-60 minutes duration</li>
-                        <li>• Typically 3-4 panel members</li>
-                        <li>• Mix of technical and behavioral questions</li>
+                        <li>• 45–60 minutes duration</li>
+                        <li>• Typically 3–4 panel members</li>
+                        <li>• Competency-based and behavioral questions</li>
                         <li>• Video conference or in-person</li>
+                      </ul>
+                    </div>
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <Lightbulb className="h-4 w-4 text-blue-600" />
+                        Tips: Before Your Interview
+                      </h4>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• Prepare an introduction that emphasizes your background and why you're a strong fit for the role</li>
+                        <li>• Prepare real-life examples of accomplishments related to the competencies in the vacancy announcement</li>
+                        <li>• Ask a friend to do a mock interview and give feedback, or record yourself practising</li>
+                        <li>• Review the competencies in the job opening — these will be probed during your interview</li>
+                        <li>• Research the department and office you're applying to</li>
+                        <li>• Ensure a reliable internet connection, working camera and sound, and a suitable background</li>
+                      </ul>
+                    </div>
+                    <div className="p-4 bg-green-50 rounded-lg border border-green-100">
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <Lightbulb className="h-4 w-4 text-green-600" />
+                        Tips: During Your Interview
+                      </h4>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• Listen to the question carefully — keep to the point and be as specific as possible</li>
+                        <li>• Structure your answers using the STAR method (Situation, Task, Action, Result)</li>
+                        <li>• Be ready to discuss your strengths and your ability to learn from past experiences</li>
+                        <li>• Be mindful of time — aim for around 3 minutes per response to maintain the panel's attention</li>
+                        <li>• Stay relaxed and composed — take deep breaths to ease any nervousness</li>
                       </ul>
                     </div>
                     <div className="p-4 bg-amber-50 rounded-lg border border-amber-100">
                       <h4 className="font-medium mb-2 flex items-center gap-2">
-                        <Users className="h-4 w-4 text-amber-600" />
-                        Who You'll Meet
+                        <AlertCircle className="h-4 w-4 text-amber-600" />
+                        Common Pitfalls to Avoid
                       </h4>
                       <ul className="text-sm text-muted-foreground space-y-1">
-                        <li>• Hiring Manager</li>
-                        <li>• Team members</li>
-                        <li>• HR representative</li>
-                        <li>• Possibly subject matter experts</li>
+                        <li>• Being too vague or theoretical — use specific, recent, relevant examples</li>
+                        <li>• Describing what the team did instead of your personal role and contribution</li>
+                        <li>• Forgetting the "Result" part of your STAR answer</li>
+                        <li>• Giving generic examples that don't relate to the competencies</li>
+                      </ul>
+                    </div>
+                    <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-100 md:col-span-2">
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <HelpCircle className="h-4 w-4 text-indigo-600" />
+                        Example Competency-Based Questions
+                      </h4>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• Can you give an example of a time when you used your problem-solving abilities to resolve an issue?</li>
+                        <li>• Can you tell us about a time where you had a number of demands being made on you at the same time? How did you handle it?</li>
+                        <li>• Can you tell us about a challenging assignment, when you went above and beyond your manager's expectations?</li>
+                        <li>• Can you give an example of a time when you used your teamworking abilities to resolve an issue between staff members?</li>
+                        <li>• Can you give an example of a time when you handled conflicting deadlines?</li>
                       </ul>
                     </div>
                   </div>
