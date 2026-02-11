@@ -34,6 +34,7 @@ export default function Jobs() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [selectedPositionLevels, setSelectedPositionLevels] = useState<string[]>([]);
+  const [selectedContractTypes, setSelectedContractTypes] = useState<string[]>([]);
 
   useEffect(() => {
     fetchJobs();
@@ -103,8 +104,9 @@ export default function Jobs() {
       return jobCities.includes(selectedLoc);
     });
     const matchesPositionLevel = selectedPositionLevels.length === 0 || selectedPositionLevels.includes(getPositionLevel(job));
+    const matchesContractType = selectedContractTypes.length === 0 || selectedContractTypes.includes(getContractType(job));
     
-    return matchesSearch && matchesLocation && matchesPositionLevel;
+    return matchesSearch && matchesLocation && matchesPositionLevel && matchesContractType;
   });
 
   const getAllLocations = () => {
@@ -157,6 +159,18 @@ export default function Jobs() {
     return '';
   };
 
+  const CONTRACT_TYPES = ['Consultant', 'Fixed Term Appointment', 'Internship', 'Temporary Appointment'];
+
+  const getContractType = (job: Job): string => {
+    const type = (job.type || '').toLowerCase();
+    const category = (job.category || '').toLowerCase();
+    if (type.includes('consultant') || category.includes('consultancy') || category.includes('consultant')) return 'Consultant';
+    if (type.includes('intern') || category.includes('intern')) return 'Internship';
+    if (type.includes('fixed') || type.includes('term')) return 'Fixed Term Appointment';
+    if (type.includes('temporary') || type.includes('temp')) return 'Temporary Appointment';
+    return '';
+  };
+
   const getLocationCount = (location: string) => {
     return jobs.filter(job => {
       if (!job.location) return false;
@@ -191,6 +205,7 @@ export default function Jobs() {
     }).length;
   };
   const getPositionLevelCount = (level: string) => jobs.filter(job => getPositionLevel(job) === level).length;
+  const getContractTypeCount = (ct: string) => jobs.filter(job => getContractType(job) === ct).length;
 
   const handleLocationChange = (location: string, checked: boolean) => {
     if (checked) {
@@ -208,10 +223,19 @@ export default function Jobs() {
     }
   };
 
+  const handleContractTypeChange = (ct: string, checked: boolean) => {
+    if (checked) {
+      setSelectedContractTypes([...selectedContractTypes, ct]);
+    } else {
+      setSelectedContractTypes(selectedContractTypes.filter(c => c !== ct));
+    }
+  };
+
   const clearAllFilters = () => {
     setSearchTerm('');
     setSelectedLocations([]);
     setSelectedPositionLevels([]);
+    setSelectedContractTypes([]);
   };
 
   const valueProps = [
@@ -370,8 +394,30 @@ export default function Jobs() {
                     </div>
                   </div>
 
+                  {/* Contractual Type Filter */}
+                  <div className="mb-6">
+                    <label className="text-sm font-medium mb-3 block">Contractual Type</label>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {CONTRACT_TYPES.map(ct => (
+                        <div key={ct} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`ct-${ct}`}
+                            checked={selectedContractTypes.includes(ct)}
+                            onCheckedChange={(checked) => handleContractTypeChange(ct, checked as boolean)}
+                          />
+                          <label 
+                            htmlFor={`ct-${ct}`} 
+                            className="text-sm font-normal flex-1 cursor-pointer"
+                          >
+                            {ct} ({getContractTypeCount(ct)})
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Clear Filters */}
-                  {(searchTerm || selectedLocations.length > 0 || selectedPositionLevels.length > 0) && (
+                  {(searchTerm || selectedLocations.length > 0 || selectedPositionLevels.length > 0 || selectedContractTypes.length > 0) && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -386,7 +432,7 @@ export default function Jobs() {
 
               {/* Jobs Content */}
               <div className="flex-1">
-                {(searchTerm || selectedLocations.length > 0 || selectedPositionLevels.length > 0) && (
+                {(searchTerm || selectedLocations.length > 0 || selectedPositionLevels.length > 0 || selectedContractTypes.length > 0) && (
                   <div className="mb-6">
                     <p className="text-sm text-muted-foreground">
                       {filteredJobs.length} {filteredJobs.length === 1 ? 'job' : 'jobs'} found
