@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { JobEmailAlert } from '@/components/JobEmailAlert';
-import { Search, MapPin, Calendar, Briefcase, Filter, Globe, Heart, GraduationCap, Award, ArrowRight, Home, Plane, BookOpen, Clock } from 'lucide-react';
+import { Search, MapPin, Calendar, Briefcase, Filter, Globe, Heart, GraduationCap, Award, ArrowRight, Home, Plane, BookOpen, Clock, ChevronDown } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -351,70 +352,91 @@ export default function Jobs() {
                   </div>
 
                   {/* Location Filter */}
-                  <div className="mb-6">
-                    <label className="text-sm font-medium mb-3 block">Location</label>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {uniqueLocations.map(location => (
-                        <div key={location} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`location-${location}`}
-                            checked={selectedLocations.includes(location)}
-                            onCheckedChange={(checked) => handleLocationChange(location, checked as boolean)}
-                          />
-                          <label 
-                            htmlFor={`location-${location}`} 
-                            className="text-sm font-normal flex-1 cursor-pointer"
-                          >
-                            {location} ({getLocationCount(location)})
-                          </label>
+                  <Collapsible defaultOpen>
+                    <div className="mb-6">
+                      <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium mb-3 group">
+                        <span>Location</span>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {uniqueLocations.map(location => (
+                            <div key={location} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`location-${location}`}
+                                checked={selectedLocations.includes(location)}
+                                onCheckedChange={(checked) => handleLocationChange(location, checked as boolean)}
+                              />
+                              <label 
+                                htmlFor={`location-${location}`} 
+                                className="text-sm font-normal flex-1 cursor-pointer"
+                              >
+                                {location} ({getLocationCount(location)})
+                              </label>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      </CollapsibleContent>
                     </div>
-                  </div>
+                  </Collapsible>
 
                   {/* Position Level Filter */}
-                  <div className="mb-6">
-                    <label className="text-sm font-medium mb-3 block">Position Level</label>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {POSITION_LEVELS.map(level => (
-                        <div key={level} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`level-${level}`}
-                            checked={selectedPositionLevels.includes(level)}
-                            onCheckedChange={(checked) => handlePositionLevelChange(level, checked as boolean)}
-                          />
-                          <label 
-                            htmlFor={`level-${level}`} 
-                            className="text-sm font-normal flex-1 cursor-pointer"
-                          >
-                            {level} ({getPositionLevelCount(level)})
-                          </label>
+                  <Collapsible defaultOpen>
+                    <div className="mb-6">
+                      <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium mb-3 group">
+                        <span>Position Level</span>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {POSITION_LEVELS.map(level => (
+                            <div key={level} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`level-${level}`}
+                                checked={selectedPositionLevels.includes(level)}
+                                onCheckedChange={(checked) => handlePositionLevelChange(level, checked as boolean)}
+                              />
+                              <label 
+                                htmlFor={`level-${level}`} 
+                                className="text-sm font-normal flex-1 cursor-pointer"
+                              >
+                                {level} ({getPositionLevelCount(level)})
+                              </label>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      </CollapsibleContent>
                     </div>
-                  </div>
+                  </Collapsible>
 
                   {/* Contractual Type Filter */}
-                  <div className="mb-6">
-                    <label className="text-sm font-medium mb-3 block">Contractual Type</label>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {CONTRACT_TYPES.map(ct => (
-                        <div key={ct} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`ct-${ct}`}
-                            checked={selectedContractTypes.includes(ct)}
-                            onCheckedChange={(checked) => handleContractTypeChange(ct, checked as boolean)}
-                          />
-                          <label 
-                            htmlFor={`ct-${ct}`} 
-                            className="text-sm font-normal flex-1 cursor-pointer"
-                          >
-                            {ct} ({getContractTypeCount(ct)})
-                          </label>
+                  <Collapsible defaultOpen>
+                    <div className="mb-6">
+                      <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium mb-3 group">
+                        <span>Contractual Type</span>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {CONTRACT_TYPES.map(ct => (
+                            <div key={ct} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`ct-${ct}`}
+                                checked={selectedContractTypes.includes(ct)}
+                                onCheckedChange={(checked) => handleContractTypeChange(ct, checked as boolean)}
+                              />
+                              <label 
+                                htmlFor={`ct-${ct}`} 
+                                className="text-sm font-normal flex-1 cursor-pointer"
+                              >
+                                {ct} ({getContractTypeCount(ct)})
+                              </label>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      </CollapsibleContent>
                     </div>
-                  </div>
+                  </Collapsible>
 
                   {/* Clear Filters */}
                   {(searchTerm || selectedLocations.length > 0 || selectedPositionLevels.length > 0 || selectedContractTypes.length > 0) && (
