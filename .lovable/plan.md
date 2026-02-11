@@ -1,8 +1,10 @@
 
 
-## Update "Find out more" Text
+## Remove Dividing Line in Video Interview/Written Assessment Box
 
-A single text change in `src/pages/HiringProcessGuide.tsx` (around line 90):
+The Video Interview/Written Assessment section currently has a two-column grid layout (lines 163-188) with "Format" and "Tips for Success" side by side, which creates a visual divider between them.
 
-Replace the current text **"Find out more about us here:"** with **"Discover more about our work at"** -- keeping the existing `www.unicc.org` link as-is.
+### Change
+
+In `src/pages/HiringProcessGuide.tsx`, replace the two-column grid (`grid md:grid-cols-2`) with a single-column stack layout, so the "Format" and "Tips for Success" sub-sections appear one below the other without a line/gap between them. This gives the card a cleaner, unified look.
 
