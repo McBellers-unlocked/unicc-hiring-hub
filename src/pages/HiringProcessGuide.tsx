@@ -160,7 +160,7 @@ export default function HiringProcessGuide() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <CardContent className="pt-0 space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-4">
                     <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
                       <h4 className="font-medium mb-2 flex items-center gap-2">
                         <Clock className="h-4 w-4 text-blue-600" />
