@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Building2, FileText, Video, Users, Clock, Star, Mail, HelpCircle, Lightbulb } from 'lucide-react';
+import { ArrowLeft, Building2, FileText, Video, Users, Clock, Star, Mail, HelpCircle, Lightbulb, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -163,25 +163,50 @@ export default function HiringProcessGuide() {
                     <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
                       <h4 className="font-medium mb-2 flex items-center gap-2">
                         <Clock className="h-4 w-4 text-blue-600" />
-                        Format
+                        What is an Asynchronous Interview?
                       </h4>
                       <ul className="text-sm text-muted-foreground space-y-1">
-                        <li>• Pre-recorded video format</li>
-                        <li>• Approximately 15 minutes total</li>
-                        <li>• 3-5 questions to answer</li>
-                        <li>• You can re-record each answer once</li>
+                        <li>• You will record your responses at your own convenience — it is not a real-time interview</li>
+                        <li>• Questions are presented one at a time on screen</li>
+                        <li>• You will have a restricted reading/preparation time before recording</li>
+                        <li>• Each answer has a specific recording time (typically 2–3 minutes)</li>
                       </ul>
                     </div>
                     <div className="p-4 bg-green-50 rounded-lg border border-green-100">
                       <h4 className="font-medium mb-2 flex items-center gap-2">
                         <Lightbulb className="h-4 w-4 text-green-600" />
-                        Tips for Success
+                        Recording Your Responses — Do's
                       </h4>
                       <ul className="text-sm text-muted-foreground space-y-1">
-                        <li>• Find a quiet, well-lit space</li>
-                        <li>• Test your camera and microphone</li>
-                        <li>• Dress professionally</li>
-                        <li>• Speak clearly and look at the camera</li>
+                        <li>• Dress appropriately as you would for an in-person interview</li>
+                        <li>• Ensure you are in a quiet space with good lighting</li>
+                        <li>• Look directly at the camera when speaking</li>
+                        <li>• Be clear, concise and structured in your answers</li>
+                        <li>• Relax, breathe, and take a moment before you begin recording</li>
+                      </ul>
+                    </div>
+                    <div className="p-4 bg-red-50 rounded-lg border border-red-100">
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-red-600" />
+                        Recording Your Responses — Don'ts
+                      </h4>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• Do not use your monitor as a light source — use natural or overhead lighting</li>
+                        <li>• Do not click pens, tap fingers, or create distracting background noise</li>
+                        <li>• Do not feel obligated to use the full allotted time if you've answered the question</li>
+                        <li>• Do not rely on AI or chat tools such as ChatGPT to generate your responses</li>
+                      </ul>
+                    </div>
+                    <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-100">
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <Lightbulb className="h-4 w-4 text-yellow-600" />
+                        Preparation and Tips
+                      </h4>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• Find a quiet, well-lit space and test your camera and microphone beforehand</li>
+                        <li>• Review the job description and competencies required for the role</li>
+                        <li>• Complete the interview within the specified timeframe provided in your invitation</li>
+                        <li>• Plan accordingly — you may not be able to pause or restart once you begin</li>
                       </ul>
                     </div>
                   </div>
