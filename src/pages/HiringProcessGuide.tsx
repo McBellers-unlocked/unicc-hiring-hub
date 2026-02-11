@@ -310,52 +310,6 @@ export default function HiringProcessGuide() {
             </Card>
           </Collapsible>
 
-          {/* STAR Method */}
-          <Collapsible open={openSections.includes('star')} onOpenChange={() => toggleSection('star')}>
-            <Card className="border-amber-200 bg-amber-50/50">
-              <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer hover:bg-amber-50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-amber-100">
-                        <Star className="h-5 w-5 text-amber-600" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg">Interview Tip: The STAR Method</CardTitle>
-                        <CardDescription>Structure your answers for impact</CardDescription>
-                      </div>
-                    </div>
-                    <Badge variant="secondary" className="bg-amber-100 text-amber-700">Recommended</Badge>
-                  </div>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="pt-0 space-y-4">
-                  <p className="text-muted-foreground">
-                    Use the STAR method to structure your responses to behavioral questions:
-                  </p>
-                  <div className="grid gap-3">
-                    {[
-                      { letter: 'S', word: 'Situation', description: 'Describe the context and background' },
-                      { letter: 'T', word: 'Task', description: 'Explain your responsibility or goal' },
-                      { letter: 'A', word: 'Action', description: 'Detail the specific steps you took' },
-                      { letter: 'R', word: 'Result', description: 'Share the outcome and what you learned' }
-                    ].map((item) => (
-                      <div key={item.letter} className="flex items-start gap-3 p-3 bg-white rounded-lg border border-amber-100">
-                        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center font-bold text-amber-700 shrink-0">
-                          {item.letter}
-                        </div>
-                        <div>
-                          <span className="font-medium">{item.word}</span>
-                          <p className="text-sm text-muted-foreground">{item.description}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
 
           {/* Timelines */}
           <Collapsible open={openSections.includes('timelines')} onOpenChange={() => toggleSection('timelines')}>
