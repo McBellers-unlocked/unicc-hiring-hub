@@ -87,7 +87,7 @@ export default function HiringProcessGuide() {
                     We are committed to finding talented individuals who share our values and can contribute to our mission of supporting global development goals through technology.
                   </p>
                   <p className="text-muted-foreground leading-relaxed mt-3">
-                    Find out more about us here:{' '}
+                    Discover more about our work at{' '}
                     <a href="https://www.unicc.org" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                       www.unicc.org
                     </a>
