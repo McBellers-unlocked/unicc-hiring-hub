@@ -28,7 +28,7 @@ export default function HiringProcessGuide() {
     },
     { 
       key: 'video', 
-      label: 'Video Interview/Written Assessment', 
+      label: 'Video Interview', 
       icon: Video, 
       color: 'bg-blue-100 text-blue-700 border-blue-200',
       description: 'Complete a short recorded video interview'
@@ -139,7 +139,7 @@ export default function HiringProcessGuide() {
             </Card>
           </Collapsible>
 
-          {/* Video Interview/Written Assessment */}
+          {/* Video Interview */}
           <Collapsible open={openSections.includes('video')} onOpenChange={() => toggleSection('video')}>
             <Card>
               <CollapsibleTrigger asChild>
@@ -150,7 +150,7 @@ export default function HiringProcessGuide() {
                         <Video className="h-5 w-5 text-blue-600" />
                       </div>
                       <div>
-                        <CardTitle className="text-lg">Video Interview/Written Assessment</CardTitle>
+                        <CardTitle className="text-lg">Video Interview</CardTitle>
                         <CardDescription>What to expect and how to prepare</CardDescription>
                       </div>
                     </div>
@@ -160,7 +160,7 @@ export default function HiringProcessGuide() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <CardContent className="pt-0 space-y-4">
-                  <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
                     <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
                       <h4 className="font-medium mb-2 flex items-center gap-2">
                         <Clock className="h-4 w-4 text-blue-600" />
@@ -322,7 +322,7 @@ export default function HiringProcessGuide() {
                           <td className="py-2 text-muted-foreground">2-4 weeks after closing date</td>
                         </tr>
                         <tr className="border-b">
-                          <td className="py-2">Video Interview/Written Assessment Deadline</td>
+                          <td className="py-2">Video Interview Deadline</td>
                           <td className="py-2 text-muted-foreground">Usually 7 days from invitation</td>
                         </tr>
                         <tr className="border-b">
