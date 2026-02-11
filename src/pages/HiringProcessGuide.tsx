@@ -86,6 +86,12 @@ export default function HiringProcessGuide() {
                     The United Nations International Computing Centre (UNICC) provides shared ICT services to the United Nations system organizations. 
                     We are committed to finding talented individuals who share our values and can contribute to our mission of supporting global development goals through technology.
                   </p>
+                  <p className="text-muted-foreground leading-relaxed mt-3">
+                    Find out more about us here:{' '}
+                    <a href="https://www.unicc.org" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                      www.unicc.org
+                    </a>
+                  </p>
                 </CardContent>
               </CollapsibleContent>
             </Card>
