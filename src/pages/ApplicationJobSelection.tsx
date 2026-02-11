@@ -218,9 +218,9 @@ export default function ApplicationJobSelection() {
         const threeDaysFromNow = new Date();
         threeDaysFromNow.setDate(now.getDate() + 3);
         
-        // Closing within 3 days
+        // Closing within 3 days - still show as active
         if (closingDate <= threeDaysFromNow) {
-          return 'closing';
+          return 'active';
         }
         
         // Still active
@@ -258,7 +258,7 @@ export default function ApplicationJobSelection() {
   // Calculate stats
   const stats = {
     active: jobs.filter(j => getJobDisplayStatus(j) === 'active').length,
-    closing: jobs.filter(j => getJobDisplayStatus(j) === 'closing').length,
+    
     longlisting: jobs.filter(j => getJobDisplayStatus(j) === 'longlisting').length,
     hm_shortlisting: jobs.filter(j => getJobDisplayStatus(j) === 'hm_shortlisting').length,
     video_interview: jobs.filter(j => getJobDisplayStatus(j) === 'video_interview').length,
@@ -312,7 +312,7 @@ export default function ApplicationJobSelection() {
   // Group jobs by status
   const groupedJobs = {
     active: filteredJobs.filter(j => getJobDisplayStatus(j) === 'active'),
-    closing: filteredJobs.filter(j => getJobDisplayStatus(j) === 'closing'),
+    
     longlisting: filteredJobs.filter(j => getJobDisplayStatus(j) === 'longlisting'),
     hm_shortlisting: filteredJobs.filter(j => getJobDisplayStatus(j) === 'hm_shortlisting'),
     video_interview: filteredJobs.filter(j => getJobDisplayStatus(j) === 'video_interview'),
@@ -495,15 +495,6 @@ export default function ApplicationJobSelection() {
                 onClick={() => setActiveFilter('active')}
               />
               <StatsCard
-                title="Closing Soon"
-                value={stats.closing}
-                subtitle="Next 3 days"
-                icon={Clock}
-                alert={stats.closing > 0}
-                className="cursor-pointer"
-                onClick={() => setActiveFilter('closing')}
-              />
-              <StatsCard
                 title="Longlisting"
                 value={stats.longlisting}
                 subtitle="14-day KPI"
@@ -564,7 +555,7 @@ export default function ApplicationJobSelection() {
                 Active & In Progress
                 {activeFilter === 'active-closing' && (
                   <Badge variant="secondary" className="ml-2 bg-primary-foreground text-primary">
-                    {stats.active + stats.closing + stats.longlisting + stats.hm_shortlisting + stats.video_interview + stats.panel_interview}
+                    {stats.active + stats.longlisting + stats.hm_shortlisting + stats.video_interview + stats.panel_interview}
                   </Badge>
                 )}
               </Button>
@@ -589,18 +580,6 @@ export default function ApplicationJobSelection() {
                 {activeFilter === 'active' && (
                   <Badge variant="secondary" className="ml-2 bg-primary-foreground text-primary">
                     {stats.active}
-                  </Badge>
-                )}
-              </Button>
-              <Button
-                variant={activeFilter === 'closing' ? 'default' : 'outline'}
-                onClick={() => setActiveFilter('closing')}
-                size="sm"
-              >
-                Closing
-                {activeFilter === 'closing' && (
-                  <Badge variant="secondary" className="ml-2 bg-primary-foreground text-primary">
-                    {stats.closing}
                   </Badge>
                 )}
               </Button>
@@ -706,8 +685,6 @@ export default function ApplicationJobSelection() {
                 {/* Active Jobs */}
                 {renderJobSection('Active Jobs', groupedJobs.active, groupedJobs.active.length)}
                 
-                {/* Closing Soon */}
-                {renderJobSection('Closing Soon', groupedJobs.closing, groupedJobs.closing.length)}
                 
                 {/* Longlisting - 14 day KPI period */}
                 {groupedJobs.longlisting.length > 0 && (
