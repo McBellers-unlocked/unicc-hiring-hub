@@ -36,6 +36,7 @@ export default function Jobs() {
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [selectedPositionLevels, setSelectedPositionLevels] = useState<string[]>([]);
   const [selectedContractTypes, setSelectedContractTypes] = useState<string[]>([]);
+  const [selectedExpertise, setSelectedExpertise] = useState<string[]>([]);
 
   useEffect(() => {
     fetchJobs();
@@ -106,8 +107,9 @@ export default function Jobs() {
     });
     const matchesPositionLevel = selectedPositionLevels.length === 0 || selectedPositionLevels.includes(getPositionLevel(job));
     const matchesContractType = selectedContractTypes.length === 0 || selectedContractTypes.includes(getContractType(job));
+    const matchesExpertise = selectedExpertise.length === 0 || selectedExpertise.includes(getExpertiseArea(job));
     
-    return matchesSearch && matchesLocation && matchesPositionLevel && matchesContractType;
+    return matchesSearch && matchesLocation && matchesPositionLevel && matchesContractType && matchesExpertise;
   });
 
   const getAllLocations = () => {
@@ -162,6 +164,13 @@ export default function Jobs() {
 
   const CONTRACT_TYPES = ['Consultant', 'Fixed Term Appointment', 'Internship', 'Temporary Appointment'];
 
+  const EXPERTISE_AREAS = [
+    'Human Resources', 'Communications', 'Finance', 'Procurement', 'Project Management',
+    'Business Development', 'Cybersecurity', 'Artificial Intelligence', 'Data Management',
+    'Software Development', 'Service Desk', 'Data Center Operations', 'On-Premise Services',
+    'Cloud Services', 'Legal', 'Quality and Assurance'
+  ];
+
   const getContractType = (job: Job): string => {
     const type = (job.type || '').toLowerCase();
     const category = (job.category || '').toLowerCase();
@@ -169,6 +178,34 @@ export default function Jobs() {
     if (type.includes('intern') || category.includes('intern')) return 'Internship';
     if (type.includes('fixed') || type.includes('term')) return 'Fixed Term Appointment';
     if (type.includes('temporary') || type.includes('temp')) return 'Temporary Appointment';
+    return '';
+  };
+
+  const getExpertiseArea = (job: Job): string => {
+    const title = (job.title || '').toLowerCase();
+    const orgUnit = ((job as any).org_unit || '').toLowerCase();
+    const combined = `${title} ${orgUnit}`;
+    const expertiseKeywords: Record<string, string[]> = {
+      'Human Resources': ['human resources', 'hr ', 'talent', 'recruitment', 'staffing', 'personnel'],
+      'Communications': ['communications', 'communication', 'public information', 'media', 'outreach'],
+      'Finance': ['finance', 'financial', 'budget', 'accounting', 'treasury'],
+      'Procurement': ['procurement', 'supply chain', 'sourcing', 'purchasing'],
+      'Project Management': ['project management', 'programme management', 'project manager', 'programme manager'],
+      'Business Development': ['business development', 'partnership', 'client relations'],
+      'Cybersecurity': ['cybersecurity', 'cyber security', 'information security', 'infosec', 'security analyst'],
+      'Artificial Intelligence': ['artificial intelligence', ' ai ', 'machine learning', 'deep learning'],
+      'Data Management': ['data management', 'data analyst', 'data engineer', 'database', 'data governance'],
+      'Software Development': ['software', 'developer', 'engineering', 'full stack', 'frontend', 'backend', 'devops'],
+      'Service Desk': ['service desk', 'help desk', 'it support', 'technical support'],
+      'Data Center Operations': ['data center', 'data centre', 'datacenter', 'infrastructure operations'],
+      'On-Premise Services': ['on-premise', 'on premise', 'onpremise', 'network engineer', 'systems administrator'],
+      'Cloud Services': ['cloud', 'aws', 'azure', 'gcp', 'saas', 'iaas', 'paas'],
+      'Legal': ['legal', 'lawyer', 'counsel', 'attorney', 'juridical'],
+      'Quality and Assurance': ['quality assurance', 'qa ', 'testing', 'quality management', 'assurance'],
+    };
+    for (const [area, keywords] of Object.entries(expertiseKeywords)) {
+      if (keywords.some(kw => combined.includes(kw))) return area;
+    }
     return '';
   };
 
@@ -207,6 +244,7 @@ export default function Jobs() {
   };
   const getPositionLevelCount = (level: string) => jobs.filter(job => getPositionLevel(job) === level).length;
   const getContractTypeCount = (ct: string) => jobs.filter(job => getContractType(job) === ct).length;
+  const getExpertiseCount = (area: string) => jobs.filter(job => getExpertiseArea(job) === area).length;
 
   const handleLocationChange = (location: string, checked: boolean) => {
     if (checked) {
@@ -232,11 +270,20 @@ export default function Jobs() {
     }
   };
 
+  const handleExpertiseChange = (area: string, checked: boolean) => {
+    if (checked) {
+      setSelectedExpertise([...selectedExpertise, area]);
+    } else {
+      setSelectedExpertise(selectedExpertise.filter(a => a !== area));
+    }
+  };
+
   const clearAllFilters = () => {
     setSearchTerm('');
     setSelectedLocations([]);
     setSelectedPositionLevels([]);
     setSelectedContractTypes([]);
+    setSelectedExpertise([]);
   };
 
   const valueProps = [
@@ -438,8 +485,37 @@ export default function Jobs() {
                     </div>
                   </Collapsible>
 
+                  {/* Area of Expertise Filter */}
+                  <Collapsible defaultOpen>
+                    <div className="mb-6">
+                      <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium mb-3 group">
+                        <span>Area of Expertise</span>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {EXPERTISE_AREAS.map(area => (
+                            <div key={area} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`exp-${area}`}
+                                checked={selectedExpertise.includes(area)}
+                                onCheckedChange={(checked) => handleExpertiseChange(area, checked as boolean)}
+                              />
+                              <label 
+                                htmlFor={`exp-${area}`} 
+                                className="text-sm font-normal flex-1 cursor-pointer"
+                              >
+                                {area} ({getExpertiseCount(area)})
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+
                   {/* Clear Filters */}
-                  {(searchTerm || selectedLocations.length > 0 || selectedPositionLevels.length > 0 || selectedContractTypes.length > 0) && (
+                  {(searchTerm || selectedLocations.length > 0 || selectedPositionLevels.length > 0 || selectedContractTypes.length > 0 || selectedExpertise.length > 0) && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -454,7 +530,7 @@ export default function Jobs() {
 
               {/* Jobs Content */}
               <div className="flex-1">
-                {(searchTerm || selectedLocations.length > 0 || selectedPositionLevels.length > 0 || selectedContractTypes.length > 0) && (
+                {(searchTerm || selectedLocations.length > 0 || selectedPositionLevels.length > 0 || selectedContractTypes.length > 0 || selectedExpertise.length > 0) && (
                   <div className="mb-6">
                     <p className="text-sm text-muted-foreground">
                       {filteredJobs.length} {filteredJobs.length === 1 ? 'job' : 'jobs'} found
