@@ -28,7 +28,7 @@ export default function HiringProcessGuide() {
     },
     { 
       key: 'video', 
-      label: 'Video Interview', 
+      label: 'Video Interview/Written Assessment', 
       icon: Video, 
       color: 'bg-blue-100 text-blue-700 border-blue-200',
       description: 'Complete a short recorded video interview'
@@ -139,7 +139,7 @@ export default function HiringProcessGuide() {
             </Card>
           </Collapsible>
 
-          {/* Video Interview */}
+          {/* Video Interview/Written Assessment */}
           <Collapsible open={openSections.includes('video')} onOpenChange={() => toggleSection('video')}>
             <Card>
               <CollapsibleTrigger asChild>
@@ -150,7 +150,7 @@ export default function HiringProcessGuide() {
                         <Video className="h-5 w-5 text-blue-600" />
                       </div>
                       <div>
-                        <CardTitle className="text-lg">Video Interview</CardTitle>
+                        <CardTitle className="text-lg">Video Interview/Written Assessment</CardTitle>
                         <CardDescription>What to expect and how to prepare</CardDescription>
                       </div>
                     </div>
@@ -322,7 +322,7 @@ export default function HiringProcessGuide() {
                           <td className="py-2 text-muted-foreground">2-4 weeks after closing date</td>
                         </tr>
                         <tr className="border-b">
-                          <td className="py-2">Video Interview Deadline</td>
+                          <td className="py-2">Video Interview/Written Assessment Deadline</td>
                           <td className="py-2 text-muted-foreground">Usually 7 days from invitation</td>
                         </tr>
                         <tr className="border-b">
