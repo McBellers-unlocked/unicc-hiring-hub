@@ -387,14 +387,6 @@ export function TalentSearchFilters({
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="relocate">Willing to Relocate</Label>
-                    <Switch
-                      id="relocate"
-                      checked={filters.willingToRelocate || false}
-                      onCheckedChange={(checked) => handleFilterChange("willingToRelocate", checked)}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
                     <Label htmlFor="clearance">Security Clearance</Label>
                     <Switch
                       id="clearance"
