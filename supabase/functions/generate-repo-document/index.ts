@@ -1,6 +1,6 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { PDFDocument, PDFRawStream, PDFName, PDFNumber } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument, PDFRawStream, PDFName, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 
 /** Decompress a FlateDecode stream */
 async function decompressStream(rawBytes: Uint8Array): Promise<Uint8Array | null> {
@@ -28,6 +28,7 @@ async function decompressStream(rawBytes: Uint8Array): Promise<Uint8Array | null
       }
     } catch { /* try next */ }
   }
+  // Try skipping 2-byte zlib header
   if (rawBytes.length > 2) {
     try {
       const ds = new DecompressionStream("deflate" as string);
@@ -55,30 +56,8 @@ async function decompressStream(rawBytes: Uint8Array): Promise<Uint8Array | null
   return null;
 }
 
-/** Compress data with deflate */
-async function compressStream(data: Uint8Array): Promise<Uint8Array> {
-  const cs = new CompressionStream("deflate");
-  const writer = cs.writable.getWriter();
-  const reader = cs.readable.getReader();
-  writer.write(data).catch(() => {});
-  writer.close().catch(() => {});
-  const chunks: Uint8Array[] = [];
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-    }
-  } catch { /* done */ }
-  const total = chunks.reduce((a, c) => a + c.length, 0);
-  const result = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.length; }
-  return result;
-}
-
 /**
- * Unescape PDF string escapes: \( -> (, \) -> ), \\ -> \, \{ -> {, \} -> }
+ * Unescape PDF string escapes
  */
 function unescapePdfString(s: string): string {
   let result = "";
@@ -102,28 +81,7 @@ function unescapePdfString(s: string): string {
 }
 
 /**
- * Escape a string for use inside a PDF string literal: ( ) \ must be escaped
- */
-function escapePdfString(s: string): string {
-  return s.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
-}
-
-interface TextOperator {
-  /** Start index in stream */
-  start: number;
-  /** End index in stream (exclusive) */
-  end: number;
-  /** The full match string in the stream */
-  fullMatch: string;
-  /** The unescaped text this operator renders */
-  text: string;
-  /** Type of operator */
-  type: "Tj" | "TJ";
-}
-
-/**
- * Extract the content of a PDF string literal starting at pos (which points to the opening '(').
- * Returns the raw content (with escapes intact) and the index after the closing ')'.
+ * Extract the content of a PDF string literal starting at pos (opening '(').
  */
 function extractPdfString(content: string, pos: number): { raw: string; end: number } | null {
   if (content[pos] !== "(") return null;
@@ -132,7 +90,7 @@ function extractPdfString(content: string, pos: number): { raw: string; end: num
   const len = content.length;
   while (i < len && depth > 0) {
     const ch = content[i];
-    if (ch === "\\") { i += 2; continue; } // skip escaped char
+    if (ch === "\\") { i += 2; continue; }
     if (ch === "(") depth++;
     else if (ch === ")") depth--;
     i++;
@@ -141,393 +99,370 @@ function extractPdfString(content: string, pos: number): { raw: string; end: num
   return { raw: content.substring(pos + 1, i - 1), end: i };
 }
 
-/**
- * Parse all text-showing operators from a PDF content stream using manual scanning.
- * Finds both (string) Tj and [(string)kern...] TJ operators.
- * O(n) complexity, no regex backtracking.
- */
-function parseTextOperators(content: string): TextOperator[] {
-  const operators: TextOperator[] = [];
-  const len = content.length;
-  let i = 0;
+// ── Position-aware text extraction ──
 
+interface CharPosition {
+  char: string;
+  x: number;
+  y: number;
+  fontSize: number;
+}
+
+/**
+ * Parse a PDF content stream and extract each character with its (x, y) position.
+ * Tracks Tm (text matrix), Tf (font size), Td (text position), and TJ kern adjustments.
+ */
+function parseTextWithPositions(content: string): CharPosition[] {
+  const chars: CharPosition[] = [];
+  const len = content.length;
+
+  // Graphics state
+  let fontSize = 12;
+  // Text matrix components: [a, b, c, d, e, f] where e=x, f=y
+  let tmX = 0;
+  let tmY = 0;
+  let tmA = 1; // horizontal scale from Tm
+  // Line matrix (set by Td/TD/T*/Tm)
+  let lineX = 0;
+  let lineY = 0;
+
+  // Tokenizer: split content into tokens
+  const tokens: string[] = [];
+  let i = 0;
   while (i < len) {
     const ch = content[i];
-
-    // Look for '(' - start of a PDF string that might be followed by Tj
+    // Skip whitespace
+    if (ch === " " || ch === "\n" || ch === "\r" || ch === "\t") { i++; continue; }
+    // PDF string literal
     if (ch === "(") {
       const extracted = extractPdfString(content, i);
-      if (!extracted) { i++; continue; }
-      // Skip whitespace after the closing ')'
-      let j = extracted.end;
-      while (j < len && (content[j] === " " || content[j] === "\r" || content[j] === "\n" || content[j] === "\t")) j++;
-      // Check for "Tj" operator
-      if (j + 1 < len && content[j] === "T" && content[j + 1] === "j" && (j + 2 >= len || !/[a-zA-Z]/.test(content[j + 2]))) {
-        operators.push({
-          start: i,
-          end: j + 2,
-          fullMatch: content.substring(i, j + 2),
-          text: unescapePdfString(extracted.raw),
-          type: "Tj",
-        });
-        i = j + 2;
-        continue;
-      }
-      i = extracted.end;
+      if (extracted) {
+        tokens.push("(" + extracted.raw + ")");
+        i = extracted.end;
+      } else { i++; }
       continue;
     }
-
-    // Look for '[' - start of a TJ array
+    // PDF array
     if (ch === "[") {
-      const arrStart = i;
-      i++; // skip '['
-      const parts: string[] = [];
-      let valid = true;
-      // Scan array contents
-      while (i < len && content[i] !== "]") {
-        if (content[i] === "(") {
-          const extracted = extractPdfString(content, i);
-          if (!extracted) { valid = false; break; }
-          parts.push(unescapePdfString(extracted.raw));
-          i = extracted.end;
-        } else {
-          i++;
+      // Collect the whole array as one token including brackets
+      let depth = 1;
+      let j = i + 1;
+      while (j < len && depth > 0) {
+        if (content[j] === "(") {
+          const ex = extractPdfString(content, j);
+          if (ex) { j = ex.end; continue; }
         }
+        if (content[j] === "[") depth++;
+        else if (content[j] === "]") depth--;
+        j++;
       }
-      if (!valid || i >= len) { i = arrStart + 1; continue; }
-      i++; // skip ']'
-      // Skip whitespace
-      while (i < len && (content[i] === " " || content[i] === "\r" || content[i] === "\n" || content[i] === "\t")) i++;
-      // Check for "TJ" operator
-      if (i + 1 < len && content[i] === "T" && content[i + 1] === "J" && (i + 2 >= len || !/[a-zA-Z]/.test(content[i + 2]))) {
-        if (parts.length > 0) {
-          operators.push({
-            start: arrStart,
-            end: i + 2,
-            fullMatch: content.substring(arrStart, i + 2),
-            text: parts.join(""),
-            type: "TJ",
-          });
-        }
-        i += 2;
-        continue;
-      }
-      // Not a TJ array, continue from after ']'
+      tokens.push(content.substring(i, j));
+      i = j;
+      continue;
+    }
+    // Regular token (number, operator, name)
+    let j = i;
+    while (j < len && content[j] !== " " && content[j] !== "\n" && content[j] !== "\r" && content[j] !== "\t" && content[j] !== "(" && content[j] !== "[" && content[j] !== "]") {
+      j++;
+    }
+    if (j > i) {
+      tokens.push(content.substring(i, j));
+      i = j;
+    } else {
+      i++;
+    }
+  }
+
+  // Process tokens looking for operators
+  const stack: string[] = [];
+
+  for (const token of tokens) {
+    // Check if it's an operator (alphabetic, not starting with / or digit or ( or [)
+    const isOp = /^[A-Za-z\*\'\"]+$/.test(token) && !token.startsWith("/");
+
+    if (!isOp) {
+      stack.push(token);
       continue;
     }
 
-    i++;
-  }
-
-  return operators;
-}
-
-/**
- * Replace {{placeholders}} in text content, handling PDF text operators.
- * Handles placeholders split across ANY number of separate BT/ET blocks,
- * TJ arrays, or Tj operators by parsing all text operators sequentially,
- * concatenating their text, finding placeholders, and mapping replacements
- * back to the individual operators.
- */
-/**
- * Find the enclosing BT...ET block boundaries for a given position in the stream.
- * Scans backwards for "BT" and forwards for "ET".
- */
-function findEnclosingBTET(content: string, opStart: number, opEnd: number): { btStart: number; etEnd: number } | null {
-  // Scan backwards for "BT"
-  let btStart = -1;
-  for (let i = opStart - 1; i >= 0; i--) {
-    if (content[i] === "T" && i > 0 && content[i - 1] === "B") {
-      // Verify it's a standalone "BT" (not part of another word)
-      const before = i - 2 >= 0 ? content[i - 2] : " ";
-      const after = i + 1 < content.length ? content[i + 1] : " ";
-      if (!/[a-zA-Z]/.test(before) && !/[a-zA-Z]/.test(after)) {
-        btStart = i - 1;
+    // Process operators
+    switch (token) {
+      case "Tm": {
+        // a b c d e f Tm
+        if (stack.length >= 6) {
+          const f = parseFloat(stack[stack.length - 1]);
+          const e = parseFloat(stack[stack.length - 2]);
+          const a = parseFloat(stack[stack.length - 6]);
+          tmX = e;
+          tmY = f;
+          tmA = a;
+          lineX = e;
+          lineY = f;
+        }
+        stack.length = 0;
+        break;
+      }
+      case "Td":
+      case "TD": {
+        // tx ty Td
+        if (stack.length >= 2) {
+          const ty = parseFloat(stack[stack.length - 1]);
+          const tx = parseFloat(stack[stack.length - 2]);
+          lineX += tx;
+          lineY += ty;
+          tmX = lineX;
+          tmY = lineY;
+        }
+        stack.length = 0;
+        break;
+      }
+      case "Tf": {
+        // /FontName size Tf
+        if (stack.length >= 2) {
+          const size = parseFloat(stack[stack.length - 1]);
+          if (!isNaN(size) && size > 0) fontSize = size;
+        }
+        stack.length = 0;
+        break;
+      }
+      case "Tj": {
+        // (string) Tj
+        if (stack.length >= 1) {
+          const strToken = stack[stack.length - 1];
+          if (strToken.startsWith("(") && strToken.endsWith(")")) {
+            const raw = strToken.substring(1, strToken.length - 1);
+            const text = unescapePdfString(raw);
+            // Estimate char width as fontSize * 0.5 (approximate for standard fonts)
+            const charWidth = fontSize * tmA * 0.5;
+            for (let ci = 0; ci < text.length; ci++) {
+              chars.push({
+                char: text[ci],
+                x: tmX + ci * charWidth,
+                y: tmY,
+                fontSize,
+              });
+            }
+            tmX += text.length * charWidth;
+          }
+        }
+        stack.length = 0;
+        break;
+      }
+      case "TJ": {
+        // [(string)kern(string)...] TJ
+        if (stack.length >= 1) {
+          const arrToken = stack[stack.length - 1];
+          if (arrToken.startsWith("[")) {
+            // Parse array contents
+            const inner = arrToken.substring(1, arrToken.length - 1);
+            let ai = 0;
+            const innerLen = inner.length;
+            const charWidth = fontSize * tmA * 0.5;
+            while (ai < innerLen) {
+              if (inner[ai] === "(") {
+                const extracted = extractPdfString(inner, ai);
+                if (extracted) {
+                  const text = unescapePdfString(extracted.raw);
+                  for (let ci = 0; ci < text.length; ci++) {
+                    chars.push({
+                      char: text[ci],
+                      x: tmX + ci * charWidth,
+                      y: tmY,
+                      fontSize,
+                    });
+                  }
+                  tmX += text.length * charWidth;
+                  ai = extracted.end;
+                } else { ai++; }
+              } else if (inner[ai] === " " || inner[ai] === "\n" || inner[ai] === "\r" || inner[ai] === "\t") {
+                ai++;
+              } else {
+                // Number (kern value) - negative moves right, positive moves left
+                let numStr = "";
+                while (ai < innerLen && (inner[ai] === "-" || inner[ai] === "." || (inner[ai] >= "0" && inner[ai] <= "9"))) {
+                  numStr += inner[ai];
+                  ai++;
+                }
+                if (numStr) {
+                  const kern = parseFloat(numStr);
+                  // Kern is in thousandths of a unit of text space
+                  tmX -= kern * fontSize * tmA / 1000;
+                }
+              }
+            }
+          }
+        }
+        stack.length = 0;
+        break;
+      }
+      case "BT": {
+        // Reset text position at start of text block
+        // (Tm will be set explicitly if needed)
+        stack.length = 0;
+        break;
+      }
+      case "ET": {
+        stack.length = 0;
+        break;
+      }
+      default: {
+        // Unknown operator, clear stack
+        stack.length = 0;
         break;
       }
     }
   }
-  if (btStart === -1) return null;
 
-  // Scan forwards for "ET"
-  let etEnd = -1;
-  for (let i = opEnd; i < content.length - 1; i++) {
-    if (content[i] === "E" && content[i + 1] === "T") {
-      const before = i - 1 >= 0 ? content[i - 1] : " ";
-      const after = i + 2 < content.length ? content[i + 2] : " ";
-      if (!/[a-zA-Z]/.test(before) && !/[a-zA-Z]/.test(after)) {
-        etEnd = i + 2;
-        break;
-      }
-    }
-  }
-  if (etEnd === -1) return null;
-
-  return { btStart, etEnd };
+  return chars;
 }
 
-function replaceInContentStream(content: string, fieldValues: Record<string, string>): string {
-  // Quick check: if no braces at all, skip expensive parsing
-  if (!content.includes("{") && !content.includes("\\{")) return content;
-
-  // Step 1: Parse all text operators (O(n) manual scan)
-  const operators = parseTextOperators(content);
-  if (operators.length === 0) return content;
-
-  // Step 2: Build concatenated text with character-to-operator mapping
-  let fullText = "";
-  const charMap: { opIndex: number; charInOp: number }[] = [];
-
-  for (let opIdx = 0; opIdx < operators.length; opIdx++) {
-    const op = operators[opIdx];
-    for (let ci = 0; ci < op.text.length; ci++) {
-      charMap.push({ opIndex: opIdx, charInOp: ci });
-      fullText += op.text[ci];
-    }
-  }
-
-  // Step 3: Find all placeholder positions in concatenated text
-  interface Replacement {
-    textStart: number;
-    textEnd: number;
-    fieldName: string;
-    value: string;
-  }
-  const replacements: Replacement[] = [];
-
-  for (const [fieldName, value] of Object.entries(fieldValues)) {
-    const placeholder = `{{${fieldName}}}`;
-    let searchFrom = 0;
-    while (true) {
-      const idx = fullText.indexOf(placeholder, searchFrom);
-      if (idx === -1) break;
-      replacements.push({
-        textStart: idx,
-        textEnd: idx + placeholder.length,
-        fieldName,
-        value: String(value),
-      });
-      searchFrom = idx + placeholder.length;
-    }
-  }
-
-  if (replacements.length === 0) {
-    // No placeholders found across operators -- try simple direct replacement as fallback
-    let modified = content;
-    for (const [fieldName, value] of Object.entries(fieldValues)) {
-      const safeValue = escapePdfString(String(value));
-      const placeholder = `{{${fieldName}}}`;
-      modified = modified.split(placeholder).join(safeValue);
-      const escapedPlaceholder = `\\{\\{${fieldName}\\}\\}`;
-      modified = modified.split(escapedPlaceholder).join(safeValue);
-    }
-    return modified;
-  }
-
-  console.log(`Found ${replacements.length} placeholder(s) across operators: ${replacements.map(r => r.fieldName).join(", ")}`);
-
-  // Sort replacements by position (reverse order so we can modify without shifting)
-  replacements.sort((a, b) => b.textStart - a.textStart);
-
-  // Step 4: Apply replacements to operator texts and track BT/ET blocks to remove
-  const opTexts = operators.map(op => op.text);
-  // Set of operator indices whose entire BT/ET block should be removed
-  const blocksToRemove = new Set<number>();
-
-  for (const rep of replacements) {
-    const firstCharMap = charMap[rep.textStart];
-    const lastCharMap = charMap[rep.textEnd - 1];
-
-    if (firstCharMap.opIndex === lastCharMap.opIndex) {
-      // Placeholder is within a single operator
-      const opIdx = firstCharMap.opIndex;
-      const before = opTexts[opIdx].substring(0, firstCharMap.charInOp);
-      const after = opTexts[opIdx].substring(lastCharMap.charInOp + 1);
-      opTexts[opIdx] = before + rep.value + after;
-    } else {
-      // Placeholder spans multiple operators
-      const firstOpIdx = firstCharMap.opIndex;
-      opTexts[firstOpIdx] = opTexts[firstOpIdx].substring(0, firstCharMap.charInOp) + rep.value;
-
-      // Middle operators: mark their BT/ET blocks for removal
-      for (let oi = firstOpIdx + 1; oi < lastCharMap.opIndex; oi++) {
-        opTexts[oi] = "";
-        blocksToRemove.add(oi);
-      }
-
-      // Last operator: mark for removal too
-      const lastOpIdx = lastCharMap.opIndex;
-      opTexts[lastOpIdx] = "";
-      blocksToRemove.add(lastOpIdx);
-    }
-  }
-
-  // Step 5: Find BT/ET boundaries for blocks to remove
-  const removalRanges: { btStart: number; etEnd: number }[] = [];
-  for (const opIdx of blocksToRemove) {
-    const op = operators[opIdx];
-    const block = findEnclosingBTET(content, op.start, op.end);
-    if (block) {
-      removalRanges.push(block);
-    }
-  }
-
-  // Deduplicate and sort removal ranges (multiple operators may share a BT/ET block)
-  removalRanges.sort((a, b) => a.btStart - b.btStart);
-  const mergedRanges: { btStart: number; etEnd: number }[] = [];
-  for (const range of removalRanges) {
-    const last = mergedRanges[mergedRanges.length - 1];
-    if (last && range.btStart <= last.etEnd) {
-      last.etEnd = Math.max(last.etEnd, range.etEnd);
-    } else {
-      mergedRanges.push({ ...range });
-    }
-  }
-
-  // Step 6: Rebuild stream - first apply text replacements for non-removed operators (backwards)
-  let modified = content;
-  for (let i = operators.length - 1; i >= 0; i--) {
-    if (blocksToRemove.has(i)) continue; // Will be removed entirely
-    const op = operators[i];
-    const newText = opTexts[i];
-    if (newText === op.text) continue;
-
-    const escapedNewText = escapePdfString(newText);
-    let replacement: string;
-    if (op.type === "Tj") {
-      replacement = `(${escapedNewText}) Tj`;
-    } else {
-      replacement = `[(${escapedNewText})] TJ`;
-    }
-    modified = modified.substring(0, op.start) + replacement + modified.substring(op.end);
-  }
-
-  // Step 7: Remove marked BT/ET blocks (backwards to preserve positions)
-  // Recalculate removal positions relative to the modified stream by working on original content
-  // Since step 6 only modified non-removed operators, we need to recompute.
-  // Simpler approach: do removals on the original, then apply text changes.
-  // Let's redo: apply both in one pass on original content.
-
-  // Actually, let's rebuild from scratch more carefully:
-  // Build a list of all edits (replacements + removals) sorted by position descending
-  interface StreamEdit {
-    start: number;
-    end: number;
-    replacement: string;
-  }
-  const edits: StreamEdit[] = [];
-
-  // Add BT/ET block removals
-  for (const range of mergedRanges) {
-    edits.push({ start: range.btStart, end: range.etEnd, replacement: "" });
-  }
-
-  // Add operator text replacements (only for non-removed operators)
-  for (let i = 0; i < operators.length; i++) {
-    if (blocksToRemove.has(i)) continue;
-    const op = operators[i];
-    const newText = opTexts[i];
-    if (newText === op.text) continue;
-
-    const escapedNewText = escapePdfString(newText);
-    let replacement: string;
-    if (op.type === "Tj") {
-      replacement = `(${escapedNewText}) Tj`;
-    } else {
-      replacement = `[(${escapedNewText})] TJ`;
-    }
-    edits.push({ start: op.start, end: op.end, replacement });
-  }
-
-  // Sort descending by start position, with larger ranges first for same start
-  edits.sort((a, b) => b.start - a.start || b.end - a.end);
-
-  // Remove edits that are fully contained within a larger removal
-  const filteredEdits: StreamEdit[] = [];
-  for (const edit of edits) {
-    const isContained = filteredEdits.some(e => e.start <= edit.start && e.end >= edit.end && e !== edit);
-    if (!isContained) {
-      filteredEdits.push(edit);
-    }
-  }
-
-  // Apply edits to original content (backwards)
-  modified = content;
-  for (const edit of filteredEdits) {
-    modified = modified.substring(0, edit.start) + edit.replacement + modified.substring(edit.end);
-  }
-
-  return modified;
+interface PlaceholderMatch {
+  fieldName: string;
+  value: string;
+  startX: number;
+  startY: number;
+  endX: number;
+  fontSize: number;
+  pageIndex: number;
 }
 
-/** Replace {{placeholders}} in PDF bytes using pdf-lib for structural integrity */
+/**
+ * Replace {{placeholders}} in PDF using white-out and overlay technique.
+ * 1. Parse content streams for text positions
+ * 2. Find placeholders across all characters
+ * 3. Draw white rectangles over placeholder regions
+ * 4. Draw replacement text at the placeholder's position
+ */
 async function fillPDF(fileBytes: Uint8Array, fieldValues: Record<string, string>): Promise<Uint8Array> {
-  console.log("fillPDF called with field keys:", Object.keys(fieldValues));
-  console.log("fillPDF field values:", JSON.stringify(fieldValues).substring(0, 500));
-  
+  console.log("fillPDF (overlay) called with field keys:", Object.keys(fieldValues));
+
   const pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const pages = pdfDoc.getPages();
   const context = pdfDoc.context;
 
-  let totalModified = 0;
+  let totalReplacements = 0;
 
-  // Iterate all indirect objects looking for streams
-  const allRefs = context.enumerateIndirectObjects();
+  for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
+    const page = pages[pageIdx];
+    const pageRef = pdfDoc.getPage(pageIdx).ref;
 
-  for (const [ref, obj] of allRefs) {
-    // Only process stream objects
-    if (!(obj instanceof PDFRawStream)) continue;
+    // Get page content stream(s)
+    const allChars: CharPosition[] = [];
 
-    const dict = obj.dict;
-    const filterEntry = dict.get(PDFName.of("Filter"));
-    const isFlate = filterEntry?.toString() === "/FlateDecode";
-
-    // Get raw stream bytes
-    const rawBytes = obj.contents;
-
-    let decompressedText: string;
-
-    if (isFlate) {
-      const decompressedBytes = await decompressStream(rawBytes);
-      if (!decompressedBytes) continue;
-      decompressedText = new TextDecoder("latin1").decode(decompressedBytes);
-    } else {
-      decompressedText = new TextDecoder("latin1").decode(rawBytes);
+    // Enumerate all streams and find ones belonging to this page
+    const allRefs = context.enumerateIndirectObjects();
+    
+    // Get the page's Contents entry
+    const pageDict = page.node;
+    const contentsEntry = pageDict.get(PDFName.of("Contents"));
+    
+    // Collect content stream refs for this page
+    const contentRefs: any[] = [];
+    if (contentsEntry) {
+      const resolved = context.lookup(contentsEntry);
+      if (resolved && typeof resolved.size === "function") {
+        // It's an array
+        for (let ci = 0; ci < resolved.size(); ci++) {
+          contentRefs.push(resolved.get(ci));
+        }
+      } else {
+        // Single ref
+        contentRefs.push(contentsEntry);
+      }
     }
 
-    // Skip streams that clearly have no placeholder-related content
-    if (!decompressedText.includes("{")) continue;
+    // Parse each content stream for this page
+    for (const ref of contentRefs) {
+      const streamObj = context.lookup(ref);
+      if (!(streamObj instanceof PDFRawStream)) continue;
 
-    // Check if this stream has any placeholders
-    const modifiedText = replaceInContentStream(decompressedText, fieldValues);
-    if (modifiedText === decompressedText) continue;
+      const dict = streamObj.dict;
+      const filterEntry = dict.get(PDFName.of("Filter"));
+      const isFlate = filterEntry?.toString() === "/FlateDecode";
+      const rawBytes = streamObj.contents;
 
-    totalModified++;
+      let text: string;
+      if (isFlate) {
+        const decompressed = await decompressStream(rawBytes);
+        if (!decompressed) continue;
+        text = new TextDecoder("latin1").decode(decompressed);
+      } else {
+        text = new TextDecoder("latin1").decode(rawBytes);
+      }
 
-    // Encode modified text back to bytes
-    const modifiedBytes = new Uint8Array(modifiedText.length);
-    for (let i = 0; i < modifiedText.length; i++) {
-      modifiedBytes[i] = modifiedText.charCodeAt(i);
+      if (!text.includes("{")) continue;
+
+      const streamChars = parseTextWithPositions(text);
+      allChars.push(...streamChars);
     }
 
-    let finalBytes: Uint8Array;
-    if (isFlate) {
-      finalBytes = await compressStream(modifiedBytes);
-    } else {
-      finalBytes = modifiedBytes;
+    if (allChars.length === 0) continue;
+
+    // Build full text from all characters on this page
+    const fullText = allChars.map(c => c.char).join("");
+
+    // Find all placeholder matches
+    const matches: PlaceholderMatch[] = [];
+    for (const [fieldName, value] of Object.entries(fieldValues)) {
+      const placeholder = `{{${fieldName}}}`;
+      let searchFrom = 0;
+      while (true) {
+        const idx = fullText.indexOf(placeholder, searchFrom);
+        if (idx === -1) break;
+
+        const firstChar = allChars[idx];
+        const lastChar = allChars[idx + placeholder.length - 1];
+        const charWidth = firstChar.fontSize * 0.5; // approximate
+
+        matches.push({
+          fieldName,
+          value: String(value),
+          startX: firstChar.x,
+          startY: firstChar.y,
+          endX: lastChar.x + charWidth,
+          fontSize: firstChar.fontSize,
+          pageIndex: pageIdx,
+        });
+        searchFrom = idx + placeholder.length;
+      }
     }
 
-    // Replace the stream contents in-place using pdf-lib's API
-    // Create a new PDFRawStream with the same dict but new contents
-    const newDict = dict.clone(context);
-    newDict.set(PDFName.of("Length"), PDFNumber.of(finalBytes.length));
+    if (matches.length === 0) continue;
 
-    const newStream = PDFRawStream.of(newDict, finalBytes);
-    context.assign(ref, newStream);
+    console.log(`Page ${pageIdx + 1}: Found ${matches.length} placeholder(s): ${matches.map(m => m.fieldName).join(", ")}`);
+
+    // Apply white-out and overlay for each match
+    const { height: pageHeight } = page.getSize();
+
+    for (const match of matches) {
+      const rectWidth = (match.endX - match.startX) + 4;
+      const rectHeight = match.fontSize + 4;
+
+      // White-out the original text
+      page.drawRectangle({
+        x: match.startX - 1,
+        y: match.startY - 2,
+        width: rectWidth,
+        height: rectHeight,
+        color: rgb(1, 1, 1),
+        borderWidth: 0,
+      });
+
+      // Draw replacement text
+      page.drawText(match.value, {
+        x: match.startX,
+        y: match.startY,
+        size: match.fontSize,
+        font,
+        color: rgb(0, 0, 0),
+      });
+
+      totalReplacements++;
+    }
   }
 
-  console.log(`Modified ${totalModified} streams in PDF`);
-
-  // pdf-lib rebuilds the xref table on save
+  console.log(`Total replacements: ${totalReplacements}`);
   return await pdfDoc.save();
 }
 
