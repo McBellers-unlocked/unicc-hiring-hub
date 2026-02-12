@@ -1,312 +1,5 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { PDFDocument, PDFRawStream, PDFName, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
-
-/** Decompress a FlateDecode stream */
-async function decompressStream(rawBytes: Uint8Array): Promise<Uint8Array | null> {
-  for (const format of ["deflate", "raw"] as const) {
-    try {
-      const ds = new DecompressionStream(format as string);
-      const writer = ds.writable.getWriter();
-      const reader = ds.readable.getReader();
-      writer.write(rawBytes).catch(() => {});
-      writer.close().catch(() => {});
-      const chunks: Uint8Array[] = [];
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          chunks.push(value);
-        }
-      } catch { /* done */ }
-      if (chunks.length > 0) {
-        const total = chunks.reduce((a, c) => a + c.length, 0);
-        const result = new Uint8Array(total);
-        let offset = 0;
-        for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.length; }
-        return result;
-      }
-    } catch { /* try next */ }
-  }
-  // Try skipping 2-byte zlib header
-  if (rawBytes.length > 2) {
-    try {
-      const ds = new DecompressionStream("deflate" as string);
-      const writer = ds.writable.getWriter();
-      const reader = ds.readable.getReader();
-      writer.write(rawBytes.slice(2)).catch(() => {});
-      writer.close().catch(() => {});
-      const chunks: Uint8Array[] = [];
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          chunks.push(value);
-        }
-      } catch { /* done */ }
-      if (chunks.length > 0) {
-        const total = chunks.reduce((a, c) => a + c.length, 0);
-        const result = new Uint8Array(total);
-        let offset = 0;
-        for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.length; }
-        return result;
-      }
-    } catch { /* give up */ }
-  }
-  return null;
-}
-
-/**
- * Unescape PDF string escapes
- */
-function unescapePdfString(s: string): string {
-  let result = "";
-  for (let i = 0; i < s.length; i++) {
-    if (s[i] === "\\" && i + 1 < s.length) {
-      const next = s[i + 1];
-      if (next === "(") { result += "("; i++; }
-      else if (next === ")") { result += ")"; i++; }
-      else if (next === "\\") { result += "\\"; i++; }
-      else if (next === "{") { result += "{"; i++; }
-      else if (next === "}") { result += "}"; i++; }
-      else if (next === "n") { result += "\n"; i++; }
-      else if (next === "r") { result += "\r"; i++; }
-      else if (next === "t") { result += "\t"; i++; }
-      else { result += s[i]; }
-    } else {
-      result += s[i];
-    }
-  }
-  return result;
-}
-
-// ── Fast regex-based position-aware text extraction ──
-
-interface CharPosition {
-  char: string;
-  x: number;
-  y: number;
-  fontSize: number;
-}
-
-/**
- * Parse a PDF content stream using regex to extract characters with positions.
- * Uses native regex engine (much faster than manual tokenization).
- */
-function parseTextWithPositions(content: string): CharPosition[] {
-  const chars: CharPosition[] = [];
-
-  // Find each BT...ET text block using native regex
-  const btRegex = /BT\b([\s\S]*?)\bET/g;
-  let btMatch;
-
-  while ((btMatch = btRegex.exec(content)) !== null) {
-    const block = btMatch[1];
-
-    // Extract Tm (text matrix) for position: a b c d x y Tm
-    const tmMatch = block.match(/([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+Tm/);
-    if (!tmMatch) continue;
-
-    const a = parseFloat(tmMatch[1]) || 1;
-    const x = parseFloat(tmMatch[5]);
-    const y = parseFloat(tmMatch[6]);
-
-    // Extract Tf (font size)
-    const tfMatch = block.match(/\/\w+\s+([\d.]+)\s+Tf/);
-    const fontSize = tfMatch ? parseFloat(tfMatch[1]) : 12;
-
-    const charWidth = fontSize * a * 0.5;
-    let currentX = x;
-
-    // Try Tj operator first: (text) Tj
-    const tjMatch = block.match(/\(((?:[^()\\]|\\.)*)\)\s*Tj/);
-    if (tjMatch) {
-      const text = unescapePdfString(tjMatch[1]);
-      for (let i = 0; i < text.length; i++) {
-        chars.push({ char: text[i], x: currentX, y, fontSize });
-        currentX += charWidth;
-      }
-      continue;
-    }
-
-    // Try TJ array operator: [(text)kern(text)...] TJ
-    const tjArrayMatch = block.match(/\[([\s\S]*?)\]\s*TJ/);
-    if (tjArrayMatch) {
-      const inner = tjArrayMatch[1];
-      const elemRegex = /\(((?:[^()\\]|\\.)*)\)|([-\d.]+)/g;
-      let elemMatch;
-      while ((elemMatch = elemRegex.exec(inner)) !== null) {
-        if (elemMatch[1] !== undefined) {
-          const text = unescapePdfString(elemMatch[1]);
-          for (let i = 0; i < text.length; i++) {
-            chars.push({ char: text[i], x: currentX, y, fontSize });
-            currentX += charWidth;
-          }
-        } else if (elemMatch[2] !== undefined) {
-          currentX -= parseFloat(elemMatch[2]) * fontSize * a / 1000;
-        }
-      }
-    }
-  }
-
-  return chars;
-}
-
-interface PlaceholderMatch {
-  fieldName: string;
-  value: string;
-  startX: number;
-  startY: number;
-  endX: number;
-  fontSize: number;
-  pageIndex: number;
-}
-
-/**
- * Replace {{placeholders}} in PDF using white-out and overlay technique.
- * 1. Parse content streams for text positions
- * 2. Find placeholders across all characters
- * 3. Draw white rectangles over placeholder regions
- * 4. Draw replacement text at the placeholder's position
- */
-async function fillPDF(fileBytes: Uint8Array, fieldValues: Record<string, string>): Promise<Uint8Array> {
-  console.log("fillPDF (overlay) called with field keys:", Object.keys(fieldValues));
-
-  const pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const pages = pdfDoc.getPages();
-  const context = pdfDoc.context;
-
-  let totalReplacements = 0;
-
-  for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
-    const page = pages[pageIdx];
-    const pageRef = pdfDoc.getPage(pageIdx).ref;
-
-    // Get page content stream(s)
-    const allChars: CharPosition[] = [];
-
-    // Get the page's Contents entry
-    const pageDict = page.node;
-    const contentsEntry = pageDict.get(PDFName.of("Contents"));
-    
-    // Collect content stream refs for this page
-    const contentRefs: any[] = [];
-    if (contentsEntry) {
-      const resolved = context.lookup(contentsEntry);
-      if (resolved && typeof resolved.size === "function") {
-        // It's an array
-        for (let ci = 0; ci < resolved.size(); ci++) {
-          contentRefs.push(resolved.get(ci));
-        }
-      } else {
-        // Single ref
-        contentRefs.push(contentsEntry);
-      }
-    }
-
-    // Parse each content stream for this page
-    for (const ref of contentRefs) {
-      const streamObj = context.lookup(ref);
-      if (!(streamObj instanceof PDFRawStream)) continue;
-
-      const dict = streamObj.dict;
-      const filterEntry = dict.get(PDFName.of("Filter"));
-      const isFlate = filterEntry?.toString() === "/FlateDecode";
-      const rawBytes = streamObj.contents;
-
-      let text: string;
-      if (isFlate) {
-        const decompressed = await decompressStream(rawBytes);
-        if (!decompressed) continue;
-        text = new TextDecoder("latin1").decode(decompressed);
-      } else {
-        text = new TextDecoder("latin1").decode(rawBytes);
-      }
-
-      if (!text.includes("{")) continue;
-
-      const streamChars = parseTextWithPositions(text);
-      allChars.push(...streamChars);
-    }
-
-    if (allChars.length === 0) continue;
-
-    // Build full text from all characters on this page
-    const fullText = allChars.map(c => c.char).join("");
-
-    // Find all placeholder matches
-    const matches: PlaceholderMatch[] = [];
-    for (const [fieldName, value] of Object.entries(fieldValues)) {
-      const placeholder = `{{${fieldName}}}`;
-      let searchFrom = 0;
-      while (true) {
-        const idx = fullText.indexOf(placeholder, searchFrom);
-        if (idx === -1) break;
-
-        const firstChar = allChars[idx];
-        const lastChar = allChars[idx + placeholder.length - 1];
-        const charWidth = firstChar.fontSize * 0.5; // approximate
-
-        matches.push({
-          fieldName,
-          value: String(value),
-          startX: firstChar.x,
-          startY: firstChar.y,
-          endX: lastChar.x + charWidth,
-          fontSize: firstChar.fontSize,
-          pageIndex: pageIdx,
-        });
-        searchFrom = idx + placeholder.length;
-      }
-    }
-
-    if (matches.length === 0) continue;
-
-    console.log(`Page ${pageIdx + 1}: Found ${matches.length} placeholder(s): ${matches.map(m => m.fieldName).join(", ")}`);
-
-    // Apply white-out and overlay for each match
-    const { height: pageHeight } = page.getSize();
-
-    const { width: pageWidth } = page.getSize();
-
-    for (const match of matches) {
-      const availableWidth = pageWidth - match.startX - 60; // 60pt right margin
-      let fontSize = 11;
-      const textWidth = font.widthOfTextAtSize(match.value, fontSize);
-      if (textWidth > availableWidth && availableWidth > 0) {
-        fontSize = fontSize * (availableWidth / textWidth);
-      }
-
-      const rectWidth = pageWidth - match.startX - 40; // cover to near right margin
-      const rectHeight = match.fontSize + 4;
-
-      // White-out the original text
-      page.drawRectangle({
-        x: match.startX - 1,
-        y: match.startY - 2,
-        width: rectWidth,
-        height: rectHeight,
-        color: rgb(1, 1, 1),
-        borderWidth: 0,
-      });
-
-      // Draw replacement text at 11pt (or shrunk to fit)
-      page.drawText(match.value, {
-        x: match.startX,
-        y: match.startY,
-        size: fontSize,
-        font,
-        color: rgb(0, 0, 0),
-      });
-
-      totalReplacements++;
-    }
-  }
-
-  console.log(`Total replacements: ${totalReplacements}`);
-  return await pdfDoc.save();
-}
 
 /** Replace {{placeholders}} in a DOCX file */
 async function fillDOCX(fileData: Blob, fieldValues: Record<string, string>): Promise<Uint8Array> {
@@ -364,6 +57,16 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Reject PDF templates — DOCX templates should be used instead
+    if (file_path.toLowerCase().endsWith(".pdf")) {
+      return new Response(JSON.stringify({ 
+        error: "PDF templates are no longer supported. Please upload a .docx template with inline {{placeholders}} instead." 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: fileData, error: downloadError } = await supabase.storage
       .from("document-repository")
       .download(file_path);
@@ -375,29 +78,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    const isPDF = file_path.toLowerCase().endsWith(".pdf");
-    let outputBuffer: Uint8Array;
-    let contentType: string;
-    let fileExtension: string;
-
-    if (isPDF) {
-      const bytes = new Uint8Array(await fileData.arrayBuffer());
-      outputBuffer = await fillPDF(bytes, field_values);
-      contentType = "application/pdf";
-      fileExtension = "pdf";
-    } else {
-      outputBuffer = await fillDOCX(fileData, field_values);
-      contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-      fileExtension = "docx";
-    }
-
+    const outputBuffer = await fillDOCX(fileData, field_values);
     const fileName = file_path.split("/").pop()?.replace(/\.[^.]+$/, "") || "document";
 
     return new Response(outputBuffer, {
       headers: {
         ...corsHeaders,
-        "Content-Type": contentType,
-        "Content-Disposition": `attachment; filename="${fileName}_filled.${fileExtension}"`,
+        "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "Content-Disposition": `attachment; filename="${fileName}_filled.docx"`,
       },
     });
   } catch (err) {
