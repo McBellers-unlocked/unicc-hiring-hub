@@ -269,14 +269,27 @@ const AppointmentLifecycle = () => {
     setOfferLetterGenerating(true);
 
     try {
-      const res = await supabase.functions.invoke('generate-repo-document', {
-        body: { file_path: templateFilePath, field_values: offerLetterValues },
-      });
+      // Use fetch directly to preserve binary data (supabase.functions.invoke can corrupt binary responses)
+      const session = (await supabase.auth.getSession()).data.session;
+      const response = await fetch(
+        `https://cxpnvbphjpntrvvgjhli.supabase.co/functions/v1/generate-repo-document`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4cG52YnBoanBudHJ2dmdqaGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NDM0MTksImV4cCI6MjA3MjQxOTQxOX0.dRxQIYWjz1x7pD3SmSB5ft7LLMNw7hJZw9gwTLk7lAU',
+          },
+          body: JSON.stringify({ file_path: templateFilePath, field_values: offerLetterValues }),
+        }
+      );
 
-      if (res.error) throw new Error(res.error.message || 'Failed to generate document');
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody.error || 'Failed to generate document');
+      }
 
-      // res.data is a Blob when the response is binary
-      const blob = res.data instanceof Blob ? res.data : new Blob([res.data]);
+      const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
