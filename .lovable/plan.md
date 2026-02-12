@@ -1,28 +1,32 @@
 
 
-## Fix: Offer Letter Placeholder Mapping Issues
+## Fix: PDF Placeholder Replacement Not Working
 
-### Problems Found
+### Root Cause
+The edge function reports "Modified 1 streams in PDF" but placeholders remain visible. The issue is that PDF content streams often encode curly braces as **escaped characters** (`\{` instead of `{`) or split placeholders across separate text-showing operators (`Tj`). The current `replaceInContentStream` function only searches for literal `{{fieldName}}`, missing these variants.
 
-1. **Mr/Ms not working**: The database stores gender as "Woman"/"Man" (not "Female"/"Male"). The current code only checks for `=== 'Female'`, so Mr/Ms is never populated.
+### Solution
 
-2. **Missing `{{HR}}` placeholder**: The second page of the template has "copy {{Mr_Ms}} {{HR}} as your HR focal point" -- the `{{HR}}` placeholder (full HR focal point name) is not mapped at all.
+**File: `supabase/functions/generate-repo-document/index.ts`**
 
-3. **Empty string skipped**: The `set()` helper skips falsy values (`if (!value) return`), so `currency` and `amount` are silently dropped even as empty strings. These should remain editable in the dialog.
+Two changes:
 
-### Changes
+1. **Add debug logging** to print the received `field_values` and a snippet of each decompressed stream so we can see exactly what the PDF contains. This will be invaluable if further issues arise.
 
-**File: `src/pages/operations/AppointmentLifecycle.tsx`**
+2. **Handle escaped braces** in the replacement logic:
+   - Before doing placeholder searches, normalize the stream text by replacing `\{` with `{` and `\}` with `}` (PDF string escape sequences)
+   - Also search for the escaped variant `\{\{fieldName\}\}` alongside `{{fieldName}}`
+   - Handle the case where placeholders span across separate `Tj`/`TJ` operators by concatenating adjacent text operators before replacement
 
-- Fix gender check to handle "Woman"/"Man" in addition to "Female"/"Male" (and case-insensitive):
-  - "Female", "Woman", "F" -> "Ms"
-  - "Male", "Man", "M" -> "Mr"
+Specifically, in `replaceInContentStream`:
+- For each field, try replacing both `{{fieldName}}` AND `\{\{fieldName\}\}` (escaped form)
+- Add a pre-pass that normalizes escaped braces within PDF string literals before running placeholder detection
+- In the TJ array handler, unescape the extracted text parts before concatenating and checking for placeholders
 
-- Add `{{HR}}` mapping: map keys `['hr', 'hr_focal_point']` to `appointment.main_hr_focal_point` (full name, not just initials).
+In `fillPDF`:
+- Log the keys and values of `fieldValues` received
+- For each stream, log whether it contains `{{` or `\{\{` patterns (to identify which streams have placeholders)
+- Log a sample of any stream that appears to contain placeholder-like patterns
 
-- Fix `set()` to allow empty strings when intentional: change the guard to `if (value == null || value === undefined) return` so that explicit empty strings (`''`) are preserved for fields like Currency and Amount that the user fills manually.
-
-### No other file changes needed
-
-The edge function replacement logic is working correctly -- the issue is purely that field values are not being populated due to the gender mismatch and missing HR mapping.
-
+### No frontend changes needed
+The mapping logic is correct -- the database query returns the right data (confirmed: gender="Woman", staff_number="S208862", job_title="Operations Bridge Technician", etc.) and the values are properly built and sent to the edge function.
