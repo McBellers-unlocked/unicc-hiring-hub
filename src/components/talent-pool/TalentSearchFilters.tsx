@@ -30,7 +30,7 @@ interface TalentSearchFiltersProps {
 }
 
 const DIVISIONS = ["CS", "DS", "DD", "DO", "MS", "OP"];
-const DUTY_STATIONS = ["Valencia", "Brindisi", "Geneva", "New York", "Rome"];
+const DUTY_STATIONS = ["Valencia", "Brindisi", "Geneva", "Lyon", "New York", "Rome"];
 const GRADES = ["G-4", "G-5", "G-6", "G-7", "P-2", "P-3", "P-4", "P-5", "D-1", "D-2"];
 
 export function TalentSearchFilters({

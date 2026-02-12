@@ -5,6 +5,7 @@ export const LOCATIONS = [
   'Brindisi',
   'New York',
   'Geneva',
+  'Lyon',
   'Rome',
   'Remote',
 ];

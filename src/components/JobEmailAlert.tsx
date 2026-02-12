@@ -16,7 +16,7 @@ interface JobEmailAlertProps {
 }
 
 // Predefined options for all possible values
-const ALL_LOCATIONS = ['Brindisi', 'Geneva', 'New York', 'Rome', 'Valencia'];
+const ALL_LOCATIONS = ['Brindisi', 'Geneva', 'Lyon', 'New York', 'Rome', 'Valencia'];
 const ALL_CATEGORIES = ['Human Resources', 'Information Technology', 'Procurement', 'Finance', 'Legal', 'Administration'];
 const ALL_TYPES = ['Staff - Fixed term', 'Staff - Temporary', 'Consultant', 'Intern'];
 
