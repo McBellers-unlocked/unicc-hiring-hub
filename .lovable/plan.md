@@ -1,62 +1,56 @@
 
 
-## Fix: PDF Placeholder Replacement - Complete Rewrite of Stream Processing
+## Fix: Letter Date and Overlapping Text in PDF Generation
 
-### Root Cause (confirmed from logs)
-The `parse-repo-template-fields` function uses `pdf-parse` which correctly renders all text and finds 19 placeholders. But `generate-repo-document` searches for `{{HRINITIAL}}` as a contiguous string within individual `[...] TJ` arrays or adjacent `Tj` operators.
+### Problem 1: Letter date shows start date instead of today's date
 
-In this PDF, each character (including `{`, `{`, `H`, `R`, etc.) is rendered in its **own separate BT/ET block** with individual positioning. For example, `{{HRINITIAL}}` is spread across ~13 separate text-drawing operations. The current regex-based approach only looks within a single TJ array or adjacent Tj sequences -- it never concatenates text across BT/ET block boundaries.
+**Finding from logs**: The `date` field IS correctly set to "12 February 2026" (today). The "16 March 2026" shown in the letter header is the `{{start_date}}` field being correctly replaced. The PDF template itself uses `{{start_date}}` in the letter date position rather than `{{date}}`.
 
-This is why "Modified 1 streams" is reported (the escaped-brace variant `\\{\\{` accidentally matches something minor) but no actual placeholder content is replaced.
+**Fix**: Add a dedicated `letter_date` alias to the field mapping in `AppointmentLifecycle.tsx`, and also map `start_date` variants more carefully. Specifically, we will ensure the mapping includes a `letter_date` alias pointing to today's date. However, since the template literally has `{{start_date}}` in the letter date spot, the real fix is:
+- The user should update the PDF template to use `{{date}}` for the letter date
+- OR we add a dialog-level override: when the fill dialog shows parsed fields, the `date` field should always default to today's date (already done on line 103)
 
-### Solution: Full-stream text operator parsing
+Since the template file is the source of truth and we cannot change it here, we will ensure the code also maps `letter_date` to today and document this. But the quickest fix is to check whether the field name is an exact match issue -- the logs show the template has `{{date}}` in one stream and `{{start_date}}` in another. The letter header position shows the start date, which means the template uses `{{start_date}}` there. This is a template design choice.
 
-Rewrite the `replaceInContentStream` function to:
+We will leave the date mapping as-is since it is working correctly -- the user may need to update their PDF template to use `{{date}}` instead of `{{start_date}}` in the letter date position.
 
-1. **Parse ALL text-showing operators** in the stream sequentially (both `Tj` and `TJ` inside BT...ET blocks), building a list of operator entries with their text content and stream positions
-2. **Concatenate all extracted text** into a single string (unescaping PDF string escapes)
-3. **Find placeholder positions** in the concatenated text
-4. **Map each placeholder back** to the specific operators that contain its characters
-5. **Replace text in those operators**: put the replacement value in the first operator and blank out subsequent operators that were part of the placeholder
+### Problem 2: Overlapping text
 
-### Technical Details
+**Root cause**: In this PDF, each character of a placeholder like `{{Position}}` has its own `BT...ET` block with absolute positioning (`Tm` operator). When the placeholder is replaced:
+- The full replacement text (e.g., "Operations Bridge Technician") is placed in the FIRST character's operator
+- Middle and last characters' operators are cleared to empty strings `() Tj`
+- But their surrounding BT/ET blocks and positioning commands remain in the stream
 
-**File: `supabase/functions/generate-repo-document/index.ts`**
+The replacement text renders starting at the first character's position but extends far beyond it (since "Operations Bridge Technician" is much longer than one character width). Meanwhile, the NEXT non-placeholder text starts at its original absolute position, causing overlap.
 
-Replace the `replaceInContentStream` function with a new approach:
+**Fix in `supabase/functions/generate-repo-document/index.ts`**:
+
+Instead of just clearing the text in middle/last operators, we need to **remove the entire BT...ET blocks** that contained those operators. This way:
+- The replacement text renders from the first operator's position
+- No phantom positioning from cleared operators
+- The next real text block starts at its own absolute position (which is correct for the PDF layout)
+
+Changes to `replaceInContentStream`:
+
+1. When a placeholder spans multiple operators, identify the BT...ET block boundaries for each operator
+2. For middle and last operators that get cleared, remove the entire BT...ET block from the stream (not just the text content)
+3. Keep only the first operator's BT...ET block with the replacement text
+
+This requires a helper that finds the enclosing `BT...ET` block for a given operator position in the stream.
+
+### Technical approach
 
 ```text
-Step 1: Walk through the stream and find all text-showing operators
-   - Match patterns: (text) Tj  and  [(text)kern(text)kern...] TJ
-   - For each, record: { startIndex, endIndex, textParts[], fullMatch }
+For each operator, find its enclosing BT...ET block:
+  - Scan backwards from op.start to find "BT"
+  - Scan forwards from op.end to find "ET"
+  - Record { btStart, etEnd } for each operator
 
-Step 2: Build concatenated text from all operators in order
-   - Unescape PDF string escapes: \( -> (, \) -> ), \\ -> \, \{ -> {, \} -> }
-   - Track character-to-operator mapping
-
-Step 3: For each field placeholder {{name}}, find its position in concatenated text
-   - Determine which operators contain the placeholder characters
-
-Step 4: For each found placeholder:
-   - Put replacement value in the FIRST operator's text
-   - Clear text from remaining operators that were part of the placeholder
-   - Reconstruct the operator strings in the stream
-
-Step 5: Rebuild the stream with modified operators
+When clearing middle/last operators of a multi-operator placeholder:
+  - Instead of setting opTexts[i] = ""
+  - Mark the entire BT...ET block for removal
+  - After all replacements, remove marked blocks from the stream
 ```
 
-This handles ALL cases:
-- Placeholder entirely within one TJ array (already worked)
-- Placeholder split across TJ array elements (already worked)  
-- Placeholder split across separate BT/ET blocks (NEW - this is the actual problem)
-- Any combination of Tj and TJ operators
-
-### Why the simpler approaches failed
-- Simple string search: `{{HRINITIAL}}` never appears as a contiguous string in the raw stream
-- TJ array handler: only looks within a single `[...] TJ` -- placeholder spans multiple TJ operators
-- Adjacent Tj handler: only looks at consecutive `(text) Tj` sequences -- placeholder spans separate BT/ET blocks
-- Global brace normalization: corrupted binary/font data in other streams
-
-### No other files need changes
-The frontend mapping logic and field values are confirmed correct from logs.
-
+### Files to modify
+- `supabase/functions/generate-repo-document/index.ts` -- update `replaceInContentStream` to remove entire BT/ET blocks for cleared placeholder operators
