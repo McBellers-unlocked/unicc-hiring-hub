@@ -1,18 +1,33 @@
 
 
-# Add "Go to Lifecycle" Button on Contract Records
+## Fix: Blank PDF After Offer Letter Generation
 
-## What Changes
-Each row in the Contract Records table on `/admin/affiliate-history/:id` will get a new **"Go to Lifecycle"** button on the right side (in the Actions column), next to the existing Edit and Delete buttons.
+### Problem
+The downloaded PDF is blank because the current `generate-repo-document` edge function manually edits raw PDF bytes (decompressing streams, replacing text, recompressing). This corrupts the PDF's **cross-reference (xref) table** -- the internal index that tells PDF readers where each object is located. When stream sizes change after placeholder replacement, all byte offsets shift, but the xref table is never rebuilt, so the PDF viewer cannot find any content.
 
-Clicking it navigates to `/admin/affiliate-personnel/{id}/lifecycle` for that affiliate.
+### Solution
+Replace the manual byte manipulation with **pdf-lib**, a proper PDF library that handles structural integrity automatically. The approach:
 
-## Technical Details
+1. Load the PDF with `pdf-lib`'s `PDFDocument`
+2. Access each page's content stream through pdf-lib's internal API
+3. Decompress the stream data, replace `{{placeholders}}`, recompress
+4. Set the modified stream back on the page object
+5. Let `pdf-lib` save the document -- it correctly rebuilds the xref table and all byte offsets
 
-### File Modified: `src/pages/AffiliateContractHistory.tsx`
+### Technical Details
 
-1. **Import** the `ExternalLink` (or similar) icon from `lucide-react` for the button
-2. **Add a button** in the Actions cell of each table row, using a `<Link>` to `/admin/affiliate-personnel/${id}/lifecycle`
-3. The button will use `variant="ghost"` and `size="icon"` styling, consistent with the existing Edit/Delete buttons, with a tooltip or label "Go to Lifecycle"
-4. Widen the Actions column slightly (`w-32` instead of `w-24`) to accommodate the third button
+**File changed:** `supabase/functions/generate-repo-document/index.ts`
+
+- Import `pdf-lib` via `https://esm.sh/pdf-lib@1.17.1`
+- Rewrite `fillPDF()` to:
+  - Use `PDFDocument.load(fileBytes)` to parse the PDF properly
+  - Iterate over all pages, get their content stream(s) via `page.node.Contents()`
+  - For each stream: decompress (if FlateDecode), run placeholder replacement, recompress, update the stream object in-place using pdf-lib's API
+  - Also handle direct (uncompressed) streams
+  - Call `pdfDoc.save()` which outputs a valid PDF with correct xref table
+- Keep the existing `replaceInContentStream()` function for the actual text replacement logic (handles TJ arrays and split placeholders)
+- Keep `decompressStream()` and `compressStream()` helpers
+- Keep `fillDOCX()` unchanged
+
+**No frontend changes needed** -- the download flow already works correctly with binary blob responses.
 
