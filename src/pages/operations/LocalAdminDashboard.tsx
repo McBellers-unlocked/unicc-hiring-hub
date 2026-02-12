@@ -51,6 +51,23 @@ interface HrAppointment {
   linked_separation_id: string | null;
 }
 
+interface HrTransfer {
+  id: string;
+  last_name: string;
+  first_name: string;
+  operation_type: string;
+  status: string;
+  start_date: string | null;
+  end_date: string | null;
+  grade: string | null;
+  duty_station: string | null;
+  section_unit: string | null;
+  new_duty_station: string | null;
+  new_section_unit: string | null;
+  new_supervisor: string | null;
+  change_types: string[] | null;
+}
+
 const TRANSFER_TYPES = ['Transfer', 'Transfer (CB)', 'Reassignment'];
 const CB_SEPARATION_TYPES = ['Separation (CB)'];
 const CB_APPOINTMENT_TYPES = ['Appointment (CB)'];
@@ -97,15 +114,29 @@ const LocalAdminDashboard = () => {
     },
   });
 
-  const isLoading = loadingSep || loadingApt;
+  const { data: hrTransfers = [], isLoading: loadingTr } = useQuery({
+    queryKey: ['local-admin-hr-transfers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('hr_transfers')
+        .select('id, last_name, first_name, operation_type, status, start_date, end_date, grade, duty_station, section_unit, new_duty_station, new_section_unit, new_supervisor, change_types')
+        .neq('status', 'Completed')
+        .order('start_date', { ascending: true });
+      if (error) throw error;
+      return data as HrTransfer[];
+    },
+  });
 
-  // Collect unique duty stations from both tables
+  const isLoading = loadingSep || loadingApt || loadingTr;
+
+  // Collect unique duty stations from all tables
   const dutyStations = useMemo(() => {
     const set = new Set<string>();
     separations.forEach(s => s.duty_station && set.add(s.duty_station));
     appointments.forEach(a => a.duty_station && set.add(a.duty_station));
+    hrTransfers.forEach(t => t.duty_station && set.add(t.duty_station));
     return [...set].sort();
-  }, [separations, appointments]);
+  }, [separations, appointments, hrTransfers]);
 
   // Shared filter function
   const matchesFilters = (lastName: string, firstName: string, ds: string | null) => {
@@ -129,12 +160,17 @@ const LocalAdminDashboard = () => {
       }));
   }, [separations, appointments, dutyStation, search]);
 
-  // 2. Transfers
-  const transfers = useMemo(() =>
+  // 2. Transfers – merge hr_appointments transfers + hr_transfers records
+  const appointmentTransfers = useMemo(() =>
     appointments
       .filter(a => TRANSFER_TYPES.includes(a.operation_type))
       .filter(a => matchesFilters(a.last_name, a.first_name, a.duty_station)),
     [appointments, dutyStation, search]
+  );
+
+  const filteredHrTransfers = useMemo(() =>
+    hrTransfers.filter(t => matchesFilters(t.last_name, t.first_name, t.duty_station)),
+    [hrTransfers, dutyStation, search]
   );
 
   // 3. Departures (non-CB separations)
@@ -152,6 +188,8 @@ const LocalAdminDashboard = () => {
       .filter(a => matchesFilters(a.last_name, a.first_name, a.duty_station)),
     [appointments, dutyStation, search]
   );
+
+  const totalTransfers = appointmentTransfers.length + filteredHrTransfers.length;
 
   return (
     <Layout>
@@ -211,7 +249,7 @@ const LocalAdminDashboard = () => {
                 <ArrowRightLeft className="h-4 w-4 text-purple-500" /> Transfers
               </CardTitle>
             </CardHeader>
-            <CardContent><p className="text-2xl font-bold">{transfers.length}</p></CardContent>
+            <CardContent><p className="text-2xl font-bold">{totalTransfers}</p></CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
@@ -267,7 +305,7 @@ const LocalAdminDashboard = () => {
 
         {/* Transfers */}
         {!isLoading && (
-          <SectionCard title="Transfers" icon={<ArrowRightLeft className="h-5 w-5 text-purple-500" />} count={transfers.length}>
+          <SectionCard title="Transfers" icon={<ArrowRightLeft className="h-5 w-5 text-purple-500" />} count={totalTransfers}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -281,19 +319,34 @@ const LocalAdminDashboard = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transfers.length === 0 ? (
+                {totalTransfers === 0 ? (
                   <EmptyRow cols={7} />
-                ) : transfers.map(a => (
-                  <TableRow key={a.id}>
-                    <TableCell className="font-medium">{a.last_name}, {a.first_name}</TableCell>
-                    <TableCell>{a.grade ?? '—'}</TableCell>
-                    <TableCell><Badge variant="outline">{a.operation_type}</Badge></TableCell>
-                    <TableCell>{formatDate(a.tentative_date)}</TableCell>
-                    <TableCell>{a.section_unit ?? '—'}</TableCell>
-                    <TableCell>{a.duty_station ?? '—'}</TableCell>
-                    <TableCell><StatusBadge status={a.status} /></TableCell>
-                  </TableRow>
-                ))}
+                ) : (
+                  <>
+                    {appointmentTransfers.map(a => (
+                      <TableRow key={`apt-${a.id}`}>
+                        <TableCell className="font-medium">{a.last_name}, {a.first_name}</TableCell>
+                        <TableCell>{a.grade ?? '—'}</TableCell>
+                        <TableCell><Badge variant="outline">{a.operation_type}</Badge></TableCell>
+                        <TableCell>{formatDate(a.tentative_date)}</TableCell>
+                        <TableCell>{a.section_unit ?? '—'}</TableCell>
+                        <TableCell>{a.duty_station ?? '—'}</TableCell>
+                        <TableCell><StatusBadge status={a.status} /></TableCell>
+                      </TableRow>
+                    ))}
+                    {filteredHrTransfers.map(t => (
+                      <TableRow key={`tr-${t.id}`}>
+                        <TableCell className="font-medium">{t.last_name}, {t.first_name}</TableCell>
+                        <TableCell>{t.grade ?? '—'}</TableCell>
+                        <TableCell><Badge variant="outline">{t.operation_type}</Badge></TableCell>
+                        <TableCell>{formatDate(t.start_date)}</TableCell>
+                        <TableCell>{t.section_unit ?? '—'}</TableCell>
+                        <TableCell>{t.duty_station ?? '—'}</TableCell>
+                        <TableCell><StatusBadge status={t.status} /></TableCell>
+                      </TableRow>
+                    ))}
+                  </>
+                )}
               </TableBody>
             </Table>
           </SectionCard>
