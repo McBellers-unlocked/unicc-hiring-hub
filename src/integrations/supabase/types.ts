@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliate_contract_history: {
+        Row: {
+          created_at: string
+          gsm_po: string | null
+          gsm_reg_number: string | null
+          id: string
+          samsaran_po: string | null
+          samsaran_pr: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          gsm_po?: string | null
+          gsm_reg_number?: string | null
+          id?: string
+          samsaran_po?: string | null
+          samsaran_pr?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          gsm_po?: string | null
+          gsm_reg_number?: string | null
+          id?: string
+          samsaran_po?: string | null
+          samsaran_pr?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_contract_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affiliate_lifecycle_checklists: {
         Row: {
           completed: boolean | null
