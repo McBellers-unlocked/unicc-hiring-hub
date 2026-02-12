@@ -84,6 +84,10 @@ async function compressStream(data: Uint8Array): Promise<Uint8Array> {
 function replaceInContentStream(content: string, fieldValues: Record<string, string>): string {
   let modified = content;
 
+  // Pre-pass: normalize escaped braces inside PDF string literals (text between parentheses)
+  // \{ -> { and \} -> } within PDF string operators
+  modified = modified.replace(/\\\{/g, "{").replace(/\\\}/g, "}");
+
   for (const [fieldName, value] of Object.entries(fieldValues)) {
     const safeValue = String(value)
       .replace(/\\/g, "\\\\")
@@ -101,7 +105,8 @@ function replaceInContentStream(content: string, fieldValues: Record<string, str
     const partRegex = /\(([^)]*)\)/g;
     let partMatch;
     while ((partMatch = partRegex.exec(arrayContent)) !== null) {
-      textParts.push(partMatch[1]);
+      // Unescape braces within each text part
+      textParts.push(partMatch[1].replace(/\\\{/g, "{").replace(/\\\}/g, "}"));
     }
 
     let concatenated = textParts.join('');
@@ -123,11 +128,41 @@ function replaceInContentStream(content: string, fieldValues: Record<string, str
     return `[(${concatenated})] TJ`;
   });
 
+  // Also handle individual Tj operators with split placeholders
+  // Match sequences of adjacent (text) Tj operators
+  const tjSequenceRegex = /(?:\(([^)]*)\)\s*Tj\s*){2,}/g;
+  modified = modified.replace(tjSequenceRegex, (fullMatch) => {
+    const parts: string[] = [];
+    const singleTjRegex = /\(([^)]*)\)\s*Tj/g;
+    let m;
+    while ((m = singleTjRegex.exec(fullMatch)) !== null) {
+      parts.push(m[1].replace(/\\\{/g, "{").replace(/\\\}/g, "}"));
+    }
+    let concatenated = parts.join('');
+    let hasReplacement = false;
+    for (const [fieldName, value] of Object.entries(fieldValues)) {
+      const placeholder = `{{${fieldName}}}`;
+      if (concatenated.includes(placeholder)) {
+        const safeValue = String(value)
+          .replace(/\\/g, "\\\\")
+          .replace(/\(/g, "\\(")
+          .replace(/\)/g, "\\)");
+        concatenated = concatenated.split(placeholder).join(safeValue);
+        hasReplacement = true;
+      }
+    }
+    if (!hasReplacement) return fullMatch;
+    return `(${concatenated}) Tj`;
+  });
+
   return modified;
 }
 
 /** Replace {{placeholders}} in PDF bytes using pdf-lib for structural integrity */
 async function fillPDF(fileBytes: Uint8Array, fieldValues: Record<string, string>): Promise<Uint8Array> {
+  console.log("fillPDF called with field keys:", Object.keys(fieldValues));
+  console.log("fillPDF field values:", JSON.stringify(fieldValues).substring(0, 500));
+  
   const pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
   const context = pdfDoc.context;
 
@@ -155,6 +190,11 @@ async function fillPDF(fileBytes: Uint8Array, fieldValues: Record<string, string
       decompressedText = new TextDecoder("latin1").decode(decompressedBytes);
     } else {
       decompressedText = new TextDecoder("latin1").decode(rawBytes);
+    }
+
+    // Debug: check for placeholder-like patterns
+    if (decompressedText.includes("{{") || decompressedText.includes("\\{\\{")) {
+      console.log(`Stream has placeholder patterns. Sample (500 chars): ${decompressedText.substring(0, 500)}`);
     }
 
     // Check if this stream has any placeholders
