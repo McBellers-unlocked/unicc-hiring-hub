@@ -206,11 +206,6 @@ export const Layout = ({ children }: LayoutProps) => {
                             Performance Cycles
                           </Link>
                         </DropdownMenuItem>
-                        {isAdmin && (
-                          <>
-                            <DropdownMenuSeparator />
-                          </>
-                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
@@ -290,7 +285,6 @@ export const Layout = ({ children }: LayoutProps) => {
                             Contract Extensions
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
                           <Link to="/operations/documents" className="flex items-center w-full">
                             Document Repository
