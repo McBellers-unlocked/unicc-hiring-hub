@@ -1,41 +1,46 @@
 
 
-## Fix: Text Overflow and Font in PDF Placeholder Filling
+## Switch Offer Letter Templates to DOCX-Only Workflow
 
-### Problem
-When replacement text is longer than the original `{{placeholder}}`, it overflows past the right margin. Additionally, the overlay font (Helvetica at the original PDF size) doesn't match the document's Calibri 11pt style.
+### Why This Works Better
 
-### Solution
+The current PDF overlay approach fights against how PDFs work (absolute positioning, no text reflow). The DOCX filler already exists and handles text reflow perfectly -- long values like "Operations Bridge Technician" simply wrap naturally.
+
+### What Changes
+
+**1. Update your Word templates (manual step)**
+
+Re-save your offer letter templates as `.docx` files with inline placeholders. Instead of tab-aligned fields, embed placeholders directly in the sentence flow:
+
+- "Dear {{Mr_Ms}} {{surname}}"
+- "...for the position of {{job_title}} based in {{city}}, {{country}}..."
+- "...at the {{Grade}}-{{Level}} level..."
+
+Upload these to the Document Repository replacing the current PDF versions.
+
+**2. Simplify the edge function**
 
 **File: `supabase/functions/generate-repo-document/index.ts`**
 
-Modify the `fillPDF` function's text overlay logic (around lines 270-293):
+- Remove the entire `fillPDF` function and all its supporting code (decompressStream, parseTextWithPositions, the PlaceholderMatch interface -- roughly 200 lines).
+- Remove the `pdf-lib` import since it's no longer needed.
+- The main handler becomes simpler: always use the DOCX filling path. If a PDF is uploaded, return an error suggesting to use a DOCX template instead.
 
-1. **Use size 11 as default** -- Draw replacement text at 11pt (matching Calibri 11 in the source document) instead of blindly using the detected `match.fontSize` which may be inaccurate due to PDF text matrix scaling.
+**3. No frontend changes needed**
 
-2. **Auto-shrink to fit within margins** -- Before drawing, measure the replacement text width using `font.widthOfTextAtSize()`. If it would exceed the right margin (page width minus a 60pt margin), reduce the font size proportionally to fit.
+The `AppointmentLifecycle.tsx` already handles the response as a blob download and uses the file extension from the template name. DOCX downloads will work identically.
 
-3. **Wider white-out rectangle** -- Extend the white rectangle to cover from the placeholder start all the way to the right margin, ensuring no leftover original text is visible even when the replacement is shorter.
+### What About PDF Output?
 
-### Technical Details
+If PDF output is essential, there are two options to consider later:
 
-The key change in the overlay loop:
+- **Option A**: Users open the downloaded DOCX in Word/Google Docs and "Save as PDF" (zero development cost).
+- **Option B**: Integrate a conversion API like ConvertAPI or CloudConvert (adds a third-party dependency and API key, but automates the last step). This can be added later if needed.
 
-```text
-For each placeholder match:
-  1. Calculate available width = pageWidth - startX - 60 (right margin)
-  2. Start with fontSize = 11
-  3. Measure text width = font.widthOfTextAtSize(value, 11)
-  4. If text width > available width, scale down:
-     fontSize = 11 * (availableWidth / textWidth)
-  5. White-out rectangle covers from startX to right margin
-  6. Draw text at the calculated font size
-```
+### Summary of Code Changes
 
-This ensures long values like "Operations Bridge Technology" or "Valencia, Spain" will shrink slightly to fit within the page boundaries instead of overflowing. Short values will render cleanly at 11pt.
-
-### What Won't Change
-- The DOCX filling logic (already works correctly with text replacement)
-- The placeholder detection and position parsing
-- The decompression and content stream reading logic
+| File | Change |
+|------|--------|
+| `supabase/functions/generate-repo-document/index.ts` | Remove ~200 lines of PDF overlay code (fillPDF, decompressStream, parseTextWithPositions). Simplify handler to DOCX-only. |
+| Templates (manual) | Re-upload offer letter templates as `.docx` with inline placeholders |
 
