@@ -1,4 +1,5 @@
 import { useState, useMemo, Fragment } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { UserPlus, Plus, MoreHorizontal, CheckCircle, Pencil, Trash2, Calendar, Upload, ChevronRight, ChevronDown, Link2, MessageSquare } from 'lucide-react';
+import { UserPlus, Plus, MoreHorizontal, CheckCircle, Pencil, Trash2, Calendar, Upload, ChevronRight, ChevronDown, Link2, MessageSquare, ClipboardCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
@@ -76,6 +77,7 @@ interface HrAppointment {
 }
 
 const Appointments = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<HrAppointment | null>(null);
@@ -512,6 +514,10 @@ const Appointments = () => {
                                     Link to User
                                   </DropdownMenuItem>
                                 )}
+                                <DropdownMenuItem onClick={() => navigate(`/operations/appointments/${apt.id}/lifecycle`)}>
+                                  <ClipboardCheck className="h-4 w-4 mr-2" />
+                                  Manage Lifecycle
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => toggleRow(apt.id)}>
                                   <MessageSquare className="h-4 w-4 mr-2" />
                                   {isExpanded ? 'Hide Comments' : 'View Comments'}
