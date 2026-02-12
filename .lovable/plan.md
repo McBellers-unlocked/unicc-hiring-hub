@@ -1,39 +1,29 @@
 
 
-# Create Settings Page with Document Repository
+# Move Document Repository to HR Operations
 
 ## Overview
-Create a new `/settings` page (which is already linked from the Manage dropdown and Dashboard but doesn't exist yet) with a "Document Repository" subsection where admins can upload, manage, and organize shared documents.
+Move the Document Repository from its current location at `/settings` to the HR Operations section at `/operations/documents`, and update all navigation links accordingly.
 
-## What gets built
+## Changes
 
-### Settings Page (`/settings`)
-A new admin-only page with a clean layout containing:
-- Page header: "System Settings"
-- A "Document Repository" section where admins can:
-  - Upload documents (PDF, Word, Excel, PowerPoint, images) to a shared repository
-  - Categorize documents (e.g., Policies, Templates, Guidelines, Forms, SOPs, Other)
-  - View uploaded documents in a table with name, category, uploaded by, date, and size
-  - Download or delete documents
-  - Search/filter documents by name or category
+### 1. Move the page file
+- Rename/move `src/pages/Settings.tsx` to `src/pages/operations/DocumentRepository.tsx`
+- Update the page title from "System Settings" to "Document Repository"
+- Remove the "System Settings" wrapper -- keep just the Document Repository card content
 
-The document files will be stored in Supabase Storage (using the existing `application-files` bucket or a new `document-repository` bucket), and metadata will be stored in a new `document_repository` database table.
+### 2. Update routing in `src/App.tsx`
+- Remove the `/settings` route
+- Add a new route: `/operations/documents` pointing to the moved component
+- Update the import path
 
-## Technical details
+### 3. Update navigation links
+- **`src/components/Layout.tsx`** (line ~213): Change the Manage dropdown link from `/settings` to `/operations/documents`, update label to "Document Repository"
+- **`src/pages/Index.tsx`** (line ~252): Change the dashboard link from `/settings` to `/operations/documents`, update button text to "Document Repository"
 
-### New files
-- `src/pages/Settings.tsx` -- Settings page with the Document Repository subsection
+### 4. Clean up
+- Delete `src/pages/Settings.tsx` after the new file is created
 
-### Database migration
-- Create `document_repository` table with columns: `id`, `name`, `category`, `file_path`, `file_url`, `file_size`, `file_type`, `uploaded_by`, `created_at`
-- Create a `document-repository` storage bucket (public)
-- Add RLS policies: authenticated users can read, admins can insert/update/delete
-
-### Route registration
-- Add `/settings` route in `src/App.tsx` pointing to the new Settings component
-
-### Pattern followed
-- Reuses the same upload/download/delete patterns from `PortfolioSection.tsx`
-- Uses existing UI components: Layout, Card, Table, Badge, Select, Input, Button
-- Admin-only access check via `useAuth` hook
+## No database or storage changes needed
+The `document_repository` table and `document-repository` storage bucket remain unchanged.
 
