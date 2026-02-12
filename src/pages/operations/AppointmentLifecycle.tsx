@@ -217,18 +217,17 @@ const AppointmentLifecycle = () => {
     setOfferLetterValues({});
 
     try {
-      // 1. Find the template in document_repository
-      // Only match .docx files — PDF files cannot be parsed as DOCX templates
-      const { data: docRepos, error: docError } = await supabase
+      // 1. Find the template in document_repository (supports .docx and .pdf)
+      const { data: docRepo, error: docError } = await supabase
         .from('document_repository')
         .select('file_path, name')
         .ilike('name', '%Letter of Fixed-Term Appointment - G Staff%')
-        .order('created_at', { ascending: false });
-
-      const docRepo = (docRepos || []).find(d => d.name.toLowerCase().endsWith('.docx'));
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
       if (docError || !docRepo) {
-        toast.error('No .docx template found in Document Repository. Please upload the template as a Word (.docx) file.');
+        toast.error('Template not found in Document Repository.');
         setOfferLetterOpen(false);
         setOfferLetterLoading(false);
         return;
@@ -295,7 +294,8 @@ const AppointmentLifecycle = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${templateName.replace(/\.[^.]+$/, '')}_filled.docx`;
+      const ext = templateName.match(/\.([^.]+)$/)?.[1] || 'docx';
+      a.download = `${templateName.replace(/\.[^.]+$/, '')}_filled.${ext}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
