@@ -1450,7 +1450,7 @@ export default function JobRequisitionForm() {
                   const natureOfPosition = form.watch("nature_of_position");
                   const currentGrade = form.watch("grade");
                   const isGPosition = currentGrade?.startsWith('G');
-                  const baseStations = ['Brindisi', 'Geneva', 'New York', 'Rome', 'Valencia'];
+                  const baseStations = ['Brindisi', 'Geneva', 'Lyon', 'New York', 'Rome', 'Valencia'];
                   const availableStations = (natureOfPosition === 'Intern' || natureOfPosition === 'Individual Consultant') 
                     ? [...baseStations, 'Remote'] 
                     : baseStations;
