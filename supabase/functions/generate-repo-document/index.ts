@@ -3,27 +3,56 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 /** Decompress a FlateDecode stream */
 async function decompressStream(rawBytes: Uint8Array): Promise<Uint8Array | null> {
-  try {
-    const ds = new DecompressionStream("deflate");
-    const writer = ds.writable.getWriter();
-    const reader = ds.readable.getReader();
-    writer.write(rawBytes).catch(() => {});
-    writer.close().catch(() => {});
-    const chunks: Uint8Array[] = [];
+  for (const format of ["deflate", "raw"] as const) {
     try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
+      const ds = new DecompressionStream(format as string);
+      const writer = ds.writable.getWriter();
+      const reader = ds.readable.getReader();
+      writer.write(rawBytes).catch(() => {});
+      writer.close().catch(() => {});
+      const chunks: Uint8Array[] = [];
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+        }
+      } catch { /* done */ }
+      if (chunks.length > 0) {
+        const total = chunks.reduce((a, c) => a + c.length, 0);
+        const result = new Uint8Array(total);
+        let offset = 0;
+        for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.length; }
+        return result;
       }
-    } catch { /* done */ }
-    if (chunks.length === 0) return null;
-    const total = chunks.reduce((a, c) => a + c.length, 0);
-    const result = new Uint8Array(total);
-    let offset = 0;
-    for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.length; }
-    return result;
-  } catch { return null; }
+    } catch { /* try next */ }
+  }
+  // Try skipping zlib header
+  if (rawBytes.length > 2) {
+    try {
+      const ds = new DecompressionStream("deflate" as string);
+      const writer = ds.writable.getWriter();
+      const reader = ds.readable.getReader();
+      writer.write(rawBytes.slice(2)).catch(() => {});
+      writer.close().catch(() => {});
+      const chunks: Uint8Array[] = [];
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+        }
+      } catch { /* done */ }
+      if (chunks.length > 0) {
+        const total = chunks.reduce((a, c) => a + c.length, 0);
+        const result = new Uint8Array(total);
+        let offset = 0;
+        for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.length; }
+        return result;
+      }
+    } catch { /* give up */ }
+  }
+  return null;
 }
 
 /** Compress data with deflate */
@@ -49,15 +78,10 @@ async function compressStream(data: Uint8Array): Promise<Uint8Array> {
 }
 
 /** 
- * Replace {{placeholders}} inside PDF text operators.
+ * Replace {{placeholders}} in text content, handling PDF text operators.
  * Handles text split across multiple PDF string operators like ({{) (name) (}})
- * by concatenating text within TJ arrays and Tj operators.
  */
 function replaceInContentStream(content: string, fieldValues: Record<string, string>): string {
-  // Strategy: Find sequences of text operators and replace placeholders
-  // PDF uses (text) Tj and [(text) kerning (text)] TJ
-  
-  // First, try simple replacement in parenthesized strings
   let modified = content;
   
   for (const [fieldName, value] of Object.entries(fieldValues)) {
@@ -66,31 +90,23 @@ function replaceInContentStream(content: string, fieldValues: Record<string, str
       .replace(/\(/g, "\\(")
       .replace(/\)/g, "\\)");
     
-    // Replace within single parenthesized strings
     const placeholder = `{{${fieldName}}}`;
-    const escapedPlaceholder = placeholder.replace(/\{/g, "\\{").replace(/\}/g, "\\}");
-    
-    // Direct replacement in string literals
     modified = modified.split(placeholder).join(safeValue);
   }
   
-  // Handle placeholders split across TJ array elements: [({{) 0 (name) 0 (}})] TJ
-  // We need to find TJ arrays, concatenate text, replace, and rebuild
+  // Handle placeholders split across TJ array elements
   const tjArrayRegex = /\[((?:\s*\([^)]*\)\s*[-\d.]*\s*)+)\]\s*TJ/g;
   modified = modified.replace(tjArrayRegex, (fullMatch, arrayContent) => {
-    // Extract all text parts from the TJ array
-    const textParts: { text: string; original: string }[] = [];
+    const textParts: string[] = [];
     const partRegex = /\(([^)]*)\)/g;
     let partMatch;
     while ((partMatch = partRegex.exec(arrayContent)) !== null) {
-      textParts.push({ text: partMatch[1], original: partMatch[0] });
+      textParts.push(partMatch[1]);
     }
     
-    // Concatenate all text
-    let concatenated = textParts.map(p => p.text).join('');
-    
-    // Check if any placeholder exists
+    let concatenated = textParts.join('');
     let hasReplacement = false;
+    
     for (const [fieldName, value] of Object.entries(fieldValues)) {
       const placeholder = `{{${fieldName}}}`;
       if (concatenated.includes(placeholder)) {
@@ -104,8 +120,6 @@ function replaceInContentStream(content: string, fieldValues: Record<string, str
     }
     
     if (!hasReplacement) return fullMatch;
-    
-    // Rebuild as a single text string
     return `[(${concatenated})] TJ`;
   });
   
@@ -116,7 +130,6 @@ function replaceInContentStream(content: string, fieldValues: Record<string, str
 async function fillPDF(fileBytes: Uint8Array, fieldValues: Record<string, string>): Promise<Uint8Array> {
   let text = new TextDecoder("latin1").decode(fileBytes);
 
-  // Process each stream
   const streamRegex = /stream\r?\n([\s\S]*?)endstream/g;
   const replacements: { matchStart: number; matchEnd: number; newStreamBytes: Uint8Array; isCompressed: boolean }[] = [];
 
@@ -143,12 +156,10 @@ async function fillPDF(fileBytes: Uint8Array, fieldValues: Record<string, string
       decompressedText = streamContentStr;
     }
 
-    // Apply replacements
     const modifiedText = replaceInContentStream(decompressedText, fieldValues);
     
-    if (modifiedText === decompressedText) continue; // No changes
+    if (modifiedText === decompressedText) continue;
 
-    // Convert back to bytes
     const modifiedBytes = new Uint8Array(modifiedText.length);
     for (let i = 0; i < modifiedText.length; i++) {
       modifiedBytes[i] = modifiedText.charCodeAt(i);
@@ -164,12 +175,7 @@ async function fillPDF(fileBytes: Uint8Array, fieldValues: Record<string, string
     const contentStart = streamMatch.index + "stream".length + (fullMatch.charAt("stream".length) === '\r' ? 2 : 1);
     const contentEnd = streamMatch.index + fullMatch.length - "endstream".length;
 
-    replacements.push({
-      matchStart: contentStart,
-      matchEnd: contentEnd,
-      newStreamBytes: finalBytes,
-      isCompressed,
-    });
+    replacements.push({ matchStart: contentStart, matchEnd: contentEnd, newStreamBytes: finalBytes, isCompressed });
   }
 
   if (replacements.length === 0) {
@@ -203,7 +209,6 @@ async function fillPDF(fileBytes: Uint8Array, fieldValues: Record<string, string
     resultBytes = newResult;
 
     // Update /Length in the object dictionary  
-    // Search backwards from stream start for /Length
     const headerSection = new TextDecoder("latin1").decode(before.slice(Math.max(0, before.length - 500)));
     const lengthMatch = headerSection.match(/\/Length\s+(\d+)/);
     if (lengthMatch) {
