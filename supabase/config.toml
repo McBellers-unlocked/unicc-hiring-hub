@@ -104,3 +104,9 @@ verify_jwt = false
 
 [functions.generate-filled-document]
 verify_jwt = false
+
+[functions.parse-repo-template-fields]
+verify_jwt = false
+
+[functions.generate-repo-document]
+verify_jwt = false

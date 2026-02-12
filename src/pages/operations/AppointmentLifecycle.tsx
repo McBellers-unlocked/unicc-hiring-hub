@@ -7,7 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Check, Clock, AlertTriangle, MessageSquare, ChevronDown, ChevronUp, Calendar, MapPin, Briefcase } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ArrowLeft, Check, Clock, AlertTriangle, MessageSquare, ChevronDown, ChevronUp, Calendar, MapPin, Briefcase, FileEdit, Download, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, parseISO, differenceInCalendarDays } from 'date-fns';
@@ -22,12 +26,52 @@ import {
   getAppointmentStageTextColorClass,
 } from '@/lib/appointmentLifecycleConfig';
 
+// Map appointment data to common placeholder names
+const buildFieldMapping = (appointment: any): Record<string, string> => {
+  const mapping: Record<string, string> = {};
+  const set = (keys: string[], value: string | null | undefined) => {
+    if (!value) return;
+    keys.forEach(k => { mapping[k.toLowerCase()] = value; });
+  };
+
+  set(['first_name', 'firstname'], appointment.first_name);
+  set(['last_name', 'lastname', 'surname'], appointment.last_name);
+  const fullName = [appointment.first_name, appointment.last_name].filter(Boolean).join(' ');
+  if (fullName) set(['name', 'full_name', 'fullname', 'staff_name'], fullName);
+  set(['email'], appointment.email);
+  set(['grade', 'level'], appointment.grade);
+  set(['job_title', 'jobtitle', 'title', 'position'], appointment.job_title);
+  set(['duty_station', 'dutystation', 'location'], appointment.duty_station);
+  set(['section', 'unit', 'section_unit', 'sectionunit'], appointment.section_unit);
+  set(['supervisor', 'line_manager', 'linemanager', 'manager'], appointment.supervisor);
+  set(['contract_type', 'contracttype'], appointment.contract_type);
+  if (appointment.effective_date) {
+    const formatted = format(parseISO(appointment.effective_date), 'dd MMMM yyyy');
+    set(['effective_date', 'effectivedate', 'start_date', 'startdate'], formatted);
+  } else if (appointment.tentative_date) {
+    const formatted = format(parseISO(appointment.tentative_date), 'dd MMMM yyyy');
+    set(['effective_date', 'effectivedate', 'start_date', 'startdate'], formatted);
+  }
+  set(['vacancy_reference', 'vacancy_ref'], appointment.vacancy_reference);
+
+  return mapping;
+};
+
 const AppointmentLifecycle = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeStage, setActiveStage] = useState<string>(APPOINTMENT_LIFECYCLE_STAGES[0].key);
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
+
+  // Offer letter dialog state
+  const [offerLetterOpen, setOfferLetterOpen] = useState(false);
+  const [offerLetterFields, setOfferLetterFields] = useState<string[]>([]);
+  const [offerLetterValues, setOfferLetterValues] = useState<Record<string, string>>({});
+  const [offerLetterLoading, setOfferLetterLoading] = useState(false);
+  const [offerLetterGenerating, setOfferLetterGenerating] = useState(false);
+  const [templateFilePath, setTemplateFilePath] = useState<string | null>(null);
+  const [templateName, setTemplateName] = useState<string>('');
 
   // Fetch appointment
   const { data: appointment, isLoading: loadingAppointment } = useQuery({
@@ -161,6 +205,94 @@ const AppointmentLifecycle = () => {
         return <Badge className="bg-red-100 text-red-700 hover:bg-red-100"><AlertTriangle className="h-3 w-3 mr-1" />Overdue</Badge>;
       default:
         return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100"><Clock className="h-3 w-3 mr-1" />In Progress</Badge>;
+    }
+  };
+
+  // Open offer letter dialog
+  const handleOpenOfferLetter = async () => {
+    if (!appointment) return;
+    setOfferLetterOpen(true);
+    setOfferLetterLoading(true);
+    setOfferLetterFields([]);
+    setOfferLetterValues({});
+
+    try {
+      // 1. Find the template in document_repository
+      const { data: docRepo, error: docError } = await supabase
+        .from('document_repository')
+        .select('file_path, name')
+        .ilike('name', '%Letter of Fixed-Term Appointment - G Staff%')
+        .limit(1)
+        .single();
+
+      if (docError || !docRepo) {
+        toast.error('Template not found in Document Repository');
+        setOfferLetterOpen(false);
+        setOfferLetterLoading(false);
+        return;
+      }
+
+      setTemplateFilePath(docRepo.file_path);
+      setTemplateName(docRepo.name);
+
+      // 2. Parse fields from the template
+      const { data: session } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke('parse-repo-template-fields', {
+        body: { file_path: docRepo.file_path },
+      });
+
+      if (res.error) throw new Error(res.error.message || 'Failed to parse template fields');
+
+      const parsedFields: string[] = res.data?.fields || [];
+      setOfferLetterFields(parsedFields);
+
+      // 3. Auto-fill from appointment data
+      const fieldMap = buildFieldMapping(appointment);
+      const values: Record<string, string> = {};
+      for (const field of parsedFields) {
+        const normalized = field.toLowerCase().replace(/\s+/g, '_');
+        values[field] = fieldMap[normalized] || '';
+      }
+      setOfferLetterValues(values);
+    } catch (err: any) {
+      console.error('Error loading offer letter template:', err);
+      toast.error('Failed to load template: ' + (err.message || 'Unknown error'));
+      setOfferLetterOpen(false);
+    } finally {
+      setOfferLetterLoading(false);
+    }
+  };
+
+  // Generate and download the filled document
+  const handleGenerateOfferLetter = async () => {
+    if (!templateFilePath) return;
+    setOfferLetterGenerating(true);
+
+    try {
+      const res = await supabase.functions.invoke('generate-repo-document', {
+        body: { file_path: templateFilePath, field_values: offerLetterValues },
+      });
+
+      if (res.error) throw new Error(res.error.message || 'Failed to generate document');
+
+      // res.data is a Blob when the response is binary
+      const blob = res.data instanceof Blob ? res.data : new Blob([res.data]);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${templateName.replace(/\.[^.]+$/, '')}_filled.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success('Offer letter downloaded!');
+      setOfferLetterOpen(false);
+    } catch (err: any) {
+      console.error('Error generating offer letter:', err);
+      toast.error('Failed to generate document: ' + (err.message || 'Unknown error'));
+    } finally {
+      setOfferLetterGenerating(false);
     }
   };
 
@@ -306,10 +438,27 @@ const AppointmentLifecycle = () => {
                           )}>
                             {item.item_label}
                           </label>
-                          <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => toggleNotes(item.id)}>
-                            <MessageSquare className="h-3 w-3 mr-1" />
-                            {expandedNotes.has(item.id) ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            {/* Generate Offer Letter button on draft_offer_letter item */}
+                            {item.item_key === 'draft_offer_letter' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenOfferLetter();
+                                }}
+                              >
+                                <FileEdit className="h-3 w-3 mr-1" />
+                                Generate Offer Letter
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => toggleNotes(item.id)}>
+                              <MessageSquare className="h-3 w-3 mr-1" />
+                              {expandedNotes.has(item.id) ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                            </Button>
+                          </div>
                         </div>
                         {item.completed && item.completed_at && (
                           <p className="text-xs text-muted-foreground mt-1">
@@ -334,6 +483,74 @@ const AppointmentLifecycle = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Offer Letter Dialog */}
+        <Dialog open={offerLetterOpen} onOpenChange={setOfferLetterOpen}>
+          <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileEdit className="h-5 w-5" />
+                Generate Offer Letter
+              </DialogTitle>
+              {templateName && (
+                <p className="text-sm text-muted-foreground">Template: {templateName}</p>
+              )}
+            </DialogHeader>
+
+            {offerLetterLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Parsing template fields...</span>
+              </div>
+            ) : offerLetterFields.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                No fillable fields found in the template.
+              </div>
+            ) : (
+              <ScrollArea className="flex-1 pr-4">
+                <div className="space-y-4 py-2">
+                  {offerLetterFields.map((field) => (
+                    <div key={field} className="space-y-1.5">
+                      <Label htmlFor={`field-${field}`} className="text-sm font-medium capitalize">
+                        {field.replace(/_/g, ' ')}
+                      </Label>
+                      <Input
+                        id={`field-${field}`}
+                        value={offerLetterValues[field] || ''}
+                        onChange={(e) =>
+                          setOfferLetterValues(prev => ({ ...prev, [field]: e.target.value }))
+                        }
+                        placeholder={`Enter ${field.replace(/_/g, ' ')}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOfferLetterOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleGenerateOfferLetter}
+                disabled={offerLetterLoading || offerLetterGenerating || offerLetterFields.length === 0}
+              >
+                {offerLetterGenerating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Filled Document
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
