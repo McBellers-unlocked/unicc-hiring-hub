@@ -1,83 +1,99 @@
 
 
-# Document Templates with Fillable Fields
+# Create /operations/transfers Page
 
 ## Overview
-Enhance the Document Repository to support **document templates** -- uploaded Word/PDF files that contain placeholder fields (like `{{recipient_name}}`, `{{date}}`). Users can select a template, fill in the fields via a form, and download a completed document.
-
-## How It Works
-
-1. **Admin uploads a template** (Word .docx file) with placeholders like `{{recipient_name}}`, `{{position_title}}`, `{{start_date}}`
-2. The system **scans the file** to detect all `{{placeholder}}` fields and stores them as metadata
-3. Any user can **select a template**, see the detected fields as a form, fill them in, and **download the completed document** with all placeholders replaced
-
-Note: PDF templates are supported for viewing/downloading but placeholder replacement works best with `.docx` files since PDFs are not easily editable programmatically.
+Add a new "Transfers" page under HR Operations, following the exact same architecture as the existing STDAs and Separations pages. This page tracks staff reassignments, STDAs, OICs, transfers, and their extensions.
 
 ## Database Changes
 
-### New table: `document_templates`
+### New table: `hr_transfers`
 | Column | Type | Description |
 |--------|------|-------------|
-| id | uuid (PK) | Template ID |
-| name | text | Template display name |
-| category | text | Category (Letters, Contracts, General, etc.) |
-| description | text | Optional description |
-| file_path | text | Path in Supabase storage |
-| file_type | text | MIME type |
-| fields | jsonb | Array of detected placeholder field names |
-| uploaded_by | uuid | User who uploaded |
-| created_at | timestamptz | Upload timestamp |
+| id | uuid (PK) | Auto-generated |
+| user_id | uuid (nullable) | Link to users table |
+| last_name | text (required) | Staff last name |
+| first_name | text (required) | Staff first name |
+| email | text | Staff email |
+| staff_number | text | Staff number |
+| operation_type | text (required) | Reassignment, STDA, STDA Extension, OIC, OIC Extension, Transfer |
+| status | text (required, default "Not started") | Not started, In progress, Pending action (UNICC), Pending Action (External), Cancelled, Completed, Follow up |
+| start_date | date | Transfer start date |
+| end_date | date | Transfer end date |
+| job_title | text | Auto-filled from staff |
+| grade | text | Auto-filled from staff |
+| contract_type | text | Auto-filled from staff |
+| duty_station | text | Auto-filled from staff |
+| section_unit | text | Auto-filled from staff |
+| supervisor | text | Auto-filled from staff |
+| main_hr_focal_point | text | HR focal point |
+| comments | text | General comments |
+| created_at | timestamptz | Record creation time |
+| updated_at | timestamptz | Auto-updated |
 
-RLS: All authenticated users can read; only Admins can insert/delete.
+RLS: Authenticated users can SELECT, INSERT, UPDATE, DELETE (same pattern as `hr_stdas`).
 
-## Implementation Steps
+### New table: `hr_transfer_comments`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid (PK) | Auto-generated |
+| transfer_id | uuid (FK to hr_transfers) | Parent record |
+| comment_text | text (required) | Comment body (supports @mentions) |
+| author_id | uuid | Comment author |
+| created_at | timestamptz | Timestamp |
 
-### 1. Database migration
-- Create `document_templates` table with RLS policies
+RLS: Same as other comment tables -- authenticated users can read/write.
 
-### 2. Edge function: `parse-template-fields`
-- Accepts a `.docx` file path from storage
-- Reads the file content, scans for `{{...}}` placeholders using regex
-- Returns the list of detected field names
-- Stores them in the `fields` column
+## New Files
 
-### 3. Edge function: `generate-filled-document`
-- Accepts a template ID and a key-value map of field values
-- Reads the `.docx` template from storage
-- Replaces all `{{placeholder}}` occurrences with provided values
-- Returns the filled document as a downloadable `.docx` file
+### 1. `src/pages/operations/Transfers.tsx`
+Main page component following the STDAs page pattern:
+- Header with icon and "Add Transfer" button
+- Stats cards: Total, In Progress, Pending, Completed, Cancelled, Follow Up
+- Filters bar (search, operation type, status, duty station, HR focal point)
+- Expandable table with columns: Name, Type, Start Date, End Date, Status, Location, HR Focal Point, Actions
+- Expanded row shows: grade, contract type, unit, supervisor, comments thread
+- Row actions: Edit, Mark Complete, Delete
+- Staff link badge showing whether record is linked to a user profile
 
-### 4. Update Document Repository page
-- Add a **second tab** or section: "Document Templates" alongside the existing "Document Repository"
-- **Template upload** (Admin): Upload a `.docx` file, system auto-detects fields, admin reviews and saves
-- **Template list**: Shows all available templates with name, category, field count
-- **"Use Template" button**: Opens a dialog/form with all detected fields as text inputs
-- **"Download" button**: Calls the edge function and downloads the filled document
+### 2. `src/components/operations/TransferForm.tsx`
+Dialog form with two tabs (Person, Details):
+- **Person tab**: Staff search combobox (auto-fills all fields), last name, first name, email, staff number, operation type dropdown, status dropdown
+- **Details tab**: Job title, grade, contract type, duty station, division/unit cascading selectors, supervisor search, start date, end date, HR focal point, comments
+- Auto-fills supervisor, unit, division, duty station from staff data (same logic as Separations)
 
-### 5. UI Flow
-- Page has two tabs: **Documents** (existing file repository) and **Templates** (new)
-- Templates tab shows a card grid or table of available templates
-- Clicking "Use Template" opens a dialog with:
-  - Template name and description at the top
-  - Auto-generated form fields for each placeholder (labeled with human-readable names derived from the placeholder, e.g. `recipient_name` becomes "Recipient Name")
-  - A "Download Filled Document" button that generates and downloads the `.docx`
+### 3. `src/components/operations/TransferFilters.tsx`
+Filter bar component with: search input, operation type dropdown, status dropdown, duty station dropdown, HR focal point dropdown, clear button.
 
-## Technical Details
+### 4. `src/components/operations/TransferStatusBadge.tsx`
+Status badge component with color coding:
+- Not started: outline
+- In progress: blue
+- Pending action (UNICC): amber
+- Pending Action (External): orange
+- Cancelled: muted outline
+- Completed: green
+- Follow up: purple
 
-### Placeholder format
-Templates use double-curly-brace syntax: `{{field_name}}`. Field names use snake_case and are converted to Title Case for display (e.g., `{{start_date}}` displays as "Start Date").
+Operation type badges with distinct colors for each type (Reassignment, STDA, STDA Extension, OIC, OIC Extension, Transfer).
 
-### Edge function: `parse-template-fields`
-- Uses a lightweight DOCX parser (docx files are ZIP archives containing XML)
-- Extracts all text content from `word/document.xml`
-- Regex scans for `\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}` patterns
-- Returns deduplicated list of field names
+### 5. `src/components/operations/TransferComments.tsx`
+Threaded comments with @mention support, following the STDAComments pattern exactly.
 
-### Edge function: `generate-filled-document`
-- Reads the template `.docx` from storage
-- Performs string replacement on the XML content inside the ZIP
-- Returns the modified `.docx` as a binary response for download
+## Modified Files
 
-### Categories updated
-Template categories: "Letters", "Contracts", "Certificates", "Memos", "General"
+### `src/App.tsx`
+- Import and add route: `/operations/transfers` mapped to `Transfers` component
+
+### `src/components/Layout.tsx`
+- Add "Transfers" link to the HR Operations dropdown menu (after "STDAs")
+
+## Technical Notes
+
+- The `StaffSearchCombobox` component is reused for staff and supervisor search
+- `detectDivisionFromUnit` is used for the cascading division/unit UI logic
+- `HR_FOCAL_POINTS` from `src/lib/hrFocalPoints.ts` is used for the focal point dropdown
+- `GRADES`, `CONTRACT_TYPES`, `LOCATIONS`, `DIVISIONS`, `DIVISION_UNITS` from `organizationConstants.ts` are reused
+- The `selectedUserId` pattern from Separations/STDAs is followed for staff link persistence
+- Comments use the `MentionableTextarea` component for @mention support
 
