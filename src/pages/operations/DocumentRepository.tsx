@@ -26,7 +26,7 @@ interface DocumentRecord {
   uploader_name?: string;
 }
 
-const Settings = () => {
+const DocumentRepository = () => {
   const { user, userRoles } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -157,8 +157,8 @@ const Settings = () => {
     <Layout>
       <div className="container mx-auto py-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">System Settings</h1>
-          <p className="text-muted-foreground">Manage system-wide configurations and shared resources.</p>
+          <h1 className="text-2xl font-bold text-foreground">Document Repository</h1>
+          <p className="text-muted-foreground">Upload and manage shared organizational documents.</p>
         </div>
 
         {/* Document Repository Section */}
@@ -283,4 +283,4 @@ const Settings = () => {
   );
 };
 
-export default Settings;
+export default DocumentRepository;
