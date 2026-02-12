@@ -1,4 +1,5 @@
 import { useState, useMemo, Fragment } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +18,7 @@ import { TransferFilters, TransferFiltersState } from '@/components/operations/T
 import { TransferForm, TransferFormData } from '@/components/operations/TransferForm';
 import { TransferStatusBadge, TransferTypeBadge, TransferUserLinkBadge, calculateDaysUntilEnd } from '@/components/operations/TransferStatusBadge';
 import { TransferComments, LastTransferCommentPreview } from '@/components/operations/TransferComments';
+import { Badge } from '@/components/ui/badge';
 
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -41,6 +43,10 @@ interface HrTransfer {
   supervisor: string | null;
   main_hr_focal_point: string | null;
   comments: string | null;
+  change_types: string[] | null;
+  new_duty_station: string | null;
+  new_section_unit: string | null;
+  new_supervisor: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -326,6 +332,35 @@ const Transfers = () => {
                                     <p><span className="text-muted-foreground">Supervisor:</span> {transfer.supervisor || '—'}</p>
                                   </div>
                                 </div>
+                                {/* Change Types for Transfer/Reassignment */}
+                                {transfer.change_types && transfer.change_types.length > 0 && (
+                                  <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                                    <h4 className="text-sm font-semibold">Changes</h4>
+                                    <div className="flex flex-wrap gap-2 mb-2">
+                                      {transfer.change_types.map(ct => {
+                                        const labels: Record<string, string> = { unit_division: 'Unit / Division', supervisor: 'Supervisor', duty_station: 'Duty Station' };
+                                        return <Badge key={ct} variant="secondary">{labels[ct] || ct} Change</Badge>;
+                                      })}
+                                    </div>
+                                    <div className="text-sm space-y-1">
+                                      {transfer.change_types.includes('unit_division') && transfer.new_section_unit && (
+                                        <p className="flex items-center gap-1">
+                                          <span className="text-muted-foreground">Unit:</span> {transfer.section_unit || '—'} <ArrowRight className="h-3 w-3 text-muted-foreground" /> <span className="font-medium">{transfer.new_section_unit}</span>
+                                        </p>
+                                      )}
+                                      {transfer.change_types.includes('supervisor') && transfer.new_supervisor && (
+                                        <p className="flex items-center gap-1">
+                                          <span className="text-muted-foreground">Supervisor:</span> {transfer.supervisor || '—'} <ArrowRight className="h-3 w-3 text-muted-foreground" /> <span className="font-medium">{transfer.new_supervisor}</span>
+                                        </p>
+                                      )}
+                                      {transfer.change_types.includes('duty_station') && transfer.new_duty_station && (
+                                        <p className="flex items-center gap-1">
+                                          <span className="text-muted-foreground">Duty Station:</span> {transfer.duty_station || '—'} <ArrowRight className="h-3 w-3 text-muted-foreground" /> <span className="font-medium">{transfer.new_duty_station}</span>
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                                 {transfer.comments && (
                                   <div className="space-y-2 md:col-span-2 lg:col-span-3">
                                     <h4 className="text-sm font-semibold">Comments</h4>
@@ -353,7 +388,7 @@ const Transfers = () => {
         open={formOpen}
         onOpenChange={handleCloseForm}
         onSubmit={handleFormSubmit}
-        initialData={editingTransfer ? { ...editingTransfer, selectedUserId: editingTransfer.user_id } : undefined}
+        initialData={editingTransfer ? { ...editingTransfer, selectedUserId: editingTransfer.user_id, change_types: editingTransfer.change_types || [] } : undefined}
         isLoading={createMutation.isPending || updateMutation.isPending}
       />
 

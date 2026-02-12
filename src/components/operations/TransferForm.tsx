@@ -13,7 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, User } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2, User, ArrowRight } from 'lucide-react';
 import { StaffSearchCombobox, StaffMember, parseName } from './StaffSearchCombobox';
 import { Badge } from '@/components/ui/badge';
 import { HR_FOCAL_POINTS } from '@/lib/hrFocalPoints';
@@ -36,6 +37,10 @@ const transferSchema = z.object({
   supervisor: z.string().optional().nullable().or(z.literal('')),
   main_hr_focal_point: z.string().optional().nullable().or(z.literal('')),
   comments: z.string().optional().nullable().or(z.literal('')),
+  change_types: z.array(z.string()).optional().nullable(),
+  new_duty_station: z.string().optional().nullable().or(z.literal('')),
+  new_section_unit: z.string().optional().nullable().or(z.literal('')),
+  new_supervisor: z.string().optional().nullable().or(z.literal('')),
 });
 
 export type TransferFormData = z.infer<typeof transferSchema> & {
@@ -53,11 +58,19 @@ interface TransferFormProps {
 const OPERATION_TYPES = ['Reassignment', 'STDA', 'STDA Extension', 'OIC', 'OIC Extension', 'Transfer'];
 const STATUSES = ['Not started', 'In progress', 'Pending action (UNICC)', 'Pending Action (External)', 'Cancelled', 'Completed', 'Follow up'];
 
+const CHANGE_TYPE_OPTIONS = [
+  { value: 'unit_division', label: 'Unit / Division Change' },
+  { value: 'supervisor', label: 'Supervisor Change' },
+  { value: 'duty_station', label: 'Duty Station Change' },
+] as const;
+
 export const TransferForm = ({ open, onOpenChange, onSubmit, initialData, isLoading }: TransferFormProps) => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [linkedStaffName, setLinkedStaffName] = useState<string | null>(null);
   const [selectedDivision, setSelectedDivision] = useState<string>('');
   const [supervisorStaffName, setSupervisorStaffName] = useState<string | null>(null);
+  const [newDivision, setNewDivision] = useState<string>('');
+  const [newSupervisorName, setNewSupervisorName] = useState<string | null>(null);
 
   const defaults = {
     last_name: '', first_name: '', email: '', staff_number: '',
@@ -65,6 +78,7 @@ export const TransferForm = ({ open, onOpenChange, onSubmit, initialData, isLoad
     start_date: '', end_date: '', job_title: '', grade: '',
     contract_type: '', duty_station: '', section_unit: '',
     supervisor: '', main_hr_focal_point: '', comments: '',
+    change_types: [] as string[], new_duty_station: '', new_section_unit: '', new_supervisor: '',
   };
 
   const form = useForm<TransferFormData>({
@@ -72,19 +86,27 @@ export const TransferForm = ({ open, onOpenChange, onSubmit, initialData, isLoad
     defaultValues: defaults,
   });
 
+  const operationType = form.watch('operation_type');
+  const changeTypes = form.watch('change_types') || [];
+  const isTransferOrReassignment = operationType === 'Transfer' || operationType === 'Reassignment';
+
   useEffect(() => {
     if (open && initialData) {
-      form.reset({ ...defaults, ...Object.fromEntries(Object.entries(initialData).map(([k, v]) => [k, v || ''])) });
+      form.reset({ ...defaults, ...Object.fromEntries(Object.entries(initialData).map(([k, v]) => [k, v || (k === 'change_types' ? [] : '')])) });
       setSelectedUserId(initialData.selectedUserId || null);
       setLinkedStaffName(initialData.first_name && initialData.last_name ? `${initialData.first_name} ${initialData.last_name}` : null);
       setSelectedDivision(detectDivisionFromUnit(initialData.section_unit || '') || '');
       setSupervisorStaffName(initialData.supervisor || null);
+      setNewDivision(detectDivisionFromUnit(initialData.new_section_unit || '') || '');
+      setNewSupervisorName(initialData.new_supervisor || null);
     } else if (open && !initialData) {
       form.reset(defaults);
       setSelectedUserId(null);
       setLinkedStaffName(null);
       setSelectedDivision('');
       setSupervisorStaffName(null);
+      setNewDivision('');
+      setNewSupervisorName(null);
     }
   }, [open, initialData, form]);
 
@@ -116,7 +138,37 @@ export const TransferForm = ({ open, onOpenChange, onSubmit, initialData, isLoad
     if (staff.duty_station) form.setValue('duty_station', staff.duty_station);
   };
 
+  const handleNewSupervisorSelect = (staff: StaffMember) => {
+    form.setValue('new_supervisor', staff.name);
+    setNewSupervisorName(staff.name);
+  };
+
+  const toggleChangeType = (value: string) => {
+    const current = form.getValues('change_types') || [];
+    const updated = current.includes(value) ? current.filter(v => v !== value) : [...current, value];
+    form.setValue('change_types', updated);
+    // Clear new values when unchecked
+    if (!updated.includes('unit_division')) {
+      form.setValue('new_section_unit', '');
+      setNewDivision('');
+    }
+    if (!updated.includes('supervisor')) {
+      form.setValue('new_supervisor', '');
+      setNewSupervisorName(null);
+    }
+    if (!updated.includes('duty_station')) {
+      form.setValue('new_duty_station', '');
+    }
+  };
+
   const handleSubmit = async (data: TransferFormData) => {
+    // Clear change type fields if not Transfer/Reassignment
+    if (data.operation_type !== 'Transfer' && data.operation_type !== 'Reassignment') {
+      data.change_types = null;
+      data.new_duty_station = null;
+      data.new_section_unit = null;
+      data.new_supervisor = null;
+    }
     await onSubmit({ ...data, selectedUserId });
     form.reset();
     setSelectedUserId(null);
@@ -223,55 +275,181 @@ export const TransferForm = ({ open, onOpenChange, onSubmit, initialData, isLoad
                     </FormItem>
                   )} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField control={form.control} name="duty_station" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Duty Station</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger></FormControl>
-                        <SelectContent>{LOCATIONS.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <div className="space-y-2">
-                    <FormLabel>Division</FormLabel>
-                    <Select value={selectedDivision} onValueChange={(v) => {
-                      setSelectedDivision(v);
-                      form.setValue('section_unit', '');
-                    }}>
-                      <SelectTrigger><SelectValue placeholder="Select division" /></SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(DIVISIONS).map(([code, name]) => (
-                          <SelectItem key={code} value={code}>{name}</SelectItem>
+
+                {/* Transfer/Reassignment: Change Type Section */}
+                {isTransferOrReassignment ? (
+                  <>
+                    {/* Current Details (read-only) */}
+                    <div className="rounded-md border p-4 bg-muted/30 space-y-2">
+                      <h4 className="text-sm font-semibold text-muted-foreground">Current Details</h4>
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                        <div><span className="text-muted-foreground">Duty Station:</span> {form.getValues('duty_station') || '—'}</div>
+                        <div><span className="text-muted-foreground">Supervisor:</span> {form.getValues('supervisor') || '—'}</div>
+                        <div><span className="text-muted-foreground">Division:</span> {selectedDivision ? DIVISIONS[selectedDivision] || selectedDivision : '—'}</div>
+                        <div><span className="text-muted-foreground">Unit:</span> {form.getValues('section_unit') || '—'}</div>
+                      </div>
+                    </div>
+
+                    {/* What is changing? */}
+                    <div className="space-y-3">
+                      <FormLabel>What is changing?</FormLabel>
+                      <div className="flex flex-wrap gap-4">
+                        {CHANGE_TYPE_OPTIONS.map(opt => (
+                          <div key={opt.value} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`change-${opt.value}`}
+                              checked={changeTypes.includes(opt.value)}
+                              onCheckedChange={() => toggleChangeType(opt.value)}
+                            />
+                            <label htmlFor={`change-${opt.value}`} className="text-sm cursor-pointer">{opt.label}</label>
+                          </div>
                         ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                {selectedDivision && (
-                  <FormField control={form.control} name="section_unit" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Section / Unit</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select unit" /></SelectTrigger></FormControl>
-                        <SelectContent>
-                          {(DIVISION_UNITS[selectedDivision] || []).map(u => (
-                            <SelectItem key={u} value={u}>{u}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
+                      </div>
+                    </div>
+
+                    {/* New Unit/Division */}
+                    {changeTypes.includes('unit_division') && (
+                      <div className="rounded-md border p-4 space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Badge variant="outline">Unit / Division Change</Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <FormLabel>New Division</FormLabel>
+                            <Select value={newDivision} onValueChange={(v) => {
+                              setNewDivision(v);
+                              form.setValue('new_section_unit', '');
+                            }}>
+                              <SelectTrigger><SelectValue placeholder="Select new division" /></SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(DIVISIONS).map(([code, name]) => (
+                                  <SelectItem key={code} value={code}>{name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {newDivision && (
+                            <FormField control={form.control} name="new_section_unit" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>New Unit</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value || ''}>
+                                  <FormControl><SelectTrigger><SelectValue placeholder="Select new unit" /></SelectTrigger></FormControl>
+                                  <SelectContent>
+                                    {(DIVISION_UNITS[newDivision] || []).map(u => (
+                                      <SelectItem key={u} value={u}>{u}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
+                          )}
+                        </div>
+                        {form.getValues('section_unit') && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            {form.getValues('section_unit')} <ArrowRight className="h-3 w-3" /> {form.getValues('new_section_unit') || '(not selected)'}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* New Supervisor */}
+                    {changeTypes.includes('supervisor') && (
+                      <div className="rounded-md border p-4 space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Badge variant="outline">Supervisor Change</Badge>
+                        </div>
+                        <div className="space-y-2">
+                          <FormLabel>New Supervisor</FormLabel>
+                          <StaffSearchCombobox onSelect={handleNewSupervisorSelect} selectedStaffId={null} />
+                          {newSupervisorName && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              {form.getValues('supervisor') || '(none)'} <ArrowRight className="h-3 w-3" /> {newSupervisorName}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* New Duty Station */}
+                    {changeTypes.includes('duty_station') && (
+                      <div className="rounded-md border p-4 space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Badge variant="outline">Duty Station Change</Badge>
+                        </div>
+                        <FormField control={form.control} name="new_duty_station" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>New Duty Station</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                              <FormControl><SelectTrigger><SelectValue placeholder="Select new duty station" /></SelectTrigger></FormControl>
+                              <SelectContent>{LOCATIONS.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                        {form.getValues('duty_station') && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            {form.getValues('duty_station')} <ArrowRight className="h-3 w-3" /> {form.getValues('new_duty_station') || '(not selected)'}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  /* Non-Transfer/Reassignment: existing editable fields */
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField control={form.control} name="duty_station" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Duty Station</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || ''}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger></FormControl>
+                            <SelectContent>{LOCATIONS.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      <div className="space-y-2">
+                        <FormLabel>Division</FormLabel>
+                        <Select value={selectedDivision} onValueChange={(v) => {
+                          setSelectedDivision(v);
+                          form.setValue('section_unit', '');
+                        }}>
+                          <SelectTrigger><SelectValue placeholder="Select division" /></SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(DIVISIONS).map(([code, name]) => (
+                              <SelectItem key={code} value={code}>{name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    {selectedDivision && (
+                      <FormField control={form.control} name="section_unit" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Section / Unit</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || ''}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select unit" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              {(DIVISION_UNITS[selectedDivision] || []).map(u => (
+                                <SelectItem key={u} value={u}>{u}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    )}
+                    <div className="space-y-2">
+                      <FormLabel>Supervisor</FormLabel>
+                      <StaffSearchCombobox onSelect={handleSupervisorSelect} selectedStaffId={null} />
+                      {supervisorStaffName && (
+                        <p className="text-xs text-muted-foreground">Selected: {supervisorStaffName}</p>
+                      )}
+                    </div>
+                  </>
                 )}
-                <div className="space-y-2">
-                  <FormLabel>Supervisor</FormLabel>
-                  <StaffSearchCombobox onSelect={handleSupervisorSelect} selectedStaffId={null} />
-                  {supervisorStaffName && (
-                    <p className="text-xs text-muted-foreground">Selected: {supervisorStaffName}</p>
-                  )}
-                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="start_date" render={({ field }) => (
                     <FormItem><FormLabel>Start Date</FormLabel><FormControl><Input {...field} type="date" /></FormControl><FormMessage /></FormItem>

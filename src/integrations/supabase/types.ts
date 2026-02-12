@@ -2128,6 +2128,7 @@ export type Database = {
       }
       hr_transfers: {
         Row: {
+          change_types: string[] | null
           comments: string | null
           contract_type: string | null
           created_at: string
@@ -2140,6 +2141,9 @@ export type Database = {
           job_title: string | null
           last_name: string
           main_hr_focal_point: string | null
+          new_duty_station: string | null
+          new_section_unit: string | null
+          new_supervisor: string | null
           operation_type: string
           section_unit: string | null
           staff_number: string | null
@@ -2150,6 +2154,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          change_types?: string[] | null
           comments?: string | null
           contract_type?: string | null
           created_at?: string
@@ -2162,6 +2167,9 @@ export type Database = {
           job_title?: string | null
           last_name: string
           main_hr_focal_point?: string | null
+          new_duty_station?: string | null
+          new_section_unit?: string | null
+          new_supervisor?: string | null
           operation_type: string
           section_unit?: string | null
           staff_number?: string | null
@@ -2172,6 +2180,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          change_types?: string[] | null
           comments?: string | null
           contract_type?: string | null
           created_at?: string
@@ -2184,6 +2193,9 @@ export type Database = {
           job_title?: string | null
           last_name?: string
           main_hr_focal_point?: string | null
+          new_duty_station?: string | null
+          new_section_unit?: string | null
+          new_supervisor?: string | null
           operation_type?: string
           section_unit?: string | null
           staff_number?: string | null
