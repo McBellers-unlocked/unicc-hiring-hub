@@ -122,46 +122,103 @@ interface TextOperator {
 }
 
 /**
- * Parse all text-showing operators from a PDF content stream.
+ * Extract the content of a PDF string literal starting at pos (which points to the opening '(').
+ * Returns the raw content (with escapes intact) and the index after the closing ')'.
+ */
+function extractPdfString(content: string, pos: number): { raw: string; end: number } | null {
+  if (content[pos] !== "(") return null;
+  let depth = 1;
+  let i = pos + 1;
+  const len = content.length;
+  while (i < len && depth > 0) {
+    const ch = content[i];
+    if (ch === "\\") { i += 2; continue; } // skip escaped char
+    if (ch === "(") depth++;
+    else if (ch === ")") depth--;
+    i++;
+  }
+  if (depth !== 0) return null;
+  return { raw: content.substring(pos + 1, i - 1), end: i };
+}
+
+/**
+ * Parse all text-showing operators from a PDF content stream using manual scanning.
  * Finds both (string) Tj and [(string)kern...] TJ operators.
+ * O(n) complexity, no regex backtracking.
  */
 function parseTextOperators(content: string): TextOperator[] {
   const operators: TextOperator[] = [];
+  const len = content.length;
+  let i = 0;
 
-  // Match (text) Tj operators
-  const tjRegex = /\(([^)]*(?:\\.[^)]*)*)\)\s*Tj/g;
-  let m;
-  while ((m = tjRegex.exec(content)) !== null) {
-    operators.push({
-      start: m.index,
-      end: m.index + m[0].length,
-      fullMatch: m[0],
-      text: unescapePdfString(m[1]),
-      type: "Tj",
-    });
-  }
+  while (i < len) {
+    const ch = content[i];
 
-  // Match [...] TJ operators - extract text parts from array
-  const tjArrayRegex = /\[((?:[^[\]]*?\([^)]*(?:\\.[^)]*)*\)[^[\]]*?)+)\]\s*TJ/g;
-  while ((m = tjArrayRegex.exec(content)) !== null) {
-    const arrayContent = m[1];
-    const parts: string[] = [];
-    const partRegex = /\(([^)]*(?:\\.[^)]*)*)\)/g;
-    let pm;
-    while ((pm = partRegex.exec(arrayContent)) !== null) {
-      parts.push(unescapePdfString(pm[1]));
+    // Look for '(' - start of a PDF string that might be followed by Tj
+    if (ch === "(") {
+      const extracted = extractPdfString(content, i);
+      if (!extracted) { i++; continue; }
+      // Skip whitespace after the closing ')'
+      let j = extracted.end;
+      while (j < len && (content[j] === " " || content[j] === "\r" || content[j] === "\n" || content[j] === "\t")) j++;
+      // Check for "Tj" operator
+      if (j + 1 < len && content[j] === "T" && content[j + 1] === "j" && (j + 2 >= len || !/[a-zA-Z]/.test(content[j + 2]))) {
+        operators.push({
+          start: i,
+          end: j + 2,
+          fullMatch: content.substring(i, j + 2),
+          text: unescapePdfString(extracted.raw),
+          type: "Tj",
+        });
+        i = j + 2;
+        continue;
+      }
+      i = extracted.end;
+      continue;
     }
-    operators.push({
-      start: m.index,
-      end: m.index + m[0].length,
-      fullMatch: m[0],
-      text: parts.join(""),
-      type: "TJ",
-    });
+
+    // Look for '[' - start of a TJ array
+    if (ch === "[") {
+      const arrStart = i;
+      i++; // skip '['
+      const parts: string[] = [];
+      let valid = true;
+      // Scan array contents
+      while (i < len && content[i] !== "]") {
+        if (content[i] === "(") {
+          const extracted = extractPdfString(content, i);
+          if (!extracted) { valid = false; break; }
+          parts.push(unescapePdfString(extracted.raw));
+          i = extracted.end;
+        } else {
+          i++;
+        }
+      }
+      if (!valid || i >= len) { i = arrStart + 1; continue; }
+      i++; // skip ']'
+      // Skip whitespace
+      while (i < len && (content[i] === " " || content[i] === "\r" || content[i] === "\n" || content[i] === "\t")) i++;
+      // Check for "TJ" operator
+      if (i + 1 < len && content[i] === "T" && content[i + 1] === "J" && (i + 2 >= len || !/[a-zA-Z]/.test(content[i + 2]))) {
+        if (parts.length > 0) {
+          operators.push({
+            start: arrStart,
+            end: i + 2,
+            fullMatch: content.substring(arrStart, i + 2),
+            text: parts.join(""),
+            type: "TJ",
+          });
+        }
+        i += 2;
+        continue;
+      }
+      // Not a TJ array, continue from after ']'
+      continue;
+    }
+
+    i++;
   }
 
-  // Sort by position in stream
-  operators.sort((a, b) => a.start - b.start);
   return operators;
 }
 
@@ -173,7 +230,10 @@ function parseTextOperators(content: string): TextOperator[] {
  * back to the individual operators.
  */
 function replaceInContentStream(content: string, fieldValues: Record<string, string>): string {
-  // Step 1: Parse all text operators
+  // Quick check: if no braces at all, skip expensive parsing
+  if (!content.includes("{") && !content.includes("\\{")) return content;
+
+  // Step 1: Parse all text operators (O(n) manual scan)
   const operators = parseTextOperators(content);
   if (operators.length === 0) return content;
 
@@ -324,10 +384,8 @@ async function fillPDF(fileBytes: Uint8Array, fieldValues: Record<string, string
       decompressedText = new TextDecoder("latin1").decode(rawBytes);
     }
 
-    // Debug: check for placeholder-like patterns
-    if (decompressedText.includes("{{") || decompressedText.includes("\\{\\{")) {
-      console.log(`Stream has placeholder patterns. Sample (500 chars): ${decompressedText.substring(0, 500)}`);
-    }
+    // Skip streams that clearly have no placeholder-related content
+    if (!decompressedText.includes("{")) continue;
 
     // Check if this stream has any placeholders
     const modifiedText = replaceInContentStream(decompressedText, fieldValues);
