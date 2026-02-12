@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Plus, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, ExternalLink } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import AffiliateContractDocuments from '@/components/affiliate/AffiliateContractDocuments';
 
@@ -169,7 +170,7 @@ export default function AffiliateContractHistory() {
                     <TableHead>Samsaran PO</TableHead>
                     <TableHead>GSM Reg Number</TableHead>
                     <TableHead>GSM PO</TableHead>
-                    <TableHead className="w-24">Actions</TableHead>
+                    <TableHead className="w-32">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -187,6 +188,18 @@ export default function AffiliateContractHistory() {
                           <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(row.id)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" asChild>
+                                  <Link to={`/admin/affiliate-personnel/${id}/lifecycle`}>
+                                    <ExternalLink className="h-4 w-4" />
+                                  </Link>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Go to Lifecycle</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </TableCell>
                     </TableRow>
