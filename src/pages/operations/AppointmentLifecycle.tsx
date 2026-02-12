@@ -218,15 +218,17 @@ const AppointmentLifecycle = () => {
 
     try {
       // 1. Find the template in document_repository
-      const { data: docRepo, error: docError } = await supabase
+      // Only match .docx files — PDF files cannot be parsed as DOCX templates
+      const { data: docRepos, error: docError } = await supabase
         .from('document_repository')
         .select('file_path, name')
         .ilike('name', '%Letter of Fixed-Term Appointment - G Staff%')
-        .limit(1)
-        .single();
+        .order('created_at', { ascending: false });
+
+      const docRepo = (docRepos || []).find(d => d.name.toLowerCase().endsWith('.docx'));
 
       if (docError || !docRepo) {
-        toast.error('Template not found in Document Repository');
+        toast.error('No .docx template found in Document Repository. Please upload the template as a Word (.docx) file.');
         setOfferLetterOpen(false);
         setOfferLetterLoading(false);
         return;
