@@ -1,60 +1,30 @@
 
 
-# Transfer/Reassignment: Change Type Selection with Current vs. New Details
+# Add "Lyon" as a Duty Station
 
-## What Changes
+## Overview
+Add "Lyon" to all duty station dropdown fields across the application. There is a central `LOCATIONS` constant, but several files have their own hardcoded lists that also need updating.
 
-When **Transfer** or **Reassignment** is selected as the operation type, the form will show a **"Change Type"** selector with options:
-- Unit/Division Change
-- Supervisor Change
-- Duty Station Change
-- Multiple selections allowed (e.g., a transfer could involve both a new unit and a new duty station)
+## Files to Modify
 
-Once a change type is selected, the form displays the **current values** (pulled from the staff search) as read-only labels, alongside editable fields for the **new values**. For other operation types (STDA, OIC, etc.), the form behaves as it does today.
+### 1. `src/lib/organizationConstants.ts` (central constant)
+Add `'Lyon'` to the `LOCATIONS` array (alphabetically, between `'Geneva'` and `'New York'`).
 
-## Database Changes
+### 2. `src/pages/JobRequisitionForm.tsx` (~line 1453)
+The `baseStations` array is hardcoded: `['Brindisi', 'Geneva', 'New York', 'Rome', 'Valencia']`. Add `'Lyon'` to this list.
 
-Add three new columns to `hr_transfers` to store the "new" values:
-- `change_types` (text[] / array) -- which aspects are changing
-- `new_duty_station` (text, nullable)
-- `new_section_unit` (text, nullable)
-- `new_supervisor` (text, nullable)
+### 3. `src/components/JobEmailAlert.tsx` (~line 19)
+The `ALL_LOCATIONS` array is hardcoded: `['Brindisi', 'Geneva', 'New York', 'Rome', 'Valencia']`. Add `'Lyon'`.
 
-The existing `duty_station`, `section_unit`, and `supervisor` columns continue to hold the **current** (original) values from the staff profile.
+### 4. `src/components/talent-pool/TalentSearchFilters.tsx` (~line 33)
+The `DUTY_STATIONS` array is hardcoded: `["Valencia", "Brindisi", "Geneva", "New York", "Rome"]`. Add `"Lyon"`.
 
-## UI Changes (TransferForm.tsx only)
+## Files That Already Work (no changes needed)
+The following files dynamically derive duty stations from database data or import from `LOCATIONS`, so they will automatically pick up "Lyon" once it appears in any record:
+- `TransferForm.tsx` -- uses `LOCATIONS` from organizationConstants
+- `STDAFilters.tsx`, `TransferFilters.tsx`, `SeparationFilters.tsx` -- receive `dutyStations` as a prop derived from existing data
+- `Separations.tsx`, `STDAs.tsx`, `Transfers.tsx` -- compute duty stations from DB records
+- `AppointmentForm.tsx`, `STDAForm.tsx`, `SeparationForm.tsx` -- use `LOCATIONS` import
 
-### Details Tab Updates
-
-1. **When operation_type is "Transfer" or "Reassignment":**
-   - Show a checkbox group: "What is changing?" with options: Unit/Division, Supervisor, Duty Station
-   - Below, show a "Current Details" read-only summary (unit, division, supervisor, duty station -- all pulled from staff search)
-   - For each checked change type, show the corresponding "New" field:
-     - **Unit/Division Change**: New Division dropdown + New Unit dropdown (cascading)
-     - **Supervisor Change**: New Supervisor staff search combobox
-     - **Duty Station Change**: New Duty Station dropdown
-   - The existing fields (duty_station, section_unit, supervisor) remain populated with the current/original values and are shown as read-only context
-
-2. **When operation_type is anything else (STDA, OIC, etc.):**
-   - Form works exactly as it does today (no change type selector, fields remain directly editable)
-
-### Schema Updates
-- Add `change_types`, `new_duty_station`, `new_section_unit`, `new_supervisor` to the Zod schema
-- These fields are optional and only relevant for Transfer/Reassignment
-
-## Expanded Row (Transfers.tsx)
-
-When viewing a Transfer/Reassignment record in the expanded table row, show the changes clearly:
-- "Change Type: Unit/Division Change, Supervisor Change" (badges)
-- Current vs. New values displayed side by side where applicable (e.g., "Unit: Current Unit -> New Unit")
-
-## Technical Details
-
-- **Migration**: `ALTER TABLE hr_transfers ADD COLUMN change_types text[], ADD COLUMN new_duty_station text, ADD COLUMN new_section_unit text, ADD COLUMN new_supervisor text;`
-- The `change_types` array stores values like `['unit_division', 'supervisor', 'duty_station']`
-- The checkbox group uses Radix Checkbox components already available in the project
-- The `StaffSearchCombobox` is reused for the "New Supervisor" field
-- `DIVISIONS`, `DIVISION_UNITS`, `LOCATIONS` constants are reused for the new dropdowns
-- Form watches `operation_type` to conditionally render the change type section
-- Current values are displayed using simple text/badges -- not editable inputs -- to make the distinction clear
-
+## Summary
+4 files need a one-line addition each. No database changes required.
