@@ -1,28 +1,41 @@
 
 
-## Fix: Make the Offer Letter Dialog Actually Scrollable
+## Fix: Text Overflow and Font in PDF Placeholder Filling
 
-### Root Cause
-
-The `DialogContent` component has a base CSS class of `grid`, which overrides the `flex flex-col` being applied. In a `grid` layout, `flex-1` and `min-h-0` on the `ScrollArea` child have no effect, so the content just grows unbounded.
+### Problem
+When replacement text is longer than the original `{{placeholder}}`, it overflows past the right margin. Additionally, the overlay font (Helvetica at the original PDF size) doesn't match the document's Calibri 11pt style.
 
 ### Solution
 
-Replace the `ScrollArea` with a simple `div` that has `overflow-y-auto` and an explicit `max-h-[60vh]`. This is the most reliable approach since it doesn't depend on flex/grid layout negotiations.
+**File: `supabase/functions/generate-repo-document/index.ts`**
 
-### Changes
+Modify the `fillPDF` function's text overlay logic (around lines 270-293):
 
-**File: `src/pages/operations/AppointmentLifecycle.tsx`**
+1. **Use size 11 as default** -- Draw replacement text at 11pt (matching Calibri 11 in the source document) instead of blindly using the detected `match.fontSize` which may be inaccurate due to PDF text matrix scaling.
 
-1. Remove `flex flex-col overflow-hidden` from DialogContent (not needed with this approach):
-   ```
-   <DialogContent className="max-w-2xl max-h-[85vh]">
-   ```
+2. **Auto-shrink to fit within margins** -- Before drawing, measure the replacement text width using `font.widthOfTextAtSize()`. If it would exceed the right margin (page width minus a 60pt margin), reduce the font size proportionally to fit.
 
-2. Replace the `ScrollArea` wrapper (line 588) with a plain scrollable div:
-   ```
-   <div className="overflow-y-auto max-h-[60vh] pr-4">
-   ```
-   And close with `</div>` instead of `</ScrollArea>`.
+3. **Wider white-out rectangle** -- Extend the white rectangle to cover from the placeholder start all the way to the right margin, ensuring no leftover original text is visible even when the replacement is shorter.
 
-This gives the form content a hard height cap of 60vh with native browser scrolling, which works regardless of the parent's layout mode.
+### Technical Details
+
+The key change in the overlay loop:
+
+```text
+For each placeholder match:
+  1. Calculate available width = pageWidth - startX - 60 (right margin)
+  2. Start with fontSize = 11
+  3. Measure text width = font.widthOfTextAtSize(value, 11)
+  4. If text width > available width, scale down:
+     fontSize = 11 * (availableWidth / textWidth)
+  5. White-out rectangle covers from startX to right margin
+  6. Draw text at the calculated font size
+```
+
+This ensures long values like "Operations Bridge Technology" or "Valencia, Spain" will shrink slightly to fit within the page boundaries instead of overflowing. Short values will render cleanly at 11pt.
+
+### What Won't Change
+- The DOCX filling logic (already works correctly with text replacement)
+- The placeholder detection and position parsing
+- The decompression and content stream reading logic
+
