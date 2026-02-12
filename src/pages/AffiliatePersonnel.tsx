@@ -849,6 +849,12 @@ export default function AffiliatePersonnel() {
                                     Manage Lifecycle
                                   </Link>
                                 </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                  <Link to={`/admin/affiliate-history/${affiliate.id}`}>
+                                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                                    Contract History
+                                  </Link>
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
