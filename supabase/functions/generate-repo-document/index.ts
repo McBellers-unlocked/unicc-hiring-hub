@@ -350,9 +350,6 @@ async function fillPDF(fileBytes: Uint8Array, fieldValues: Record<string, string
     // Get page content stream(s)
     const allChars: CharPosition[] = [];
 
-    // Enumerate all streams and find ones belonging to this page
-    const allRefs = context.enumerateIndirectObjects();
-    
     // Get the page's Contents entry
     const pageDict = page.node;
     const contentsEntry = pageDict.get(PDFName.of("Contents"));
