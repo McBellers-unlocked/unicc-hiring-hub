@@ -1,41 +1,45 @@
 
 
-# Give Sandra RUIZ Access to Local Admin Dashboard
+# Auto-Fill Template Fields from Staff Data
 
-## Problem
-Sandra RUIZ SERRANO (ruiz@unicc.org, role: Hiring Manager) needs access to `/operations/admin` (Local Admin Dashboard). Currently, this page has no access control, but the HR Operations nav menu is only visible to Admin/HR/Chief of HR roles. Sandra should only see the Local Admin Dashboard, not the full HR Operations menu.
+## Overview
+When using "Use Template" on a document template, add a staff search bar at the top of the fill dialog. Selecting a staff member automatically populates matching template fields (e.g., `{{name}}`, `{{duty_station}}`, `{{grade}}`) from their profile. Users can still edit any field after auto-fill.
 
-## Approach
-Follow the existing pattern used for "Chief of Division" -- grant access via an email-based check rather than creating a new database role. This avoids:
-- Changing the `user_role` database enum
-- Dealing with the single-role limitation on the `users` table
-- Sandra losing her Hiring Manager role
+## How It Works
+1. Click "Use Template" on any template -- the fill dialog opens as before
+2. A new **staff search combobox** appears at the top of the dialog
+3. Search and select a staff member
+4. All matching fields are auto-populated from the staff record
+5. Users can manually override any auto-filled value before generating
 
-## Changes (2 files)
+## Field Mapping
+The following template placeholder names will auto-map to staff profile data:
 
-### 1. `src/hooks/useAuth.tsx`
-Add Sandra's email to a "Local Admin" check inside `getUserRolesForProfile`, so her `userRoles` array becomes `['Hiring Manager', 'Local Admin']`:
+| Template Placeholder | Staff Data Source |
+|---|---|
+| `name`, `staff_name`, `full_name` | Staff name |
+| `first_name` | Parsed first name |
+| `last_name`, `surname` | Parsed last name |
+| `email` | Email |
+| `grade`, `level` | Grade |
+| `job_title`, `title`, `position` | Job title |
+| `duty_station`, `location` | Duty station |
+| `section`, `unit`, `section_unit` | Section/Unit |
+| `supervisor`, `line_manager`, `manager` | Line manager |
+| `staff_number` | Staff number |
 
-```
-const localAdminEmails = ['ruiz@unicc.org'];
-if (email && localAdminEmails.includes(email.toLowerCase()) && !roles.includes('Local Admin')) {
-  roles.push('Local Admin');
-}
-```
+Unmatched fields remain empty for manual entry.
 
-### 2. `src/components/Layout.tsx`
-- Add a check: `const isLocalAdmin = userRoles.includes('Local Admin');`
-- Add a standalone nav link (not inside the HR Operations dropdown) visible when `isLocalAdmin` and not already having `hasAdminAccess`:
+## Technical Details
 
-```
-{isLocalAdmin && !hasAdminAccess && (
-  <Link to="/operations/admin" ...>
-    <Building2 /> Local Admin
-  </Link>
-)}
-```
+### File Modified: `src/components/operations/DocumentTemplatesTab.tsx`
 
-This ensures:
-- Sandra sees a "Local Admin" link in the top nav
-- Admin/HR users still access it via the HR Operations dropdown (if the link is there)
-- No database migration required
+**Changes to the Fill Template Dialog:**
+- Import `StaffSearchCombobox` and `parseName` from `StaffSearchCombobox.tsx`
+- Add state for selected staff member
+- Add the combobox above the field inputs in the dialog
+- On staff selection, iterate through template fields and match against the mapping table above (case-insensitive, underscore-normalized)
+- Update `fieldValues` state with matched values, preserving any manually entered values for unmatched fields
+
+No database changes, no new components, no new edge functions -- this is a pure frontend enhancement reusing the existing `StaffSearchCombobox`.
+
