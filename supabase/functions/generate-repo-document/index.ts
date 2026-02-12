@@ -268,8 +268,17 @@ async function fillPDF(fileBytes: Uint8Array, fieldValues: Record<string, string
     // Apply white-out and overlay for each match
     const { height: pageHeight } = page.getSize();
 
+    const { width: pageWidth } = page.getSize();
+
     for (const match of matches) {
-      const rectWidth = (match.endX - match.startX) + 4;
+      const availableWidth = pageWidth - match.startX - 60; // 60pt right margin
+      let fontSize = 11;
+      const textWidth = font.widthOfTextAtSize(match.value, fontSize);
+      if (textWidth > availableWidth && availableWidth > 0) {
+        fontSize = fontSize * (availableWidth / textWidth);
+      }
+
+      const rectWidth = pageWidth - match.startX - 40; // cover to near right margin
       const rectHeight = match.fontSize + 4;
 
       // White-out the original text
@@ -282,11 +291,11 @@ async function fillPDF(fileBytes: Uint8Array, fieldValues: Record<string, string
         borderWidth: 0,
       });
 
-      // Draw replacement text
+      // Draw replacement text at 11pt (or shrunk to fit)
       page.drawText(match.value, {
         x: match.startX,
         y: match.startY,
-        size: match.fontSize,
+        size: fontSize,
         font,
         color: rgb(0, 0, 0),
       });
