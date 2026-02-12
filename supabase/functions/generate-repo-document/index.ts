@@ -229,6 +229,43 @@ function parseTextOperators(content: string): TextOperator[] {
  * concatenating their text, finding placeholders, and mapping replacements
  * back to the individual operators.
  */
+/**
+ * Find the enclosing BT...ET block boundaries for a given position in the stream.
+ * Scans backwards for "BT" and forwards for "ET".
+ */
+function findEnclosingBTET(content: string, opStart: number, opEnd: number): { btStart: number; etEnd: number } | null {
+  // Scan backwards for "BT"
+  let btStart = -1;
+  for (let i = opStart - 1; i >= 0; i--) {
+    if (content[i] === "T" && i > 0 && content[i - 1] === "B") {
+      // Verify it's a standalone "BT" (not part of another word)
+      const before = i - 2 >= 0 ? content[i - 2] : " ";
+      const after = i + 1 < content.length ? content[i + 1] : " ";
+      if (!/[a-zA-Z]/.test(before) && !/[a-zA-Z]/.test(after)) {
+        btStart = i - 1;
+        break;
+      }
+    }
+  }
+  if (btStart === -1) return null;
+
+  // Scan forwards for "ET"
+  let etEnd = -1;
+  for (let i = opEnd; i < content.length - 1; i++) {
+    if (content[i] === "E" && content[i + 1] === "T") {
+      const before = i - 1 >= 0 ? content[i - 1] : " ";
+      const after = i + 2 < content.length ? content[i + 2] : " ";
+      if (!/[a-zA-Z]/.test(before) && !/[a-zA-Z]/.test(after)) {
+        etEnd = i + 2;
+        break;
+      }
+    }
+  }
+  if (etEnd === -1) return null;
+
+  return { btStart, etEnd };
+}
+
 function replaceInContentStream(content: string, fieldValues: Record<string, string>): string {
   // Quick check: if no braces at all, skip expensive parsing
   if (!content.includes("{") && !content.includes("\\{")) return content;
@@ -292,12 +329,12 @@ function replaceInContentStream(content: string, fieldValues: Record<string, str
   // Sort replacements by position (reverse order so we can modify without shifting)
   replacements.sort((a, b) => b.textStart - a.textStart);
 
-  // Step 4: Apply replacements to operator texts
-  // Clone operator texts
+  // Step 4: Apply replacements to operator texts and track BT/ET blocks to remove
   const opTexts = operators.map(op => op.text);
+  // Set of operator indices whose entire BT/ET block should be removed
+  const blocksToRemove = new Set<number>();
 
   for (const rep of replacements) {
-    // Find which operators are involved
     const firstCharMap = charMap[rep.textStart];
     const lastCharMap = charMap[rep.textEnd - 1];
 
@@ -309,42 +346,115 @@ function replaceInContentStream(content: string, fieldValues: Record<string, str
       opTexts[opIdx] = before + rep.value + after;
     } else {
       // Placeholder spans multiple operators
-      // First operator: replace from charInOp to end with value
       const firstOpIdx = firstCharMap.opIndex;
       opTexts[firstOpIdx] = opTexts[firstOpIdx].substring(0, firstCharMap.charInOp) + rep.value;
 
-      // Middle operators: clear text entirely
+      // Middle operators: mark their BT/ET blocks for removal
       for (let oi = firstOpIdx + 1; oi < lastCharMap.opIndex; oi++) {
         opTexts[oi] = "";
+        blocksToRemove.add(oi);
       }
 
-      // Last operator: remove from start through charInOp
+      // Last operator: mark for removal too
       const lastOpIdx = lastCharMap.opIndex;
-      opTexts[lastOpIdx] = opTexts[lastOpIdx].substring(lastCharMap.charInOp + 1);
+      opTexts[lastOpIdx] = "";
+      blocksToRemove.add(lastOpIdx);
     }
   }
 
-  // Step 5: Rebuild the stream by replacing operator matches with new text
-  // Work backwards so positions don't shift
+  // Step 5: Find BT/ET boundaries for blocks to remove
+  const removalRanges: { btStart: number; etEnd: number }[] = [];
+  for (const opIdx of blocksToRemove) {
+    const op = operators[opIdx];
+    const block = findEnclosingBTET(content, op.start, op.end);
+    if (block) {
+      removalRanges.push(block);
+    }
+  }
+
+  // Deduplicate and sort removal ranges (multiple operators may share a BT/ET block)
+  removalRanges.sort((a, b) => a.btStart - b.btStart);
+  const mergedRanges: { btStart: number; etEnd: number }[] = [];
+  for (const range of removalRanges) {
+    const last = mergedRanges[mergedRanges.length - 1];
+    if (last && range.btStart <= last.etEnd) {
+      last.etEnd = Math.max(last.etEnd, range.etEnd);
+    } else {
+      mergedRanges.push({ ...range });
+    }
+  }
+
+  // Step 6: Rebuild stream - first apply text replacements for non-removed operators (backwards)
   let modified = content;
   for (let i = operators.length - 1; i >= 0; i--) {
+    if (blocksToRemove.has(i)) continue; // Will be removed entirely
     const op = operators[i];
     const newText = opTexts[i];
-
-    // Only modify if text actually changed
     if (newText === op.text) continue;
 
     const escapedNewText = escapePdfString(newText);
-
     let replacement: string;
     if (op.type === "Tj") {
       replacement = `(${escapedNewText}) Tj`;
     } else {
-      // TJ: wrap in array with single string
       replacement = `[(${escapedNewText})] TJ`;
     }
-
     modified = modified.substring(0, op.start) + replacement + modified.substring(op.end);
+  }
+
+  // Step 7: Remove marked BT/ET blocks (backwards to preserve positions)
+  // Recalculate removal positions relative to the modified stream by working on original content
+  // Since step 6 only modified non-removed operators, we need to recompute.
+  // Simpler approach: do removals on the original, then apply text changes.
+  // Let's redo: apply both in one pass on original content.
+
+  // Actually, let's rebuild from scratch more carefully:
+  // Build a list of all edits (replacements + removals) sorted by position descending
+  interface StreamEdit {
+    start: number;
+    end: number;
+    replacement: string;
+  }
+  const edits: StreamEdit[] = [];
+
+  // Add BT/ET block removals
+  for (const range of mergedRanges) {
+    edits.push({ start: range.btStart, end: range.etEnd, replacement: "" });
+  }
+
+  // Add operator text replacements (only for non-removed operators)
+  for (let i = 0; i < operators.length; i++) {
+    if (blocksToRemove.has(i)) continue;
+    const op = operators[i];
+    const newText = opTexts[i];
+    if (newText === op.text) continue;
+
+    const escapedNewText = escapePdfString(newText);
+    let replacement: string;
+    if (op.type === "Tj") {
+      replacement = `(${escapedNewText}) Tj`;
+    } else {
+      replacement = `[(${escapedNewText})] TJ`;
+    }
+    edits.push({ start: op.start, end: op.end, replacement });
+  }
+
+  // Sort descending by start position, with larger ranges first for same start
+  edits.sort((a, b) => b.start - a.start || b.end - a.end);
+
+  // Remove edits that are fully contained within a larger removal
+  const filteredEdits: StreamEdit[] = [];
+  for (const edit of edits) {
+    const isContained = filteredEdits.some(e => e.start <= edit.start && e.end >= edit.end && e !== edit);
+    if (!isContained) {
+      filteredEdits.push(edit);
+    }
+  }
+
+  // Apply edits to original content (backwards)
+  modified = content;
+  for (const edit of filteredEdits) {
+    modified = modified.substring(0, edit.start) + edit.replacement + modified.substring(edit.end);
   }
 
   return modified;
