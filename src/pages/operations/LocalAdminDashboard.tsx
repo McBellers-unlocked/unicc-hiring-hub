@@ -134,7 +134,10 @@ const LocalAdminDashboard = () => {
     const set = new Set<string>();
     separations.forEach(s => s.duty_station && set.add(s.duty_station));
     appointments.forEach(a => a.duty_station && set.add(a.duty_station));
-    hrTransfers.forEach(t => t.duty_station && set.add(t.duty_station));
+    hrTransfers.forEach(t => {
+      if (t.duty_station) set.add(t.duty_station);
+      if (t.new_duty_station) set.add(t.new_duty_station);
+    });
     return [...set].sort();
   }, [separations, appointments, hrTransfers]);
 
@@ -169,7 +172,14 @@ const LocalAdminDashboard = () => {
   );
 
   const filteredHrTransfers = useMemo(() =>
-    hrTransfers.filter(t => matchesFilters(t.last_name, t.first_name, t.duty_station)),
+    hrTransfers.filter(t => {
+      if (dutyStation !== 'all' && t.duty_station !== dutyStation && t.new_duty_station !== dutyStation) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (!`${t.last_name} ${t.first_name}`.toLowerCase().includes(q)) return false;
+      }
+      return true;
+    }),
     [hrTransfers, dutyStation, search]
   );
 
@@ -279,20 +289,22 @@ const LocalAdminDashboard = () => {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Grade</TableHead>
-                  <TableHead>Section / Unit</TableHead>
-                  <TableHead>Departure Date</TableHead>
-                  <TableHead>Return Date</TableHead>
+                   <TableHead>Section / Unit</TableHead>
+                   <TableHead>Duty Station</TableHead>
+                   <TableHead>Departure Date</TableHead>
+                   <TableHead>Return Date</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {contractBreaks.length === 0 ? (
-                  <EmptyRow cols={6} />
+                  <EmptyRow cols={7} />
                 ) : contractBreaks.map(({ sep, apt }) => (
                   <TableRow key={sep.id}>
                     <TableCell className="font-medium">{sep.last_name}, {sep.first_name}</TableCell>
                     <TableCell>{sep.grade ?? '—'}</TableCell>
                     <TableCell>{sep.section_unit ?? '—'}</TableCell>
+                    <TableCell>{sep.duty_station ?? '—'}</TableCell>
                     <TableCell>{formatDate(sep.tentative_date)}</TableCell>
                     <TableCell>{apt ? formatDate(apt.tentative_date) : '—'}</TableCell>
                     <TableCell><StatusBadge status={sep.status} /></TableCell>
@@ -312,15 +324,16 @@ const LocalAdminDashboard = () => {
                   <TableHead>Name</TableHead>
                   <TableHead>Grade</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Section / Unit</TableHead>
-                  <TableHead>Duty Station</TableHead>
+                   <TableHead>Date</TableHead>
+                   <TableHead>Section / Unit</TableHead>
+                   <TableHead>From Station</TableHead>
+                   <TableHead>To Station</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {totalTransfers === 0 ? (
-                  <EmptyRow cols={7} />
+                  <EmptyRow cols={8} />
                 ) : (
                   <>
                     {appointmentTransfers.map(a => (
@@ -331,6 +344,7 @@ const LocalAdminDashboard = () => {
                         <TableCell>{formatDate(a.tentative_date)}</TableCell>
                         <TableCell>{a.section_unit ?? '—'}</TableCell>
                         <TableCell>{a.duty_station ?? '—'}</TableCell>
+                        <TableCell>—</TableCell>
                         <TableCell><StatusBadge status={a.status} /></TableCell>
                       </TableRow>
                     ))}
@@ -342,6 +356,7 @@ const LocalAdminDashboard = () => {
                         <TableCell>{formatDate(t.start_date)}</TableCell>
                         <TableCell>{t.section_unit ?? '—'}</TableCell>
                         <TableCell>{t.duty_station ?? '—'}</TableCell>
+                        <TableCell>{t.new_duty_station ?? '—'}</TableCell>
                         <TableCell><StatusBadge status={t.status} /></TableCell>
                       </TableRow>
                     ))}
@@ -361,14 +376,15 @@ const LocalAdminDashboard = () => {
                   <TableHead>Name</TableHead>
                   <TableHead>Grade</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Departure Date</TableHead>
-                  <TableHead>Section / Unit</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+                   <TableHead>Departure Date</TableHead>
+                   <TableHead>Section / Unit</TableHead>
+                   <TableHead>Duty Station</TableHead>
+                   <TableHead>Status</TableHead>
+                 </TableRow>
+               </TableHeader>
+               <TableBody>
                 {departures.length === 0 ? (
-                  <EmptyRow cols={6} />
+                  <EmptyRow cols={7} />
                 ) : departures.map(s => (
                   <TableRow key={s.id}>
                     <TableCell className="font-medium">{s.last_name}, {s.first_name}</TableCell>
@@ -376,6 +392,7 @@ const LocalAdminDashboard = () => {
                     <TableCell><Badge variant="outline">{s.operation_type}</Badge></TableCell>
                     <TableCell>{formatDate(s.tentative_date)}</TableCell>
                     <TableCell>{s.section_unit ?? '—'}</TableCell>
+                    <TableCell>{s.duty_station ?? '—'}</TableCell>
                     <TableCell><StatusBadge status={s.status} /></TableCell>
                   </TableRow>
                 ))}
@@ -393,14 +410,15 @@ const LocalAdminDashboard = () => {
                   <TableHead>Name</TableHead>
                   <TableHead>Grade</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Arrival Date</TableHead>
-                  <TableHead>Section / Unit</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+                   <TableHead>Arrival Date</TableHead>
+                   <TableHead>Section / Unit</TableHead>
+                   <TableHead>Duty Station</TableHead>
+                   <TableHead>Status</TableHead>
+                 </TableRow>
+               </TableHeader>
+               <TableBody>
                 {arrivals.length === 0 ? (
-                  <EmptyRow cols={6} />
+                  <EmptyRow cols={7} />
                 ) : arrivals.map(a => (
                   <TableRow key={a.id}>
                     <TableCell className="font-medium">{a.last_name}, {a.first_name}</TableCell>
@@ -408,6 +426,7 @@ const LocalAdminDashboard = () => {
                     <TableCell><Badge variant="outline">{a.operation_type}</Badge></TableCell>
                     <TableCell>{formatDate(a.tentative_date)}</TableCell>
                     <TableCell>{a.section_unit ?? '—'}</TableCell>
+                    <TableCell>{a.duty_station ?? '—'}</TableCell>
                     <TableCell><StatusBadge status={a.status} /></TableCell>
                   </TableRow>
                 ))}
