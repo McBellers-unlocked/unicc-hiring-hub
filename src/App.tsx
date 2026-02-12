@@ -95,6 +95,7 @@ import ContractExtensions from "./pages/operations/ContractExtensions";
 import HROperationsDashboard from "./pages/operations/HROperationsDashboard";
 import LocalAdminDashboard from "./pages/operations/LocalAdminDashboard";
 import DocumentRepository from "./pages/operations/DocumentRepository";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -207,6 +208,7 @@ const App = () => (
             <Route path="/operations/home-leave" element={<HomeLeave />} />
             <Route path="/operations/contract-extensions" element={<ContractExtensions />} />
             <Route path="/operations/documents" element={<DocumentRepository />} />
+            <Route path="/settings" element={<Settings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
