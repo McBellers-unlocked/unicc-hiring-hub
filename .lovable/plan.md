@@ -1,45 +1,57 @@
 
-
-# Auto-Fill Template Fields from Staff Data
+# Add "Contract History" to Affiliate Personnel
 
 ## Overview
-When using "Use Template" on a document template, add a staff search bar at the top of the fill dialog. Selecting a staff member automatically populates matching template fields (e.g., `{{name}}`, `{{duty_station}}`, `{{grade}}`) from their profile. Users can still edit any field after auto-fill.
+Add a "Contract History" menu option to each affiliate's Actions dropdown, linking to a new page that displays the affiliate's name and a table for tracking contract-related reference numbers.
 
-## How It Works
-1. Click "Use Template" on any template -- the fill dialog opens as before
-2. A new **staff search combobox** appears at the top of the dialog
-3. Search and select a staff member
-4. All matching fields are auto-populated from the staff record
-5. Users can manually override any auto-filled value before generating
-
-## Field Mapping
-The following template placeholder names will auto-map to staff profile data:
-
-| Template Placeholder | Staff Data Source |
-|---|---|
-| `name`, `staff_name`, `full_name` | Staff name |
-| `first_name` | Parsed first name |
-| `last_name`, `surname` | Parsed last name |
-| `email` | Email |
-| `grade`, `level` | Grade |
-| `job_title`, `title`, `position` | Job title |
-| `duty_station`, `location` | Duty station |
-| `section`, `unit`, `section_unit` | Section/Unit |
-| `supervisor`, `line_manager`, `manager` | Line manager |
-| `staff_number` | Staff number |
-
-Unmatched fields remain empty for manual entry.
+## What You'll See
+- A new **"Contract History"** option in the Actions dropdown (alongside Edit and Manage Lifecycle) with a FileSpreadsheet icon
+- Clicking it navigates to `/admin/affiliate-history/:id`
+- That page shows a header: **"Contract History for [Affiliate Name]"**
+- Below, a table with columns: Samsaran PR, Samsaran PO, GSM Reg Number, GSM PO
+- Users can add, edit, and delete rows in the table
 
 ## Technical Details
 
-### File Modified: `src/components/operations/DocumentTemplatesTab.tsx`
+### 1. Database Migration
+Create an `affiliate_contract_history` table:
+- `id` (uuid, PK, default gen_random_uuid())
+- `user_id` (uuid, FK to users.id -- the affiliate)
+- `samsaran_pr` (text, nullable)
+- `samsaran_po` (text, nullable)
+- `gsm_reg_number` (text, nullable)
+- `gsm_po` (text, nullable)
+- `created_at` (timestamptz, default now())
 
-**Changes to the Fill Template Dialog:**
-- Import `StaffSearchCombobox` and `parseName` from `StaffSearchCombobox.tsx`
-- Add state for selected staff member
-- Add the combobox above the field inputs in the dialog
-- On staff selection, iterate through template fields and match against the mapping table above (case-insensitive, underscore-normalized)
-- Update `fieldValues` state with matched values, preserving any manually entered values for unmatched fields
+RLS: authenticated users can SELECT, INSERT, UPDATE, DELETE.
 
-No database changes, no new components, no new edge functions -- this is a pure frontend enhancement reusing the existing `StaffSearchCombobox`.
+### 2. New Page: `src/pages/AffiliateContractHistory.tsx`
+- Fetch affiliate name from `users` table using the `:id` param
+- Fetch contract history rows from `affiliate_contract_history` where `user_id = :id`
+- Display header with affiliate name
+- Render table with the four columns plus actions (edit/delete per row)
+- "Add Row" button to insert new records
+- Inline editing or dialog-based editing for each row
+- Uses Layout wrapper, TanStack Query for data fetching
 
+### 3. Route: `src/App.tsx`
+Add route:
+```text
+/admin/affiliate-history/:id -> AffiliateContractHistory
+```
+
+### 4. Menu Update: `src/pages/AffiliatePersonnel.tsx`
+Add a third `DropdownMenuItem` after "Manage Lifecycle":
+```text
+<DropdownMenuItem asChild>
+  <Link to={/admin/affiliate-history/${affiliate.id}}>
+    <FileSpreadsheet /> Contract History
+  </Link>
+</DropdownMenuItem>
+```
+
+### Files Changed/Created
+- `src/pages/AffiliateContractHistory.tsx` (new)
+- `src/pages/AffiliatePersonnel.tsx` (add menu item)
+- `src/App.tsx` (add route)
+- SQL migration for `affiliate_contract_history` table
