@@ -2087,6 +2087,122 @@ export type Database = {
           },
         ]
       }
+      hr_transfer_comments: {
+        Row: {
+          author_id: string | null
+          comment_text: string
+          created_at: string
+          id: string
+          transfer_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          comment_text: string
+          created_at?: string
+          id?: string
+          transfer_id: string
+        }
+        Update: {
+          author_id?: string | null
+          comment_text?: string
+          created_at?: string
+          id?: string
+          transfer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_transfer_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_transfer_comments_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "hr_transfers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_transfers: {
+        Row: {
+          comments: string | null
+          contract_type: string | null
+          created_at: string
+          duty_station: string | null
+          email: string | null
+          end_date: string | null
+          first_name: string
+          grade: string | null
+          id: string
+          job_title: string | null
+          last_name: string
+          main_hr_focal_point: string | null
+          operation_type: string
+          section_unit: string | null
+          staff_number: string | null
+          start_date: string | null
+          status: string
+          supervisor: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          comments?: string | null
+          contract_type?: string | null
+          created_at?: string
+          duty_station?: string | null
+          email?: string | null
+          end_date?: string | null
+          first_name: string
+          grade?: string | null
+          id?: string
+          job_title?: string | null
+          last_name: string
+          main_hr_focal_point?: string | null
+          operation_type: string
+          section_unit?: string | null
+          staff_number?: string | null
+          start_date?: string | null
+          status?: string
+          supervisor?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          comments?: string | null
+          contract_type?: string | null
+          created_at?: string
+          duty_station?: string | null
+          email?: string | null
+          end_date?: string | null
+          first_name?: string
+          grade?: string | null
+          id?: string
+          job_title?: string | null
+          last_name?: string
+          main_hr_focal_point?: string | null
+          operation_type?: string
+          section_unit?: string | null
+          staff_number?: string | null
+          start_date?: string | null
+          status?: string
+          supervisor?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_transfers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_talent_saved_searches: {
         Row: {
           created_at: string

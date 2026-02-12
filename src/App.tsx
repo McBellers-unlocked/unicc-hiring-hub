@@ -86,6 +86,7 @@ import LoansSecondments from "./pages/operations/LoansSecondments";
 import UNVOperations from "./pages/operations/UNVOperations";
 import Interns from "./pages/operations/Interns";
 import STDAs from "./pages/operations/STDAs";
+import Transfers from "./pages/operations/Transfers";
 import PDRevisions from "./pages/operations/PDRevisions";
 import PartTime from "./pages/operations/PartTime";
 import SLWOP from "./pages/operations/SLWOP";
@@ -201,6 +202,7 @@ const App = () => (
             <Route path="/operations/unv" element={<UNVOperations />} />
             <Route path="/operations/interns" element={<Interns />} />
             <Route path="/operations/stdas" element={<STDAs />} />
+            <Route path="/operations/transfers" element={<Transfers />} />
             <Route path="/operations/pd-revisions" element={<PDRevisions />} />
             <Route path="/operations/part-time" element={<PartTime />} />
             <Route path="/operations/slwop" element={<SLWOP />} />
