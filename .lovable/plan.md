@@ -1,30 +1,33 @@
 
 
-# Add "Lyon" as a Duty Station
+# Show hr_transfers Records on the Local Admin Dashboard
 
-## Overview
-Add "Lyon" to all duty station dropdown fields across the application. There is a central `LOCATIONS` constant, but several files have their own hardcoded lists that also need updating.
+## Problem
+The Local Admin Dashboard (`/operations/admin`) only queries `hr_separations` and `hr_appointments`. It does not query the `hr_transfers` table at all. The two transfer/reassignment records (ENSTONE, SHUMBA) were created in `hr_transfers`, so they never appear on this dashboard.
 
-## Files to Modify
+## Solution
+Add a third data source by querying `hr_transfers` and merging those records into the **Transfers** section of the dashboard.
 
-### 1. `src/lib/organizationConstants.ts` (central constant)
-Add `'Lyon'` to the `LOCATIONS` array (alphabetically, between `'Geneva'` and `'New York'`).
+## Changes (1 file)
 
-### 2. `src/pages/JobRequisitionForm.tsx` (~line 1453)
-The `baseStations` array is hardcoded: `['Brindisi', 'Geneva', 'New York', 'Rome', 'Valencia']`. Add `'Lyon'` to this list.
+### `src/pages/operations/LocalAdminDashboard.tsx`
 
-### 3. `src/components/JobEmailAlert.tsx` (~line 19)
-The `ALL_LOCATIONS` array is hardcoded: `['Brindisi', 'Geneva', 'New York', 'Rome', 'Valencia']`. Add `'Lyon'`.
+1. **Add a new interface** `HrTransfer` with the relevant fields from the `hr_transfers` table (`id`, `last_name`, `first_name`, `operation_type`, `status`, `start_date`, `grade`, `duty_station`, `section_unit`, `change_types`, `new_duty_station`, `new_section_unit`, `new_supervisor`).
 
-### 4. `src/components/talent-pool/TalentSearchFilters.tsx` (~line 33)
-The `DUTY_STATIONS` array is hardcoded: `["Valencia", "Brindisi", "Geneva", "New York", "Rome"]`. Add `"Lyon"`.
+2. **Add a new `useQuery` call** to fetch from `hr_transfers` where status is not "Completed", ordered by `start_date`.
 
-## Files That Already Work (no changes needed)
-The following files dynamically derive duty stations from database data or import from `LOCATIONS`, so they will automatically pick up "Lyon" once it appears in any record:
-- `TransferForm.tsx` -- uses `LOCATIONS` from organizationConstants
-- `STDAFilters.tsx`, `TransferFilters.tsx`, `SeparationFilters.tsx` -- receive `dutyStations` as a prop derived from existing data
-- `Separations.tsx`, `STDAs.tsx`, `Transfers.tsx` -- compute duty stations from DB records
-- `AppointmentForm.tsx`, `STDAForm.tsx`, `SeparationForm.tsx` -- use `LOCATIONS` import
+3. **Update the Transfers section** to combine:
+   - Existing appointment-based transfers (from `hr_appointments` with Transfer/Reassignment types)
+   - Records from `hr_transfers` (mapped to the same row format)
 
-## Summary
-4 files need a one-line addition each. No database changes required.
+4. **Update the stats card** count to include `hr_transfers` records.
+
+5. **Update the duty stations** memo to also pull duty stations from `hr_transfers`.
+
+6. **Update the loading state** to include the new query's loading status.
+
+## What stays the same
+- Contract Breaks, Departures, and Arrivals sections remain unchanged
+- Filter logic (search, duty station) continues to work for the merged transfers list
+- No database changes needed
+
