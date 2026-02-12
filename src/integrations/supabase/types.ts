@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliate_contract_documents: {
+        Row: {
+          affiliate_name: string | null
+          created_at: string
+          doc_type: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          samsaran_pr: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          affiliate_name?: string | null
+          created_at?: string
+          doc_type: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          samsaran_pr?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          affiliate_name?: string | null
+          created_at?: string
+          doc_type?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          samsaran_pr?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliate_contract_documents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affiliate_contract_history: {
         Row: {
           created_at: string

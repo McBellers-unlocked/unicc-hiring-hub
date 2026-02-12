@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout';
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Plus, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import AffiliateContractDocuments from '@/components/affiliate/AffiliateContractDocuments';
 
 interface ContractHistoryRow {
   id: string;
@@ -37,6 +38,8 @@ export default function AffiliateContractHistory() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<ContractHistoryRow | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
+
+
 
   const { data: affiliate } = useQuery({
     queryKey: ['affiliate-user', id],
@@ -65,6 +68,11 @@ export default function AffiliateContractHistory() {
     },
     enabled: !!id,
   });
+
+  const availablePRs = useMemo(() => {
+    if (!rows) return [];
+    return [...new Set(rows.map(r => r.samsaran_pr).filter(Boolean))] as string[];
+  }, [rows]);
 
   const saveMutation = useMutation({
     mutationFn: async (data: FormData) => {
@@ -188,6 +196,14 @@ export default function AffiliateContractHistory() {
             )}
           </CardContent>
         </Card>
+
+        {id && (
+          <AffiliateContractDocuments
+            userId={id}
+            affiliateName={affiliate?.name || ''}
+            availablePRs={availablePRs}
+          />
+        )}
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent>
