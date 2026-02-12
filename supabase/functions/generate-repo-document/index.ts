@@ -80,26 +80,7 @@ function unescapePdfString(s: string): string {
   return result;
 }
 
-/**
- * Extract the content of a PDF string literal starting at pos (opening '(').
- */
-function extractPdfString(content: string, pos: number): { raw: string; end: number } | null {
-  if (content[pos] !== "(") return null;
-  let depth = 1;
-  let i = pos + 1;
-  const len = content.length;
-  while (i < len && depth > 0) {
-    const ch = content[i];
-    if (ch === "\\") { i += 2; continue; }
-    if (ch === "(") depth++;
-    else if (ch === ")") depth--;
-    i++;
-  }
-  if (depth !== 0) return null;
-  return { raw: content.substring(pos + 1, i - 1), end: i };
-}
-
-// ── Position-aware text extraction ──
+// ── Fast regex-based position-aware text extraction ──
 
 interface CharPosition {
   char: string;
@@ -109,206 +90,61 @@ interface CharPosition {
 }
 
 /**
- * Parse a PDF content stream and extract each character with its (x, y) position.
- * Tracks Tm (text matrix), Tf (font size), Td (text position), and TJ kern adjustments.
+ * Parse a PDF content stream using regex to extract characters with positions.
+ * Uses native regex engine (much faster than manual tokenization).
  */
 function parseTextWithPositions(content: string): CharPosition[] {
   const chars: CharPosition[] = [];
-  const len = content.length;
 
-  // Graphics state
-  let fontSize = 12;
-  // Text matrix components: [a, b, c, d, e, f] where e=x, f=y
-  let tmX = 0;
-  let tmY = 0;
-  let tmA = 1; // horizontal scale from Tm
-  // Line matrix (set by Td/TD/T*/Tm)
-  let lineX = 0;
-  let lineY = 0;
+  // Find each BT...ET text block using native regex
+  const btRegex = /BT\b([\s\S]*?)\bET/g;
+  let btMatch;
 
-  // Tokenizer: split content into tokens
-  const tokens: string[] = [];
-  let i = 0;
-  while (i < len) {
-    const ch = content[i];
-    // Skip whitespace
-    if (ch === " " || ch === "\n" || ch === "\r" || ch === "\t") { i++; continue; }
-    // PDF string literal
-    if (ch === "(") {
-      const extracted = extractPdfString(content, i);
-      if (extracted) {
-        tokens.push("(" + extracted.raw + ")");
-        i = extracted.end;
-      } else { i++; }
-      continue;
-    }
-    // PDF array
-    if (ch === "[") {
-      // Collect the whole array as one token including brackets
-      let depth = 1;
-      let j = i + 1;
-      while (j < len && depth > 0) {
-        if (content[j] === "(") {
-          const ex = extractPdfString(content, j);
-          if (ex) { j = ex.end; continue; }
-        }
-        if (content[j] === "[") depth++;
-        else if (content[j] === "]") depth--;
-        j++;
+  while ((btMatch = btRegex.exec(content)) !== null) {
+    const block = btMatch[1];
+
+    // Extract Tm (text matrix) for position: a b c d x y Tm
+    const tmMatch = block.match(/([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+Tm/);
+    if (!tmMatch) continue;
+
+    const a = parseFloat(tmMatch[1]) || 1;
+    const x = parseFloat(tmMatch[5]);
+    const y = parseFloat(tmMatch[6]);
+
+    // Extract Tf (font size)
+    const tfMatch = block.match(/\/\w+\s+([\d.]+)\s+Tf/);
+    const fontSize = tfMatch ? parseFloat(tfMatch[1]) : 12;
+
+    const charWidth = fontSize * a * 0.5;
+    let currentX = x;
+
+    // Try Tj operator first: (text) Tj
+    const tjMatch = block.match(/\(((?:[^()\\]|\\.)*)\)\s*Tj/);
+    if (tjMatch) {
+      const text = unescapePdfString(tjMatch[1]);
+      for (let i = 0; i < text.length; i++) {
+        chars.push({ char: text[i], x: currentX, y, fontSize });
+        currentX += charWidth;
       }
-      tokens.push(content.substring(i, j));
-      i = j;
-      continue;
-    }
-    // Regular token (number, operator, name)
-    let j = i;
-    while (j < len && content[j] !== " " && content[j] !== "\n" && content[j] !== "\r" && content[j] !== "\t" && content[j] !== "(" && content[j] !== "[" && content[j] !== "]") {
-      j++;
-    }
-    if (j > i) {
-      tokens.push(content.substring(i, j));
-      i = j;
-    } else {
-      i++;
-    }
-  }
-
-  // Process tokens looking for operators
-  const stack: string[] = [];
-
-  for (const token of tokens) {
-    // Check if it's an operator (alphabetic, not starting with / or digit or ( or [)
-    const isOp = /^[A-Za-z\*\'\"]+$/.test(token) && !token.startsWith("/");
-
-    if (!isOp) {
-      stack.push(token);
       continue;
     }
 
-    // Process operators
-    switch (token) {
-      case "Tm": {
-        // a b c d e f Tm
-        if (stack.length >= 6) {
-          const f = parseFloat(stack[stack.length - 1]);
-          const e = parseFloat(stack[stack.length - 2]);
-          const a = parseFloat(stack[stack.length - 6]);
-          tmX = e;
-          tmY = f;
-          tmA = a;
-          lineX = e;
-          lineY = f;
-        }
-        stack.length = 0;
-        break;
-      }
-      case "Td":
-      case "TD": {
-        // tx ty Td
-        if (stack.length >= 2) {
-          const ty = parseFloat(stack[stack.length - 1]);
-          const tx = parseFloat(stack[stack.length - 2]);
-          lineX += tx;
-          lineY += ty;
-          tmX = lineX;
-          tmY = lineY;
-        }
-        stack.length = 0;
-        break;
-      }
-      case "Tf": {
-        // /FontName size Tf
-        if (stack.length >= 2) {
-          const size = parseFloat(stack[stack.length - 1]);
-          if (!isNaN(size) && size > 0) fontSize = size;
-        }
-        stack.length = 0;
-        break;
-      }
-      case "Tj": {
-        // (string) Tj
-        if (stack.length >= 1) {
-          const strToken = stack[stack.length - 1];
-          if (strToken.startsWith("(") && strToken.endsWith(")")) {
-            const raw = strToken.substring(1, strToken.length - 1);
-            const text = unescapePdfString(raw);
-            // Estimate char width as fontSize * 0.5 (approximate for standard fonts)
-            const charWidth = fontSize * tmA * 0.5;
-            for (let ci = 0; ci < text.length; ci++) {
-              chars.push({
-                char: text[ci],
-                x: tmX + ci * charWidth,
-                y: tmY,
-                fontSize,
-              });
-            }
-            tmX += text.length * charWidth;
+    // Try TJ array operator: [(text)kern(text)...] TJ
+    const tjArrayMatch = block.match(/\[([\s\S]*?)\]\s*TJ/);
+    if (tjArrayMatch) {
+      const inner = tjArrayMatch[1];
+      const elemRegex = /\(((?:[^()\\]|\\.)*)\)|([-\d.]+)/g;
+      let elemMatch;
+      while ((elemMatch = elemRegex.exec(inner)) !== null) {
+        if (elemMatch[1] !== undefined) {
+          const text = unescapePdfString(elemMatch[1]);
+          for (let i = 0; i < text.length; i++) {
+            chars.push({ char: text[i], x: currentX, y, fontSize });
+            currentX += charWidth;
           }
+        } else if (elemMatch[2] !== undefined) {
+          currentX -= parseFloat(elemMatch[2]) * fontSize * a / 1000;
         }
-        stack.length = 0;
-        break;
-      }
-      case "TJ": {
-        // [(string)kern(string)...] TJ
-        if (stack.length >= 1) {
-          const arrToken = stack[stack.length - 1];
-          if (arrToken.startsWith("[")) {
-            // Parse array contents
-            const inner = arrToken.substring(1, arrToken.length - 1);
-            let ai = 0;
-            const innerLen = inner.length;
-            const charWidth = fontSize * tmA * 0.5;
-            while (ai < innerLen) {
-              if (inner[ai] === "(") {
-                const extracted = extractPdfString(inner, ai);
-                if (extracted) {
-                  const text = unescapePdfString(extracted.raw);
-                  for (let ci = 0; ci < text.length; ci++) {
-                    chars.push({
-                      char: text[ci],
-                      x: tmX + ci * charWidth,
-                      y: tmY,
-                      fontSize,
-                    });
-                  }
-                  tmX += text.length * charWidth;
-                  ai = extracted.end;
-                } else { ai++; }
-              } else if (inner[ai] === " " || inner[ai] === "\n" || inner[ai] === "\r" || inner[ai] === "\t") {
-                ai++;
-              } else {
-                // Number (kern value) - negative moves right, positive moves left
-                let numStr = "";
-                while (ai < innerLen && (inner[ai] === "-" || inner[ai] === "." || (inner[ai] >= "0" && inner[ai] <= "9"))) {
-                  numStr += inner[ai];
-                  ai++;
-                }
-                if (numStr) {
-                  const kern = parseFloat(numStr);
-                  // Kern is in thousandths of a unit of text space
-                  tmX -= kern * fontSize * tmA / 1000;
-                }
-              }
-            }
-          }
-        }
-        stack.length = 0;
-        break;
-      }
-      case "BT": {
-        // Reset text position at start of text block
-        // (Tm will be set explicitly if needed)
-        stack.length = 0;
-        break;
-      }
-      case "ET": {
-        stack.length = 0;
-        break;
-      }
-      default: {
-        // Unknown operator, clear stack
-        stack.length = 0;
-        break;
       }
     }
   }
