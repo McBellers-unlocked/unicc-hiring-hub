@@ -1,25 +1,55 @@
 
+# Local Admin Operations Dashboard
 
-## Populate Video Interview/Written Assessment Section with PDF Content
+## Overview
+Create a new read-only dashboard at `/operations/admin` tailored for local administrators who handle onboarding/offboarding logistics, protocol services, and need a date-centric view of staff movements -- all filterable by Duty Station.
 
-Replace the current placeholder bullet points (lines 162-187) in the Video Interview/Written Assessment section with the actual content from the Modern Hire Guidelines PDF, organized into meaningful sub-sections.
+## What it shows
 
-### New Content Structure
+The dashboard pulls from the existing `hr_separations` and `hr_appointments` tables (no database changes needed) and presents four sections:
 
-The two existing cards ("Format" and "Tips for Success") will be replaced with four cards to better organize the PDF content:
+### 1. Contract Breaks (Departure + Return on the same row)
+- Pairs each `Separation (CB)` record with its linked `Appointment (CB)` record (via `linked_appointment_id` / `linked_separation_id`)
+- Columns: **Name**, **Grade**, **Section/Unit**, **Departure Date** (from separation), **Return Date** (from linked appointment), **Status**
+- Sorted by departure date ascending
 
-1. **What is an Asynchronous Interview?** -- Brief explanation that candidates record responses at their convenience, not in real-time.
+### 2. Transfers
+- Shows appointments where `operation_type` is one of: `Transfer`, `Transfer (CB)`, `Reassignment`
+- Columns: **Name**, **Grade**, **Type**, **Date**, **Section/Unit**, **Duty Station**, **Status**
+- Sorted by date ascending
 
-2. **Recording Your Responses -- Do's** -- Dress appropriately, ensure quiet space, questions presented one at a time, restricted reading time, specific recording time (2-3 mins), look at camera, be clear and concise, relax and breathe.
+### 3. Departures (All other separations, excluding CB)
+- Filters out contract break types to show exits, end of contract, etc.
+- Columns: **Name**, **Grade**, **Type** (operation_type), **Departure Date**, **Section/Unit**, **Status**
+- Sorted by date ascending
 
-3. **Recording Your Responses -- Don'ts** -- Don't use monitor as light source, don't click pens/tap fingers, don't feel obligated to use full time, don't rely on AI/chat tools like GPT.
+### 4. Arrivals (All other appointments, excluding CB and transfers)
+- Shows newcomers, direct appointments, etc.
+- Columns: **Name**, **Grade**, **Type**, **Arrival Date**, **Section/Unit**, **Status**
+- Sorted by date ascending
 
-4. **Preparation and Tips** -- Find quiet well-lit space, test equipment, review job description, complete within specified timeframe, plan accordingly as you may not be able to pause/restart.
+### Filtering
+- A prominent **Duty Station** dropdown filter at the top (populated from both tables)
+- A **search by name** field
+- Both filters apply across all four sections simultaneously
 
-### Technical Detail
+### Stats summary row
+- Four compact cards at the top showing counts: **Contract Breaks**, **Transfers**, **Departures**, **Arrivals** (filtered counts)
 
-- Replace lines 162-187 in `src/pages/HiringProcessGuide.tsx`
-- Switch from a 2-column grid to a 2x2 grid (`grid gap-4 md:grid-cols-2`)
-- Keep existing styling patterns (colored backgrounds, icons, bullet points)
-- Use blue for info cards, green for do's, red/orange for don'ts, and yellow for preparation
+## Technical details
 
+### New file
+- `src/pages/operations/LocalAdminDashboard.tsx` -- single-page component that:
+  - Fetches from `hr_separations` and `hr_appointments` (active/in-progress records)
+  - Groups data into the four categories
+  - Renders filtered tables with date-formatted columns
+  - Uses existing UI components (Layout, Card, Table, Badge, Select, Input)
+
+### Route registration
+- Add to `src/App.tsx`: `<Route path="/operations/admin" element={<LocalAdminDashboard />} />`
+
+### Navigation
+- Add a link in the Layout sidebar/nav under Operations if applicable
+
+### No database changes required
+All data already exists in `hr_separations` and `hr_appointments`. The contract break pairing uses the existing `linked_appointment_id` foreign key.
