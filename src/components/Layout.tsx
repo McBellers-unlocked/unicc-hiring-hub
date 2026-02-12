@@ -209,12 +209,6 @@ export const Layout = ({ children }: LayoutProps) => {
                         {isAdmin && (
                           <>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem asChild>
-                              <Link to="/operations/documents" className="flex items-center w-full">
-                                <Settings className="w-4 h-4 mr-2" />
-                                Document Repository
-                              </Link>
-                            </DropdownMenuItem>
                           </>
                         )}
                       </DropdownMenuContent>
@@ -294,6 +288,12 @@ export const Layout = ({ children }: LayoutProps) => {
                         <DropdownMenuItem asChild>
                           <Link to="/operations/contract-extensions" className="flex items-center w-full">
                             Contract Extensions
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link to="/operations/documents" className="flex items-center w-full">
+                            Document Repository
                           </Link>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
