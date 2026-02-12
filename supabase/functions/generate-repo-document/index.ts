@@ -78,83 +78,214 @@ async function compressStream(data: Uint8Array): Promise<Uint8Array> {
 }
 
 /**
- * Replace {{placeholders}} in text content, handling PDF text operators.
- * Handles text split across multiple PDF string operators like ({{) (name) (}})
+ * Unescape PDF string escapes: \( -> (, \) -> ), \\ -> \, \{ -> {, \} -> }
  */
-function replaceInContentStream(content: string, fieldValues: Record<string, string>): string {
-  let modified = content;
+function unescapePdfString(s: string): string {
+  let result = "";
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === "\\" && i + 1 < s.length) {
+      const next = s[i + 1];
+      if (next === "(") { result += "("; i++; }
+      else if (next === ")") { result += ")"; i++; }
+      else if (next === "\\") { result += "\\"; i++; }
+      else if (next === "{") { result += "{"; i++; }
+      else if (next === "}") { result += "}"; i++; }
+      else if (next === "n") { result += "\n"; i++; }
+      else if (next === "r") { result += "\r"; i++; }
+      else if (next === "t") { result += "\t"; i++; }
+      else { result += s[i]; }
+    } else {
+      result += s[i];
+    }
+  }
+  return result;
+}
 
-  for (const [fieldName, value] of Object.entries(fieldValues)) {
-    const safeValue = String(value)
-      .replace(/\\/g, "\\\\")
-      .replace(/\(/g, "\\(")
-      .replace(/\)/g, "\\)");
+/**
+ * Escape a string for use inside a PDF string literal: ( ) \ must be escaped
+ */
+function escapePdfString(s: string): string {
+  return s.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+}
 
-    // Replace literal braces form
-    const placeholder = `{{${fieldName}}}`;
-    modified = modified.split(placeholder).join(safeValue);
+interface TextOperator {
+  /** Start index in stream */
+  start: number;
+  /** End index in stream (exclusive) */
+  end: number;
+  /** The full match string in the stream */
+  fullMatch: string;
+  /** The unescaped text this operator renders */
+  text: string;
+  /** Type of operator */
+  type: "Tj" | "TJ";
+}
 
-    // Replace escaped braces form (as PDF strings may encode them)
-    const escapedPlaceholder = `\\{\\{${fieldName}\\}\\}`;
-    modified = modified.split(escapedPlaceholder).join(safeValue);
+/**
+ * Parse all text-showing operators from a PDF content stream.
+ * Finds both (string) Tj and [(string)kern...] TJ operators.
+ */
+function parseTextOperators(content: string): TextOperator[] {
+  const operators: TextOperator[] = [];
+
+  // Match (text) Tj operators
+  const tjRegex = /\(([^)]*(?:\\.[^)]*)*)\)\s*Tj/g;
+  let m;
+  while ((m = tjRegex.exec(content)) !== null) {
+    operators.push({
+      start: m.index,
+      end: m.index + m[0].length,
+      fullMatch: m[0],
+      text: unescapePdfString(m[1]),
+      type: "Tj",
+    });
   }
 
-  // Handle placeholders split across TJ array elements
-  const tjArrayRegex = /\[((?:\s*\([^)]*\)\s*[-\d.]*\s*)+)\]\s*TJ/g;
-  modified = modified.replace(tjArrayRegex, (fullMatch, arrayContent) => {
-    const textParts: string[] = [];
-    const partRegex = /\(([^)]*)\)/g;
-    let partMatch;
-    while ((partMatch = partRegex.exec(arrayContent)) !== null) {
-      // Unescape braces within each text part
-      textParts.push(partMatch[1].replace(/\\\{/g, "{").replace(/\\\}/g, "}"));
-    }
-
-    let concatenated = textParts.join('');
-    let hasReplacement = false;
-
-    for (const [fieldName, value] of Object.entries(fieldValues)) {
-      const placeholder = `{{${fieldName}}}`;
-      if (concatenated.includes(placeholder)) {
-        const safeValue = String(value)
-          .replace(/\\/g, "\\\\")
-          .replace(/\(/g, "\\(")
-          .replace(/\)/g, "\\)");
-        concatenated = concatenated.split(placeholder).join(safeValue);
-        hasReplacement = true;
-      }
-    }
-
-    if (!hasReplacement) return fullMatch;
-    return `[(${concatenated})] TJ`;
-  });
-
-  // Also handle individual Tj operators with split placeholders
-  // Match sequences of adjacent (text) Tj operators
-  const tjSequenceRegex = /(?:\(([^)]*)\)\s*Tj\s*){2,}/g;
-  modified = modified.replace(tjSequenceRegex, (fullMatch) => {
+  // Match [...] TJ operators - extract text parts from array
+  const tjArrayRegex = /\[((?:[^[\]]*?\([^)]*(?:\\.[^)]*)*\)[^[\]]*?)+)\]\s*TJ/g;
+  while ((m = tjArrayRegex.exec(content)) !== null) {
+    const arrayContent = m[1];
     const parts: string[] = [];
-    const singleTjRegex = /\(([^)]*)\)\s*Tj/g;
-    let m;
-    while ((m = singleTjRegex.exec(fullMatch)) !== null) {
-      parts.push(m[1].replace(/\\\{/g, "{").replace(/\\\}/g, "}"));
+    const partRegex = /\(([^)]*(?:\\.[^)]*)*)\)/g;
+    let pm;
+    while ((pm = partRegex.exec(arrayContent)) !== null) {
+      parts.push(unescapePdfString(pm[1]));
     }
-    let concatenated = parts.join('');
-    let hasReplacement = false;
+    operators.push({
+      start: m.index,
+      end: m.index + m[0].length,
+      fullMatch: m[0],
+      text: parts.join(""),
+      type: "TJ",
+    });
+  }
+
+  // Sort by position in stream
+  operators.sort((a, b) => a.start - b.start);
+  return operators;
+}
+
+/**
+ * Replace {{placeholders}} in text content, handling PDF text operators.
+ * Handles placeholders split across ANY number of separate BT/ET blocks,
+ * TJ arrays, or Tj operators by parsing all text operators sequentially,
+ * concatenating their text, finding placeholders, and mapping replacements
+ * back to the individual operators.
+ */
+function replaceInContentStream(content: string, fieldValues: Record<string, string>): string {
+  // Step 1: Parse all text operators
+  const operators = parseTextOperators(content);
+  if (operators.length === 0) return content;
+
+  // Step 2: Build concatenated text with character-to-operator mapping
+  let fullText = "";
+  const charMap: { opIndex: number; charInOp: number }[] = [];
+
+  for (let opIdx = 0; opIdx < operators.length; opIdx++) {
+    const op = operators[opIdx];
+    for (let ci = 0; ci < op.text.length; ci++) {
+      charMap.push({ opIndex: opIdx, charInOp: ci });
+      fullText += op.text[ci];
+    }
+  }
+
+  // Step 3: Find all placeholder positions in concatenated text
+  interface Replacement {
+    textStart: number;
+    textEnd: number;
+    fieldName: string;
+    value: string;
+  }
+  const replacements: Replacement[] = [];
+
+  for (const [fieldName, value] of Object.entries(fieldValues)) {
+    const placeholder = `{{${fieldName}}}`;
+    let searchFrom = 0;
+    while (true) {
+      const idx = fullText.indexOf(placeholder, searchFrom);
+      if (idx === -1) break;
+      replacements.push({
+        textStart: idx,
+        textEnd: idx + placeholder.length,
+        fieldName,
+        value: String(value),
+      });
+      searchFrom = idx + placeholder.length;
+    }
+  }
+
+  if (replacements.length === 0) {
+    // No placeholders found across operators -- try simple direct replacement as fallback
+    let modified = content;
     for (const [fieldName, value] of Object.entries(fieldValues)) {
+      const safeValue = escapePdfString(String(value));
       const placeholder = `{{${fieldName}}}`;
-      if (concatenated.includes(placeholder)) {
-        const safeValue = String(value)
-          .replace(/\\/g, "\\\\")
-          .replace(/\(/g, "\\(")
-          .replace(/\)/g, "\\)");
-        concatenated = concatenated.split(placeholder).join(safeValue);
-        hasReplacement = true;
-      }
+      modified = modified.split(placeholder).join(safeValue);
+      const escapedPlaceholder = `\\{\\{${fieldName}\\}\\}`;
+      modified = modified.split(escapedPlaceholder).join(safeValue);
     }
-    if (!hasReplacement) return fullMatch;
-    return `(${concatenated}) Tj`;
-  });
+    return modified;
+  }
+
+  console.log(`Found ${replacements.length} placeholder(s) across operators: ${replacements.map(r => r.fieldName).join(", ")}`);
+
+  // Sort replacements by position (reverse order so we can modify without shifting)
+  replacements.sort((a, b) => b.textStart - a.textStart);
+
+  // Step 4: Apply replacements to operator texts
+  // Clone operator texts
+  const opTexts = operators.map(op => op.text);
+
+  for (const rep of replacements) {
+    // Find which operators are involved
+    const firstCharMap = charMap[rep.textStart];
+    const lastCharMap = charMap[rep.textEnd - 1];
+
+    if (firstCharMap.opIndex === lastCharMap.opIndex) {
+      // Placeholder is within a single operator
+      const opIdx = firstCharMap.opIndex;
+      const before = opTexts[opIdx].substring(0, firstCharMap.charInOp);
+      const after = opTexts[opIdx].substring(lastCharMap.charInOp + 1);
+      opTexts[opIdx] = before + rep.value + after;
+    } else {
+      // Placeholder spans multiple operators
+      // First operator: replace from charInOp to end with value
+      const firstOpIdx = firstCharMap.opIndex;
+      opTexts[firstOpIdx] = opTexts[firstOpIdx].substring(0, firstCharMap.charInOp) + rep.value;
+
+      // Middle operators: clear text entirely
+      for (let oi = firstOpIdx + 1; oi < lastCharMap.opIndex; oi++) {
+        opTexts[oi] = "";
+      }
+
+      // Last operator: remove from start through charInOp
+      const lastOpIdx = lastCharMap.opIndex;
+      opTexts[lastOpIdx] = opTexts[lastOpIdx].substring(lastCharMap.charInOp + 1);
+    }
+  }
+
+  // Step 5: Rebuild the stream by replacing operator matches with new text
+  // Work backwards so positions don't shift
+  let modified = content;
+  for (let i = operators.length - 1; i >= 0; i--) {
+    const op = operators[i];
+    const newText = opTexts[i];
+
+    // Only modify if text actually changed
+    if (newText === op.text) continue;
+
+    const escapedNewText = escapePdfString(newText);
+
+    let replacement: string;
+    if (op.type === "Tj") {
+      replacement = `(${escapedNewText}) Tj`;
+    } else {
+      // TJ: wrap in array with single string
+      replacement = `[(${escapedNewText})] TJ`;
+    }
+
+    modified = modified.substring(0, op.start) + replacement + modified.substring(op.end);
+  }
 
   return modified;
 }
