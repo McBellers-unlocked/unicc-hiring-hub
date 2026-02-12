@@ -1,0 +1,1 @@
+UPDATE hr_transfers SET duty_station = 'Valencia' WHERE id = 'b4e81014-2f11-47bd-bd26-be5591cb5428';
