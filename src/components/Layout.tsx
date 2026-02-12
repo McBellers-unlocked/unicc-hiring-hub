@@ -49,6 +49,8 @@ export const Layout = ({ children }: LayoutProps) => {
   const chiefEmails = ['soni@unicc.org', 'liuzzi@unicc.org', 'sethi@unicc.org', 'negyesi@unicc.org', 'grecuccio@unicc.org'];
   const isChiefOfDivision = user?.email && chiefEmails.includes(user.email.toLowerCase());
   
+  const isLocalAdmin = userRoles.includes('Local Admin');
+  
   // Chief HR has same navigation access as Admin/HR
   const hasAdminAccess = isAdmin || isHR || isChiefHR;
   // Directors have hiring manager access plus their own director functions
@@ -304,6 +306,13 @@ export const Layout = ({ children }: LayoutProps) => {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                  )}
+                  
+                  {isLocalAdmin && !hasAdminAccess && (
+                    <Link to="/operations/admin" className="flex items-center hover:opacity-80 transition-colors py-2">
+                      <Building className="w-4 h-4 mr-1" />
+                      Local Admin
+                    </Link>
                   )}
                   
                   {/* My Career dropdown for staff members */}
