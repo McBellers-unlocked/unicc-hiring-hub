@@ -1,5 +1,6 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { PDFDocument, PDFRawStream, PDFName, PDFNumber } from "https://esm.sh/pdf-lib@1.17.1";
 
 /** Decompress a FlateDecode stream */
 async function decompressStream(rawBytes: Uint8Array): Promise<Uint8Array | null> {
@@ -27,7 +28,6 @@ async function decompressStream(rawBytes: Uint8Array): Promise<Uint8Array | null
       }
     } catch { /* try next */ }
   }
-  // Try skipping zlib header
   if (rawBytes.length > 2) {
     try {
       const ds = new DecompressionStream("deflate" as string);
@@ -77,23 +77,23 @@ async function compressStream(data: Uint8Array): Promise<Uint8Array> {
   return result;
 }
 
-/** 
+/**
  * Replace {{placeholders}} in text content, handling PDF text operators.
  * Handles text split across multiple PDF string operators like ({{) (name) (}})
  */
 function replaceInContentStream(content: string, fieldValues: Record<string, string>): string {
   let modified = content;
-  
+
   for (const [fieldName, value] of Object.entries(fieldValues)) {
     const safeValue = String(value)
       .replace(/\\/g, "\\\\")
       .replace(/\(/g, "\\(")
       .replace(/\)/g, "\\)");
-    
+
     const placeholder = `{{${fieldName}}}`;
     modified = modified.split(placeholder).join(safeValue);
   }
-  
+
   // Handle placeholders split across TJ array elements
   const tjArrayRegex = /\[((?:\s*\([^)]*\)\s*[-\d.]*\s*)+)\]\s*TJ/g;
   modified = modified.replace(tjArrayRegex, (fullMatch, arrayContent) => {
@@ -103,10 +103,10 @@ function replaceInContentStream(content: string, fieldValues: Record<string, str
     while ((partMatch = partRegex.exec(arrayContent)) !== null) {
       textParts.push(partMatch[1]);
     }
-    
+
     let concatenated = textParts.join('');
     let hasReplacement = false;
-    
+
     for (const [fieldName, value] of Object.entries(fieldValues)) {
       const placeholder = `{{${fieldName}}}`;
       if (concatenated.includes(placeholder)) {
@@ -118,115 +118,77 @@ function replaceInContentStream(content: string, fieldValues: Record<string, str
         hasReplacement = true;
       }
     }
-    
+
     if (!hasReplacement) return fullMatch;
     return `[(${concatenated})] TJ`;
   });
-  
+
   return modified;
 }
 
-/** Replace {{placeholders}} in PDF bytes */
+/** Replace {{placeholders}} in PDF bytes using pdf-lib for structural integrity */
 async function fillPDF(fileBytes: Uint8Array, fieldValues: Record<string, string>): Promise<Uint8Array> {
-  let text = new TextDecoder("latin1").decode(fileBytes);
+  const pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
+  const context = pdfDoc.context;
 
-  const streamRegex = /stream\r?\n([\s\S]*?)endstream/g;
-  const replacements: { matchStart: number; matchEnd: number; newStreamBytes: Uint8Array; isCompressed: boolean }[] = [];
+  let totalModified = 0;
 
-  let streamMatch;
-  while ((streamMatch = streamRegex.exec(text)) !== null) {
-    const fullMatch = streamMatch[0];
-    const newlineIdx = fullMatch.indexOf("\n") + 1;
-    const streamContentStr = fullMatch.substring(newlineIdx, fullMatch.length - "endstream".length);
-    
-    const beforeStream = text.substring(Math.max(0, streamMatch.index - 500), streamMatch.index);
-    const isCompressed = beforeStream.includes("/FlateDecode");
+  // Iterate all indirect objects looking for streams
+  const allRefs = context.enumerateIndirectObjects();
+
+  for (const [ref, obj] of allRefs) {
+    // Only process stream objects
+    if (!(obj instanceof PDFRawStream)) continue;
+
+    const dict = obj.dict;
+    const filterEntry = dict.get(PDFName.of("Filter"));
+    const isFlate = filterEntry?.toString() === "/FlateDecode";
+
+    // Get raw stream bytes
+    const rawBytes = obj.contents;
 
     let decompressedText: string;
-    
-    if (isCompressed) {
-      const rawBytes = new Uint8Array(streamContentStr.length);
-      for (let i = 0; i < streamContentStr.length; i++) {
-        rawBytes[i] = streamContentStr.charCodeAt(i);
-      }
+
+    if (isFlate) {
       const decompressedBytes = await decompressStream(rawBytes);
       if (!decompressedBytes) continue;
       decompressedText = new TextDecoder("latin1").decode(decompressedBytes);
     } else {
-      decompressedText = streamContentStr;
+      decompressedText = new TextDecoder("latin1").decode(rawBytes);
     }
 
+    // Check if this stream has any placeholders
     const modifiedText = replaceInContentStream(decompressedText, fieldValues);
-    
     if (modifiedText === decompressedText) continue;
 
+    totalModified++;
+
+    // Encode modified text back to bytes
     const modifiedBytes = new Uint8Array(modifiedText.length);
     for (let i = 0; i < modifiedText.length; i++) {
       modifiedBytes[i] = modifiedText.charCodeAt(i);
     }
 
     let finalBytes: Uint8Array;
-    if (isCompressed) {
+    if (isFlate) {
       finalBytes = await compressStream(modifiedBytes);
     } else {
       finalBytes = modifiedBytes;
     }
 
-    const contentStart = streamMatch.index + "stream".length + (fullMatch.charAt("stream".length) === '\r' ? 2 : 1);
-    const contentEnd = streamMatch.index + fullMatch.length - "endstream".length;
+    // Replace the stream contents in-place using pdf-lib's API
+    // Create a new PDFRawStream with the same dict but new contents
+    const newDict = dict.clone(context);
+    newDict.set(PDFName.of("Length"), PDFNumber.of(finalBytes.length));
 
-    replacements.push({ matchStart: contentStart, matchEnd: contentEnd, newStreamBytes: finalBytes, isCompressed });
+    const newStream = PDFRawStream.of(newDict, finalBytes);
+    context.assign(ref, newStream);
   }
 
-  if (replacements.length === 0) {
-    // No compressed streams had changes, try direct replacement in raw bytes
-    for (const [fieldName, value] of Object.entries(fieldValues)) {
-      const placeholder = `{{${fieldName}}}`;
-      const safeValue = String(value)
-        .replace(/\\/g, "\\\\")
-        .replace(/\(/g, "\\(")
-        .replace(/\)/g, "\\)");
-      text = text.split(placeholder).join(safeValue);
-    }
-    const result = new Uint8Array(text.length);
-    for (let i = 0; i < text.length; i++) result[i] = text.charCodeAt(i);
-    return result;
-  }
+  console.log(`Modified ${totalModified} streams in PDF`);
 
-  // Apply replacements in reverse order
-  replacements.sort((a, b) => b.matchStart - a.matchStart);
-  
-  let resultBytes = new Uint8Array(text.length);
-  for (let i = 0; i < text.length; i++) resultBytes[i] = text.charCodeAt(i);
-
-  for (const rep of replacements) {
-    const before = resultBytes.slice(0, rep.matchStart);
-    const after = resultBytes.slice(rep.matchEnd);
-    const newResult = new Uint8Array(before.length + rep.newStreamBytes.length + after.length);
-    newResult.set(before, 0);
-    newResult.set(rep.newStreamBytes, before.length);
-    newResult.set(after, before.length + rep.newStreamBytes.length);
-    resultBytes = newResult;
-
-    // Update /Length in the object dictionary  
-    const headerSection = new TextDecoder("latin1").decode(before.slice(Math.max(0, before.length - 500)));
-    const lengthMatch = headerSection.match(/\/Length\s+(\d+)/);
-    if (lengthMatch) {
-      const oldLengthStr = lengthMatch[0];
-      const newLengthStr = `/Length ${rep.newStreamBytes.length}`;
-      const paddedNew = newLengthStr.padEnd(oldLengthStr.length, " ");
-      
-      const headerStr = new TextDecoder("latin1").decode(resultBytes);
-      const lengthPos = headerStr.lastIndexOf(oldLengthStr, rep.matchStart);
-      if (lengthPos >= 0) {
-        for (let i = 0; i < paddedNew.length; i++) {
-          resultBytes[lengthPos + i] = paddedNew.charCodeAt(i);
-        }
-      }
-    }
-  }
-
-  return resultBytes;
+  // pdf-lib rebuilds the xref table on save
+  return await pdfDoc.save();
 }
 
 /** Replace {{placeholders}} in a DOCX file */
@@ -322,6 +284,7 @@ Deno.serve(async (req) => {
       },
     });
   } catch (err) {
+    console.error("generate-repo-document error:", err);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
