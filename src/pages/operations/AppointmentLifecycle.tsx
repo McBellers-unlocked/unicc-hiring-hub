@@ -44,7 +44,7 @@ const extractInitials = (name: string | null | undefined): string => {
 const buildFieldMapping = (appointment: any, userData?: any): Record<string, string> => {
   const mapping: Record<string, string> = {};
   const set = (keys: string[], value: string | null | undefined) => {
-    if (!value) return;
+    if (value == null || value === undefined) return;
     keys.forEach(k => { mapping[k.toLowerCase()] = value; });
   };
 
@@ -83,7 +83,8 @@ const buildFieldMapping = (appointment: any, userData?: any): Record<string, str
 
   // Derive Mr/Ms from linked user gender
   if (userData?.gender) {
-    const title = userData.gender === 'Female' ? 'Ms' : 'Mr';
+    const g = userData.gender.toLowerCase();
+    const title = (g === 'female' || g === 'woman' || g === 'f') ? 'Ms' : 'Mr';
     set(['mr_ms', 'mr/ms', 'title_prefix'], title);
   }
 
@@ -92,9 +93,10 @@ const buildFieldMapping = (appointment: any, userData?: any): Record<string, str
     set(['staff_number', 'staffnumber'], userData.staff_number);
   }
 
-  // HR Focal Point initials
+  // HR Focal Point initials + full name
   if (appointment.main_hr_focal_point) {
     set(['hrinitial', 'hr_initial', 'hr_initials'], extractInitials(appointment.main_hr_focal_point));
+    set(['hr', 'hr_focal_point'], appointment.main_hr_focal_point);
   }
 
   // Today's date
