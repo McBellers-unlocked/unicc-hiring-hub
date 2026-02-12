@@ -249,8 +249,8 @@ const Index = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Link to="/settings">
-                  <Button className="w-full">Manage Settings</Button>
+                <Link to="/operations/documents">
+                  <Button className="w-full">Document Repository</Button>
                 </Link>
               </CardContent>
             </Card>

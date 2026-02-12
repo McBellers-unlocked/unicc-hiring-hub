@@ -210,9 +210,9 @@ export const Layout = ({ children }: LayoutProps) => {
                           <>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem asChild>
-                              <Link to="/settings" className="flex items-center w-full">
+                              <Link to="/operations/documents" className="flex items-center w-full">
                                 <Settings className="w-4 h-4 mr-2" />
-                                Settings
+                                Document Repository
                               </Link>
                             </DropdownMenuItem>
                           </>

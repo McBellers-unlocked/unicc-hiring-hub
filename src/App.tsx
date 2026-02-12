@@ -94,7 +94,7 @@ import HomeLeave from "./pages/operations/HomeLeave";
 import ContractExtensions from "./pages/operations/ContractExtensions";
 import HROperationsDashboard from "./pages/operations/HROperationsDashboard";
 import LocalAdminDashboard from "./pages/operations/LocalAdminDashboard";
-import Settings from "./pages/Settings";
+import DocumentRepository from "./pages/operations/DocumentRepository";
 
 const queryClient = new QueryClient();
 
@@ -206,7 +206,7 @@ const App = () => (
             <Route path="/operations/protocol-services" element={<ProtocolServices />} />
             <Route path="/operations/home-leave" element={<HomeLeave />} />
             <Route path="/operations/contract-extensions" element={<ContractExtensions />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/operations/documents" element={<DocumentRepository />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
