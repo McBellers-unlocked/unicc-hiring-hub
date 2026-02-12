@@ -83,6 +83,7 @@ import CandidateSeriesPortal from "./pages/CandidateSeriesPortal";
 import ResearchAssessment from "./pages/ResearchAssessment";
 import Separations from "./pages/operations/Separations";
 import Appointments from "./pages/operations/Appointments";
+import AppointmentLifecycle from "./pages/operations/AppointmentLifecycle";
 import LoansSecondments from "./pages/operations/LoansSecondments";
 import UNVOperations from "./pages/operations/UNVOperations";
 import Interns from "./pages/operations/Interns";
@@ -200,6 +201,7 @@ const App = () => (
             <Route path="/operations/admin" element={<LocalAdminDashboard />} />
             <Route path="/operations/separations" element={<Separations />} />
             <Route path="/operations/appointments" element={<Appointments />} />
+            <Route path="/operations/appointments/:id/lifecycle" element={<AppointmentLifecycle />} />
             <Route path="/operations/loans-secondments" element={<LoansSecondments />} />
             <Route path="/operations/unv" element={<UNVOperations />} />
             <Route path="/operations/interns" element={<Interns />} />

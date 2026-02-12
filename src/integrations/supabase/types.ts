@@ -196,6 +196,60 @@ export type Database = {
           },
         ]
       }
+      appointment_lifecycle_checklist: {
+        Row: {
+          appointment_id: string
+          completed: boolean
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          id: string
+          item_key: string
+          item_label: string
+          notes: string | null
+          stage_key: string
+        }
+        Insert: {
+          appointment_id: string
+          completed?: boolean
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          item_key: string
+          item_label: string
+          notes?: string | null
+          stage_key: string
+        }
+        Update: {
+          appointment_id?: string
+          completed?: boolean
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          item_key?: string
+          item_label?: string
+          notes?: string | null
+          stage_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_lifecycle_checklist_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "hr_appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_lifecycle_checklist_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessment_email_threads: {
         Row: {
           content: string
