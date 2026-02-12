@@ -564,7 +564,7 @@ const AppointmentLifecycle = () => {
 
         {/* Offer Letter Dialog */}
         <Dialog open={offerLetterOpen} onOpenChange={setOfferLetterOpen}>
-          <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+          <DialogContent className="max-w-2xl max-h-[85vh]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <FileEdit className="h-5 w-5" />
@@ -585,7 +585,7 @@ const AppointmentLifecycle = () => {
                 No fillable fields found in the template.
               </div>
             ) : (
-              <ScrollArea className="flex-1 min-h-0 pr-4">
+              <div className="overflow-y-auto max-h-[60vh] pr-4">
                 <div className="space-y-4 py-2">
                   {offerLetterFields.map((field) => (
                     <div key={field} className="space-y-1.5">
@@ -603,7 +603,7 @@ const AppointmentLifecycle = () => {
                     </div>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             )}
 
             <DialogFooter>
