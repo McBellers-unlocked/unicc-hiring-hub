@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Upload, Trash2, FileText, Search, FileEdit, Download, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { StaffSearchCombobox, parseName, type StaffMember } from "@/components/operations/StaffSearchCombobox";
+import { Separator } from "@/components/ui/separator";
 
 const TEMPLATE_CATEGORIES = ["Letters", "Contracts", "Certificates", "Memos", "General"];
 
@@ -37,6 +39,33 @@ interface DocumentTemplatesTabProps {
 
 const fieldToLabel = (field: string) =>
   field.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+// Map template placeholder names to staff data
+const STAFF_FIELD_MAP: Record<string, (s: StaffMember) => string> = (() => {
+  const nameGetter = (s: StaffMember) => s.name;
+  const firstNameGetter = (s: StaffMember) => parseName(s.name).firstName;
+  const lastNameGetter = (s: StaffMember) => parseName(s.name).lastName;
+  const emailGetter = (s: StaffMember) => s.email;
+  const gradeGetter = (s: StaffMember) => s.grade || '';
+  const titleGetter = (s: StaffMember) => s.job_title || '';
+  const stationGetter = (s: StaffMember) => s.duty_station || '';
+  const unitGetter = (s: StaffMember) => s.section_unit || '';
+  const supervisorGetter = (s: StaffMember) => s.supervisor || '';
+  const staffNumGetter = (s: StaffMember) => s.staff_number || '';
+
+  return {
+    name: nameGetter, staff_name: nameGetter, full_name: nameGetter, fullname: nameGetter,
+    first_name: firstNameGetter, firstname: firstNameGetter,
+    last_name: lastNameGetter, lastname: lastNameGetter, surname: lastNameGetter,
+    email: emailGetter,
+    grade: gradeGetter, level: gradeGetter,
+    job_title: titleGetter, jobtitle: titleGetter, title: titleGetter, position: titleGetter,
+    duty_station: stationGetter, dutystation: stationGetter, location: stationGetter,
+    section: unitGetter, unit: unitGetter, section_unit: unitGetter, sectionunit: unitGetter,
+    supervisor: supervisorGetter, line_manager: supervisorGetter, linemanager: supervisorGetter, manager: supervisorGetter,
+    staff_number: staffNumGetter, staffnumber: staffNumGetter,
+  };
+})();
 
 const DocumentTemplatesTab = ({ templates, loading, onRefresh }: DocumentTemplatesTabProps) => {
   const { user, userRoles } = useAuth();
@@ -143,6 +172,22 @@ const DocumentTemplatesTab = ({ templates, loading, onRefresh }: DocumentTemplat
     const initial: Record<string, string> = {};
     (template.fields || []).forEach((f) => (initial[f] = ""));
     setFieldValues(initial);
+  };
+
+  const handleStaffSelect = (staff: StaffMember) => {
+    if (!fillTemplate) return;
+    setFieldValues((prev) => {
+      const updated = { ...prev };
+      (fillTemplate.fields || []).forEach((field) => {
+        const normalized = field.toLowerCase().replace(/[\s-]/g, '_');
+        const getter = STAFF_FIELD_MAP[normalized];
+        if (getter) {
+          const value = getter(staff);
+          if (value) updated[field] = value;
+        }
+      });
+      return updated;
+    });
   };
 
   const handleGenerate = async () => {
@@ -339,6 +384,12 @@ const DocumentTemplatesTab = ({ templates, loading, onRefresh }: DocumentTemplat
             )}
           </DialogHeader>
           <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label className="text-sm font-medium">Auto-fill from staff profile</Label>
+              <StaffSearchCombobox onSelect={handleStaffSelect} />
+              <p className="text-xs text-muted-foreground">Select a staff member to auto-populate matching fields below.</p>
+            </div>
+            <Separator />
             {(fillTemplate?.fields || []).map((field) => (
               <div key={field} className="space-y-1">
                 <Label>{fieldToLabel(field)}</Label>
