@@ -26,8 +26,22 @@ import {
   getAppointmentStageTextColorClass,
 } from '@/lib/appointmentLifecycleConfig';
 
+const DUTY_STATION_COUNTRY: Record<string, string> = {
+  'Valencia': 'Spain',
+  'Brindisi': 'Italy',
+  'New York': 'United States of America',
+  'Geneva': 'Switzerland',
+  'Lyon': 'France',
+  'Rome': 'Italy',
+};
+
+const extractInitials = (name: string | null | undefined): string => {
+  if (!name) return '';
+  return name.split(/\s+/).map(w => w.charAt(0).toUpperCase()).join('');
+};
+
 // Map appointment data to common placeholder names
-const buildFieldMapping = (appointment: any): Record<string, string> => {
+const buildFieldMapping = (appointment: any, userData?: any): Record<string, string> => {
   const mapping: Record<string, string> = {};
   const set = (keys: string[], value: string | null | undefined) => {
     if (!value) return;
@@ -39,9 +53,16 @@ const buildFieldMapping = (appointment: any): Record<string, string> => {
   const fullName = [appointment.first_name, appointment.last_name].filter(Boolean).join(' ');
   if (fullName) set(['name', 'full_name', 'fullname', 'staff_name'], fullName);
   set(['email'], appointment.email);
-  set(['grade', 'level'], appointment.grade);
+
+  // Grade split: e.g. "G5" -> Grade="G", Level="5"
+  const gradeRaw = appointment.grade || '';
+  const gradeLetters = gradeRaw.replace(/[0-9]/g, '');
+  const gradeNumber = gradeRaw.match(/\d+/)?.[0] || '';
+  set(['grade'], gradeLetters || gradeRaw);
+  set(['level', 'step'], gradeNumber);
+
   set(['job_title', 'jobtitle', 'title', 'position'], appointment.job_title);
-  set(['duty_station', 'dutystation', 'location'], appointment.duty_station);
+  set(['duty_station', 'dutystation', 'ds', 'location'], appointment.duty_station);
   set(['section', 'unit', 'section_unit', 'sectionunit'], appointment.section_unit);
   set(['supervisor', 'line_manager', 'linemanager', 'manager'], appointment.supervisor);
   set(['contract_type', 'contracttype'], appointment.contract_type);
@@ -52,7 +73,36 @@ const buildFieldMapping = (appointment: any): Record<string, string> => {
     const formatted = format(parseISO(appointment.tentative_date), 'dd MMMM yyyy');
     set(['effective_date', 'effectivedate', 'start_date', 'startdate'], formatted);
   }
-  set(['vacancy_reference', 'vacancy_ref'], appointment.vacancy_reference);
+  set(['vacancy_reference', 'vacancy_ref', 'reference'], appointment.vacancy_reference);
+
+  // Derive country from duty station
+  if (appointment.duty_station) {
+    const country = DUTY_STATION_COUNTRY[appointment.duty_station];
+    if (country) set(['country'], country);
+  }
+
+  // Derive Mr/Ms from linked user gender
+  if (userData?.gender) {
+    const title = userData.gender === 'Female' ? 'Ms' : 'Mr';
+    set(['mr_ms', 'mr/ms', 'title_prefix'], title);
+  }
+
+  // Staff number from linked user
+  if (userData?.staff_number) {
+    set(['staff_number', 'staffnumber'], userData.staff_number);
+  }
+
+  // HR Focal Point initials
+  if (appointment.main_hr_focal_point) {
+    set(['hrinitial', 'hr_initial', 'hr_initials'], extractInitials(appointment.main_hr_focal_point));
+  }
+
+  // Today's date
+  set(['date', 'today', 'current_date'], format(new Date(), 'dd MMMM yyyy'));
+
+  // Currency and Amount left empty for manual entry
+  set(['currency'], '');
+  set(['amount'], '');
 
   return mapping;
 };
@@ -247,8 +297,19 @@ const AppointmentLifecycle = () => {
       const parsedFields: string[] = res.data?.fields || [];
       setOfferLetterFields(parsedFields);
 
-      // 3. Auto-fill from appointment data
-      const fieldMap = buildFieldMapping(appointment);
+      // 3. Fetch linked user data for gender, staff_number
+      let userData: any = null;
+      if (appointment.user_id) {
+        const { data: uData } = await supabase
+          .from('users')
+          .select('gender, staff_number')
+          .eq('id', appointment.user_id)
+          .single();
+        userData = uData;
+      }
+
+      // 4. Auto-fill from appointment + user data
+      const fieldMap = buildFieldMapping(appointment, userData);
       const values: Record<string, string> = {};
       for (const field of parsedFields) {
         const normalized = field.toLowerCase().replace(/\s+/g, '_');
