@@ -84,18 +84,19 @@ async function compressStream(data: Uint8Array): Promise<Uint8Array> {
 function replaceInContentStream(content: string, fieldValues: Record<string, string>): string {
   let modified = content;
 
-  // Pre-pass: normalize escaped braces inside PDF string literals (text between parentheses)
-  // \{ -> { and \} -> } within PDF string operators
-  modified = modified.replace(/\\\{/g, "{").replace(/\\\}/g, "}");
-
   for (const [fieldName, value] of Object.entries(fieldValues)) {
     const safeValue = String(value)
       .replace(/\\/g, "\\\\")
       .replace(/\(/g, "\\(")
       .replace(/\)/g, "\\)");
 
+    // Replace literal braces form
     const placeholder = `{{${fieldName}}}`;
     modified = modified.split(placeholder).join(safeValue);
+
+    // Replace escaped braces form (as PDF strings may encode them)
+    const escapedPlaceholder = `\\{\\{${fieldName}\\}\\}`;
+    modified = modified.split(escapedPlaceholder).join(safeValue);
   }
 
   // Handle placeholders split across TJ array elements
