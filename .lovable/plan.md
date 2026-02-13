@@ -1,18 +1,38 @@
 
+## Add "Download Template" Button to Affiliate Personnel Page
 
-## Make Contract Fields Read-Only in Bulk Edit
+### Overview
+Add a "Download template" button next to the "Import" button on `/admin/affiliate-personnel`. Clicking it downloads a CSV file with headers covering all editable fields from both the Affiliate Personnel table and the Contract History table.
 
-### Problem
-The Bulk Edit page at `/admin/affiliate-personnel/edit` (`src/pages/AffiliateDemographicsEdit.tsx`) allows inline editing of "Start Date" and "End Date" columns (lines 324-328). These fields map to `contract_start_date` and `contract_end_date` on the `users` table, but contract dates should only be editable through the Contract History page (`/admin/affiliate-history/{id}`).
+### CSV Template Columns
 
-### Solution
-In `src/pages/AffiliateDemographicsEdit.tsx`, replace the two editable date cells for `contract_start_date` and `contract_end_date` with static, non-clickable display cells -- the same way the `email` field is already treated (displayed but not editable).
+The template will include one header row with these columns:
 
-### Technical Details
+**From Affiliate Personnel (users table):**
+- Email Address, First name, Last name, Worker type (IC/Intern/UNV), Division, Unit, Job title, Line manager, Duty station, Current Grade, Staff number, Nationality, Gender, First Incumbency Date
 
-**File: `src/pages/AffiliateDemographicsEdit.tsx`**
+**From Contract History (affiliate_contract_history table):**
+- Samsaran PR, Samsaran PO, GSM Reg Number, GSM PO, Contract Start Date, Contract End Date
 
-- Lines 323-328: Replace the two `renderEditableCell` calls for `contract_start_date` and `contract_end_date` with plain read-only `<span>` elements that format the date (or show "-" if null).
-- The `renderEditableCell` function itself needs no changes; only the two call sites are affected.
-- The columns will remain visible so users can still see the dates, but clicking them will not trigger editing.
+### Changes to `src/pages/AffiliatePersonnel.tsx`
 
+1. **Add a `Download` icon import** from `lucide-react` (alongside existing icons).
+
+2. **Add a `handleDownloadTemplate` function** that:
+   - Defines the CSV header row as a comma-separated string of all column names listed above
+   - Creates a Blob with `text/csv` content type
+   - Triggers a browser download with filename `affiliate_personnel_template.csv`
+
+3. **Add a new Button** between "Import" and the backfill button (around line 594), styled as `variant="outline"` with a Download icon and label "Download template".
+
+### Technical Detail
+
+```text
+handleDownloadTemplate():
+  headers = "Email Address,First name,Last name,Worker type,Division,Unit,Job title,Line manager,Duty station,Current Grade,Staff number,Nationality,Gender,First Incumbency Date,Samsaran PR,Samsaran PO,GSM Reg Number,GSM PO,Contract Start Date,Contract End Date"
+  blob = new Blob([headers + "\n"], { type: 'text/csv' })
+  url = URL.createObjectURL(blob)
+  // Create temporary anchor, click it, revoke URL
+```
+
+No backend changes needed -- this is a purely client-side CSV generation.
