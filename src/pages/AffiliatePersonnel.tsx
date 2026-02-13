@@ -15,7 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Users, Search, Upload, Calendar, AlertTriangle, CheckCircle, Clock, Building2, UserPlus, MoreHorizontal, Pencil, ClipboardList, FileSpreadsheet, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Users, Search, Upload, Calendar, AlertTriangle, CheckCircle, Clock, Building2, UserPlus, MoreHorizontal, Pencil, ClipboardList, FileSpreadsheet, ArrowUp, ArrowDown, ArrowUpDown, Download } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { AffiliateForm, AffiliateFormData } from '@/components/affiliate/AffiliateForm';
@@ -591,6 +591,19 @@ export default function AffiliatePersonnel() {
                 <Upload className="w-4 h-4 mr-2" />
                 Import
               </Link>
+            </Button>
+            <Button variant="outline" onClick={() => {
+              const headers = "Email Address,First name,Last name,Worker type,Division,Unit,Job title,Line manager,Duty station,Current Grade,Staff number,Nationality,Gender,First Incumbency Date,Samsaran PR,Samsaran PO,GSM Reg Number,GSM PO,Contract Start Date,Contract End Date";
+              const blob = new Blob([headers + "\n"], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'affiliate_personnel_template.csv';
+              a.click();
+              URL.revokeObjectURL(url);
+            }}>
+              <Download className="w-4 h-4 mr-2" />
+              Download template
             </Button>
             {stats.noData > 0 && (
               <Button 
