@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 
 // Sorting types
 type SortDirection = 'asc' | 'desc' | null;
-type SortField = 'name' | 'affiliate_type' | 'division' | 'job_title' | 'duty_station' | 'first_incumbency_date' | 'status' | 'contract_end_date';
+type SortField = 'name' | 'affiliate_type' | 'division' | 'job_title' | 'duty_station' | 'first_incumbency_date' | 'status';
 
 // Sortable table head component
 interface SortableTableHeadProps {
@@ -274,6 +274,31 @@ export default function AffiliatePersonnel() {
       return data as AffiliateUser[];
     },
   });
+
+  // Fetch latest contract history per affiliate
+  const { data: contractHistoryData } = useQuery({
+    queryKey: ['affiliate-contract-history-latest'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('affiliate_contract_history')
+        .select('user_id, samsaran_pr, start_date, end_date')
+        .order('start_date', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Build lookup: user_id -> most recent contract record
+  const contractHistoryMap = useMemo(() => {
+    const map = new Map<string, { samsaran_pr: string | null; start_date: string | null; end_date: string | null }>();
+    if (!contractHistoryData) return map;
+    for (const row of contractHistoryData) {
+      if (!map.has(row.user_id)) {
+        map.set(row.user_id, { samsaran_pr: row.samsaran_pr, start_date: row.start_date, end_date: row.end_date });
+      }
+    }
+    return map;
+  }, [contractHistoryData]);
 
   // Get unique divisions for filter
   const divisions = [...new Set(affiliates?.map(a => a.division).filter(Boolean) || [])];
@@ -768,9 +793,9 @@ export default function AffiliatePersonnel() {
                       <SortableTableHead field="status" currentField={sortField} direction={sortDirection} onSort={handleSort}>
                         Status
                       </SortableTableHead>
-                      <SortableTableHead field="contract_end_date" currentField={sortField} direction={sortDirection} onSort={handleSort}>
-                        Contract End
-                      </SortableTableHead>
+                      <TableHead>Current PR</TableHead>
+                      <TableHead>Start Date</TableHead>
+                      <TableHead>End Date</TableHead>
                       <TableHead className="w-28">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -821,16 +846,24 @@ export default function AffiliatePersonnel() {
                               {contractStatus.status}
                             </Badge>
                           </TableCell>
-                          <TableCell>
-                            {affiliate.contract_end_date ? (
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-sm">
-                                  {format(parseISO(affiliate.contract_end_date), 'dd MMM yyyy')}
-                                </span>
-                              </div>
-                            ) : '-'}
-                          </TableCell>
+                          {(() => {
+                            const latest = contractHistoryMap.get(affiliate.id);
+                            return (
+                              <>
+                                <TableCell>{latest?.samsaran_pr || '-'}</TableCell>
+                                <TableCell>
+                                  {latest?.start_date
+                                    ? new Date(latest.start_date + 'T00:00:00').toLocaleDateString()
+                                    : '-'}
+                                </TableCell>
+                                <TableCell>
+                                  {latest?.end_date
+                                    ? new Date(latest.end_date + 'T00:00:00').toLocaleDateString()
+                                    : '-'}
+                                </TableCell>
+                              </>
+                            );
+                          })()}
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
