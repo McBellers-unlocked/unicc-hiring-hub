@@ -180,24 +180,24 @@ export default function AffiliateContractHistory() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Start Date</TableHead>
-                    <TableHead>End Date</TableHead>
                     <TableHead>Samsaran PR</TableHead>
                     <TableHead>Samsaran PO</TableHead>
                     <TableHead>GSM Reg Number</TableHead>
                     <TableHead>GSM PO</TableHead>
+                    <TableHead>Start Date</TableHead>
+                    <TableHead>End Date</TableHead>
                     <TableHead className="w-32">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.map((row) => (
                     <TableRow key={row.id}>
-                      <TableCell>{row.start_date ? new Date(row.start_date + 'T00:00:00').toLocaleDateString() : '-'}</TableCell>
-                      <TableCell>{row.end_date ? new Date(row.end_date + 'T00:00:00').toLocaleDateString() : '-'}</TableCell>
                       <TableCell>{row.samsaran_pr || '-'}</TableCell>
                       <TableCell>{row.samsaran_po || '-'}</TableCell>
                       <TableCell>{row.gsm_reg_number || '-'}</TableCell>
                       <TableCell>{row.gsm_po || '-'}</TableCell>
+                      <TableCell>{row.start_date ? new Date(row.start_date + 'T00:00:00').toLocaleDateString() : '-'}</TableCell>
+                      <TableCell>{row.end_date ? new Date(row.end_date + 'T00:00:00').toLocaleDateString() : '-'}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
                           <Button variant="ghost" size="icon" onClick={() => openEdit(row)}>
