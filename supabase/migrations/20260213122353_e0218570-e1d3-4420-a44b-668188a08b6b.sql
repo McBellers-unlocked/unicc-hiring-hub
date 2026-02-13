@@ -1,0 +1,1 @@
+ALTER TABLE affiliate_lifecycle_checklists ADD COLUMN samsaran_pr text;

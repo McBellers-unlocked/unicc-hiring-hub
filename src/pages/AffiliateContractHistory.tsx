@@ -256,7 +256,7 @@ export default function AffiliateContractHistory() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button variant="ghost" size="icon" asChild>
-                                  <Link to={`/admin/affiliate-personnel/${id}/lifecycle`}>
+                                  <Link to={row.samsaran_pr ? `/admin/affiliate-personnel/${id}/lifecycle/${encodeURIComponent(row.samsaran_pr)}` : '#'} onClick={(e) => { if (!row.samsaran_pr) { e.preventDefault(); toast.error('No Samsaran PR set for this record'); } }}>
                                     <ExternalLink className="h-4 w-4" />
                                   </Link>
                                 </Button>

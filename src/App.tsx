@@ -192,7 +192,7 @@ const App = () => (
             <Route path="/admin/performance-cycles" element={<AdminPerformanceCycles />} />
             <Route path="/admin/affiliate-personnel" element={<AffiliatePersonnel />} />
             <Route path="/admin/affiliate-personnel/edit" element={<AffiliateDemographicsEdit />} />
-            <Route path="/admin/affiliate-personnel/:id/lifecycle" element={<AffiliateLifecycle />} />
+            <Route path="/admin/affiliate-personnel/:id/lifecycle/:samsaranPr" element={<AffiliateLifecycle />} />
             <Route path="/admin/affiliate-history/:id" element={<AffiliateContractHistory />} />
             <Route path="/admin/import-affiliates" element={<ImportAffiliatePersonnel />} />
             <Route path="/admin/org-chart" element={<OrganizationChart />} />

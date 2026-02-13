@@ -889,12 +889,22 @@ export default function AffiliatePersonnel() {
                                   <Pencil className="h-4 w-4 mr-2" />
                                   Edit
                                 </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                  <Link to={`/admin/affiliate-personnel/${affiliate.id}/lifecycle`}>
-                                    <ClipboardList className="h-4 w-4 mr-2" />
-                                    Manage Lifecycle
-                                  </Link>
-                                </DropdownMenuItem>
+                                {(() => {
+                                  const latestPr = contractHistoryMap.get(affiliate.id)?.samsaran_pr;
+                                  return latestPr ? (
+                                    <DropdownMenuItem asChild>
+                                      <Link to={`/admin/affiliate-personnel/${affiliate.id}/lifecycle/${encodeURIComponent(latestPr)}`}>
+                                        <ClipboardList className="h-4 w-4 mr-2" />
+                                        Manage Lifecycle
+                                      </Link>
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem disabled>
+                                      <ClipboardList className="h-4 w-4 mr-2" />
+                                      Manage Lifecycle (No PR)
+                                    </DropdownMenuItem>
+                                  );
+                                })()}
                                 <DropdownMenuItem asChild>
                                   <Link to={`/admin/affiliate-history/${affiliate.id}`}>
                                     <FileSpreadsheet className="h-4 w-4 mr-2" />
