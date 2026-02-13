@@ -118,6 +118,7 @@ export type Database = {
           item_label: string
           next_contract_start: string | null
           notes: string | null
+          samsaran_pr: string | null
           stage: string
           updated_at: string | null
           user_id: string
@@ -134,6 +135,7 @@ export type Database = {
           item_label: string
           next_contract_start?: string | null
           notes?: string | null
+          samsaran_pr?: string | null
           stage: string
           updated_at?: string | null
           user_id: string
@@ -150,6 +152,7 @@ export type Database = {
           item_label?: string
           next_contract_start?: string | null
           notes?: string | null
+          samsaran_pr?: string | null
           stage?: string
           updated_at?: string | null
           user_id?: string

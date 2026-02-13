@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, User, Mail, Calendar, Clock, RefreshCw } from 'lucide-react';
+import { ArrowLeft, User, Mail, Calendar, Clock, RefreshCw, FileText } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
 import { AffiliateLifecycleTimeline } from '@/components/affiliate/AffiliateLifecycleTimeline';
@@ -27,13 +27,21 @@ interface AffiliateUser {
   affiliate_type: string | null;
   division: string | null;
   unit: string | null;
-  contract_start_date: string | null;
-  contract_end_date: string | null;
-  first_incumbency_date: string | null;
+}
+
+interface ContractRecord {
+  id: string;
+  samsaran_pr: string | null;
+  samsaran_po: string | null;
+  gsm_reg_number: string | null;
+  gsm_po: string | null;
+  start_date: string | null;
+  end_date: string | null;
 }
 
 export default function AffiliateLifecycle() {
-  const { id } = useParams<{ id: string }>();
+  const { id, samsaranPr } = useParams<{ id: string; samsaranPr: string }>();
+  const decodedPr = samsaranPr ? decodeURIComponent(samsaranPr) : '';
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeStage, setActiveStage] = useState<string>(LIFECYCLE_STAGES[0].key);
@@ -44,7 +52,7 @@ export default function AffiliateLifecycle() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, affiliate_type, division, unit, contract_start_date, contract_end_date, first_incumbency_date')
+        .select('id, name, email, affiliate_type, division, unit')
         .eq('id', id)
         .single();
 
@@ -54,51 +62,64 @@ export default function AffiliateLifecycle() {
     enabled: !!id,
   });
 
-  // Calculate contract break info
-  const contractInfo = affiliate ? {
-    isContractBreak: affiliate.contract_start_date && affiliate.first_incumbency_date 
-      ? differenceInDays(parseISO(affiliate.contract_start_date), new Date()) > 0 
-      : false,
-    daysToOnboard: affiliate.contract_start_date 
-      ? differenceInDays(parseISO(affiliate.contract_start_date), new Date())
+  // Fetch contract history record for this PR
+  const { data: contract, isLoading: contractLoading } = useQuery({
+    queryKey: ['affiliate-contract-record', id, decodedPr],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('affiliate_contract_history')
+        .select('id, samsaran_pr, samsaran_po, gsm_reg_number, gsm_po, start_date, end_date')
+        .eq('user_id', id!)
+        .eq('samsaran_pr', decodedPr)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as ContractRecord | null;
+    },
+    enabled: !!id && !!decodedPr,
+  });
+
+  // Calculate contract info from the contract history record
+  const contractInfo = contract ? {
+    daysToOnboard: contract.start_date 
+      ? differenceInDays(parseISO(contract.start_date), new Date())
       : null,
-    breakStart: affiliate.contract_end_date,
-    breakEnd: affiliate.contract_start_date,
+    startDate: contract.start_date,
+    endDate: contract.end_date,
   } : null;
 
-  // Fetch or create checklist items
+  // Fetch or create checklist items filtered by samsaran_pr
   const { data: checklist, isLoading: checklistLoading, refetch: refetchChecklist } = useQuery({
-    queryKey: ['affiliate-lifecycle-checklist', id, affiliate?.contract_end_date],
+    queryKey: ['affiliate-lifecycle-checklist', id, decodedPr],
     queryFn: async () => {
-      if (!affiliate) return [];
-      
       const { data, error } = await supabase
         .from('affiliate_lifecycle_checklists')
         .select('*')
-        .eq('user_id', id)
-        .eq('next_contract_start', affiliate.contract_start_date || '');
+        .eq('user_id', id!)
+        .eq('samsaran_pr', decodedPr);
 
       if (error) throw error;
       return (data || []) as ChecklistItem[];
     },
-    enabled: !!affiliate,
+    enabled: !!id && !!decodedPr,
   });
 
   // Initialize checklist items if empty
   const initializeChecklist = useMutation({
     mutationFn: async () => {
-      if (!affiliate || !user) return;
+      if (!affiliate || !user || !contract) return;
       
-      const items: Omit<ChecklistItem, 'id' | 'created_at' | 'updated_at'>[] = [];
+      const items: any[] = [];
       
       for (const stage of LIFECYCLE_STAGES) {
         const stageItems = DEFAULT_CHECKLIST_ITEMS[stage.key as LifecycleStageKey] || [];
         for (const item of stageItems) {
           items.push({
             user_id: affiliate.id,
-            contract_cycle_start: affiliate.first_incumbency_date,
-            contract_cycle_end: affiliate.contract_end_date,
-            next_contract_start: affiliate.contract_start_date,
+            contract_cycle_start: contract.start_date,
+            contract_cycle_end: contract.end_date,
+            next_contract_start: contract.start_date,
+            samsaran_pr: decodedPr,
             stage: stage.key,
             item_key: item.key,
             item_label: item.label,
@@ -172,7 +193,7 @@ export default function AffiliateLifecycle() {
   // Get items for active stage
   const activeStageItems = checklist?.filter(item => item.stage === activeStage) || [];
 
-  if (affiliateLoading) {
+  if (affiliateLoading || contractLoading) {
     return (
       <Layout>
         <div className="container mx-auto py-8 px-4">
@@ -245,48 +266,53 @@ export default function AffiliateLifecycle() {
               </div>
             </div>
 
-            {/* Contract Break Info */}
-            {contractInfo && (
-              <div className="mt-6 pt-6 border-t grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Contract End Date</p>
-                    <p className="font-medium">
-                      {contractInfo.breakStart 
-                        ? format(parseISO(contractInfo.breakStart), 'dd MMM yyyy')
-                        : 'Not set'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">New Contract Start</p>
-                    <p className="font-medium">
-                      {contractInfo.breakEnd 
-                        ? format(parseISO(contractInfo.breakEnd), 'dd MMM yyyy')
-                        : 'Not set'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Days to Onboard</p>
-                    <p className="font-medium text-lg">
-                      {contractInfo.daysToOnboard !== null 
-                        ? contractInfo.daysToOnboard > 0 
-                          ? `${contractInfo.daysToOnboard} days`
-                          : contractInfo.daysToOnboard === 0
-                            ? 'Today!'
-                            : `${Math.abs(contractInfo.daysToOnboard)} days ago`
-                        : 'N/A'}
-                    </p>
-                  </div>
+            {/* Contract Info from PR record */}
+            <div className="mt-6 pt-6 border-t grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="flex items-center gap-3">
+                <FileText className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Samsaran PR</p>
+                  <p className="font-medium">{decodedPr || 'N/A'}</p>
                 </div>
               </div>
-            )}
+              <div className="flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Start Date</p>
+                  <p className="font-medium">
+                    {contract?.start_date 
+                      ? format(parseISO(contract.start_date), 'dd MMM yyyy')
+                      : 'Not set'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">End Date</p>
+                  <p className="font-medium">
+                    {contract?.end_date 
+                      ? format(parseISO(contract.end_date), 'dd MMM yyyy')
+                      : 'Not set'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Clock className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Days to Onboard</p>
+                  <p className="font-medium text-lg">
+                    {contractInfo?.daysToOnboard !== null && contractInfo?.daysToOnboard !== undefined
+                      ? contractInfo.daysToOnboard > 0 
+                        ? `${contractInfo.daysToOnboard} days`
+                        : contractInfo.daysToOnboard === 0
+                          ? 'Today!'
+                          : `${Math.abs(contractInfo.daysToOnboard)} days ago`
+                      : 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
