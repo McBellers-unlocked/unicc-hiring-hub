@@ -1,89 +1,58 @@
 
 
-## Refactor Lifecycle Management to be PR-based
+## Enhance Affiliate Contract History Page
 
-### Overview
-Change the lifecycle management from being keyed by affiliate user ID to being keyed by Samsaran PR number. Each PR in contract history gets its own independent lifecycle screen. The route changes from `/admin/affiliate-personnel/:id/lifecycle` to `/admin/affiliate-personnel/:id/lifecycle/:samsaranPr`.
+### 1. Add Samsaran PR Search Filter
 
-### Database Change
+Add a search input at the top of the "Contract Records" card that filters both the contract records table and the contract documents table by Samsaran PR.
 
-Add a `samsaran_pr` column to `affiliate_lifecycle_checklists` to link checklist items to a specific PR instead of relying on contract dates.
+**File: `src/pages/AffiliateContractHistory.tsx`**
 
-```sql
-ALTER TABLE affiliate_lifecycle_checklists
-  ADD COLUMN samsaran_pr text;
-```
+- Add a `prFilter` state variable (string, default empty).
+- Add a search `Input` with a `Search` icon below the Card title area, before the table.
+- Filter `rows` by checking if `samsaran_pr` includes the search term (case-insensitive).
+- Pass the filtered PR list to `AffiliateContractDocuments` via a new `filterPR` prop so documents are also filtered.
+- Update `availablePRs` to derive from full rows (unfiltered), but the documents component will use `filterPR` to filter its display.
 
-### Route Change
+**File: `src/components/affiliate/AffiliateContractDocuments.tsx`**
 
-**File: `src/App.tsx`**
+- Add an optional `filterPR` prop to the `Props` interface.
+- When `filterPR` is non-empty, filter the `documents` array to only show documents whose `samsaran_pr` includes the search term (case-insensitive).
 
-Update the route from:
-```
-/admin/affiliate-personnel/:id/lifecycle
-```
-to:
-```
-/admin/affiliate-personnel/:id/lifecycle/:samsaranPr
-```
+### 2. Add "Add Document" Button to Contract Documents
 
-### Changes to `src/pages/AffiliateLifecycle.tsx`
+Replace the drag-and-drop zone as the only upload method with an explicit "Add Document" button in the card header (top-right), while keeping the drag-and-drop area as well.
 
-1. **Extract `samsaranPr` from URL params** instead of only `id`. Use `useParams<{ id: string; samsaranPr: string }>()`.
+**File: `src/components/affiliate/AffiliateContractDocuments.tsx`**
 
-2. **Fetch the contract history record** matching `user_id = id` and `samsaran_pr = samsaranPr` from `affiliate_contract_history`. This provides the `start_date`, `end_date`, `samsaran_po`, `gsm_reg_number`, and `gsm_po` for the header card.
+- Add a hidden file input ref (already exists as `fileInputRef`).
+- Add an "Add Document" button next to the `CardTitle` that triggers `fileInputRef.current?.click()`.
+- Uses the same `openTagDialog` flow already in place.
 
-3. **Update the info card** at the top to show:
-   - Name and email (from the users query, kept as-is)
-   - Samsaran PR number (from URL / contract history record)
-   - Contract start date and end date (from the contract history record, not the users table)
+### 3. Expand Document Type Options
 
-4. **Update contract info calculation** to use `start_date` / `end_date` from the contract history record rather than from `users.contract_start_date` / `users.contract_end_date`.
+Update the Type select in the tagging dialog and the display logic in the table.
 
-5. **Update checklist queries** to filter by `samsaran_pr` instead of `next_contract_start`:
-   - Fetch: `.eq('samsaran_pr', samsaranPr)` instead of `.eq('next_contract_start', ...)`
-   - Initialize: include `samsaran_pr` field in each inserted checklist item
+**File: `src/components/affiliate/AffiliateContractDocuments.tsx`**
 
-### Changes to `src/pages/AffiliatePersonnel.tsx`
+Current types: `contract`, `selection_report`
 
-**"Manage Lifecycle" link** (line 893): Change the link from:
-```
-/admin/affiliate-personnel/${affiliate.id}/lifecycle
-```
-to:
-```
-/admin/affiliate-personnel/${affiliate.id}/lifecycle/${encodeURIComponent(latest?.samsaran_pr || '')}
-```
+New types to add:
+- `rate_determination` -- "Rate Determination"
+- `nda` -- "NDA"
+- `pension_form` -- "Pension Form"
+- `doi` -- "DOI"
+- `id_document` -- "ID"
+- `phf` -- "PHF"
+- `other` -- "Other"
 
-This uses the PR value already displayed in the table row (from `contractHistoryMap`). If no PR exists, the link is disabled or hidden.
+Changes:
+- Add the 7 new `SelectItem` entries in the Type select (lines 300-304).
+- Create a label map object and use it in the table cell (line 242) instead of the current inline ternary, so all types render readable labels.
 
-### Changes to `src/pages/AffiliateContractHistory.tsx`
+### Technical Summary
 
-**"Go to Lifecycle" link** (line 259): Change the link from:
-```
-/admin/affiliate-personnel/${id}/lifecycle
-```
-to:
-```
-/admin/affiliate-personnel/${id}/lifecycle/${encodeURIComponent(row.samsaran_pr || '')}
-```
-
-Each row in contract history links to its own PR-specific lifecycle.
-
-### Summary of Data Flow
-
-```text
-Affiliate Personnel table
-  -> "Manage Lifecycle" uses the PR shown in that row
-  -> navigates to /admin/affiliate-personnel/{userId}/lifecycle/{samsaranPr}
-
-Contract History table
-  -> Each row's "Go to Lifecycle" button uses that row's samsaran_pr
-  -> navigates to /admin/affiliate-personnel/{userId}/lifecycle/{samsaranPr}
-
-Lifecycle page
-  -> Fetches user info from users table (name, email, type, division)
-  -> Fetches contract details from affiliate_contract_history WHERE samsaran_pr = :samsaranPr
-  -> Fetches/creates checklist items filtered by samsaran_pr
-  -> Header shows: Name, Email, Samsaran PR, Start Date, End Date
-```
+| File | Changes |
+|------|---------|
+| `src/pages/AffiliateContractHistory.tsx` | Add `prFilter` state, search input, filter logic for rows, pass `filterPR` prop |
+| `src/components/affiliate/AffiliateContractDocuments.tsx` | Add `filterPR` prop and filtering, "Add Document" button in header, 7 new doc types with label map |
