@@ -89,6 +89,29 @@ export default function AffiliateContractHistory() {
 
   const daysInIteration = useMemo(() => totalDaysWorked % 220, [totalDaysWorked]);
 
+  const contractBreakStart = useMemo(() => {
+    if (totalDaysWorked > 0 && totalDaysWorked % 220 === 0 && rows?.length) {
+      const latestEnd = rows
+        .map(r => r.end_date)
+        .filter(Boolean)
+        .sort()
+        .pop();
+      if (latestEnd) {
+        const d = new Date(latestEnd + 'T00:00:00');
+        d.setDate(d.getDate() + 1);
+        return d;
+      }
+    }
+    return null;
+  }, [totalDaysWorked, rows]);
+
+  const contractBreakEnd = useMemo(() => {
+    if (!contractBreakStart) return null;
+    const d = new Date(contractBreakStart);
+    d.setDate(d.getDate() + 31);
+    return d;
+  }, [contractBreakStart]);
+
   const saveMutation = useMutation({
     mutationFn: async (data: FormData) => {
       const payload = {
@@ -218,7 +241,7 @@ export default function AffiliateContractHistory() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-6">
               <p className="text-sm font-medium text-muted-foreground">Total Days Worked</p>
@@ -229,6 +252,18 @@ export default function AffiliateContractHistory() {
             <CardContent className="p-6">
               <p className="text-sm font-medium text-muted-foreground">Days Worked in This Iteration</p>
               <h3 className="text-3xl font-bold mt-2">{daysInIteration} <span className="text-sm font-normal text-muted-foreground">/ 220</span></h3>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-sm font-medium text-muted-foreground">Contract Break Starting On</p>
+              <h3 className="text-3xl font-bold mt-2">{contractBreakStart ? contractBreakStart.toLocaleDateString() : '—'}</h3>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-sm font-medium text-muted-foreground">Contract Break Ending On</p>
+              <h3 className="text-3xl font-bold mt-2">{contractBreakEnd ? contractBreakEnd.toLocaleDateString() : '—'}</h3>
             </CardContent>
           </Card>
         </div>
