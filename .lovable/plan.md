@@ -1,46 +1,93 @@
 
 
-## Switch Offer Letter Templates to DOCX-Only Workflow
+## Approach: Generate the Offer Letter PDF Programmatically
 
-### Why This Works Better
+Instead of filling a template, we build the entire offer letter as a PDF from scratch using `pdf-lib`. This gives us full control over fonts, layout, and text reflow -- no template file needed at all.
 
-The current PDF overlay approach fights against how PDFs work (absolute positioning, no text reflow). The DOCX filler already exists and handles text reflow perfectly -- long values like "Operations Bridge Technician" simply wrap naturally.
+### How It Works
+
+The edge function will contain the full letter structure as code. Each section (header, salutation, body paragraphs, appointment details table, signature block, etc.) is drawn programmatically. Variable data like name, job title, grade, and duty station are injected inline and the text wraps naturally because we control the line-breaking logic.
 
 ### What Changes
 
-**1. Update your Word templates (manual step)**
+**1. New edge function: `supabase/functions/generate-offer-letter-pdf/index.ts`**
 
-Re-save your offer letter templates as `.docx` files with inline placeholders. Instead of tab-aligned fields, embed placeholders directly in the sentence flow:
+A dedicated function that:
+- Accepts the same `field_values` object (Mr_Ms, surname, firstname, job_title, grade, level, duty_station, country, currency, amount, start_date, end_date, HR focal point, etc.)
+- Uses `pdf-lib` to create a multi-page PDF from scratch
+- Embeds the UNICC logo from storage (or a bundled version)
+- Draws the full 7-page letter content with proper formatting:
+  - Header with logo, "Palais des Nations" address, "HUMAN RESOURCES SECTION"
+  - Title: "Letter of Offer of Fixed-term Appointment under Staff Rule 420.3"
+  - Reference line with staff number
+  - Addressee block
+  - Date
+  - Salutation and body paragraphs with inline variable substitution
+  - Appointment details table (type, title, category, grade/step, duty station)
+  - Salary section
+  - Duration, documents, reporting, insurance, pension, standards of conduct sections
+  - Signature block
+  - Acceptance page with signature lines
+  - Annexes list
+  - Page numbering in footers
 
-- "Dear {{Mr_Ms}} {{surname}}"
-- "...for the position of {{job_title}} based in {{city}}, {{country}}..."
-- "...at the {{Grade}}-{{Level}} level..."
+**2. Text wrapping utility**
 
-Upload these to the Document Repository replacing the current PDF versions.
+A `wrapText(text, font, fontSize, maxWidth)` function that splits text into lines that fit within the page margins. This is how variable-length values like job titles flow naturally.
 
-**2. Simplify the edge function**
+**3. Update `AppointmentLifecycle.tsx`**
 
-**File: `supabase/functions/generate-repo-document/index.ts`**
+Change the "Draft Offer Letter" action to call the new `generate-offer-letter-pdf` endpoint instead of the template-based `generate-repo-document`. No template file path needed -- just send the field values directly.
 
-- Remove the entire `fillPDF` function and all its supporting code (decompressStream, parseTextWithPositions, the PlaceholderMatch interface -- roughly 200 lines).
-- Remove the `pdf-lib` import since it's no longer needed.
-- The main handler becomes simpler: always use the DOCX filling path. If a PDF is uploaded, return an error suggesting to use a DOCX template instead.
+**4. Keep `generate-repo-document` for other templates**
 
-**3. No frontend changes needed**
+The existing DOCX template filler remains available for other document types in the Document Repository.
 
-The `AppointmentLifecycle.tsx` already handles the response as a blob download and uses the file extension from the template name. DOCX downloads will work identically.
+### Advantages
 
-### What About PDF Output?
+- No external template file to maintain -- the letter structure lives in code
+- Perfect text reflow for any length of variable data
+- Consistent PDF output every time
+- No Word-to-PDF conversion step needed
+- Full control over fonts, spacing, and layout
 
-If PDF output is essential, there are two options to consider later:
+### Risks and Considerations
 
-- **Option A**: Users open the downloaded DOCX in Word/Google Docs and "Save as PDF" (zero development cost).
-- **Option B**: Integrate a conversion API like ConvertAPI or CloudConvert (adds a third-party dependency and API key, but automates the last step). This can be added later if needed.
+- The letter content is "hardcoded" in the function, so any wording changes require a code update (not just re-uploading a template). However, since offer letters rarely change wording, this is acceptable.
+- Embedding the exact Calibri font isn't possible with pdf-lib's standard fonts, so we'll use Helvetica (visually very similar at 11pt). If exact font matching is critical, a custom font file can be embedded later.
+- The UNICC logo needs to be fetched from storage or embedded as base64.
+- Building a 7-page document programmatically is a significant amount of code (~400-500 lines), but it's straightforward and maintainable.
 
-### Summary of Code Changes
+### Technical Details
+
+The core structure of the PDF builder:
+
+```text
+1. Create PDFDocument
+2. Embed Helvetica + Helvetica-Bold fonts
+3. Fetch and embed UNICC logo PNG
+4. For each page:
+   a. addPage([595.28, 841.89])  -- A4 size
+   b. Draw header (logo + address) on page 1
+   c. Draw content using drawWrappedText() helper
+   d. Track Y position, add new page when Y < bottom margin
+   e. Draw footer with page number on each page
+5. Return pdfDoc.save()
+```
+
+Key helper function:
+```text
+wrapText(text, font, fontSize, maxWidth):
+  Split text into words
+  Build lines by measuring word widths
+  Return array of line strings
+```
+
+### Files Changed
 
 | File | Change |
 |------|--------|
-| `supabase/functions/generate-repo-document/index.ts` | Remove ~200 lines of PDF overlay code (fillPDF, decompressStream, parseTextWithPositions). Simplify handler to DOCX-only. |
-| Templates (manual) | Re-upload offer letter templates as `.docx` with inline placeholders |
+| `supabase/functions/generate-offer-letter-pdf/index.ts` | New -- programmatic PDF builder for the offer letter |
+| `src/pages/operations/AppointmentLifecycle.tsx` | Update Draft Offer Letter to call new endpoint |
+| `supabase/config.toml` | Add new function config entry |
 
