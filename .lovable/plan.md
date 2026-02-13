@@ -1,22 +1,28 @@
 
 
-## Add Two KPI Cards to Affiliate Contract History
+## Add Two Contract Break KPI Cards
 
 ### Overview
-Add two KPI cards at the top of the `/admin/affiliate-history/:id` page, between the page header and the Contract Records card.
+Add two new KPI cards next to the existing ones on the Affiliate Contract History page.
 
 ### KPI Definitions
 
-1. **Total Days Worked** -- Sum of all `days_worked` values across every contract record for this affiliate.
-2. **Days Worked in This Iteration** -- The remainder after dividing the total by 220 (`total % 220`). Every time the cumulative total exceeds 220, the counter resets and starts counting again from 0.
+1. **Contract Break Starting On** -- If `daysInIteration` equals 220 (i.e. the iteration is exactly complete), display the day after the most recent `end_date` among all contract records. Otherwise, display "—" (blank).
+
+2. **Contract Break Ending On** -- If "Contract Break Starting On" has a value, add 31 calendar days to it and display that date. Otherwise, display "—" (blank).
 
 ### Changes (single file: `src/pages/AffiliateContractHistory.tsx`)
 
-1. **Add a `useMemo` block** that computes both KPIs from the existing `rows` data:
-   - `totalDaysWorked`: sum of all `row.days_worked` values (treating null as 0).
-   - `daysInIteration`: `totalDaysWorked % 220`.
+1. **Add a `useMemo` block** to compute `contractBreakStart`:
+   - If `daysInIteration === 220` (which is equivalent to `totalDaysWorked > 0 && totalDaysWorked % 220 === 0`), find the most recent `end_date` across all rows, then add 1 day.
+   - Otherwise, return `null`.
 
-2. **Add two KPI cards** in a responsive grid (`grid grid-cols-2 gap-4`) placed between the page header and the Contract Records card. Each card will display a label and the computed number using the existing `Card`/`CardHeader`/`CardContent` components.
+2. **Add a `useMemo` block** to compute `contractBreakEnd`:
+   - If `contractBreakStart` is set, add 31 days.
+   - Otherwise, return `null`.
 
-### No database or other file changes needed
-All data is already available from the existing query.
+3. **Update the grid** from `grid-cols-2` to `grid-cols-4` and add two new Card components displaying the computed dates (formatted via `toLocaleDateString()`) or "—" when null.
+
+### Note on iteration edge case
+When `totalDaysWorked % 220 === 0` and `totalDaysWorked > 0`, the current `daysInIteration` shows `0` (not `220`). The logic will treat this as the completed-iteration trigger (i.e., check `totalDaysWorked > 0 && totalDaysWorked % 220 === 0`) rather than checking for exactly `220`.
+
