@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText, ChevronDown, Building, FileCheck, User, LayoutDashboard, Shield, Heart, GraduationCap, BookOpen, Target, ClipboardList, ClipboardCheck, UserCog, Network, Upload, Cog } from 'lucide-react';
+import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText, ChevronDown, Building, FileCheck, User, LayoutDashboard, Shield, Heart, GraduationCap, BookOpen, Target, ClipboardList, ClipboardCheck, UserCog, Network, Upload, Cog, Mail } from 'lucide-react';
 import { UNICCLogo } from '@/components/UNICCLogo';
 
 interface LayoutProps {
@@ -206,6 +206,12 @@ export const Layout = ({ children }: LayoutProps) => {
                           <Link to="/admin/performance-cycles" className="flex items-center w-full">
                             <ClipboardCheck className="w-4 h-4 mr-2" />
                             Performance Cycles
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/email-hub" className="flex items-center w-full">
+                            <Mail className="w-4 h-4 mr-2" />
+                            Email Hub
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
