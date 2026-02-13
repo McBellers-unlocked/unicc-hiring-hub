@@ -1,58 +1,44 @@
 
 
-## Enhance Affiliate Contract History Page
+## Update Affiliate Form: Contract Fields to Contract History + Add Samsaran PR
 
-### 1. Add Samsaran PR Search Filter
+### Problem
+1. The "Add Affiliate" form saves `contract_start_date` and `contract_end_date` directly to the `users` table, but the project's data model uses `affiliate_contract_history` as the primary source for these values.
+2. The Contract tab is missing a Samsaran PR field, which is the key identifier for contract records.
 
-Add a search input at the top of the "Contract Records" card that filters both the contract records table and the contract documents table by Samsaran PR.
+### Changes
 
-**File: `src/pages/AffiliateContractHistory.tsx`**
+#### File: `src/components/affiliate/AffiliateForm.tsx`
 
-- Add a `prFilter` state variable (string, default empty).
-- Add a search `Input` with a `Search` icon below the Card title area, before the table.
-- Filter `rows` by checking if `samsaran_pr` includes the search term (case-insensitive).
-- Pass the filtered PR list to `AffiliateContractDocuments` via a new `filterPR` prop so documents are also filtered.
-- Update `availablePRs` to derive from full rows (unfiltered), but the documents component will use `filterPR` to filter its display.
+1. **Add `samsaran_pr` to the Zod schema and form defaults** -- add `samsaran_pr: z.string().optional()` to the schema, and include it in all `reset()` calls and default values.
 
-**File: `src/components/affiliate/AffiliateContractDocuments.tsx`**
+2. **Add Samsaran PR input field** in the Contract tab -- place it as the first field (full width or half width) before the date pickers, with label "Samsaran PR" and placeholder "e.g. PR-2026-001".
 
-- Add an optional `filterPR` prop to the `Props` interface.
-- When `filterPR` is non-empty, filter the `documents` array to only show documents whose `samsaran_pr` includes the search term (case-insensitive).
+3. **Update `AffiliateFormData` type** -- since it's inferred from the schema, adding to the schema automatically updates the exported type.
 
-### 2. Add "Add Document" Button to Contract Documents
+#### File: `src/pages/AffiliatePersonnel.tsx`
 
-Replace the drag-and-drop zone as the only upload method with an explicit "Add Document" button in the card header (top-right), while keeping the drag-and-drop area as well.
+4. **Update `handleFormSubmit`** to write contract fields to `affiliate_contract_history` instead of the `users` table:
+   - Remove `contract_start_date` and `contract_end_date` from all three `users` table operations (update, convert, insert).
+   - After the user record is created/updated, if any contract field is present (`samsaran_pr`, `contract_start_date`, or `contract_end_date`), upsert a record into `affiliate_contract_history` with:
+     - `user_id`: the affiliate's ID
+     - `samsaran_pr`: from the form
+     - `start_date`: from `contract_start_date`
+     - `end_date`: from `contract_end_date`
+   - Use the same lookup pattern as the import function: query by `user_id` + `samsaran_pr`, then update or insert accordingly.
+   - Invalidate the `affiliate-contract-history` query key as well so the contract history view stays in sync.
 
-**File: `src/components/affiliate/AffiliateContractDocuments.tsx`**
+### Summary of Data Flow
 
-- Add a hidden file input ref (already exists as `fileInputRef`).
-- Add an "Add Document" button next to the `CardTitle` that triggers `fileInputRef.current?.click()`.
-- Uses the same `openTagDialog` flow already in place.
+```text
+Form submission:
+  1. Save personal + assignment fields to `users` table (no contract dates)
+  2. If samsaran_pr or start/end date provided:
+     a. Look up affiliate_contract_history by (user_id + samsaran_pr)
+     b. If found -> UPDATE
+     c. If not found -> INSERT
+  3. Invalidate both 'affiliate-personnel' and 'affiliate-contract-history' queries
+```
 
-### 3. Expand Document Type Options
-
-Update the Type select in the tagging dialog and the display logic in the table.
-
-**File: `src/components/affiliate/AffiliateContractDocuments.tsx`**
-
-Current types: `contract`, `selection_report`
-
-New types to add:
-- `rate_determination` -- "Rate Determination"
-- `nda` -- "NDA"
-- `pension_form` -- "Pension Form"
-- `doi` -- "DOI"
-- `id_document` -- "ID"
-- `phf` -- "PHF"
-- `other` -- "Other"
-
-Changes:
-- Add the 7 new `SelectItem` entries in the Type select (lines 300-304).
-- Create a label map object and use it in the table cell (line 242) instead of the current inline ternary, so all types render readable labels.
-
-### Technical Summary
-
-| File | Changes |
-|------|---------|
-| `src/pages/AffiliateContractHistory.tsx` | Add `prFilter` state, search input, filter logic for rows, pass `filterPR` prop |
-| `src/components/affiliate/AffiliateContractDocuments.tsx` | Add `filterPR` prop and filtering, "Add Document" button in header, 7 new doc types with label map |
+### No database changes needed
+All required columns already exist in both tables.
