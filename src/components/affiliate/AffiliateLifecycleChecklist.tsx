@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Check, Clock, AlertTriangle, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, Clock, AlertTriangle, MessageSquare, ChevronDown, ChevronUp, Mail } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 interface AffiliateLifecycleChecklistProps {
@@ -116,6 +117,14 @@ export function AffiliateLifecycleChecklist({
                     )}>
                       {item.item_label}
                     </label>
+                    {item.item_key === 'timesheet_reminder' && (
+                      <Button variant="outline" size="sm" className="h-7 px-2" asChild>
+                        <Link to="/admin/email-hub">
+                          <Mail className="h-3 w-3 mr-1" />
+                          Go to Email Hub
+                        </Link>
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
