@@ -476,8 +476,11 @@ export default function AffiliatePersonnel() {
   const handleFormSubmit = async (data: AffiliateFormData, existingUserId?: string) => {
     setIsSubmitting(true);
     try {
+      let affiliateId: string;
+
       if (formMode === 'edit' && editingAffiliate) {
-        // Update existing affiliate
+        affiliateId = editingAffiliate.id;
+        // Update existing affiliate (no contract dates in users table)
         const { error } = await supabase
           .from('users')
           .update({
@@ -488,8 +491,6 @@ export default function AffiliatePersonnel() {
             job_title: data.job_title || null,
             line_manager: data.line_manager || null,
             duty_station: data.duty_station || null,
-            contract_start_date: data.contract_start_date || null,
-            contract_end_date: data.contract_end_date || null,
             current_grade: data.current_grade || null,
             staff_number: data.staff_number || null,
             nationality: data.nationality || null,
@@ -501,6 +502,7 @@ export default function AffiliatePersonnel() {
         if (error) throw error;
         toast.success('Affiliate updated successfully');
       } else if (existingUserId) {
+        affiliateId = existingUserId;
         // Convert existing user to affiliate
         const { error } = await supabase
           .from('users')
@@ -512,8 +514,6 @@ export default function AffiliatePersonnel() {
             job_title: data.job_title || null,
             line_manager: data.line_manager || null,
             duty_station: data.duty_station || null,
-            contract_start_date: data.contract_start_date || null,
-            contract_end_date: data.contract_end_date || null,
             current_grade: data.current_grade || null,
             staff_number: data.staff_number || null,
             nationality: data.nationality || null,
@@ -526,10 +526,11 @@ export default function AffiliatePersonnel() {
         toast.success('Affiliate added successfully');
       } else {
         // Create new affiliate
+        affiliateId = crypto.randomUUID();
         const { error } = await supabase
           .from('users')
           .insert([{
-            id: crypto.randomUUID(),
+            id: affiliateId,
             name: data.name,
             email: data.email,
             personnel_type: 'Affiliate',
@@ -539,8 +540,6 @@ export default function AffiliatePersonnel() {
             job_title: data.job_title || null,
             line_manager: data.line_manager || null,
             duty_station: data.duty_station || null,
-            contract_start_date: data.contract_start_date || null,
-            contract_end_date: data.contract_end_date || null,
             current_grade: data.current_grade || null,
             staff_number: data.staff_number || null,
             nationality: data.nationality || null,
@@ -552,7 +551,41 @@ export default function AffiliatePersonnel() {
         toast.success('New affiliate created successfully');
       }
 
+      // Upsert contract history if any contract field is provided
+      if (data.samsaran_pr || data.contract_start_date || data.contract_end_date) {
+        const samsaranPr = data.samsaran_pr || null;
+
+        // Look up existing record by user_id + samsaran_pr
+        const { data: existing } = await supabase
+          .from('affiliate_contract_history')
+          .select('id')
+          .eq('user_id', affiliateId)
+          .eq('samsaran_pr', samsaranPr || '')
+          .maybeSingle();
+
+        if (existing) {
+          await supabase
+            .from('affiliate_contract_history')
+            .update({
+              start_date: data.contract_start_date || null,
+              end_date: data.contract_end_date || null,
+              samsaran_pr: samsaranPr,
+            })
+            .eq('id', existing.id);
+        } else {
+          await supabase
+            .from('affiliate_contract_history')
+            .insert({
+              user_id: affiliateId,
+              samsaran_pr: samsaranPr,
+              start_date: data.contract_start_date || null,
+              end_date: data.contract_end_date || null,
+            });
+        }
+      }
+
       queryClient.invalidateQueries({ queryKey: ['affiliate-personnel'] });
+      queryClient.invalidateQueries({ queryKey: ['affiliate-contract-history-latest'] });
       setFormOpen(false);
     } catch (error: any) {
       console.error('Error saving affiliate:', error);
