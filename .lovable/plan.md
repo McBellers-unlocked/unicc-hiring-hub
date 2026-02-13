@@ -1,38 +1,42 @@
 
-## Add "Download Template" Button to Affiliate Personnel Page
 
-### Overview
-Add a "Download template" button next to the "Import" button on `/admin/affiliate-personnel`. Clicking it downloads a CSV file with headers covering all editable fields from both the Affiliate Personnel table and the Contract History table.
+## Reorder CSV Template -- Samsaran PR First
 
-### CSV Template Columns
+### Change
+In `src/pages/AffiliatePersonnel.tsx`, update the CSV headers string so "Samsaran PR" is the first column, serving as the primary key for joining personnel and contract history data.
 
-The template will include one header row with these columns:
+### Updated Column Order
 
-**From Affiliate Personnel (users table):**
-- Email Address, First name, Last name, Worker type (IC/Intern/UNV), Division, Unit, Job title, Line manager, Duty station, Current Grade, Staff number, Nationality, Gender, First Incumbency Date
-
-**From Contract History (affiliate_contract_history table):**
-- Samsaran PR, Samsaran PO, GSM Reg Number, GSM PO, Contract Start Date, Contract End Date
-
-### Changes to `src/pages/AffiliatePersonnel.tsx`
-
-1. **Add a `Download` icon import** from `lucide-react` (alongside existing icons).
-
-2. **Add a `handleDownloadTemplate` function** that:
-   - Defines the CSV header row as a comma-separated string of all column names listed above
-   - Creates a Blob with `text/csv` content type
-   - Triggers a browser download with filename `affiliate_personnel_template.csv`
-
-3. **Add a new Button** between "Import" and the backfill button (around line 594), styled as `variant="outline"` with a Download icon and label "Download template".
+1. **Samsaran PR** (moved to first position)
+2. Email Address
+3. First name
+4. Last name
+5. Worker type
+6. Division
+7. Unit
+8. Job title
+9. Line manager
+10. Duty station
+11. Current Grade
+12. Staff number
+13. Nationality
+14. Gender
+15. First Incumbency Date
+16. Samsaran PO
+17. GSM Reg Number
+18. GSM PO
+19. Contract Start Date
+20. Contract End Date
 
 ### Technical Detail
 
+**File:** `src/pages/AffiliatePersonnel.tsx` (around line 597)
+
+Replace the existing headers string with:
+
 ```text
-handleDownloadTemplate():
-  headers = "Email Address,First name,Last name,Worker type,Division,Unit,Job title,Line manager,Duty station,Current Grade,Staff number,Nationality,Gender,First Incumbency Date,Samsaran PR,Samsaran PO,GSM Reg Number,GSM PO,Contract Start Date,Contract End Date"
-  blob = new Blob([headers + "\n"], { type: 'text/csv' })
-  url = URL.createObjectURL(blob)
-  // Create temporary anchor, click it, revoke URL
+"Samsaran PR,Email Address,First name,Last name,Worker type,Division,Unit,Job title,Line manager,Duty station,Current Grade,Staff number,Nationality,Gender,First Incumbency Date,Samsaran PO,GSM Reg Number,GSM PO,Contract Start Date,Contract End Date"
 ```
 
-No backend changes needed -- this is a purely client-side CSV generation.
+Single-line change, no other modifications needed.
+
