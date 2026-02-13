@@ -593,7 +593,7 @@ export default function AffiliatePersonnel() {
               </Link>
             </Button>
             <Button variant="outline" onClick={() => {
-              const headers = "Email Address,First name,Last name,Worker type,Division,Unit,Job title,Line manager,Duty station,Current Grade,Staff number,Nationality,Gender,First Incumbency Date,Samsaran PR,Samsaran PO,GSM Reg Number,GSM PO,Contract Start Date,Contract End Date";
+              const headers = "Samsaran PR,Email Address,First name,Last name,Worker type,Division,Unit,Job title,Line manager,Duty station,Current Grade,Staff number,Nationality,Gender,First Incumbency Date,Samsaran PO,GSM Reg Number,GSM PO,Contract Start Date,Contract End Date";
               const blob = new Blob([headers + "\n"], { type: 'text/csv' });
               const url = URL.createObjectURL(blob);
               const a = document.createElement('a');
