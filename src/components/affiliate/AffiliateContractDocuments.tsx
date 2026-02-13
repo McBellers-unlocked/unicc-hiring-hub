@@ -48,6 +48,7 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   doi: 'DOI',
   id_document: 'ID',
   phf: 'PHF',
+  tor: 'TOR',
   other: 'Other',
 };
 
@@ -324,7 +325,8 @@ export default function AffiliateContractDocuments({ userId, affiliateName, avai
                   <SelectItem value="doi">DOI</SelectItem>
                   <SelectItem value="id_document">ID</SelectItem>
                   <SelectItem value="phf">PHF</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                   <SelectItem value="tor">TOR</SelectItem>
+                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
