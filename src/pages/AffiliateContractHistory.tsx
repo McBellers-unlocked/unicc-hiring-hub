@@ -21,6 +21,8 @@ interface ContractHistoryRow {
   samsaran_po: string | null;
   gsm_reg_number: string | null;
   gsm_po: string | null;
+  start_date: string | null;
+  end_date: string | null;
   created_at: string;
 }
 
@@ -29,9 +31,11 @@ interface FormData {
   samsaran_po: string;
   gsm_reg_number: string;
   gsm_po: string;
+  start_date: string;
+  end_date: string;
 }
 
-const emptyForm: FormData = { samsaran_pr: '', samsaran_po: '', gsm_reg_number: '', gsm_po: '' };
+const emptyForm: FormData = { samsaran_pr: '', samsaran_po: '', gsm_reg_number: '', gsm_po: '', start_date: '', end_date: '' };
 
 export default function AffiliateContractHistory() {
   const { id } = useParams<{ id: string }>();
@@ -77,16 +81,24 @@ export default function AffiliateContractHistory() {
 
   const saveMutation = useMutation({
     mutationFn: async (data: FormData) => {
+      const payload = {
+        samsaran_pr: data.samsaran_pr || null,
+        samsaran_po: data.samsaran_po || null,
+        gsm_reg_number: data.gsm_reg_number || null,
+        gsm_po: data.gsm_po || null,
+        start_date: data.start_date || null,
+        end_date: data.end_date || null,
+      };
       if (editingRow) {
         const { error } = await supabase
           .from('affiliate_contract_history')
-          .update(data)
+          .update(payload)
           .eq('id', editingRow.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('affiliate_contract_history')
-          .insert({ ...data, user_id: id! });
+          .insert({ ...payload, user_id: id! });
         if (error) throw error;
       }
     },
@@ -126,6 +138,8 @@ export default function AffiliateContractHistory() {
       samsaran_po: row.samsaran_po || '',
       gsm_reg_number: row.gsm_reg_number || '',
       gsm_po: row.gsm_po || '',
+      start_date: row.start_date || '',
+      end_date: row.end_date || '',
     });
     setDialogOpen(true);
   };
@@ -166,6 +180,8 @@ export default function AffiliateContractHistory() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Start Date</TableHead>
+                    <TableHead>End Date</TableHead>
                     <TableHead>Samsaran PR</TableHead>
                     <TableHead>Samsaran PO</TableHead>
                     <TableHead>GSM Reg Number</TableHead>
@@ -176,6 +192,8 @@ export default function AffiliateContractHistory() {
                 <TableBody>
                   {rows.map((row) => (
                     <TableRow key={row.id}>
+                      <TableCell>{row.start_date ? new Date(row.start_date + 'T00:00:00').toLocaleDateString() : '-'}</TableCell>
+                      <TableCell>{row.end_date ? new Date(row.end_date + 'T00:00:00').toLocaleDateString() : '-'}</TableCell>
                       <TableCell>{row.samsaran_pr || '-'}</TableCell>
                       <TableCell>{row.samsaran_po || '-'}</TableCell>
                       <TableCell>{row.gsm_reg_number || '-'}</TableCell>
@@ -224,6 +242,14 @@ export default function AffiliateContractHistory() {
               <DialogTitle>{editingRow ? 'Edit Record' : 'Add Record'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
+              <div>
+                <Label>Start Date</Label>
+                <Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+              </div>
+              <div>
+                <Label>End Date</Label>
+                <Input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+              </div>
               <div>
                 <Label>Samsaran PR</Label>
                 <Input value={form.samsaran_pr} onChange={(e) => setForm({ ...form, samsaran_pr: e.target.value })} />

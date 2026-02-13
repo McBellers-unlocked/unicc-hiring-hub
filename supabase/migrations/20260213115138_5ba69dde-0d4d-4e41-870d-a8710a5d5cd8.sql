@@ -1,0 +1,1 @@
+ALTER TABLE public.affiliate_contract_history ADD COLUMN start_date date, ADD COLUMN end_date date;
