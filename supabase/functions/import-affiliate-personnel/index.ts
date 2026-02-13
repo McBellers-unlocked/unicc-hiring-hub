@@ -23,6 +23,10 @@ interface AffiliateRow {
   contract_end_date: string;
   current_grade: string;
   first_incumbency_date: string;
+  samsaran_pr: string;
+  samsaran_po: string;
+  gsm_reg_number: string;
+  gsm_po: string;
 }
 
 Deno.serve(async (req) => {
@@ -115,6 +119,10 @@ Deno.serve(async (req) => {
     const currentGradeIndex = findColumn(['current grade', 'grade']);
     const firstIncumbencyIndex = findColumn(['first incumbency', 'first_incumbency', 'original start', 'first start']);
     const officialDutyStationIndex = findColumn(['official duty station']);
+    const samsaranPrIndex = findColumn(['samsaran pr']);
+    const samsaranPoIndex = findColumn(['samsaran po']);
+    const gsmRegNumberIndex = findColumn(['gsm reg']);
+    const gsmPoIndex = findColumn(['gsm po']);
 
     console.log('Column indices:', { emailIndex, firstNameIndex, lastNameIndex, workerTypeIndex, appTypeShortIndex });
 
@@ -189,6 +197,10 @@ Deno.serve(async (req) => {
         contract_end_date: contractEndIndex !== -1 ? parseDate(values[contractEndIndex]?.trim()) : '',
         current_grade: currentGradeIndex !== -1 ? values[currentGradeIndex]?.trim() : '',
         first_incumbency_date: firstIncumbencyIndex !== -1 ? parseDate(values[firstIncumbencyIndex]?.trim()) : '',
+        samsaran_pr: samsaranPrIndex !== -1 ? values[samsaranPrIndex]?.trim() : '',
+        samsaran_po: samsaranPoIndex !== -1 ? values[samsaranPoIndex]?.trim() : '',
+        gsm_reg_number: gsmRegNumberIndex !== -1 ? values[gsmRegNumberIndex]?.trim() : '',
+        gsm_po: gsmPoIndex !== -1 ? values[gsmPoIndex]?.trim() : '',
       });
     }
 
@@ -197,6 +209,7 @@ Deno.serve(async (req) => {
     // Process affiliates - upsert by email
     let created = 0;
     let updated = 0;
+    let contractsUpdated = 0;
     const errors: string[] = [];
 
     for (const affiliate of affiliateData) {
@@ -305,9 +318,64 @@ Deno.serve(async (req) => {
           created++;
         }
       }
+
+      // Upsert contract history if any contract field is present
+      const userId = existingUser?.id || (await supabase.from('users').select('id').ilike('email', affiliate.email).maybeSingle()).data?.id;
+      const hasContractData = affiliate.samsaran_pr || affiliate.samsaran_po || affiliate.gsm_reg_number || affiliate.gsm_po || affiliate.contract_start_date || affiliate.contract_end_date;
+      
+      if (userId && hasContractData) {
+        const contractData: Record<string, any> = { user_id: userId };
+        if (affiliate.samsaran_pr) contractData.samsaran_pr = affiliate.samsaran_pr;
+        if (affiliate.samsaran_po) contractData.samsaran_po = affiliate.samsaran_po;
+        if (affiliate.gsm_reg_number) contractData.gsm_reg_number = affiliate.gsm_reg_number;
+        if (affiliate.gsm_po) contractData.gsm_po = affiliate.gsm_po;
+        if (affiliate.contract_start_date) contractData.start_date = affiliate.contract_start_date;
+        if (affiliate.contract_end_date) contractData.end_date = affiliate.contract_end_date;
+
+        // Look up existing record by user_id + samsaran_pr
+        if (affiliate.samsaran_pr) {
+          const { data: existingContract } = await supabase
+            .from('affiliate_contract_history')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('samsaran_pr', affiliate.samsaran_pr)
+            .maybeSingle();
+
+          if (existingContract) {
+            const { error: contractError } = await supabase
+              .from('affiliate_contract_history')
+              .update(contractData)
+              .eq('id', existingContract.id);
+            if (contractError) {
+              errors.push(`${affiliate.email} contract: ${contractError.message}`);
+            } else {
+              contractsUpdated++;
+            }
+          } else {
+            const { error: contractError } = await supabase
+              .from('affiliate_contract_history')
+              .insert(contractData);
+            if (contractError) {
+              errors.push(`${affiliate.email} contract: ${contractError.message}`);
+            } else {
+              contractsUpdated++;
+            }
+          }
+        } else {
+          // No samsaran_pr — insert a new record
+          const { error: contractError } = await supabase
+            .from('affiliate_contract_history')
+            .insert(contractData);
+          if (contractError) {
+            errors.push(`${affiliate.email} contract: ${contractError.message}`);
+          } else {
+            contractsUpdated++;
+          }
+        }
+      }
     }
 
-    console.log(`Import complete: ${created} created, ${updated} updated, ${errors.length} errors`);
+    console.log(`Import complete: ${created} created, ${updated} updated, ${contractsUpdated} contracts, ${errors.length} errors`);
 
     return new Response(JSON.stringify({
       success: true,
@@ -315,9 +383,10 @@ Deno.serve(async (req) => {
         total_processed: affiliateData.length,
         created,
         updated,
+        contracts_updated: contractsUpdated,
         errors: errors.length,
       },
-      errors: errors.slice(0, 20), // First 20 errors for debugging
+      errors: errors.slice(0, 20),
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
