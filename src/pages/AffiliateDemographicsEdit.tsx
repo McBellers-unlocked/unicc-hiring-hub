@@ -320,11 +320,11 @@ export default function AffiliateDemographicsEdit() {
                         <TableCell>
                           {renderEditableCell(affiliate, 'duty_station')}
                         </TableCell>
-                        <TableCell>
-                          {renderEditableCell(affiliate, 'contract_start_date', 'date')}
+                        <TableCell className="text-muted-foreground text-xs">
+                          {affiliate.contract_start_date ? format(parseISO(affiliate.contract_start_date), 'dd MMM yyyy') : '-'}
                         </TableCell>
-                        <TableCell>
-                          {renderEditableCell(affiliate, 'contract_end_date', 'date')}
+                        <TableCell className="text-muted-foreground text-xs">
+                          {affiliate.contract_end_date ? format(parseISO(affiliate.contract_end_date), 'dd MMM yyyy') : '-'}
                         </TableCell>
                         <TableCell>
                           {renderEditableCell(affiliate, 'current_grade')}
