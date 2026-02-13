@@ -64,6 +64,7 @@ export type Database = {
       affiliate_contract_history: {
         Row: {
           created_at: string
+          days_worked: number | null
           end_date: string | null
           gsm_po: string | null
           gsm_reg_number: string | null
@@ -75,6 +76,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          days_worked?: number | null
           end_date?: string | null
           gsm_po?: string | null
           gsm_reg_number?: string | null
@@ -86,6 +88,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          days_worked?: number | null
           end_date?: string | null
           gsm_po?: string | null
           gsm_reg_number?: string | null

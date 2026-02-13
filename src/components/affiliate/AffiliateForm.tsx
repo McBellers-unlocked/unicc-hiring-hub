@@ -43,6 +43,7 @@ const affiliateSchema = z.object({
   gender: z.string().optional(),
   first_incumbency_date: z.string().optional(),
   samsaran_pr: z.string().optional(),
+  days_worked: z.coerce.number().optional(),
 });
 
 export type AffiliateFormData = z.infer<typeof affiliateSchema>;
@@ -108,6 +109,7 @@ export function AffiliateForm({
       gender: '',
       first_incumbency_date: '',
       samsaran_pr: '',
+      days_worked: undefined,
     },
   });
 
@@ -131,7 +133,8 @@ export function AffiliateForm({
           nationality: initialData.nationality || '',
           gender: initialData.gender || '',
           first_incumbency_date: initialData.first_incumbency_date || '',
-          samsaran_pr: (initialData as any).samsaran_pr || '',
+           samsaran_pr: (initialData as any).samsaran_pr || '',
+           days_worked: (initialData as any).days_worked ?? undefined,
         });
         setSelectedUserId(initialData.id || null);
       } else {
@@ -152,6 +155,7 @@ export function AffiliateForm({
           gender: '',
           first_incumbency_date: '',
           samsaran_pr: '',
+          days_worked: undefined,
         });
         setSelectedUserId(null);
       }
@@ -342,6 +346,16 @@ export function AffiliateForm({
                     dateFormat="dd MMM yyyy"
                     className="w-full h-10 px-3 border rounded-md text-sm"
                     placeholderText="Select end date"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="days_worked">Days Worked</Label>
+                  <Input
+                    id="days_worked"
+                    type="number"
+                    {...register('days_worked')}
+                    placeholder="e.g. 220"
                   />
                 </div>
 

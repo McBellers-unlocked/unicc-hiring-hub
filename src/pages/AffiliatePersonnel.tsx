@@ -552,7 +552,7 @@ export default function AffiliatePersonnel() {
       }
 
       // Upsert contract history if any contract field is provided
-      if (data.samsaran_pr || data.contract_start_date || data.contract_end_date) {
+      if (data.samsaran_pr || data.contract_start_date || data.contract_end_date || data.days_worked != null) {
         const samsaranPr = data.samsaran_pr || null;
 
         // Look up existing record by user_id + samsaran_pr
@@ -570,6 +570,7 @@ export default function AffiliatePersonnel() {
               start_date: data.contract_start_date || null,
               end_date: data.contract_end_date || null,
               samsaran_pr: samsaranPr,
+              days_worked: data.days_worked ?? null,
             })
             .eq('id', existing.id);
         } else {
@@ -580,6 +581,7 @@ export default function AffiliatePersonnel() {
               samsaran_pr: samsaranPr,
               start_date: data.contract_start_date || null,
               end_date: data.contract_end_date || null,
+              days_worked: data.days_worked ?? null,
             });
         }
       }

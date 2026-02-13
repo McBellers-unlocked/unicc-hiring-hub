@@ -1,0 +1,1 @@
+ALTER TABLE affiliate_contract_history ADD COLUMN days_worked integer;
