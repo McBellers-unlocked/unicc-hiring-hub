@@ -21,6 +21,6 @@ jobs:
         run: |
           set -euo pipefail
           git remote remove bitbucket 2>/dev/null || true
-          git remote add bitbucket https://x-token-auth:${BITBUCKET_TOKEN}@bitbucket.org/iccgit/unicc-hireflow.git
+          git remote add bitbucket https://x-token-auth:${BITBUCKET_TOKEN}@bitbucket.org/iccgit/unicconnect.git
           git push bitbucket --all --force
           git push bitbucket --tags --force
