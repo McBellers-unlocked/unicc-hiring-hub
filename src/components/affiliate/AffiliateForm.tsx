@@ -42,6 +42,7 @@ const affiliateSchema = z.object({
   nationality: z.string().optional(),
   gender: z.string().optional(),
   first_incumbency_date: z.string().optional(),
+  samsaran_pr: z.string().optional(),
 });
 
 export type AffiliateFormData = z.infer<typeof affiliateSchema>;
@@ -106,6 +107,7 @@ export function AffiliateForm({
       nationality: '',
       gender: '',
       first_incumbency_date: '',
+      samsaran_pr: '',
     },
   });
 
@@ -129,6 +131,7 @@ export function AffiliateForm({
           nationality: initialData.nationality || '',
           gender: initialData.gender || '',
           first_incumbency_date: initialData.first_incumbency_date || '',
+          samsaran_pr: (initialData as any).samsaran_pr || '',
         });
         setSelectedUserId(initialData.id || null);
       } else {
@@ -148,6 +151,7 @@ export function AffiliateForm({
           nationality: '',
           gender: '',
           first_incumbency_date: '',
+          samsaran_pr: '',
         });
         setSelectedUserId(null);
       }
@@ -306,6 +310,15 @@ export function AffiliateForm({
 
             <TabsContent value="contract" className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="samsaran_pr">Samsaran PR</Label>
+                  <Input
+                    id="samsaran_pr"
+                    {...register('samsaran_pr')}
+                    placeholder="e.g. PR-2026-001"
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label>Contract Start Date</Label>
                   <DatePicker
