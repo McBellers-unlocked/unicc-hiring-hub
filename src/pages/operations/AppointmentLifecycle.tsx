@@ -118,12 +118,16 @@ const AppointmentLifecycle = () => {
 
   // Offer letter dialog state
   const [offerLetterOpen, setOfferLetterOpen] = useState(false);
-  const [offerLetterFields, setOfferLetterFields] = useState<string[]>([]);
   const [offerLetterValues, setOfferLetterValues] = useState<Record<string, string>>({});
   const [offerLetterLoading, setOfferLetterLoading] = useState(false);
   const [offerLetterGenerating, setOfferLetterGenerating] = useState(false);
-  const [templateFilePath, setTemplateFilePath] = useState<string | null>(null);
-  const [templateName, setTemplateName] = useState<string>('');
+
+  // Fields shown in the review dialog for the offer letter
+  const OFFER_LETTER_FIELDS = [
+    'mr_ms', 'firstname', 'surname', 'job_title', 'duty_station', 'country',
+    'grade', 'level', 'staff_number', 'currency', 'amount',
+    'start_date', 'end_date', 'hr_focal_point', 'date',
+  ];
 
   // Fetch appointment
   const { data: appointment, isLoading: loadingAppointment } = useQuery({
@@ -265,41 +269,10 @@ const AppointmentLifecycle = () => {
     if (!appointment) return;
     setOfferLetterOpen(true);
     setOfferLetterLoading(true);
-    setOfferLetterFields([]);
     setOfferLetterValues({});
 
     try {
-      // 1. Find the template in document_repository (supports .docx and .pdf)
-      const { data: docRepo, error: docError } = await supabase
-        .from('document_repository')
-        .select('file_path, name')
-        .ilike('name', '%Letter of Fixed-Term Appointment - G Staff%')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (docError || !docRepo) {
-        toast.error('Template not found in Document Repository.');
-        setOfferLetterOpen(false);
-        setOfferLetterLoading(false);
-        return;
-      }
-
-      setTemplateFilePath(docRepo.file_path);
-      setTemplateName(docRepo.name);
-
-      // 2. Parse fields from the template
-      const { data: session } = await supabase.auth.getSession();
-      const res = await supabase.functions.invoke('parse-repo-template-fields', {
-        body: { file_path: docRepo.file_path },
-      });
-
-      if (res.error) throw new Error(res.error.message || 'Failed to parse template fields');
-
-      const parsedFields: string[] = res.data?.fields || [];
-      setOfferLetterFields(parsedFields);
-
-      // 3. Fetch linked user data for gender, staff_number
+      // Fetch linked user data for gender, staff_number
       let userData: any = null;
       if (appointment.user_id) {
         const { data: uData } = await supabase
@@ -310,33 +283,31 @@ const AppointmentLifecycle = () => {
         userData = uData;
       }
 
-      // 4. Auto-fill from appointment + user data
+      // Auto-fill from appointment + user data
       const fieldMap = buildFieldMapping(appointment, userData);
       const values: Record<string, string> = {};
-      for (const field of parsedFields) {
+      for (const field of OFFER_LETTER_FIELDS) {
         const normalized = field.toLowerCase().replace(/\s+/g, '_');
         values[field] = fieldMap[normalized] || '';
       }
       setOfferLetterValues(values);
     } catch (err: any) {
-      console.error('Error loading offer letter template:', err);
-      toast.error('Failed to load template: ' + (err.message || 'Unknown error'));
+      console.error('Error loading offer letter data:', err);
+      toast.error('Failed to load data: ' + (err.message || 'Unknown error'));
       setOfferLetterOpen(false);
     } finally {
       setOfferLetterLoading(false);
     }
   };
 
-  // Generate and download the filled document
+  // Generate and download the offer letter PDF
   const handleGenerateOfferLetter = async () => {
-    if (!templateFilePath) return;
     setOfferLetterGenerating(true);
 
     try {
-      // Use fetch directly to preserve binary data (supabase.functions.invoke can corrupt binary responses)
       const session = (await supabase.auth.getSession()).data.session;
       const response = await fetch(
-        `https://cxpnvbphjpntrvvgjhli.supabase.co/functions/v1/generate-repo-document`,
+        `https://cxpnvbphjpntrvvgjhli.supabase.co/functions/v1/generate-offer-letter-pdf`,
         {
           method: 'POST',
           headers: {
@@ -344,31 +315,32 @@ const AppointmentLifecycle = () => {
             'Authorization': `Bearer ${session?.access_token}`,
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4cG52YnBoanBudHJ2dmdqaGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4NDM0MTksImV4cCI6MjA3MjQxOTQxOX0.dRxQIYWjz1x7pD3SmSB5ft7LLMNw7hJZw9gwTLk7lAU',
           },
-          body: JSON.stringify({ file_path: templateFilePath, field_values: offerLetterValues }),
+          body: JSON.stringify({ field_values: offerLetterValues }),
         }
       );
 
       if (!response.ok) {
         const errBody = await response.json().catch(() => ({}));
-        throw new Error(errBody.error || 'Failed to generate document');
+        throw new Error(errBody.error || 'Failed to generate PDF');
       }
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const ext = templateName.match(/\.([^.]+)$/)?.[1] || 'docx';
-      a.download = `${templateName.replace(/\.[^.]+$/, '')}_filled.${ext}`;
+      const surname = offerLetterValues['surname'] || offerLetterValues['last_name'] || 'Staff';
+      const firstName = offerLetterValues['firstname'] || offerLetterValues['first_name'] || '';
+      a.download = `Offer_Letter_${surname}_${firstName}.pdf`.replace(/\s+/g, '_');
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast.success('Offer letter downloaded!');
+      toast.success('Offer letter PDF downloaded!');
       setOfferLetterOpen(false);
     } catch (err: any) {
       console.error('Error generating offer letter:', err);
-      toast.error('Failed to generate document: ' + (err.message || 'Unknown error'));
+      toast.error('Failed to generate PDF: ' + (err.message || 'Unknown error'));
     } finally {
       setOfferLetterGenerating(false);
     }
@@ -568,26 +540,20 @@ const AppointmentLifecycle = () => {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <FileEdit className="h-5 w-5" />
-                Generate Offer Letter
+                Generate Offer Letter PDF
               </DialogTitle>
-              {templateName && (
-                <p className="text-sm text-muted-foreground">Template: {templateName}</p>
-              )}
+              <p className="text-sm text-muted-foreground">Review and edit the fields below before generating the PDF.</p>
             </DialogHeader>
 
             {offerLetterLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">Parsing template fields...</span>
-              </div>
-            ) : offerLetterFields.length === 0 ? (
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                No fillable fields found in the template.
+                <span className="ml-2 text-sm text-muted-foreground">Loading appointment data...</span>
               </div>
             ) : (
               <div className="overflow-y-auto max-h-[60vh] pr-4">
                 <div className="space-y-4 py-2">
-                  {offerLetterFields.map((field) => (
+                  {OFFER_LETTER_FIELDS.map((field) => (
                     <div key={field} className="space-y-1.5">
                       <Label htmlFor={`field-${field}`} className="text-sm font-medium capitalize">
                         {field.replace(/_/g, ' ')}
@@ -612,17 +578,17 @@ const AppointmentLifecycle = () => {
               </Button>
               <Button
                 onClick={handleGenerateOfferLetter}
-                disabled={offerLetterLoading || offerLetterGenerating || offerLetterFields.length === 0}
+                disabled={offerLetterLoading || offerLetterGenerating}
               >
                 {offerLetterGenerating ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Generating...
+                    Generating PDF...
                   </>
                 ) : (
                   <>
                     <Download className="h-4 w-4 mr-2" />
-                    Download Filled Document
+                    Download Offer Letter PDF
                   </>
                 )}
               </Button>
