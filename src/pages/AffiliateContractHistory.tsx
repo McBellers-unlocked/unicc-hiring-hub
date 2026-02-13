@@ -82,6 +82,13 @@ export default function AffiliateContractHistory() {
     return [...new Set(rows.map(r => r.samsaran_pr).filter(Boolean))] as string[];
   }, [rows]);
 
+  const totalDaysWorked = useMemo(() => {
+    if (!rows) return 0;
+    return rows.reduce((sum, r) => sum + (r.days_worked || 0), 0);
+  }, [rows]);
+
+  const daysInIteration = useMemo(() => totalDaysWorked % 220, [totalDaysWorked]);
+
   const saveMutation = useMutation({
     mutationFn: async (data: FormData) => {
       const payload = {
@@ -209,6 +216,21 @@ export default function AffiliateContractHistory() {
               Contract History for {affiliate?.name || '...'}
             </h1>
           </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-sm font-medium text-muted-foreground">Total Days Worked</p>
+              <h3 className="text-3xl font-bold mt-2">{totalDaysWorked}</h3>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-sm font-medium text-muted-foreground">Days Worked in This Iteration</p>
+              <h3 className="text-3xl font-bold mt-2">{daysInIteration} <span className="text-sm font-normal text-muted-foreground">/ 220</span></h3>
+            </CardContent>
+          </Card>
         </div>
 
         <Card>
