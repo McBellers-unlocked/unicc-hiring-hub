@@ -1,41 +1,22 @@
 
 
-## Add "Days Worked" Column to Affiliate Contract Management
+## Add Two KPI Cards to Affiliate Contract History
 
-### 1. Database Migration
+### Overview
+Add two KPI cards at the top of the `/admin/affiliate-history/:id` page, between the page header and the Contract Records card.
 
-Add a `days_worked` integer column to the `affiliate_contract_history` table:
+### KPI Definitions
 
-```sql
-ALTER TABLE affiliate_contract_history ADD COLUMN days_worked integer;
-```
+1. **Total Days Worked** -- Sum of all `days_worked` values across every contract record for this affiliate.
+2. **Days Worked in This Iteration** -- The remainder after dividing the total by 220 (`total % 220`). Every time the cumulative total exceeds 220, the counter resets and starts counting again from 0.
 
-### 2. Contract Records Table (AffiliateContractHistory.tsx)
+### Changes (single file: `src/pages/AffiliateContractHistory.tsx`)
 
-- Add `days_worked` to the `ContractHistoryRow` interface and `FormData` interface.
-- Add `days_worked: ''` to `emptyForm`.
-- Add a "Days Worked" column header between "End Date" and "Actions" in the table.
-- Display the value in each row (or `-` if null).
-- Add a "Days Worked" input field (type number) in the Add/Edit Record dialog.
-- Include `days_worked` in the save mutation payload (convert to integer or null).
-- Populate the field when editing an existing row.
+1. **Add a `useMemo` block** that computes both KPIs from the existing `rows` data:
+   - `totalDaysWorked`: sum of all `row.days_worked` values (treating null as 0).
+   - `daysInIteration`: `totalDaysWorked % 220`.
 
-### 3. Add Affiliate Form (AffiliateForm.tsx)
+2. **Add two KPI cards** in a responsive grid (`grid grid-cols-2 gap-4`) placed between the page header and the Contract Records card. Each card will display a label and the computed number using the existing `Card`/`CardHeader`/`CardContent` components.
 
-- Add `days_worked: z.coerce.number().optional()` to the Zod schema.
-- Add a "Days Worked" number input field in the Contract tab, placed after the date pickers and before the First Incumbency Date field.
-
-### 4. Affiliate Personnel Submit Logic (AffiliatePersonnel.tsx)
-
-- Include `days_worked` in the contract history upsert logic (both update and insert paths), reading from `data.days_worked`.
-- Update the condition that triggers the upsert to also check for `data.days_worked`.
-
-### Technical Summary
-
-| File | Changes |
-|------|---------|
-| Database | Add `days_worked integer` column to `affiliate_contract_history` |
-| `src/pages/AffiliateContractHistory.tsx` | Add to interface, form, table column, dialog field, save payload |
-| `src/components/affiliate/AffiliateForm.tsx` | Add to schema, add number input in Contract tab |
-| `src/pages/AffiliatePersonnel.tsx` | Include `days_worked` in contract history upsert |
-
+### No database or other file changes needed
+All data is already available from the existing query.
