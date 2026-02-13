@@ -23,6 +23,7 @@ interface ContractHistoryRow {
   gsm_po: string | null;
   start_date: string | null;
   end_date: string | null;
+  days_worked: number | null;
   created_at: string;
 }
 
@@ -33,9 +34,10 @@ interface FormData {
   gsm_po: string;
   start_date: string;
   end_date: string;
+  days_worked: string;
 }
 
-const emptyForm: FormData = { samsaran_pr: '', samsaran_po: '', gsm_reg_number: '', gsm_po: '', start_date: '', end_date: '' };
+const emptyForm: FormData = { samsaran_pr: '', samsaran_po: '', gsm_reg_number: '', gsm_po: '', start_date: '', end_date: '', days_worked: '' };
 
 export default function AffiliateContractHistory() {
   const { id } = useParams<{ id: string }>();
@@ -89,6 +91,7 @@ export default function AffiliateContractHistory() {
         gsm_po: data.gsm_po || null,
         start_date: data.start_date || null,
         end_date: data.end_date || null,
+        days_worked: data.days_worked ? parseInt(data.days_worked, 10) : null,
       };
       if (editingRow) {
         const { error } = await supabase
@@ -187,6 +190,7 @@ export default function AffiliateContractHistory() {
       gsm_po: row.gsm_po || '',
       start_date: row.start_date || '',
       end_date: row.end_date || '',
+      days_worked: row.days_worked != null ? String(row.days_worked) : '',
     });
     setDialogOpen(true);
   };
@@ -242,6 +246,7 @@ export default function AffiliateContractHistory() {
                     <TableHead>GSM PO</TableHead>
                     <TableHead>Start Date</TableHead>
                     <TableHead>End Date</TableHead>
+                    <TableHead>Days Worked</TableHead>
                     <TableHead className="w-32">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -254,6 +259,7 @@ export default function AffiliateContractHistory() {
                       <TableCell>{row.gsm_po || '-'}</TableCell>
                       <TableCell>{row.start_date ? new Date(row.start_date + 'T00:00:00').toLocaleDateString() : '-'}</TableCell>
                       <TableCell>{row.end_date ? new Date(row.end_date + 'T00:00:00').toLocaleDateString() : '-'}</TableCell>
+                      <TableCell>{row.days_worked != null ? row.days_worked : '-'}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
                           <Button variant="ghost" size="icon" onClick={() => openEdit(row)}>
@@ -322,6 +328,10 @@ export default function AffiliateContractHistory() {
               <div>
                 <Label>GSM PO</Label>
                 <Input value={form.gsm_po} onChange={(e) => setForm({ ...form, gsm_po: e.target.value })} />
+              </div>
+              <div>
+                <Label>Days Worked</Label>
+                <Input type="number" value={form.days_worked} onChange={(e) => setForm({ ...form, days_worked: e.target.value })} placeholder="e.g. 220" />
               </div>
             </div>
             <DialogFooter>
