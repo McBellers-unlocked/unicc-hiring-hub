@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Plus, Pencil, Trash2, ExternalLink, Search } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, ExternalLink, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import AffiliateContractDocuments from '@/components/affiliate/AffiliateContractDocuments';
@@ -46,6 +46,8 @@ export default function AffiliateContractHistory() {
   const [editingRow, setEditingRow] = useState<ContractHistoryRow | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
   const [prFilter, setPrFilter] = useState('');
+  const [sortColumn, setSortColumn] = useState<keyof ContractHistoryRow | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
 
 
@@ -293,22 +295,53 @@ export default function AffiliateContractHistory() {
               <div className="text-center py-8 text-muted-foreground">
                 No contract history records yet.
               </div>
-            ) : (
+            ) : (() => {
+              const toggleSort = (col: keyof ContractHistoryRow) => {
+                if (sortColumn === col) {
+                  setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+                } else {
+                  setSortColumn(col);
+                  setSortDirection('asc');
+                }
+              };
+              const SortIcon = ({ col }: { col: keyof ContractHistoryRow }) => {
+                if (sortColumn !== col) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-50" />;
+                return sortDirection === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
+              };
+              const filtered = rows.filter(r => !prFilter || (r.samsaran_pr || '').toLowerCase().includes(prFilter.toLowerCase()));
+              const sorted = sortColumn ? [...filtered].sort((a, b) => {
+                const aVal = a[sortColumn];
+                const bVal = b[sortColumn];
+                if (aVal == null && bVal == null) return 0;
+                if (aVal == null) return 1;
+                if (bVal == null) return -1;
+                const cmp = typeof aVal === 'number' && typeof bVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+                return sortDirection === 'asc' ? cmp : -cmp;
+              }) : filtered;
+              return (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Samsaran PR</TableHead>
-                    <TableHead>Samsaran PO</TableHead>
-                    <TableHead>GSM Reg Number</TableHead>
-                    <TableHead>GSM PO</TableHead>
-                    <TableHead>Start Date</TableHead>
-                    <TableHead>End Date</TableHead>
-                    <TableHead>Days Worked</TableHead>
+                    {([
+                      ['samsaran_pr', 'Samsaran PR'],
+                      ['samsaran_po', 'Samsaran PO'],
+                      ['gsm_reg_number', 'GSM Reg Number'],
+                      ['gsm_po', 'GSM PO'],
+                      ['start_date', 'Start Date'],
+                      ['end_date', 'End Date'],
+                      ['days_worked', 'Days Worked'],
+                    ] as [keyof ContractHistoryRow, string][]).map(([key, label]) => (
+                      <TableHead key={key}>
+                        <button className="flex items-center hover:text-foreground" onClick={() => toggleSort(key)}>
+                          {label}<SortIcon col={key} />
+                        </button>
+                      </TableHead>
+                    ))}
                     <TableHead className="w-32">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.filter(r => !prFilter || (r.samsaran_pr || '').toLowerCase().includes(prFilter.toLowerCase())).map((row) => (
+                  {sorted.map((row) => (
                     <TableRow key={row.id}>
                       <TableCell>{row.samsaran_pr || '-'}</TableCell>
                       <TableCell>{row.samsaran_po || '-'}</TableCell>
@@ -343,7 +376,8 @@ export default function AffiliateContractHistory() {
                   ))}
                 </TableBody>
               </Table>
-            )}
+              );
+            })()}
           </CardContent>
         </Card>
 
