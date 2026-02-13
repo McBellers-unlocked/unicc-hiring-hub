@@ -125,6 +125,52 @@ export default function AffiliateContractHistory() {
     onError: (err: any) => toast.error(err.message || 'Failed to delete'),
   });
 
+  const validateForm = (data: FormData): string[] => {
+    const errors: string[] = [];
+    const otherRows = (rows || []).filter(r => r.id !== editingRow?.id);
+
+    const fields: { key: keyof FormData; label: string }[] = [
+      { key: 'samsaran_pr', label: 'Samsaran PR' },
+      { key: 'samsaran_po', label: 'Samsaran PO' },
+      { key: 'gsm_reg_number', label: 'GSM Reg Number' },
+      { key: 'gsm_po', label: 'GSM PO' },
+    ];
+
+    for (const { key, label } of fields) {
+      const val = data[key].trim();
+      if (val) {
+        const match = otherRows.find(r => r[key as keyof ContractHistoryRow] === val);
+        if (match) errors.push(`${label} value '${val}' already exists in another contract record.`);
+      }
+    }
+
+    if (data.start_date) {
+      const newStart = data.start_date;
+      const newEnd = data.end_date || data.start_date;
+      for (const row of otherRows) {
+        if (row.start_date && row.end_date) {
+          if (newStart <= row.end_date && newEnd >= row.start_date) {
+            const s = new Date(row.start_date + 'T00:00:00').toLocaleDateString();
+            const e = new Date(row.end_date + 'T00:00:00').toLocaleDateString();
+            errors.push(`Contract dates overlap with an existing record (${s} - ${e}).`);
+            break;
+          }
+        }
+      }
+    }
+
+    return errors;
+  };
+
+  const handleSave = () => {
+    const errors = validateForm(form);
+    if (errors.length > 0) {
+      errors.forEach(err => toast.error(err));
+      return;
+    }
+    saveMutation.mutate(form);
+  };
+
   const openAdd = () => {
     setEditingRow(null);
     setForm(emptyForm);
@@ -269,7 +315,7 @@ export default function AffiliateContractHistory() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={() => saveMutation.mutate(form)} disabled={saveMutation.isPending}>
+              <Button onClick={handleSave} disabled={saveMutation.isPending}>
                 {saveMutation.isPending ? 'Saving...' : 'Save'}
               </Button>
             </DialogFooter>
