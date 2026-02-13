@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Plus, Pencil, Trash2, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, ExternalLink, Search } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import AffiliateContractDocuments from '@/components/affiliate/AffiliateContractDocuments';
@@ -43,6 +43,7 @@ export default function AffiliateContractHistory() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<ContractHistoryRow | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
+  const [prFilter, setPrFilter] = useState('');
 
 
 
@@ -215,7 +216,16 @@ export default function AffiliateContractHistory() {
               </Button>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Filter by Samsaran PR..."
+                value={prFilter}
+                onChange={(e) => setPrFilter(e.target.value)}
+                className="pl-9"
+              />
+            </div>
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">Loading...</div>
             ) : !rows?.length ? (
@@ -236,7 +246,7 @@ export default function AffiliateContractHistory() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map((row) => (
+                  {rows.filter(r => !prFilter || (r.samsaran_pr || '').toLowerCase().includes(prFilter.toLowerCase())).map((row) => (
                     <TableRow key={row.id}>
                       <TableCell>{row.samsaran_pr || '-'}</TableCell>
                       <TableCell>{row.samsaran_po || '-'}</TableCell>
@@ -279,6 +289,7 @@ export default function AffiliateContractHistory() {
             userId={id}
             affiliateName={affiliate?.name || ''}
             availablePRs={availablePRs}
+            filterPR={prFilter}
           />
         )}
 

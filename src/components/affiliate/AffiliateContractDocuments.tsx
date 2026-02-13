@@ -36,7 +36,20 @@ interface Props {
   userId: string;
   affiliateName: string;
   availablePRs: string[];
+  filterPR?: string;
 }
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  contract: 'Contract',
+  selection_report: 'Selection Report',
+  rate_determination: 'Rate Determination',
+  nda: 'NDA',
+  pension_form: 'Pension Form',
+  doi: 'DOI',
+  id_document: 'ID',
+  phf: 'PHF',
+  other: 'Other',
+};
 
 const emptyDocForm: DocFormData = {
   samsaran_pr: '',
@@ -45,7 +58,7 @@ const emptyDocForm: DocFormData = {
   status: 'draft',
 };
 
-export default function AffiliateContractDocuments({ userId, affiliateName, availablePRs }: Props) {
+export default function AffiliateContractDocuments({ userId, affiliateName, availablePRs, filterPR }: Props) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -195,7 +208,12 @@ export default function AffiliateContractDocuments({ userId, affiliateName, avai
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Contract Documents</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            <span>Contract Documents</span>
+            <Button size="sm" onClick={() => fileInputRef.current?.click()}>
+              <Upload className="h-4 w-4 mr-2" /> Add Document
+            </Button>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Drop zone */}
@@ -232,14 +250,14 @@ export default function AffiliateContractDocuments({ userId, affiliateName, avai
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {documents.map((doc) => (
+                {(filterPR ? documents.filter(d => (d.samsaran_pr || '').toLowerCase().includes(filterPR.toLowerCase())) : documents).map((doc) => (
                   <TableRow key={doc.id}>
                     <TableCell className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                       <span className="truncate max-w-[200px]">{doc.file_name}</span>
                     </TableCell>
                     <TableCell>{doc.samsaran_pr || '-'}</TableCell>
-                    <TableCell className="capitalize">{doc.doc_type === 'selection_report' ? 'Selection Report' : 'Contract'}</TableCell>
+                    <TableCell>{DOC_TYPE_LABELS[doc.doc_type] || doc.doc_type}</TableCell>
                     <TableCell>
                       <Badge variant={statusBadgeVariant(doc.status)} className="capitalize">{doc.status}</Badge>
                     </TableCell>
@@ -300,6 +318,13 @@ export default function AffiliateContractDocuments({ userId, affiliateName, avai
                 <SelectContent>
                   <SelectItem value="contract">Contract</SelectItem>
                   <SelectItem value="selection_report">Selection Report</SelectItem>
+                  <SelectItem value="rate_determination">Rate Determination</SelectItem>
+                  <SelectItem value="nda">NDA</SelectItem>
+                  <SelectItem value="pension_form">Pension Form</SelectItem>
+                  <SelectItem value="doi">DOI</SelectItem>
+                  <SelectItem value="id_document">ID</SelectItem>
+                  <SelectItem value="phf">PHF</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
