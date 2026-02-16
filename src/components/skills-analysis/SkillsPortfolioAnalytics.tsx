@@ -77,6 +77,7 @@ export default function SkillsPortfolioAnalytics() {
     grade: "All",
     workerType: "All",
     viewMode: "skill",
+    ossOnly: false,
   });
 
   // Action KPIs
@@ -114,11 +115,15 @@ export default function SkillsPortfolioAnalytics() {
 
   const isAdmin = userRoles.some(r => ['Admin', 'HR Assistant', 'Chief of HR'].includes(r));
 
+  // OSS product data
+  const [ossProducts, setOssProducts] = useState<{ name: string; staffCount: number; license_type: string | null }[]>([]);
+
   useEffect(() => {
     fetchSkillsData();
     fetchActionKPIs();
     if (isAdmin) {
       fetchDivisionSkillsData();
+      fetchOssProductData();
     }
   }, [isAdmin, filters.division, filters.dutyStation, filters.grade, filters.workerType]);
 
@@ -304,6 +309,98 @@ export default function SkillsPortfolioAnalytics() {
     }
   };
 
+  const fetchOssProductData = async () => {
+    try {
+      // Get product-to-skill mappings
+      const { data: mappings } = await supabase
+        .from('product_skill_mappings')
+        .select('product_id, skill_id');
+
+      if (!mappings || mappings.length === 0) {
+        setOssProducts([]);
+        return;
+      }
+
+      // Get products
+      const { data: products } = await supabase
+        .from('open_source_products')
+        .select('id, name, license_type')
+        .eq('is_active', true);
+
+      if (!products) {
+        setOssProducts([]);
+        return;
+      }
+
+      // Get assessment counts per skill
+      const { data: assessments } = await supabase
+        .from('skill_assessments')
+        .select('skill_id, user_id')
+        .eq('scope', 'team');
+
+      // Build skill -> unique user count
+      const skillUserCounts = new Map<string, Set<string>>();
+      (assessments || []).forEach(a => {
+        if (!skillUserCounts.has(a.skill_id)) skillUserCounts.set(a.skill_id, new Set());
+        skillUserCounts.get(a.skill_id)!.add(a.user_id);
+      });
+
+      // Build product -> staff count via mappings
+      const productStaffMap = new Map<string, Set<string>>();
+      mappings.forEach(m => {
+        const users = skillUserCounts.get(m.skill_id);
+        if (users) {
+          if (!productStaffMap.has(m.product_id)) productStaffMap.set(m.product_id, new Set());
+          users.forEach(u => productStaffMap.get(m.product_id)!.add(u));
+        }
+      });
+
+      const result = products
+        .map(p => ({
+          name: p.name,
+          license_type: p.license_type,
+          staffCount: productStaffMap.get(p.id)?.size || 0,
+        }))
+        .sort((a, b) => b.staffCount - a.staffCount)
+        .slice(0, 10);
+
+      setOssProducts(result);
+    } catch (error) {
+      console.error("Error fetching OSS product data:", error);
+    }
+  };
+
+  // Apply OSS filter to skills
+  const effectiveSkills = useMemo(() => {
+    if (!filters.ossOnly) return skills;
+    return skills.filter(s => s.is_open_source === true);
+  }, [skills, filters.ossOnly]);
+
+  // OSS analytics metrics
+  const ossMetrics = useMemo(() => {
+    const ossSkills = skills.filter(s => s.is_open_source === true);
+    const ossPercent = skills.length > 0 ? Math.round((ossSkills.length / skills.length) * 100) : 0;
+
+    // Division OSS breakdown from divisionData
+    const divisionOss = DIVISIONS.map(div => {
+      const divAssessments = divisionData.filter(d => d.division === div);
+      const ossSkillIds = new Set(ossSkills.map(s => s.id));
+      const ossAssessments = divAssessments.filter(d => ossSkillIds.has(d.skillId));
+      const totalOssStaff = new Set(ossAssessments.flatMap(d => Array(d.staffWithSkill).fill(null))).size;
+      const avgProf = ossAssessments.length > 0
+        ? ossAssessments.reduce((sum, d) => sum + (d.averageLevel || 0), 0) / ossAssessments.length
+        : 0;
+      return {
+        division: div,
+        ossSkillCount: ossAssessments.length,
+        staffWithOss: ossAssessments.reduce((sum, d) => sum + d.staffWithSkill, 0),
+        avgProficiency: Math.round(avgProf * 10) / 10,
+      };
+    });
+
+    return { ossCount: ossSkills.length, ossPercent, divisionOss };
+  }, [skills, divisionData]);
+
   const metrics = useMemo(() => {
     const statusCounts: Record<string, number> = {
       established: 0,
@@ -315,7 +412,7 @@ export default function SkillsPortfolioAnalytics() {
 
     const categoryStatusCounts: Record<string, Record<string, number>> = {};
 
-    skills.forEach(skill => {
+    effectiveSkills.forEach(skill => {
       const status = skill.ai_suggested_status || 'uncategorized';
       statusCounts[status] = (statusCounts[status] || 0) + 1;
 
@@ -328,7 +425,7 @@ export default function SkillsPortfolioAnalytics() {
       }
     });
 
-    const totalCategorized = skills.length - statusCounts.uncategorized;
+    const totalCategorized = effectiveSkills.length - statusCounts.uncategorized;
     const modernizationRate = totalCategorized > 0
       ? Math.round(((statusCounts.new + statusCounts.emerging) / totalCategorized) * 100)
       : 0;
@@ -351,23 +448,23 @@ export default function SkillsPortfolioAnalytics() {
       .slice(0, 6);
 
     return {
-      total: skills.length,
+      total: effectiveSkills.length,
       statusCounts,
       modernizationRate,
       legacyRisk,
       barData,
     };
-  }, [skills]);
+  }, [effectiveSkills]);
 
   const categories = useMemo(() => {
-    const cats = new Set(skills.map(s => s.ai_suggested_category || s.category || "Other"));
+    const cats = new Set(effectiveSkills.map(s => s.ai_suggested_category || s.category || "Other"));
     return ["all", ...Array.from(cats).sort()];
-  }, [skills]);
+  }, [effectiveSkills]);
 
   const filteredSkillsForMatrix = useMemo(() => {
-    if (selectedCategory === "all") return skills;
-    return skills.filter(s => (s.ai_suggested_category || s.category || "Other") === selectedCategory);
-  }, [skills, selectedCategory]);
+    if (selectedCategory === "all") return effectiveSkills;
+    return effectiveSkills.filter(s => (s.ai_suggested_category || s.category || "Other") === selectedCategory);
+  }, [effectiveSkills, selectedCategory]);
 
   const getDivisionSkillData = (division: string, skillId: string) => {
     return divisionData.find(d => d.division === division && d.skillId === skillId);
@@ -432,7 +529,7 @@ export default function SkillsPortfolioAnalytics() {
         <SkillsInsightsStrip
           divisionData={divisionData}
           divisionStaffCounts={divisionStaffCounts}
-          skills={skills}
+          skills={effectiveSkills}
           gapData={gapData}
           onScrollTo={handleScrollTo}
           onDivisionClick={(division) => {
@@ -513,12 +610,12 @@ export default function SkillsPortfolioAnalytics() {
           }} 
           total={metrics.total} 
         />
-        <SkillRiskQuadrant skills={skills} />
+        <SkillRiskQuadrant skills={effectiveSkills} />
       </div>
 
       {/* Future Readiness + Skills by Category */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <FutureReadinessCard skills={skills} />
+        <FutureReadinessCard skills={effectiveSkills} />
         
         {/* Skills by Category Bar Chart */}
         <Card>
@@ -568,8 +665,103 @@ export default function SkillsPortfolioAnalytics() {
 
       {/* Emerging Skills Gaps - Full Width */}
       <div ref={emergingGapsRef}>
-        <EmergingSkillsGaps skills={skills} onGapDataUpdate={handleGapDataUpdate} />
+        <EmergingSkillsGaps skills={effectiveSkills} onGapDataUpdate={handleGapDataUpdate} />
       </div>
+
+      {/* Open Source Coverage Analytics */}
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Globe className="h-5 w-5 text-primary" />
+              Open Source Coverage
+            </CardTitle>
+            <CardDescription>OSS skill adoption and product usage across the organization</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* KPI Row */}
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-lg border p-4 text-center">
+                <p className="text-2xl font-bold">{ossMetrics.ossCount}</p>
+                <p className="text-xs text-muted-foreground">OSS Skills</p>
+              </div>
+              <div className="rounded-lg border p-4 text-center">
+                <p className="text-2xl font-bold">{ossMetrics.ossPercent}%</p>
+                <p className="text-xs text-muted-foreground">of Portfolio</p>
+              </div>
+              <div className="rounded-lg border p-4 text-center">
+                <p className="text-2xl font-bold">
+                  {ossMetrics.divisionOss.reduce((sum, d) => sum + d.staffWithOss, 0)}
+                </p>
+                <p className="text-xs text-muted-foreground">Staff with OSS Skills</p>
+              </div>
+            </div>
+
+            {/* Division Breakdown + Top Products side by side */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Division Breakdown */}
+              <div>
+                <h4 className="text-sm font-medium mb-3">Division Breakdown</h4>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Division</TableHead>
+                      <TableHead className="text-center">OSS Skills</TableHead>
+                      <TableHead className="text-center">Staff</TableHead>
+                      <TableHead className="text-center">Avg Prof.</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ossMetrics.divisionOss.map(d => (
+                      <TableRow key={d.division}>
+                        <TableCell className="font-medium">{d.division}</TableCell>
+                        <TableCell className="text-center">{d.ossSkillCount}</TableCell>
+                        <TableCell className="text-center">{d.staffWithOss}</TableCell>
+                        <TableCell className="text-center">
+                          {d.avgProficiency > 0 ? d.avgProficiency : "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Top Open Source Products */}
+              <div>
+                <h4 className="text-sm font-medium mb-3">Top Open Source Products</h4>
+                {ossProducts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4">
+                    No products configured yet. Add products from the Admin Skills Review page.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Product</TableHead>
+                        <TableHead>License</TableHead>
+                        <TableHead className="text-center">Staff</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {ossProducts.map(p => (
+                        <TableRow key={p.name}>
+                          <TableCell className="font-medium">{p.name}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {p.license_type || "—"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">{p.staffCount}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Organization Skills Matrix - Admin Only */}
       {isAdmin && (
@@ -639,7 +831,7 @@ export default function SkillsPortfolioAnalytics() {
                               <TableCell className="font-medium">
                                 <span className="flex items-center gap-1">
                                   {skill.name}
-                                  {skill.is_open_source && <Globe className="h-3 w-3 text-emerald-600 shrink-0" />}
+                                  {skill.is_open_source && <Globe className="h-3 w-3 text-primary shrink-0" />}
                                 </span>
                               </TableCell>
                               <TableCell className="text-center">
