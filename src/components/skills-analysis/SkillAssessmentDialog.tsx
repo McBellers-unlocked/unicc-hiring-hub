@@ -144,6 +144,24 @@ export default function SkillAssessmentDialog({
     }
     setSuggesting(true);
     try {
+      // Check for existing skill with same name (case-insensitive)
+      const { data: existing } = await supabase
+        .from('skill_definitions')
+        .select('id, name, category, skill_type, status, is_open_source')
+        .ilike('name', suggestName.trim())
+        .maybeSingle();
+
+      if (existing) {
+        if (!skills.find(s => s.id === existing.id)) {
+          setSkills(prev => [...prev, existing as SkillDefinition]);
+        }
+        setSkillId(existing.id);
+        setShowSuggestForm(false);
+        setSuggestName("");
+        toast.success("Skill already exists — selected it for you.");
+        return;
+      }
+
       const { data, error } = await supabase
         .from('skill_definitions')
         .insert({
@@ -160,7 +178,6 @@ export default function SkillAssessmentDialog({
       
       if (error) throw error;
       
-      // Add to local skills list and auto-select
       setSkills(prev => [...prev, data as SkillDefinition]);
       setSkillId(data.id);
       setShowSuggestForm(false);
