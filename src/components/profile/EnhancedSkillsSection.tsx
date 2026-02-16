@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Code, Users, Wrench, Globe } from "lucide-react";
+import { Code, Users, Wrench, Globe, Globe2 } from "lucide-react";
 
 interface SkillAssessment {
   selfAssessment: number | null;
@@ -13,6 +13,7 @@ interface SkillAssessment {
 interface EnhancedSkillsSectionProps {
   skills: string[];
   skillAssessments?: Map<string, SkillAssessment>;
+  openSourceSkills?: Set<string>;
 }
 
 function getGapBasedStyle(assessment?: SkillAssessment | null) {
@@ -35,7 +36,7 @@ function getGapBasedStyle(assessment?: SkillAssessment | null) {
   return { bgColor: "bg-red-100", textColor: "text-red-700", label: `Gap (${gap})` };
 }
 
-export default function EnhancedSkillsSection({ skills, skillAssessments }: EnhancedSkillsSectionProps) {
+export default function EnhancedSkillsSection({ skills, skillAssessments, openSourceSkills }: EnhancedSkillsSectionProps) {
   if (!skills || skills.length === 0) return null;
 
   // Categorize skills (this is a simple heuristic - could be enhanced with AI)
@@ -80,6 +81,9 @@ export default function EnhancedSkillsSection({ skills, skillAssessments }: Enha
               className={`${style.bgColor} ${style.textColor} border-0 cursor-default`}
             >
               {skill}
+              {openSourceSkills?.has(skill.toLowerCase()) && (
+                <Globe2 className="h-3 w-3 ml-1 inline-block text-emerald-600" />
+              )}
               {level !== null && level !== undefined && required !== null && required !== undefined && (
                 <span className="ml-1.5 opacity-75">({level}/{required})</span>
               )}

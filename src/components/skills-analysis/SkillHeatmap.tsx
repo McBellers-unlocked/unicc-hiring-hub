@@ -3,7 +3,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { GapIcon, AccessibleLegend, getGapAriaLabel, ACCESSIBLE_COLORS } from "@/lib/accessibilityPatterns";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Globe } from "lucide-react";
 
 interface TeamMember {
   id: string;
@@ -17,6 +17,7 @@ interface SkillDefinition {
   id: string;
   name: string;
   category: string;
+  is_open_source?: boolean;
 }
 
 interface Assessment {
@@ -385,10 +386,16 @@ export default function SkillHeatmap({ teamMembers, skills, assessments }: Props
                           <div className={cn("w-1 h-full absolute left-0 top-0", categoryColors[category])} />
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="text-sm truncate cursor-help pl-2">{formatSkillName(skill.name)}</span>
+                              <span className="text-sm truncate cursor-help pl-2 flex items-center gap-1">
+                                {formatSkillName(skill.name)}
+                                {skill.is_open_source && <Globe className="h-3 w-3 text-emerald-600 shrink-0" />}
+                              </span>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>{skill.name}</p>
+                              <p className="flex items-center gap-1">
+                                {skill.name}
+                                {skill.is_open_source && <span className="text-emerald-500 text-xs">(Open Source)</span>}
+                              </p>
                               <p className="text-xs text-muted-foreground">{category}</p>
                             </TooltipContent>
                           </Tooltip>

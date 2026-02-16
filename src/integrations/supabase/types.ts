@@ -3527,6 +3527,39 @@ export type Database = {
           },
         ]
       }
+      open_source_products: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          license_type: string | null
+          name: string
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          license_type?: string | null
+          name: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          license_type?: string | null
+          name?: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       panel_interview_invitations: {
         Row: {
           application_id: string
@@ -3911,6 +3944,39 @@ export type Database = {
           },
         ]
       }
+      product_skill_mappings: {
+        Row: {
+          id: string
+          product_id: string
+          skill_id: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          skill_id: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          skill_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_skill_mappings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "open_source_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_skill_mappings_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skill_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       requisition_field_comments: {
         Row: {
           author_id: string
@@ -4189,6 +4255,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean | null
+          is_open_source: boolean
           name: string
           order_index: number | null
           skill_type: string | null
@@ -4206,6 +4273,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          is_open_source?: boolean
           name: string
           order_index?: number | null
           skill_type?: string | null
@@ -4223,6 +4291,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          is_open_source?: boolean
           name?: string
           order_index?: number | null
           skill_type?: string | null

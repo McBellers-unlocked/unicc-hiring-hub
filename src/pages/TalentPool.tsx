@@ -37,6 +37,7 @@ export interface SearchFilters {
   minTenure?: number;
   maxTenure?: number;
   lineManager?: string;
+  openSourceOnly?: boolean;
 }
 
 export default function TalentPool() {

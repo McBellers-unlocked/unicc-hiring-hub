@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { Globe } from "lucide-react";
 
 interface SkillAssessment {
   selfAssessment: number | null;
@@ -12,6 +13,7 @@ interface SkillAssessment {
 interface AssessedSkillBadgeProps {
   skillName: string;
   assessment?: SkillAssessment | null;
+  isOpenSource?: boolean;
 }
 
 function getSkillBadgeStyle(assessment?: SkillAssessment | null): {
@@ -71,7 +73,7 @@ function getSkillBadgeStyle(assessment?: SkillAssessment | null): {
   };
 }
 
-export function AssessedSkillBadge({ skillName, assessment }: AssessedSkillBadgeProps) {
+export function AssessedSkillBadge({ skillName, assessment, isOpenSource }: AssessedSkillBadgeProps) {
   const { className, label } = getSkillBadgeStyle(assessment);
 
   return (
@@ -82,6 +84,7 @@ export function AssessedSkillBadge({ skillName, assessment }: AssessedSkillBadge
           className={cn("text-sm border cursor-default", className)}
         >
           {skillName}
+          {isOpenSource && <Globe className="h-3 w-3 ml-1 text-emerald-600 inline-block" />}
         </Badge>
       </TooltipTrigger>
       <TooltipContent>

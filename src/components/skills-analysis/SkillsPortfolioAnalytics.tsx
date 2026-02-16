@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Briefcase, TrendingUp, AlertTriangle, Sparkles, Clock, CheckCircle2, Building2, Target, ShieldAlert } from "lucide-react";
+import { Briefcase, TrendingUp, AlertTriangle, Sparkles, Clock, CheckCircle2, Building2, Target, ShieldAlert, Globe } from "lucide-react";
 import StatsCard from "@/components/dashboard/StatsCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,7 @@ interface SkillDefinition {
   skill_type?: string | null;
   ai_suggested_status: string | null;
   ai_suggested_category: string | null;
+  is_open_source?: boolean;
 }
 
 interface BarDataItem {
@@ -125,7 +126,7 @@ export default function SkillsPortfolioAnalytics() {
     setLoading(true);
     const { data } = await supabase
       .from('skill_definitions')
-      .select('id, name, category, skill_type, ai_suggested_status, ai_suggested_category')
+      .select('id, name, category, skill_type, ai_suggested_status, ai_suggested_category, is_open_source')
       .eq('is_active', true);
     
     setSkills(data || []);
@@ -635,7 +636,12 @@ export default function SkillsPortfolioAnalytics() {
                           const isCredential = skill.skill_type === "credential";
                           return (
                             <TableRow key={skill.id}>
-                              <TableCell className="font-medium">{skill.name}</TableCell>
+                              <TableCell className="font-medium">
+                                <span className="flex items-center gap-1">
+                                  {skill.name}
+                                  {skill.is_open_source && <Globe className="h-3 w-3 text-emerald-600 shrink-0" />}
+                                </span>
+                              </TableCell>
                               <TableCell className="text-center">
                                 <Badge variant={isCredential ? "default" : "secondary"} className="text-xs">
                                   {isCredential ? "Cert" : "Skill"}
