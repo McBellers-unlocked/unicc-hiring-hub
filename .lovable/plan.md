@@ -1,53 +1,24 @@
 
 
-## Add "Suggest New Skill" to Skill Assessment Dialog + Insert "Supabase" as OSS Skill
+## Fix: Handle Duplicate Skill Name in "Suggest New Skill"
 
-### Overview
-Currently the Skill Assessment Dialog only allows selecting from existing skills in `skill_definitions`. This change adds a "Suggest New Skill" option so users can propose skills that don't exist yet. Additionally, we'll seed "Supabase" into the database as an active OSS skill.
+### Problem
+The "Suggest a new skill" form fails with a unique constraint error (`skill_definitions_name_key`) when the user tries to add a skill that already exists in the database (e.g., "Supabase" was already seeded).
 
-### Changes
-
-#### 1. Seed "Supabase" into `skill_definitions`
-Insert a new skill definition via data operation:
-- **Name**: Supabase
-- **Category**: Technical & Domain
-- **Skill type**: proficiency
-- **Status**: established
-- **is_open_source**: true
-- **is_active**: true
-
-Also add it to the `open_source_products` table with license "Apache 2.0" and website "https://supabase.com".
-
-#### 2. Add "Suggest New Skill" feature to `SkillAssessmentDialog.tsx`
-
-Add a small link/button below the skill dropdown: **"Can't find your skill? Suggest one"**
-
-When clicked, it reveals an inline form with:
-- **Skill name** (text input, required)
-- **Category** (select from the 4 standard categories)
-- **Is Open Source** (toggle switch)
-
-On submit, this inserts a new row into `skill_definitions` with:
-- `status = 'new'`
-- `ai_review_pending = true`
-- `is_active = true`
-- The chosen category, name, and `is_open_source` flag
-
-The newly created skill is then auto-selected in the dropdown so the user can continue with their assessment without leaving the dialog.
-
-A toast confirms: "Skill suggested and selected. An admin will review it."
-
-#### 3. File changes
-
-**Files to modify:**
-- `src/components/skills-analysis/SkillAssessmentDialog.tsx` -- add suggest-skill UI and insert logic below the skill Select component
-
-**Data operations (no migration needed):**
-- INSERT "Supabase" into `skill_definitions`
-- INSERT "Supabase" into `open_source_products`
-- INSERT mapping into `product_skill_mappings`
+### Solution
+Update the `handleSuggestSkill` function in `SkillAssessmentDialog.tsx` to check for an existing skill with the same name (case-insensitive) before inserting. If found, auto-select it instead of inserting a duplicate.
 
 ### Technical Details
 
-The suggest flow inserts directly into `skill_definitions` using the Supabase client. Since RLS on `skill_definitions` may restrict inserts to admin roles, we'll need to check the existing policy. If restricted, the insert will go through an edge function or we adjust the policy to allow authenticated users to insert with `status = 'new'` (pending review). This keeps the admin review workflow intact -- suggested skills appear with `ai_review_pending = true` and `status = 'new'` on the Admin Skills Review page where admins already manage skill statuses.
+**File to modify:** `src/components/skills-analysis/SkillAssessmentDialog.tsx`
 
+In `handleSuggestSkill`:
+1. Before inserting, query `skill_definitions` for a matching name (case-insensitive using `.ilike('name', suggestName.trim())`)
+2. If a match is found:
+   - Add it to the local `skills` array if not already present
+   - Auto-select it via `setSkillId`
+   - Show a toast: "Skill already exists -- selected it for you."
+   - Close the suggest form
+3. If no match, proceed with the existing insert logic
+
+This is a small change (~10 lines) in a single function.
