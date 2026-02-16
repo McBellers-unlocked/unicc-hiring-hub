@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Filter, RotateCcw, Users, LayoutGrid } from "lucide-react";
+import { Filter, RotateCcw, Users, LayoutGrid, Globe } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 export interface FilterState {
   division: string;
@@ -11,6 +13,7 @@ export interface FilterState {
   grade: string;
   workerType: string;
   viewMode: "people" | "skill";
+  ossOnly: boolean;
 }
 
 interface Props {
@@ -65,6 +68,7 @@ export default function OrganizationFilters({ filters, onChange }: Props) {
       grade: "All",
       workerType: "All",
       viewMode: "skill",
+      ossOnly: false,
     });
   };
 
@@ -72,7 +76,8 @@ export default function OrganizationFilters({ filters, onChange }: Props) {
     filters.division !== "All" ||
     filters.dutyStation !== "All" ||
     filters.grade !== "All" ||
-    filters.workerType !== "All";
+    filters.workerType !== "All" ||
+    filters.ossOnly;
 
   return (
     <div className="flex flex-wrap items-center gap-3 p-3 bg-muted/30 rounded-lg border">
@@ -152,23 +157,36 @@ export default function OrganizationFilters({ filters, onChange }: Props) {
         </Button>
       )}
 
-      <div className="ml-auto flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">View:</span>
-        <ToggleGroup
-          type="single"
-          value={filters.viewMode}
-          onValueChange={(v) => v && onChange({ ...filters, viewMode: v as "people" | "skill" })}
-          className="gap-0"
-        >
-          <ToggleGroupItem value="skill" size="sm" className="h-8 px-3 text-xs gap-1">
-            <LayoutGrid className="h-3 w-3" />
-            Skills
-          </ToggleGroupItem>
-          <ToggleGroupItem value="people" size="sm" className="h-8 px-3 text-xs gap-1">
-            <Users className="h-3 w-3" />
-            People
-          </ToggleGroupItem>
-        </ToggleGroup>
+      <div className="ml-auto flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Switch
+            id="oss-filter"
+            checked={filters.ossOnly}
+            onCheckedChange={(checked) => onChange({ ...filters, ossOnly: checked })}
+          />
+          <Label htmlFor="oss-filter" className="flex items-center gap-1 text-xs cursor-pointer">
+            <Globe className="h-3 w-3 text-emerald-600" />
+            OSS Only
+          </Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">View:</span>
+          <ToggleGroup
+            type="single"
+            value={filters.viewMode}
+            onValueChange={(v) => v && onChange({ ...filters, viewMode: v as "people" | "skill" })}
+            className="gap-0"
+          >
+            <ToggleGroupItem value="skill" size="sm" className="h-8 px-3 text-xs gap-1">
+              <LayoutGrid className="h-3 w-3" />
+              Skills
+            </ToggleGroupItem>
+            <ToggleGroupItem value="people" size="sm" className="h-8 px-3 text-xs gap-1">
+              <Users className="h-3 w-3" />
+              People
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
       </div>
     </div>
   );
