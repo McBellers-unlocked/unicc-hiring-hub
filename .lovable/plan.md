@@ -1,63 +1,53 @@
 
 
-## OSS Skill Notification Email to OSPO
+## Add "Suggest New Skill" to Skill Assessment Dialog + Insert "Supabase" as OSS Skill
 
 ### Overview
-When a user adds an open source skill to their profile (via the Skill Assessment Dialog), automatically send a branded notification email to ospo@unicc.org (CC: martinezm@unicc.org, bennette@unicc.org) informing the OSPO that a staff member has added an OSS skill, with a "View Profile" button.
+Currently the Skill Assessment Dialog only allows selecting from existing skills in `skill_definitions`. This change adds a "Suggest New Skill" option so users can propose skills that don't exist yet. Additionally, we'll seed "Supabase" into the database as an active OSS skill.
 
 ### Changes
 
-#### 1. New Edge Function: `supabase/functions/notify-oss-skill-added/index.ts`
+#### 1. Seed "Supabase" into `skill_definitions`
+Insert a new skill definition via data operation:
+- **Name**: Supabase
+- **Category**: Technical & Domain
+- **Skill type**: proficiency
+- **Status**: established
+- **is_open_source**: true
+- **is_active**: true
 
-A dedicated edge function that sends a branded HTML email matching the assessment invite template style:
+Also add it to the `open_source_products` table with license "Apache 2.0" and website "https://supabase.com".
 
-- **To**: ospo@unicc.org
-- **CC**: martinezm@unicc.org, bennette@unicc.org
-- **From**: UNICC Talent `<recruitment@unicconnect.org>` (matches existing pattern)
-- **Subject**: "OSS Skill Added: [Skill Name] -- [Staff Name]"
-- **Body** (branded HTML matching assessment invite template):
-  - UNICC logo header (from staging.unicconnect.org per branding standards)
-  - Navy heading (#1a365d): "Open Source Skill Added"
-  - Text: "[Staff Name] has added the open source skill **[Skill Name]** ([Category]) to their profile."
-  - Info box (blue left-border style matching assessment template) with skill details: name, category, date added
-  - Blue CTA button (#3182ce): "View Profile" linking to `/candidate-profile/[userId]`
-  - Footer: "Best regards, UNICC Human Resources"
-- Uses RESEND_API_KEY (already configured) via the Resend API directly (same pattern as `send-assessment-invite`)
+#### 2. Add "Suggest New Skill" feature to `SkillAssessmentDialog.tsx`
 
-**Request payload:**
-```json
-{
-  "staffName": "Jane Doe",
-  "staffEmail": "doej@unicc.org",
-  "skillName": "Kubernetes",
-  "skillCategory": "Technical & Domain",
-  "userId": "uuid-here"
-}
-```
+Add a small link/button below the skill dropdown: **"Can't find your skill? Suggest one"**
 
-#### 2. Update `supabase/config.toml`
+When clicked, it reveals an inline form with:
+- **Skill name** (text input, required)
+- **Category** (select from the 4 standard categories)
+- **Is Open Source** (toggle switch)
 
-Add JWT verification bypass for the new function:
-```toml
-[functions.notify-oss-skill-added]
-verify_jwt = false
-```
+On submit, this inserts a new row into `skill_definitions` with:
+- `status = 'new'`
+- `ai_review_pending = true`
+- `is_active = true`
+- The chosen category, name, and `is_open_source` flag
 
-#### 3. Update `src/components/skills-analysis/SkillAssessmentDialog.tsx`
+The newly created skill is then auto-selected in the dropdown so the user can continue with their assessment without leaving the dialog.
 
-After a successful skill assessment save (around line 237, after the candidates sync block), add a check:
-- If `selectedSkill.is_open_source === true`, invoke the new edge function with the staff member's name, email, skill name, skill category, and user ID
-- This is a fire-and-forget call (don't block the UI or show errors if notification fails -- just log)
-- Only triggers on new assessments (not updates to existing ones) to avoid duplicate notifications
+A toast confirms: "Skill suggested and selected. An admin will review it."
+
+#### 3. File changes
+
+**Files to modify:**
+- `src/components/skills-analysis/SkillAssessmentDialog.tsx` -- add suggest-skill UI and insert logic below the skill Select component
+
+**Data operations (no migration needed):**
+- INSERT "Supabase" into `skill_definitions`
+- INSERT "Supabase" into `open_source_products`
+- INSERT mapping into `product_skill_mappings`
 
 ### Technical Details
 
-**Files to create:**
-1. `supabase/functions/notify-oss-skill-added/index.ts` -- new edge function
-
-**Files to modify:**
-1. `supabase/config.toml` -- add function config
-2. `src/components/skills-analysis/SkillAssessmentDialog.tsx` -- trigger notification after saving an OSS skill
-
-**No database changes needed.** The RESEND_API_KEY secret is already configured.
+The suggest flow inserts directly into `skill_definitions` using the Supabase client. Since RLS on `skill_definitions` may restrict inserts to admin roles, we'll need to check the existing policy. If restricted, the insert will go through an edge function or we adjust the policy to allow authenticated users to insert with `status = 'new'` (pending review). This keeps the admin review workflow intact -- suggested skills appear with `ai_review_pending = true` and `status = 'new'` on the Admin Skills Review page where admins already manage skill statuses.
 
