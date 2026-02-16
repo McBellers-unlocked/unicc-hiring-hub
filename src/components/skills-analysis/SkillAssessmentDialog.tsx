@@ -236,6 +236,20 @@ export default function SkillAssessmentDialog({
         }
       }
 
+      // Send OSS notification email (fire-and-forget, only for new assessments)
+      if (selectedSkill?.is_open_source && !existingAssessment) {
+        const staffEmail = (await supabase.from('users').select('email').eq('id', userId).single()).data?.email;
+        supabase.functions.invoke('notify-oss-skill-added', {
+          body: {
+            staffName: userName,
+            staffEmail: staffEmail || '',
+            skillName: selectedSkill.name,
+            skillCategory: selectedSkill.category,
+            userId,
+          },
+        }).catch(err => console.error('OSS notification failed:', err));
+      }
+
       onSuccess();
       onOpenChange(false);
     } catch (error: any) {

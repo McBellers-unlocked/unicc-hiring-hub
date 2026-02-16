@@ -113,3 +113,6 @@ verify_jwt = false
 
 [functions.generate-offer-letter-pdf]
 verify_jwt = false
+
+[functions.notify-oss-skill-added]
+verify_jwt = false
