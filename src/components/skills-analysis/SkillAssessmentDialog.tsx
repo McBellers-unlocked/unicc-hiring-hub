@@ -77,6 +77,13 @@ export default function SkillAssessmentDialog({
   const [expirationDate, setExpirationDate] = useState("");
   const [scope, setScope] = useState<'team' | 'individual'>('team');
   const [hasCredential, setHasCredential] = useState<boolean>(false);
+  
+  // Suggest new skill state
+  const [showSuggestForm, setShowSuggestForm] = useState(false);
+  const [suggestName, setSuggestName] = useState("");
+  const [suggestCategory, setSuggestCategory] = useState("Technical & Domain");
+  const [suggestIsOSS, setSuggestIsOSS] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
 
   const selectedSkill = skills.find(s => s.id === skillId);
   const isCredentialSkill = selectedSkill?.skill_type === 'credential';
@@ -124,6 +131,47 @@ export default function SkillAssessmentDialog({
     setExpirationDate("");
     setScope('team');
     setHasCredential(false);
+    setShowSuggestForm(false);
+    setSuggestName("");
+    setSuggestCategory("Technical & Domain");
+    setSuggestIsOSS(false);
+  };
+
+  const handleSuggestSkill = async () => {
+    if (!suggestName.trim()) {
+      toast.error("Please enter a skill name");
+      return;
+    }
+    setSuggesting(true);
+    try {
+      const { data, error } = await supabase
+        .from('skill_definitions')
+        .insert({
+          name: suggestName.trim(),
+          category: suggestCategory,
+          skill_type: 'proficiency' as const,
+          status: 'new',
+          ai_review_pending: true,
+          is_active: true,
+          is_open_source: suggestIsOSS,
+        })
+        .select('id, name, category, skill_type, status, is_open_source')
+        .single();
+      
+      if (error) throw error;
+      
+      // Add to local skills list and auto-select
+      setSkills(prev => [...prev, data as SkillDefinition]);
+      setSkillId(data.id);
+      setShowSuggestForm(false);
+      setSuggestName("");
+      toast.success("Skill suggested and selected. An admin will review it.");
+    } catch (error: any) {
+      console.error('Error suggesting skill:', error);
+      toast.error(error.message || "Failed to suggest skill");
+    } finally {
+      setSuggesting(false);
+    }
   };
 
   const handleSubmit = async (submitForApproval: boolean = false) => {
@@ -342,6 +390,51 @@ export default function SkillAssessmentDialog({
                 ))}
               </SelectContent>
             </Select>
+            
+            {!existingAssessment && !showSuggestForm && (
+              <button
+                type="button"
+                onClick={() => setShowSuggestForm(true)}
+                className="text-xs text-primary hover:underline mt-1"
+              >
+                Can't find your skill? Suggest one
+              </button>
+            )}
+
+            {showSuggestForm && (
+              <div className="mt-2 p-3 border rounded-lg bg-muted/50 space-y-3">
+                <p className="text-xs font-medium">Suggest a new skill</p>
+                <Input
+                  placeholder="Skill name"
+                  value={suggestName}
+                  onChange={(e) => setSuggestName(e.target.value)}
+                />
+                <Select value={suggestCategory} onValueChange={setSuggestCategory}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORY_ORDER.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs flex items-center gap-1.5">
+                    <Globe className="h-3 w-3" /> Open Source
+                  </Label>
+                  <Switch checked={suggestIsOSS} onCheckedChange={setSuggestIsOSS} />
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setShowSuggestForm(false)} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={handleSuggestSkill} disabled={suggesting} className="flex-1">
+                    {suggesting ? "Adding..." : "Add & Select"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Scope selector - only for non-managers */}
