@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Info, Upload, Users, User, Award, Brain, Cpu, ClipboardList, Sparkles, TrendingUp, Clock } from "lucide-react";
+import { Info, Upload, Users, User, Award, Brain, Cpu, ClipboardList, Sparkles, TrendingUp, Clock, Globe } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import SkillLevelSelector from "./SkillLevelSelector";
 
@@ -20,6 +20,7 @@ interface SkillDefinition {
   category: string;
   skill_type: 'proficiency' | 'credential';
   status: string | null;
+  is_open_source: boolean;
 }
 
 interface SkillAssessmentDialogProps {
@@ -101,7 +102,7 @@ export default function SkillAssessmentDialog({
     setLoading(true);
     const { data, error } = await supabase
       .from('skill_definitions')
-      .select('id, name, category, skill_type, status')
+      .select('id, name, category, skill_type, status, is_open_source')
       .eq('is_active', true)
       .neq('status', 'retired') // Filter out retired skills
       .order('category')
@@ -309,6 +310,9 @@ export default function SkillAssessmentDialog({
                       <SelectItem key={skill.id} value={skill.id}>
                         <span className="flex items-center gap-2">
                           {skill.name}
+                          {skill.is_open_source && (
+                            <Globe className="h-3 w-3 text-emerald-600" />
+                          )}
                           {skill.skill_type === 'credential' && (
                             <Award className="h-3 w-3 text-amber-500" />
                           )}

@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Plus, Edit2, Clock, CheckCircle, XCircle, AlertCircle, Users, User, Award, Brain, Cpu, ClipboardList, Sparkles, TrendingUp } from "lucide-react";
+import { Plus, Edit2, Clock, CheckCircle, XCircle, AlertCircle, Users, User, Award, Brain, Cpu, ClipboardList, Sparkles, TrendingUp, Globe } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import SkillAssessmentDialog from "./SkillAssessmentDialog";
 import { SkillGapSummary } from "./SkillGapBar";
@@ -29,6 +29,7 @@ interface Assessment {
     category: string;
     skill_type: 'proficiency' | 'credential';
     status: string | null;
+    is_open_source: boolean;
   };
 }
 
@@ -87,7 +88,7 @@ export default function MySkillsAssessment() {
         assessed_at,
         scope,
         has_credential,
-        skill_definitions (name, category, skill_type, status)
+        skill_definitions (name, category, skill_type, status, is_open_source)
       `)
       .eq('user_id', user!.id)
       .order('created_at', { ascending: false });
@@ -224,6 +225,14 @@ export default function MySkillsAssessment() {
                             )}
                             <span className="font-medium text-sm flex items-center gap-1">
                               {assessment.skill_definitions?.name}
+                              {assessment.skill_definitions?.is_open_source && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Globe className="h-3 w-3 text-emerald-600 shrink-0" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>Open source technology</TooltipContent>
+                                </Tooltip>
+                              )}
                               {assessment.skill_definitions?.status && SKILL_STATUS_CONFIG[assessment.skill_definitions.status] && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -266,6 +275,14 @@ export default function MySkillsAssessment() {
                               <TableCell className="font-medium">
                                 <span className="flex items-center gap-1">
                                   {assessment.skill_definitions?.name}
+                                  {assessment.skill_definitions?.is_open_source && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Globe className="h-3 w-3 text-emerald-600 shrink-0" />
+                                      </TooltipTrigger>
+                                      <TooltipContent>Open source technology</TooltipContent>
+                                    </Tooltip>
+                                  )}
                                   {assessment.skill_definitions?.status && SKILL_STATUS_CONFIG[assessment.skill_definitions.status] && (
                                     <Tooltip>
                                       <TooltipTrigger asChild>

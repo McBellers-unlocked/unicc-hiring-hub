@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-import { Loader2, Brain, CheckCircle, XCircle, RefreshCw, Filter, ArrowRight, Sparkles, TrendingUp, Clock, Ban, Square } from 'lucide-react';
+import { Loader2, Brain, CheckCircle, XCircle, RefreshCw, Filter, ArrowRight, Sparkles, TrendingUp, Clock, Ban, Square, Globe } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface SkillDefinition {
   id: string;
@@ -22,6 +24,7 @@ interface SkillDefinition {
   ai_suggested_status: string | null;
   ai_review_pending: boolean;
   ai_reviewed_at: string | null;
+  is_open_source: boolean;
 }
 
 interface ProcessingProgress {
@@ -59,7 +62,7 @@ export default function AdminSkillsReview() {
     setLoading(true);
     const { data, error } = await supabase
       .from('skill_definitions')
-      .select('id, name, category, skill_type, status, ai_suggested_category, ai_suggested_status, ai_review_pending, ai_reviewed_at')
+      .select('id, name, category, skill_type, status, ai_suggested_category, ai_suggested_status, ai_review_pending, ai_reviewed_at, is_open_source')
       .eq('is_active', true)
       .order('name');
 
@@ -385,6 +388,7 @@ export default function AdminSkillsReview() {
                         />
                       </TableHead>
                       <TableHead>Skill Name</TableHead>
+                      <TableHead className="text-center w-16">OSS</TableHead>
                       <TableHead>Current Category</TableHead>
                       <TableHead>AI Suggested</TableHead>
                       <TableHead>Current Status</TableHead>
@@ -400,7 +404,35 @@ export default function AdminSkillsReview() {
                             onCheckedChange={() => toggleSkill(skill.id)}
                           />
                         </TableCell>
-                        <TableCell className="font-medium">{skill.name}</TableCell>
+                        <TableCell className="font-medium">
+                          <span className="flex items-center gap-1">
+                            {skill.name}
+                            {skill.is_open_source && <Globe className="h-3 w-3 text-emerald-600" />}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex justify-center">
+                                <Switch
+                                  checked={skill.is_open_source}
+                                  onCheckedChange={async (checked) => {
+                                    const { error } = await supabase
+                                      .from('skill_definitions')
+                                      .update({ is_open_source: checked })
+                                      .eq('id', skill.id);
+                                    if (error) {
+                                      toast.error('Failed to update OSS flag');
+                                    } else {
+                                      setSkills(prev => prev.map(s => s.id === skill.id ? { ...s, is_open_source: checked } : s));
+                                    }
+                                  }}
+                                />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>Toggle open source flag</TooltipContent>
+                          </Tooltip>
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline">{skill.category}</Badge>
                         </TableCell>

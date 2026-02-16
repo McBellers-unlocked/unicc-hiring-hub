@@ -396,6 +396,21 @@ export function TalentSearchFilters({
                   </div>
                 </div>
               )}
+
+              {/* Open Source Skills Toggle */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="open-source-skills" className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-emerald-600" />
+                    Open Source Skills Only
+                  </Label>
+                  <Switch
+                    id="open-source-skills"
+                    checked={(filters as any).openSourceOnly || false}
+                    onCheckedChange={(checked) => handleFilterChange("openSourceOnly" as any, checked)}
+                  />
+                </div>
+              </div>
             </div>
           </CollapsibleContent>
         </Collapsible>

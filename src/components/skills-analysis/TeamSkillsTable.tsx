@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Check, X, User, Settings2, Users, Network, Brain, Cpu, ClipboardList, Award, CheckCircle, XCircle } from "lucide-react";
+import { Check, X, User, Settings2, Users, Network, Brain, Cpu, ClipboardList, Award, CheckCircle, XCircle, Globe } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import BatterySkillIndicator from "./BatterySkillIndicator";
 import BatteryLevelSelector from "./BatteryLevelSelector";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ interface SkillDefinition {
   name: string;
   category: string;
   skill_type?: 'proficiency' | 'credential';
+  is_open_source?: boolean;
 }
 
 interface Assessment {
@@ -95,7 +97,7 @@ export default function TeamSkillsTable() {
   const fetchAllSkillDefinitions = async () => {
     const { data } = await supabase
       .from('skill_definitions')
-      .select('id, name, category, skill_type')
+      .select('id, name, category, skill_type, is_open_source')
       .eq('is_active', true)
       .order('category')
       .order('name');
@@ -163,7 +165,7 @@ export default function TeamSkillsTable() {
       if (skillIds.length > 0) {
         const { data: skillData } = await supabase
           .from('skill_definitions')
-          .select('id, name, category, skill_type')
+          .select('id, name, category, skill_type, is_open_source')
           .eq('is_active', true)
           .in('id', skillIds)
           .order('category')
@@ -583,7 +585,17 @@ export default function TeamSkillsTable() {
                         <div className="flex items-center gap-2">
                           {CATEGORY_ICONS[skill.category]}
                           <div>
-                            <p className="font-medium text-sm">{skill.name}</p>
+                            <p className="font-medium text-sm flex items-center gap-1">
+                              {skill.name}
+                              {skill.is_open_source && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Globe className="h-3 w-3 text-emerald-600 shrink-0" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>Open source technology</TooltipContent>
+                                </Tooltip>
+                              )}
+                            </p>
                             <p className="text-xs text-muted-foreground">{skill.category}</p>
                           </div>
                           {skill.skill_type === 'credential' && (
