@@ -1,39 +1,63 @@
 
 
-## Open Source Filter and Analytics on the Organization Tab
+## OSS Skill Notification Email to OSPO
 
 ### Overview
-Add an "Open Source Only" filter toggle to the Organization tab's filter bar, plus a dedicated OSS analytics section showing coverage metrics, top open source products, and per-division OSS breakdown.
+When a user adds an open source skill to their profile (via the Skill Assessment Dialog), automatically send a branded notification email to ospo@unicc.org (CC: martinezm@unicc.org, bennette@unicc.org) informing the OSPO that a staff member has added an OSS skill, with a "View Profile" button.
 
 ### Changes
 
-#### 1. OrganizationFilters.tsx -- Add OSS toggle
+#### 1. New Edge Function: `supabase/functions/notify-oss-skill-added/index.ts`
 
-- Add `ossOnly: boolean` to the `FilterState` interface (default `false`)
-- Add a `Switch` or `ToggleGroupItem` labeled "OSS Only" with a `Globe` icon in the filter bar, next to the existing view mode toggle
-- Include it in the reset logic
+A dedicated edge function that sends a branded HTML email matching the assessment invite template style:
 
-#### 2. SkillsPortfolioAnalytics.tsx -- Wire up filter + add analytics section
+- **To**: ospo@unicc.org
+- **CC**: martinezm@unicc.org, bennette@unicc.org
+- **From**: UNICC Talent `<recruitment@unicconnect.org>` (matches existing pattern)
+- **Subject**: "OSS Skill Added: [Skill Name] -- [Staff Name]"
+- **Body** (branded HTML matching assessment invite template):
+  - UNICC logo header (from staging.unicconnect.org per branding standards)
+  - Navy heading (#1a365d): "Open Source Skill Added"
+  - Text: "[Staff Name] has added the open source skill **[Skill Name]** ([Category]) to their profile."
+  - Info box (blue left-border style matching assessment template) with skill details: name, category, date added
+  - Blue CTA button (#3182ce): "View Profile" linking to `/candidate-profile/[userId]`
+  - Footer: "Best regards, UNICC Human Resources"
+- Uses RESEND_API_KEY (already configured) via the Resend API directly (same pattern as `send-assessment-invite`)
 
-**Filter logic:**
-- When `filters.ossOnly` is `true`, filter the `skills` array to only those with `is_open_source === true`
-- This automatically affects all downstream computed values (KPI cards, status bar, category chart, matrix) since they all derive from the `skills` array
+**Request payload:**
+```json
+{
+  "staffName": "Jane Doe",
+  "staffEmail": "doej@unicc.org",
+  "skillName": "Kubernetes",
+  "skillCategory": "Technical & Domain",
+  "userId": "uuid-here"
+}
+```
 
-**New OSS Analytics section** (inserted between the Emerging Skills Gaps and the Organization Matrix):
-- A card titled "Open Source Coverage" with:
-  - **KPI row**: Total OSS skills count, % of portfolio that is OSS, number of staff with at least one OSS skill
-  - **Division breakdown table**: For each division, show count of OSS skills assessed, staff with OSS skills, and average proficiency -- derived from existing `divisionData` joined with the `is_open_source` flag
-  - **Top Open Source Products**: Fetch from `open_source_products` joined with `product_skill_mappings` and `skill_assessments` to show the most-used products with staff counts (top 10)
+#### 2. Update `supabase/config.toml`
+
+Add JWT verification bypass for the new function:
+```toml
+[functions.notify-oss-skill-added]
+verify_jwt = false
+```
+
+#### 3. Update `src/components/skills-analysis/SkillAssessmentDialog.tsx`
+
+After a successful skill assessment save (around line 237, after the candidates sync block), add a check:
+- If `selectedSkill.is_open_source === true`, invoke the new edge function with the staff member's name, email, skill name, skill category, and user ID
+- This is a fire-and-forget call (don't block the UI or show errors if notification fails -- just log)
+- Only triggers on new assessments (not updates to existing ones) to avoid duplicate notifications
 
 ### Technical Details
 
+**Files to create:**
+1. `supabase/functions/notify-oss-skill-added/index.ts` -- new edge function
+
 **Files to modify:**
-1. `src/components/skills-analysis/OrganizationFilters.tsx` -- add `ossOnly` to FilterState, add toggle UI
-2. `src/components/skills-analysis/SkillsPortfolioAnalytics.tsx` -- filter skills by OSS flag, add OSS analytics card with division breakdown and product stats
+1. `supabase/config.toml` -- add function config
+2. `src/components/skills-analysis/SkillAssessmentDialog.tsx` -- trigger notification after saving an OSS skill
 
-**New queries in SkillsPortfolioAnalytics:**
-- `open_source_products` joined with `product_skill_mappings` to get product-to-skill mappings
-- Cross-reference with `skill_assessments` to count staff per product
-
-**No database changes needed** -- all tables and columns already exist from the previous migration.
+**No database changes needed.** The RESEND_API_KEY secret is already configured.
 
