@@ -117,7 +117,7 @@ export function AffiliateLifecycleChecklist({
                     )}>
                       {item.item_label}
                     </label>
-                    {item.item_key === 'timesheet_reminder' && (
+                    {['timesheet_reminder', 'evaluation_form_receival', 'contract_break_ticket_email'].includes(item.item_key) && (
                       <Button variant="outline" size="sm" className="h-7 px-2" asChild>
                         <Link to="/admin/email-hub">
                           <Mail className="h-3 w-3 mr-1" />
