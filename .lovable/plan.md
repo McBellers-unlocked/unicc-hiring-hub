@@ -1,24 +1,26 @@
 
 
-## Fix: Handle Duplicate Skill Name in "Suggest New Skill"
+## Add "Go to Email Hub" Button for Additional Checklist Items
 
-### Problem
-The "Suggest a new skill" form fails with a unique constraint error (`skill_definitions_name_key`) when the user tries to add a skill that already exists in the database (e.g., "Supabase" was already seeded).
+### What changes
+In `src/components/affiliate/AffiliateLifecycleChecklist.tsx`, the "Go to Email Hub" button currently only appears next to the "Timesheet reminder to consultant" checklist item (line 120).
 
-### Solution
-Update the `handleSuggestSkill` function in `SkillAssessmentDialog.tsx` to check for an existing skill with the same name (case-insensitive) before inserting. If found, auto-select it instead of inserting a duplicate.
+We will expand the condition so the same button also appears next to:
+- **Evaluation form receival** (`evaluation_form_receival`)
+- **Contract break ticket email** (`contract_break_ticket_email`)
 
-### Technical Details
+### Technical detail
+Change the condition on line 120 from:
 
-**File to modify:** `src/components/skills-analysis/SkillAssessmentDialog.tsx`
+```tsx
+{item.item_key === 'timesheet_reminder' && (
+```
 
-In `handleSuggestSkill`:
-1. Before inserting, query `skill_definitions` for a matching name (case-insensitive using `.ilike('name', suggestName.trim())`)
-2. If a match is found:
-   - Add it to the local `skills` array if not already present
-   - Auto-select it via `setSkillId`
-   - Show a toast: "Skill already exists -- selected it for you."
-   - Close the suggest form
-3. If no match, proceed with the existing insert logic
+to:
 
-This is a small change (~10 lines) in a single function.
+```tsx
+{['timesheet_reminder', 'evaluation_form_receival', 'contract_break_ticket_email'].includes(item.item_key) && (
+```
+
+This is a single-line change in one file. The button markup, styling, and link destination (`/admin/email-hub`) remain identical.
+
