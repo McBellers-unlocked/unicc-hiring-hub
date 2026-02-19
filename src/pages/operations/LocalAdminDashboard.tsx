@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useAuth } from '@/hooks/useAuth';
 import {
   Table,
   TableBody,
@@ -72,6 +73,19 @@ const TRANSFER_TYPES = ['Transfer', 'Transfer (CB)', 'Reassignment'];
 const CB_SEPARATION_TYPES = ['Separation (CB)'];
 const CB_APPOINTMENT_TYPES = ['Appointment (CB)'];
 
+const LOCAL_ADMIN_STATION_MAP: Record<string, string> = {
+  'requeni@unicc.org': 'Valencia',
+  'ruiz@unicc.org': 'Valencia',
+  'dutruel@unicc.org': 'Geneva',
+  'normand-quinet@unicc.org': 'Geneva',
+  'cavaglieri@unicc.org': 'Geneva',
+  'argentieri@unicc.org': 'Brindisi',
+  'valenti@unicc.org': 'Brindisi',
+  'petrocelli@unicc.org': 'Rome',
+  'mesfin@unicc.org': 'New York',
+  'lee@unicc.org': 'New York',
+};
+
 const formatDate = (d: string | null) => {
   if (!d) return '—';
   try { return format(parseISO(d), 'dd MMM yyyy'); } catch { return '—'; }
@@ -85,7 +99,11 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 const LocalAdminDashboard = () => {
-  const [dutyStation, setDutyStation] = useState<string>('all');
+  const { user } = useAuth();
+  const lockedStation = user?.email
+    ? LOCAL_ADMIN_STATION_MAP[user.email.toLowerCase()] ?? null
+    : null;
+  const [dutyStation, setDutyStation] = useState<string>(lockedStation ?? 'all');
   const [search, setSearch] = useState('');
 
   const { data: separations = [], isLoading: loadingSep } = useQuery({
@@ -228,17 +246,25 @@ const LocalAdminDashboard = () => {
                   onChange={e => setSearch(e.target.value)}
                 />
               </div>
-              <Select value={dutyStation} onValueChange={setDutyStation}>
-                <SelectTrigger className="w-[220px]">
-                  <SelectValue placeholder="Duty Station" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Duty Stations</SelectItem>
-                  {dutyStations.map(ds => (
-                    <SelectItem key={ds} value={ds}>{ds}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {lockedStation ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-muted text-sm">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Station:</span>
+                  <span className="font-medium">{lockedStation}</span>
+                </div>
+              ) : (
+                <Select value={dutyStation} onValueChange={setDutyStation}>
+                  <SelectTrigger className="w-[220px]">
+                    <SelectValue placeholder="Duty Station" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Duty Stations</SelectItem>
+                    {dutyStations.map(ds => (
+                      <SelectItem key={ds} value={ds}>{ds}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </CardContent>
         </Card>
