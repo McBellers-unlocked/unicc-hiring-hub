@@ -40,6 +40,7 @@ interface HrSeparation {
   job_title: string | null;
   contract_type: string | null;
   supervisor: string | null;
+  event_type: string | null;
 }
 
 interface HrAppointment {
@@ -157,7 +158,7 @@ const LocalAdminDashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('hr_separations')
-        .select('id, last_name, first_name, operation_type, status, tentative_date, effective_date, grade, duty_station, section_unit, linked_appointment_id, job_title, contract_type, supervisor')
+        .select('id, last_name, first_name, operation_type, status, tentative_date, effective_date, grade, duty_station, section_unit, linked_appointment_id, job_title, contract_type, supervisor, event_type')
         .neq('status', 'Completed')
         .order('tentative_date', { ascending: true });
       if (error) throw error;
@@ -646,7 +647,7 @@ const LocalAdminDashboard = () => {
                   <TableHead>Last Name</TableHead>
                   <TableHead>First Name</TableHead>
                   <TableHead>Grade</TableHead>
-                  <TableHead>Type of Contract</TableHead>
+                  <TableHead>Break Type</TableHead>
                   <TableHead>Division / Unit</TableHead>
                   <TableHead>Last Day of Contract</TableHead>
                   <TableHead>Contract Break</TableHead>
@@ -665,11 +666,7 @@ const LocalAdminDashboard = () => {
                         <TableCell className="font-medium">{sep.last_name}</TableCell>
                         <TableCell>{sep.first_name}</TableCell>
                         <TableCell>{sep.grade ?? '—'}</TableCell>
-                        <TableCell>
-                          {sep.contract_type
-                            ? <Badge variant="outline">{sep.contract_type}</Badge>
-                            : <span className="text-muted-foreground">—</span>}
-                        </TableCell>
+                        <TableCell><CBTypeBadge type={sep.event_type} /></TableCell>
                         <TableCell>{sep.section_unit ?? '—'}</TableCell>
                         <TableCell>{formatDate(sep.tentative_date)}</TableCell>
                         <TableCell>
@@ -726,6 +723,22 @@ const LocalAdminDashboard = () => {
 };
 
 /* ── helper components ── */
+
+const CB_TYPE_CONFIG: Record<string, { label: string; className: string }> = {
+  'Secondment':      { label: 'Secondment',      className: 'bg-indigo-100 text-indigo-700 border border-indigo-200' },
+  'Loan':            { label: 'Loan',             className: 'bg-purple-100 text-purple-700 border border-purple-200' },
+  'Long-term Leave': { label: 'Long-term Leave',  className: 'bg-teal-100 text-teal-700 border border-teal-200' },
+};
+
+const CBTypeBadge = ({ type }: { type: string | null }) => {
+  if (!type || !CB_TYPE_CONFIG[type]) return <span className="text-muted-foreground">—</span>;
+  const { label, className } = CB_TYPE_CONFIG[type];
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${className}`}>
+      {label}
+    </span>
+  );
+};
 
 const SectionCard = ({ title, icon, count, children }: { title: string; icon: React.ReactNode; count: number; children: React.ReactNode }) => (
   <Card>

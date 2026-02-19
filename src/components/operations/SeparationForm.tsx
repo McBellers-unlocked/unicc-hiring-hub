@@ -665,6 +665,31 @@ export const SeparationForm = ({
                     )}
                   />
 
+                  {form.watch('separation_type') === 'ContractBreak' && (
+                    <FormField
+                      control={form.control}
+                      name="event_type"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2">
+                          <FormLabel>Break Type</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || ''}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select break type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Secondment">Secondment</SelectItem>
+                              <SelectItem value="Loan">Loan</SelectItem>
+                              <SelectItem value="Long-term Leave">Long-term Leave</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
                   <FormField
                     control={form.control}
                     name="notice_days_required"
