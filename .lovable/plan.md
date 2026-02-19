@@ -1,76 +1,99 @@
 
-## Contract Breaks: Adding a "Break Type" Column with Coloured Pills
+## Root Cause: RLS Policy Blocks Hiring Manager from Reading hr_appointments
 
-### The Problem
-All Contract Break records currently look identical in the table — there is no way to distinguish whether a record is a **Secondment**, a **Loan**, or **Long-term Leave** at a glance. The user wants a type column with coloured pills for quick identification.
+### What's happening
 
-### Where to Store the Break Type
+Sandra (`ruiz@unicc.org`) and Carolina (`requeni@unicc.org`) are stored in the `users` table with the role **`Hiring Manager`**. Their `Local Admin` role is a virtual, client-side-only role injected by `useAuth.tsx` based on their email — the database has no knowledge of it.
 
-The `hr_separations` table already has an `event_type` column (text, currently null for all CB records). This is the correct field to repurpose as the CB sub-type. No new database column is needed.
+The `hr_appointments` table has **one** RLS SELECT policy:
 
-**Three CB sub-types, each with a distinct colour:**
+```
+"HR users can manage appointments"
+  USING (
+    EXISTS (SELECT 1 FROM users WHERE id = auth.uid()
+      AND role = ANY (ARRAY['Admin', 'HR Assistant', 'Chief of HR']))
+  )
+```
 
-| Sub-type | Colour | Rationale |
+`Hiring Manager` is not in that list, so Sandra and Carolina get **zero rows** from every Supabase query against `hr_appointments`. This is why Arrivals shows "No records found" — the table returns an empty array silently (RLS never throws an error, it just returns nothing).
+
+### Why transfers and departures work (partially)
+
+- `hr_transfers` → policy allows **any authenticated user** → works fine
+- `hr_separations` SELECT policy includes `Hiring Manager` → separations are visible (departures + CB separation side)
+- `hr_appointments` SELECT → **blocks Hiring Manager** → arrivals and the return leg of contract breaks are invisible
+
+### The Fix — Two database changes
+
+#### 1. Add a Local Admin SELECT policy to `hr_appointments`
+
+A new RLS policy that allows the specific local admin emails to read `hr_appointments` records scoped to their duty station. This uses a security-safe approach: look up the authenticated user's duty station from the `users` table and compare to the appointment's `duty_station`.
+
+However, since `Local Admin` is not a real DB role and these users are `Hiring Manager` in the DB, the cleanest, most secure approach is to add their emails to a **dedicated `local_admin_emails` helper** or simply extend the appointments SELECT policy to include `Hiring Manager`.
+
+**The simplest correct fix:** Add `'Hiring Manager'` to the existing `hr_appointments` SELECT policy (matching exactly what `hr_separations` already does). This gives Hiring Managers read-only access to appointments — they already have it for separations, so this is consistent.
+
+```sql
+-- Drop the overly restrictive existing policy
+DROP POLICY "HR users can manage appointments" ON public.hr_appointments;
+
+-- Re-create split policies: one for all CRUD (Admin/HR only), one for SELECT (broader)
+CREATE POLICY "HR staff can manage appointments"
+  ON public.hr_appointments
+  FOR ALL  -- INSERT, UPDATE, DELETE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE id = auth.uid()
+        AND role = ANY (ARRAY['Admin'::user_role, 'HR Assistant'::user_role, 'Chief of HR'::user_role])
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE id = auth.uid()
+        AND role = ANY (ARRAY['Admin'::user_role, 'HR Assistant'::user_role, 'Chief of HR'::user_role])
+    )
+  );
+
+CREATE POLICY "HR and Hiring Managers can view appointments"
+  ON public.hr_appointments
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE id = auth.uid()
+        AND role = ANY (ARRAY[
+          'Admin'::user_role,
+          'HR Assistant'::user_role,
+          'Chief of HR'::user_role,
+          'Hiring Manager'::user_role,
+          'Director'::user_role
+        ])
+    )
+  );
+```
+
+This mirrors exactly the pattern already used by `hr_separations`, making the two tables consistent.
+
+#### 2. No code changes needed
+
+The `LocalAdminDashboard.tsx` filtering logic is correct — the `lockedStation` correctly maps `ruiz@unicc.org` → `'Valencia'` and the `matchesFilters` function correctly filters by duty station. Once the RLS policy is fixed, the data will flow through and Valencia arrivals will appear.
+
+### What Sandra and Carolina will see after the fix
+
+- **Arrivals**: All `hr_appointments` records where `duty_station = 'Valencia'` and `status != 'Completed'` — currently 2 records (GARCIA AMAYA and HERRERO CANTERO)
+- **Contract Breaks expanded panel**: The linked appointment return date (`apt.tentative_date`) will now resolve correctly instead of showing `—`
+- **Departures and Transfers**: Already working, no change
+
+### Summary
+
+| Table | Current SELECT access | After fix |
 |---|---|---|
-| Secondment | Blue (indigo) | Staff moving to another organisation temporarily |
-| Loan | Purple | Staff "loaned out" internally |
-| Long-term Leave | Teal/green | Extended absence, no move |
+| `hr_appointments` | Admin, HR Assistant, Chief of HR only | + Hiring Manager, Director |
+| `hr_separations` | Admin, HR Assistant, Chief of HR, Hiring Manager, Director | No change |
+| `hr_transfers` | Any authenticated user | No change |
 
-### Changes Required
-
-#### 1. SeparationForm — add sub-type selector (conditional on ContractBreak)
-
-When `separation_type === 'ContractBreak'`, show a new **"Break Type"** dropdown (stored in `event_type`) with three options:
-- Secondment
-- Loan
-- Long-term Leave
-
-This is already a field in the form schema — it just needs options and conditional visibility.
-
-#### 2. LocalAdminDashboard — add "Break Type" column with coloured pill
-
-**New table header (10 columns total = 9 data + 1 toggle):**
-
-| Last Name | First Name | Grade | **Break Type** | Division / Unit | Last Day of Contract | Contract Break | Duty Station | *(chevron)* |
-
-The existing "Type of Contract" column (currently always `—` due to null data) is **replaced** by "Break Type", which uses `sep.event_type` and renders a coloured pill:
-
-- `Secondment` → indigo/blue badge
-- `Loan` → purple badge
-- `Long-term Leave` → teal badge
-- null/unknown → muted `—`
-
-The `HrSeparation` interface and Supabase `.select()` already include all needed fields. The `event_type` field just needs to be added to the select string and interface.
-
-#### 3. Pill colour helper
-
-A small `CBTypeBadge` component (or inline helper) maps sub-type strings to Tailwind colour classes:
-
-```text
-Secondment    → bg-indigo-100 text-indigo-700 border-indigo-200
-Loan          → bg-purple-100 text-purple-700 border-purple-200
-Long-term Leave → bg-teal-100 text-teal-700 border-teal-200
-(null)        → plain text "—"
-```
-
-### Files to change
-
-| File | Change |
-|---|---|
-| `src/components/operations/SeparationForm.tsx` | Add conditional "Break Type" dropdown (populates `event_type`) when `separation_type === 'ContractBreak'` |
-| `src/pages/operations/LocalAdminDashboard.tsx` | (a) Add `event_type` to `HrSeparation` interface and `.select()`, (b) Replace "Type of Contract" column header with "Break Type", (c) Render coloured pill from `sep.event_type` |
-
-### No database schema changes required
-`event_type` already exists in `hr_separations`. The SeparationForm already has it in the Zod schema and form state — it just needs the right dropdown options and conditional display logic.
-
-### What the CB table will look like after the change
-
-Visible row example:
-
-```text
-BOISSEAU  Simon  P3  [Secondment ●]  DDC  18 Mar 2026  18 Mar → 20 Apr  Brindisi  ›
-```
-
-Expanded panel (unchanged — Job Title, Supervisor, New Contract Start, and the "expiry date not stored" note).
-
-The section title stays as "Contract Breaks / Secondment / Loan / Long-term Leave" — the pills now make it self-evident which sub-type each row is.
+**Only one file changes:** a database migration adding the new SELECT policy and splitting the existing `ALL` policy into separate SELECT and mutation policies.
