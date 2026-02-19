@@ -116,3 +116,6 @@ verify_jwt = false
 
 [functions.notify-oss-skill-added]
 verify_jwt = false
+
+[functions.notify-local-admin]
+verify_jwt = false
