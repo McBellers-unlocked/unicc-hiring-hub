@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       roles.push('Chief of Division');
     }
 
-    const localAdminEmails = ['ruiz@unicc.org'];
+    const localAdminEmails = ['ruiz@unicc.org', 'requeni@unicc.org'];
     if (email && localAdminEmails.includes(email.toLowerCase()) && !roles.includes('Local Admin')) {
       roles.push('Local Admin');
     }

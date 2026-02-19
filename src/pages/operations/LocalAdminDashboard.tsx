@@ -117,7 +117,8 @@ const LocalAdminDashboard = () => {
   const lockedStation = user?.email
     ? LOCAL_ADMIN_STATION_MAP[user.email.toLowerCase()] ?? null
     : null;
-  const [dutyStation, setDutyStation] = useState<string>(lockedStation ?? 'all');
+  const [selectedStation, setSelectedStation] = useState<string>('all');
+  const activeStation = lockedStation ?? selectedStation;
   const [search, setSearch] = useState('');
   const [expandedArrivalIds, setExpandedArrivalIds] = useState<Set<string>>(new Set());
   const [expandedDepartureIds, setExpandedDepartureIds] = useState<Set<string>>(new Set());
@@ -208,7 +209,7 @@ const LocalAdminDashboard = () => {
 
   // Shared filter function
   const matchesFilters = (lastName: string, firstName: string, ds: string | null) => {
-    if (dutyStation !== 'all' && ds !== dutyStation) return false;
+    if (activeStation !== 'all' && ds !== activeStation) return false;
     if (search) {
       const q = search.toLowerCase();
       if (!`${lastName} ${firstName}`.toLowerCase().includes(q)) return false;
@@ -226,26 +227,26 @@ const LocalAdminDashboard = () => {
         sep: s,
         apt: s.linked_appointment_id ? aptMap.get(s.linked_appointment_id) ?? null : null,
       }));
-  }, [separations, appointments, dutyStation, search]);
+  }, [separations, appointments, activeStation, search]);
 
   // 2. Transfers – merge hr_appointments transfers + hr_transfers records
   const appointmentTransfers = useMemo(() =>
     appointments
       .filter(a => TRANSFER_TYPES.includes(a.operation_type))
       .filter(a => matchesFilters(a.last_name, a.first_name, a.duty_station)),
-    [appointments, dutyStation, search]
+    [appointments, activeStation, search]
   );
 
   const filteredHrTransfers = useMemo(() =>
     hrTransfers.filter(t => {
-      if (dutyStation !== 'all' && t.duty_station !== dutyStation && t.new_duty_station !== dutyStation) return false;
+      if (activeStation !== 'all' && t.duty_station !== activeStation && t.new_duty_station !== activeStation) return false;
       if (search) {
         const q = search.toLowerCase();
         if (!`${t.last_name} ${t.first_name}`.toLowerCase().includes(q)) return false;
       }
       return true;
     }),
-    [hrTransfers, dutyStation, search]
+    [hrTransfers, activeStation, search]
   );
 
   // 3. Departures (non-CB separations)
@@ -253,7 +254,7 @@ const LocalAdminDashboard = () => {
     separations
       .filter(s => !CB_SEPARATION_TYPES.includes(s.operation_type))
       .filter(s => matchesFilters(s.last_name, s.first_name, s.duty_station)),
-    [separations, dutyStation, search]
+    [separations, activeStation, search]
   );
 
   // 4. Arrivals (non-CB, non-transfer appointments)
@@ -261,7 +262,7 @@ const LocalAdminDashboard = () => {
     appointments
       .filter(a => !CB_APPOINTMENT_TYPES.includes(a.operation_type) && !TRANSFER_TYPES.includes(a.operation_type))
       .filter(a => matchesFilters(a.last_name, a.first_name, a.duty_station)),
-    [appointments, dutyStation, search]
+    [appointments, activeStation, search]
   );
 
   const totalTransfers = appointmentTransfers.length + filteredHrTransfers.length;
@@ -300,7 +301,7 @@ const LocalAdminDashboard = () => {
                   <span className="font-medium">{lockedStation}</span>
                 </div>
               ) : (
-                <Select value={dutyStation} onValueChange={setDutyStation}>
+                <Select value={selectedStation} onValueChange={setSelectedStation}>
                   <SelectTrigger className="w-[220px]">
                     <SelectValue placeholder="Duty Station" />
                   </SelectTrigger>
