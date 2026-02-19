@@ -1,50 +1,50 @@
 
-## Arrivals Table: Expandable Row Design
+## Departures Table: Expandable Row Design (matching Arrivals pattern)
 
-### What's available in the database
-Confirmed by querying `hr_appointments` directly:
-- `last_name`, `first_name`, `grade`, `contract_type`, `section_unit`, `tentative_date`, `duty_station` — all present (visible row)
-- `job_title`, `supervisor` — present (expanded detail panel)
-- `end_date`, `index_number` — **not in the table**; will show `—` as placeholders
+### Goal
+Redesign the Departures section to mirror the Arrivals expandable row pattern: a compact summary row visible by default, with a chevron that reveals additional detail fields underneath.
 
-### Summary of changes
-One file only: `src/pages/operations/LocalAdminDashboard.tsx`
+### What's in the database
+All requested fields exist in `hr_separations`:
+- `last_name`, `first_name`, `grade`, `contract_type`, `section_unit`, `tentative_date`, `duty_station` — for the visible row
+- `job_title`, `supervisor` — for the expanded detail panel
 
----
+### Visible row (default, always shown) — 8 columns + toggle
 
-### 1. Add new fields to the `HrAppointment` interface
+| Last Name | First Name | Grade | Type of Contract | Division / Unit | Departure Date | Duty Station | *(chevron)* |
+|---|---|---|---|---|---|---|---|
 
-Add three new optional fields:
+### Expanded panel (hidden by default, shown on chevron click)
+
+| Job Title / Function | Supervisor |
+|---|---|
+| from `job_title` | from `supervisor` |
+
+Two fields in the expanded panel (2-column grid), as there is no equivalent of "Index Number" or "End Date" for departures.
+
+### Summary of changes — one file only: `src/pages/operations/LocalAdminDashboard.tsx`
+
+**1. Update the `HrSeparation` interface** — add three new optional fields:
 ```ts
 job_title: string | null;
 contract_type: string | null;
 supervisor: string | null;
 ```
 
-### 2. Expand the Supabase `.select()` for appointments
+**2. Expand the Supabase `.select()` for separations** — add `job_title, contract_type, supervisor` to the existing select string.
 
-Add `job_title, contract_type, supervisor` to the existing select string.
-
-### 3. Add import for icons and Button
-
-Import `ChevronDown`, `ChevronRight` from `lucide-react` and `Button` from `@/components/ui/button`.
-
-### 4. Add expanded-row state
-
-Inside `LocalAdminDashboard`, add:
+**3. Add expanded-row state for departures** — same pattern as arrivals:
 ```ts
-const [expandedArrivalIds, setExpandedArrivalIds] = useState<Set<string>>(new Set());
-const toggleArrival = (id: string) =>
-  setExpandedArrivalIds(prev => {
+const [expandedDepartureIds, setExpandedDepartureIds] = useState<Set<string>>(new Set());
+const toggleDeparture = (id: string) =>
+  setExpandedDepartureIds(prev => {
     const next = new Set(prev);
     next.has(id) ? next.delete(id) : next.add(id);
     return next;
   });
 ```
 
-### 5. Replace the Arrivals table
-
-**New header columns (9 total):**
+**4. Replace the Departures table** — new header (8 columns including toggle):
 
 | # | Column |
 |---|---|
@@ -53,31 +53,19 @@ const toggleArrival = (id: string) =>
 | 3 | Grade |
 | 4 | Type of Contract |
 | 5 | Division / Unit |
-| 6 | Start Date |
-| 7 | End Date |
-| 8 | Duty Station |
-| 9 | *(chevron toggle — no label)* |
+| 6 | Departure Date |
+| 7 | Duty Station |
+| 8 | *(chevron toggle — no label)* |
 
-**Each arrival renders two `<TableRow>` elements:**
+Each departure renders as two `<TableRow>` elements wrapped in a `<React.Fragment>`:
+- **Row 1**: 7 data cells + ghost chevron button, clickable to expand
+- **Row 2**: conditionally visible `<TableCell colSpan={8}>` with a 2-column detail grid for Job Title and Supervisor
 
-- **Row 1** — the 8 summary columns plus a ghost chevron button in column 9
-- **Row 2** — conditionally visible; a single `<TableCell colSpan={9}>` containing a small 3-column detail grid:
+The expanded panel uses the same `bg-muted/30 hover:bg-muted/30` styling as the Arrivals section for visual consistency.
 
-| Job Title / Function | Supervisor | Index Number |
-|---|---|---|
-| from `job_title` | from `supervisor` | `—` (not in DB) |
+**5. Update `EmptyRow` cols** for departures from `7` to `8`.
 
-The expanded panel has a subtle `bg-muted/30` background so it reads as part of the same record.
-
-The `EmptyRow` for Arrivals also updates its `cols` from `7` to `9`.
-
-### Visual behaviour
-- On page load: all rows collapsed (only the 8-column summary visible)
-- Click chevron → detail panel slides open below that row
-- Click chevron again → panel hides
-- State is local to the component; no URL or persistence changes
-
-### No other files need to change
-- Database: no schema changes
-- Other sections (Departures, Transfers, Contract Breaks): unchanged
-- Routing, auth, RLS: unchanged
+### No other changes
+- No database schema changes required
+- Other sections (Arrivals, Transfers, Contract Breaks) unchanged
+- No routing, auth, or RLS changes
