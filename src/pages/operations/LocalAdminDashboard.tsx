@@ -121,6 +121,7 @@ const LocalAdminDashboard = () => {
   const [expandedArrivalIds, setExpandedArrivalIds] = useState<Set<string>>(new Set());
   const [expandedDepartureIds, setExpandedDepartureIds] = useState<Set<string>>(new Set());
   const [expandedTransferIds, setExpandedTransferIds] = useState<Set<string>>(new Set());
+  const [expandedCBIds, setExpandedCBIds] = useState<Set<string>>(new Set());
 
   const toggleArrival = (id: string) =>
     setExpandedArrivalIds(prev => {
@@ -142,6 +143,14 @@ const LocalAdminDashboard = () => {
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+
+  const toggleCB = (id: string) =>
+    setExpandedCBIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
 
   const { data: separations = [], isLoading: loadingSep } = useQuery({
     queryKey: ['local-admin-separations'],
@@ -630,33 +639,83 @@ const LocalAdminDashboard = () => {
         )}
 
         {!isLoading && (
-          <SectionCard title="Contract Breaks" icon={<RefreshCw className="h-5 w-5 text-orange-500" />} count={contractBreaks.length}>
+          <SectionCard title="Contract Breaks / Secondment / Loan / Long-term Leave" icon={<RefreshCw className="h-5 w-5 text-orange-500" />} count={contractBreaks.length}>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
+                  <TableHead>Last Name</TableHead>
+                  <TableHead>First Name</TableHead>
                   <TableHead>Grade</TableHead>
-                   <TableHead>Section / Unit</TableHead>
-                   <TableHead>Duty Station</TableHead>
-                   <TableHead>Departure Date</TableHead>
-                   <TableHead>Return Date</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Type of Contract</TableHead>
+                  <TableHead>Division / Unit</TableHead>
+                  <TableHead>Last Day of Contract</TableHead>
+                  <TableHead>Contract Break</TableHead>
+                  <TableHead>Duty Station</TableHead>
+                  <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {contractBreaks.length === 0 ? (
-                  <EmptyRow cols={7} />
-                ) : contractBreaks.map(({ sep, apt }) => (
-                  <TableRow key={sep.id}>
-                    <TableCell className="font-medium">{sep.last_name}, {sep.first_name}</TableCell>
-                    <TableCell>{sep.grade ?? '—'}</TableCell>
-                    <TableCell>{sep.section_unit ?? '—'}</TableCell>
-                    <TableCell>{sep.duty_station ?? '—'}</TableCell>
-                    <TableCell>{formatDate(sep.tentative_date)}</TableCell>
-                    <TableCell>{apt ? formatDate(apt.tentative_date) : '—'}</TableCell>
-                    <TableCell><StatusBadge status={sep.status} /></TableCell>
-                  </TableRow>
-                ))}
+                  <EmptyRow cols={9} />
+                ) : contractBreaks.map(({ sep, apt }) => {
+                  const isExpanded = expandedCBIds.has(sep.id);
+                  return (
+                    <React.Fragment key={sep.id}>
+                      <TableRow className="cursor-pointer" onClick={() => toggleCB(sep.id)}>
+                        <TableCell className="font-medium">{sep.last_name}</TableCell>
+                        <TableCell>{sep.first_name}</TableCell>
+                        <TableCell>{sep.grade ?? '—'}</TableCell>
+                        <TableCell>
+                          {sep.contract_type
+                            ? <Badge variant="outline">{sep.contract_type}</Badge>
+                            : <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                        <TableCell>{sep.section_unit ?? '—'}</TableCell>
+                        <TableCell>{formatDate(sep.tentative_date)}</TableCell>
+                        <TableCell>
+                          {apt ? (
+                            <span className="inline-flex items-center gap-1 text-sm font-medium text-amber-700">
+                              {formatDate(sep.tentative_date)}
+                              <ArrowRight className="h-3 w-3" />
+                              {formatDate(apt.tentative_date)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>{sep.duty_station ?? '—'}</TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); toggleCB(sep.id); }}>
+                            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                      {isExpanded && (
+                        <TableRow key={`${sep.id}-cb-detail`} className="bg-muted/30 hover:bg-muted/30">
+                          <TableCell colSpan={9} className="py-3 px-6">
+                            <div className="grid grid-cols-3 gap-6 text-sm mb-3">
+                              <div>
+                                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Job Title / Function</p>
+                                <p className="font-medium">{sep.job_title ?? '—'}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Supervisor</p>
+                                <p className="font-medium">{sep.supervisor ?? '—'}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">New Contract Start</p>
+                                <p className="font-medium">{apt ? formatDate(apt.tentative_date) : '—'}</p>
+                              </div>
+                            </div>
+                            <div className="rounded-md border border-dashed px-4 py-2.5 text-xs text-muted-foreground">
+                              <strong>New contract expiry date:</strong> — (not currently stored in the database; will display once that field is added)
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </TableBody>
             </Table>
           </SectionCard>
