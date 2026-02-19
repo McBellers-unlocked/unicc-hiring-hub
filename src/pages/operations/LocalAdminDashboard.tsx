@@ -274,18 +274,10 @@ const LocalAdminDashboard = () => {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <RefreshCw className="h-4 w-4 text-orange-500" /> Contract Breaks
+                <LogIn className="h-4 w-4 text-green-600" /> Arrivals
               </CardTitle>
             </CardHeader>
-            <CardContent><p className="text-2xl font-bold">{contractBreaks.length}</p></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <ArrowRightLeft className="h-4 w-4 text-purple-500" /> Transfers
-              </CardTitle>
-            </CardHeader>
-            <CardContent><p className="text-2xl font-bold">{totalTransfers}</p></CardContent>
+            <CardContent><p className="text-2xl font-bold">{arrivals.length}</p></CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
@@ -298,42 +290,84 @@ const LocalAdminDashboard = () => {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <LogIn className="h-4 w-4 text-green-600" /> Arrivals
+                <ArrowRightLeft className="h-4 w-4 text-purple-500" /> Transfers
               </CardTitle>
             </CardHeader>
-            <CardContent><p className="text-2xl font-bold">{arrivals.length}</p></CardContent>
+            <CardContent><p className="text-2xl font-bold">{totalTransfers}</p></CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <RefreshCw className="h-4 w-4 text-orange-500" /> Contract Breaks
+              </CardTitle>
+            </CardHeader>
+            <CardContent><p className="text-2xl font-bold">{contractBreaks.length}</p></CardContent>
           </Card>
         </div>
 
         {isLoading && <p className="text-muted-foreground text-center py-8">Loading…</p>}
 
-        {/* Contract Breaks */}
+        {/* Arrivals */}
         {!isLoading && (
-          <SectionCard title="Contract Breaks" icon={<RefreshCw className="h-5 w-5 text-orange-500" />} count={contractBreaks.length}>
+          <SectionCard title="Arrivals" icon={<LogIn className="h-5 w-5 text-green-600" />} count={arrivals.length}>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Grade</TableHead>
+                  <TableHead>Type</TableHead>
+                   <TableHead>Arrival Date</TableHead>
                    <TableHead>Section / Unit</TableHead>
                    <TableHead>Duty Station</TableHead>
-                   <TableHead>Departure Date</TableHead>
-                   <TableHead>Return Date</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {contractBreaks.length === 0 ? (
+                   <TableHead>Status</TableHead>
+                 </TableRow>
+               </TableHeader>
+               <TableBody>
+                {arrivals.length === 0 ? (
                   <EmptyRow cols={7} />
-                ) : contractBreaks.map(({ sep, apt }) => (
-                  <TableRow key={sep.id}>
-                    <TableCell className="font-medium">{sep.last_name}, {sep.first_name}</TableCell>
-                    <TableCell>{sep.grade ?? '—'}</TableCell>
-                    <TableCell>{sep.section_unit ?? '—'}</TableCell>
-                    <TableCell>{sep.duty_station ?? '—'}</TableCell>
-                    <TableCell>{formatDate(sep.tentative_date)}</TableCell>
-                    <TableCell>{apt ? formatDate(apt.tentative_date) : '—'}</TableCell>
-                    <TableCell><StatusBadge status={sep.status} /></TableCell>
+                ) : arrivals.map(a => (
+                  <TableRow key={a.id}>
+                    <TableCell className="font-medium">{a.last_name}, {a.first_name}</TableCell>
+                    <TableCell>{a.grade ?? '—'}</TableCell>
+                    <TableCell><Badge variant="outline">{a.operation_type}</Badge></TableCell>
+                    <TableCell>{formatDate(a.tentative_date)}</TableCell>
+                    <TableCell>{a.section_unit ?? '—'}</TableCell>
+                    <TableCell>{a.duty_station ?? '—'}</TableCell>
+                    <TableCell><StatusBadge status={a.status} /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </SectionCard>
+        )}
+
+        {/* Departures */}
+        {!isLoading && (
+          <SectionCard title="Departures" icon={<LogOut className="h-5 w-5 text-destructive" />} count={departures.length}>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Grade</TableHead>
+                  <TableHead>Type</TableHead>
+                   <TableHead>Departure Date</TableHead>
+                   <TableHead>Section / Unit</TableHead>
+                   <TableHead>Duty Station</TableHead>
+                   <TableHead>Status</TableHead>
+                 </TableRow>
+               </TableHeader>
+               <TableBody>
+                {departures.length === 0 ? (
+                  <EmptyRow cols={7} />
+                ) : departures.map(s => (
+                  <TableRow key={s.id}>
+                    <TableCell className="font-medium">{s.last_name}, {s.first_name}</TableCell>
+                    <TableCell>{s.grade ?? '—'}</TableCell>
+                    <TableCell><Badge variant="outline">{s.operation_type}</Badge></TableCell>
+                    <TableCell>{formatDate(s.tentative_date)}</TableCell>
+                    <TableCell>{s.section_unit ?? '—'}</TableCell>
+                    <TableCell>{s.duty_station ?? '—'}</TableCell>
+                    <TableCell><StatusBadge status={s.status} /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -393,67 +427,33 @@ const LocalAdminDashboard = () => {
           </SectionCard>
         )}
 
-        {/* Departures */}
+        {/* Contract Breaks */}
         {!isLoading && (
-          <SectionCard title="Departures" icon={<LogOut className="h-5 w-5 text-destructive" />} count={departures.length}>
+          <SectionCard title="Contract Breaks" icon={<RefreshCw className="h-5 w-5 text-orange-500" />} count={contractBreaks.length}>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Grade</TableHead>
-                  <TableHead>Type</TableHead>
+                   <TableHead>Section / Unit</TableHead>
+                   <TableHead>Duty Station</TableHead>
                    <TableHead>Departure Date</TableHead>
-                   <TableHead>Section / Unit</TableHead>
-                   <TableHead>Duty Station</TableHead>
-                   <TableHead>Status</TableHead>
-                 </TableRow>
-               </TableHeader>
-               <TableBody>
-                {departures.length === 0 ? (
+                   <TableHead>Return Date</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {contractBreaks.length === 0 ? (
                   <EmptyRow cols={7} />
-                ) : departures.map(s => (
-                  <TableRow key={s.id}>
-                    <TableCell className="font-medium">{s.last_name}, {s.first_name}</TableCell>
-                    <TableCell>{s.grade ?? '—'}</TableCell>
-                    <TableCell><Badge variant="outline">{s.operation_type}</Badge></TableCell>
-                    <TableCell>{formatDate(s.tentative_date)}</TableCell>
-                    <TableCell>{s.section_unit ?? '—'}</TableCell>
-                    <TableCell>{s.duty_station ?? '—'}</TableCell>
-                    <TableCell><StatusBadge status={s.status} /></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </SectionCard>
-        )}
-
-        {/* Arrivals */}
-        {!isLoading && (
-          <SectionCard title="Arrivals" icon={<LogIn className="h-5 w-5 text-green-600" />} count={arrivals.length}>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Grade</TableHead>
-                  <TableHead>Type</TableHead>
-                   <TableHead>Arrival Date</TableHead>
-                   <TableHead>Section / Unit</TableHead>
-                   <TableHead>Duty Station</TableHead>
-                   <TableHead>Status</TableHead>
-                 </TableRow>
-               </TableHeader>
-               <TableBody>
-                {arrivals.length === 0 ? (
-                  <EmptyRow cols={7} />
-                ) : arrivals.map(a => (
-                  <TableRow key={a.id}>
-                    <TableCell className="font-medium">{a.last_name}, {a.first_name}</TableCell>
-                    <TableCell>{a.grade ?? '—'}</TableCell>
-                    <TableCell><Badge variant="outline">{a.operation_type}</Badge></TableCell>
-                    <TableCell>{formatDate(a.tentative_date)}</TableCell>
-                    <TableCell>{a.section_unit ?? '—'}</TableCell>
-                    <TableCell>{a.duty_station ?? '—'}</TableCell>
-                    <TableCell><StatusBadge status={a.status} /></TableCell>
+                ) : contractBreaks.map(({ sep, apt }) => (
+                  <TableRow key={sep.id}>
+                    <TableCell className="font-medium">{sep.last_name}, {sep.first_name}</TableCell>
+                    <TableCell>{sep.grade ?? '—'}</TableCell>
+                    <TableCell>{sep.section_unit ?? '—'}</TableCell>
+                    <TableCell>{sep.duty_station ?? '—'}</TableCell>
+                    <TableCell>{formatDate(sep.tentative_date)}</TableCell>
+                    <TableCell>{apt ? formatDate(apt.tentative_date) : '—'}</TableCell>
+                    <TableCell><StatusBadge status={sep.status} /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
