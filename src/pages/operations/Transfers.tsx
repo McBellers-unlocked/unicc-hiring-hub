@@ -47,6 +47,9 @@ interface HrTransfer {
   new_duty_station: string | null;
   new_section_unit: string | null;
   new_supervisor: string | null;
+  new_job_title: string | null;
+  new_grade: string | null;
+  new_contract_type: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -338,7 +341,14 @@ const Transfers = () => {
                                     <h4 className="text-sm font-semibold">Changes</h4>
                                     <div className="flex flex-wrap gap-2 mb-2">
                                       {transfer.change_types.map(ct => {
-                                        const labels: Record<string, string> = { unit_division: 'Unit / Division', supervisor: 'Supervisor', duty_station: 'Duty Station' };
+                                        const labels: Record<string, string> = {
+                                          unit_division: 'Unit / Division',
+                                          supervisor: 'Supervisor',
+                                          duty_station: 'Duty Station',
+                                          job_title: 'Job Title',
+                                          grade: 'Grade',
+                                          contract_type: 'Contract Type',
+                                        };
                                         return <Badge key={ct} variant="secondary">{labels[ct] || ct} Change</Badge>;
                                       })}
                                     </div>
@@ -356,6 +366,21 @@ const Transfers = () => {
                                       {transfer.change_types.includes('duty_station') && transfer.new_duty_station && (
                                         <p className="flex items-center gap-1">
                                           <span className="text-muted-foreground">Duty Station:</span> {transfer.duty_station || '—'} <ArrowRight className="h-3 w-3 text-muted-foreground" /> <span className="font-medium">{transfer.new_duty_station}</span>
+                                        </p>
+                                      )}
+                                      {transfer.change_types.includes('job_title') && transfer.new_job_title && (
+                                        <p className="flex items-center gap-1">
+                                          <span className="text-muted-foreground">Job Title:</span> {transfer.job_title || '—'} <ArrowRight className="h-3 w-3 text-muted-foreground" /> <span className="font-medium">{transfer.new_job_title}</span>
+                                        </p>
+                                      )}
+                                      {transfer.change_types.includes('grade') && transfer.new_grade && (
+                                        <p className="flex items-center gap-1">
+                                          <span className="text-muted-foreground">Grade:</span> {transfer.grade || '—'} <ArrowRight className="h-3 w-3 text-muted-foreground" /> <span className="font-medium">{transfer.new_grade}</span>
+                                        </p>
+                                      )}
+                                      {transfer.change_types.includes('contract_type') && transfer.new_contract_type && (
+                                        <p className="flex items-center gap-1">
+                                          <span className="text-muted-foreground">Contract Type:</span> {transfer.contract_type || '—'} <ArrowRight className="h-3 w-3 text-muted-foreground" /> <span className="font-medium">{transfer.new_contract_type}</span>
                                         </p>
                                       )}
                                     </div>
