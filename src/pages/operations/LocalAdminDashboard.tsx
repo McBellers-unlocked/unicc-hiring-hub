@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,9 +20,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO } from 'date-fns';
-import { Building2, Search, ArrowRightLeft, LogOut, LogIn, RefreshCw } from 'lucide-react';
+import { Building2, Search, ArrowRightLeft, LogOut, LogIn, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface HrSeparation {
   id: string;
@@ -50,6 +51,9 @@ interface HrAppointment {
   duty_station: string | null;
   section_unit: string | null;
   linked_separation_id: string | null;
+  job_title: string | null;
+  contract_type: string | null;
+  supervisor: string | null;
 }
 
 interface HrTransfer {
@@ -105,6 +109,15 @@ const LocalAdminDashboard = () => {
     : null;
   const [dutyStation, setDutyStation] = useState<string>(lockedStation ?? 'all');
   const [search, setSearch] = useState('');
+  const [expandedArrivalIds, setExpandedArrivalIds] = useState<Set<string>>(new Set());
+
+  const toggleArrival = (id: string) =>
+    setExpandedArrivalIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
 
   const { data: separations = [], isLoading: loadingSep } = useQuery({
     queryKey: ['local-admin-separations'],
@@ -124,7 +137,7 @@ const LocalAdminDashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('hr_appointments')
-        .select('id, last_name, first_name, operation_type, status, tentative_date, effective_date, grade, duty_station, section_unit, linked_separation_id')
+        .select('id, last_name, first_name, operation_type, status, tentative_date, effective_date, grade, duty_station, section_unit, linked_separation_id, job_title, contract_type, supervisor')
         .neq('status', 'Completed')
         .order('tentative_date', { ascending: true });
       if (error) throw error;
@@ -313,28 +326,64 @@ const LocalAdminDashboard = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
+                  <TableHead>Last Name</TableHead>
+                  <TableHead>First Name</TableHead>
                   <TableHead>Grade</TableHead>
-                  <TableHead>Type</TableHead>
-                   <TableHead>Arrival Date</TableHead>
-                   <TableHead>Section / Unit</TableHead>
-                   <TableHead>Duty Station</TableHead>
-                   <TableHead>Status</TableHead>
-                 </TableRow>
-               </TableHeader>
-               <TableBody>
+                  <TableHead>Type of Contract</TableHead>
+                  <TableHead>Division / Unit</TableHead>
+                  <TableHead>Start Date</TableHead>
+                  <TableHead>End Date</TableHead>
+                  <TableHead>Duty Station</TableHead>
+                  <TableHead className="w-10" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {arrivals.length === 0 ? (
-                  <EmptyRow cols={7} />
+                  <EmptyRow cols={9} />
                 ) : arrivals.map(a => (
-                  <TableRow key={a.id}>
-                    <TableCell className="font-medium">{a.last_name}, {a.first_name}</TableCell>
-                    <TableCell>{a.grade ?? '—'}</TableCell>
-                    <TableCell><Badge variant="outline">{a.operation_type}</Badge></TableCell>
-                    <TableCell>{formatDate(a.tentative_date)}</TableCell>
-                    <TableCell>{a.section_unit ?? '—'}</TableCell>
-                    <TableCell>{a.duty_station ?? '—'}</TableCell>
-                    <TableCell><StatusBadge status={a.status} /></TableCell>
-                  </TableRow>
+                  <React.Fragment key={a.id}>
+                    <TableRow key={a.id} className="cursor-pointer" onClick={() => toggleArrival(a.id)}>
+                      <TableCell className="font-medium">{a.last_name}</TableCell>
+                      <TableCell>{a.first_name}</TableCell>
+                      <TableCell>{a.grade ?? '—'}</TableCell>
+                      <TableCell>
+                        {a.contract_type
+                          ? <Badge variant="outline">{a.contract_type}</Badge>
+                          : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell>{a.section_unit ?? '—'}</TableCell>
+                      <TableCell>{formatDate(a.tentative_date)}</TableCell>
+                      <TableCell className="text-muted-foreground">—</TableCell>
+                      <TableCell>{a.duty_station ?? '—'}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); toggleArrival(a.id); }}>
+                          {expandedArrivalIds.has(a.id)
+                            ? <ChevronDown className="h-4 w-4" />
+                            : <ChevronRight className="h-4 w-4" />}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    {expandedArrivalIds.has(a.id) && (
+                      <TableRow key={`${a.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
+                        <TableCell colSpan={9} className="py-3 px-6">
+                          <div className="grid grid-cols-3 gap-6 text-sm">
+                            <div>
+                              <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Job Title / Function</p>
+                              <p className="font-medium">{a.job_title ?? '—'}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Supervisor</p>
+                              <p className="font-medium">{a.supervisor ?? '—'}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Index Number</p>
+                              <p className="font-medium text-muted-foreground">—</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
                 ))}
               </TableBody>
             </Table>
