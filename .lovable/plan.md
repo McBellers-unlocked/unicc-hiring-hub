@@ -1,71 +1,119 @@
 
-## Departures Table: Expandable Row Design (matching Arrivals pattern)
+## Transfers Section: Redesigned for the Local Admin Dashboard
 
-### Goal
-Redesign the Departures section to mirror the Arrivals expandable row pattern: a compact summary row visible by default, with a chevron that reveals additional detail fields underneath.
+### The UX Challenge
+A transfer record can have multiple simultaneous changes (e.g., a person changes their duty station AND supervisor AND job title at the same time). The question is how to display this cleanly in a table designed for quick scanning by administrative assistants.
 
-### What's in the database
-All requested fields exist in `hr_separations`:
-- `last_name`, `first_name`, `grade`, `contract_type`, `section_unit`, `tentative_date`, `duty_station` — for the visible row
-- `job_title`, `supervisor` — for the expanded detail panel
+### Recommended UX Approach: "Change Pill Summary" in visible row + expanded "Before → After" panel
 
-### Visible row (default, always shown) — 8 columns + toggle
+The pattern that works best here mirrors a changelog or diff view — a compact visible row showing who and when, with small coloured pill badges indicating *which things changed*, then an expanded panel revealing the full "old value → new value" detail for each change.
 
-| Last Name | First Name | Grade | Type of Contract | Division / Unit | Departure Date | Duty Station | *(chevron)* |
+This avoids separate rows per change (which would make it hard to see one person's total situation at a glance) while clearly communicating everything needed for check-in / check-out actions.
+
+---
+
+### Visible Row (always shown) — 8 columns + toggle
+
+| Last Name | First Name | Duty Station | Start Date | End Date | Change Summary | Duty Station Alert | *(chevron)* |
 |---|---|---|---|---|---|---|---|
 
-### Expanded panel (hidden by default, shown on chevron click)
+- **Duty Station** — the *current* station (before any move)
+- **Change Summary** — a row of coloured pill badges: one per change type (e.g., `Duty Station`, `Supervisor`, `Job Title`). Duty station gets a distinct amber/orange colour since it requires action at both locations
+- **Duty Station Alert** — a visible warning icon/badge if `duty_station` is in `change_types`, noting both the origin and destination station directly in the row (e.g., "Valencia → Brindisi"). This is the IMPORTANT signal mentioned in the requirements
 
-| Job Title / Function | Supervisor |
-|---|---|
-| from `job_title` | from `supervisor` |
+### Expanded Panel (hidden by default, shown on chevron click)
 
-Two fields in the expanded panel (2-column grid), as there is no equivalent of "Index Number" or "End Date" for departures.
+A "Before → After" comparison grid, one row per change type that is active for this record:
 
-### Summary of changes — one file only: `src/pages/operations/LocalAdminDashboard.tsx`
-
-**1. Update the `HrSeparation` interface** — add three new optional fields:
-```ts
-job_title: string | null;
-contract_type: string | null;
-supervisor: string | null;
+```text
+┌────────────────────┬──────────────────────┬────────────────────────┐
+│ What Changed       │ Current Value        │ New Value              │
+├────────────────────┼──────────────────────┼────────────────────────┤
+│ Duty Station       │ Valencia             │ → Brindisi             │
+│ Supervisor         │ J. Smith             │ → M. Garcia            │
+│ Job Title          │ IT Officer           │ → Senior IT Officer    │
+│ Grade              │ P3                   │ → P4                   │
+│ Contract Type      │ Fixed Term           │ → Temporary            │
+│ Division / Unit    │ CSI                  │ → CSO                  │
+└────────────────────┴──────────────────────┴────────────────────────┘
 ```
 
-**2. Expand the Supabase `.select()` for separations** — add `job_title, contract_type, supervisor` to the existing select string.
+Only rows for active change types appear — if only duty station changed, only that row shows.
 
-**3. Add expanded-row state for departures** — same pattern as arrivals:
-```ts
-const [expandedDepartureIds, setExpandedDepartureIds] = useState<Set<string>>(new Set());
-const toggleDeparture = (id: string) =>
-  setExpandedDepartureIds(prev => {
-    const next = new Set(prev);
-    next.has(id) ? next.delete(id) : next.add(id);
-    return next;
-  });
+A special **Duty Station Action Notice** box appears at the top of the expanded panel when the duty station is changing, styled in amber:
+
+> ⚠️ Duty station change: Administrative assistants at both **Valencia** and **Brindisi** must coordinate check-out and check-in actions.
+
+---
+
+### What needs to change
+
+#### 1. Database — new columns in `hr_transfers`
+
+Three new columns to store the "new" values for job title, grade, and contract type changes:
+
+```sql
+ALTER TABLE hr_transfers ADD COLUMN new_job_title text;
+ALTER TABLE hr_transfers ADD COLUMN new_grade text;
+ALTER TABLE hr_transfers ADD COLUMN new_contract_type text;
 ```
 
-**4. Replace the Departures table** — new header (8 columns including toggle):
+The `change_types` array will be expanded to include three new values alongside the existing ones:
+- Existing: `unit_division`, `supervisor`, `duty_station`
+- New: `job_title`, `grade`, `contract_type`
 
-| # | Column |
+#### 2. TransferForm (`src/components/operations/TransferForm.tsx`)
+
+Add three new change type checkboxes and their conditional "new value" input fields:
+- `job_title` change → text input for `new_job_title`
+- `grade` change → grade dropdown for `new_grade`
+- `contract_type` change → contract type dropdown for `new_contract_type`
+
+Add these three fields to the Zod schema and form defaults.
+
+#### 3. LocalAdminDashboard (`src/pages/operations/LocalAdminDashboard.tsx`)
+
+**Update the `HrTransfer` interface** to add: `job_title`, `contract_type`, `supervisor`, `new_job_title`, `new_grade`, `new_contract_type`.
+
+**Update the Supabase `.select()`** to fetch these new fields.
+
+**Add expanded-row state** for transfers (same Set pattern as Arrivals and Departures).
+
+**Replace the current Transfers table** with the new design:
+
+Visible row (8 cols):
+1. Last Name
+2. First Name  
+3. Duty Station (current)
+4. Start Date
+5. End Date
+6. Change Summary (pill badges — duty station badge in amber if location is changing)
+7. Location Move (visible "Valencia → Brindisi" only if duty_station is in change_types, otherwise `—`)
+8. Chevron toggle
+
+Expanded panel (colSpan=8):
+- Amber warning box (if duty station is changing) naming both locations
+- "Before → After" comparison grid, one row per active change type
+- Each row: label | current value | arrow icon | new value
+
+#### 4. Transfers detail page (`src/pages/operations/Transfers.tsx`)
+
+Add the three new change type checkboxes to the existing "What is changing?" section in the expanded panel, and show the new values alongside the existing ones.
+
+---
+
+### Summary of files to change
+
+| File | What changes |
 |---|---|
-| 1 | Last Name |
-| 2 | First Name |
-| 3 | Grade |
-| 4 | Type of Contract |
-| 5 | Division / Unit |
-| 6 | Departure Date |
-| 7 | Duty Station |
-| 8 | *(chevron toggle — no label)* |
+| Database migration | Add `new_job_title`, `new_grade`, `new_contract_type` columns to `hr_transfers` |
+| `src/components/operations/TransferForm.tsx` | Add 3 new change type options + conditional "new value" fields |
+| `src/pages/operations/LocalAdminDashboard.tsx` | Redesign Transfers table with pill badges + expandable before→after panel |
+| `src/pages/operations/Transfers.tsx` | Show new change types in the expanded detail panel |
 
-Each departure renders as two `<TableRow>` elements wrapped in a `<React.Fragment>`:
-- **Row 1**: 7 data cells + ghost chevron button, clickable to expand
-- **Row 2**: conditionally visible `<TableCell colSpan={8}>` with a 2-column detail grid for Job Title and Supervisor
+### No changes needed to
+- Arrivals section
+- Departures section
+- Contract Breaks section
+- Auth / routing / RLS
 
-The expanded panel uses the same `bg-muted/30 hover:bg-muted/30` styling as the Arrivals section for visual consistency.
-
-**5. Update `EmptyRow` cols** for departures from `7` to `8`.
-
-### No other changes
-- No database schema changes required
-- Other sections (Arrivals, Transfers, Contract Breaks) unchanged
-- No routing, auth, or RLS changes
