@@ -41,6 +41,9 @@ const transferSchema = z.object({
   new_duty_station: z.string().optional().nullable().or(z.literal('')),
   new_section_unit: z.string().optional().nullable().or(z.literal('')),
   new_supervisor: z.string().optional().nullable().or(z.literal('')),
+  new_job_title: z.string().optional().nullable().or(z.literal('')),
+  new_grade: z.string().optional().nullable().or(z.literal('')),
+  new_contract_type: z.string().optional().nullable().or(z.literal('')),
 });
 
 export type TransferFormData = z.infer<typeof transferSchema> & {
@@ -62,6 +65,9 @@ const CHANGE_TYPE_OPTIONS = [
   { value: 'unit_division', label: 'Unit / Division Change' },
   { value: 'supervisor', label: 'Supervisor Change' },
   { value: 'duty_station', label: 'Duty Station Change' },
+  { value: 'job_title', label: 'Job Title Change' },
+  { value: 'grade', label: 'Grade Change' },
+  { value: 'contract_type', label: 'Contract Type Change' },
 ] as const;
 
 export const TransferForm = ({ open, onOpenChange, onSubmit, initialData, isLoading }: TransferFormProps) => {
@@ -79,6 +85,7 @@ export const TransferForm = ({ open, onOpenChange, onSubmit, initialData, isLoad
     contract_type: '', duty_station: '', section_unit: '',
     supervisor: '', main_hr_focal_point: '', comments: '',
     change_types: [] as string[], new_duty_station: '', new_section_unit: '', new_supervisor: '',
+    new_job_title: '', new_grade: '', new_contract_type: '',
   };
 
   const form = useForm<TransferFormData>({
@@ -159,6 +166,15 @@ export const TransferForm = ({ open, onOpenChange, onSubmit, initialData, isLoad
     if (!updated.includes('duty_station')) {
       form.setValue('new_duty_station', '');
     }
+    if (!updated.includes('job_title')) {
+      form.setValue('new_job_title', '');
+    }
+    if (!updated.includes('grade')) {
+      form.setValue('new_grade', '');
+    }
+    if (!updated.includes('contract_type')) {
+      form.setValue('new_contract_type', '');
+    }
   };
 
   const handleSubmit = async (data: TransferFormData) => {
@@ -168,6 +184,9 @@ export const TransferForm = ({ open, onOpenChange, onSubmit, initialData, isLoad
       data.new_duty_station = null;
       data.new_section_unit = null;
       data.new_supervisor = null;
+      data.new_job_title = null;
+      data.new_grade = null;
+      data.new_contract_type = null;
     }
     await onSubmit({ ...data, selectedUserId });
     form.reset();
@@ -390,6 +409,75 @@ export const TransferForm = ({ open, onOpenChange, onSubmit, initialData, isLoad
                         {form.getValues('duty_station') && (
                           <p className="text-xs text-muted-foreground flex items-center gap-1">
                             {form.getValues('duty_station')} <ArrowRight className="h-3 w-3" /> {form.getValues('new_duty_station') || '(not selected)'}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* New Job Title */}
+                    {changeTypes.includes('job_title') && (
+                      <div className="rounded-md border p-4 space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Badge variant="outline">Job Title Change</Badge>
+                        </div>
+                        <FormField control={form.control} name="new_job_title" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>New Job Title / Function</FormLabel>
+                            <FormControl><Input {...field} placeholder="Enter new job title" /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                        {form.getValues('job_title') && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            {form.getValues('job_title')} <ArrowRight className="h-3 w-3" /> {form.getValues('new_job_title') || '(not entered)'}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* New Grade */}
+                    {changeTypes.includes('grade') && (
+                      <div className="rounded-md border p-4 space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Badge variant="outline">Grade Change</Badge>
+                        </div>
+                        <FormField control={form.control} name="new_grade" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>New Grade</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                              <FormControl><SelectTrigger><SelectValue placeholder="Select new grade" /></SelectTrigger></FormControl>
+                              <SelectContent>{GRADES.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                        {form.getValues('grade') && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            {form.getValues('grade')} <ArrowRight className="h-3 w-3" /> {form.getValues('new_grade') || '(not selected)'}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* New Contract Type */}
+                    {changeTypes.includes('contract_type') && (
+                      <div className="rounded-md border p-4 space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Badge variant="outline">Contract Type Change</Badge>
+                        </div>
+                        <FormField control={form.control} name="new_contract_type" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>New Contract Type</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                              <FormControl><SelectTrigger><SelectValue placeholder="Select new contract type" /></SelectTrigger></FormControl>
+                              <SelectContent>{CONTRACT_TYPES.map(ct => <SelectItem key={ct} value={ct}>{ct}</SelectItem>)}</SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                        {form.getValues('contract_type') && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            {form.getValues('contract_type')} <ArrowRight className="h-3 w-3" /> {form.getValues('new_contract_type') || '(not selected)'}
                           </p>
                         )}
                       </div>

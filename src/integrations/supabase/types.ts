@@ -2292,7 +2292,10 @@ export type Database = {
           job_title: string | null
           last_name: string
           main_hr_focal_point: string | null
+          new_contract_type: string | null
           new_duty_station: string | null
+          new_grade: string | null
+          new_job_title: string | null
           new_section_unit: string | null
           new_supervisor: string | null
           operation_type: string
@@ -2318,7 +2321,10 @@ export type Database = {
           job_title?: string | null
           last_name: string
           main_hr_focal_point?: string | null
+          new_contract_type?: string | null
           new_duty_station?: string | null
+          new_grade?: string | null
+          new_job_title?: string | null
           new_section_unit?: string | null
           new_supervisor?: string | null
           operation_type: string
@@ -2344,7 +2350,10 @@ export type Database = {
           job_title?: string | null
           last_name?: string
           main_hr_focal_point?: string | null
+          new_contract_type?: string | null
           new_duty_station?: string | null
+          new_grade?: string | null
+          new_job_title?: string | null
           new_section_unit?: string | null
           new_supervisor?: string | null
           operation_type?: string

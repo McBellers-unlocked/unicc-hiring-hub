@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO } from 'date-fns';
-import { Building2, Search, ArrowRightLeft, LogOut, LogIn, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
+import { Building2, Search, ArrowRightLeft, LogOut, LogIn, RefreshCw, ChevronDown, ChevronRight, AlertTriangle, ArrowRight } from 'lucide-react';
 
 interface HrSeparation {
   id: string;
@@ -70,9 +70,15 @@ interface HrTransfer {
   grade: string | null;
   duty_station: string | null;
   section_unit: string | null;
+  job_title: string | null;
+  contract_type: string | null;
+  supervisor: string | null;
   new_duty_station: string | null;
   new_section_unit: string | null;
   new_supervisor: string | null;
+  new_job_title: string | null;
+  new_grade: string | null;
+  new_contract_type: string | null;
   change_types: string[] | null;
 }
 
@@ -114,6 +120,7 @@ const LocalAdminDashboard = () => {
   const [search, setSearch] = useState('');
   const [expandedArrivalIds, setExpandedArrivalIds] = useState<Set<string>>(new Set());
   const [expandedDepartureIds, setExpandedDepartureIds] = useState<Set<string>>(new Set());
+  const [expandedTransferIds, setExpandedTransferIds] = useState<Set<string>>(new Set());
 
   const toggleArrival = (id: string) =>
     setExpandedArrivalIds(prev => {
@@ -129,6 +136,12 @@ const LocalAdminDashboard = () => {
       return next;
     });
 
+  const toggleTransfer = (id: string) =>
+    setExpandedTransferIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
 
   const { data: separations = [], isLoading: loadingSep } = useQuery({
     queryKey: ['local-admin-separations'],
@@ -161,7 +174,7 @@ const LocalAdminDashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('hr_transfers')
-        .select('id, last_name, first_name, operation_type, status, start_date, end_date, grade, duty_station, section_unit, new_duty_station, new_section_unit, new_supervisor, change_types')
+        .select('id, last_name, first_name, operation_type, status, start_date, end_date, grade, duty_station, section_unit, job_title, contract_type, supervisor, new_duty_station, new_section_unit, new_supervisor, new_job_title, new_grade, new_contract_type, change_types')
         .neq('status', 'Completed')
         .order('start_date', { ascending: true });
       if (error) throw error;
@@ -471,14 +484,14 @@ const LocalAdminDashboard = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Grade</TableHead>
-                  <TableHead>Type</TableHead>
-                   <TableHead>Date</TableHead>
-                   <TableHead>Section / Unit</TableHead>
-                   <TableHead>From Station</TableHead>
-                   <TableHead>To Station</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Last Name</TableHead>
+                  <TableHead>First Name</TableHead>
+                  <TableHead>Duty Station</TableHead>
+                  <TableHead>Start Date</TableHead>
+                  <TableHead>End Date</TableHead>
+                  <TableHead>Changes</TableHead>
+                  <TableHead>Location Move</TableHead>
+                  <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -488,28 +501,127 @@ const LocalAdminDashboard = () => {
                   <>
                     {appointmentTransfers.map(a => (
                       <TableRow key={`apt-${a.id}`}>
-                        <TableCell className="font-medium">{a.last_name}, {a.first_name}</TableCell>
-                        <TableCell>{a.grade ?? '—'}</TableCell>
-                        <TableCell><Badge variant="outline">{a.operation_type}</Badge></TableCell>
-                        <TableCell>{formatDate(a.tentative_date)}</TableCell>
-                        <TableCell>{a.section_unit ?? '—'}</TableCell>
+                        <TableCell className="font-medium">{a.last_name}</TableCell>
+                        <TableCell>{a.first_name}</TableCell>
                         <TableCell>{a.duty_station ?? '—'}</TableCell>
-                        <TableCell>—</TableCell>
-                        <TableCell><StatusBadge status={a.status} /></TableCell>
+                        <TableCell>{formatDate(a.tentative_date)}</TableCell>
+                        <TableCell className="text-muted-foreground">—</TableCell>
+                        <TableCell><Badge variant="outline">{a.operation_type}</Badge></TableCell>
+                        <TableCell className="text-muted-foreground">—</TableCell>
+                        <TableCell />
                       </TableRow>
                     ))}
-                    {filteredHrTransfers.map(t => (
-                      <TableRow key={`tr-${t.id}`}>
-                        <TableCell className="font-medium">{t.last_name}, {t.first_name}</TableCell>
-                        <TableCell>{t.grade ?? '—'}</TableCell>
-                        <TableCell><Badge variant="outline">{t.operation_type}</Badge></TableCell>
-                        <TableCell>{formatDate(t.start_date)}</TableCell>
-                        <TableCell>{t.section_unit ?? '—'}</TableCell>
-                        <TableCell>{t.duty_station ?? '—'}</TableCell>
-                        <TableCell>{t.new_duty_station ?? '—'}</TableCell>
-                        <TableCell><StatusBadge status={t.status} /></TableCell>
-                      </TableRow>
-                    ))}
+                    {filteredHrTransfers.map(t => {
+                      const cts = t.change_types || [];
+                      const hasDutyChange = cts.includes('duty_station');
+                      const isExpanded = expandedTransferIds.has(t.id);
+
+                      const CHANGE_LABELS: Record<string, { label: string; color: string }> = {
+                        duty_station:  { label: 'Duty Station', color: 'bg-amber-100 text-amber-800 border-amber-300' },
+                        supervisor:    { label: 'Supervisor',   color: 'bg-blue-100 text-blue-800 border-blue-300' },
+                        unit_division: { label: 'Unit/Division', color: 'bg-purple-100 text-purple-800 border-purple-300' },
+                        job_title:     { label: 'Job Title',    color: 'bg-green-100 text-green-800 border-green-300' },
+                        grade:         { label: 'Grade',        color: 'bg-indigo-100 text-indigo-800 border-indigo-300' },
+                        contract_type: { label: 'Contract Type', color: 'bg-rose-100 text-rose-800 border-rose-300' },
+                      };
+
+                      const changeRows = [
+                        { key: 'duty_station',  label: 'Duty Station',   from: t.duty_station,   to: t.new_duty_station },
+                        { key: 'supervisor',    label: 'Supervisor',     from: t.supervisor,     to: t.new_supervisor },
+                        { key: 'unit_division', label: 'Unit / Division', from: t.section_unit,  to: t.new_section_unit },
+                        { key: 'job_title',     label: 'Job Title',      from: t.job_title,      to: t.new_job_title },
+                        { key: 'grade',         label: 'Grade',          from: t.grade,          to: t.new_grade },
+                        { key: 'contract_type', label: 'Contract Type',  from: t.contract_type,  to: t.new_contract_type },
+                      ].filter(r => cts.includes(r.key));
+
+                      return (
+                        <React.Fragment key={`tr-${t.id}`}>
+                          <TableRow className="cursor-pointer" onClick={() => toggleTransfer(t.id)}>
+                            <TableCell className="font-medium">{t.last_name}</TableCell>
+                            <TableCell>{t.first_name}</TableCell>
+                            <TableCell>{t.duty_station ?? '—'}</TableCell>
+                            <TableCell>{formatDate(t.start_date)}</TableCell>
+                            <TableCell>{formatDate(t.end_date)}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {cts.length === 0
+                                  ? <span className="text-muted-foreground text-sm">—</span>
+                                  : cts.map(ct => {
+                                    const cfg = CHANGE_LABELS[ct];
+                                    if (!cfg) return null;
+                                    return (
+                                      <span key={ct} className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.color}`}>
+                                        {cfg.label}
+                                      </span>
+                                    );
+                                  })
+                                }
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {hasDutyChange && t.new_duty_station ? (
+                                <span className="inline-flex items-center gap-1 text-sm font-medium text-amber-700">
+                                  <AlertTriangle className="h-3.5 w-3.5" />
+                                  {t.duty_station} <ArrowRight className="h-3 w-3" /> {t.new_duty_station}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); toggleTransfer(t.id); }}>
+                                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                          {isExpanded && (
+                            <TableRow key={`tr-${t.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
+                              <TableCell colSpan={8} className="py-4 px-6">
+                                {hasDutyChange && t.new_duty_station && (
+                                  <div className="mb-4 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                                    <span>
+                                      <strong>Duty station change:</strong> Administrative assistants at both{' '}
+                                      <strong>{t.duty_station}</strong> and <strong>{t.new_duty_station}</strong>{' '}
+                                      must coordinate check-out and check-in actions.
+                                    </span>
+                                  </div>
+                                )}
+                                {changeRows.length > 0 ? (
+                                  <div className="rounded-md border overflow-hidden text-sm">
+                                    <table className="w-full">
+                                      <thead>
+                                        <tr className="bg-muted/50">
+                                          <th className="text-left px-4 py-2 text-xs uppercase tracking-wide text-muted-foreground font-medium w-1/4">What Changed</th>
+                                          <th className="text-left px-4 py-2 text-xs uppercase tracking-wide text-muted-foreground font-medium w-5/12">Current Value</th>
+                                          <th className="text-left px-4 py-2 text-xs uppercase tracking-wide text-muted-foreground font-medium w-5/12">New Value</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {changeRows.map((row, i) => (
+                                          <tr key={row.key} className={i % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
+                                            <td className="px-4 py-2.5 font-medium text-muted-foreground">{row.label}</td>
+                                            <td className="px-4 py-2.5">{row.from ?? <span className="text-muted-foreground">—</span>}</td>
+                                            <td className="px-4 py-2.5">
+                                              <span className="inline-flex items-center gap-1.5">
+                                                <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                                                <span className="font-medium">{row.to ?? <span className="text-muted-foreground font-normal">—</span>}</span>
+                                              </span>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-muted-foreground">No specific changes recorded.</p>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
                   </>
                 )}
               </TableBody>
@@ -517,7 +629,6 @@ const LocalAdminDashboard = () => {
           </SectionCard>
         )}
 
-        {/* Contract Breaks */}
         {!isLoading && (
           <SectionCard title="Contract Breaks" icon={<RefreshCw className="h-5 w-5 text-orange-500" />} count={contractBreaks.length}>
             <Table>
