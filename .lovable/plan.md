@@ -1,99 +1,217 @@
 
-## Root Cause: RLS Policy Blocks Hiring Manager from Reading hr_appointments
+## HR Movement Email Notifications to Duty Station Admins
 
-### What's happening
+### What we're building
+When a new HR movement is **created** (Arrival, Departure, Transfer, or Contract Break) in the system, an automatic email notification goes to the admin inbox for the relevant duty station. The email follows the established UNICC template format (UNICC logo, dark navy header, blue button, clean layout) used by the assessment invite system.
 
-Sandra (`ruiz@unicc.org`) and Carolina (`requeni@unicc.org`) are stored in the `users` table with the role **`Hiring Manager`**. Their `Local Admin` role is a virtual, client-side-only role injected by `useAuth.tsx` based on their email — the database has no knowledge of it.
+### Duty station → recipient mapping
+| Duty Station | Recipient |
+|---|---|
+| Valencia | admin_vlc@unicc.org |
+| Geneva | admin_gva@unicc.org |
+| Brindisi | admin_bsi@unicc.org |
+| Rome | admin_ROM@unicc.org |
+| New York | admin_ny@unicc.org |
 
-The `hr_appointments` table has **one** RLS SELECT policy:
+### When notifications are sent — trigger points
 
-```
-"HR users can manage appointments"
-  USING (
-    EXISTS (SELECT 1 FROM users WHERE id = auth.uid()
-      AND role = ANY (ARRAY['Admin', 'HR Assistant', 'Chief of HR']))
-  )
-```
+All three pages that insert HR movement records will be updated to call the new edge function after a successful create. Updates and deletes do **not** trigger a notification (creation only — to avoid noise).
 
-`Hiring Manager` is not in that list, so Sandra and Carolina get **zero rows** from every Supabase query against `hr_appointments`. This is why Arrivals shows "No records found" — the table returns an empty array silently (RLS never throws an error, it just returns nothing).
-
-### Why transfers and departures work (partially)
-
-- `hr_transfers` → policy allows **any authenticated user** → works fine
-- `hr_separations` SELECT policy includes `Hiring Manager` → separations are visible (departures + CB separation side)
-- `hr_appointments` SELECT → **blocks Hiring Manager** → arrivals and the return leg of contract breaks are invisible
-
-### The Fix — Two database changes
-
-#### 1. Add a Local Admin SELECT policy to `hr_appointments`
-
-A new RLS policy that allows the specific local admin emails to read `hr_appointments` records scoped to their duty station. This uses a security-safe approach: look up the authenticated user's duty station from the `users` table and compare to the appointment's `duty_station`.
-
-However, since `Local Admin` is not a real DB role and these users are `Hiring Manager` in the DB, the cleanest, most secure approach is to add their emails to a **dedicated `local_admin_emails` helper** or simply extend the appointments SELECT policy to include `Hiring Manager`.
-
-**The simplest correct fix:** Add `'Hiring Manager'` to the existing `hr_appointments` SELECT policy (matching exactly what `hr_separations` already does). This gives Hiring Managers read-only access to appointments — they already have it for separations, so this is consistent.
-
-```sql
--- Drop the overly restrictive existing policy
-DROP POLICY "HR users can manage appointments" ON public.hr_appointments;
-
--- Re-create split policies: one for all CRUD (Admin/HR only), one for SELECT (broader)
-CREATE POLICY "HR staff can manage appointments"
-  ON public.hr_appointments
-  FOR ALL  -- INSERT, UPDATE, DELETE
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.users
-      WHERE id = auth.uid()
-        AND role = ANY (ARRAY['Admin'::user_role, 'HR Assistant'::user_role, 'Chief of HR'::user_role])
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.users
-      WHERE id = auth.uid()
-        AND role = ANY (ARRAY['Admin'::user_role, 'HR Assistant'::user_role, 'Chief of HR'::user_role])
-    )
-  );
-
-CREATE POLICY "HR and Hiring Managers can view appointments"
-  ON public.hr_appointments
-  FOR SELECT
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.users
-      WHERE id = auth.uid()
-        AND role = ANY (ARRAY[
-          'Admin'::user_role,
-          'HR Assistant'::user_role,
-          'Chief of HR'::user_role,
-          'Hiring Manager'::user_role,
-          'Director'::user_role
-        ])
-    )
-  );
-```
-
-This mirrors exactly the pattern already used by `hr_separations`, making the two tables consistent.
-
-#### 2. No code changes needed
-
-The `LocalAdminDashboard.tsx` filtering logic is correct — the `lockedStation` correctly maps `ruiz@unicc.org` → `'Valencia'` and the `matchesFilters` function correctly filters by duty station. Once the RLS policy is fixed, the data will flow through and Valencia arrivals will appear.
-
-### What Sandra and Carolina will see after the fix
-
-- **Arrivals**: All `hr_appointments` records where `duty_station = 'Valencia'` and `status != 'Completed'` — currently 2 records (GARCIA AMAYA and HERRERO CANTERO)
-- **Contract Breaks expanded panel**: The linked appointment return date (`apt.tentative_date`) will now resolve correctly instead of showing `—`
-- **Departures and Transfers**: Already working, no change
-
-### Summary
-
-| Table | Current SELECT access | After fix |
+| Record type | Source page | Created via |
 |---|---|---|
-| `hr_appointments` | Admin, HR Assistant, Chief of HR only | + Hiring Manager, Director |
-| `hr_separations` | Admin, HR Assistant, Chief of HR, Hiring Manager, Director | No change |
-| `hr_transfers` | Any authenticated user | No change |
+| Departure / Contract Break (separation side) | `src/pages/operations/Separations.tsx` | `createMutation.onSuccess` |
+| Arrival / Appointment (CB return) | `src/pages/operations/Appointments.tsx` | `createMutation.onSuccess` |
+| Transfer | `src/pages/operations/Transfers.tsx` | `createMutation.onSuccess` |
 
-**Only one file changes:** a database migration adding the new SELECT policy and splitting the existing `ALL` policy into separate SELECT and mutation policies.
+### Email content per event type
+
+The email body adapts based on the movement type. All emails share the same UNICC-branded HTML template structure (white body, UNICC logo top-centre, dark navy `#1a365d` heading, blue `#3182ce` info panel, clean footer).
+
+**Arrival:**
+- Subject: `New Arrival — [First Name] [Last Name] | [Duty Station]`
+- Body highlights: Name, Grade, Contract Type, Duty Station, Division/Unit, Supervisor, Tentative Start Date
+
+**Departure:**
+- Subject: `Departure Notification — [First Name] [Last Name] | [Duty Station]`
+- Body highlights: Name, Grade, Contract Type, Duty Station, Division/Unit, Supervisor, Last Day of Contract
+
+**Transfer:**
+- Subject: `Transfer / Reassignment — [First Name] [Last Name] | [Duty Station]`
+- Body highlights: Name, Grade, From/To Duty Station, From/To Division, Start Date
+
+**Contract Break (Secondment / Loan / Long-term Leave):**
+- Subject: `Contract Break — [First Name] [Last Name] | [Duty Station]`
+- Body highlights: Name, Break Type (event_type), Grade, Division/Unit, Supervisor, Break From date, Expected Return date
+
+For Contract Breaks specifically, the email is sent only once when the separation(CB) is created (since the appointment(CB) is auto-generated at the same time — no duplicate notification for the system-created appointment).
+
+### Technical implementation
+
+#### 1. New edge function: `supabase/functions/notify-local-admin/index.ts`
+
+A single multi-purpose edge function that accepts a payload and sends the appropriate email:
+
+```typescript
+interface NotifyLocalAdminRequest {
+  eventType: 'arrival' | 'departure' | 'transfer' | 'contract_break';
+  dutyStation: string;           // used to resolve recipient email
+  firstName: string;
+  lastName: string;
+  grade?: string;
+  contractType?: string;
+  jobTitle?: string;
+  divisionUnit?: string;
+  supervisor?: string;
+  tentativeDate?: string;        // for arrivals and departures
+  startDate?: string;            // for transfers
+  endDate?: string;              // for transfers
+  newDutyStation?: string;       // for transfers
+  newDivisionUnit?: string;      // for transfers
+  breakType?: string;            // for contract breaks (event_type)
+  returnDate?: string;           // for contract breaks
+}
+```
+
+The function:
+1. Maps `dutyStation` → admin email using the hardcoded map (same as the client-side `LOCAL_ADMIN_STATION_MAP`)
+2. If no matching duty station, logs and returns 200 without sending (no unknown recipients)
+3. Builds the appropriate HTML email from a shared UNICC-branded template
+4. Sends via Resend using `recruitment@unicconnect.org` as the sender (consistent with all other notifications)
+5. Uses the same logo URL as the assessment invite: `https://staging.unicconnect.org/email-assets/unicc_logo.jpg`
+
+**Duty station → email map (inside the edge function):**
+```typescript
+const STATION_ADMIN_EMAILS: Record<string, string> = {
+  'Valencia': 'admin_vlc@unicc.org',
+  'Geneva': 'admin_gva@unicc.org',
+  'Brindisi': 'admin_bsi@unicc.org',
+  'Rome': 'admin_ROM@unicc.org',
+  'New York': 'admin_ny@unicc.org',
+};
+```
+
+#### 2. `supabase/config.toml` — add entry
+
+```toml
+[functions.notify-local-admin]
+verify_jwt = false
+```
+
+#### 3. `src/pages/operations/Separations.tsx` — call after creation
+
+In `createMutation.onSuccess`, after `queryClient.invalidateQueries`, fire the edge function. For CB type, the `returnDate` from the result is included. The call is fire-and-forget (non-blocking, failure doesn't affect the user flow).
+
+```typescript
+// Fire-and-forget notification
+supabase.functions.invoke('notify-local-admin', {
+  body: {
+    eventType: result.isCB ? 'contract_break' : 'departure',
+    dutyStation: data.duty_station,
+    firstName: data.first_name,
+    lastName: data.last_name,
+    grade: data.grade,
+    contractType: data.contract_type,
+    jobTitle: data.job_title,
+    divisionUnit: data.section_unit,
+    supervisor: data.supervisor,
+    tentativeDate: data.tentative_date,
+    breakType: data.event_type,          // for CB only
+    returnDate: result.returnDate,        // for CB only
+  }
+});
+```
+
+#### 4. `src/pages/operations/Appointments.tsx` — call after creation
+
+In `createMutation.onSuccess`. However, the auto-created `Appointment (CB)` from `Separations.tsx` is NOT a manual creation — so in `Appointments.tsx`, we only need to notify for manually created appointments (i.e. records with `operation_type` of `'Appointment'` or `'Direct Appointment'`, not `'Appointment (CB)'`). The CB notification already covers both sides.
+
+```typescript
+// Only notify for non-CB appointment types
+if (data.operation_type !== 'Appointment (CB)') {
+  supabase.functions.invoke('notify-local-admin', {
+    body: {
+      eventType: 'arrival',
+      dutyStation: data.duty_station,
+      firstName: data.first_name,
+      lastName: data.last_name,
+      grade: data.grade,
+      contractType: data.contract_type,
+      jobTitle: data.job_title,
+      divisionUnit: data.section_unit,
+      supervisor: data.supervisor,
+      tentativeDate: data.tentative_date,
+    }
+  });
+}
+```
+
+#### 5. `src/pages/operations/Transfers.tsx` — call after creation
+
+```typescript
+supabase.functions.invoke('notify-local-admin', {
+  body: {
+    eventType: 'transfer',
+    dutyStation: data.duty_station,
+    firstName: data.first_name,
+    lastName: data.last_name,
+    grade: data.grade,
+    contractType: data.contract_type,
+    jobTitle: data.job_title,
+    divisionUnit: data.section_unit,
+    supervisor: data.supervisor,
+    startDate: data.start_date,
+    endDate: data.end_date,
+    newDutyStation: data.new_duty_station,
+    newDivisionUnit: data.new_section_unit,
+  }
+});
+```
+
+### Email template format (matching assessment invite style)
+
+```
+[UNICC Logo — centred]
+
+HR Movement Notification — [Duty Station]
+
+Dear [Duty Station] Admin Team,
+
+A new [Arrival / Departure / Transfer / Contract Break] has been recorded in the UNICC HR System.
+
+┌─────────────────────────────────────────────┐
+│  [Event Type Icon] [First Name] [Last Name] │
+│  Grade: P3 | Contract: Fixed Term           │
+│  Division/Unit: DDC                         │
+│  Supervisor: John Smith                     │
+│  [Date label]: 01 Apr 2026                  │
+└─────────────────────────────────────────────┘
+
+[For Contract Break only — amber notice box:]
+⚠ Break Period: 01 Apr 2026 → 01 May 2026
+  Break Type: Secondment
+
+[View in System →]   (links to /operations/admin)
+
+Best regards,
+UNICC Human Resources
+```
+
+The "View in System" button links to `https://staging.unicconnect.org/operations/admin` — the Local Admin Dashboard where the notification recipient can view the record.
+
+### Files to change
+
+| File | Change |
+|---|---|
+| `supabase/functions/notify-local-admin/index.ts` | **NEW** — multi-type notification edge function |
+| `supabase/config.toml` | Add `[functions.notify-local-admin]` with `verify_jwt = false` |
+| `src/pages/operations/Separations.tsx` | Fire notification in `createMutation.onSuccess` |
+| `src/pages/operations/Appointments.tsx` | Fire notification in `createMutation.onSuccess` (skip CB type) |
+| `src/pages/operations/Transfers.tsx` | Fire notification in `createMutation.onSuccess` |
+
+### No database changes required
+All required data fields already exist. The `RESEND_API_KEY` secret is already configured in the project (used by all other notification functions).
+
+### Error handling
+- If the duty station has no admin email mapping → log and skip silently (no error thrown)
+- If Resend fails → log the error server-side, return a non-200, but the client-side call is fire-and-forget so the user's form save is unaffected
+- Unknown `eventType` values → log and return 400
