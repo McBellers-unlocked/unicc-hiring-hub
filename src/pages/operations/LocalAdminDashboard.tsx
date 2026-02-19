@@ -37,6 +37,9 @@ interface HrSeparation {
   duty_station: string | null;
   section_unit: string | null;
   linked_appointment_id: string | null;
+  job_title: string | null;
+  contract_type: string | null;
+  supervisor: string | null;
 }
 
 interface HrAppointment {
@@ -110,9 +113,17 @@ const LocalAdminDashboard = () => {
   const [dutyStation, setDutyStation] = useState<string>(lockedStation ?? 'all');
   const [search, setSearch] = useState('');
   const [expandedArrivalIds, setExpandedArrivalIds] = useState<Set<string>>(new Set());
+  const [expandedDepartureIds, setExpandedDepartureIds] = useState<Set<string>>(new Set());
 
   const toggleArrival = (id: string) =>
     setExpandedArrivalIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const toggleDeparture = (id: string) =>
+    setExpandedDepartureIds(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
@@ -124,7 +135,7 @@ const LocalAdminDashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('hr_separations')
-        .select('id, last_name, first_name, operation_type, status, tentative_date, effective_date, grade, duty_station, section_unit, linked_appointment_id')
+        .select('id, last_name, first_name, operation_type, status, tentative_date, effective_date, grade, duty_station, section_unit, linked_appointment_id, job_title, contract_type, supervisor')
         .neq('status', 'Completed')
         .order('tentative_date', { ascending: true });
       if (error) throw error;
@@ -396,28 +407,58 @@ const LocalAdminDashboard = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
+                  <TableHead>Last Name</TableHead>
+                  <TableHead>First Name</TableHead>
                   <TableHead>Grade</TableHead>
-                  <TableHead>Type</TableHead>
-                   <TableHead>Departure Date</TableHead>
-                   <TableHead>Section / Unit</TableHead>
-                   <TableHead>Duty Station</TableHead>
-                   <TableHead>Status</TableHead>
-                 </TableRow>
-               </TableHeader>
-               <TableBody>
+                  <TableHead>Type of Contract</TableHead>
+                  <TableHead>Division / Unit</TableHead>
+                  <TableHead>Departure Date</TableHead>
+                  <TableHead>Duty Station</TableHead>
+                  <TableHead className="w-10" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {departures.length === 0 ? (
-                  <EmptyRow cols={7} />
+                  <EmptyRow cols={8} />
                 ) : departures.map(s => (
-                  <TableRow key={s.id}>
-                    <TableCell className="font-medium">{s.last_name}, {s.first_name}</TableCell>
-                    <TableCell>{s.grade ?? '—'}</TableCell>
-                    <TableCell><Badge variant="outline">{s.operation_type}</Badge></TableCell>
-                    <TableCell>{formatDate(s.tentative_date)}</TableCell>
-                    <TableCell>{s.section_unit ?? '—'}</TableCell>
-                    <TableCell>{s.duty_station ?? '—'}</TableCell>
-                    <TableCell><StatusBadge status={s.status} /></TableCell>
-                  </TableRow>
+                  <React.Fragment key={s.id}>
+                    <TableRow className="cursor-pointer" onClick={() => toggleDeparture(s.id)}>
+                      <TableCell className="font-medium">{s.last_name}</TableCell>
+                      <TableCell>{s.first_name}</TableCell>
+                      <TableCell>{s.grade ?? '—'}</TableCell>
+                      <TableCell>
+                        {s.contract_type
+                          ? <Badge variant="outline">{s.contract_type}</Badge>
+                          : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell>{s.section_unit ?? '—'}</TableCell>
+                      <TableCell>{formatDate(s.tentative_date)}</TableCell>
+                      <TableCell>{s.duty_station ?? '—'}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); toggleDeparture(s.id); }}>
+                          {expandedDepartureIds.has(s.id)
+                            ? <ChevronDown className="h-4 w-4" />
+                            : <ChevronRight className="h-4 w-4" />}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    {expandedDepartureIds.has(s.id) && (
+                      <TableRow key={`${s.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
+                        <TableCell colSpan={8} className="py-3 px-6">
+                          <div className="grid grid-cols-2 gap-6 text-sm">
+                            <div>
+                              <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Job Title / Function</p>
+                              <p className="font-medium">{s.job_title ?? '—'}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Supervisor</p>
+                              <p className="font-medium">{s.supervisor ?? '—'}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
                 ))}
               </TableBody>
             </Table>
