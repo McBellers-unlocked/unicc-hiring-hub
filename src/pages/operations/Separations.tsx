@@ -222,11 +222,29 @@ const Separations = () => {
 
       return { separation, isCB: false };
     },
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['hr-separations'] });
       queryClient.invalidateQueries({ queryKey: ['hr-appointments'] });
       setFormOpen(false);
-      
+
+      // Fire-and-forget notification to duty station admin
+      supabase.functions.invoke('notify-local-admin', {
+        body: {
+          eventType: result.isCB ? 'contract_break' : 'departure',
+          dutyStation: variables.duty_station || '',
+          firstName: variables.first_name,
+          lastName: variables.last_name,
+          grade: variables.grade || undefined,
+          contractType: variables.contract_type || undefined,
+          jobTitle: variables.job_title || undefined,
+          divisionUnit: variables.section_unit || undefined,
+          supervisor: variables.supervisor || undefined,
+          tentativeDate: variables.tentative_date || undefined,
+          breakType: result.isCB ? (variables.event_type || undefined) : undefined,
+          returnDate: result.isCB ? (result.returnDate || undefined) : undefined,
+        },
+      }).catch((err) => console.warn('notify-local-admin failed (non-blocking):', err));
+
       if (result.isCB && result.returnDate) {
         toast.success(
           `Separation created. Appointment (CB) for return scheduled for ${format(parseISO(result.returnDate), 'dd MMM yyyy')}.`,

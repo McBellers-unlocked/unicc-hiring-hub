@@ -111,7 +111,30 @@ const Transfers = () => {
       });
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['hr-transfers'] }); setFormOpen(false); toast.success('Transfer created'); },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['hr-transfers'] });
+      setFormOpen(false);
+      toast.success('Transfer created');
+
+      // Fire-and-forget notification to duty station admin
+      supabase.functions.invoke('notify-local-admin', {
+        body: {
+          eventType: 'transfer',
+          dutyStation: variables.duty_station || '',
+          firstName: variables.first_name,
+          lastName: variables.last_name,
+          grade: variables.grade || undefined,
+          contractType: variables.contract_type || undefined,
+          jobTitle: variables.job_title || undefined,
+          divisionUnit: variables.section_unit || undefined,
+          supervisor: variables.supervisor || undefined,
+          startDate: variables.start_date || undefined,
+          endDate: variables.end_date || undefined,
+          newDutyStation: variables.new_duty_station || undefined,
+          newDivisionUnit: variables.new_section_unit || undefined,
+        },
+      }).catch((err) => console.warn('notify-local-admin failed (non-blocking):', err));
+    },
     onError: (error) => { toast.error('Failed: ' + error.message); },
   });
 

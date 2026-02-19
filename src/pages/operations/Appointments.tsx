@@ -163,10 +163,28 @@ const Appointments = () => {
       
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['hr-appointments'] });
       setFormOpen(false);
       toast.success('Appointment created successfully');
+
+      // Fire-and-forget notification — skip auto-created CB appointments (already notified from Separations)
+      if (variables.operation_type !== 'Appointment (CB)') {
+        supabase.functions.invoke('notify-local-admin', {
+          body: {
+            eventType: 'arrival',
+            dutyStation: variables.duty_station || '',
+            firstName: variables.first_name,
+            lastName: variables.last_name,
+            grade: variables.grade || undefined,
+            contractType: variables.contract_type || undefined,
+            jobTitle: variables.job_title || undefined,
+            divisionUnit: variables.section_unit || undefined,
+            supervisor: variables.supervisor || undefined,
+            tentativeDate: variables.tentative_date || undefined,
+          },
+        }).catch((err) => console.warn('notify-local-admin failed (non-blocking):', err));
+      }
     },
     onError: (error) => {
       toast.error('Failed to create appointment: ' + error.message);
