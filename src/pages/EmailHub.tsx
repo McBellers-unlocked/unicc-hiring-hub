@@ -45,6 +45,9 @@ const EmailHub = () => {
   const [offerPositionTitle, setOfferPositionTitle] = useState('');
   const [offerVacancyNumber, setOfferVacancyNumber] = useState('');
   const [offerDeadline, setOfferDeadline] = useState<Date | null>(null);
+  const [offerStartDate, setOfferStartDate] = useState<Date | null>(null);
+  const [offerCurrency, setOfferCurrency] = useState('');
+  const [offerRate, setOfferRate] = useState('');
   const [offerSubject, setOfferSubject] = useState('');
   const [offerBody, setOfferBody] = useState('');
 
@@ -66,6 +69,9 @@ const EmailHub = () => {
     setOfferPositionTitle('');
     setOfferVacancyNumber('');
     setOfferDeadline(null);
+    setOfferStartDate(null);
+    setOfferCurrency('');
+    setOfferRate('');
     setOfferSubject('');
     setOfferBody('');
     setOfferSending(false);
@@ -118,12 +124,13 @@ const EmailHub = () => {
   };
 
   // Offer Acceptance helpers
-  const offerStep1Valid = offerToEmail.trim() !== '' && offerCandidateName.trim() !== '' && offerPositionTitle.trim() !== '' && offerVacancyNumber.trim() !== '' && offerDeadline !== null;
+  const offerStep1Valid = offerToEmail.trim() !== '' && offerCandidateName.trim() !== '' && offerPositionTitle.trim() !== '' && offerVacancyNumber.trim() !== '' && offerDeadline !== null && offerStartDate !== null && offerCurrency.trim() !== '' && offerRate.trim() !== '';
 
   const goToOfferStep2 = () => {
     const formattedDeadline = offerDeadline ? format(offerDeadline, 'dd/MM/yyyy') : '';
+    const formattedStartDate = offerStartDate ? format(offerStartDate, 'dd/MM/yyyy') : '';
     setOfferSubject(`UNICC Individual Consultancy - ${offerVacancyNumber} - ${offerPositionTitle} - ${offerCandidateName}`);
-    setOfferBody(`Dear ${offerCandidateName},\n\nWe are pleased to inform you that you have been selected for the consultancy position of ${offerPositionTitle} at UNICC.\n\nKindly confirm whether you accept this offer by ${formattedDeadline}.\n\nIf you have any questions or require additional information, please do not hesitate to reach out.\n\nBest regards,\nUNICC Human Resources`);
+    setOfferBody(`Dear ${offerCandidateName},\n\nI am pleased to inform you that you have been selected for the individual consultancy position of ${offerPositionTitle} with UNICC. Congratulations! 😊\n\nPlease note that in the following days you will receive two emails containing necessary actions from your side:\n\n- OneHR verification process and details\n- WHO forms and Non-Disclosure Agreement to complete\n\nWe will work towards onboarding you on ${formattedStartDate}. As discussed with your manager, your daily rate will be ${offerCurrency} ${offerRate}. Please note that, before the date, you will need to ensure your eligibility as per:\n\n- Being a citizen or having the right to work on your place of residence\n- Engaging with UNICC on a freelancer modality. This includes performing any relevant declarations towards the country you reside on. Please note that any possible taxes or contributions tied to the freelancer process are the responsibility of the Individual Consultant\n- Providing us with the documentation related to OneHR verification process and WHO required documentation. Both will be shortly shared with you in separate emails.\n\nKindly confirm whether you accept this offer by ${formattedDeadline}.\n\nShould you have any questions on the process, feel free to contact me.\n\nBest regards,`);
     setOfferWizardStep(2);
   };
 
@@ -299,6 +306,18 @@ const EmailHub = () => {
                 <div className="space-y-2">
                   <Label htmlFor="offerPositionTitle">Position Title</Label>
                   <Input id="offerPositionTitle" placeholder="e.g. IT Consultant" value={offerPositionTitle} onChange={(e) => setOfferPositionTitle(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <CustomDatePicker selected={offerStartDate} onChange={setOfferStartDate} placeholderText="Pick a start date" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="offerCurrency">Currency</Label>
+                  <Input id="offerCurrency" placeholder="e.g. USD" value={offerCurrency} onChange={(e) => setOfferCurrency(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="offerRate">Daily Rate</Label>
+                  <Input id="offerRate" placeholder="e.g. 500" value={offerRate} onChange={(e) => setOfferRate(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label>Response Deadline</Label>
