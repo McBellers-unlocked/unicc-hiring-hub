@@ -53,6 +53,16 @@ const EmailHub = () => {
     'WHO_MedicalCertificateFitnessforWork_Version1_20160224.docx',
   ];
 
+  // Contract email for signature wizard state
+  const [contractDialogOpen, setContractDialogOpen] = useState(false);
+  const [contractWizardStep, setContractWizardStep] = useState<1 | 2 | 3>(1);
+  const [contractSending, setContractSending] = useState(false);
+  const [contractToEmail, setContractToEmail] = useState('');
+  const [contractCandidateName, setContractCandidateName] = useState('');
+  const [contractReturnByDate, setContractReturnByDate] = useState<Date | null>(null);
+  const [contractSubject, setContractSubject] = useState('');
+  const [contractBody, setContractBody] = useState('');
+
   // Offer Acceptance wizard state
   const [offerDialogOpen, setOfferDialogOpen] = useState(false);
   const [offerWizardStep, setOfferWizardStep] = useState<1 | 2 | 3>(1);
@@ -89,6 +99,16 @@ const EmailHub = () => {
     setDocExtraAttachments([]);
   };
 
+  const resetContractWizard = () => {
+    setContractWizardStep(1);
+    setContractToEmail('');
+    setContractCandidateName('');
+    setContractReturnByDate(null);
+    setContractSubject('');
+    setContractBody('');
+    setContractSending(false);
+  };
+
   const resetOfferWizard = () => {
     setOfferWizardStep(1);
     setOfferToEmail('');
@@ -114,6 +134,9 @@ const EmailHub = () => {
     } else if (label === 'General documentation to IC') {
       resetDocWizard();
       setDocDialogOpen(true);
+    } else if (label === 'Contract email for signature') {
+      resetContractWizard();
+      setContractDialogOpen(true);
     } else {
       toast({ title: 'Coming soon', description: `Draft email for "${label}" is not yet implemented.` });
     }
@@ -218,6 +241,40 @@ const EmailHub = () => {
       toast({ title: 'Error', description: err.message || 'Failed to send email.', variant: 'destructive' });
     } finally {
       setDocSending(false);
+    }
+  };
+
+  // Contract email for signature helpers
+  const contractStep1Valid = contractToEmail.trim() !== '' && contractCandidateName.trim() !== '' && contractReturnByDate !== null;
+
+  const goToContractStep2 = () => {
+    const formattedDate = contractReturnByDate ? format(contractReturnByDate, 'd MMMM yyyy') : '';
+    setContractSubject(`UNICC Individual consultancy contract - ${contractCandidateName}`);
+    setContractBody(`Dear ${contractCandidateName},\n\nPlease find attached your UNICC Individual consultancy contract. Kindly review, sign and return the contract by ${formattedDate}.\n\nBest regards,`);
+    setContractWizardStep(2);
+  };
+
+  const handleContractSend = async () => {
+    setContractSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-bulk-talent-email', {
+        body: {
+          recipients: [{ name: contractCandidateName, email: contractToEmail }],
+          subject: contractSubject,
+          body: contractBody,
+        },
+      });
+      if (error) throw error;
+      if (data?.failureCount > 0) {
+        toast({ title: 'Partial failure', description: data.errors?.join(', ') || 'Some emails failed to send.', variant: 'destructive' });
+      } else {
+        toast({ title: 'Email sent', description: `Contract email sent to ${contractToEmail}.` });
+      }
+      setContractDialogOpen(false);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Failed to send email.', variant: 'destructive' });
+    } finally {
+      setContractSending(false);
     }
   };
 
@@ -562,6 +619,72 @@ const EmailHub = () => {
             {offerWizardStep === 3 && (
               <Button disabled={offerSending} onClick={handleOfferSend}>
                 <Send className="h-4 w-4 mr-1" /> {offerSending ? 'Sending…' : 'Send'}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Contract Email for Signature Dialog */}
+      <Dialog open={contractDialogOpen} onOpenChange={(open) => { if (!open) setContractDialogOpen(false); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {contractWizardStep === 1 && 'Contract Email — Fill Details'}
+              {contractWizardStep === 2 && 'Contract Email — Email Preview'}
+              {contractWizardStep === 3 && 'Contract Email — Summary'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-[60vh] space-y-4 py-2">
+            {contractWizardStep === 1 && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="contractToEmail">To (email)</Label>
+                  <Input id="contractToEmail" type="email" placeholder="recipient@example.com" value={contractToEmail} onChange={(e) => setContractToEmail(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contractCandidateName">Name and Surname</Label>
+                  <Input id="contractCandidateName" placeholder="Jane Doe" value={contractCandidateName} onChange={(e) => setContractCandidateName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Return by Date</Label>
+                  <CustomDatePicker selected={contractReturnByDate} onChange={setContractReturnByDate} placeholderText="Pick a return-by date" />
+                </div>
+              </>
+            )}
+            {contractWizardStep === 2 && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="contractSubject">Subject</Label>
+                  <Input id="contractSubject" value={contractSubject} onChange={(e) => setContractSubject(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contractBody">Body</Label>
+                  <Textarea id="contractBody" rows={8} value={contractBody} onChange={(e) => setContractBody(e.target.value)} />
+                </div>
+              </>
+            )}
+            {contractWizardStep === 3 && (
+              <div className="space-y-3 text-sm">
+                <div><span className="font-medium text-muted-foreground">To:</span><p>{contractToEmail}</p></div>
+                <div><span className="font-medium text-muted-foreground">Subject:</span><p>{contractSubject}</p></div>
+                <div><span className="font-medium text-muted-foreground">Body:</span><p className="whitespace-pre-wrap">{contractBody}</p></div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            {contractWizardStep > 1 && (
+              <Button variant="outline" onClick={() => setContractWizardStep((s) => (s - 1) as 1 | 2)}>
+                <ArrowLeft className="h-4 w-4 mr-1" /> Back
+              </Button>
+            )}
+            {contractWizardStep < 3 && (
+              <Button disabled={contractWizardStep === 1 && !contractStep1Valid} onClick={() => contractWizardStep === 1 ? goToContractStep2() : setContractWizardStep(3)}>
+                Next <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            )}
+            {contractWizardStep === 3 && (
+              <Button disabled={contractSending} onClick={handleContractSend}>
+                <Send className="h-4 w-4 mr-1" /> {contractSending ? 'Sending…' : 'Send'}
               </Button>
             )}
           </DialogFooter>
