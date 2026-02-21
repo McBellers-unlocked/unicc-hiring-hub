@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
+import { decode as base64Decode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -15,24 +16,33 @@ interface Recipient {
   position?: string;
 }
 
+interface AttachmentPayload {
+  filename: string;
+  content: string; // base64-encoded
+  contentType?: string;
+}
+
 interface BulkEmailRequest {
   recipients: Recipient[];
   subject: string;
   body: string;
   cc?: string[];
+  attachments?: AttachmentPayload[];
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { recipients, subject, body, cc }: BulkEmailRequest = await req.json();
+    const { recipients, subject, body, cc, attachments }: BulkEmailRequest = await req.json();
 
     console.log(`Sending bulk email to ${recipients.length} recipients`);
     console.log(`Subject: ${subject}`);
+    if (attachments?.length) {
+      console.log(`Attachments: ${attachments.length} files`);
+    }
 
     if (!recipients || recipients.length === 0) {
       throw new Error("No recipients provided");
@@ -42,14 +52,18 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Subject and body are required");
     }
 
+    // Decode base64 attachments into Uint8Array for Resend
+    const decodedAttachments = attachments?.map((att) => ({
+      filename: att.filename,
+      content: base64Decode(att.content),
+    }));
+
     let successCount = 0;
     let failureCount = 0;
     const errors: string[] = [];
 
-    // Send emails one by one with personalization
     for (const recipient of recipients) {
       try {
-        // Replace placeholders
         const personalizedBody = body
           .replace(/\{\{name\}\}/g, recipient.name || "there")
           .replace(/\{\{position\}\}/g, recipient.position || "Staff Member");
@@ -68,6 +82,7 @@ const handler = async (req: Request): Promise<Response> => {
           ...(cc && cc.length > 0 ? { cc } : {}),
           subject: subject,
           html: personalizedHtml,
+          ...(decodedAttachments && decodedAttachments.length > 0 ? { attachments: decodedAttachments } : {}),
         });
 
         if (emailResponse.error) {
