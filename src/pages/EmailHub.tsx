@@ -18,21 +18,34 @@ const affiliateEmails = [
   'One HR conformity',
 ];
 
+const staffEmails = [
+  'Offer Acceptance',
+];
+
 const EmailHub = () => {
   const { toast } = useToast();
 
-  // Wizard state
+  // Rate Confirmation wizard state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
   const [sending, setSending] = useState(false);
-
-  // Form fields
   const [toEmail, setToEmail] = useState('');
   const [candidateName, setCandidateName] = useState('');
   const [rate, setRate] = useState('');
   const [date, setDate] = useState<Date | null>(null);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
+
+  // Offer Acceptance wizard state
+  const [offerDialogOpen, setOfferDialogOpen] = useState(false);
+  const [offerWizardStep, setOfferWizardStep] = useState<1 | 2 | 3>(1);
+  const [offerSending, setOfferSending] = useState(false);
+  const [offerToEmail, setOfferToEmail] = useState('');
+  const [offerCandidateName, setOfferCandidateName] = useState('');
+  const [offerPositionTitle, setOfferPositionTitle] = useState('');
+  const [offerDeadline, setOfferDeadline] = useState<Date | null>(null);
+  const [offerSubject, setOfferSubject] = useState('');
+  const [offerBody, setOfferBody] = useState('');
 
   const resetWizard = () => {
     setWizardStep(1);
@@ -45,15 +58,30 @@ const EmailHub = () => {
     setSending(false);
   };
 
+  const resetOfferWizard = () => {
+    setOfferWizardStep(1);
+    setOfferToEmail('');
+    setOfferCandidateName('');
+    setOfferPositionTitle('');
+    setOfferDeadline(null);
+    setOfferSubject('');
+    setOfferBody('');
+    setOfferSending(false);
+  };
+
   const handleDraftEmail = (label: string) => {
     if (label === 'Rate confirmation to IC') {
       resetWizard();
       setDialogOpen(true);
+    } else if (label === 'Offer Acceptance') {
+      resetOfferWizard();
+      setOfferDialogOpen(true);
     } else {
       toast({ title: 'Coming soon', description: `Draft email for "${label}" is not yet implemented.` });
     }
   };
 
+  // Rate Confirmation helpers
   const step1Valid = toEmail.trim() !== '' && candidateName.trim() !== '' && rate.trim() !== '' && date !== null;
 
   const goToStep2 = () => {
@@ -87,6 +115,40 @@ const EmailHub = () => {
     }
   };
 
+  // Offer Acceptance helpers
+  const offerStep1Valid = offerToEmail.trim() !== '' && offerCandidateName.trim() !== '' && offerPositionTitle.trim() !== '' && offerDeadline !== null;
+
+  const goToOfferStep2 = () => {
+    const formattedDeadline = offerDeadline ? format(offerDeadline, 'dd/MM/yyyy') : '';
+    setOfferSubject(`Offer Acceptance — ${offerPositionTitle} | ${offerCandidateName}`);
+    setOfferBody(`Dear ${offerCandidateName},\n\nWe are pleased to inform you that you have been selected for the consultancy position of ${offerPositionTitle} at UNICC.\n\nKindly confirm whether you accept this offer by ${formattedDeadline}.\n\nIf you have any questions or require additional information, please do not hesitate to reach out.\n\nBest regards,\nUNICC Human Resources`);
+    setOfferWizardStep(2);
+  };
+
+  const handleOfferSend = async () => {
+    setOfferSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-bulk-talent-email', {
+        body: {
+          recipients: [{ name: offerCandidateName, email: offerToEmail }],
+          subject: offerSubject,
+          body: offerBody,
+        },
+      });
+      if (error) throw error;
+      if (data?.failureCount > 0) {
+        toast({ title: 'Partial failure', description: data.errors?.join(', ') || 'Some emails failed to send.', variant: 'destructive' });
+      } else {
+        toast({ title: 'Email sent', description: `Offer acceptance sent to ${offerToEmail}.` });
+      }
+      setOfferDialogOpen(false);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Failed to send email.', variant: 'destructive' });
+    } finally {
+      setOfferSending(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="container mx-auto py-8 space-y-6">
@@ -105,8 +167,16 @@ const EmailHub = () => {
           <CardHeader>
             <CardTitle>Staff Recruitment</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground text-sm">No items configured yet.</p>
+          <CardContent className="space-y-3">
+            {staffEmails.map((label) => (
+              <div key={label} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                <span className="text-sm font-medium">{label}</span>
+                <Button variant="outline" size="sm" onClick={() => handleDraftEmail(label)}>
+                  <Mail className="w-4 h-4 mr-2" />
+                  Draft Email
+                </Button>
+              </div>
+            ))}
           </CardContent>
         </Card>
 
@@ -128,6 +198,7 @@ const EmailHub = () => {
         </Card>
       </div>
 
+      {/* Rate Confirmation Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) setDialogOpen(false); }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -137,7 +208,6 @@ const EmailHub = () => {
               {wizardStep === 3 && 'Rate Confirmation — Summary'}
             </DialogTitle>
           </DialogHeader>
-
           <div className="overflow-y-auto max-h-[60vh] space-y-4 py-2">
             {wizardStep === 1 && (
               <>
@@ -159,7 +229,6 @@ const EmailHub = () => {
                 </div>
               </>
             )}
-
             {wizardStep === 2 && (
               <>
                 <div className="space-y-2">
@@ -172,25 +241,14 @@ const EmailHub = () => {
                 </div>
               </>
             )}
-
             {wizardStep === 3 && (
               <div className="space-y-3 text-sm">
-                <div>
-                  <span className="font-medium text-muted-foreground">To:</span>
-                  <p>{toEmail}</p>
-                </div>
-                <div>
-                  <span className="font-medium text-muted-foreground">Subject:</span>
-                  <p>{subject}</p>
-                </div>
-                <div>
-                  <span className="font-medium text-muted-foreground">Body:</span>
-                  <p className="whitespace-pre-wrap">{body}</p>
-                </div>
+                <div><span className="font-medium text-muted-foreground">To:</span><p>{toEmail}</p></div>
+                <div><span className="font-medium text-muted-foreground">Subject:</span><p>{subject}</p></div>
+                <div><span className="font-medium text-muted-foreground">Body:</span><p className="whitespace-pre-wrap">{body}</p></div>
               </div>
             )}
           </div>
-
           <DialogFooter className="gap-2">
             {wizardStep > 1 && (
               <Button variant="outline" onClick={() => setWizardStep((s) => (s - 1) as 1 | 2)}>
@@ -205,6 +263,77 @@ const EmailHub = () => {
             {wizardStep === 3 && (
               <Button disabled={sending} onClick={handleSend}>
                 <Send className="h-4 w-4 mr-1" /> {sending ? 'Sending…' : 'Send'}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Offer Acceptance Dialog */}
+      <Dialog open={offerDialogOpen} onOpenChange={(open) => { if (!open) setOfferDialogOpen(false); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {offerWizardStep === 1 && 'Offer Acceptance — Fill Details'}
+              {offerWizardStep === 2 && 'Offer Acceptance — Email Preview'}
+              {offerWizardStep === 3 && 'Offer Acceptance — Summary'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-[60vh] space-y-4 py-2">
+            {offerWizardStep === 1 && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="offerToEmail">To (email)</Label>
+                  <Input id="offerToEmail" type="email" placeholder="recipient@example.com" value={offerToEmail} onChange={(e) => setOfferToEmail(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="offerCandidateName">Candidate Name</Label>
+                  <Input id="offerCandidateName" placeholder="Jane Doe" value={offerCandidateName} onChange={(e) => setOfferCandidateName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="offerPositionTitle">Position Title</Label>
+                  <Input id="offerPositionTitle" placeholder="e.g. IT Consultant" value={offerPositionTitle} onChange={(e) => setOfferPositionTitle(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Response Deadline</Label>
+                  <CustomDatePicker selected={offerDeadline} onChange={setOfferDeadline} placeholderText="Pick a deadline" />
+                </div>
+              </>
+            )}
+            {offerWizardStep === 2 && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="offerSubject">Subject</Label>
+                  <Input id="offerSubject" value={offerSubject} onChange={(e) => setOfferSubject(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="offerBody">Body</Label>
+                  <Textarea id="offerBody" rows={10} value={offerBody} onChange={(e) => setOfferBody(e.target.value)} />
+                </div>
+              </>
+            )}
+            {offerWizardStep === 3 && (
+              <div className="space-y-3 text-sm">
+                <div><span className="font-medium text-muted-foreground">To:</span><p>{offerToEmail}</p></div>
+                <div><span className="font-medium text-muted-foreground">Subject:</span><p>{offerSubject}</p></div>
+                <div><span className="font-medium text-muted-foreground">Body:</span><p className="whitespace-pre-wrap">{offerBody}</p></div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            {offerWizardStep > 1 && (
+              <Button variant="outline" onClick={() => setOfferWizardStep((s) => (s - 1) as 1 | 2)}>
+                <ArrowLeft className="h-4 w-4 mr-1" /> Back
+              </Button>
+            )}
+            {offerWizardStep < 3 && (
+              <Button disabled={offerWizardStep === 1 && !offerStep1Valid} onClick={() => offerWizardStep === 1 ? goToOfferStep2() : setOfferWizardStep(3)}>
+                Next <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            )}
+            {offerWizardStep === 3 && (
+              <Button disabled={offerSending} onClick={handleOfferSend}>
+                <Send className="h-4 w-4 mr-1" /> {offerSending ? 'Sending…' : 'Send'}
               </Button>
             )}
           </DialogFooter>
