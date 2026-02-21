@@ -54,8 +54,8 @@ const handler = async (req: Request): Promise<Response> => {
           .replace(/\{\{position\}\}/g, recipient.position || "Staff Member");
 
         const personalizedHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            ${personalizedBody.split('\n').map(line => `<p style="margin: 0 0 16px 0;">${line || '&nbsp;'}</p>`).join('')}
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;">
+            ${personalizedBody.split('\n').map(line => line.trim() === '' ? '<br/>' : `<p style="margin: 0 0 2px 0;">${line}</p>`).join('')}
           </div>
         `;
 
