@@ -33,6 +33,17 @@ const EmailHub = () => {
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
 
+  // General documentation wizard state
+  const [docDialogOpen, setDocDialogOpen] = useState(false);
+  const [docWizardStep, setDocWizardStep] = useState<1 | 2 | 3>(1);
+  const [docSending, setDocSending] = useState(false);
+  const [docToEmail, setDocToEmail] = useState('');
+  const [docCandidateName, setDocCandidateName] = useState('');
+  const [docRequiredByDate, setDocRequiredByDate] = useState<Date | null>(null);
+  const [docStartDate, setDocStartDate] = useState<Date | null>(null);
+  const [docSubject, setDocSubject] = useState('');
+  const [docBody, setDocBody] = useState('');
+
   // Offer Acceptance wizard state
   const [offerDialogOpen, setOfferDialogOpen] = useState(false);
   const [offerWizardStep, setOfferWizardStep] = useState<1 | 2 | 3>(1);
@@ -57,6 +68,17 @@ const EmailHub = () => {
     setSending(false);
   };
 
+  const resetDocWizard = () => {
+    setDocWizardStep(1);
+    setDocToEmail('');
+    setDocCandidateName('');
+    setDocRequiredByDate(null);
+    setDocStartDate(null);
+    setDocSubject('');
+    setDocBody('');
+    setDocSending(false);
+  };
+
   const resetOfferWizard = () => {
     setOfferWizardStep(1);
     setOfferToEmail('');
@@ -79,6 +101,9 @@ const EmailHub = () => {
     } else if (label === 'Offer Acceptance') {
       resetOfferWizard();
       setOfferDialogOpen(true);
+    } else if (label === 'General documentation to IC') {
+      resetDocWizard();
+      setDocDialogOpen(true);
     } else {
       toast({ title: 'Coming soon', description: `Draft email for "${label}" is not yet implemented.` });
     }
@@ -114,6 +139,41 @@ const EmailHub = () => {
       toast({ title: 'Error', description: err.message || 'Failed to send email.', variant: 'destructive' });
     } finally {
       setSending(false);
+    }
+  };
+
+  // General documentation helpers
+  const docStep1Valid = docToEmail.trim() !== '' && docCandidateName.trim() !== '' && docRequiredByDate !== null && docStartDate !== null;
+
+  const goToDocStep2 = () => {
+    const formattedRequired = docRequiredByDate ? format(docRequiredByDate, 'd MMMM yyyy') : '';
+    const formattedStart = docStartDate ? format(docStartDate, 'd MMMM yyyy') : '';
+    setDocSubject(`[${formattedRequired}] Individual Consultancy contract documents - ${docCandidateName}`);
+    setDocBody(`Dear ${docCandidateName},\n\nPlease note that your contract will be shared with you in the following days. In the meantime, we would need the following documents filled out:\n\n- DOI (Declaration of Interest)\n\n- Medical Certificate – This can be filled out by your family doctor, you will be reimbursed <b>in case of any charges encountered for the medical certificate up to $50</b>. Once you start working with us, please inform us and we will send you the instructions to request the reimbursement. <b>Keep all proof of payment</b>.\n\n- GSM Supplier Form is needed to insert your bank account details in our system, please send us also <b>a copy of your bank statement</b> with all the bank details that contains your name, the banks name and address, Swift code etc… If possible, please insert all the information in the same official bank document.\n\nPlease specify the currency you would like to receive your payments in (either USD or local currency of your place of residence). Please ensure the bank account provided can receive payments in the selected currency.\n\n- WHO 90.6 Designation of Beneficiaries\n\n- NDA – Non-Disclosure Agreement (needs to be digitally signed)\n\nThe documents that we would need back asap are the <b>GSM supplier form, bank statement and NDA signed</b>. The remaining documents can be sent once they are ready, but prior to your first day, ${formattedStart}.\n\nPlease let us know If you should have any possible delays with the Medical Certificate.\n\nFor any questions, please feel free to contact us.\n\nBest regards,`);
+    setDocWizardStep(2);
+  };
+
+  const handleDocSend = async () => {
+    setDocSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-bulk-talent-email', {
+        body: {
+          recipients: [{ name: docCandidateName, email: docToEmail }],
+          subject: docSubject,
+          body: docBody,
+        },
+      });
+      if (error) throw error;
+      if (data?.failureCount > 0) {
+        toast({ title: 'Partial failure', description: data.errors?.join(', ') || 'Some emails failed to send.', variant: 'destructive' });
+      } else {
+        toast({ title: 'Email sent', description: `Documentation request sent to ${docToEmail}.` });
+      }
+      setDocDialogOpen(false);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Failed to send email.', variant: 'destructive' });
+    } finally {
+      setDocSending(false);
     }
   };
 
@@ -251,6 +311,77 @@ const EmailHub = () => {
             {wizardStep === 3 && (
               <Button disabled={sending} onClick={handleSend}>
                 <Send className="h-4 w-4 mr-1" /> {sending ? 'Sending…' : 'Send'}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* General Documentation Dialog */}
+      <Dialog open={docDialogOpen} onOpenChange={(open) => { if (!open) setDocDialogOpen(false); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {docWizardStep === 1 && 'General Documentation — Fill Details'}
+              {docWizardStep === 2 && 'General Documentation — Email Preview'}
+              {docWizardStep === 3 && 'General Documentation — Summary'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-[60vh] space-y-4 py-2">
+            {docWizardStep === 1 && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="docToEmail">To (email)</Label>
+                  <Input id="docToEmail" type="email" placeholder="recipient@example.com" value={docToEmail} onChange={(e) => setDocToEmail(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="docCandidateName">Candidate Name</Label>
+                  <Input id="docCandidateName" placeholder="Jane Doe" value={docCandidateName} onChange={(e) => setDocCandidateName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Required by Date</Label>
+                  <CustomDatePicker selected={docRequiredByDate} onChange={setDocRequiredByDate} placeholderText="Pick a required-by date" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <CustomDatePicker selected={docStartDate} onChange={setDocStartDate} placeholderText="Pick a start date" />
+                </div>
+              </>
+            )}
+            {docWizardStep === 2 && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="docSubject">Subject</Label>
+                  <Input id="docSubject" value={docSubject} onChange={(e) => setDocSubject(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="docBody">Body</Label>
+                  <Textarea id="docBody" rows={12} value={docBody} onChange={(e) => setDocBody(e.target.value)} />
+                </div>
+              </>
+            )}
+            {docWizardStep === 3 && (
+              <div className="space-y-3 text-sm">
+                <div><span className="font-medium text-muted-foreground">To:</span><p>{docToEmail}</p></div>
+                <div><span className="font-medium text-muted-foreground">Subject:</span><p>{docSubject}</p></div>
+                <div><span className="font-medium text-muted-foreground">Body:</span><p className="whitespace-pre-wrap">{docBody}</p></div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            {docWizardStep > 1 && (
+              <Button variant="outline" onClick={() => setDocWizardStep((s) => (s - 1) as 1 | 2)}>
+                <ArrowLeft className="h-4 w-4 mr-1" /> Back
+              </Button>
+            )}
+            {docWizardStep < 3 && (
+              <Button disabled={docWizardStep === 1 && !docStep1Valid} onClick={() => docWizardStep === 1 ? goToDocStep2() : setDocWizardStep(3)}>
+                Next <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            )}
+            {docWizardStep === 3 && (
+              <Button disabled={docSending} onClick={handleDocSend}>
+                <Send className="h-4 w-4 mr-1" /> {docSending ? 'Sending…' : 'Send'}
               </Button>
             )}
           </DialogFooter>
