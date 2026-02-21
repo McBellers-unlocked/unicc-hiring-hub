@@ -1,17 +1,15 @@
 
 
-## Rename "Additional Attachments" to "NDA" and Make It Required
+## Fix: Attachments Not Arriving in "General Documentation to IC" Emails
 
-### Changes (single file: `src/pages/EmailHub.tsx`)
+The edge function logs confirm **5 attachments are being sent** and the email succeeds, but recipients don't see them. The root cause is in the edge function: `base64Decode()` converts the base64 string to a `Uint8Array`, but the Resend API in this context doesn't handle `Uint8Array` correctly for attachments. Resend natively accepts base64 strings -- so we should skip the decode step entirely.
 
-**1. Rename the label**
-- Change "Additional Attachments (optional)" to "NDA" on line 404
+### Changes (single file: `supabase/functions/send-bulk-talent-email/index.ts`)
 
-**2. Make it required**
-- Update `docStep1Valid` validation (line 156) to also require `docExtraAttachments.length > 0`
-- This will disable the "Next" button until the user uploads the NDA file
+1. **Remove the unused import** of `base64Decode` from Deno std (line 3)
+2. **Pass base64 strings directly to Resend** instead of decoding them to `Uint8Array` (lines 55-59):
+   - Change from: `content: base64Decode(att.content)`
+   - Change to: `content: att.content`
 
-**3. Remove `multiple` attribute**
-- Since this is specifically for the NDA document, remove the `multiple` prop from the file input so only one file can be selected (unless multiple NDA files are expected -- will keep `multiple` if so)
+This is a minimal, targeted fix -- no frontend changes needed.
 
-No other files need changes.
