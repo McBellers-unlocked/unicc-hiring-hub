@@ -19,6 +19,7 @@ interface BulkEmailRequest {
   recipients: Recipient[];
   subject: string;
   body: string;
+  cc?: string[];
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -28,7 +29,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { recipients, subject, body }: BulkEmailRequest = await req.json();
+    const { recipients, subject, body, cc }: BulkEmailRequest = await req.json();
 
     console.log(`Sending bulk email to ${recipients.length} recipients`);
     console.log(`Subject: ${subject}`);
@@ -64,6 +65,7 @@ const handler = async (req: Request): Promise<Response> => {
         const emailResponse = await resend.emails.send({
           from: "UNICC Talent <recruitment@unicconnect.org>",
           to: [recipient.email],
+          ...(cc && cc.length > 0 ? { cc } : {}),
           subject: subject,
           html: personalizedHtml,
         });

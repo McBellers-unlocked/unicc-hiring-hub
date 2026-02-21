@@ -141,6 +141,7 @@ const EmailHub = () => {
           recipients: [{ name: offerCandidateName, email: offerToEmail }],
           subject: offerSubject,
           body: offerBody,
+          cc: ['hraffiliatemanagement@unicc.org'],
         },
       });
       if (error) throw error;
@@ -331,6 +332,7 @@ const EmailHub = () => {
             {offerWizardStep === 3 && (
               <div className="space-y-3 text-sm">
                 <div><span className="font-medium text-muted-foreground">To:</span><p>{offerToEmail}</p></div>
+                <div><span className="font-medium text-muted-foreground">CC:</span><p>hraffiliatemanagement@unicc.org</p></div>
                 <div><span className="font-medium text-muted-foreground">Subject:</span><p>{offerSubject}</p></div>
                 <div><span className="font-medium text-muted-foreground">Body:</span><p className="whitespace-pre-wrap">{offerBody}</p></div>
               </div>
