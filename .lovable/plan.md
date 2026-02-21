@@ -1,84 +1,47 @@
 
-## Bug Fix: Local Admin Station Filter Shows All Stations Instead of Valencia
 
-### Root Cause
+## Add "Offer Acceptance" Draft Email to Staff Recruitment
 
-There are two related bugs in `LocalAdminDashboard.tsx`:
+### What changes
 
-**Bug 1 — useState timing race (primary cause)**
+The **Staff Recruitment** card currently shows "No items configured yet." We will replace that placeholder with a list containing one item — **"Offer Acceptance"** — styled identically to the Affiliate Recruitment items (label on the left, "Draft Email" button on the right).
 
+Clicking "Draft Email" opens a 3-step wizard dialog (same pattern as Rate Confirmation):
+
+1. **Step 1 — Fill Details**: Collect candidate email, candidate name, position title, and a response deadline date.
+2. **Step 2 — Email Preview**: Pre-filled subject and body are shown in editable fields so HR can tweak before sending.
+3. **Step 3 — Summary**: Read-only review of To, Subject, and Body before final send.
+
+### Email template content
+
+- **Subject**: `Offer Acceptance — [Position Title] | [Candidate Name]`
+- **Body**:
 ```
-Line 117: const lockedStation = user?.email
-             ? LOCAL_ADMIN_STATION_MAP[user.email.toLowerCase()] ?? null
-             : null;
-Line 120: const [dutyStation, setDutyStation] = useState<string>(lockedStation ?? 'all');
-```
+Dear [Candidate Name],
 
-`useState` only reads its initial value **on the very first render**. Because `useAuth` is async (it calls Supabase to get the session then defers role/profile fetching via `setTimeout`), `user` is `null` on the first render. So `lockedStation` evaluates to `null`, `dutyStation` initialises to `'all'`, and **React never re-runs `useState`** when the user data arrives. Ruiz ends up permanently seeing all stations.
+We are pleased to inform you that you have been selected for the consultancy position of [Position Title] at UNICC.
 
-**Bug 2 — `useAuth` only adds `Local Admin` for `ruiz@unicc.org`, not `requeni@unicc.org`**
+Kindly confirm whether you accept this offer by [Response Deadline].
 
-In `useAuth.tsx` line 58:
-```typescript
-const localAdminEmails = ['ruiz@unicc.org'];
-```
-Carolina (`requeni@unicc.org`) is missing from this list. While this doesn't affect the dashboard filter directly (it uses `LOCAL_ADMIN_STATION_MAP` not `userRoles`), it's inconsistent and should be fixed.
+If you have any questions or require additional information, please do not hesitate to reach out.
 
-### The Fix
-
-**Fix 1 — Replace `useState` with a `useMemo`-derived value (no state needed)**
-
-Since `lockedStation` is derived from `user.email` (which is auth state managed by `useAuth`), the active duty station filter should be derived — not stored in local state. For Local Admin users, the station is always `lockedStation`; for full-access users, it uses the dropdown selection.
-
-The correct approach:
-- Keep `useState` only for the dropdown selection (`selectedStation`, default `'all'`)
-- Compute the **effective** filter as: `lockedStation ?? selectedStation`
-- All `matchesFilters` calls and `useMemo` dependencies use the effective filter
-
-This means when Ruiz's user object loads, the filter immediately uses her locked station without any state initialisation issue.
-
-**Fix 2 — Add `requeni@unicc.org` to `localAdminEmails` in `useAuth.tsx`**
-
-### Files to Change
-
-| File | Change |
-|---|---|
-| `src/pages/operations/LocalAdminDashboard.tsx` | Replace `const [dutyStation, setDutyStation] = useState(lockedStation ?? 'all')` with a separate `selectedStation` state (default `'all'`) and a derived `activeStation = lockedStation ?? selectedStation`. Update all downstream references from `dutyStation` → `activeStation`. Update the dropdown `onValueChange` to call `setSelectedStation`. |
-| `src/hooks/useAuth.tsx` | Add `'requeni@unicc.org'` to the `localAdminEmails` array so Carolina also gets the `Local Admin` virtual role. |
-
-### Technical Detail — Exact Changes
-
-**LocalAdminDashboard.tsx:**
-```typescript
-// Before (buggy):
-const [dutyStation, setDutyStation] = useState<string>(lockedStation ?? 'all');
-// ... uses dutyStation everywhere
-
-// After (fixed):
-const [selectedStation, setSelectedStation] = useState<string>('all');
-const activeStation = lockedStation ?? selectedStation;
-// ... replace all uses of dutyStation → activeStation
-// ... dropdown: onValueChange={setSelectedStation}
-// ... filter check: if (activeStation !== 'all' && ds !== activeStation) return false;
+Best regards,
+UNICC Human Resources
 ```
 
-The key insight: `activeStation` is recomputed on every render from `lockedStation` (which reactively updates as `user` loads), so there's no timing gap. No `useEffect` needed.
+### Technical details
 
-**useAuth.tsx:**
-```typescript
-// Before:
-const localAdminEmails = ['ruiz@unicc.org'];
+**Single file changed:** `src/pages/EmailHub.tsx`
 
-// After:
-const localAdminEmails = ['ruiz@unicc.org', 'requeni@unicc.org'];
-```
+Changes:
+- Add a `staffEmails` array: `['Offer Acceptance']`
+- Add state for a second dialog (`offerDialogOpen`) and its wizard step (`offerWizardStep`)
+- Add form fields: `offerToEmail`, `offerCandidateName`, `offerPositionTitle`, `offerDeadline` (Date)
+- Add `resetOfferWizard()`, `goToOfferStep2()`, and `handleOfferSend()` functions (mirrors the Rate Confirmation pattern exactly)
+- Replace the Staff Recruitment placeholder `<p>` with a `.map()` over `staffEmails`, rendering the same row layout as Affiliate Recruitment
+- Add a second `<Dialog>` for the Offer Acceptance wizard with 3 steps
+- `handleDraftEmail` logic extended: when label is `'Offer Acceptance'`, open the offer dialog
+- Send via the existing `send-bulk-talent-email` edge function (same as Rate Confirmation)
 
-### What Ruiz/Carolina Will See After the Fix
+No new files, no new dependencies, no database changes.
 
-- On page load: the station filter locked chip shows "Valencia" (as soon as user object resolves, which is immediate for returning sessions)
-- All four sections (Arrivals, Departures, Transfers, Contract Breaks) only show Valencia records
-- No "All Duty Stations" dropdown visible — replaced by the locked station chip
-- The counts in the stat cards also reflect only Valencia records
-
-### No Database Changes Required
-This is a pure client-side rendering/state management fix.
