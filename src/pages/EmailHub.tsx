@@ -13,14 +13,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 
 const affiliateEmails = [
+  'Offer Acceptance',
   'Rate confirmation to IC',
   'General documentation to IC',
   'One HR conformity',
 ];
 
-const staffEmails = [
-  'Offer Acceptance',
-];
+const staffEmails: string[] = [];
 
 const EmailHub = () => {
   const { toast } = useToast();
@@ -176,16 +175,8 @@ const EmailHub = () => {
           <CardHeader>
             <CardTitle>Staff Recruitment</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {staffEmails.map((label) => (
-              <div key={label} className="flex items-center justify-between py-2 border-b last:border-b-0">
-                <span className="text-sm font-medium">{label}</span>
-                <Button variant="outline" size="sm" onClick={() => handleDraftEmail(label)}>
-                  <Mail className="w-4 h-4 mr-2" />
-                  Draft Email
-                </Button>
-              </div>
-            ))}
+          <CardContent>
+            <p className="text-muted-foreground text-sm">No items configured yet.</p>
           </CardContent>
         </Card>
 
