@@ -1,48 +1,28 @@
 
-
-## Implement "Contract email for signature" Wizard
+## Add Mandatory Contract Attachment to "Contract email for signature"
 
 ### Overview
-Add a new 3-step wizard dialog for the "Contract email for signature" template, following the same pattern as the existing wizards (OneHR approval, General documentation to IC, Offer Acceptance).
+Add a mandatory file upload field (for the contract document) to Step 1 of the Contract email wizard. The attachment will be sent as a base64-encoded file via the existing edge function.
 
-### Step 1 -- Fill Details
-Fields:
-- **Recipient email** (required)
-- **Name and surname** (required)
-- **Return by date** (required, date picker)
+### Changes (single file: `src/pages/EmailHub.tsx`)
 
-### Step 2 -- Email Preview
-- **Subject**: `UNICC Individual consultancy contract - [Name and surname]`
-- **Body**:
-  ```
-  Dear [name],
+**1. New state variable**
+- Add `contractAttachments` (`File[]`) state, initialized to `[]`
 
-  Please find attached your UNICC Individual consultancy contract.
-  Kindly review, sign and return the contract by [date].
+**2. Reset function**
+- Add `setContractAttachments([])` to `resetContractWizard`
 
-  Best regards,
-  ```
-- Editable subject and body fields (same as other wizards)
+**3. Validation**
+- Update `contractStep1Valid` to also require `contractAttachments.length > 0`
 
-### Step 3 -- Summary and Send
-- Shows To, Subject, Body preview
-- Send button
+**4. Step 1 UI**
+- Add a "Contract" file input field with a required red asterisk after the date picker
+- Single file upload (no `multiple` attribute)
+- Show uploaded file name as a Badge with an X button to remove it (same pattern as the NDA field)
 
-### Technical Details (single file: `src/pages/EmailHub.tsx`)
+**5. Step 3 Summary**
+- Show the attachment in the summary view with a Paperclip icon
 
-1. **Add state variables** for the contract wizard: `contractDialogOpen`, `contractWizardStep`, `contractSending`, `contractToEmail`, `contractCandidateName`, `contractReturnByDate`, `contractSubject`, `contractBody`
-
-2. **Add `resetContractWizard`** function to clear all contract state
-
-3. **Update `handleDraftEmail`** to handle `'Contract email for signature'` by calling `resetContractWizard()` and opening the contract dialog
-
-4. **Add `goToContractStep2`** that sets:
-   - Subject: `UNICC Individual consultancy contract - {contractCandidateName}`
-   - Body: `Dear {contractCandidateName},\n\nPlease find attached your UNICC Individual consultancy contract. Kindly review, sign and return the contract by {formattedDate}.\n\nBest regards,`
-
-5. **Add `handleContractSend`** that sends via `send-bulk-talent-email` edge function (no attachments needed for now -- the actual contract PDF would be attached manually or via a future enhancement)
-
-6. **Add the contract Dialog JSX** with 3 steps mirroring the existing wizard pattern
-
-7. **Validation**: `contractStep1Valid` requires email, name, and return-by date to be filled
-
+**6. `handleContractSend`**
+- Convert the attached file to base64 using the existing `fileToBase64` helper
+- Include it in the `attachments` array sent to the edge function
