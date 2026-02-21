@@ -153,7 +153,7 @@ const EmailHub = () => {
   };
 
   // General documentation helpers
-  const docStep1Valid = docToEmail.trim() !== '' && docCandidateName.trim() !== '' && docRequiredByDate !== null && docStartDate !== null;
+  const docStep1Valid = docToEmail.trim() !== '' && docCandidateName.trim() !== '' && docRequiredByDate !== null && docStartDate !== null && docExtraAttachments.length > 0;
 
   const goToDocStep2 = () => {
     const formattedRequired = docRequiredByDate ? format(docRequiredByDate, 'd MMMM yyyy') : '';
@@ -401,10 +401,9 @@ const EmailHub = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Additional Attachments (optional)</Label>
+                  <Label>NDA <span className="text-destructive">*</span></Label>
                   <Input
                     type="file"
-                    multiple
                     onChange={(e) => {
                       if (e.target.files) {
                         setDocExtraAttachments(Array.from(e.target.files));
