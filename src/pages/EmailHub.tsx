@@ -62,6 +62,7 @@ const EmailHub = () => {
   const [contractReturnByDate, setContractReturnByDate] = useState<Date | null>(null);
   const [contractSubject, setContractSubject] = useState('');
   const [contractBody, setContractBody] = useState('');
+  const [contractAttachments, setContractAttachments] = useState<File[]>([]);
 
   // Offer Acceptance wizard state
   const [offerDialogOpen, setOfferDialogOpen] = useState(false);
@@ -107,6 +108,7 @@ const EmailHub = () => {
     setContractSubject('');
     setContractBody('');
     setContractSending(false);
+    setContractAttachments([]);
   };
 
   const resetOfferWizard = () => {
@@ -245,7 +247,7 @@ const EmailHub = () => {
   };
 
   // Contract email for signature helpers
-  const contractStep1Valid = contractToEmail.trim() !== '' && contractCandidateName.trim() !== '' && contractReturnByDate !== null;
+  const contractStep1Valid = contractToEmail.trim() !== '' && contractCandidateName.trim() !== '' && contractReturnByDate !== null && contractAttachments.length > 0;
 
   const goToContractStep2 = () => {
     const formattedDate = contractReturnByDate ? format(contractReturnByDate, 'd MMMM yyyy') : '';
@@ -257,11 +259,18 @@ const EmailHub = () => {
   const handleContractSend = async () => {
     setContractSending(true);
     try {
+      const attachments: { filename: string; content: string }[] = [];
+      for (const file of contractAttachments) {
+        const base64 = await fileToBase64(file);
+        attachments.push({ filename: file.name, content: base64 });
+      }
+
       const { data, error } = await supabase.functions.invoke('send-bulk-talent-email', {
         body: {
           recipients: [{ name: contractCandidateName, email: contractToEmail }],
           subject: contractSubject,
           body: contractBody,
+          ...(attachments.length > 0 ? { attachments } : {}),
         },
       });
       if (error) throw error;
@@ -649,6 +658,20 @@ const EmailHub = () => {
                   <Label>Return by Date</Label>
                   <CustomDatePicker selected={contractReturnByDate} onChange={setContractReturnByDate} placeholderText="Pick a return-by date" />
                 </div>
+                <div className="space-y-2">
+                  <Label>Contract <span className="text-destructive">*</span></Label>
+                  {contractAttachments.length === 0 ? (
+                    <Input type="file" onChange={(e) => { if (e.target.files?.[0]) setContractAttachments([e.target.files[0]]); }} />
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="gap-1 pr-1">
+                        <Paperclip className="h-3 w-3" />
+                        {contractAttachments[0].name}
+                        <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => setContractAttachments([])} />
+                      </Badge>
+                    </div>
+                  )}
+                </div>
               </>
             )}
             {contractWizardStep === 2 && (
@@ -668,6 +691,9 @@ const EmailHub = () => {
                 <div><span className="font-medium text-muted-foreground">To:</span><p>{contractToEmail}</p></div>
                 <div><span className="font-medium text-muted-foreground">Subject:</span><p>{contractSubject}</p></div>
                 <div><span className="font-medium text-muted-foreground">Body:</span><p className="whitespace-pre-wrap">{contractBody}</p></div>
+                {contractAttachments.length > 0 && (
+                  <div><span className="font-medium text-muted-foreground">Attachment:</span><p className="flex items-center gap-1"><Paperclip className="h-3 w-3" />{contractAttachments[0].name}</p></div>
+                )}
               </div>
             )}
           </div>
