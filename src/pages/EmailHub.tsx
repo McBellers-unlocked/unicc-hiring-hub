@@ -17,7 +17,7 @@ const affiliateEmails = [
   'Offer Acceptance',
   'OneHR approval',
   'General documentation to IC',
-  'One HR conformity',
+  'Contract email for signature',
 ];
 
 const staffEmails: string[] = [];
