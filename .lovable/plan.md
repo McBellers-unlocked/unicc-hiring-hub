@@ -1,18 +1,28 @@
 
-## Add Default CC to Offer Acceptance Emails
 
-Add `hraffiliatemanagement@unicc.org` as a default CC recipient when sending Offer Acceptance emails.
+## Rename "Rate confirmation to IC" to "OneHR approval" with New Template
 
-### Changes
+Replace the existing "Rate confirmation to IC" email template with a new "OneHR approval" template that has a fixed subject line and body.
 
-**1. Edge function (`supabase/functions/send-bulk-talent-email/index.ts`)**
-- Update the `BulkEmailRequest` interface to accept an optional `cc` field (array of strings)
-- Pass the `cc` field through to the Resend `emails.send()` call
+### Changes (single file: `src/pages/EmailHub.tsx`)
 
-**2. Frontend (`src/pages/EmailHub.tsx`)**
-- In the `handleOfferSend` function, include `cc: ['hraffiliatemanagement@unicc.org']` in the request body sent to the edge function
-- Show the CC address in the Step 3 summary so the user can see it before sending
+**1. Rename the label**
+- In the `affiliateEmails` array, change `'Rate confirmation to IC'` to `'OneHR approval'`
+- Update the condition in `handleDraftEmail` from `'Rate confirmation to IC'` to `'OneHR approval'`
+- Update all dialog titles from `'Rate Confirmation'` to `'OneHR Approval'`
 
-### Technical details
+**2. Simplify wizard Step 1**
+- Remove the "Rate" and "Date" fields since they are no longer needed for this template
+- Keep only "To (email)" and "Candidate Name"
+- Update validation (`step1Valid`) to only require email and name
 
-The Resend API natively supports a `cc` parameter as an array of email strings, so this is a straightforward pass-through. The CC will only be added for the Offer Acceptance flow; the Rate Confirmation flow remains unchanged.
+**3. Update `goToStep2` to generate the new subject and body**
+- Subject: `Use of OneHR background verification services Request for consent - ${candidateName}`
+- Body: the full OneHR approval email text provided, with `${candidateName}` replacing "Name", including `<b>` tags for the two bold sections
+
+**4. Remove unused state**
+- The `rate` and `date` state variables and their reset logic will be removed since this template no longer uses them
+
+### Email body (template)
+The body will include the full text about OneHR background verification, bullet points, bold sections for "confirm your agreement" and "please send us copy of your passport", and the link to the OneHR FAQ page.
+
