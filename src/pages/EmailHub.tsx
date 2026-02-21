@@ -161,6 +161,7 @@ const EmailHub = () => {
           recipients: [{ name: candidateName, email: toEmail }],
           subject,
           body,
+          cc: ['hraffiliatemanagement@unicc.org'],
         },
       });
       if (error) throw error;
@@ -230,6 +231,7 @@ const EmailHub = () => {
           subject: docSubject,
           body: docBody,
           attachments,
+          cc: ['hraffiliatemanagement@unicc.org'],
         },
       });
       if (error) throw error;
@@ -270,6 +272,7 @@ const EmailHub = () => {
           recipients: [{ name: contractCandidateName, email: contractToEmail }],
           subject: contractSubject,
           body: contractBody,
+          cc: ['hraffiliatemanagement@unicc.org'],
           ...(attachments.length > 0 ? { attachments } : {}),
         },
       });
@@ -402,6 +405,7 @@ const EmailHub = () => {
             {wizardStep === 3 && (
               <div className="space-y-3 text-sm">
                 <div><span className="font-medium text-muted-foreground">To:</span><p>{toEmail}</p></div>
+                <div><span className="font-medium text-muted-foreground">CC:</span><p>hraffiliatemanagement@unicc.org</p></div>
                 <div><span className="font-medium text-muted-foreground">Subject:</span><p>{subject}</p></div>
                 <div><span className="font-medium text-muted-foreground">Body:</span><p className="whitespace-pre-wrap">{body}</p></div>
               </div>
@@ -506,6 +510,7 @@ const EmailHub = () => {
             {docWizardStep === 3 && (
               <div className="space-y-3 text-sm">
                 <div><span className="font-medium text-muted-foreground">To:</span><p>{docToEmail}</p></div>
+                <div><span className="font-medium text-muted-foreground">CC:</span><p>hraffiliatemanagement@unicc.org</p></div>
                 <div><span className="font-medium text-muted-foreground">Subject:</span><p>{docSubject}</p></div>
                 <div><span className="font-medium text-muted-foreground">Body:</span><p className="whitespace-pre-wrap">{docBody}</p></div>
                 <div>
@@ -689,6 +694,7 @@ const EmailHub = () => {
             {contractWizardStep === 3 && (
               <div className="space-y-3 text-sm">
                 <div><span className="font-medium text-muted-foreground">To:</span><p>{contractToEmail}</p></div>
+                <div><span className="font-medium text-muted-foreground">CC:</span><p>hraffiliatemanagement@unicc.org</p></div>
                 <div><span className="font-medium text-muted-foreground">Subject:</span><p>{contractSubject}</p></div>
                 <div><span className="font-medium text-muted-foreground">Body:</span><p className="whitespace-pre-wrap">{contractBody}</p></div>
                 {contractAttachments.length > 0 && (
