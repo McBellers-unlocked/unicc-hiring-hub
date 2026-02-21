@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
-import { decode as base64Decode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
+
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -55,7 +55,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Decode base64 attachments into Uint8Array for Resend
     const decodedAttachments = attachments?.map((att) => ({
       filename: att.filename,
-      content: base64Decode(att.content),
+      content: att.content,
     }));
 
     let successCount = 0;
