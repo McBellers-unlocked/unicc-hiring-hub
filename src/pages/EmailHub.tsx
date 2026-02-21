@@ -43,6 +43,7 @@ const EmailHub = () => {
   const [offerToEmail, setOfferToEmail] = useState('');
   const [offerCandidateName, setOfferCandidateName] = useState('');
   const [offerPositionTitle, setOfferPositionTitle] = useState('');
+  const [offerVacancyNumber, setOfferVacancyNumber] = useState('');
   const [offerDeadline, setOfferDeadline] = useState<Date | null>(null);
   const [offerSubject, setOfferSubject] = useState('');
   const [offerBody, setOfferBody] = useState('');
@@ -63,6 +64,7 @@ const EmailHub = () => {
     setOfferToEmail('');
     setOfferCandidateName('');
     setOfferPositionTitle('');
+    setOfferVacancyNumber('');
     setOfferDeadline(null);
     setOfferSubject('');
     setOfferBody('');
@@ -116,11 +118,11 @@ const EmailHub = () => {
   };
 
   // Offer Acceptance helpers
-  const offerStep1Valid = offerToEmail.trim() !== '' && offerCandidateName.trim() !== '' && offerPositionTitle.trim() !== '' && offerDeadline !== null;
+  const offerStep1Valid = offerToEmail.trim() !== '' && offerCandidateName.trim() !== '' && offerPositionTitle.trim() !== '' && offerVacancyNumber.trim() !== '' && offerDeadline !== null;
 
   const goToOfferStep2 = () => {
     const formattedDeadline = offerDeadline ? format(offerDeadline, 'dd/MM/yyyy') : '';
-    setOfferSubject(`Offer Acceptance — ${offerPositionTitle} | ${offerCandidateName}`);
+    setOfferSubject(`UNICC Individual Consultancy - ${offerVacancyNumber} - ${offerPositionTitle} - ${offerCandidateName}`);
     setOfferBody(`Dear ${offerCandidateName},\n\nWe are pleased to inform you that you have been selected for the consultancy position of ${offerPositionTitle} at UNICC.\n\nKindly confirm whether you accept this offer by ${formattedDeadline}.\n\nIf you have any questions or require additional information, please do not hesitate to reach out.\n\nBest regards,\nUNICC Human Resources`);
     setOfferWizardStep(2);
   };
@@ -289,6 +291,10 @@ const EmailHub = () => {
                 <div className="space-y-2">
                   <Label htmlFor="offerCandidateName">Candidate Name</Label>
                   <Input id="offerCandidateName" placeholder="Jane Doe" value={offerCandidateName} onChange={(e) => setOfferCandidateName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="offerVacancyNumber">Vacancy Number</Label>
+                  <Input id="offerVacancyNumber" placeholder="e.g. VA/2026/001" value={offerVacancyNumber} onChange={(e) => setOfferVacancyNumber(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="offerPositionTitle">Position Title</Label>
