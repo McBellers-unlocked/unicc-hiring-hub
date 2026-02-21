@@ -14,7 +14,7 @@ import { format } from 'date-fns';
 
 const affiliateEmails = [
   'Offer Acceptance',
-  'Rate confirmation to IC',
+  'OneHR approval',
   'General documentation to IC',
   'One HR conformity',
 ];
@@ -30,8 +30,6 @@ const EmailHub = () => {
   const [sending, setSending] = useState(false);
   const [toEmail, setToEmail] = useState('');
   const [candidateName, setCandidateName] = useState('');
-  const [rate, setRate] = useState('');
-  const [date, setDate] = useState<Date | null>(null);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
 
@@ -54,8 +52,6 @@ const EmailHub = () => {
     setWizardStep(1);
     setToEmail('');
     setCandidateName('');
-    setRate('');
-    setDate(null);
     setSubject('');
     setBody('');
     setSending(false);
@@ -77,7 +73,7 @@ const EmailHub = () => {
   };
 
   const handleDraftEmail = (label: string) => {
-    if (label === 'Rate confirmation to IC') {
+    if (label === 'OneHR approval') {
       resetWizard();
       setDialogOpen(true);
     } else if (label === 'Offer Acceptance') {
@@ -89,12 +85,11 @@ const EmailHub = () => {
   };
 
   // Rate Confirmation helpers
-  const step1Valid = toEmail.trim() !== '' && candidateName.trim() !== '' && rate.trim() !== '' && date !== null;
+  const step1Valid = toEmail.trim() !== '' && candidateName.trim() !== '';
 
   const goToStep2 = () => {
-    const formattedDate = date ? format(date, 'dd/MM/yyyy') : '';
-    setSubject(`Rate confirmation ${candidateName}`);
-    setBody(`Dear ${candidateName},\n\nThis is to confirm your rate will be ${rate}.\n\nPlease accept by ${formattedDate}.`);
+    setSubject(`Use of OneHR background verification services Request for consent - ${candidateName}`);
+    setBody(`Dear ${candidateName},\n\nTo continue with your onboarding formalities, we will request the United Nations Global Centre for Human Resources Services ("the OneHR Centre") for background verification. The OneHR Centre conducts 4 types of background verification:\n•\tEmployment record verification\n•\tAcademic record verification\n•\tQualitative reference checks\n•\tMisconduct verification\n\nThis background verification should be completed as soon as possible, and usually within 3 weeks. Receiving the clearance from OneHR is one of the requirements for receiving the UNICC Individual consultancy contract.\n\nWe would appreciate if you could <b>confirm your agreement to the background verification process through OneHR by replying to this email</b>. OneHR will then contact you directly with further instructions.\n\nIn order to prepare this verification, could you <b>please send us copy of your passport and the most recent updated version of the PHF</b> as soon as possible.\n\nPlease note that the OneHR Centre is not part of WHO. You will be in touch with a OneHR focal point. However, should you have any questions, we invite you to visit the OneHR FAQ page (https://onehr.un.org/faq-frequently-asked-questions) or you may also contact hraffiliatemanagement@unicc.org.\n\nBest regards,`);
     setWizardStep(2);
   };
 
@@ -204,9 +199,9 @@ const EmailHub = () => {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {wizardStep === 1 && 'Rate Confirmation — Fill Details'}
-              {wizardStep === 2 && 'Rate Confirmation — Email Preview'}
-              {wizardStep === 3 && 'Rate Confirmation — Summary'}
+              {wizardStep === 1 && 'OneHR Approval — Fill Details'}
+              {wizardStep === 2 && 'OneHR Approval — Email Preview'}
+              {wizardStep === 3 && 'OneHR Approval — Summary'}
             </DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto max-h-[60vh] space-y-4 py-2">
@@ -219,14 +214,6 @@ const EmailHub = () => {
                 <div className="space-y-2">
                   <Label htmlFor="candidateName">Candidate Name</Label>
                   <Input id="candidateName" placeholder="Jane Doe" value={candidateName} onChange={(e) => setCandidateName(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rate">Rate</Label>
-                  <Input id="rate" placeholder="e.g. $500/day" value={rate} onChange={(e) => setRate(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Date</Label>
-                  <CustomDatePicker selected={date} onChange={setDate} placeholderText="Pick a date" />
                 </div>
               </>
             )}
