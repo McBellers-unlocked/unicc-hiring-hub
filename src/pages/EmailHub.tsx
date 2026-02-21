@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Mail, ArrowLeft, ArrowRight, Send } from 'lucide-react';
+import { Mail, ArrowLeft, ArrowRight, Send, Paperclip, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { CustomDatePicker } from '@/components/ui/date-picker';
@@ -43,6 +44,14 @@ const EmailHub = () => {
   const [docStartDate, setDocStartDate] = useState<Date | null>(null);
   const [docSubject, setDocSubject] = useState('');
   const [docBody, setDocBody] = useState('');
+  const [docExtraAttachments, setDocExtraAttachments] = useState<File[]>([]);
+
+  const defaultDocAttachments = [
+    'DoI_form_for_WHO_experts.docx',
+    'Supplier_creation_and_modification_request_form.xlsx',
+    'WHO_90_6_Designation_of_Beneficiaries.docx',
+    'WHO_MedicalCertificateFitnessforWork_Version1_20160224.docx',
+  ];
 
   // Offer Acceptance wizard state
   const [offerDialogOpen, setOfferDialogOpen] = useState(false);
@@ -77,6 +86,7 @@ const EmailHub = () => {
     setDocSubject('');
     setDocBody('');
     setDocSending(false);
+    setDocExtraAttachments([]);
   };
 
   const resetOfferWizard = () => {
@@ -148,19 +158,53 @@ const EmailHub = () => {
   const goToDocStep2 = () => {
     const formattedRequired = docRequiredByDate ? format(docRequiredByDate, 'd MMMM yyyy') : '';
     const formattedStart = docStartDate ? format(docStartDate, 'd MMMM yyyy') : '';
-    setDocSubject(`[${formattedRequired}] Individual Consultancy contract documents - ${docCandidateName}`);
+    setDocSubject(`[Required by ${formattedRequired}] Individual Consultancy contract documents - ${docCandidateName}`);
     setDocBody(`Dear ${docCandidateName},\n\nPlease note that your contract will be shared with you in the following days. In the meantime, we would need the following documents filled out:\n\n- DOI (Declaration of Interest)\n\n- Medical Certificate – This can be filled out by your family doctor, you will be reimbursed <b>in case of any charges encountered for the medical certificate up to $50</b>. Once you start working with us, please inform us and we will send you the instructions to request the reimbursement. <b>Keep all proof of payment</b>.\n\n- GSM Supplier Form is needed to insert your bank account details in our system, please send us also <b>a copy of your bank statement</b> with all the bank details that contains your name, the banks name and address, Swift code etc… If possible, please insert all the information in the same official bank document.\n\nPlease specify the currency you would like to receive your payments in (either USD or local currency of your place of residence). Please ensure the bank account provided can receive payments in the selected currency.\n\n- WHO 90.6 Designation of Beneficiaries\n\n- NDA – Non-Disclosure Agreement (needs to be digitally signed)\n\nThe documents that we would need back asap are the <b>GSM supplier form, bank statement and NDA signed</b>. The remaining documents can be sent once they are ready, but prior to your first day, ${formattedStart}.\n\nPlease let us know If you should have any possible delays with the Medical Certificate.\n\nFor any questions, please feel free to contact us.\n\nBest regards,`);
     setDocWizardStep(2);
+  };
+
+  const fileToBase64 = (file: File | Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove the data URL prefix (e.g. "data:application/pdf;base64,")
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleDocSend = async () => {
     setDocSending(true);
     try {
+      // Build attachments array
+      const attachments: { filename: string; content: string }[] = [];
+
+      // Fetch default attachments from public folder
+      for (const filename of defaultDocAttachments) {
+        const resp = await fetch(`/email-templates/${filename}`);
+        if (resp.ok) {
+          const blob = await resp.blob();
+          const base64 = await fileToBase64(blob);
+          attachments.push({ filename, content: base64 });
+        }
+      }
+
+      // Add user-uploaded extra attachments
+      for (const file of docExtraAttachments) {
+        const base64 = await fileToBase64(file);
+        attachments.push({ filename: file.name, content: base64 });
+      }
+
       const { data, error } = await supabase.functions.invoke('send-bulk-talent-email', {
         body: {
           recipients: [{ name: docCandidateName, email: docToEmail }],
           subject: docSubject,
           body: docBody,
+          attachments,
         },
       });
       if (error) throw error;
@@ -346,6 +390,40 @@ const EmailHub = () => {
                   <Label>Start Date</Label>
                   <CustomDatePicker selected={docStartDate} onChange={setDocStartDate} placeholderText="Pick a start date" />
                 </div>
+                <div className="space-y-2">
+                  <Label>Default Attachments (always included)</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {defaultDocAttachments.map((name) => (
+                      <Badge key={name} variant="secondary" className="text-xs">
+                        <Paperclip className="h-3 w-3 mr-1" />{name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Additional Attachments (optional)</Label>
+                  <Input
+                    type="file"
+                    multiple
+                    onChange={(e) => {
+                      if (e.target.files) {
+                        setDocExtraAttachments(Array.from(e.target.files));
+                      }
+                    }}
+                  />
+                  {docExtraAttachments.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {docExtraAttachments.map((file, idx) => (
+                        <Badge key={idx} variant="outline" className="text-xs">
+                          {file.name}
+                          <button className="ml-1" onClick={() => setDocExtraAttachments(prev => prev.filter((_, i) => i !== idx))}>
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </>
             )}
             {docWizardStep === 2 && (
@@ -365,6 +443,21 @@ const EmailHub = () => {
                 <div><span className="font-medium text-muted-foreground">To:</span><p>{docToEmail}</p></div>
                 <div><span className="font-medium text-muted-foreground">Subject:</span><p>{docSubject}</p></div>
                 <div><span className="font-medium text-muted-foreground">Body:</span><p className="whitespace-pre-wrap">{docBody}</p></div>
+                <div>
+                  <span className="font-medium text-muted-foreground">Attachments ({defaultDocAttachments.length + docExtraAttachments.length}):</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {defaultDocAttachments.map((name) => (
+                      <Badge key={name} variant="secondary" className="text-xs">
+                        <Paperclip className="h-3 w-3 mr-1" />{name}
+                      </Badge>
+                    ))}
+                    {docExtraAttachments.map((file, idx) => (
+                      <Badge key={idx} variant="outline" className="text-xs">
+                        <Paperclip className="h-3 w-3 mr-1" />{file.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>
