@@ -1,24 +1,18 @@
 
+## Add Default CC to Offer Acceptance Emails
 
-## Bold Currency, Rate, and Dates in Offer Acceptance Email
+Add `hraffiliatemanagement@unicc.org` as a default CC recipient when sending Offer Acceptance emails.
 
-Make the currency/rate and date values bold in the generated Offer Acceptance email body so they stand out to the recipient.
+### Changes
 
-### Changes (single file: `src/pages/EmailHub.tsx`)
+**1. Edge function (`supabase/functions/send-bulk-talent-email/index.ts`)**
+- Update the `BulkEmailRequest` interface to accept an optional `cc` field (array of strings)
+- Pass the `cc` field through to the Resend `emails.send()` call
 
-In the `goToOfferStep2` function, wrap the dynamic values with `**` markdown-style bold markers in the email body template string:
+**2. Frontend (`src/pages/EmailHub.tsx`)**
+- In the `handleOfferSend` function, include `cc: ['hraffiliatemanagement@unicc.org']` in the request body sent to the edge function
+- Show the CC address in the Step 3 summary so the user can see it before sending
 
-- `${offerCurrency} ${offerRate}` becomes `**${offerCurrency} ${offerRate}**`
-- `${formattedStartDate}` becomes `**${formattedStartDate}**`
-- `${formattedDeadline}` becomes `**${formattedDeadline}**`
+### Technical details
 
-Since the email is sent via the `send-bulk-talent-email` edge function, we need to check whether it renders markdown/HTML or sends plain text. If it sends HTML, we should use `<b>` tags instead of `**`.
-
-Additionally, update the Step 3 summary preview to render these bold markers visually (the preview already uses `whitespace-pre-wrap`, so wrapping with `<b>` or `<strong>` tags in the preview would require minor JSX changes, or we can simply rely on the bold markers being visible in preview).
-
-### Approach
-
-1. Check the edge function to determine if it supports HTML formatting
-2. Use the appropriate bold syntax (`<b>` for HTML, `**` for markdown) in the template
-3. Ensure the preview in Step 2/3 also reflects the bold formatting
-
+The Resend API natively supports a `cc` parameter as an array of email strings, so this is a straightforward pass-through. The CC will only be added for the Offer Acceptance flow; the Rate Confirmation flow remains unchanged.
