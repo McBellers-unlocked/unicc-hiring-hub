@@ -161,11 +161,11 @@ function getRadius(staff: number) {
 export default function GeographicSkillsView() {
   const [openStation, setOpenStation] = useState<string | null>(null);
   const [hoveredStation, setHoveredStation] = useState<string | null>(null);
-  const [position, setPosition] = useState<{ coordinates: [number, number]; zoom: number }>({ coordinates: [0, 0], zoom: 1 });
+  const [position, setPosition] = useState<{ coordinates: [number, number]; zoom: number }>({ coordinates: [10, 40], zoom: 2.5 });
 
   const handleZoomIn = () => setPosition(pos => ({ ...pos, zoom: Math.min(pos.zoom * 1.5, 8) }));
   const handleZoomOut = () => setPosition(pos => ({ ...pos, zoom: Math.max(pos.zoom / 1.5, 1) }));
-  const handleReset = () => setPosition({ coordinates: [0, 0], zoom: 1 });
+  const handleReset = () => setPosition({ coordinates: [10, 40], zoom: 2.5 });
   return (
     <div className="space-y-6">
       {/* Map Card */}
