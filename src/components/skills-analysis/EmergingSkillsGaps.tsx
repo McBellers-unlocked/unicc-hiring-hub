@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import SkillPeopleDrillDown from "./SkillPeopleDrillDown";
 
 interface SkillDefinition {
   id: string;
@@ -49,6 +50,7 @@ export default function EmergingSkillsGaps({ skills, onGapDataUpdate }: Props) {
   const [gapData, setGapData] = useState<SkillGapData[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
+  const [selectedSkill, setSelectedSkill] = useState<SkillGapData | null>(null);
 
   const emergingSkills = useMemo(() => {
     return skills.filter(s => 
@@ -245,7 +247,8 @@ export default function EmergingSkillsGaps({ skills, onGapDataUpdate }: Props) {
                           )}
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="font-medium text-sm truncate max-w-[140px] cursor-default">
+                              <span className="font-medium text-sm truncate max-w-[140px] cursor-pointer hover:underline"
+                                onClick={() => setSelectedSkill(gap)}>
                                 {gap.name}
                               </span>
                             </TooltipTrigger>
@@ -348,6 +351,15 @@ export default function EmergingSkillsGaps({ skills, onGapDataUpdate }: Props) {
             </div>
           </TooltipProvider>
         )}
+
+        <SkillPeopleDrillDown
+          open={!!selectedSkill}
+          onOpenChange={(open) => !open && setSelectedSkill(null)}
+          skillName={selectedSkill?.name || ""}
+          skillId={selectedSkill?.id}
+          category={selectedSkill?.category}
+          lifecycleStage={selectedSkill?.status || "Emerging"}
+        />
       </CardContent>
     </Card>
   );
