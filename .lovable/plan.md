@@ -1,33 +1,27 @@
 
 
-## Populate Future Readiness Card with Dummy Data
+## Populate Organization Skills Matrix with Dummy Data
 
 ### Problem
-The FutureReadinessCard currently relies on real database queries that return empty/zero results, so it shows 0% with no useful content. Need to populate it with realistic dummy data including a 67% score, trend sparkline, and skill-area breakdown.
+The Organization Skills Matrix shows empty cells because the database has no real `skill_assessments` data for division-level aggregation. The `fetchDivisionSkillsData` function queries the DB and returns empty results.
 
-### Changes (single file: `src/components/skills-analysis/FutureReadinessCard.tsx`)
+### Approach
+After the real data fetch completes, if `divisionData` is empty (no real assessments), generate deterministic dummy data for every combination of division × skill. This keeps the real data path intact — if real data exists, it will display; otherwise dummy data fills in.
 
-**Replace the database-driven logic with hardcoded dummy data** that always renders a working state:
+### Changes (single file: `src/components/skills-analysis/SkillsPortfolioAnalytics.tsx`)
 
-1. **Score display**: 67% with amber/warning styling — adjust `getReadinessLevel` thresholds so 60-74 maps to an amber "Good Progress" level instead of green "Excellent"
-2. **Staff count**: "87 of 130 assessed"
-3. **Trend sparkline**: A small inline SVG polyline showing 6-month improvement: 45% → 52% → 55% → 61% → 64% → 67%, with month labels underneath
-4. **Skill-area breakdown** replacing the current "Emerging Skills / New Skills" grid:
-   - AI & Machine Learning: 42% ready
-   - Cloud Infrastructure: 71% ready
-   - Data Analytics: 78% ready
-   - Cybersecurity: 65% ready
-   - DevOps & Automation: 58% ready
-   - Each row: skill name on the left, percentage on the right, horizontal `Progress` bar below
+1. **Generate dummy staff counts per division** — At the end of `fetchDivisionSkillsData`, if the real `divisionAggregations` array is empty (or staff counts are all zero), populate with dummy values:
+   - CS: 45, DD: 32, DO: 28, DS: 51, MS: 38, OP: 24
 
-5. **Remove** the `useEffect`/`fetchReadinessData` database calls and the `emergingSkillIds` memo — replace with simple constants
-6. **Keep** the card header, `Rocket` icon, and overall card structure
+2. **Generate dummy division skill data** — For each division × skill combination, use a simple deterministic hash (from division name + skill ID) to produce:
+   - `staffWithSkill`: 30-90% of division staff count
+   - `averageLevel`: between 1.5 and 4.8
+   - `credentialCount`: for credential-type skills, 20-70% of staff
 
-### Styling Details
-- The 67% score gets amber treatment: `text-yellow-600` label saying "Good Progress" with `TrendingUp` icon
-- The main progress bar uses a yellow/amber indicator class
-- The sparkline is a simple SVG (~120×40px) with a green-to-amber gradient stroke
-- Each breakdown row is compact: flex row with name, percentage, and a thin `Progress` bar (h-2)
+3. **Implementation**: Add a helper function `generateDummyMatrixData(skills, divisions, staffCounts)` that returns a `DivisionSkillAggregation[]` array. Call it as a fallback at the end of `fetchDivisionSkillsData` when real data is empty.
 
-### No other files affected.
+4. **Hash function**: Reuse a simple string hash (`(division + skillId)` → deterministic number) so values stay stable across re-renders and category filter changes.
+
+### Result
+Every cell in the matrix will show a colored dot with a staff count, coverage percentages will be non-zero, and the Insights Strip above the matrix will also populate since it reads from the same `divisionData` state.
 
