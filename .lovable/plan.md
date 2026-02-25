@@ -1,64 +1,41 @@
 
 
-## Geographic Skills Heatmap
+## Improve Geographic Map & Replace Nairobi with Rome
 
-### Overview
-Add a new "Geographic" tab to the Skills Analysis page with an interactive map showing duty station skill health, plus a comparison matrix below.
+### Problems
+1. The current SVG continent paths are very crude blobs that don't look like real continents
+2. Nairobi should be replaced with Rome
 
-### New Files
+### Changes (single file: `src/components/skills-analysis/GeographicSkillsView.tsx`)
 
-**`src/components/skills-analysis/GeographicSkillsView.tsx`**
-Main component containing:
+**1. Replace continent paths with realistic Natural Earth-style SVG outlines**
+- Use detailed SVG path data for recognizable continent shapes (North America, South America, Europe, Africa, Asia, Australia) using a proper Mercator-like projection
+- These will be hand-traced simplified but recognizable outlines -- much more detailed than the current ~5-point blobs, using proper coastline shapes
+- Add graticule lines (latitude/longitude grid) as subtle background lines for a professional cartographic look
+- Use a proper viewBox (e.g. `0 0 1000 500`) for better path precision
 
-1. **SVG World Map** -- A custom lightweight SVG (no external library needed) showing a simplified world outline with 5 duty station markers positioned at approximate coordinates:
-   - Valencia (HQ) -- 120 staff
-   - Geneva -- 45 staff
-   - New York -- 30 staff
-   - Brindisi -- 25 staff
-   - Nairobi -- 15 staff
+**2. Replace Nairobi with Rome**
+- Change station name from "Nairobi" to "Rome"
+- Update map coordinates to Rome's position (central Italy, roughly same longitude as Brindisi but slightly west/north)
+- Keep the same staff count (15) and coverage (48%)
+- Adjust skills/strengths/gaps to be more Italy-office appropriate (keep similar profile but update strengths to include "Data Analytics" and "Policy & Governance" fitting an Italian office)
 
-2. **Station circles**: Size proportional to staff count. Color based on coverage health:
-   - Green (>70%): Valencia, Geneva
-   - Amber (40-70%): New York, Nairobi
-   - Red (<40%): Brindisi
+**3. Adjust all station coordinates** to match the new higher-resolution viewBox so markers land correctly on the realistic map
 
-3. **Popover on click** (using existing Popover component): Station name, total staff, top 3 strongest skills, top 3 critical gaps, coverage percentage
+**4. Visual polish**
+- Add ocean background color (light blue tint)
+- Add country border styling with slightly more contrast
+- Round the SVG container corners
 
-4. **Comparison table below the map**:
-   - Rows = 5 duty stations
-   - Columns = top 10 most critical skills (mix of technical, behavioral, emerging)
-   - Cells = staff count with color coding (green = adequate, amber = partial, red = gap)
+### Station coordinate updates (approximate for new projection)
+- Valencia: southwestern Europe (Spain)
+- Geneva: central-western Europe (Switzerland)  
+- New York: US east coast
+- Brindisi: southeastern Italy
+- Rome: central Italy (new, replacing Nairobi)
 
-**Dummy data approach:**
-- Hardcoded station profiles with staff counts and skill distributions
-- Valencia strong on technical (cloud, DevOps, cybersecurity) but weak on behavioral (leadership, communication)
-- Brindisi weak on cloud/AI skills
-- Nairobi moderate gaps across the board
-- Geneva strong on governance/policy skills
-- New York strong on strategic/diplomatic skills
-- 10 representative skills selected across categories for the matrix
+All five stations are now in the Americas/Europe region, so the map can optionally focus more on the Atlantic region while still showing the full world.
 
-### Changes to Existing Files
-
-**`src/pages/SkillsAnalysis.tsx`**
-- Import `GeographicSkillsView` and `Globe` icon from lucide-react
-- Add a new tab trigger "Geographic" (value `"geographic"`) with Globe icon, visible to managers
-- Add corresponding `TabsContent` rendering `GeographicSkillsView`
-
-### Technical Detail
-
-```text
-GeographicSkillsView
-├── Card: "Geographic Skills Dashboard"
-│   ├── SVG Map (~400px tall)
-│   │   ├── World outline paths (simplified continents)
-│   │   └── 5 interactive circles with Popover triggers
-│   │       └── Popover: station summary card
-│   └── Comparison Matrix (Table)
-│       ├── Header: Station | Skill1 | Skill2 | ... | Skill10
-│       └── 5 rows with color-coded cells
-└── No external dependencies (pure SVG + existing UI components)
-```
-
-The map will use inline SVG continent outlines (simplified paths for Europe, Africa, Americas) rather than adding a new dependency. Each duty station is a `<circle>` wrapped in a Popover trigger. This keeps the bundle lean and avoids `react-simple-maps` dependency overhead.
+### No other files affected
+The component is self-contained with all dummy data inline.
 
