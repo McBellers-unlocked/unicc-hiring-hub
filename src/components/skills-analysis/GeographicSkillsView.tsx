@@ -11,7 +11,10 @@ import {
   Geographies,
   Geography,
   Marker,
+  ZoomableGroup,
 } from "react-simple-maps";
+import { Plus, Minus, RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
@@ -158,7 +161,11 @@ function getRadius(staff: number) {
 export default function GeographicSkillsView() {
   const [openStation, setOpenStation] = useState<string | null>(null);
   const [hoveredStation, setHoveredStation] = useState<string | null>(null);
+  const [position, setPosition] = useState<{ coordinates: [number, number]; zoom: number }>({ coordinates: [0, 0], zoom: 1 });
 
+  const handleZoomIn = () => setPosition(pos => ({ ...pos, zoom: Math.min(pos.zoom * 1.5, 8) }));
+  const handleZoomOut = () => setPosition(pos => ({ ...pos, zoom: Math.max(pos.zoom / 1.5, 1) }));
+  const handleReset = () => setPosition({ coordinates: [0, 0], zoom: 1 });
   return (
     <div className="space-y-6">
       {/* Map Card */}
@@ -185,7 +192,7 @@ export default function GeographicSkillsView() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg overflow-hidden border" style={{ background: "hsl(210 60% 88%)" }}>
+          <div className="relative rounded-lg overflow-hidden border" style={{ background: "hsl(210 60% 88%)" }}>
             <ComposableMap
               projection="geoEqualEarth"
               projectionConfig={{ scale: 160 }}
@@ -193,112 +200,130 @@ export default function GeographicSkillsView() {
               height={450}
               style={{ width: "100%", height: "auto" }}
             >
-              <Geographies geography={GEO_URL}>
-                {({ geographies }) =>
-                  geographies.map((geo) => (
-                    <Geography
-                      key={geo.rsmKey}
-                      geography={geo}
-                      fill="hsl(40 30% 92%)"
-                      stroke="hsl(var(--border))"
-                      strokeWidth={0.5}
-                      style={{
-                        default: { outline: "none" },
-                        hover: { outline: "none", fill: "hsl(var(--muted))" },
-                        pressed: { outline: "none" },
-                      }}
-                    />
-                  ))
-                }
-              </Geographies>
+              <ZoomableGroup
+                zoom={position.zoom}
+                center={position.coordinates}
+                onMoveEnd={(pos) => setPosition(pos)}
+                minZoom={1}
+                maxZoom={8}
+              >
+                <Geographies geography={GEO_URL}>
+                  {({ geographies }) =>
+                    geographies.map((geo) => (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        fill="hsl(40 30% 92%)"
+                        stroke="hsl(var(--border))"
+                        strokeWidth={0.5}
+                        style={{
+                          default: { outline: "none" },
+                          hover: { outline: "none", fill: "hsl(var(--muted))" },
+                          pressed: { outline: "none" },
+                        }}
+                      />
+                    ))
+                  }
+                </Geographies>
 
-              {STATIONS.map((station) => {
-                const r = getRadius(station.staff);
-                const health = getHealthColor(station.coverage);
-                const isHovered = hoveredStation === station.name;
+                {STATIONS.map((station) => {
+                  const r = getRadius(station.staff) / Math.sqrt(position.zoom);
+                  const health = getHealthColor(station.coverage);
+                  const isHovered = hoveredStation === station.name;
 
-                return (
-                  <Marker key={station.name} coordinates={station.coordinates}>
-                    <Popover
-                      open={openStation === station.name}
-                      onOpenChange={(o) => setOpenStation(o ? station.name : null)}
-                    >
-                      <PopoverTrigger asChild>
-                        <g
-                          className="cursor-pointer"
-                          role="button"
-                          tabIndex={0}
-                          onMouseEnter={() => setHoveredStation(station.name)}
-                          onMouseLeave={() => setHoveredStation(null)}
-                        >
-                          {/* Pulse ring */}
-                          <circle
-                            r={r + 3}
-                            fill="none"
-                            stroke={health.fill}
-                            strokeWidth="1.5"
-                            opacity="0.35"
-                          />
-                          {/* Main circle */}
-                          <circle
-                            r={r}
-                            fill={health.fill}
-                            fillOpacity="0.85"
-                            stroke="white"
-                            strokeWidth="1.5"
-                          />
-                          {/* Hover label */}
-                          {isHovered && (
-                            <text
-                              y={-(r + 8)}
-                              textAnchor="middle"
-                              fontSize="10"
-                              fontWeight="600"
-                              fill="hsl(var(--foreground))"
-                              className="pointer-events-none"
-                            >
-                              {station.name.replace(" (HQ)", "")}
-                            </text>
-                          )}
-                        </g>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-72 p-0" side="top" sideOffset={8}>
-                        <div className="p-4 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-semibold text-sm">{station.name}</h4>
-                            <Badge className={health.badgeClass} variant="outline">
-                              {station.coverage}% coverage
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Users className="h-3 w-3" />
-                            {station.staff} staff members
-                          </div>
-                          <div className="grid grid-cols-2 gap-3 pt-1">
-                            <div>
-                              <div className="flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-1">
-                                <TrendingUp className="h-3 w-3" /> Strengths
-                              </div>
-                              {station.strengths.map(s => (
-                                <div key={s} className="text-xs text-muted-foreground truncate">• {s}</div>
-                              ))}
+                  return (
+                    <Marker key={station.name} coordinates={station.coordinates}>
+                      <Popover
+                        open={openStation === station.name}
+                        onOpenChange={(o) => setOpenStation(o ? station.name : null)}
+                      >
+                        <PopoverTrigger asChild>
+                          <g
+                            className="cursor-pointer"
+                            role="button"
+                            tabIndex={0}
+                            onMouseEnter={() => setHoveredStation(station.name)}
+                            onMouseLeave={() => setHoveredStation(null)}
+                          >
+                            <circle
+                              r={r + 3 / Math.sqrt(position.zoom)}
+                              fill="none"
+                              stroke={health.fill}
+                              strokeWidth={1.5 / Math.sqrt(position.zoom)}
+                              opacity="0.35"
+                            />
+                            <circle
+                              r={r}
+                              fill={health.fill}
+                              fillOpacity="0.85"
+                              stroke="white"
+                              strokeWidth={1.5 / Math.sqrt(position.zoom)}
+                            />
+                            {isHovered && (
+                              <text
+                                y={-(r + 8 / Math.sqrt(position.zoom))}
+                                textAnchor="middle"
+                                fontSize={10 / Math.sqrt(position.zoom)}
+                                fontWeight="600"
+                                fill="hsl(var(--foreground))"
+                                className="pointer-events-none"
+                              >
+                                {station.name.replace(" (HQ)", "")}
+                              </text>
+                            )}
+                          </g>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-72 p-0" side="top" sideOffset={8}>
+                          <div className="p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-semibold text-sm">{station.name}</h4>
+                              <Badge className={health.badgeClass} variant="outline">
+                                {station.coverage}% coverage
+                              </Badge>
                             </div>
-                            <div>
-                              <div className="flex items-center gap-1 text-xs font-medium text-red-700 dark:text-red-400 mb-1">
-                                <TrendingDown className="h-3 w-3" /> Critical Gaps
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Users className="h-3 w-3" />
+                              {station.staff} staff members
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 pt-1">
+                              <div>
+                                <div className="flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-1">
+                                  <TrendingUp className="h-3 w-3" /> Strengths
+                                </div>
+                                {station.strengths.map(s => (
+                                  <div key={s} className="text-xs text-muted-foreground truncate">• {s}</div>
+                                ))}
                               </div>
-                              {station.gaps.map(g => (
-                                <div key={g} className="text-xs text-muted-foreground truncate">• {g}</div>
-                              ))}
+                              <div>
+                                <div className="flex items-center gap-1 text-xs font-medium text-red-700 dark:text-red-400 mb-1">
+                                  <TrendingDown className="h-3 w-3" /> Critical Gaps
+                                </div>
+                                {station.gaps.map(g => (
+                                  <div key={g} className="text-xs text-muted-foreground truncate">• {g}</div>
+                                ))}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </Marker>
-                );
-              })}
+                        </PopoverContent>
+                      </Popover>
+                    </Marker>
+                  );
+                })}
+              </ZoomableGroup>
             </ComposableMap>
+
+            {/* Zoom Controls */}
+            <div className="absolute bottom-3 right-3 flex flex-col gap-1">
+              <Button variant="secondary" size="icon" className="h-8 w-8 shadow-md" onClick={handleZoomIn}>
+                <Plus className="h-4 w-4" />
+              </Button>
+              <Button variant="secondary" size="icon" className="h-8 w-8 shadow-md" onClick={handleZoomOut}>
+                <Minus className="h-4 w-4" />
+              </Button>
+              <Button variant="secondary" size="icon" className="h-8 w-8 shadow-md" onClick={handleReset}>
+                <RotateCcw className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
