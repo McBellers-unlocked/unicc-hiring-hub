@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { MapPin, Users, TrendingUp, TrendingDown } from "lucide-react";
 import {
   ComposableMap,
@@ -15,18 +18,20 @@ import {
 } from "react-simple-maps";
 import { Plus, Minus, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
 // --- Dummy Data ---
 
-const SKILLS = [
+const HARDCODED_SKILLS = [
   "Cloud Architecture", "Cybersecurity", "AI/ML", "DevOps",
   "Data Analytics", "Leadership", "Communication",
   "Policy & Governance", "Strategic Planning", "Change Management",
 ] as const;
 
-type SkillName = typeof SKILLS[number];
+type HardcodedSkillName = typeof HARDCODED_SKILLS[number];
 
 interface StationData {
   name: string;
@@ -34,8 +39,8 @@ interface StationData {
   coverage: number;
   strengths: string[];
   gaps: string[];
-  skills: Record<SkillName, { count: number; required: number }>;
-  coordinates: [number, number]; // [lng, lat]
+  skills: Record<HardcodedSkillName, { count: number; required: number }>;
+  coordinates: [number, number];
 }
 
 const STATIONS: StationData[] = [
@@ -158,14 +163,83 @@ function getRadius(staff: number) {
   return Math.max(4, Math.sqrt(staff) * 1.8);
 }
 
+// Deterministic hash for generating consistent dummy data for non-hardcoded skills
+function simpleHash(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function getSkillData(stationName: string, skillName: string, staff: number): { count: number; required: number } {
+  // Check hardcoded data first
+  const station = STATIONS.find(s => s.name === stationName);
+  if (station && skillName in station.skills) {
+    return station.skills[skillName as HardcodedSkillName];
+  }
+  // Generate deterministic dummy data
+  const h = simpleHash(stationName + skillName);
+  const required = Math.max(2, Math.round((staff * ((h % 30) + 5)) / 100));
+  const count = Math.max(0, Math.round(required * ((((h >> 8) % 80) + 20) / 100)));
+  return { count, required };
+}
+
 export default function GeographicSkillsView() {
   const [openStation, setOpenStation] = useState<string | null>(null);
   const [hoveredStation, setHoveredStation] = useState<string | null>(null);
   const [position, setPosition] = useState<{ coordinates: [number, number]; zoom: number }>({ coordinates: [10, 40], zoom: 2.5 });
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+
+  // Fetch skills from database
+  const { data: dbSkills } = useQuery({
+    queryKey: ["skill-definitions-active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("skill_definitions")
+        .select("id, name, category")
+        .eq("is_active", true)
+        .order("category")
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Initialize selectedSkills once DB data loads
+  useEffect(() => {
+    if (dbSkills && dbSkills.length > 0 && selectedSkills.length === 0) {
+      const dbNames = dbSkills.map(s => s.name);
+      // Prefer hardcoded defaults that exist in DB, then fill remaining
+      const defaults = (HARDCODED_SKILLS as readonly string[]).filter(s => dbNames.includes(s));
+      const remaining = dbNames.filter(n => !defaults.includes(n));
+      setSelectedSkills([...defaults, ...remaining].slice(0, 10));
+    }
+  }, [dbSkills, selectedSkills.length]);
+
+  // Fallback to hardcoded if no DB data
+  const displaySkills = selectedSkills.length > 0 ? selectedSkills : [...HARDCODED_SKILLS];
+
+  // Group DB skills by category for the dropdown
+  const skillsByCategory = (dbSkills ?? []).reduce<Record<string, { id: string; name: string }[]>>((acc, s) => {
+    (acc[s.category] ??= []).push({ id: s.id, name: s.name });
+    return acc;
+  }, {});
+
+  const handleSwapSkill = (index: number, newSkill: string) => {
+    setSelectedSkills(prev => {
+      const next = [...prev];
+      next[index] = newSkill;
+      return next;
+    });
+  };
 
   const handleZoomIn = () => setPosition(pos => ({ ...pos, zoom: Math.min(pos.zoom * 1.5, 8) }));
   const handleZoomOut = () => setPosition(pos => ({ ...pos, zoom: Math.max(pos.zoom / 1.5, 1) }));
   const handleReset = () => setPosition({ coordinates: [10, 40], zoom: 2.5 });
+
   return (
     <div className="space-y-6">
       {/* Map Card */}
@@ -333,47 +407,82 @@ export default function GeographicSkillsView() {
         <CardHeader>
           <CardTitle className="text-lg">Skills Comparison Matrix</CardTitle>
           <CardDescription>
-            Staff counts per skill at each duty station. Color indicates adequacy vs requirement.
+            Staff counts per skill at each duty station. Use the dropdowns to swap skills. Color indicates adequacy vs requirement.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="min-w-[140px]">Duty Station</TableHead>
-                {SKILLS.map(skill => (
-                  <TableHead key={skill} className="text-xs text-center min-w-[90px] whitespace-nowrap">
-                    {skill}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {STATIONS.map(station => {
-                const health = getHealthColor(station.coverage);
-                return (
-                  <TableRow key={station.name}>
-                    <TableCell className="font-medium text-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: health.fill }} />
-                        {station.name}
-                      </div>
-                    </TableCell>
-                    {SKILLS.map(skill => {
-                      const s = station.skills[skill];
-                      return (
-                        <TableCell key={skill} className="text-center p-1.5">
-                          <span className={`inline-flex items-center justify-center rounded px-2 py-0.5 text-xs font-medium ${getCellColor(s.count, s.required)}`}>
-                            {s.count}/{s.required}
-                          </span>
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[140px]">Duty Station</TableHead>
+                  {displaySkills.map((skill, idx) => (
+                    <TableHead key={idx} className="text-center p-1 min-w-[120px]">
+                      {dbSkills && dbSkills.length > 0 ? (
+                        <Select
+                          value={skill}
+                          onValueChange={(val) => handleSwapSkill(idx, val)}
+                        >
+                          <SelectTrigger className="h-7 text-[11px] font-medium border-dashed bg-background px-2 [&>span]:truncate">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="z-50 bg-popover max-h-64">
+                            {Object.entries(skillsByCategory).map(([category, skills]) => (
+                              <SelectGroup key={category}>
+                                <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                  {category}
+                                </SelectLabel>
+                                {skills.map(s => {
+                                  const alreadySelected = displaySkills.includes(s.name) && s.name !== skill;
+                                  return (
+                                    <SelectItem
+                                      key={s.id}
+                                      value={s.name}
+                                      disabled={alreadySelected}
+                                      className="text-xs"
+                                    >
+                                      {s.name}
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectGroup>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span className="text-xs whitespace-nowrap">{skill}</span>
+                      )}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {STATIONS.map(station => {
+                  const health = getHealthColor(station.coverage);
+                  return (
+                    <TableRow key={station.name}>
+                      <TableCell className="font-medium text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: health.fill }} />
+                          {station.name}
+                        </div>
+                      </TableCell>
+                      {displaySkills.map((skill, idx) => {
+                        const s = getSkillData(station.name, skill, station.staff);
+                        return (
+                          <TableCell key={idx} className="text-center p-1.5">
+                            <span className={`inline-flex items-center justify-center rounded px-2 py-0.5 text-xs font-medium ${getCellColor(s.count, s.required)}`}>
+                              {s.count}/{s.required}
+                            </span>
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
