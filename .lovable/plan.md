@@ -1,63 +1,33 @@
 
 
-## Enhanced "Act" Dropdown on Emerging Skills Gaps
+## Populate Future Readiness Card with Dummy Data
 
-### Overview
-Expand the existing "Act" dropdown menu on each row of the Emerging Skills Gaps table with four new actionable options, and add a "Recruitment Priorities" KPI card at the top of the Organization tab that updates dynamically when skills are flagged.
+### Problem
+The FutureReadinessCard currently relies on real database queries that return empty/zero results, so it shows 0% with no useful content. Need to populate it with realistic dummy data including a 67% score, trend sparkline, and skill-area breakdown.
 
-### Changes
+### Changes (single file: `src/components/skills-analysis/FutureReadinessCard.tsx`)
 
-#### 1. EmergingSkillsGaps.tsx — Enhanced dropdown + development plan modal
+**Replace the database-driven logic with hardcoded dummy data** that always renders a working state:
 
-**New dropdown items** (replacing the current 4 placeholder items):
-- **Find Internal Talent** — opens the existing `SkillPeopleDrillDown` panel (already wired) but with a filter hint for "adjacent skills"
-- **Create Development Plan** — opens a new modal (`Dialog`) with pre-filled fields: skill name, suggested training resources, target proficiency (from `requiredLevel`), and a 3-month timeline. Includes a "Send to Manager" button that fires a toast notification.
-- **Flag for Recruitment** — toggles a recruitment priority flag on the skill row, adds a visual badge, and calls a parent callback to update the recruitment priorities count
-- **View by Location** — calls a parent callback to switch to the Geographic tab with the skill name pre-selected
+1. **Score display**: 67% with amber/warning styling — adjust `getReadinessLevel` thresholds so 60-74 maps to an amber "Good Progress" level instead of green "Excellent"
+2. **Staff count**: "87 of 130 assessed"
+3. **Trend sparkline**: A small inline SVG polyline showing 6-month improvement: 45% → 52% → 55% → 61% → 64% → 67%, with month labels underneath
+4. **Skill-area breakdown** replacing the current "Emerging Skills / New Skills" grid:
+   - AI & Machine Learning: 42% ready
+   - Cloud Infrastructure: 71% ready
+   - Data Analytics: 78% ready
+   - Cybersecurity: 65% ready
+   - DevOps & Automation: 58% ready
+   - Each row: skill name on the left, percentage on the right, horizontal `Progress` bar below
 
-**New state:**
-- `flaggedForRecruitment: Set<string>` — tracks which skill IDs are flagged
-- `devPlanSkill: SkillGapData | null` — controls the development plan modal
+5. **Remove** the `useEffect`/`fetchReadinessData` database calls and the `emergingSkillIds` memo — replace with simple constants
+6. **Keep** the card header, `Rocket` icon, and overall card structure
 
-**New props added:**
-- `onFlagForRecruitment?: (skillIds: string[]) => void` — notifies parent of flagged skill changes
-- `onViewByLocation?: (skillName: string) => void` — triggers tab switch to Geographic view
-- `recruitmentFlags?: Set<string>` — receives persisted flags from parent
+### Styling Details
+- The 67% score gets amber treatment: `text-yellow-600` label saying "Good Progress" with `TrendingUp` icon
+- The main progress bar uses a yellow/amber indicator class
+- The sparkline is a simple SVG (~120×40px) with a green-to-amber gradient stroke
+- Each breakdown row is compact: flex row with name, percentage, and a thin `Progress` bar (h-2)
 
-**New sub-component inline:** A `Dialog` for the Development Plan modal containing:
-- Read-only skill name, category, current avg proficiency, target level
-- Suggested training text (auto-generated based on skill category)
-- Timeline selector (3/6/12 months)
-- "Send to Manager" button → toast: "Development plan for [skill] sent to line manager"
-
-#### 2. SkillsPortfolioAnalytics.tsx — Recruitment Priorities KPI + state management
-
-**New state:**
-- `recruitmentPriorities: Set<string>` — set of flagged skill IDs, persisted in component state
-
-**New KPI card** inserted into the existing 6-column KPI grid (making it 7, or replacing one row with a highlighted strip above the grid):
-- Rendered as a distinct summary strip/card above the KPI grid: "Recruitment Priorities: X skills flagged" with a small list of flagged skill names and a "Clear All" button
-- Only shown when count > 0
-
-**Wiring:**
-- Pass `recruitmentFlags` and `onFlagForRecruitment` to `EmergingSkillsGaps`
-- Pass `onViewByLocation` that calls `setActiveTab('geographic')` — requires lifting `setActiveTab` or using a callback from the parent `SkillsAnalysis.tsx`
-
-#### 3. SkillsAnalysis.tsx — Tab switching callback
-
-- Pass `setActiveTab` down to `SkillsPortfolioAnalytics` as an `onSwitchTab` prop so "View by Location" can navigate to the Geographic tab
-
-### Technical Details
-
-- The recruitment flags are stored in React state (session-only). No database persistence needed for now.
-- The Development Plan modal uses shadcn `Dialog` with form fields.
-- "Find Internal Talent" reuses the existing `SkillPeopleDrillDown` sheet — same as clicking the skill name, but opens it directly from the dropdown.
-- "View by Location" chains two actions: switches to Geographic tab and could pre-filter the comparison matrix to show that skill (if it exists in the dropdown selectors).
-- The flagged skills badge appears as a small `Flag` icon next to the skill name in the table row.
-- The Recruitment Priorities strip uses a `Card` with `border-primary/50 bg-primary/5` styling, similar to the existing uncategorized warning pattern.
-
-### Files Modified
-1. `src/components/skills-analysis/EmergingSkillsGaps.tsx` — enhanced dropdown, dev plan modal, flag logic
-2. `src/components/skills-analysis/SkillsPortfolioAnalytics.tsx` — recruitment priorities state, KPI strip, prop wiring
-3. `src/pages/SkillsAnalysis.tsx` — pass `setActiveTab` callback to SkillsPortfolioAnalytics
+### No other files affected.
 
