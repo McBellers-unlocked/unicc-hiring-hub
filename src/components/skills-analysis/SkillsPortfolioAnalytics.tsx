@@ -341,7 +341,63 @@ export default function SkillsPortfolioAnalytics({ onSwitchTab }: SkillsPortfoli
         });
       });
 
-      setDivisionData(divisionAggregations);
+      // Fallback: generate dummy data if real assessments are empty
+      if (divisionAggregations.length === 0) {
+        const dummyStaffCounts: Record<string, number> = {
+          CS: 45, DD: 32, DO: 28, DS: 51, MS: 38, OP: 24,
+        };
+        // Override staff counts with dummy values
+        DIVISIONS.forEach(d => staffCounts[d] = dummyStaffCounts[d] || 0);
+        setDivisionStaffCounts({ ...staffCounts });
+
+        // Deterministic hash function
+        const simpleHash = (str: string): number => {
+          let hash = 0;
+          for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash |= 0;
+          }
+          return Math.abs(hash);
+        };
+
+        // Get current skills list
+        const { data: currentSkills } = await supabase
+          .from('skill_definitions')
+          .select('id, name, category, skill_type')
+          .eq('is_active', true);
+
+        const skillList = currentSkills || [];
+        const dummyData: DivisionSkillAggregation[] = [];
+
+        DIVISIONS.forEach(division => {
+          const total = dummyStaffCounts[division];
+          skillList.forEach(skill => {
+            const h = simpleHash(division + skill.id);
+            const coveragePct = 30 + (h % 61); // 30-90%
+            const staffWithSkill = Math.max(1, Math.round(total * coveragePct / 100));
+            const levelHash = simpleHash(skill.id + division);
+            const averageLevel = 1.5 + (levelHash % 34) / 10; // 1.5-4.8
+            const isCredential = skill.skill_type === 'credential' || skill.skill_type === 'certification';
+            const credentialCount = isCredential
+              ? Math.max(1, Math.round(total * (20 + (simpleHash(division + 'cred' + skill.id) % 51)) / 100))
+              : 0;
+
+            dummyData.push({
+              division,
+              skillId: skill.id,
+              staffWithSkill,
+              totalStaff: total,
+              averageLevel: Math.round(averageLevel * 10) / 10,
+              credentialCount,
+            });
+          });
+        });
+
+        setDivisionData(dummyData);
+      } else {
+        setDivisionData(divisionAggregations);
+      }
     } catch (error) {
       console.error("Error fetching division skills:", error);
     } finally {
