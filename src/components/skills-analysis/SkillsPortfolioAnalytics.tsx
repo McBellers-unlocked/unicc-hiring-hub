@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Briefcase, TrendingUp, AlertTriangle, Sparkles, Clock, CheckCircle2, Building2, Target, ShieldAlert, Globe } from "lucide-react";
+import { Briefcase, TrendingUp, AlertTriangle, Sparkles, Clock, CheckCircle2, Building2, Target, ShieldAlert, Globe, Flag, X } from "lucide-react";
 import StatsCard from "@/components/dashboard/StatsCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -65,10 +66,18 @@ const STATUS_LABELS: Record<string, string> = {
 
 const DIVISIONS = ['CS', 'DD', 'DO', 'DS', 'MS', 'OP'];
 
-export default function SkillsPortfolioAnalytics() {
+interface SkillsPortfolioAnalyticsProps {
+  onSwitchTab?: (tab: string) => void;
+}
+
+export default function SkillsPortfolioAnalytics({ onSwitchTab }: SkillsPortfolioAnalyticsProps) {
   const { userRoles } = useAuth();
   const [skills, setSkills] = useState<SkillDefinition[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Recruitment priorities state
+  const [recruitmentPriorities, setRecruitmentPriorities] = useState<Set<string>>(new Set());
+  const [recruitmentSkillNames, setRecruitmentSkillNames] = useState<Map<string, string>>(new Map());
   
   // Filter state
   const [filters, setFilters] = useState<FilterState>({
@@ -694,9 +703,83 @@ export default function SkillsPortfolioAnalytics() {
         </Card>
       </div>
 
+      {/* Recruitment Priorities Strip */}
+      {recruitmentPriorities.size > 0 && (
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <Flag className="h-5 w-5 text-primary flex-shrink-0 fill-primary" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium">
+                  Recruitment Priorities: <span className="text-primary">{recruitmentPriorities.size} skills flagged</span>
+                </p>
+                <div className="flex gap-1.5 flex-wrap mt-1">
+                  {Array.from(recruitmentSkillNames.entries()).map(([id, name]) => (
+                    <Badge key={id} variant="secondary" className="text-xs gap-1">
+                      {name}
+                      <button
+                        className="ml-0.5 hover:text-destructive"
+                        onClick={() => {
+                          const newFlags = new Set(recruitmentPriorities);
+                          newFlags.delete(id);
+                          setRecruitmentPriorities(newFlags);
+                          const newNames = new Map(recruitmentSkillNames);
+                          newNames.delete(id);
+                          setRecruitmentSkillNames(newNames);
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs shrink-0"
+              onClick={() => {
+                setRecruitmentPriorities(new Set());
+                setRecruitmentSkillNames(new Map());
+              }}
+            >
+              Clear All
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Emerging Skills Gaps - Full Width */}
       <div ref={emergingGapsRef}>
-        <EmergingSkillsGaps skills={effectiveSkills} onGapDataUpdate={handleGapDataUpdate} />
+        <EmergingSkillsGaps
+          skills={effectiveSkills}
+          onGapDataUpdate={handleGapDataUpdate}
+          recruitmentFlags={recruitmentPriorities}
+          onFlagForRecruitment={(ids) => {
+            const newSet = new Set(ids);
+            setRecruitmentPriorities(newSet);
+            // Update names map
+            const newNames = new Map(recruitmentSkillNames);
+            // Remove names for unflagged
+            Array.from(newNames.keys()).forEach(k => {
+              if (!newSet.has(k)) newNames.delete(k);
+            });
+            // Add names for newly flagged from gap data
+            ids.forEach(id => {
+              if (!newNames.has(id)) {
+                const found = gapData.find(g => g.skillId === id);
+                if (found) newNames.set(id, found.skillName);
+              }
+            });
+            setRecruitmentSkillNames(newNames);
+          }}
+          onViewByLocation={(skillName) => {
+            if (onSwitchTab) {
+              onSwitchTab('geographic');
+            }
+          }}
+        />
       </div>
 
       {/* Open Source Coverage Analytics */}

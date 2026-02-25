@@ -77,7 +77,7 @@ export default function SkillsAnalysis() {
 
           {isManager && (
             <TabsContent value="organization">
-              <SkillsPortfolioAnalytics />
+              <SkillsPortfolioAnalytics onSwitchTab={setActiveTab} />
             </TabsContent>
           )}
 
