@@ -3,12 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { TrendingUp, Sparkles, Users, AlertTriangle, GraduationCap, Briefcase, UserPlus, ClipboardCheck, ChevronDown, ChevronUp } from "lucide-react";
+import { TrendingUp, Sparkles, Users, AlertTriangle, GraduationCap, Flag, Search, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import SkillPeopleDrillDown from "./SkillPeopleDrillDown";
+import DevelopmentPlanModal from "./DevelopmentPlanModal";
 
 interface SkillDefinition {
   id: string;
@@ -30,6 +31,9 @@ interface Props {
     priority: 'high' | 'medium' | 'low';
     topDivisions: { division: string; count: number }[];
   }[]) => void;
+  recruitmentFlags?: Set<string>;
+  onFlagForRecruitment?: (skillIds: string[]) => void;
+  onViewByLocation?: (skillName: string) => void;
 }
 
 interface SkillGapData {
@@ -46,11 +50,12 @@ interface SkillGapData {
   priority: 'high' | 'medium' | 'low';
 }
 
-export default function EmergingSkillsGaps({ skills, onGapDataUpdate }: Props) {
+export default function EmergingSkillsGaps({ skills, onGapDataUpdate, recruitmentFlags, onFlagForRecruitment, onViewByLocation }: Props) {
   const [gapData, setGapData] = useState<SkillGapData[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<SkillGapData | null>(null);
+  const [devPlanSkill, setDevPlanSkill] = useState<SkillGapData | null>(null);
 
   const emergingSkills = useMemo(() => {
     return skills.filter(s => 
@@ -70,7 +75,6 @@ export default function EmergingSkillsGaps({ skills, onGapDataUpdate }: Props) {
 
     const skillIds = emergingSkills.map(s => s.id);
     
-    // Get assessments with user division info
     const { data: assessments } = await supabase
       .from('skill_assessments')
       .select(`
@@ -112,7 +116,6 @@ export default function EmergingSkillsGaps({ skills, onGapDataUpdate }: Props) {
         }
       }
       
-      // Track by division
       const division = a.users?.division;
       if (division) {
         stats.divisionCounts.set(division, (stats.divisionCounts.get(division) || 0) + 1);
@@ -133,7 +136,6 @@ export default function EmergingSkillsGaps({ skills, onGapDataUpdate }: Props) {
       const gapSize = Math.max(0, avgRequired - avgProficiency);
       const belowRequired = stats?.belowRequired || 0;
       
-      // Get top 3 divisions
       const topDivisions = stats?.divisionCounts 
         ? Array.from(stats.divisionCounts.entries())
             .sort((a, b) => b[1] - a[1])
@@ -141,7 +143,6 @@ export default function EmergingSkillsGaps({ skills, onGapDataUpdate }: Props) {
             .map(([division, count]) => ({ division, count }))
         : [];
 
-      // Priority: high if many below required and large gap
       let priority: 'high' | 'medium' | 'low' = 'low';
       if ((belowRequired >= 5 && gapSize >= 1.5) || staffCount < 3) priority = 'high';
       else if (belowRequired >= 3 || gapSize >= 1) priority = 'medium';
@@ -167,7 +168,6 @@ export default function EmergingSkillsGaps({ skills, onGapDataUpdate }: Props) {
     setGapData(gaps);
     setLoading(false);
     
-    // Call parent callback with normalized gap data for insights
     if (onGapDataUpdate) {
       onGapDataUpdate(gaps.map(g => ({
         skillId: g.id,
@@ -182,8 +182,17 @@ export default function EmergingSkillsGaps({ skills, onGapDataUpdate }: Props) {
     }
   };
 
-  const handleAction = (action: string, skillName: string) => {
-    toast.info(`${action} for "${skillName}" - Feature coming soon`);
+  const handleToggleFlag = (gap: SkillGapData) => {
+    if (!onFlagForRecruitment || !recruitmentFlags) return;
+    const newFlags = new Set(recruitmentFlags);
+    if (newFlags.has(gap.id)) {
+      newFlags.delete(gap.id);
+      toast.info(`"${gap.name}" removed from recruitment priorities`);
+    } else {
+      newFlags.add(gap.id);
+      toast.success(`"${gap.name}" flagged as recruitment priority`);
+    }
+    onFlagForRecruitment(Array.from(newFlags));
   };
 
   const highPriorityCount = gapData.filter(g => g.priority === 'high').length;
@@ -236,95 +245,104 @@ export default function EmergingSkillsGaps({ skills, onGapDataUpdate }: Props) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {displayData.map(gap => (
-                    <TableRow key={gap.id} className={gap.priority === 'high' ? 'bg-destructive/5' : ''}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {gap.status === 'new' ? (
-                            <Sparkles className="h-3.5 w-3.5 text-chart-3 flex-shrink-0" />
-                          ) : (
-                            <TrendingUp className="h-3.5 w-3.5 text-chart-2 flex-shrink-0" />
-                          )}
+                  {displayData.map(gap => {
+                    const isFlagged = recruitmentFlags?.has(gap.id);
+                    return (
+                      <TableRow key={gap.id} className={gap.priority === 'high' ? 'bg-destructive/5' : ''}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {isFlagged && (
+                              <Flag className="h-3 w-3 text-primary flex-shrink-0 fill-primary" />
+                            )}
+                            {gap.status === 'new' ? (
+                              <Sparkles className="h-3.5 w-3.5 text-chart-3 flex-shrink-0" />
+                            ) : (
+                              <TrendingUp className="h-3.5 w-3.5 text-chart-2 flex-shrink-0" />
+                            )}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="font-medium text-sm truncate max-w-[140px] cursor-pointer hover:underline"
+                                  onClick={() => setSelectedSkill(gap)}>
+                                  {gap.name}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{gap.name}</p>
+                                <p className="text-xs text-muted-foreground">{gap.category}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="font-medium text-sm truncate max-w-[140px] cursor-pointer hover:underline"
-                                onClick={() => setSelectedSkill(gap)}>
-                                {gap.name}
-                              </span>
+                              <Badge 
+                                variant={gap.gapSize >= 1.5 ? 'destructive' : gap.gapSize >= 1 ? 'secondary' : 'outline'}
+                                className="text-xs cursor-default"
+                              >
+                                {gap.gapSize > 0 ? `-${gap.gapSize}` : '0'}
+                              </Badge>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>{gap.name}</p>
-                              <p className="text-xs text-muted-foreground">{gap.category}</p>
+                              <p>Avg: {gap.avgProficiency} / Required: {gap.requiredLevel}</p>
                             </TooltipContent>
                           </Tooltip>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Badge 
-                              variant={gap.gapSize >= 1.5 ? 'destructive' : gap.gapSize >= 1 ? 'secondary' : 'outline'}
-                              className="text-xs cursor-default"
-                            >
-                              {gap.gapSize > 0 ? `-${gap.gapSize}` : '0'}
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Avg: {gap.avgProficiency} / Required: {gap.requiredLevel}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <Users className="h-3 w-3 text-muted-foreground" />
-                          <span className={`text-sm font-medium ${gap.belowRequired >= 5 ? 'text-destructive' : ''}`}>
-                            {gap.belowRequired}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1 flex-wrap">
-                          {gap.topDivisions.length === 0 ? (
-                            <span className="text-xs text-muted-foreground">-</span>
-                          ) : (
-                            gap.topDivisions.map((d, i) => (
-                              <Badge key={i} variant="outline" className="text-[10px] px-1.5 py-0">
-                                {d.division} ({d.count})
-                              </Badge>
-                            ))
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
-                              Act
-                              <ChevronDown className="h-3 w-3 ml-1" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44">
-                            <DropdownMenuItem onClick={() => handleAction('Create Learning Plan', gap.name)}>
-                              <GraduationCap className="h-3.5 w-3.5 mr-2" />
-                              Learning Plan
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleAction('Open Hiring Request', gap.name)}>
-                              <Briefcase className="h-3.5 w-3.5 mr-2" />
-                              Hiring Request
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleAction('Assign Mentor', gap.name)}>
-                              <UserPlus className="h-3.5 w-3.5 mr-2" />
-                              Assign Mentor
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleAction('Start Assessment', gap.name)}>
-                              <ClipboardCheck className="h-3.5 w-3.5 mr-2" />
-                              Start Assessment
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <Users className="h-3 w-3 text-muted-foreground" />
+                            <span className={`text-sm font-medium ${gap.belowRequired >= 5 ? 'text-destructive' : ''}`}>
+                              {gap.belowRequired}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1 flex-wrap">
+                            {gap.topDivisions.length === 0 ? (
+                              <span className="text-xs text-muted-foreground">-</span>
+                            ) : (
+                              gap.topDivisions.map((d, i) => (
+                                <Badge key={i} variant="outline" className="text-[10px] px-1.5 py-0">
+                                  {d.division} ({d.count})
+                                </Badge>
+                              ))
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                                Act
+                                <ChevronDown className="h-3 w-3 ml-1" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-52 bg-popover">
+                              <DropdownMenuItem onClick={() => setSelectedSkill(gap)}>
+                                <Search className="h-3.5 w-3.5 mr-2" />
+                                Find Internal Talent
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setDevPlanSkill(gap)}>
+                                <GraduationCap className="h-3.5 w-3.5 mr-2" />
+                                Create Development Plan
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleToggleFlag(gap)}>
+                                <Flag className={`h-3.5 w-3.5 mr-2 ${isFlagged ? 'fill-primary text-primary' : ''}`} />
+                                {isFlagged ? 'Unflag Recruitment' : 'Flag for Recruitment'}
+                              </DropdownMenuItem>
+                              {onViewByLocation && (
+                                <DropdownMenuItem onClick={() => onViewByLocation(gap.name)}>
+                                  <MapPin className="h-3.5 w-3.5 mr-2" />
+                                  View by Location
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
 
@@ -359,6 +377,16 @@ export default function EmergingSkillsGaps({ skills, onGapDataUpdate }: Props) {
           skillId={selectedSkill?.id}
           category={selectedSkill?.category}
           lifecycleStage={selectedSkill?.status || "Emerging"}
+        />
+
+        <DevelopmentPlanModal
+          open={!!devPlanSkill}
+          onOpenChange={(open) => !open && setDevPlanSkill(null)}
+          skillName={devPlanSkill?.name || ""}
+          category={devPlanSkill?.category || "General"}
+          avgProficiency={devPlanSkill?.avgProficiency || 0}
+          requiredLevel={devPlanSkill?.requiredLevel || 3}
+          belowRequired={devPlanSkill?.belowRequired || 0}
         />
       </CardContent>
     </Card>
