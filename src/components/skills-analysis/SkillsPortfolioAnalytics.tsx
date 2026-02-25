@@ -655,7 +655,7 @@ export default function SkillsPortfolioAnalytics({ onSwitchTab }: SkillsPortfoli
 
       {/* Future Readiness + Skills by Category */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <FutureReadinessCard skills={effectiveSkills} />
+        <FutureReadinessCard />
         
         {/* Skills by Category Bar Chart */}
         <Card>
