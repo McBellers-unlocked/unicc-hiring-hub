@@ -1,26 +1,24 @@
 
 
-## Add Zoom Controls to the Map
+## Set Default Map View to Atlantic/Europe Focus
 
 ### Problem
-Currently there's no way to zoom into the map — browser zoom affects the whole page.
+The map currently defaults to a fully zoomed-out world view. The user wants the default to be the zoomed-in Atlantic/Europe view shown in their screenshot, which better frames all 5 duty stations (New York, Valencia, Geneva, Brindisi, Rome).
 
-### Approach
-Add pan-and-zoom functionality using `react-simple-maps`' `ZoomableGroup` component, which is built-in and wraps the map content to enable mouse wheel zoom and drag panning. Add +/- zoom buttons overlaid on the map corner and a reset button.
+### Change (single file: `src/components/skills-analysis/GeographicSkillsView.tsx`)
 
-### Changes (single file: `src/components/skills-analysis/GeographicSkillsView.tsx`)
+Update the initial `position` state from:
+```typescript
+{ coordinates: [0, 0], zoom: 1 }
+```
+to approximately:
+```typescript
+{ coordinates: [10, 40], zoom: 2.5 }
+```
 
-1. **Import `ZoomableGroup`** from `react-simple-maps`
-2. **Add zoom state**: `position` state tracking `{ coordinates: [0, 0], zoom: 1 }`
-3. **Wrap map content** (`Geographies` + `Marker`s) inside `<ZoomableGroup>` with:
-   - `zoom={position.zoom}` and `center={position.coordinates}`
-   - `onMoveEnd` handler to update position state
-   - Min zoom: 1, max zoom: 8
-4. **Add overlay zoom controls**: A small button group (absolute-positioned in the bottom-right corner of the map container) with:
-   - **+** button: increment zoom
-   - **−** button: decrement zoom  
-   - **Reset** button: reset to default view
-5. **Scale marker radius** inversely with zoom so markers don't become huge when zoomed in (divide radius by `sqrt(zoom)`)
+This centers the map on the mid-Atlantic at ~40°N latitude, with a zoom level that frames all stations from New York to Brindisi/Rome, matching the screenshot's framing.
 
-### No other files affected
+Also update the `handleReset` function to reset to this same default view instead of `[0, 0], zoom: 1`.
+
+### One-line change, one file affected.
 
