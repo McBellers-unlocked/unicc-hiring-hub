@@ -1,73 +1,66 @@
-import { useMemo, useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { supabase } from "@/integrations/supabase/client";
-import { Rocket, TrendingUp, AlertCircle, CheckCircle } from "lucide-react";
+import { Rocket, TrendingUp } from "lucide-react";
 
-interface SkillDefinition {
-  id: string;
-  name: string;
-  ai_suggested_status: string | null;
+const readinessScore = 67;
+const staffAssessed = 87;
+const totalStaff = 130;
+
+const trendData = [
+  { month: "Sep", value: 45 },
+  { month: "Oct", value: 52 },
+  { month: "Nov", value: 55 },
+  { month: "Dec", value: 61 },
+  { month: "Jan", value: 64 },
+  { month: "Feb", value: 67 },
+];
+
+const skillBreakdown = [
+  { name: "AI & Machine Learning", value: 42 },
+  { name: "Cloud Infrastructure", value: 71 },
+  { name: "Data Analytics", value: 78 },
+  { name: "Cybersecurity", value: 65 },
+  { name: "DevOps & Automation", value: 58 },
+];
+
+function TrendSparkline() {
+  const w = 120, h = 40, pad = 4;
+  const min = Math.min(...trendData.map(d => d.value));
+  const max = Math.max(...trendData.map(d => d.value));
+  const points = trendData.map((d, i) => {
+    const x = pad + (i / (trendData.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((d.value - min) / (max - min)) * (h - pad * 2);
+    return `${x},${y}`;
+  }).join(" ");
+
+  return (
+    <div className="flex flex-col items-end">
+      <svg width={w} height={h} className="overflow-visible">
+        <defs>
+          <linearGradient id="sparkGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="hsl(142 71% 45%)" />
+            <stop offset="100%" stopColor="hsl(45 93% 47%)" />
+          </linearGradient>
+        </defs>
+        <polyline
+          points={points}
+          fill="none"
+          stroke="url(#sparkGrad)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <div className="flex justify-between w-full px-1 mt-0.5">
+        {trendData.map(d => (
+          <span key={d.month} className="text-[9px] text-muted-foreground">{d.month}</span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-interface Props {
-  skills: SkillDefinition[];
-}
-
-export default function FutureReadinessCard({ skills }: Props) {
-  const [staffWithEmergingSkills, setStaffWithEmergingSkills] = useState(0);
-  const [totalStaff, setTotalStaff] = useState(0);
-  const [loading, setLoading] = useState(true);
-
-  const emergingSkillIds = useMemo(() => {
-    return skills
-      .filter(s => s.ai_suggested_status === 'emerging' || s.ai_suggested_status === 'new')
-      .map(s => s.id);
-  }, [skills]);
-
-  useEffect(() => {
-    fetchReadinessData();
-  }, [emergingSkillIds]);
-
-  const fetchReadinessData = async () => {
-    if (emergingSkillIds.length === 0) {
-      setLoading(false);
-      return;
-    }
-
-    // Get count of unique staff with emerging skills
-    const { data: assessments } = await supabase
-      .from('skill_assessments')
-      .select('user_id')
-      .in('skill_id', emergingSkillIds)
-      .gte('self_assessment', 2);
-
-    const uniqueStaff = new Set(assessments?.map(a => a.user_id) || []);
-    setStaffWithEmergingSkills(uniqueStaff.size);
-
-    // Get total staff count
-    const { count } = await supabase
-      .from('users')
-      .select('*', { count: 'exact', head: true });
-
-    setTotalStaff(count || 0);
-    setLoading(false);
-  };
-
-  const readinessScore = totalStaff > 0 
-    ? Math.round((staffWithEmergingSkills / totalStaff) * 100) 
-    : 0;
-
-  const getReadinessLevel = (score: number) => {
-    if (score >= 60) return { label: "Excellent", color: "text-green-600", icon: CheckCircle };
-    if (score >= 40) return { label: "Good", color: "text-blue-600", icon: TrendingUp };
-    if (score >= 20) return { label: "Developing", color: "text-yellow-600", icon: Rocket };
-    return { label: "Needs Attention", color: "text-destructive", icon: AlertCircle };
-  };
-
-  const level = getReadinessLevel(readinessScore);
-  const LevelIcon = level.icon;
-
+export default function FutureReadinessCard() {
   return (
     <Card>
       <CardHeader>
@@ -80,44 +73,38 @@ export default function FutureReadinessCard({ skills }: Props) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {loading ? (
-          <div className="space-y-4">
-            <div className="h-16 bg-muted animate-pulse rounded" />
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-4xl font-bold">{readinessScore}%</p>
+              <div className="flex items-center gap-1 text-sm text-yellow-600">
+                <TrendingUp className="h-4 w-4" />
+                <span>Good Progress</span>
+              </div>
+            </div>
+            <div className="text-right space-y-1">
+              <div className="text-sm text-muted-foreground">
+                <p>{staffAssessed} of {totalStaff}</p>
+                <p>staff assessed</p>
+              </div>
+              <TrendSparkline />
+            </div>
           </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-4xl font-bold">{readinessScore}%</p>
-                <div className={`flex items-center gap-1 text-sm ${level.color}`}>
-                  <LevelIcon className="h-4 w-4" />
-                  <span>{level.label}</span>
+
+          <Progress value={readinessScore} className="h-3 [&>div]:bg-yellow-500" />
+
+          <div className="space-y-3 pt-1">
+            {skillBreakdown.map(skill => (
+              <div key={skill.name} className="space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{skill.name}</span>
+                  <span className="font-medium">{skill.value}%</span>
                 </div>
+                <Progress value={skill.value} className="h-2" />
               </div>
-              <div className="text-right text-sm text-muted-foreground">
-                <p>{staffWithEmergingSkills} of {totalStaff}</p>
-                <p>staff ready</p>
-              </div>
-            </div>
-            
-            <Progress value={readinessScore} className="h-3" />
-            
-            <div className="grid grid-cols-2 gap-4 pt-2 text-sm">
-              <div className="bg-muted/50 rounded-lg p-3">
-                <p className="text-muted-foreground">Emerging Skills</p>
-                <p className="text-lg font-semibold">
-                  {skills.filter(s => s.ai_suggested_status === 'emerging').length}
-                </p>
-              </div>
-              <div className="bg-muted/50 rounded-lg p-3">
-                <p className="text-muted-foreground">New Skills</p>
-                <p className="text-lg font-semibold">
-                  {skills.filter(s => s.ai_suggested_status === 'new').length}
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );
