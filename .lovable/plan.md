@@ -1,28 +1,63 @@
 
 
-## Add Skill Column Selector to Comparison Matrix
+## Enhanced "Act" Dropdown on Emerging Skills Gaps
 
-### Current State
-The Skills Comparison Matrix uses a hardcoded `SKILLS` array of 10 skill names. The station data also has hardcoded counts per skill. There's no connection to the database's `skill_definitions` table.
+### Overview
+Expand the existing "Act" dropdown menu on each row of the Emerging Skills Gaps table with four new actionable options, and add a "Recruitment Priorities" KPI card at the top of the Organization tab that updates dynamically when skills are flagged.
 
-### Plan
+### Changes
 
-**File: `src/components/skills-analysis/GeographicSkillsView.tsx`**
+#### 1. EmergingSkillsGaps.tsx — Enhanced dropdown + development plan modal
 
-1. **Fetch all skills from the database**: Use a `useQuery` hook to load all active skill definitions from `skill_definitions` table (`id`, `name`, `category`), ordered by category then name.
+**New dropdown items** (replacing the current 4 placeholder items):
+- **Find Internal Talent** — opens the existing `SkillPeopleDrillDown` panel (already wired) but with a filter hint for "adjacent skills"
+- **Create Development Plan** — opens a new modal (`Dialog`) with pre-filled fields: skill name, suggested training resources, target proficiency (from `requiredLevel`), and a 3-month timeline. Includes a "Send to Manager" button that fires a toast notification.
+- **Flag for Recruitment** — toggles a recruitment priority flag on the skill row, adds a visual badge, and calls a parent callback to update the recruitment priorities count
+- **View by Location** — calls a parent callback to switch to the Geographic tab with the skill name pre-selected
 
-2. **Add selectable column state**: Replace the static `SKILLS` array with a `selectedSkills` state initialized to the first 10 skills from the database (or the current hardcoded defaults if they exist in the DB).
+**New state:**
+- `flaggedForRecruitment: Set<string>` — tracks which skill IDs are flagged
+- `devPlanSkill: SkillGapData | null` — controls the development plan modal
 
-3. **Replace each column header with a dropdown**: Each `<TableHead>` becomes a `<Select>` (from `@radix-ui/react-select` / shadcn) showing the current skill name. The dropdown lists all available skills from the database, grouped by category. Selecting a different skill swaps that column. Already-selected skills are visually marked/disabled to prevent duplicates.
+**New props added:**
+- `onFlagForRecruitment?: (skillIds: string[]) => void` — notifies parent of flagged skill changes
+- `onViewByLocation?: (skillName: string) => void` — triggers tab switch to Geographic view
+- `recruitmentFlags?: Set<string>` — receives persisted flags from parent
 
-4. **Adapt station skill data**: Since station data is dummy/hardcoded, generate random `count/required` values for any skill not in the original hardcoded set. Use a seeded approach (based on station name + skill name) so values stay consistent across re-renders.
+**New sub-component inline:** A `Dialog` for the Development Plan modal containing:
+- Read-only skill name, category, current avg proficiency, target level
+- Suggested training text (auto-generated based on skill category)
+- Timeline selector (3/6/12 months)
+- "Send to Manager" button → toast: "Development plan for [skill] sent to line manager"
 
-5. **Styling**: Keep the dropdown compact (small text, minimal padding) to fit the table header. Use the existing shadcn `Select` component with a `z-50` popover to avoid transparency issues.
+#### 2. SkillsPortfolioAnalytics.tsx — Recruitment Priorities KPI + state management
+
+**New state:**
+- `recruitmentPriorities: Set<string>` — set of flagged skill IDs, persisted in component state
+
+**New KPI card** inserted into the existing 6-column KPI grid (making it 7, or replacing one row with a highlighted strip above the grid):
+- Rendered as a distinct summary strip/card above the KPI grid: "Recruitment Priorities: X skills flagged" with a small list of flagged skill names and a "Clear All" button
+- Only shown when count > 0
+
+**Wiring:**
+- Pass `recruitmentFlags` and `onFlagForRecruitment` to `EmergingSkillsGaps`
+- Pass `onViewByLocation` that calls `setActiveTab('geographic')` — requires lifting `setActiveTab` or using a callback from the parent `SkillsAnalysis.tsx`
+
+#### 3. SkillsAnalysis.tsx — Tab switching callback
+
+- Pass `setActiveTab` down to `SkillsPortfolioAnalytics` as an `onSwitchTab` prop so "View by Location" can navigate to the Geographic tab
 
 ### Technical Details
 
-- Query: `supabase.from('skill_definitions').select('id, name, category').eq('is_active', true).order('category').order('name')`
-- State: `const [selectedSkills, setSelectedSkills] = useState<string[]>([])` — initialized once data loads
-- Each column header renders a `<Select>` with `onValueChange` that swaps the skill at that column index
-- For dummy data generation when a skill isn't in the hardcoded map: use a simple hash of `stationName + skillName` to produce deterministic count/required values proportional to the station's staff size
+- The recruitment flags are stored in React state (session-only). No database persistence needed for now.
+- The Development Plan modal uses shadcn `Dialog` with form fields.
+- "Find Internal Talent" reuses the existing `SkillPeopleDrillDown` sheet — same as clicking the skill name, but opens it directly from the dropdown.
+- "View by Location" chains two actions: switches to Geographic tab and could pre-filter the comparison matrix to show that skill (if it exists in the dropdown selectors).
+- The flagged skills badge appears as a small `Flag` icon next to the skill name in the table row.
+- The Recruitment Priorities strip uses a `Card` with `border-primary/50 bg-primary/5` styling, similar to the existing uncategorized warning pattern.
+
+### Files Modified
+1. `src/components/skills-analysis/EmergingSkillsGaps.tsx` — enhanced dropdown, dev plan modal, flag logic
+2. `src/components/skills-analysis/SkillsPortfolioAnalytics.tsx` — recruitment priorities state, KPI strip, prop wiring
+3. `src/pages/SkillsAnalysis.tsx` — pass `setActiveTab` callback to SkillsPortfolioAnalytics
 
