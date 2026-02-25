@@ -129,12 +129,43 @@ export default function SkillsPortfolioAnalytics() {
 
   const fetchSkillsData = async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data: allSkills } = await supabase
       .from('skill_definitions')
       .select('id, name, category, skill_type, ai_suggested_status, ai_suggested_category, is_open_source')
       .eq('is_active', true);
     
-    setSkills(data || []);
+    const hasFilters = filters.division !== "All" || filters.dutyStation !== "All" || 
+                       filters.grade !== "All" || filters.workerType !== "All";
+    
+    if (hasFilters && allSkills) {
+      // Get filtered user IDs
+      let userQuery = supabase.from("users").select("id");
+      if (filters.division !== "All") userQuery = userQuery.eq("division", filters.division);
+      if (filters.dutyStation !== "All") userQuery = userQuery.eq("duty_station", filters.dutyStation);
+      if (filters.grade !== "All") userQuery = userQuery.eq("current_grade", filters.grade);
+      if (filters.workerType !== "All") userQuery = userQuery.eq("worker_type", filters.workerType);
+      
+      const { data: filteredUsers } = await userQuery;
+      const userIds = filteredUsers?.map(u => u.id) || [];
+      
+      if (userIds.length === 0) {
+        setSkills([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Get distinct skill_ids from assessments for these users
+      const { data: assessments } = await supabase
+        .from("skill_assessments")
+        .select("skill_id")
+        .in("user_id", userIds);
+      
+      const relevantSkillIds = new Set(assessments?.map(a => a.skill_id) || []);
+      setSkills(allSkills.filter(s => relevantSkillIds.has(s.id)));
+    } else {
+      setSkills(allSkills || []);
+    }
+    
     setLoading(false);
   };
 
