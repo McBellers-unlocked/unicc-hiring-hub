@@ -1,41 +1,58 @@
 
 
-## Improve Geographic Map & Replace Nairobi with Rome
+## Use a Real World Map with react-simple-maps
 
-### Problems
-1. The current SVG continent paths are very crude blobs that don't look like real continents
-2. Nairobi should be replaced with Rome
+### Problem
+The current hand-drawn SVG paths are unrecognizable blobs. The user wants a real map with actual country outlines.
 
-### Changes (single file: `src/components/skills-analysis/GeographicSkillsView.tsx`)
+### Approach
+Install `react-simple-maps` which bundles a proper Natural Earth TopoJSON world map with real country boundaries, coastlines, and projections. This gives a professional, immediately recognizable map with zero manual path drawing.
 
-**1. Replace continent paths with realistic Natural Earth-style SVG outlines**
-- Use detailed SVG path data for recognizable continent shapes (North America, South America, Europe, Africa, Asia, Australia) using a proper Mercator-like projection
-- These will be hand-traced simplified but recognizable outlines -- much more detailed than the current ~5-point blobs, using proper coastline shapes
-- Add graticule lines (latitude/longitude grid) as subtle background lines for a professional cartographic look
-- Use a proper viewBox (e.g. `0 0 1000 500`) for better path precision
+### Changes
 
-**2. Replace Nairobi with Rome**
-- Change station name from "Nairobi" to "Rome"
-- Update map coordinates to Rome's position (central Italy, roughly same longitude as Brindisi but slightly west/north)
-- Keep the same staff count (15) and coverage (48%)
-- Adjust skills/strengths/gaps to be more Italy-office appropriate (keep similar profile but update strengths to include "Data Analytics" and "Policy & Governance" fitting an Italian office)
+**1. Add dependency: `react-simple-maps`**
+- Provides `ComposableMap`, `Geographies`, `Geography`, `Marker` components
+- Uses built-in Natural Earth 110m TopoJSON (no extra files needed)
+- Supports proper map projections (Mercator, EqualEarth, etc.)
 
-**3. Adjust all station coordinates** to match the new higher-resolution viewBox so markers land correctly on the realistic map
+**2. Rewrite `src/components/skills-analysis/GeographicSkillsView.tsx`**
 
-**4. Visual polish**
-- Add ocean background color (light blue tint)
-- Add country border styling with slightly more contrast
-- Round the SVG container corners
+Replace the entire SVG section with:
+- `ComposableMap` with a `geoEqualEarth` or `geoMercator` projection
+- `Geographies` rendering real country outlines from the bundled TopoJSON URL (`https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json`)
+- `Marker` components at real lat/lon coordinates for each station:
+  - Valencia: [-0.3763, 39.4699]
+  - Geneva: [6.1432, 46.2044]
+  - New York: [-74.006, 40.7128]
+  - Brindisi: [17.9369, 40.6326]
+  - Rome: [12.4964, 41.9028]
+- Each marker renders a sized/colored circle (same logic as now)
+- Wrap markers in Popover triggers (same popover content as now)
+- Labels shown on hover only (remove persistent text labels)
+- Ocean background via ComposableMap style
+- Countries filled with muted color, stroked with border color
 
-### Station coordinate updates (approximate for new projection)
-- Valencia: southwestern Europe (Spain)
-- Geneva: central-western Europe (Switzerland)  
-- New York: US east coast
-- Brindisi: southeastern Italy
-- Rome: central Italy (new, replacing Nairobi)
+**3. Keep everything else unchanged**
+- Station data array (names, staff, coverage, skills, strengths, gaps) stays identical
+- Health color logic stays identical
+- Comparison matrix table below stays identical
+- Only `mapX`/`mapY` fields replaced with `lng`/`lat` fields
 
-All five stations are now in the Americas/Europe region, so the map can optionally focus more on the Atlantic region while still showing the full world.
+### Technical Detail
+```text
+GeographicSkillsView (rewritten map section)
+├── ComposableMap (projection: geoEqualEarth, width: 800, height: 450)
+│   ├── Geographies (from world-atlas CDN TopoJSON)
+│   │   └── Geography per country (fill: muted, stroke: border)
+│   └── Marker per station (at real lat/lon)
+│       ├── Popover trigger wrapping <circle>
+│       ├── Circle size = sqrt(staff) * 2.5
+│       ├── Circle color = health color
+│       └── Tooltip/label on hover only
+├── Same legend (Healthy/Moderate/Critical)
+└── Same comparison matrix table below
+```
 
-### No other files affected
-The component is self-contained with all dummy data inline.
+### Single file affected
+`src/components/skills-analysis/GeographicSkillsView.tsx` -- full rewrite of the map section, keep table section intact.
 
