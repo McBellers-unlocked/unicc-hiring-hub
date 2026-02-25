@@ -185,7 +185,7 @@ export default function GeographicSkillsView() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg overflow-hidden border" style={{ background: "hsl(210 50% 96%)" }}>
+          <div className="rounded-lg overflow-hidden border" style={{ background: "hsl(210 60% 88%)" }}>
             <ComposableMap
               projection="geoEqualEarth"
               projectionConfig={{ scale: 160 }}
@@ -199,7 +199,7 @@ export default function GeographicSkillsView() {
                     <Geography
                       key={geo.rsmKey}
                       geography={geo}
-                      fill="hsl(var(--muted))"
+                      fill="hsl(40 30% 92%)"
                       stroke="hsl(var(--border))"
                       strokeWidth={0.5}
                       style={{
