@@ -4,12 +4,9 @@ import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, ResponsiveContainer
 import { supabase } from "@/integrations/supabase/client";
 import { Target, AlertTriangle, Users, TrendingUp, GraduationCap, UserPlus, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import SkillPeopleDrillDown from "./SkillPeopleDrillDown";
 
 interface SkillDefinition {
   id: string;
@@ -35,20 +32,6 @@ interface SkillQuadrantData {
   requiredLevel: number;
 }
 
-interface StaffGap {
-  userId: string;
-  userName: string;
-  currentLevel: number;
-  requiredLevel: number;
-  gap: number;
-  division?: string;
-}
-
-interface DivisionImpact {
-  division: string;
-  count: number;
-  avgGap: number;
-}
 
 const COVERAGE_TARGET = 70;
 const CRITICALITY_THRESHOLD = 3;
@@ -103,9 +86,7 @@ export default function SkillRiskQuadrant({ skills }: Props) {
   const [drillDown, setDrillDown] = useState<{
     open: boolean;
     skill: SkillQuadrantData | null;
-    staffGaps: StaffGap[];
-    divisionImpacts: DivisionImpact[];
-  }>({ open: false, skill: null, staffGaps: [], divisionImpacts: [] });
+  }>({ open: false, skill: null });
 
   useEffect(() => {
     fetchQuadrantData();
@@ -248,50 +229,8 @@ export default function SkillRiskQuadrant({ skills }: Props) {
     }
   };
 
-  const handleDotClick = async (skill: SkillQuadrantData) => {
-    // Fetch staff with gaps for this skill
-    const { data: assessments } = await supabase
-      .from("skill_assessments")
-      .select(`
-        user_id,
-        self_assessment,
-        required_level,
-        users!inner(name, division)
-      `)
-      .eq("skill_id", skill.id)
-      .eq("scope", "team")
-      .not("self_assessment", "is", null);
-
-    const staffGaps: StaffGap[] = (assessments || [])
-      .map((a: any) => ({
-        userId: a.user_id,
-        userName: a.users?.name || "Unknown",
-        currentLevel: a.self_assessment || 0,
-        requiredLevel: a.required_level || 3,
-        gap: (a.required_level || 3) - (a.self_assessment || 0),
-        division: a.users?.division || 'Unknown',
-      }))
-      .filter((s) => s.gap > 0)
-      .sort((a, b) => b.gap - a.gap);
-
-    // Aggregate by division
-    const divisionMap = new Map<string, { count: number; totalGap: number }>();
-    staffGaps.forEach((s) => {
-      const current = divisionMap.get(s.division || 'Unknown') || { count: 0, totalGap: 0 };
-      current.count++;
-      current.totalGap += s.gap;
-      divisionMap.set(s.division || 'Unknown', current);
-    });
-
-    const divisionImpacts: DivisionImpact[] = Array.from(divisionMap.entries())
-      .map(([division, data]) => ({
-        division,
-        count: data.count,
-        avgGap: Math.round((data.totalGap / data.count) * 10) / 10,
-      }))
-      .sort((a, b) => b.count - a.count);
-
-    setDrillDown({ open: true, skill, staffGaps, divisionImpacts });
+  const handleDotClick = (skill: SkillQuadrantData) => {
+    setDrillDown({ open: true, skill });
   };
 
   const urgentCount = quadrantData.filter((d) => d.quadrant === "urgent").length;
@@ -570,140 +509,14 @@ export default function SkillRiskQuadrant({ skills }: Props) {
         </CardContent>
       </Card>
 
-      {/* Drill-Down Sheet */}
-      <Sheet open={drillDown.open} onOpenChange={(open) => setDrillDown((prev) => ({ ...prev, open }))}>
-        <SheetContent side="right" className="sm:max-w-lg">
-          <SheetHeader>
-            <div className="flex items-center gap-2">
-              <div 
-                className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: getQuadrantColor(drillDown.skill?.quadrant || 'deprioritize') }}
-              />
-              <SheetTitle>{drillDown.skill?.name}</SheetTitle>
-              {drillDown.skill?.status && (
-                <Badge variant="outline" className="ml-1">
-                  {drillDown.skill.status === 'emerging' && <Sparkles className="h-3 w-3 mr-1" />}
-                  {drillDown.skill.status}
-                </Badge>
-              )}
-            </div>
-            <SheetDescription>
-              {drillDown.skill?.belowRequired} staff below required level
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="mt-6 space-y-6">
-            {/* Summary Stats */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="p-3 rounded-lg bg-muted/50 text-center">
-                <p className="text-2xl font-bold">{drillDown.skill?.coverage}%</p>
-                <p className="text-xs text-muted-foreground">Coverage</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/50 text-center">
-                <p className="text-2xl font-bold">{drillDown.skill?.avgLevel}</p>
-                <p className="text-xs text-muted-foreground">Avg Level</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/50 text-center">
-                <p className="text-2xl font-bold">{drillDown.skill?.requiredLevel}</p>
-                <p className="text-xs text-muted-foreground">Required</p>
-              </div>
-            </div>
-
-            {/* Impact by Division */}
-            {drillDown.divisionImpacts.length > 0 && (
-              <div>
-                <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Impact by Division
-                </h4>
-                <div className="space-y-2">
-                  {drillDown.divisionImpacts.map((div) => (
-                    <div key={div.division} className="flex items-center justify-between p-2 rounded bg-muted/30">
-                      <span className="font-medium text-sm">{div.division}</span>
-                      <div className="flex items-center gap-3 text-sm">
-                        <span className="text-muted-foreground">{div.count} staff</span>
-                        <Badge variant={div.avgGap >= 2 ? "destructive" : "secondary"}>
-                          Gap: {div.avgGap}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Staff List */}
-            <div>
-              <h4 className="text-sm font-medium mb-3">Staff with Gaps</h4>
-              <ScrollArea className="h-[200px]">
-                {drillDown.staffGaps.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-6">
-                    No staff gaps found
-                  </p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-xs">Name</TableHead>
-                        <TableHead className="text-xs text-center">Current</TableHead>
-                        <TableHead className="text-xs text-center">Required</TableHead>
-                        <TableHead className="text-xs text-center">Gap</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {drillDown.staffGaps.slice(0, 20).map((staff) => (
-                        <TableRow key={staff.userId}>
-                          <TableCell className="text-sm py-2">
-                            <div>
-                              <p className="font-medium">{staff.userName}</p>
-                              <p className="text-xs text-muted-foreground">{staff.division}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center text-sm">{staff.currentLevel}</TableCell>
-                          <TableCell className="text-center text-sm">{staff.requiredLevel}</TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant={staff.gap >= 2 ? "destructive" : "secondary"} className="text-xs">
-                              -{staff.gap}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-                {drillDown.staffGaps.length > 20 && (
-                  <p className="text-xs text-muted-foreground text-center mt-2">
-                    + {drillDown.staffGaps.length - 20} more staff
-                  </p>
-                )}
-              </ScrollArea>
-            </div>
-
-            {/* Recommended Actions */}
-            <Separator />
-            <div>
-              <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
-                Recommended Actions
-              </h4>
-              <div className="space-y-2">
-                <Button variant="outline" className="w-full justify-start gap-2" size="sm">
-                  <GraduationCap className="h-4 w-4" />
-                  Create Training Plan
-                </Button>
-                <Button variant="outline" className="w-full justify-start gap-2" size="sm">
-                  <Users className="h-4 w-4" />
-                  Assign Mentors
-                </Button>
-                <Button variant="outline" className="w-full justify-start gap-2" size="sm">
-                  <UserPlus className="h-4 w-4" />
-                  Open Hiring Request
-                </Button>
-              </div>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+      <SkillPeopleDrillDown
+        open={drillDown.open}
+        onOpenChange={(open) => setDrillDown((prev) => ({ ...prev, open }))}
+        skillName={drillDown.skill?.name || ""}
+        skillId={drillDown.skill?.id}
+        category={drillDown.skill?.topDivisions?.[0]?.division}
+        lifecycleStage={drillDown.skill?.status || "Established"}
+      />
     </>
   );
 }

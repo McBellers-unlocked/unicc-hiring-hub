@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus, CheckCircle2, Sparkles, Clock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import SkillPeopleDrillDown from "./SkillPeopleDrillDown";
 
 interface StatusCount {
   established: number;
@@ -31,6 +32,7 @@ const MOCK_TRENDS = {
 };
 
 export default function SkillStatusBar({ statusCounts, total }: Props) {
+  const [drillDownStage, setDrillDownStage] = useState<string | null>(null);
   const segments = useMemo(() => {
     const categorized = statusCounts.established + statusCounts.emerging + statusCounts.new + statusCounts.legacy;
     if (categorized === 0) return [];
@@ -91,6 +93,7 @@ export default function SkillStatusBar({ statusCounts, total }: Props) {
                       backgroundColor: segment.config.color,
                       minWidth: segment.percentage > 0 ? "24px" : 0,
                     }}
+                    onClick={() => setDrillDownStage(segment.config.label)}
                   >
                     {segment.percentage >= 10 && (
                       <span className="text-xs font-semibold text-white drop-shadow-sm">
@@ -144,6 +147,13 @@ export default function SkillStatusBar({ statusCounts, total }: Props) {
             );
           })}
         </div>
+
+        <SkillPeopleDrillDown
+          open={!!drillDownStage}
+          onOpenChange={(open) => !open && setDrillDownStage(null)}
+          skillName={`${drillDownStage || ""} Skills Overview`}
+          lifecycleStage={drillDownStage || "Established"}
+        />
       </CardContent>
     </Card>
   );
