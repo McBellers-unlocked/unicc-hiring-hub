@@ -1,12 +1,12 @@
 
 
-## Add Profile Photo to James Whitfield
+## Add Profile Photo to Aisha Mbeki
 
 ### Approach
-1. Copy uploaded image to `public/images/james-whitfield.png`
-2. Update James Whitfield's `profile_photo_url` in the `candidates` table
+1. Copy uploaded image to `public/images/aisha-mbeki.png`
+2. Update Aisha Mbeki's `profile_photo_url` in the `candidates` table
 
 ### Files
-- Copy `user-uploads://James.png` → `public/images/james-whitfield.png`
-- Data update: `UPDATE candidates SET profile_photo_url = '/images/james-whitfield.png' WHERE name = 'James Whitfield'`
+- Copy `user-uploads://Aisha.png` → `public/images/aisha-mbeki.png`
+- Data update: `UPDATE candidates SET profile_photo_url = '/images/aisha-mbeki.png' WHERE name = 'Aisha Mbeki'`
 
