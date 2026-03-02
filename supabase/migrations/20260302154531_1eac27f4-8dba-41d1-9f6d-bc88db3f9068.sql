@@ -1,0 +1,1 @@
+UPDATE candidates SET profile_photo_url = '/images/aisha-mbeki.png' WHERE id = '60384669-c465-49df-8ee3-4246dcc2df03';
