@@ -1,0 +1,1 @@
+UPDATE candidates SET profile_photo_url = '/images/maria-santos.png' WHERE name = 'Maria Santos';
