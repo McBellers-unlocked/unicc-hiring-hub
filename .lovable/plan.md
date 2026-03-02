@@ -1,14 +1,13 @@
 
 
-## Add Profile Photo to Sarah Chen
+## Fix Profile Photo Display
 
-### Approach
-1. Copy the uploaded image to `public/images/sarah-chen.png` so it's accessible via URL
-2. Run a SQL migration to update Sarah Chen's `profile_photo_url` field in the `candidates` table to point to `/images/sarah-chen.png`
+The issue is that the `AvatarImage` component uses `aspect-square h-full w-full` but lacks `object-cover`, so the photo stretches unnaturally within the circular frame instead of cropping to fill it naturally (like LinkedIn does).
 
-### Files
-- Copy `user-uploads://Professional_headshot_in_a_modern_office.png` → `public/images/sarah-chen.png`
-- SQL migration: `UPDATE candidates SET profile_photo_url = '/images/sarah-chen.png' WHERE name = 'Sarah Chen'`
+### Changes
 
-The photo will then appear in the avatar area of her LinkedIn-style profile sheet.
+**`src/components/ui/avatar.tsx`** — Add `object-cover` to the default `AvatarImage` class so all avatars crop properly:
+- Change `"aspect-square h-full w-full"` → `"aspect-square h-full w-full object-cover"`
+
+This single change ensures the photo fills the circle naturally with proper cropping, matching how LinkedIn and other professional platforms display profile photos.
 
