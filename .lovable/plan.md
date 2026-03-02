@@ -1,60 +1,40 @@
 
 
-## Create Rich Fake External Candidate Profile
+## Problem: Sarah Chen Not Appearing
 
-### Approach
-Insert a single candidate record into the `candidates` table via a SQL migration. The record will be an **External** candidate with rich, realistic data including 4 work experiences, 2 degrees, Azure/AWS certifications, and associated cloud skills.
+The root cause is the **Supabase 1000-row default limit**. There are 1,334 candidates in the database, and the talent pool query (`select("*")`) returns at most 1,000 rows with no explicit ordering. Sarah Chen (the newest record) falls outside that 1,000-row window.
 
-### Data Details
+## Solution: Newest-first ordering + pagination
 
-**Identity & Contact:**
-- Name: Sarah Chen
-- Email: sarah.chen.demo@example.com
-- Location: Singapore
-- Phone: +65 9123 4567
-- Candidate type: External
-- Gender: Female
-- Present nationality: Singaporean
-- Years of experience: 12
-- Availability: Immediately available
-- Willing to relocate: Yes
-- LinkedIn: https://linkedin.com/in/sarah-chen-demo
+### 1. Fix the candidates query in `TalentSearchResults.tsx`
 
-**Professional Summary:**
-A concise paragraph highlighting 12+ years in cloud infrastructure, DevOps, and security across fintech and enterprise environments.
+**External candidates query changes:**
+- Add `.order('updated_at', { ascending: false })` so newest profiles appear first
+- Add `.range(offset, offset + PAGE_SIZE - 1)` for pagination
+- Request count header via `.select('*', { count: 'exact' })` to know total results
 
-**4 Work Experiences (JSON in `work_experience`):**
-1. **Senior Cloud Architect** — DBS Bank, Singapore (2021-Present): Led multi-cloud strategy across AWS and Azure, managed team of 8, reduced infrastructure costs by 35%
-2. **Cloud Infrastructure Engineer** — Grab Holdings, Singapore (2018-2021): Designed Kubernetes-based microservices platform on AWS, implemented CI/CD pipelines
-3. **DevOps Engineer** — Accenture, London (2015-2018): Built automated deployment pipelines for UN agency clients, managed hybrid cloud environments
-4. **Systems Administrator** — Barclays, London (2013-2015): Managed Windows/Linux server fleet, implemented monitoring with Nagios/Grafana
+**Internal staff query changes:**
+- Same ordering and pagination pattern
 
-**2 Education Entries (JSON in `education`):**
-1. **Master's Degree** in Cloud Computing & Distributed Systems — National University of Singapore (2017-2019)
-2. **Bachelor's Degree** in Computer Science — Imperial College London (2009-2013)
+### 2. Add pagination state and controls
 
-**Skills (JSON array in `skills`):**
-AWS, Microsoft Azure, Kubernetes, Docker, Terraform, Ansible, CI/CD, Python, Linux, Networking, Cloud Security, Infrastructure as Code, Microservices Architecture, Monitoring & Observability, Serverless Computing
+- Add `page` state (reset to 0 when filters change)
+- Display page controls (Previous / Next buttons) below results
+- Show "Page X of Y" indicator alongside the existing result count
+- Page size: 50 candidates per page (keeps load fast while showing meaningful batches)
 
-**Certifications (JSON in `certifications`):**
-1. AWS Solutions Architect – Professional (Amazon, 2023)
-2. AWS DevOps Engineer – Professional (Amazon, 2022)
-3. Microsoft Certified: Azure Solutions Architect Expert (Microsoft, 2023)
-4. Microsoft Certified: Azure DevOps Engineer Expert (Microsoft, 2021)
-5. Certified Kubernetes Administrator – CKA (CNCF, 2022)
-6. HashiCorp Certified: Terraform Associate (HashiCorp, 2021)
+### 3. Reset behavior
 
-**Languages:**
-- English: Fluent
-- Mandarin: Native
-- Malay: Intermediate
+- Reset page to 0 whenever any filter changes (already partially handled by the `useEffect` that clears selection)
+- "Select all internal" checkbox applies only to the current page
 
-**UN Experience:** false (external candidate)
+### Files to modify
+- `src/components/talent-pool/TalentSearchResults.tsx` — query ordering, pagination, page controls UI
 
-**Slug:** sarah-chen-demo
+### Technical note
+Since client-side filtering (text search, skills AND-match, education level) happens *after* fetching, we need to fetch enough data for filtering to work meaningfully. Two options:
+- **Option A (simpler)**: Fetch larger batches (e.g., 200) and paginate the filtered results client-side — keeps existing filter logic intact
+- **Option B (better long-term)**: Move text/skill filtering to the database query — more efficient but larger change
 
-**Profile completion:** 95%
-
-### Implementation
-Single SQL INSERT via database migration tool. No code changes needed — the talent pool query (`select("*")` from candidates) will pick it up automatically.
+I'll go with **Option A** for now: fetch 200 per DB page, paginate the filtered results in groups of 50, with a "Load more" button that fetches the next DB batch if needed. This immediately fixes Sarah Chen's visibility while preserving all existing filter logic.
 
