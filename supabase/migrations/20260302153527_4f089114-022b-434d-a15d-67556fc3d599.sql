@@ -1,0 +1,1 @@
+UPDATE public.candidates SET profile_photo_url = '/images/sarah-chen.png' WHERE name = 'Sarah Chen';
