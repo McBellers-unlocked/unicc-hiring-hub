@@ -1,27 +1,60 @@
 
 
-## Populate Organization Skills Matrix with Dummy Data
-
-### Problem
-The Organization Skills Matrix shows empty cells because the database has no real `skill_assessments` data for division-level aggregation. The `fetchDivisionSkillsData` function queries the DB and returns empty results.
+## Create Rich Fake External Candidate Profile
 
 ### Approach
-After the real data fetch completes, if `divisionData` is empty (no real assessments), generate deterministic dummy data for every combination of division × skill. This keeps the real data path intact — if real data exists, it will display; otherwise dummy data fills in.
+Insert a single candidate record into the `candidates` table via a SQL migration. The record will be an **External** candidate with rich, realistic data including 4 work experiences, 2 degrees, Azure/AWS certifications, and associated cloud skills.
 
-### Changes (single file: `src/components/skills-analysis/SkillsPortfolioAnalytics.tsx`)
+### Data Details
 
-1. **Generate dummy staff counts per division** — At the end of `fetchDivisionSkillsData`, if the real `divisionAggregations` array is empty (or staff counts are all zero), populate with dummy values:
-   - CS: 45, DD: 32, DO: 28, DS: 51, MS: 38, OP: 24
+**Identity & Contact:**
+- Name: Sarah Chen
+- Email: sarah.chen.demo@example.com
+- Location: Singapore
+- Phone: +65 9123 4567
+- Candidate type: External
+- Gender: Female
+- Present nationality: Singaporean
+- Years of experience: 12
+- Availability: Immediately available
+- Willing to relocate: Yes
+- LinkedIn: https://linkedin.com/in/sarah-chen-demo
 
-2. **Generate dummy division skill data** — For each division × skill combination, use a simple deterministic hash (from division name + skill ID) to produce:
-   - `staffWithSkill`: 30-90% of division staff count
-   - `averageLevel`: between 1.5 and 4.8
-   - `credentialCount`: for credential-type skills, 20-70% of staff
+**Professional Summary:**
+A concise paragraph highlighting 12+ years in cloud infrastructure, DevOps, and security across fintech and enterprise environments.
 
-3. **Implementation**: Add a helper function `generateDummyMatrixData(skills, divisions, staffCounts)` that returns a `DivisionSkillAggregation[]` array. Call it as a fallback at the end of `fetchDivisionSkillsData` when real data is empty.
+**4 Work Experiences (JSON in `work_experience`):**
+1. **Senior Cloud Architect** — DBS Bank, Singapore (2021-Present): Led multi-cloud strategy across AWS and Azure, managed team of 8, reduced infrastructure costs by 35%
+2. **Cloud Infrastructure Engineer** — Grab Holdings, Singapore (2018-2021): Designed Kubernetes-based microservices platform on AWS, implemented CI/CD pipelines
+3. **DevOps Engineer** — Accenture, London (2015-2018): Built automated deployment pipelines for UN agency clients, managed hybrid cloud environments
+4. **Systems Administrator** — Barclays, London (2013-2015): Managed Windows/Linux server fleet, implemented monitoring with Nagios/Grafana
 
-4. **Hash function**: Reuse a simple string hash (`(division + skillId)` → deterministic number) so values stay stable across re-renders and category filter changes.
+**2 Education Entries (JSON in `education`):**
+1. **Master's Degree** in Cloud Computing & Distributed Systems — National University of Singapore (2017-2019)
+2. **Bachelor's Degree** in Computer Science — Imperial College London (2009-2013)
 
-### Result
-Every cell in the matrix will show a colored dot with a staff count, coverage percentages will be non-zero, and the Insights Strip above the matrix will also populate since it reads from the same `divisionData` state.
+**Skills (JSON array in `skills`):**
+AWS, Microsoft Azure, Kubernetes, Docker, Terraform, Ansible, CI/CD, Python, Linux, Networking, Cloud Security, Infrastructure as Code, Microservices Architecture, Monitoring & Observability, Serverless Computing
+
+**Certifications (JSON in `certifications`):**
+1. AWS Solutions Architect – Professional (Amazon, 2023)
+2. AWS DevOps Engineer – Professional (Amazon, 2022)
+3. Microsoft Certified: Azure Solutions Architect Expert (Microsoft, 2023)
+4. Microsoft Certified: Azure DevOps Engineer Expert (Microsoft, 2021)
+5. Certified Kubernetes Administrator – CKA (CNCF, 2022)
+6. HashiCorp Certified: Terraform Associate (HashiCorp, 2021)
+
+**Languages:**
+- English: Fluent
+- Mandarin: Native
+- Malay: Intermediate
+
+**UN Experience:** false (external candidate)
+
+**Slug:** sarah-chen-demo
+
+**Profile completion:** 95%
+
+### Implementation
+Single SQL INSERT via database migration tool. No code changes needed — the talent pool query (`select("*")` from candidates) will pick it up automatically.
 
