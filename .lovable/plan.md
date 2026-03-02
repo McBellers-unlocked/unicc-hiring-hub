@@ -1,60 +1,27 @@
 
 
-## Enhanced Candidate Profile View (LinkedIn-style)
+## Create 5 Rich Candidate Profiles
 
-### Current State
-Clicking "View" on a candidate opens `CandidateDetailModal` — a basic dialog with 4 tabs (Overview, Experience, Notes, Actions). The Actions tab has placeholder buttons ("Add to Job", "Send Email", "Export Profile") that do nothing.
+I'll insert 5 new candidates into the `candidates` table following the same rich data structure as Sarah Chen. Each will have detailed work experience, education, skills, certifications, and languages.
 
-### What We'll Build
+### The 5 Profiles
 
-Replace the current modal with a full-page-style profile drawer/sheet that feels like a LinkedIn profile, with a rich header section and functional talent management actions.
+1. **Maria Santos** — Finance / Treasury specialist, 10 years experience. Based in Geneva. **Has UN experience** (worked at UNDP). MBA from LSE.
 
-**Layout: Full-width slide-over panel (Sheet) instead of a centered dialog**
+2. **James Whitfield** — HR / People Operations specialist, 8 years experience. Based in New York. **Has UN experience** (worked at UNICEF). Master's in Organizational Psychology.
 
-```text
-┌──────────────────────────────────────────────────┐
-│  ← Back to Results                          [X]  │
-├──────────────────────────────────────────────────┤
-│  ┌──────┐  Sarah Chen                            │
-│  │Avatar│  Senior Cloud Architect at DBS Bank     │
-│  └──────┘  📍 Singapore · 12 yrs exp · Woman      │
-│            🏷 External  🔒 Security Clearance      │
-│            ✈ Open to Relocation                    │
-├──────────────────────────────────────────────────┤
-│  [About] [Experience] [Skills] [Notes] [Actions] │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  (Tab content area - scrollable)                 │
-│                                                  │
-└──────────────────────────────────────────────────┘
-```
+3. **Aisha Mbeki** — Operations Management specialist, 11 years experience. Based in Nairobi. No UN experience. Supply chain and logistics background. Bachelor's + PMP certified.
 
-### Profile Sections (Tabs)
+4. **David Park** — Project Management / Programme Delivery specialist, 9 years experience. Based in Brussels. No UN experience. PRINCE2 and PMP certified. Master's in International Development.
 
-1. **About** — Professional summary, contact info, languages, certifications, education summary
-2. **Experience** — Work history timeline + full education details (already exists, will polish)
-3. **Skills & Qualifications** — Skills grid with category grouping, certifications listed separately
-4. **Notes & Flags** — Existing CandidateNotes + CandidateFlags (already built)
-5. **Talent Actions** — Functional talent management panel:
-   - **Add to Pipeline** — Select a job requisition and add candidate as an applicant
-   - **Send Email** — Opens compose dialog (reuses BulkEmailDialog pattern for single recipient)
-   - **Export Profile** — Download candidate profile as formatted text/PDF placeholder
-   - **Flag for Recruitment** — Quick flag with priority and notes
-   - **Schedule Interview** — Link to create interview for this candidate
-   - **Compare Candidates** — Placeholder for future side-by-side comparison
+5. **Elena Kowalski** — Finance / Risk & Compliance specialist, 14 years experience. Based in Vienna. No UN experience. CPA and ACCA certified. Worked at Big 4 firms.
 
-### Implementation Plan
+### Implementation
+- Single SQL INSERT via the migration tool with all 5 candidates
+- Each candidate gets: professional_summary, 3-4 work_experience entries, 2 education entries, 8-15 skills, certifications, languages
+- `un_experience: true` and `un_organizations_worked` set for Maria Santos and James Whitfield
+- All set to `willing_to_relocate: true` and varied `has_security_clearance` values
 
-**Files to create:**
-- `src/components/talent-pool/CandidateProfileSheet.tsx` — New Sheet-based full profile component replacing the dialog
-
-**Files to modify:**
-- `src/components/talent-pool/CandidateSearchCard.tsx` — Swap `CandidateDetailModal` for `CandidateProfileSheet` (for external candidates)
-- `src/components/talent-pool/CandidateDetailModal.tsx` — Keep as-is for backwards compatibility, but the search card will use the new sheet
-
-### Technical Approach
-- Use Shadcn `Sheet` (side panel) with `side="right"` and full height for the LinkedIn-like feel
-- Reuse existing `CandidateNotes` and `CandidateFlags` components
-- "Add to Pipeline" will query `jobs` table for open positions and insert into `applications`
-- Profile data already available from the candidate record passed in (skills, work_experience, education, certifications, languages are all JSONB)
+### File changes
+- None — this is a data-only change via SQL migration
 
