@@ -1,0 +1,1 @@
+UPDATE candidates SET profile_photo_url = '/images/elena-kowalski.png' WHERE id = '08ea2459-cc98-4b32-a704-d67d379a245c';
