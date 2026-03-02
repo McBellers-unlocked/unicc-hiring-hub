@@ -1,13 +1,12 @@
 
 
-## Fix Profile Photo Display
+## Add Profile Photo to Maria Santos
 
-The issue is that the `AvatarImage` component uses `aspect-square h-full w-full` but lacks `object-cover`, so the photo stretches unnaturally within the circular frame instead of cropping to fill it naturally (like LinkedIn does).
+### Approach
+1. Copy uploaded image to `public/images/maria-santos.png`
+2. SQL migration to update Maria Santos' `profile_photo_url` to `/images/maria-santos.png`
 
-### Changes
-
-**`src/components/ui/avatar.tsx`** — Add `object-cover` to the default `AvatarImage` class so all avatars crop properly:
-- Change `"aspect-square h-full w-full"` → `"aspect-square h-full w-full object-cover"`
-
-This single change ensures the photo fills the circle naturally with proper cropping, matching how LinkedIn and other professional platforms display profile photos.
+### Files
+- Copy `user-uploads://Maria.png` → `public/images/maria-santos.png`
+- SQL migration: `UPDATE candidates SET profile_photo_url = '/images/maria-santos.png' WHERE name = 'Maria Santos'`
 
