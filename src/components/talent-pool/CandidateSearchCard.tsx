@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { MapPin, Briefcase, GraduationCap, Globe, Award, Eye, Building2, Calendar } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CandidateDetailModal } from "./CandidateDetailModal";
+import { CandidateProfileSheet } from "./CandidateProfileSheet";
 import { StaffDetailModal } from "@/components/internal-talent/StaffDetailModal";
 import { AssessedSkillBadge } from "@/components/internal-talent/AssessedSkillBadge";
 import { supabase } from "@/integrations/supabase/client";
@@ -248,7 +248,7 @@ export function CandidateSearchCard({
             onClose={() => setShowDetail(false)}
           />
         ) : (
-          <CandidateDetailModal
+          <CandidateProfileSheet
             candidate={candidate}
             open={showDetail}
             onClose={() => setShowDetail(false)}
@@ -393,7 +393,7 @@ export function CandidateSearchCard({
           onClose={() => setShowDetail(false)}
         />
       ) : (
-        <CandidateDetailModal
+        <CandidateProfileSheet
           candidate={candidate}
           open={showDetail}
           onClose={() => setShowDetail(false)}
