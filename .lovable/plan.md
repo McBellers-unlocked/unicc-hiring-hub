@@ -1,40 +1,60 @@
 
 
-## Problem: Sarah Chen Not Appearing
+## Enhanced Candidate Profile View (LinkedIn-style)
 
-The root cause is the **Supabase 1000-row default limit**. There are 1,334 candidates in the database, and the talent pool query (`select("*")`) returns at most 1,000 rows with no explicit ordering. Sarah Chen (the newest record) falls outside that 1,000-row window.
+### Current State
+Clicking "View" on a candidate opens `CandidateDetailModal` — a basic dialog with 4 tabs (Overview, Experience, Notes, Actions). The Actions tab has placeholder buttons ("Add to Job", "Send Email", "Export Profile") that do nothing.
 
-## Solution: Newest-first ordering + pagination
+### What We'll Build
 
-### 1. Fix the candidates query in `TalentSearchResults.tsx`
+Replace the current modal with a full-page-style profile drawer/sheet that feels like a LinkedIn profile, with a rich header section and functional talent management actions.
 
-**External candidates query changes:**
-- Add `.order('updated_at', { ascending: false })` so newest profiles appear first
-- Add `.range(offset, offset + PAGE_SIZE - 1)` for pagination
-- Request count header via `.select('*', { count: 'exact' })` to know total results
+**Layout: Full-width slide-over panel (Sheet) instead of a centered dialog**
 
-**Internal staff query changes:**
-- Same ordering and pagination pattern
+```text
+┌──────────────────────────────────────────────────┐
+│  ← Back to Results                          [X]  │
+├──────────────────────────────────────────────────┤
+│  ┌──────┐  Sarah Chen                            │
+│  │Avatar│  Senior Cloud Architect at DBS Bank     │
+│  └──────┘  📍 Singapore · 12 yrs exp · Woman      │
+│            🏷 External  🔒 Security Clearance      │
+│            ✈ Open to Relocation                    │
+├──────────────────────────────────────────────────┤
+│  [About] [Experience] [Skills] [Notes] [Actions] │
+├──────────────────────────────────────────────────┤
+│                                                  │
+│  (Tab content area - scrollable)                 │
+│                                                  │
+└──────────────────────────────────────────────────┘
+```
 
-### 2. Add pagination state and controls
+### Profile Sections (Tabs)
 
-- Add `page` state (reset to 0 when filters change)
-- Display page controls (Previous / Next buttons) below results
-- Show "Page X of Y" indicator alongside the existing result count
-- Page size: 50 candidates per page (keeps load fast while showing meaningful batches)
+1. **About** — Professional summary, contact info, languages, certifications, education summary
+2. **Experience** — Work history timeline + full education details (already exists, will polish)
+3. **Skills & Qualifications** — Skills grid with category grouping, certifications listed separately
+4. **Notes & Flags** — Existing CandidateNotes + CandidateFlags (already built)
+5. **Talent Actions** — Functional talent management panel:
+   - **Add to Pipeline** — Select a job requisition and add candidate as an applicant
+   - **Send Email** — Opens compose dialog (reuses BulkEmailDialog pattern for single recipient)
+   - **Export Profile** — Download candidate profile as formatted text/PDF placeholder
+   - **Flag for Recruitment** — Quick flag with priority and notes
+   - **Schedule Interview** — Link to create interview for this candidate
+   - **Compare Candidates** — Placeholder for future side-by-side comparison
 
-### 3. Reset behavior
+### Implementation Plan
 
-- Reset page to 0 whenever any filter changes (already partially handled by the `useEffect` that clears selection)
-- "Select all internal" checkbox applies only to the current page
+**Files to create:**
+- `src/components/talent-pool/CandidateProfileSheet.tsx` — New Sheet-based full profile component replacing the dialog
 
-### Files to modify
-- `src/components/talent-pool/TalentSearchResults.tsx` — query ordering, pagination, page controls UI
+**Files to modify:**
+- `src/components/talent-pool/CandidateSearchCard.tsx` — Swap `CandidateDetailModal` for `CandidateProfileSheet` (for external candidates)
+- `src/components/talent-pool/CandidateDetailModal.tsx` — Keep as-is for backwards compatibility, but the search card will use the new sheet
 
-### Technical note
-Since client-side filtering (text search, skills AND-match, education level) happens *after* fetching, we need to fetch enough data for filtering to work meaningfully. Two options:
-- **Option A (simpler)**: Fetch larger batches (e.g., 200) and paginate the filtered results client-side — keeps existing filter logic intact
-- **Option B (better long-term)**: Move text/skill filtering to the database query — more efficient but larger change
-
-I'll go with **Option A** for now: fetch 200 per DB page, paginate the filtered results in groups of 50, with a "Load more" button that fetches the next DB batch if needed. This immediately fixes Sarah Chen's visibility while preserving all existing filter logic.
+### Technical Approach
+- Use Shadcn `Sheet` (side panel) with `side="right"` and full height for the LinkedIn-like feel
+- Reuse existing `CandidateNotes` and `CandidateFlags` components
+- "Add to Pipeline" will query `jobs` table for open positions and insert into `applications`
+- Profile data already available from the candidate record passed in (skills, work_experience, education, certifications, languages are all JSONB)
 
