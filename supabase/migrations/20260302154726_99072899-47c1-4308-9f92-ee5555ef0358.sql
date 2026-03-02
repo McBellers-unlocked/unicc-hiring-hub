@@ -1,0 +1,1 @@
+UPDATE candidates SET profile_photo_url = '/images/david-park.png' WHERE id = '6094a474-ea9f-4004-99e5-ca870f12e743';
