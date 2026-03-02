@@ -2,10 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchFilters } from "@/pages/TalentPool";
 import { CandidateSearchCard } from "./CandidateSearchCard";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { JobMatchingService } from "@/lib/jobMatching";
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+
+const PAGE_SIZE = 50;
 
 interface TalentSearchResultsProps {
   filters: SearchFilters;
@@ -55,8 +58,14 @@ export function TalentSearchResults({
   showSelection,
 }: TalentSearchResultsProps) {
   const [matchScores, setMatchScores] = useState<Record<string, number>>({});
+  const [page, setPage] = useState(0);
 
-  // Fetch external candidates
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(0);
+  }, [filters]);
+
+  // Fetch external candidates - ordered newest first
   const { data: externalCandidates, isLoading: loadingExternal } = useQuery({
     queryKey: ["talent-pool-external", filters],
     queryFn: async () => {
@@ -78,9 +87,18 @@ export function TalentSearchResults({
         query = query.eq("has_security_clearance", true);
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
+      // Order newest first and fetch up to 2000 via two batches
+      const batch1 = await query.order("updated_at", { ascending: false }).range(0, 999);
+      if (batch1.error) throw batch1.error;
+      
+      if (batch1.data.length < 1000) return batch1.data;
+      
+      // Fetch second batch if first was full
+      const batch2 = await supabase.from("candidates").select("*")
+        .order("updated_at", { ascending: false }).range(1000, 1999);
+      if (batch2.error) throw batch2.error;
+      
+      return [...batch1.data, ...(batch2.data || [])];
     },
     enabled: filters.talentSource !== "internal",
   });
@@ -107,6 +125,7 @@ export function TalentSearchResults({
         query = query.ilike("line_manager", `%${filters.lineManager}%`);
       }
 
+      query = query.order("updated_at", { ascending: false });
       const { data, error } = await query;
       if (error) throw error;
       return data;
@@ -408,9 +427,15 @@ export function TalentSearchResults({
 
   const internalTalent = sortedTalent.filter((t) => t._source === "internal");
 
+  // Pagination
+  const totalPages = Math.ceil(sortedTalent.length / PAGE_SIZE);
+  const paginatedTalent = sortedTalent.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const internalOnPage = paginatedTalent.filter((t) => t._source === "internal");
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      onSelectionChange(internalTalent.map((t) => t.id));
+      onSelectionChange(internalOnPage.map((t) => t.id));
     } else {
       onSelectionChange([]);
     }
@@ -424,7 +449,7 @@ export function TalentSearchResults({
     }
   };
 
-  const allInternalSelected = internalTalent.length > 0 && internalTalent.every((t) => selectedIds.includes(t.id));
+  const allInternalSelected = internalOnPage.length > 0 && internalOnPage.every((t) => selectedIds.includes(t.id));
 
   return (
     <div>
@@ -436,16 +461,21 @@ export function TalentSearchResults({
               ({externalCount} external, {internalCount} internal)
             </span>
           )}
+          {totalPages > 1 && (
+            <span className="ml-2">
+              · Page {page + 1} of {totalPages}
+            </span>
+          )}
         </div>
-        {showSelection && internalTalent.length > 0 && (
+        {showSelection && internalOnPage.length > 0 && (
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="checkbox"
               checked={allInternalSelected}
               onChange={(e) => handleSelectAll(e.target.checked)}
-              className="rounded border-gray-300"
+              className="rounded border-border"
             />
-            Select all internal ({internalTalent.length})
+            Select all on page ({internalOnPage.length})
           </label>
         )}
       </div>
@@ -456,7 +486,7 @@ export function TalentSearchResults({
             : "space-y-4"
         }
       >
-        {sortedTalent.map((person) => (
+        {paginatedTalent.map((person) => (
           <CandidateSearchCard
             key={person.id}
             candidate={person}
@@ -468,6 +498,31 @@ export function TalentSearchResults({
           />
         ))}
       </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground px-3">
+            {page + 1} / {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={page >= totalPages - 1}
+          >
+            Next
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
