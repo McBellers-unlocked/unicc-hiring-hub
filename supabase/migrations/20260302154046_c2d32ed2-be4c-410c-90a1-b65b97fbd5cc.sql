@@ -1,0 +1,1 @@
+UPDATE candidates SET profile_photo_url = '/images/james-whitfield.png' WHERE id = '79c19dd9-9690-4581-9a3a-d9c38344a92c';
