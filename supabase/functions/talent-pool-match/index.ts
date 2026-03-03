@@ -360,7 +360,7 @@ serve(async (req) => {
       // Fetch job
       const { data: job, error: jobErr } = await supabase
         .from("jobs")
-        .select("title, description_md, requirements_md, nice_to_have_md, location, type")
+        .select("title, description_md, requirements_md, competencies, location, type")
         .eq("id", job_id)
         .single();
       if (jobErr) throw jobErr;
@@ -369,7 +369,7 @@ serve(async (req) => {
 - job_title: ${job.title}
 - job_description: ${(job.description_md || "").slice(0, 3000)}
 - essential_criteria: ${(job.requirements_md || "").slice(0, 2000)}
-- desirable_criteria: ${(job.nice_to_have_md || "").slice(0, 1000)}`;
+- desirable_criteria: ${(job.competencies || "").slice(0, 1000)}`;
 
       const profile = await callAI(apiKey, JOB_PROFILE_SYSTEM, userMsg, [jobProfileTool], {
         type: "function",
@@ -404,7 +404,7 @@ serve(async (req) => {
         // Build it
         const { data: job, error: jobErr } = await supabase
           .from("jobs")
-          .select("title, description_md, requirements_md, nice_to_have_md")
+          .select("title, description_md, requirements_md, competencies")
           .eq("id", job_id)
           .maybeSingle();
 
@@ -416,7 +416,7 @@ serve(async (req) => {
 - job_title: ${job.title}
 - job_description: ${(job.description_md || "").slice(0, 3000)}
 - essential_criteria: ${(job.requirements_md || "").slice(0, 2000)}
-- desirable_criteria: ${(job.nice_to_have_md || "").slice(0, 1000)}`;
+- desirable_criteria: ${(job.competencies || "").slice(0, 1000)}`;
 
         const profile = await callAI(apiKey, JOB_PROFILE_SYSTEM, userMsg, [jobProfileTool], {
           type: "function",
