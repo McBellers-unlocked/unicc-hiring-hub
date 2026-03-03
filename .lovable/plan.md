@@ -1,41 +1,44 @@
 
+Goal: fix the “stuck at Starting…” + slow batch progression without changing prompts, safety rules, or scoring logic.
 
-## Diagnosis: 60-Second Edge Function Timeout Kills Both Functions
+1) Confirm current failure mode (already evidenced)
+- `trigger-batch-scoring` currently `await`s self-invocation for:
+  - first kickoff (`_resumeSliceIndex: 0`)
+  - next-slice continuation
+- That makes each invocation block on downstream invocations, creating a chained wait that can hit the 60s edge timeout and stall the client at “Starting…”.
+- DB confirms recent jobs remain `pending` with `scored_count=0` and `skipped_count=2` (hence “38 to score out of 40”).
 
-### Root cause
+2) Fix orchestration deadlock in `trigger-batch-scoring`
+- Change both self-invocations from blocking `await fetch(...)` to non-blocking fire-and-forget with explicit `.catch(...)` logging.
+- Keep immediate HTTP response to client after job creation.
+- Keep slice-by-slice processing logic unchanged; only invocation strategy changes.
+- Optional hardening:
+  - set batch status to `processing` + heartbeat (`last_updated_at`) right when first resume starts, so UI reflects activity earlier.
 
-The edge function logs show `score-application` boots at `T+0`, processes criteria sequentially (`MAX_CRITERIA_CONCURRENCY = 1`), and is killed by a **shutdown** event exactly **60 seconds** later — the default Supabase Edge Function wall-clock timeout.
+3) Apply the “first essential criterion” optimization safely in `score-application`
+- Implement deterministic fast-path for `years_experience` criteria so they do not require AI decomposition.
+- Build a synthetic decomposition for years criteria:
+  - `S1` deterministic = minimum years check (existing deterministic method)
+  - `S2` llm = field-specific experience check only when a meaningful field exists (e.g., “in product development”)
+  - recombine: `S1 AND S2` (or `S1` when no field is extracted)
+- Exclude `years_experience` from `preloadDecompositions()` AI decomposition requests.
+- This preserves logic quality (years floor + domain relevance) while removing decomposer latency.
 
-With 7 criteria scored sequentially at ~10-15s each, the function needs ~70-100s. It's killed at 60s every time.
+4) Keep safety/prompt guarantees intact
+- Do not modify evaluator/verifier system prompts.
+- Keep:
+  - No Evidence = False rule
+  - verification pass
+  - recombine parser
+  - injection-resistant treatment of candidate text
+- No DB schema changes required.
 
-This also kills `trigger-batch-scoring` because it awaits `supabase.functions.invoke('score-application')` synchronously. When score-application is killed at 60s, trigger-batch-scoring is also at ~60s and gets killed too — before it can update the DB or self-invoke the next slice.
-
-The "2/40" the UI shows is actually `scored_count (0) + skipped_count (2)` — zero new apps were scored.
-
-### Fix (2 files, no prompt/safety/logic changes)
-
-**1. `supabase/functions/score-application/index.ts`** — Increase criteria concurrency
-
-Change `MAX_CRITERIA_CONCURRENCY` from `1` to `3`. With 7 criteria at concurrency 3, execution takes ~3 rounds x 10-15s = **30-45s**, well within the 60s timeout.
-
-The 429 backoff logic (`AI_RETRY_ATTEMPTS = 3` with exponential backoff) already handles rate limiting gracefully, so increasing concurrency is safe. Previously we reduced from 6 to 3 for `MAX_CONCURRENCY` and 2 to 1 for criteria — going back to 3 for criteria is a middle ground that fits the timeout.
-
-**2. `supabase/functions/trigger-batch-scoring/index.ts`** — Remove retries
-
-Change `MAX_RETRIES` from `2` to `0`. With retries, if score-application fails after 45s, the retry would push trigger-batch-scoring past its own 60s timeout (45s + 3s delay + 45s = 93s). Without retries, each slice completes in ~45s, leaving time for the DB update and self-invoke.
-
-Failed applications will show in `error_count` and can be re-run.
-
-### Summary of changes
-
-| File | Line | Change |
-|------|------|--------|
-| `score-application/index.ts` | 23 | `MAX_CRITERIA_CONCURRENCY = 1` → `3` |
-| `trigger-batch-scoring/index.ts` | 10 | `MAX_RETRIES = 2` → `0` |
-
-### Expected result
-- score-application completes in ~30-45s (within 60s timeout)
-- trigger-batch-scoring finishes each slice in ~45s, updates DB, self-invokes next slice
-- Batch progresses through all 38 applications
-- No changes to prompts, scoring logic, or safety checks
-
+5) Validation plan after implementation
+- Trigger one fresh batch for job `2776db41-6970-4445-bd02-9a53534dd117`.
+- Expected:
+  - UI leaves “Starting…” quickly and shows progress polling.
+  - `batch_scoring_jobs` row moves `pending -> processing -> completed/incomplete`.
+  - `trigger-batch-scoring` logs show kickoff + resume without long blocking chains.
+  - `score-application` logs no longer spend time decomposing years criterion via AI.
+- Cross-check:
+  - `toScore` remains 38 because 2 applications already have v4 scores (not a bug).
