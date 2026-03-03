@@ -4211,7 +4211,7 @@ export type Database = {
           application_id: string
           created_at: string
           id: string
-          pipeline_version: string | null
+          pipeline_version: string
           rubric_breakdown: Json | null
           version: string | null
         }
@@ -4220,7 +4220,7 @@ export type Database = {
           application_id: string
           created_at?: string
           id?: string
-          pipeline_version?: string | null
+          pipeline_version?: string
           rubric_breakdown?: Json | null
           version?: string | null
         }
@@ -4229,7 +4229,7 @@ export type Database = {
           application_id?: string
           created_at?: string
           id?: string
-          pipeline_version?: string | null
+          pipeline_version?: string
           rubric_breakdown?: Json | null
           version?: string | null
         }
