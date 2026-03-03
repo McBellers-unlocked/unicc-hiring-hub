@@ -1263,7 +1263,7 @@ function calculateScoringResultV4(
     passedCount,
     totalCount,
     recommendForLonglist,
-    analysisVersion: '4.1-resumable-parallel-guarded'
+    analysisVersion: '4.0-resumable-parallel-guarded'
   };
 }
 
