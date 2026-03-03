@@ -1,44 +1,38 @@
 
 
-## Implement Performance Optimizations for AI Scoring Pipeline v4.0
+## Diagnosis: Score-Application Function is Timing Out
 
-All changes in `supabase/functions/score-application/index.ts`.
+### What's happening
+The logs show a clear pattern:
+1. Batch scoring starts 3 applications concurrently
+2. Each `score-application` instance begins processing: gets through `years_experience` (deterministic, instant), starts `specific_experience` (requires AI calls)
+3. After ~150 seconds the function **shuts down** (Supabase edge function wall clock limit)
+4. The batch trigger retries twice, same result — all 3 apps fail both retries
+5. The batch job stays at `scored_count: 0` permanently
 
-### 1. Add utility functions (after types, before system prompts ~line 110)
+The database confirms: **0 screening_scores exist** for this job (the forceRescore deleted them), and the latest batch job `ea1d13e3` is stuck at 0/40 with status "processing".
 
-- `truncateText(text, maxLen)` — truncate to 6000 chars with `[...truncated]` suffix
-- `extractExperienceBullets(text)` — regex-extract bullet-point summaries from work experience, return formatted string prefixed with `EXPERIENCE BULLETS:`
-- `runWithConcurrency(tasks, max)` — generic concurrency limiter using worker pattern with `Promise.allSettled` semantics
-- `preloadDecompositions(jobId, criteria)` — batch-fetch `criterion_decompositions`, call decomposer only for missing criteria via `runWithConcurrency`, return `Map<string, Decomposition>`
-- `decomposeViaSingleAICall(criterionId, criterionText)` — extracted from `getOrCreateDecomposition` for reuse by preloader
+### Root cause
+Each criterion with LLM subrequirements requires **sequential** AI calls (evaluate → verify, for each sub). With GPT-5 taking 10-30s per call, a single criterion with 3-4 subs can take 60-120s. Seven criteria sequentially easily exceeds the 150s function timeout.
 
-### 2. Update `evaluateSubRequirement` signature (line ~630)
-Add `experienceBullets: string` parameter. Prepend bullets before full work experience in the evaluator prompt.
+### Fix: Implement the approved v4.0 performance optimizations
 
-### 3. Update `scoreCriterionV4` signature (line ~843)
-- Add `decompositionMap: Map<string, Decomposition>` and `experienceBullets: string` parameters
-- Read decomposition from map first, fallback to `getOrCreateDecomposition`
-- Replace sequential `for` loop with parallel `runWithConcurrency(tasks, MAX_CONCURRENCY)`
-- Change verifier condition from `demonstrated || confidence < 0.75` to `demonstrated && confidence < 0.80`
+These directly solve the timeout by:
 
-### 4. Update main handler (line ~1100)
-- After extracting `candidateDuties` and `motivationLetter`, apply `truncateText(..., 6000)` to both
-- Call `extractExperienceBullets(candidateDuties)` once
-- Call `preloadDecompositions(jobId, parsedCriteria)` before the scoring loop
-- Pass `decompositionMap` and `experienceBullets` to `scoreCriterionV4`
+1. **Parallelize evaluator calls** — Process subrequirements concurrently (max 6) instead of sequentially. A criterion with 4 subs takes ~30s instead of ~120s.
 
-### Constants
-```
-MAX_CONCURRENCY = 6
-MAX_TEXT_LENGTH = 6000
-```
+2. **Reduce verifier calls** — Change condition from `demonstrated || confidence < 0.75` to `demonstrated && confidence < 0.80`. This cuts ~50-70% of verifier AI calls.
 
-### What stays unchanged
-- Database schema, prompts, recombine parser, human review, deterministic checks, evidence requirements, "no evidence = false" rule
+3. **Input truncation** — Truncate work experience and motivation letter to 6000 chars each, reducing token count and response time.
+
+4. **Experience bullets cache** — Extract key bullet points once, prepend to evaluator prompts for faster model context.
+
+5. **Preload decompositions** — Already cached (7 exist), but add batch-fetch at start to avoid per-criterion DB lookups.
+
+All changes in `supabase/functions/score-application/index.ts`. No schema changes needed.
 
 ### Expected result
-- 0 decomposition AI calls per candidate (precomputed per job)
-- ~6x faster evaluator (parallel)
-- ~50-70% fewer verifier calls
-- Reduced token usage via truncation + bullets
+- Function completes well within the 150s timeout
+- Batch scoring progresses through all 40 applications
+- 3-10x faster per candidate
 
