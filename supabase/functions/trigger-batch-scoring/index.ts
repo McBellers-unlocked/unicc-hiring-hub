@@ -7,7 +7,7 @@ const corsHeaders = {
 
 // Process 1 application per slice to stay well within timeout
 const SLICE_SIZE = 1;
-const MAX_RETRIES = 2;
+const MAX_RETRIES = 0;
 const STALL_THRESHOLD_MS = 120000; // 2 minutes
 
 async function scoreWithRetry(
