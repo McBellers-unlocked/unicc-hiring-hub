@@ -20,8 +20,8 @@ const MODEL = 'openai/gpt-5';
 
 const MAX_CONCURRENCY = 3;
 const MAX_TEXT_LENGTH = 6000;
-const MAX_CRITERIA_CONCURRENCY = 3; // Score 3 criteria in parallel to fit within 60s timeout
-const MAX_SUBS_PER_CRITERION = 5; // Cap LLM subrequirements per criterion
+const MAX_CRITERIA_CONCURRENCY = 5; // Score 5 criteria in parallel (2 rounds for 7 criteria → ~40-50s)
+const MAX_SUBS_PER_CRITERION = 3; // Cap LLM subrequirements per criterion (most have 2-3 anyway)
 const AI_RETRY_ATTEMPTS = 3; // Retry on 429 with exponential backoff
 
 // =============================================================================
