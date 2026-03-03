@@ -1409,6 +1409,44 @@ export type Database = {
         }
         Relationships: []
       }
+      criterion_decompositions: {
+        Row: {
+          created_at: string | null
+          criterion_id: string
+          criterion_text: string
+          id: string
+          job_id: string
+          recombine_logic: string
+          subrequirements: Json
+        }
+        Insert: {
+          created_at?: string | null
+          criterion_id: string
+          criterion_text: string
+          id?: string
+          job_id: string
+          recombine_logic?: string
+          subrequirements: Json
+        }
+        Update: {
+          created_at?: string | null
+          criterion_id?: string
+          criterion_text?: string
+          id?: string
+          job_id?: string
+          recombine_logic?: string
+          subrequirements?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "criterion_decompositions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_repository: {
         Row: {
           category: string
@@ -4101,12 +4139,79 @@ export type Database = {
           },
         ]
       }
+      scoring_review_feedback: {
+        Row: {
+          ai_confidence: number
+          ai_demonstrated: boolean
+          ai_evidence: Json | null
+          ai_verified: boolean | null
+          application_id: string
+          created_at: string | null
+          criterion_id: string
+          criterion_text: string | null
+          criterion_version: string | null
+          id: string
+          reviewer_comment: string | null
+          reviewer_decision: Database["public"]["Enums"]["scoring_review_decision"]
+          reviewer_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          ai_confidence: number
+          ai_demonstrated: boolean
+          ai_evidence?: Json | null
+          ai_verified?: boolean | null
+          application_id: string
+          created_at?: string | null
+          criterion_id: string
+          criterion_text?: string | null
+          criterion_version?: string | null
+          id?: string
+          reviewer_comment?: string | null
+          reviewer_decision: Database["public"]["Enums"]["scoring_review_decision"]
+          reviewer_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          ai_confidence?: number
+          ai_demonstrated?: boolean
+          ai_evidence?: Json | null
+          ai_verified?: boolean | null
+          application_id?: string
+          created_at?: string | null
+          criterion_id?: string
+          criterion_text?: string | null
+          criterion_version?: string | null
+          id?: string
+          reviewer_comment?: string | null
+          reviewer_decision?: Database["public"]["Enums"]["scoring_review_decision"]
+          reviewer_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scoring_review_feedback_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scoring_review_feedback_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       screening_scores: {
         Row: {
           ai_score: number | null
           application_id: string
           created_at: string
           id: string
+          pipeline_version: string | null
           rubric_breakdown: Json | null
           version: string | null
         }
@@ -4115,6 +4220,7 @@ export type Database = {
           application_id: string
           created_at?: string
           id?: string
+          pipeline_version?: string | null
           rubric_breakdown?: Json | null
           version?: string | null
         }
@@ -4123,6 +4229,7 @@ export type Database = {
           application_id?: string
           created_at?: string
           id?: string
+          pipeline_version?: string | null
           rubric_breakdown?: Json | null
           version?: string | null
         }
@@ -4130,7 +4237,7 @@ export type Database = {
           {
             foreignKeyName: "screening_scores_application_id_fkey"
             columns: ["application_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "applications"
             referencedColumns: ["id"]
           },
@@ -5551,6 +5658,7 @@ export type Database = {
         | "HR Rep"
         | "Observer"
       recommendation: "Yes" | "No" | "Reserve" | "Roster"
+      scoring_review_decision: "agree" | "disagree" | "needs_review"
       user_role:
         | "Admin"
         | "HR Assistant"
@@ -5740,6 +5848,7 @@ export const Constants = {
         "Observer",
       ],
       recommendation: ["Yes", "No", "Reserve", "Roster"],
+      scoring_review_decision: ["agree", "disagree", "needs_review"],
       user_role: [
         "Admin",
         "HR Assistant",
