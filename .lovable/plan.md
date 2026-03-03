@@ -1,18 +1,20 @@
 
 
-# Fix: Deploy `talent-pool-match` Edge Function
+# Fix: Null job fetch in `run_match` action
 
 ## Root Cause
 
-The edge function `talent-pool-match` was never deployed. It exists in the codebase but has zero logs on the server, meaning the client gets `FunctionsFetchError: Failed to fetch` because there is no function listening at that URL.
+In the `run_match` action (line 405-409), when no cached `job_match_profiles` entry exists, the code fetches the job from the `jobs` table using `.single()`. If this returns an error or null (e.g., RLS policy blocking the service-role read, or a query issue), the code proceeds to access `job.title` on line 412, causing `Cannot read properties of null (reading 'title')`.
 
-## Plan
+The `build_job_profile` action (line 361-366) has `if (jobErr) throw jobErr;` but the same fetch inside `run_match` (line 405-409) does NOT check the error — it silently gets `null`.
 
-1. **Deploy the edge function** using the deploy tool. The code and `config.toml` entry already exist — it just needs to be pushed to Supabase.
+## Fix
 
-2. **Verify the migration ran** — the tables (`job_match_profiles`, `talent_candidate_embeddings`, `talent_match_runs`, `talent_match_results`) and the `match_candidates_by_text` RPC function need to exist. If not, we'll need to re-run the migration.
+1. **Add error handling** for the job fetch inside `run_match` (around line 405-409):
+   - Destructure the error: `const { data: job, error: jobErr } = await supabase...`
+   - If `jobErr` or `!job`, throw a descriptive error like `"Job not found: {job_id}"`
 
-3. **Test the function** after deployment by invoking it from the AI Match tab.
+2. **Redeploy** the edge function after the fix.
 
-No code changes needed — this is purely a deployment issue.
+This is a one-line-class fix in `supabase/functions/talent-pool-match/index.ts`.
 
