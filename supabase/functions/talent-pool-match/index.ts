@@ -402,11 +402,15 @@ serve(async (req) => {
 
       if (!jobProfile) {
         // Build it
-        const { data: job } = await supabase
+        const { data: job, error: jobErr } = await supabase
           .from("jobs")
           .select("title, description_md, requirements_md, nice_to_have_md")
           .eq("id", job_id)
-          .single();
+          .maybeSingle();
+
+        if (jobErr || !job) {
+          throw new Error(`Job not found for id ${job_id}: ${jobErr?.message || "no rows returned"}`);
+        }
 
         const userMsg = `Input:
 - job_title: ${job.title}
