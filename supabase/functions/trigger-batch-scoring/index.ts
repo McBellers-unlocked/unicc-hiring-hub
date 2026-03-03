@@ -5,19 +5,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Slice-based resumable configuration
-const SLICE_SIZE = 2; // Process 2 applications per invocation (keeps well within timeout)
+// Process 1 application per slice to stay well within timeout
+const SLICE_SIZE = 1;
 const MAX_RETRIES = 2;
 const STALL_THRESHOLD_MS = 120000; // 2 minutes
 
 async function scoreWithRetry(
   supabase: any,
   appId: string,
+  forceRescore: boolean,
   retries = 0
 ): Promise<{ id: string; status: string; error?: string }> {
   try {
     const { data, error } = await supabase.functions.invoke('score-application', {
-      body: { applicationId: appId }
+      body: { applicationId: appId, forceRescore }
     });
 
     if (error) {
@@ -25,7 +26,7 @@ async function scoreWithRetry(
         const delay = 3000 * (retries + 1);
         console.log(`Retrying ${appId} (attempt ${retries + 1}/${MAX_RETRIES}), waiting ${delay}ms`);
         await new Promise(r => setTimeout(r, delay));
-        return scoreWithRetry(supabase, appId, retries + 1);
+        return scoreWithRetry(supabase, appId, forceRescore, retries + 1);
       }
       const errMsg = typeof error === 'string' ? error : (error?.message || JSON.stringify(error));
       console.error(`Failed to score ${appId} after ${MAX_RETRIES} retries:`, errMsg);
@@ -39,7 +40,7 @@ async function scoreWithRetry(
       const delay = 3000 * (retries + 1);
       console.log(`Exception scoring ${appId}, retrying (attempt ${retries + 1}/${MAX_RETRIES})`);
       await new Promise(r => setTimeout(r, delay));
-      return scoreWithRetry(supabase, appId, retries + 1);
+      return scoreWithRetry(supabase, appId, forceRescore, retries + 1);
     }
     const errMsg = err?.message || String(err);
     console.error(`Exception scoring ${appId} after ${MAX_RETRIES} retries:`, errMsg);
@@ -51,20 +52,20 @@ async function processSlice(
   supabase: any,
   batchJobId: string,
   applicationIds: string[],
-  sliceIndex: number
+  sliceIndex: number,
+  forceRescore: boolean
 ) {
   const slice = applicationIds.slice(sliceIndex, sliceIndex + SLICE_SIZE);
   if (slice.length === 0) return;
 
   console.log(`Processing slice ${Math.floor(sliceIndex / SLICE_SIZE) + 1}: ${slice.length} apps (offset ${sliceIndex}/${applicationIds.length})`);
 
-  // Score each app in the slice sequentially (one at a time to stay within limits)
   let sliceScored = 0;
   let sliceErrors = 0;
   const errorSnippets: string[] = [];
 
   for (const appId of slice) {
-    const result = await scoreWithRetry(supabase, appId);
+    const result = await scoreWithRetry(supabase, appId, forceRescore);
     if (result.status === 'success') {
       sliceScored++;
     } else {
@@ -103,12 +104,27 @@ async function processSlice(
   // Check if there are more to process
   const nextIndex = sliceIndex + SLICE_SIZE;
   if (nextIndex < applicationIds.length) {
-    console.log(`Scheduling next slice at offset ${nextIndex}`);
-    // Self-invoke the next slice via EdgeRuntime.waitUntil
-    // @ts-ignore - EdgeRuntime is available in Supabase Edge Functions
-    EdgeRuntime.waitUntil(
-      processSlice(supabase, batchJobId, applicationIds, nextIndex)
-    );
+    console.log(`Self-invoking next slice at offset ${nextIndex}`);
+    // Self-invoke via fetch() instead of EdgeRuntime.waitUntil to survive process shutdown
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/trigger-batch-scoring`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          _resumeBatchJobId: batchJobId,
+          _resumeApplicationIds: applicationIds,
+          _resumeSliceIndex: nextIndex,
+          _resumeForceRescore: forceRescore,
+        }),
+      });
+    } catch (fetchErr) {
+      console.error('Self-invoke failed, batch will stall and can be resumed:', fetchErr);
+    }
   } else {
     // All done — mark completed
     await supabase.from('batch_scoring_jobs')
@@ -130,11 +146,23 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { jobId, forceRescore } = await req.json();
+    const body = await req.json();
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Handle resume invocations (self-invoked continuation)
+    if (body._resumeBatchJobId) {
+      const { _resumeBatchJobId, _resumeApplicationIds, _resumeSliceIndex, _resumeForceRescore } = body;
+      console.log(`Resuming batch ${_resumeBatchJobId} at slice ${_resumeSliceIndex}`);
+      await processSlice(supabase, _resumeBatchJobId, _resumeApplicationIds, _resumeSliceIndex, _resumeForceRescore);
+      return new Response(JSON.stringify({ resumed: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { jobId, forceRescore } = body;
 
     console.log(`Batch scoring for job ${jobId}, forceRescore: ${forceRescore}`);
 
@@ -171,30 +199,23 @@ Deno.serve(async (req) => {
 
     console.log(`Found ${applications?.length || 0} PHF-completed applications`);
 
-    // Step 3: Get already-scored applications
     const applicationIds = applications?.map(a => a.id) || [];
-    const { data: existingScores } = await supabase
-      .from('screening_scores')
-      .select('application_id')
-      .in('application_id', applicationIds);
 
-    const alreadyScoredIds = new Set(existingScores?.map(s => s.application_id) || []);
-
-    // Step 4: Determine what to score
+    // Step 3: For non-force runs, skip already-scored applications
     let applicationsToScore: string[];
     let skippedCount: number;
 
     if (forceRescore) {
-      if (alreadyScoredIds.size > 0) {
-        console.log(`Force rescore: deleting ${alreadyScoredIds.size} existing scores`);
-        await supabase
-          .from('screening_scores')
-          .delete()
-          .in('application_id', Array.from(alreadyScoredIds));
-      }
+      // NO upfront deletion — score-application will handle atomic per-app replacement
       applicationsToScore = applicationIds;
       skippedCount = 0;
+      console.log(`Force rescore: will score all ${applicationsToScore.length} (atomic per-app replacement)`);
     } else {
+      const { data: existingScores } = await supabase
+        .from('screening_scores')
+        .select('application_id')
+        .in('application_id', applicationIds);
+      const alreadyScoredIds = new Set(existingScores?.map(s => s.application_id) || []);
       applicationsToScore = applicationIds.filter(id => !alreadyScoredIds.has(id));
       skippedCount = alreadyScoredIds.size;
     }
@@ -213,7 +234,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Step 5: Create batch job record
+    // Step 4: Create batch job record
     const { data: batchJob, error: insertError } = await supabase
       .from('batch_scoring_jobs')
       .insert({
@@ -228,15 +249,13 @@ Deno.serve(async (req) => {
 
     if (insertError) throw insertError;
 
-    // Step 6: Start slice-based processing (non-blocking)
-    // @ts-ignore
-    EdgeRuntime.waitUntil(
-      processSlice(supabase, batchJob.id, applicationsToScore, 0)
-    );
+    // Step 5: Start first slice synchronously, then respond
+    // Process first slice inline so caller gets immediate feedback
+    await processSlice(supabase, batchJob.id, applicationsToScore, 0, forceRescore || false);
 
     return new Response(
       JSON.stringify({
-        message: 'Batch scoring started (resumable slices)',
+        message: 'Batch scoring started (self-invoking slices)',
         batchJobId: batchJob.id,
         total: applicationIds.length,
         toScore: applicationsToScore.length,
