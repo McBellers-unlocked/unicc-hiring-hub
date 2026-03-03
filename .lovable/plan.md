@@ -1,38 +1,32 @@
 
 
-## Two Bugs Found
+## Problem: "Starting..." stall persists
 
-### Bug 1: "Starting..." stall — trigger-batch-scoring blocks on first slice
+Looking at the edge function logs, the function IS processing (boots, queries DB, reaches "Processing slice 1"). But the client never gets the response, eventually timing out with "failed to send edge function".
 
-The `trigger-batch-scoring` function processes the first slice **synchronously** (line 254: `await processSlice(...)`) before returning the HTTP response. Since `score-application` takes 30-120 seconds per app, the client waits that entire time showing "Starting...". If it exceeds the 150s function timeout, the function is killed and the batch stays at `pending` with `scored_count: 0`.
+Two likely causes:
 
-The DB confirms this: the 5 most recent batch jobs are all stuck at `status: pending`, `scored_count: 0`.
+### 1. Unawaited `fetch()` may not send before response flushes
 
-**Fix in `supabase/functions/trigger-batch-scoring/index.ts`:**
-- Remove the synchronous `await processSlice(...)` call before the response
-- Instead, immediately return the response to the client with the `batchJobId`
-- Self-invoke via `fetch()` to start processing the first slice asynchronously (same pattern already used for subsequent slices)
+Line 255: `fetch(...)` is called without `await`. In Deno Deploy, the HTTP request might not actually be dispatched before the isolate processes the return. More critically, the `try/catch` around it **cannot catch async rejections** from an unawaited Promise. If the fetch fails silently, no slice ever starts.
 
-### Bug 2: "Legacy format" error — analysisVersion mismatch
+**Fix**: Add `await` to the self-invoke fetch so the request is confirmed sent before returning the response. We don't need to await the *response body* — just ensure the request leaves the wire.
 
-The `score-application` function sets `analysisVersion: '4.1-resumable-parallel-guarded'` (line 1266). But the UI component (`ApplicationScoring.tsx` line 109-119) checks:
-```
-breakdown.analysisVersion?.startsWith('4.0')
-```
-`'4.1-...'` does not start with `'4.0'`, so the UI treats all new scores as "legacy format".
+### 2. HTTP 202 status may confuse Supabase client
 
-The 2 scores that successfully completed (applications `24b0cd58` and `d6818434`) are invisible because of this version check.
+The response uses `status: 202`. Some versions of `supabase-js` may not handle non-200 2xx statuses correctly in `functions.invoke()`.
 
-**Fix in `supabase/functions/score-application/index.ts`:**
-- Change `analysisVersion` from `'4.1-resumable-parallel-guarded'` to `'4.0-resumable-parallel-guarded'` so it matches the UI's `startsWith('4.0')` check
+**Fix**: Change to `status: 200`.
 
-### Files to change
+### Changes
 
-1. **`supabase/functions/trigger-batch-scoring/index.ts`** — Replace inline `processSlice` with async self-invocation before returning response
-2. **`supabase/functions/score-application/index.ts`** — Change analysisVersion string to start with `4.0`
+**`supabase/functions/trigger-batch-scoring/index.ts`** (lines 254-282):
+- Change `fetch(...)` to `await fetch(...)` on line 255 — ensures the self-invoke request is sent
+- Change response status from `202` to `200` on line 281
+- Both changes are single-line edits
 
 ### Expected result
-- Button immediately transitions from "Starting..." to "Scoring 0/40..." within 1-2 seconds
-- Existing scores display correctly instead of showing "legacy format"
-- Batch progresses reliably via self-invoking slices
+- Function sends the self-invoke request, confirms it was sent, then returns 200 to the client within ~1 second
+- UI transitions from "Starting..." to "Scoring 0/40..." immediately
+- Background slices process as before
 
