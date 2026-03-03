@@ -104,27 +104,23 @@ async function processSlice(
   // Check if there are more to process
   const nextIndex = sliceIndex + SLICE_SIZE;
   if (nextIndex < applicationIds.length) {
-    console.log(`Self-invoking next slice at offset ${nextIndex}`);
-    // Self-invoke via fetch() instead of EdgeRuntime.waitUntil to survive process shutdown
+    console.log(`Fire-and-forget next slice at offset ${nextIndex}`);
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    try {
-      await fetch(`${supabaseUrl}/functions/v1/trigger-batch-scoring`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          _resumeBatchJobId: batchJobId,
-          _resumeApplicationIds: applicationIds,
-          _resumeSliceIndex: nextIndex,
-          _resumeForceRescore: forceRescore,
-        }),
-      });
-    } catch (fetchErr) {
-      console.error('Self-invoke failed, batch will stall and can be resumed:', fetchErr);
-    }
+    // Non-blocking: fire-and-forget to avoid chained timeout
+    fetch(`${supabaseUrl}/functions/v1/trigger-batch-scoring`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        _resumeBatchJobId: batchJobId,
+        _resumeApplicationIds: applicationIds,
+        _resumeSliceIndex: nextIndex,
+        _resumeForceRescore: forceRescore,
+      }),
+    }).catch(err => console.error('Self-invoke failed, batch will stall and can be resumed:', err));
   } else {
     // All done — mark completed
     await supabase.from('batch_scoring_jobs')
@@ -156,6 +152,15 @@ Deno.serve(async (req) => {
     if (body._resumeBatchJobId) {
       const { _resumeBatchJobId, _resumeApplicationIds, _resumeSliceIndex, _resumeForceRescore } = body;
       console.log(`Resuming batch ${_resumeBatchJobId} at slice ${_resumeSliceIndex}`);
+      
+      // Set status to processing + heartbeat immediately so UI reflects activity
+      await supabase.from('batch_scoring_jobs')
+        .update({
+          status: 'processing',
+          last_updated_at: new Date().toISOString(),
+        })
+        .eq('id', _resumeBatchJobId);
+      
       await processSlice(supabase, _resumeBatchJobId, _resumeApplicationIds, _resumeSliceIndex, _resumeForceRescore);
       return new Response(JSON.stringify({ resumed: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -249,25 +254,21 @@ Deno.serve(async (req) => {
 
     if (insertError) throw insertError;
 
-    // Step 5: Return immediately, then self-invoke to start processing asynchronously
-    // This prevents the client from waiting 30-120s per app showing "Starting..."
-    try {
-      await fetch(`${supabaseUrl}/functions/v1/trigger-batch-scoring`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          _resumeBatchJobId: batchJob.id,
-          _resumeApplicationIds: applicationsToScore,
-          _resumeSliceIndex: 0,
-          _resumeForceRescore: forceRescore || false,
-        }),
-      });
-    } catch (fetchErr) {
-      console.error('Failed to self-invoke first slice:', fetchErr);
-    }
+    // Step 5: Fire-and-forget self-invoke to start processing asynchronously
+    // Non-blocking: prevents the client from waiting and avoids chained timeout deadlock
+    fetch(`${supabaseUrl}/functions/v1/trigger-batch-scoring`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        _resumeBatchJobId: batchJob.id,
+        _resumeApplicationIds: applicationsToScore,
+        _resumeSliceIndex: 0,
+        _resumeForceRescore: forceRescore || false,
+      }),
+    }).catch(err => console.error('Failed to self-invoke first slice:', err));
 
     return new Response(
       JSON.stringify({

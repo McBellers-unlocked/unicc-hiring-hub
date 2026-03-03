@@ -197,8 +197,9 @@ async function preloadDecompositions(
     }
   }
 
-  // Find criteria that need decomposition (non-education, non-cached)
-  const missing = criteria.filter(c => c.type !== 'education' && !map.has(c.id));
+  // Find criteria that need decomposition (non-education, non-years_experience, non-cached)
+  // years_experience uses a synthetic deterministic decomposition — no AI needed
+  const missing = criteria.filter(c => c.type !== 'education' && c.type !== 'years_experience' && !map.has(c.id));
 
   if (missing.length > 0) {
     console.log(`Preloading ${missing.length} missing decompositions`);
@@ -1008,6 +1009,30 @@ function parsePrimary(tokens: string[], state: { pos: number }): boolean {
 }
 
 // =============================================================================
+// Synthetic Decomposition for years_experience (no AI decomposer needed)
+// =============================================================================
+
+function buildYearsExperienceDecomposition(criterion: ParsedCriterion): Decomposition {
+  const field = criterion.experienceField || '';
+  const requiredYears = criterion.requiredYears || 0;
+  
+  // S1 is always a deterministic years check
+  const subs: SubRequirement[] = [
+    { id: 'S1', type: 'deterministic', text: `At least ${requiredYears} years of experience` }
+  ];
+  
+  // S2 is an LLM check for field-specific relevance, but ONLY if there's a meaningful field
+  // Skip generic fields like "relevant field" which add no value
+  const meaningfulField = field && field !== 'relevant field' && field.length > 3;
+  if (meaningfulField) {
+    subs.push({ id: 'S2', type: 'llm', text: `Experience in ${field}` });
+    return { subrequirements: subs, recombine_logic: 'S1 AND S2' };
+  }
+  
+  return { subrequirements: subs, recombine_logic: 'S1' };
+}
+
+// =============================================================================
 // Scoring Functions (v4.0: parallel subrequirements, decomposition map)
 // =============================================================================
 
@@ -1033,10 +1058,13 @@ async function scoreCriterionV4(
   decompositionMap: Map<string, Decomposition>,
   experienceBullets: string
 ): Promise<CriterionScoreV4> {
-  // Step 2: Get decomposition from preloaded map first, fallback to DB
-  let decomposition = decompositionMap.get(criterion.id);
-  if (!decomposition) {
-    decomposition = await getOrCreateDecomposition(jobId, criterion.id, criterion.text);
+  // Step 2: Get decomposition — use synthetic for years_experience, preloaded map, or DB fallback
+  let decomposition: Decomposition;
+  if (criterion.type === 'years_experience') {
+    decomposition = buildYearsExperienceDecomposition(criterion);
+  } else {
+    decomposition = decompositionMap.get(criterion.id)
+      || await getOrCreateDecomposition(jobId, criterion.id, criterion.text);
   }
 
   const subScores: SubRequirementScore[] = [];
