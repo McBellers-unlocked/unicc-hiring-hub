@@ -20,6 +20,8 @@ const MODEL = 'openai/gpt-5';
 
 const MAX_CONCURRENCY = 6;
 const MAX_TEXT_LENGTH = 6000;
+const MAX_CRITERIA_CONCURRENCY = 2; // Score 2 criteria in parallel
+const MAX_SUBS_PER_CRITERION = 5; // Cap LLM subrequirements per criterion
 
 // =============================================================================
 // Types
@@ -990,7 +992,13 @@ async function scoreCriterionV4(
 
   // Separate deterministic and LLM subrequirements
   const deterministicSubs = decomposition.subrequirements.filter(s => s.type === 'deterministic');
-  const llmSubs = decomposition.subrequirements.filter(s => s.type === 'llm');
+  let llmSubs = decomposition.subrequirements.filter(s => s.type === 'llm');
+
+  // v4.1 COMPLEXITY GUARD: Cap LLM subrequirements to prevent timeout on heavy decompositions
+  if (llmSubs.length > MAX_SUBS_PER_CRITERION) {
+    console.log(`Capping ${llmSubs.length} LLM subs to ${MAX_SUBS_PER_CRITERION} for criterion ${criterion.id}`);
+    llmSubs = llmSubs.slice(0, MAX_SUBS_PER_CRITERION);
+  }
 
   // Process deterministic subs immediately (no AI needed)
   for (const subReq of deterministicSubs) {
@@ -1204,7 +1212,7 @@ function calculateScoringResultV4(
     passedCount,
     totalCount,
     recommendForLonglist,
-    analysisVersion: '4.0-decomposed-verified-parallel'
+    analysisVersion: '4.1-resumable-parallel-guarded'
   };
 }
 
@@ -1285,53 +1293,70 @@ Deno.serve(async (req) => {
     const decompositionMap = await preloadDecompositions(jobId, parsedCriteria);
     console.log(`Preloaded ${decompositionMap.size} decompositions`);
 
-    // Score each criterion through v4.0 pipeline
+    // Score criteria through v4.1 pipeline
     const criteriaScores: CriterionScoreV4[] = [];
     let educationScore: CriterionScoreV4 | null = null;
 
-    for (const criterion of parsedCriteria) {
+    // Separate education (deterministic) from LLM criteria
+    const educationCriteria = parsedCriteria.filter(c => c.type === 'education');
+    const llmCriteria = parsedCriteria.filter(c => c.type !== 'education');
+
+    // Handle education criteria immediately (no AI needed)
+    for (const criterion of educationCriteria) {
       console.log(`Scoring: ${criterion.type} - "${criterion.text.substring(0, 60)}..."`);
+      const normalizedEdu = education.map((edu: any) => ({
+        degree_type: edu.degree_type || edu.degree || edu.degree_or_certificate_title || '',
+        is_completed: edu.is_completed ?? edu.isCompleted ?? edu.completed ?? true
+      }));
+      const requiredLevel = criterion.requiredEducationLevel || 'First Level University';
+      const result = checkEducationEligibility(normalizedEdu, requiredLevel);
+      educationScore = {
+        criterionId: criterion.id,
+        criterionText: criterion.text,
+        type: 'education',
+        score: result.eligible ? 100 : 40,
+        passed: result.eligible,
+        confidence: 0.95,
+        subrequirements: [{
+          id: 'S1', text: criterion.text, type: 'deterministic',
+          demonstrated: result.eligible,
+          evidence: [{ source: 'work_experience', quote: result.details }],
+          missing: result.eligible ? null : result.details,
+          confidence: 0.95, flags: [],
+        }],
+        recombine_logic: 'S1',
+        details: { required: requiredLevel, candidateHas: result.candidateLevel }
+      };
+    }
 
-      if (criterion.type === 'education') {
-        // Education: direct deterministic, no decomposition needed
-        const normalizedEdu = education.map((edu: any) => ({
-          degree_type: edu.degree_type || edu.degree || edu.degree_or_certificate_title || '',
-          is_completed: edu.is_completed ?? edu.isCompleted ?? edu.completed ?? true
-        }));
-        const requiredLevel = criterion.requiredEducationLevel || 'First Level University';
-        const result = checkEducationEligibility(normalizedEdu, requiredLevel);
+    // v4.1 OPTIMIZATION: Score LLM criteria in parallel (cap MAX_CRITERIA_CONCURRENCY)
+    console.log(`Scoring ${llmCriteria.length} LLM criteria with concurrency=${MAX_CRITERIA_CONCURRENCY}`);
+    const criteriaTasks = llmCriteria.map(criterion => async () => {
+      console.log(`Scoring: ${criterion.type} - "${criterion.text.substring(0, 60)}..."`);
+      return scoreCriterionV4(
+        criterion, jobId, workExperience, education,
+        candidateDuties, motivationLetter,
+        decompositionMap, experienceBullets
+      );
+    });
 
-        educationScore = {
-          criterionId: criterion.id,
-          criterionText: criterion.text,
-          type: 'education',
-          score: result.eligible ? 100 : 40,
-          passed: result.eligible,
-          confidence: 0.95,
-          subrequirements: [{
-            id: 'S1',
-            text: criterion.text,
-            type: 'deterministic',
-            demonstrated: result.eligible,
-            evidence: [{ source: 'work_experience', quote: result.details }],
-            missing: result.eligible ? null : result.details,
-            confidence: 0.95,
-            flags: [],
-          }],
-          recombine_logic: 'S1',
-          details: {
-            required: requiredLevel,
-            candidateHas: result.candidateLevel
-          }
-        };
+    const criteriaResults = await runWithConcurrency(criteriaTasks, MAX_CRITERIA_CONCURRENCY);
+    for (const result of criteriaResults) {
+      if (result.status === 'fulfilled') {
+        criteriaScores.push(result.value);
       } else {
-        // All other criteria go through decomposition + evaluation + verification
-        const score = await scoreCriterionV4(
-          criterion, jobId, workExperience, education,
-          candidateDuties, motivationLetter,
-          decompositionMap, experienceBullets
-        );
-        criteriaScores.push(score);
+        console.error('Criterion scoring failed:', result.reason);
+        // Add a failed placeholder so we don't silently drop criteria
+        criteriaScores.push({
+          criterionId: 'failed',
+          criterionText: 'Criterion evaluation failed',
+          type: 'attribute',
+          score: 0,
+          passed: false,
+          confidence: 0,
+          subrequirements: [],
+          recombine_logic: 'S1',
+        });
       }
     }
 

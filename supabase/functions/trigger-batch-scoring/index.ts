@@ -5,17 +5,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Rate limiting configuration
-const BATCH_SIZE = 3;
-const BATCH_DELAY_MS = 2000;
+// Slice-based resumable configuration
+const SLICE_SIZE = 2; // Process 2 applications per invocation (keeps well within timeout)
 const MAX_RETRIES = 2;
 const STALL_THRESHOLD_MS = 120000; // 2 minutes
 
 async function scoreWithRetry(
-  supabase: any, 
-  appId: string, 
+  supabase: any,
+  appId: string,
   retries = 0
-): Promise<{ id: string; status: string; error?: any }> {
+): Promise<{ id: string; status: string; error?: string }> {
   try {
     const { data, error } = await supabase.functions.invoke('score-application', {
       body: { applicationId: appId }
@@ -24,111 +23,104 @@ async function scoreWithRetry(
     if (error) {
       if (retries < MAX_RETRIES) {
         const delay = 3000 * (retries + 1);
-        console.log(`Retrying ${appId} after error (attempt ${retries + 1}/${MAX_RETRIES}), waiting ${delay}ms`);
+        console.log(`Retrying ${appId} (attempt ${retries + 1}/${MAX_RETRIES}), waiting ${delay}ms`);
         await new Promise(r => setTimeout(r, delay));
         return scoreWithRetry(supabase, appId, retries + 1);
       }
-      console.error(`Failed to score ${appId} after ${MAX_RETRIES} retries:`, error);
-      return { id: appId, status: 'error', error };
+      const errMsg = typeof error === 'string' ? error : (error?.message || JSON.stringify(error));
+      console.error(`Failed to score ${appId} after ${MAX_RETRIES} retries:`, errMsg);
+      return { id: appId, status: 'error', error: errMsg.substring(0, 200) };
     }
 
     console.log(`Successfully scored application ${appId}`);
     return { id: appId, status: 'success' };
-  } catch (err) {
+  } catch (err: any) {
     if (retries < MAX_RETRIES) {
       const delay = 3000 * (retries + 1);
-      console.log(`Exception scoring ${appId}, retrying (attempt ${retries + 1}/${MAX_RETRIES}), waiting ${delay}ms`);
+      console.log(`Exception scoring ${appId}, retrying (attempt ${retries + 1}/${MAX_RETRIES})`);
       await new Promise(r => setTimeout(r, delay));
       return scoreWithRetry(supabase, appId, retries + 1);
     }
-    console.error(`Exception scoring ${appId} after ${MAX_RETRIES} retries:`, err);
-    return { id: appId, status: 'error', error: err };
+    const errMsg = err?.message || String(err);
+    console.error(`Exception scoring ${appId} after ${MAX_RETRIES} retries:`, errMsg);
+    return { id: appId, status: 'error', error: errMsg.substring(0, 200) };
   }
 }
 
-async function processScoringInBackground(
+async function processSlice(
   supabase: any,
   batchJobId: string,
-  applicationsToScore: { id: string }[],
-  skippedCount: number
+  applicationIds: string[],
+  sliceIndex: number
 ) {
-  try {
-    console.log(`Background processing started for batch job ${batchJobId}`);
-    
-    // Update status to processing with timestamp
-    await supabase.from('batch_scoring_jobs')
-      .update({ 
-        status: 'processing',
-        last_updated_at: new Date().toISOString()
-      })
-      .eq('id', batchJobId);
+  const slice = applicationIds.slice(sliceIndex, sliceIndex + SLICE_SIZE);
+  if (slice.length === 0) return;
 
-    let scoredCount = 0;
-    let errorCount = 0;
+  console.log(`Processing slice ${Math.floor(sliceIndex / SLICE_SIZE) + 1}: ${slice.length} apps (offset ${sliceIndex}/${applicationIds.length})`);
 
-    // Process in batches
-    for (let i = 0; i < applicationsToScore.length; i += BATCH_SIZE) {
-      const batch = applicationsToScore.slice(i, i + BATCH_SIZE);
-      const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
-      const totalBatches = Math.ceil(applicationsToScore.length / BATCH_SIZE);
-      
-      console.log(`Processing batch ${batchNumber}/${totalBatches} (${batch.length} applications)`);
-      
-      // Process batch concurrently
-      const batchResults = await Promise.all(
-        batch.map(app => scoreWithRetry(supabase, app.id))
-      );
-      
-      // Count results
-      for (const result of batchResults) {
-        if (result.status === 'success') scoredCount++;
-        else if (result.status === 'error') errorCount++;
-      }
-      
-      // Update progress in database with last_updated_at
-      await supabase.from('batch_scoring_jobs')
-        .update({ 
-          scored_count: scoredCount, 
-          error_count: errorCount,
-          last_updated_at: new Date().toISOString()
-        })
-        .eq('id', batchJobId);
-      
-      console.log(`Progress: ${scoredCount} scored, ${errorCount} errors`);
-      
-      // Delay between batches (except for the last batch)
-      if (i + BATCH_SIZE < applicationsToScore.length) {
-        console.log(`Waiting ${BATCH_DELAY_MS}ms before next batch...`);
-        await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
-      }
+  // Score each app in the slice sequentially (one at a time to stay within limits)
+  let sliceScored = 0;
+  let sliceErrors = 0;
+  const errorSnippets: string[] = [];
+
+  for (const appId of slice) {
+    const result = await scoreWithRetry(supabase, appId);
+    if (result.status === 'success') {
+      sliceScored++;
+    } else {
+      sliceErrors++;
+      if (result.error) errorSnippets.push(`${appId.substring(0, 8)}: ${result.error?.substring(0, 80)}`);
     }
+  }
 
-    // Mark as completed
+  // Read current counts and increment
+  const { data: currentJob } = await supabase
+    .from('batch_scoring_jobs')
+    .select('scored_count, error_count, error_message')
+    .eq('id', batchJobId)
+    .single();
+
+  const newScoredCount = (currentJob?.scored_count || 0) + sliceScored;
+  const newErrorCount = (currentJob?.error_count || 0) + sliceErrors;
+  const existingErrors = currentJob?.error_message || '';
+  const newErrorMessage = errorSnippets.length > 0
+    ? [existingErrors, ...errorSnippets].filter(Boolean).join(' | ').substring(0, 2000)
+    : existingErrors;
+
+  // Persist progress
+  await supabase.from('batch_scoring_jobs')
+    .update({
+      status: 'processing',
+      scored_count: newScoredCount,
+      error_count: newErrorCount,
+      error_message: newErrorMessage || null,
+      last_updated_at: new Date().toISOString()
+    })
+    .eq('id', batchJobId);
+
+  console.log(`Slice done. Cumulative: ${newScoredCount} scored, ${newErrorCount} errors`);
+
+  // Check if there are more to process
+  const nextIndex = sliceIndex + SLICE_SIZE;
+  if (nextIndex < applicationIds.length) {
+    console.log(`Scheduling next slice at offset ${nextIndex}`);
+    // Self-invoke the next slice via EdgeRuntime.waitUntil
+    // @ts-ignore - EdgeRuntime is available in Supabase Edge Functions
+    EdgeRuntime.waitUntil(
+      processSlice(supabase, batchJobId, applicationIds, nextIndex)
+    );
+  } else {
+    // All done — mark completed
     await supabase.from('batch_scoring_jobs')
-      .update({ 
+      .update({
         status: 'completed',
         completed_at: new Date().toISOString(),
         last_updated_at: new Date().toISOString(),
-        scored_count: scoredCount,
-        skipped_count: skippedCount,
-        error_count: errorCount
+        scored_count: newScoredCount,
+        error_count: newErrorCount,
       })
       .eq('id', batchJobId);
-
-    console.log(`Batch job ${batchJobId} completed: ${scoredCount} scored, ${skippedCount} skipped, ${errorCount} errors`);
-
-  } catch (error: any) {
-    console.error(`Batch job ${batchJobId} failed:`, error);
-    
-    // Mark as failed
-    await supabase.from('batch_scoring_jobs')
-      .update({ 
-        status: 'failed',
-        completed_at: new Date().toISOString(),
-        last_updated_at: new Date().toISOString(),
-        error_message: error.message
-      })
-      .eq('id', batchJobId);
+    console.log(`Batch job ${batchJobId} completed: ${newScoredCount} scored, ${newErrorCount} errors`);
   }
 }
 
@@ -139,14 +131,14 @@ Deno.serve(async (req) => {
 
   try {
     const { jobId, forceRescore } = await req.json();
-    
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log(`Batch scoring for job ${jobId}, forceRescore: ${forceRescore}`);
 
-    // Step 1: Check for stalled jobs (processing but no update in 2+ minutes)
+    // Step 1: Mark stalled jobs as incomplete
     const twoMinutesAgo = new Date(Date.now() - STALL_THRESHOLD_MS).toISOString();
     const { data: stalledJobs } = await supabase
       .from('batch_scoring_jobs')
@@ -155,20 +147,20 @@ Deno.serve(async (req) => {
       .eq('status', 'processing')
       .lt('last_updated_at', twoMinutesAgo);
 
-    // Mark stalled jobs as incomplete
     if (stalledJobs?.length) {
       console.log(`Found ${stalledJobs.length} stalled jobs, marking as incomplete`);
       await supabase
         .from('batch_scoring_jobs')
-        .update({ 
-          status: 'incomplete', 
+        .update({
+          status: 'incomplete',
           completed_at: new Date().toISOString(),
-          last_updated_at: new Date().toISOString()
+          last_updated_at: new Date().toISOString(),
+          error_message: 'Marked incomplete: no progress for 2+ minutes'
         })
         .in('id', stalledJobs.map((j: any) => j.id));
     }
 
-    // Step 2: Get all applications for this job that have PHF completed
+    // Step 2: Get PHF-completed applications
     const { data: applications, error: fetchError } = await supabase
       .from('applications')
       .select('id')
@@ -179,7 +171,7 @@ Deno.serve(async (req) => {
 
     console.log(`Found ${applications?.length || 0} PHF-completed applications`);
 
-    // Step 3: Get applications that already have scores (batch query - more efficient)
+    // Step 3: Get already-scored applications
     const applicationIds = applications?.map(a => a.id) || [];
     const { data: existingScores } = await supabase
       .from('screening_scores')
@@ -187,48 +179,37 @@ Deno.serve(async (req) => {
       .in('application_id', applicationIds);
 
     const alreadyScoredIds = new Set(existingScores?.map(s => s.application_id) || []);
-    console.log(`${alreadyScoredIds.size} applications already have scores`);
 
-    // Step 4: Filter applications based on scoring status
-    let applicationsToScore: { id: string }[];
+    // Step 4: Determine what to score
+    let applicationsToScore: string[];
     let skippedCount: number;
 
     if (forceRescore) {
-      // For force rescore: delete existing scores first, then score all
       if (alreadyScoredIds.size > 0) {
         console.log(`Force rescore: deleting ${alreadyScoredIds.size} existing scores`);
-        const { error: deleteError } = await supabase
+        await supabase
           .from('screening_scores')
           .delete()
           .in('application_id', Array.from(alreadyScoredIds));
-        
-        if (deleteError) {
-          console.error('Error deleting existing scores:', deleteError);
-        }
       }
-      applicationsToScore = applications || [];
+      applicationsToScore = applicationIds;
       skippedCount = 0;
     } else {
-      // Normal scoring: skip applications that already have scores
-      applicationsToScore = (applications || []).filter(app => !alreadyScoredIds.has(app.id));
+      applicationsToScore = applicationIds.filter(id => !alreadyScoredIds.has(id));
       skippedCount = alreadyScoredIds.size;
     }
 
     console.log(`Will score ${applicationsToScore.length} applications, skipping ${skippedCount}`);
 
-    // If nothing to score, return early
     if (applicationsToScore.length === 0) {
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           message: 'No applications to score',
-          total: applications?.length || 0,
+          total: applicationIds.length,
           toScore: 0,
           skipped: skippedCount
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
-        }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
 
@@ -238,7 +219,7 @@ Deno.serve(async (req) => {
       .insert({
         job_id: jobId,
         status: 'pending',
-        total_applications: applications?.length || 0,
+        total_applications: applicationIds.length,
         skipped_count: skippedCount,
         last_updated_at: new Date().toISOString()
       })
@@ -247,39 +228,28 @@ Deno.serve(async (req) => {
 
     if (insertError) throw insertError;
 
-    // Step 6: Start background processing (non-blocking)
-    // @ts-ignore - EdgeRuntime is available in Supabase Edge Functions
+    // Step 6: Start slice-based processing (non-blocking)
+    // @ts-ignore
     EdgeRuntime.waitUntil(
-      processScoringInBackground(
-        supabase,
-        batchJob.id,
-        applicationsToScore,
-        skippedCount
-      )
+      processSlice(supabase, batchJob.id, applicationsToScore, 0)
     );
 
-    // Return immediately with batch job ID for polling
     return new Response(
-      JSON.stringify({ 
-        message: 'Batch scoring started',
+      JSON.stringify({
+        message: 'Batch scoring started (resumable slices)',
         batchJobId: batchJob.id,
-        total: applications?.length || 0,
+        total: applicationIds.length,
         toScore: applicationsToScore.length,
-        skipped: skippedCount
+        skipped: skippedCount,
+        sliceSize: SLICE_SIZE
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 202  // Accepted - processing in background
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 202 }
     );
   } catch (error: any) {
     console.error('Error in trigger-batch-scoring:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });
