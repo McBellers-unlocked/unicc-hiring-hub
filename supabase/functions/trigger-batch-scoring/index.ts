@@ -252,7 +252,7 @@ Deno.serve(async (req) => {
     // Step 5: Return immediately, then self-invoke to start processing asynchronously
     // This prevents the client from waiting 30-120s per app showing "Starting..."
     try {
-      fetch(`${supabaseUrl}/functions/v1/trigger-batch-scoring`, {
+      await fetch(`${supabaseUrl}/functions/v1/trigger-batch-scoring`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${supabaseServiceKey}`,
@@ -278,7 +278,7 @@ Deno.serve(async (req) => {
         skipped: skippedCount,
         sliceSize: SLICE_SIZE
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 202 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   } catch (error: any) {
     console.error('Error in trigger-batch-scoring:', error);
