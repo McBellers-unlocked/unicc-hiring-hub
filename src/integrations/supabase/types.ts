@@ -2897,6 +2897,38 @@ export type Database = {
           },
         ]
       }
+      job_match_profiles: {
+        Row: {
+          created_at: string
+          job_id: string
+          match_profile_json: Json | null
+          match_profile_text: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          job_id: string
+          match_profile_json?: Json | null
+          match_profile_text: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          job_id?: string
+          match_profile_json?: Json | null
+          match_profile_text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_match_profiles_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_requirements: {
         Row: {
           category: string
@@ -4488,6 +4520,146 @@ export type Database = {
         }
         Relationships: []
       }
+      talent_candidate_embeddings: {
+        Row: {
+          candidate_id: string
+          completeness_score: number
+          created_at: string
+          domain_keywords: string[]
+          normalized_roles: string[]
+          normalized_skills: string[]
+          profile_text: string
+          updated_at: string
+        }
+        Insert: {
+          candidate_id: string
+          completeness_score?: number
+          created_at?: string
+          domain_keywords?: string[]
+          normalized_roles?: string[]
+          normalized_skills?: string[]
+          profile_text: string
+          updated_at?: string
+        }
+        Update: {
+          candidate_id?: string
+          completeness_score?: number
+          created_at?: string
+          domain_keywords?: string[]
+          normalized_roles?: string[]
+          normalized_skills?: string[]
+          profile_text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_candidate_embeddings_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: true
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_match_results: {
+        Row: {
+          candidate_id: string
+          confidence: string
+          created_at: string
+          gaps: Json | null
+          match_score: number
+          rank: number | null
+          reasons: Json
+          run_id: string
+          text_similarity: number | null
+          tier: string
+        }
+        Insert: {
+          candidate_id: string
+          confidence: string
+          created_at?: string
+          gaps?: Json | null
+          match_score: number
+          rank?: number | null
+          reasons?: Json
+          run_id: string
+          text_similarity?: number | null
+          tier: string
+        }
+        Update: {
+          candidate_id?: string
+          confidence?: string
+          created_at?: string
+          gaps?: Json | null
+          match_score?: number
+          rank?: number | null
+          reasons?: Json
+          run_id?: string
+          text_similarity?: number | null
+          tier?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_match_results_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_match_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "talent_match_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_match_runs: {
+        Row: {
+          created_at: string
+          filters: Json | null
+          id: string
+          job_id: string
+          requested_by: string | null
+          status: string
+          total_candidates: number | null
+        }
+        Insert: {
+          created_at?: string
+          filters?: Json | null
+          id?: string
+          job_id: string
+          requested_by?: string | null
+          status?: string
+          total_candidates?: number | null
+        }
+        Update: {
+          created_at?: string
+          filters?: Json | null
+          id?: string
+          job_id?: string
+          requested_by?: string | null
+          status?: string
+          total_candidates?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_match_runs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_match_runs_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       talent_pool_searches: {
         Row: {
           created_at: string | null
@@ -5554,6 +5726,19 @@ export type Database = {
         Returns: undefined
       }
       mark_curveball_shown: { Args: { p_token: string }; Returns: boolean }
+      match_candidates_by_text: {
+        Args: {
+          match_count?: number
+          query_skills?: string[]
+          query_text: string
+          similarity_threshold?: number
+        }
+        Returns: {
+          candidate_id: string
+          completeness_score: number
+          similarity: number
+        }[]
+      }
       search_whed_universities: {
         Args: { max_results?: number; search_term: string }
         Returns: {

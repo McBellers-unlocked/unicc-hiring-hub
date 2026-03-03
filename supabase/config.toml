@@ -119,3 +119,6 @@ verify_jwt = false
 
 [functions.notify-local-admin]
 verify_jwt = false
+
+[functions.talent-pool-match]
+verify_jwt = false
