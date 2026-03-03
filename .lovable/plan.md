@@ -1,30 +1,20 @@
 
 
-## Switch AI Model to `openai/gpt-5` for Faster Scoring
+## Fix: Remove `temperature` parameter for GPT-5 compatibility
 
-### Current State
-- Pipeline v4.0 is **working correctly** — scores are being saved (3/8 passed, 4/8 passed, etc.)
-- Currently using `google/gemini-3-flash-preview`
-- Each candidate takes ~25-30 seconds due to multiple sequential LLM calls (decomposer + evaluator per criterion + verifier)
-- There are also `recombine_logic` parser warnings for parenthesized tokens like `(S2` — the fallback works but is suboptimal
+### Root Cause
+The logs show every AI Gateway call fails with:
+> `"Unsupported value: 'temperature' does not support 0.1 with this model. Only the default (1) value is supported."`
 
-### Change
-One-line change in `supabase/functions/score-application/index.ts`:
+`openai/gpt-5` does not support custom temperature values. The code sets `temperature: 0.1` in two places (lines 181 and 224), causing all tool-calling and fallback requests to return 400 errors. The fallback text parsing then also fails, producing "AI analysis failed (parse failure)" for every criterion.
 
-```typescript
-// Line 15: change from
-const MODEL = 'google/gemini-3-flash-preview';
-// to
-const MODEL = 'openai/gpt-5';
-```
+### Fix
+Remove the `temperature` parameter from both API call locations in `supabase/functions/score-application/index.ts`:
 
-`openai/gpt-5` is generally faster at structured output / tool calling and may reduce per-candidate scoring time. It is more expensive per token but the payloads are small.
-
-### Bonus Fix: Recombine Logic Parser
-The logs show repeated warnings like `Invalid token in recombine_logic: "(S2"`. The tokenizer is splitting on whitespace but not handling parentheses attached to identifiers (e.g., `(S1 AND S2)` tokenizes as `["(S1", "AND", "S2)"]`). A small fix to split parentheses into separate tokens would eliminate these warnings and enable proper `OR` / grouping support.
-
-### Files to Modify
-| File | Change |
+| Location | Change |
 |---|---|
-| `supabase/functions/score-application/index.ts` | Change MODEL constant to `openai/gpt-5`; fix recombine_logic tokenizer to handle parentheses |
+| Line 181 (`callAIWithToolCalling`) | Remove `temperature: 0.1` |
+| Line 224 (fallback text call) | Remove `temperature: 0.1` |
+
+Then redeploy the edge function. No other changes needed.
 
