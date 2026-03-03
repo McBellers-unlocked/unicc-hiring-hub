@@ -1,20 +1,19 @@
 
 
-# Fix: Null job fetch in `run_match` action
+# Fix: `nice_to_have_md` column does not exist on `jobs` table
 
 ## Root Cause
 
-In the `run_match` action (line 405-409), when no cached `job_match_profiles` entry exists, the code fetches the job from the `jobs` table using `.single()`. If this returns an error or null (e.g., RLS policy blocking the service-role read, or a query issue), the code proceeds to access `job.title` on line 412, causing `Cannot read properties of null (reading 'title')`.
-
-The `build_job_profile` action (line 361-366) has `if (jobErr) throw jobErr;` but the same fetch inside `run_match` (line 405-409) does NOT check the error — it silently gets `null`.
+The edge function queries `jobs.nice_to_have_md` but this column does not exist. The `jobs` table has `competencies` instead.
 
 ## Fix
 
-1. **Add error handling** for the job fetch inside `run_match` (around line 405-409):
-   - Destructure the error: `const { data: job, error: jobErr } = await supabase...`
-   - If `jobErr` or `!job`, throw a descriptive error like `"Job not found: {job_id}"`
+In `supabase/functions/talent-pool-match/index.ts`, replace `nice_to_have_md` with `competencies` in 4 places:
 
-2. **Redeploy** the edge function after the fix.
+1. **Line 363**: Change select to `"title, description_md, requirements_md, competencies, location, type"`
+2. **Line 372**: Change `job.nice_to_have_md` to `job.competencies`
+3. **Line 407**: Change select to `"title, description_md, requirements_md, competencies"`
+4. **Line 419**: Change `job.nice_to_have_md` to `job.competencies`
 
-This is a one-line-class fix in `supabase/functions/talent-pool-match/index.ts`.
+Then redeploy the edge function.
 
