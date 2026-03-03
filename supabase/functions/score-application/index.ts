@@ -12,7 +12,7 @@ const supabase = createClient(
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
-const MODEL = 'google/gemini-3-flash-preview';
+const MODEL = 'openai/gpt-5';
 
 // =============================================================================
 // Types
@@ -751,8 +751,15 @@ Check:
 // =============================================================================
 
 function evaluateRecombineLogic(logic: string, results: Record<string, boolean>): boolean {
-  // Tokenize
-  const tokens = logic.trim().split(/\s+/);
+  // Tokenize: split on whitespace, then separate parentheses from identifiers
+  const rawTokens = logic.trim().split(/\s+/);
+  const tokens: string[] = [];
+  for (const raw of rawTokens) {
+    // Split parentheses into separate tokens: "(S1" -> ["(", "S1"], "S2)" -> ["S2", ")"]
+    const parts = raw.match(/[()]|[^()]+/g);
+    if (parts) tokens.push(...parts);
+    else tokens.push(raw);
+  }
 
   // Validate all tokens
   const validToken = /^(S\d+|AND|OR|\(|\))$/;
@@ -774,7 +781,14 @@ function evaluateRecombineLogic(logic: string, results: Record<string, boolean>)
     }
 
     // Simple recursive descent parser
-    return parseOrExpression(expr.trim().split(/\s+/), { pos: 0 });
+    // Tokenize with parenthesis splitting for the recursive descent parser too
+    const exprTokens: string[] = [];
+    for (const raw of expr.trim().split(/\s+/)) {
+      const parts = raw.match(/[()]|[^()]+/g);
+      if (parts) exprTokens.push(...parts);
+      else exprTokens.push(raw);
+    }
+    return parseOrExpression(exprTokens, { pos: 0 });
   } catch {
     console.warn('Recombine logic parse failed, defaulting to AND-all');
     return Object.values(results).every(v => v);
