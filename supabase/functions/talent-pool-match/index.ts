@@ -329,16 +329,14 @@ serve(async (req) => {
     const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(
-      authHeader.replace("Bearer ", "")
-    );
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await anonClient.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
 
     const { action, ...params } = await req.json();
 
