@@ -249,9 +249,25 @@ Deno.serve(async (req) => {
 
     if (insertError) throw insertError;
 
-    // Step 5: Start first slice synchronously, then respond
-    // Process first slice inline so caller gets immediate feedback
-    await processSlice(supabase, batchJob.id, applicationsToScore, 0, forceRescore || false);
+    // Step 5: Return immediately, then self-invoke to start processing asynchronously
+    // This prevents the client from waiting 30-120s per app showing "Starting..."
+    try {
+      fetch(`${supabaseUrl}/functions/v1/trigger-batch-scoring`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          _resumeBatchJobId: batchJob.id,
+          _resumeApplicationIds: applicationsToScore,
+          _resumeSliceIndex: 0,
+          _resumeForceRescore: forceRescore || false,
+        }),
+      });
+    } catch (fetchErr) {
+      console.error('Failed to self-invoke first slice:', fetchErr);
+    }
 
     return new Response(
       JSON.stringify({
