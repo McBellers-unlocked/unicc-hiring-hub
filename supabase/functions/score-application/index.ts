@@ -178,7 +178,6 @@ async function callAIWithToolCalling(
           }
         }],
         tool_choice: { type: 'function', function: { name: toolName } },
-        temperature: 0.1,
       }),
     });
 
@@ -221,7 +220,7 @@ async function callAIWithToolCalling(
             { role: 'system', content: systemPrompt + '\nReturn ONLY valid JSON. No markdown, no explanation.' },
             { role: 'user', content: userPrompt }
           ],
-          temperature: 0.1,
+          
         }),
       });
 
