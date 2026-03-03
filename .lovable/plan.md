@@ -1,28 +1,30 @@
 
 
-## Diagnosis: Two Root Causes for Missing Scores
+## Switch AI Model to `openai/gpt-5` for Faster Scoring
 
-### Problem 1: Old edge function is still deployed
-The logs show `"OpenAI API error: 401"` — but this string doesn't exist anywhere in the current `score-application/index.ts` source code. This means the **old version** (which calls OpenAI directly) is still running on Supabase, not the new v4.0 code that uses the Lovable AI Gateway. The edge function needs to be redeployed.
+### Current State
+- Pipeline v4.0 is **working correctly** — scores are being saved (3/8 passed, 4/8 passed, etc.)
+- Currently using `google/gemini-3-flash-preview`
+- Each candidate takes ~25-30 seconds due to multiple sequential LLM calls (decomposer + evaluator per criterion + verifier)
+- There are also `recombine_logic` parser warnings for parenthesized tokens like `(S2` — the fallback works but is suboptimal
 
-### Problem 2: Upsert fails with `42P10` — ON CONFLICT mismatch
-The logs also show: `"there is no unique or exclusion constraint matching the ON CONFLICT specification"`. The unique constraint `(application_id, pipeline_version)` exists, but `pipeline_version` is **nullable** (default `'3.0'`). PostgreSQL's `ON CONFLICT` does not work reliably with nullable columns in unique constraints. The column must be `NOT NULL`.
+### Change
+One-line change in `supabase/functions/score-application/index.ts`:
 
-### Fixes
-
-**1. Database migration** — Make `pipeline_version` NOT NULL:
-```sql
-UPDATE screening_scores SET pipeline_version = '3.0' WHERE pipeline_version IS NULL;
-ALTER TABLE screening_scores ALTER COLUMN pipeline_version SET NOT NULL;
+```typescript
+// Line 15: change from
+const MODEL = 'google/gemini-3-flash-preview';
+// to
+const MODEL = 'openai/gpt-5';
 ```
 
-**2. Redeploy the edge function** — The current source code in the repo is correct (uses Lovable AI Gateway), but it hasn't been deployed. Trigger a deploy of `score-application`.
+`openai/gpt-5` is generally faster at structured output / tool calling and may reduce per-candidate scoring time. It is more expensive per token but the payloads are small.
 
-**3. After both fixes** — Re-run scoring. The v4.0 pipeline will use the Lovable AI Gateway (no OpenAI key needed), save scores via upsert, and the UI will display them.
+### Bonus Fix: Recombine Logic Parser
+The logs show repeated warnings like `Invalid token in recombine_logic: "(S2"`. The tokenizer is splitting on whitespace but not handling parentheses attached to identifiers (e.g., `(S1 AND S2)` tokenizes as `["(S1", "AND", "S2)"]`). A small fix to split parentheses into separate tokens would eliminate these warnings and enable proper `OR` / grouping support.
 
-### Files to modify
+### Files to Modify
 | File | Change |
 |---|---|
-| Migration SQL | `ALTER TABLE screening_scores ALTER COLUMN pipeline_version SET NOT NULL` |
-| `supabase/functions/score-application/index.ts` | Redeploy (no code change needed) |
+| `supabase/functions/score-application/index.ts` | Change MODEL constant to `openai/gpt-5`; fix recombine_logic tokenizer to handle parentheses |
 
