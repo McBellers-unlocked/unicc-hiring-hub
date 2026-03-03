@@ -94,7 +94,7 @@ interface ApplicationData {
   screening_scores?: {
     ai_score: number | null;
     rubric_breakdown: any;
-  } | null;
+  }[] | null;
 }
 
 export default function ApplicationDetail() {
