@@ -1,44 +1,64 @@
 
-Goal: fix the “stuck at Starting…” + slow batch progression without changing prompts, safety rules, or scoring logic.
 
-1) Confirm current failure mode (already evidenced)
-- `trigger-batch-scoring` currently `await`s self-invocation for:
-  - first kickoff (`_resumeSliceIndex: 0`)
-  - next-slice continuation
-- That makes each invocation block on downstream invocations, creating a chained wait that can hit the 60s edge timeout and stall the client at “Starting…”.
-- DB confirms recent jobs remain `pending` with `scored_count=0` and `skipped_count=2` (hence “38 to score out of 40”).
+## Diagnosis: score-application Takes 120s Per App (Not 30-45s)
 
-2) Fix orchestration deadlock in `trigger-batch-scoring`
-- Change both self-invocations from blocking `await fetch(...)` to non-blocking fire-and-forget with explicit `.catch(...)` logging.
-- Keep immediate HTTP response to client after job creation.
-- Keep slice-by-slice processing logic unchanged; only invocation strategy changes.
-- Optional hardening:
-  - set batch status to `processing` + heartbeat (`last_updated_at`) right when first resume starts, so UI reflects activity earlier.
+### Evidence from logs and DB
 
-3) Apply the “first essential criterion” optimization safely in `score-application`
-- Implement deterministic fast-path for `years_experience` criteria so they do not require AI decomposition.
-- Build a synthetic decomposition for years criteria:
-  - `S1` deterministic = minimum years check (existing deterministic method)
-  - `S2` llm = field-specific experience check only when a meaningful field exists (e.g., “in product development”)
-  - recombine: `S1 AND S2` (or `S1` when no field is extracted)
-- Exclude `years_experience` from `preloadDecompositions()` AI decomposition requests.
-- This preserves logic quality (years floor + domain relevance) while removing decomposer latency.
+The batch IS progressing — both batch jobs show sequential slice advancement:
+- `58732cb1`: slice 0→1→2→3→4, scored 4 apps in 6 minutes
+- `00cbb094`: slice 0→1→2, scored 1 app in 2.5 minutes
 
-4) Keep safety/prompt guarantees intact
-- Do not modify evaluator/verifier system prompts.
-- Keep:
-  - No Evidence = False rule
-  - verification pass
-  - recombine parser
-  - injection-resistant treatment of candidate text
-- No DB schema changes required.
+The self-invoke chain works. The problem is **speed**: each `score-application` invocation takes **120 seconds**, not the estimated 30-45s. At that rate, 37 apps would take **74 minutes**. That's why it appears "stuck."
 
-5) Validation plan after implementation
-- Trigger one fresh batch for job `2776db41-6970-4445-bd02-9a53534dd117`.
-- Expected:
-  - UI leaves “Starting…” quickly and shows progress polling.
-  - `batch_scoring_jobs` row moves `pending -> processing -> completed/incomplete`.
-  - `trigger-batch-scoring` logs show kickoff + resume without long blocking chains.
-  - `score-application` logs no longer spend time decomposing years criterion via AI.
-- Cross-check:
-  - `toScore` remains 38 because 2 applications already have v4 scores (not a bug).
+### Root cause: MAX_CRITERIA_CONCURRENCY = 3 is too low
+
+With 7 criteria and concurrency of 3:
+```text
+Round 1: criteria 1-3 start (each ~20-30s for subs + evaluate + verify)
+Round 2: criteria 4-6 start
+Round 3: criterion 7 starts
+Total: ~90-120s per application
+```
+
+Each criterion involves 2-5 LLM calls (evaluate subrequirements + verify borderline positives). With 3 criteria processing at a time, it takes 3 rounds of ~40s each.
+
+### Fix: Two changes, no prompt/safety/logic modifications
+
+**1. `score-application/index.ts` line 23: MAX_CRITERIA_CONCURRENCY = 3 → 5**
+
+Process 5 criteria simultaneously instead of 3. With 7 total criteria:
+```text
+Round 1: criteria 1-5 start (~20-30s)
+Round 2: criteria 6-7 start (~20-30s)
+Total: ~40-50s per application (3x faster)
+```
+
+Peak concurrent LLM calls: ~15 (5 criteria × ~3 subs each). The existing 429 backoff with `AI_RETRY_ATTEMPTS=3` handles rate limiting. This is well below the AI gateway's capacity.
+
+**2. `score-application/index.ts` line 24: MAX_SUBS_PER_CRITERION = 5 → 3**
+
+Cap subrequirements per criterion to 3 instead of 5. Most criteria only have 2-3 atomic subrequirements anyway (the decomposer rarely produces more). This prevents outlier criteria from adding excessive LLM calls when combined with higher criteria concurrency.
+
+### What stays unchanged
+- All prompts (evaluator, verifier, decomposer)
+- No Evidence = False rule
+- Verification pass (borderline positive check)
+- Recombine logic parser (safe, no eval())
+- Injection-resistant treatment of candidate text
+- Deterministic years_experience decomposition
+- Fire-and-forget self-invoke architecture in trigger-batch-scoring
+- No DB schema changes
+
+### Expected results
+- `score-application` completes in ~40-50s (down from ~120s)
+- Full batch of 37 apps completes in ~30-35 minutes (down from ~74 minutes)
+- UI polling shows steady progress (~1 app per minute)
+- No changes to scoring quality or safety guarantees
+
+### Files to change
+
+| File | Line | Change |
+|------|------|--------|
+| `score-application/index.ts` | 23 | `MAX_CRITERIA_CONCURRENCY = 3` → `5` |
+| `score-application/index.ts` | 24 | `MAX_SUBS_PER_CRITERION = 5` → `3` |
+
