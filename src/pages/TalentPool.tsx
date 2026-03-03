@@ -9,9 +9,12 @@ import { SavedSearchManager } from "@/components/talent-pool/SavedSearchManager"
 import { TalentPoolStats } from "@/components/talent-pool/TalentPoolStats";
 import { SelectionActionBar } from "@/components/talent-pool/SelectionActionBar";
 import { BulkEmailDialog } from "@/components/talent-pool/BulkEmailDialog";
-import { Users, Search, BookmarkCheck, BarChart3 } from "lucide-react";
+import { TalentPoolMatchResults } from "@/components/talent-pool/TalentPoolMatchResults";
+import { AIMatchTab } from "@/components/talent-pool/AIMatchTab";
+import { Users, Search, BookmarkCheck, BarChart3, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 export interface SearchFilters {
   searchText: string;
@@ -42,6 +45,7 @@ export interface SearchFilters {
 
 export default function TalentPool() {
   const { userRoles } = useAuth();
+  const { toast } = useToast();
   const [filters, setFilters] = useState<SearchFilters>({
     searchText: "",
     locations: [],
@@ -59,6 +63,9 @@ export default function TalentPool() {
   const [sortBy, setSortBy] = useState<string>("updated_desc");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [matchRunId, setMatchRunId] = useState<string | null>(null);
+  const [isMatching, setIsMatching] = useState(false);
+  const [matchJobTitle, setMatchJobTitle] = useState<string>("");
 
   // Clear selection when filters change
   useEffect(() => {
@@ -91,6 +98,33 @@ export default function TalentPool() {
 
   const showSelection = filters.talentSource !== "external";
 
+  const handleAIMatch = async (jobId: string, jobTitle: string) => {
+    setIsMatching(true);
+    setMatchRunId(null);
+    setMatchJobTitle(jobTitle);
+    try {
+      const { data, error } = await supabase.functions.invoke("talent-pool-match", {
+        body: { action: "run_match", job_id: jobId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setMatchRunId(data.run_id);
+      toast({
+        title: "Matching complete",
+        description: `Found ${data.total} candidate matches`,
+      });
+    } catch (e: any) {
+      console.error("AI Match error:", e);
+      toast({
+        title: "Matching failed",
+        description: e.message || "An error occurred during matching",
+        variant: "destructive",
+      });
+    } finally {
+      setIsMatching(false);
+    }
+  };
+
   // Check if user has appropriate role
   const hasAccess = userRoles.some(role => 
     ["Admin", "HR Assistant", "Chief of HR", "Hiring Manager", "Director"].includes(role)
@@ -114,14 +148,18 @@ export default function TalentPool() {
         </div>
 
         <Tabs defaultValue="search" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
             <TabsTrigger value="search" className="gap-2">
               <Search className="h-4 w-4" />
               Search
             </TabsTrigger>
+            <TabsTrigger value="ai-match" className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              AI Match
+            </TabsTrigger>
             <TabsTrigger value="saved" className="gap-2">
               <BookmarkCheck className="h-4 w-4" />
-              Saved Searches
+              Saved
             </TabsTrigger>
             <TabsTrigger value="analytics" className="gap-2">
               <BarChart3 className="h-4 w-4" />
@@ -145,6 +183,15 @@ export default function TalentPool() {
               selectedIds={selectedIds}
               onSelectionChange={setSelectedIds}
               showSelection={showSelection}
+            />
+          </TabsContent>
+
+          <TabsContent value="ai-match" className="space-y-6">
+            <AIMatchTab
+              onMatch={handleAIMatch}
+              isMatching={isMatching}
+              matchRunId={matchRunId}
+              matchJobTitle={matchJobTitle}
             />
           </TabsContent>
 
