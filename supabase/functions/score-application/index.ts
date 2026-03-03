@@ -15,6 +15,13 @@ const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const MODEL = 'openai/gpt-5';
 
 // =============================================================================
+// v4.0 Performance Constants
+// =============================================================================
+
+const MAX_CONCURRENCY = 6;
+const MAX_TEXT_LENGTH = 6000;
+
+// =============================================================================
 // Types
 // =============================================================================
 
@@ -106,6 +113,173 @@ interface ScoringResultV4 {
   totalCount: number;
   recommendForLonglist: boolean;
   analysisVersion: string;
+}
+
+// =============================================================================
+// v4.0 Utility Functions
+// =============================================================================
+
+function truncateText(text: string, maxLen: number = MAX_TEXT_LENGTH): string {
+  if (!text || text.length <= maxLen) return text || '';
+  return text.substring(0, maxLen) + '\n[...truncated]';
+}
+
+function extractExperienceBullets(candidateDuties: string): string {
+  if (!candidateDuties) return '';
+  // Extract lines that look like bullet points or key responsibilities
+  const lines = candidateDuties.split('\n');
+  const bullets: string[] = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Match bullet points, numbered items, or lines starting with action verbs
+    if (trimmed.match(/^[-•·*–—]\s/) || trimmed.match(/^\d+\.\s/) ||
+        trimmed.match(/^(Led|Managed|Developed|Designed|Implemented|Coordinated|Oversaw|Delivered|Created|Established|Provided|Supported|Conducted|Prepared|Maintained|Supervised|Directed|Organized|Facilitated|Ensured)/i)) {
+      const cleaned = trimmed.replace(/^[-•·*–—]\s*/, '').replace(/^\d+\.\s*/, '').trim();
+      if (cleaned.length > 10 && cleaned.length < 200) {
+        bullets.push(cleaned);
+      }
+    }
+  }
+  if (bullets.length === 0) return '';
+  // Take top 15 most relevant bullets
+  const selected = bullets.slice(0, 15);
+  return 'EXPERIENCE BULLETS:\n' + selected.map(b => `• ${b}`).join('\n');
+}
+
+async function runWithConcurrency<T>(
+  tasks: (() => Promise<T>)[],
+  maxConcurrent: number
+): Promise<PromiseSettledResult<T>[]> {
+  const results: PromiseSettledResult<T>[] = new Array(tasks.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < tasks.length) {
+      const index = nextIndex++;
+      try {
+        const value = await tasks[index]();
+        results[index] = { status: 'fulfilled', value };
+      } catch (reason) {
+        results[index] = { status: 'rejected', reason };
+      }
+    }
+  }
+
+  const workers = Array.from(
+    { length: Math.min(maxConcurrent, tasks.length) },
+    () => worker()
+  );
+  await Promise.all(workers);
+  return results;
+}
+
+async function preloadDecompositions(
+  jobId: string,
+  criteria: ParsedCriterion[]
+): Promise<Map<string, Decomposition>> {
+  const map = new Map<string, Decomposition>();
+
+  // Batch-fetch all existing decompositions for this job
+  const { data: cached } = await supabase
+    .from('criterion_decompositions')
+    .select('criterion_id, subrequirements, recombine_logic')
+    .eq('job_id', jobId);
+
+  if (cached) {
+    for (const row of cached) {
+      map.set(row.criterion_id, {
+        subrequirements: row.subrequirements as SubRequirement[],
+        recombine_logic: row.recombine_logic,
+      });
+    }
+  }
+
+  // Find criteria that need decomposition (non-education, non-cached)
+  const missing = criteria.filter(c => c.type !== 'education' && !map.has(c.id));
+
+  if (missing.length > 0) {
+    console.log(`Preloading ${missing.length} missing decompositions`);
+    const tasks = missing.map(c => () => decomposeViaSingleAICall(c.id, c.text));
+    const results = await runWithConcurrency(tasks, MAX_CONCURRENCY);
+
+    for (let i = 0; i < missing.length; i++) {
+      const result = results[i];
+      const criterion = missing[i];
+      const decomposition = result.status === 'fulfilled' && result.value
+        ? result.value
+        : { subrequirements: [{ id: 'S1', type: 'llm' as const, text: criterion.text }], recombine_logic: 'S1' };
+
+      map.set(criterion.id, decomposition);
+
+      // Cache to DB
+      await supabase
+        .from('criterion_decompositions')
+        .upsert({
+          job_id: jobId,
+          criterion_id: criterion.id,
+          criterion_text: criterion.text,
+          subrequirements: decomposition.subrequirements,
+          recombine_logic: decomposition.recombine_logic,
+        }, { onConflict: 'job_id,criterion_id' });
+    }
+  }
+
+  return map;
+}
+
+async function decomposeViaSingleAICall(
+  criterionId: string,
+  criterionText: string
+): Promise<Decomposition | null> {
+  const prompt = `Decompose this job requirement into atomic subrequirements:
+
+"${criterionText}"
+
+Each subrequirement must test exactly one concept.
+- type "deterministic" for years of experience or education level checks
+- type "llm" for everything else
+
+Example output:
+{
+  "subrequirements": [
+    {"id": "S1", "type": "deterministic", "text": "At least two years of experience"},
+    {"id": "S2", "type": "llm", "text": "Experience in product development or market analysis"},
+    {"id": "S3", "type": "llm", "text": "Experience involving international exposure"}
+  ],
+  "recombine_logic": "S1 AND S2 AND S3"
+}
+
+If the requirement is already atomic, return a single subrequirement with recombine_logic "S1".`;
+
+  const result = await callAIWithToolCalling(
+    DECOMPOSER_SYSTEM_PROMPT,
+    prompt,
+    'decompose_criterion',
+    'Decompose a job criterion into atomic subrequirements',
+    {
+      subrequirements: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            type: { type: 'string', enum: ['deterministic', 'llm'] },
+            text: { type: 'string' }
+          },
+          required: ['id', 'type', 'text']
+        }
+      },
+      recombine_logic: { type: 'string' }
+    }
+  );
+
+  if (result && result.subrequirements?.length > 0) {
+    return {
+      subrequirements: result.subrequirements,
+      recombine_logic: result.recombine_logic || 'S1',
+    };
+  }
+  return null;
 }
 
 // =============================================================================
@@ -516,7 +690,7 @@ function checkEducationEligibility(
 }
 
 // =============================================================================
-// STEP 2: Criterion Decomposer (cached per job)
+// STEP 2: Criterion Decomposer (cached per job) — now uses preloaded map
 // =============================================================================
 
 async function getOrCreateDecomposition(
@@ -540,51 +714,10 @@ async function getOrCreateDecomposition(
   }
 
   // Decompose via AI
-  const prompt = `Decompose this job requirement into atomic subrequirements:
+  const result = await decomposeViaSingleAICall(criterionId, criterionText);
 
-"${criterionText}"
-
-Each subrequirement must test exactly one concept.
-- type "deterministic" for years of experience or education level checks
-- type "llm" for everything else
-
-Example output:
-{
-  "subrequirements": [
-    {"id": "S1", "type": "deterministic", "text": "At least two years of experience"},
-    {"id": "S2", "type": "llm", "text": "Experience in product development or market analysis"},
-    {"id": "S3", "type": "llm", "text": "Experience involving international exposure"}
-  ],
-  "recombine_logic": "S1 AND S2 AND S3"
-}
-
-If the requirement is already atomic, return a single subrequirement with recombine_logic "S1".`;
-
-  const result = await callAIWithToolCalling(
-    DECOMPOSER_SYSTEM_PROMPT,
-    prompt,
-    'decompose_criterion',
-    'Decompose a job criterion into atomic subrequirements',
-    {
-      subrequirements: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            type: { type: 'string', enum: ['deterministic', 'llm'] },
-            text: { type: 'string' }
-          },
-          required: ['id', 'type', 'text']
-        }
-      },
-      recombine_logic: { type: 'string' }
-    }
-  );
-
-  // Fallback if AI fails
-  const decomposition: Decomposition = result && result.subrequirements?.length > 0
-    ? { subrequirements: result.subrequirements, recombine_logic: result.recombine_logic || 'S1' }
+  const decomposition: Decomposition = result
+    ? result
     : { subrequirements: [{ id: 'S1', type: 'llm', text: criterionText }], recombine_logic: 'S1' };
 
   // Cache with upsert (idempotent)
@@ -602,18 +735,23 @@ If the requirement is already atomic, return a single subrequirement with recomb
 }
 
 // =============================================================================
-// STEP 3: Universal Evaluator
+// STEP 3: Universal Evaluator (now accepts experienceBullets)
 // =============================================================================
 
 async function evaluateSubRequirement(
   subReq: SubRequirement,
   candidateDuties: string,
-  motivationLetter: string
+  motivationLetter: string,
+  experienceBullets: string = ''
 ): Promise<EvaluatorResult> {
+  const bulletSection = experienceBullets
+    ? `\n${experienceBullets}\n\n`
+    : '';
+
   const prompt = `Evaluate whether the candidate demonstrates this requirement:
 
 REQUIREMENT: "${subReq.text}"
-
+${bulletSection}
 CANDIDATE WORK EXPERIENCE:
 ${candidateDuties || 'Not provided'}
 
@@ -672,7 +810,7 @@ Rules:
 
   const flags: string[] = [];
 
-  // ADDITION 6: No Evidence = False hard rule
+  // No Evidence = False hard rule
   let demonstrated = !!result.demonstrated;
   let confidence = typeof result.confidence === 'number' ? result.confidence : 0.5;
 
@@ -692,7 +830,7 @@ Rules:
 }
 
 // =============================================================================
-// STEP 4: Verification Pass
+// STEP 4: Verification Pass (optimized: only verify borderline positives)
 // =============================================================================
 
 async function verifyEvidence(
@@ -701,8 +839,9 @@ async function verifyEvidence(
   evidence: EvidenceQuote[],
   confidence: number
 ): Promise<VerifierResult> {
-  // Only verify when demonstrated=true OR confidence < 0.75
-  if (!demonstrated && confidence >= 0.75) {
+  // v4.0 OPTIMIZATION: Only verify when demonstrated=true AND confidence < 0.80
+  // This skips verification for negative results and high-confidence positives
+  if (!demonstrated || confidence >= 0.80) {
     return { valid: true, issues: [], confidence_adjustment: 0 };
   }
 
@@ -746,41 +885,32 @@ Check:
 }
 
 // =============================================================================
-// STEP 5: Recombine Logic Parser (safe, strict)
+// STEP 5: Recombine Logic Parser (safe, strict) — unchanged
 // =============================================================================
 
 function evaluateRecombineLogic(logic: string, results: Record<string, boolean>): boolean {
-  // Tokenize: split on whitespace, then separate parentheses from identifiers
   const rawTokens = logic.trim().split(/\s+/);
   const tokens: string[] = [];
   for (const raw of rawTokens) {
-    // Split parentheses into separate tokens: "(S1" -> ["(", "S1"], "S2)" -> ["S2", ")"]
     const parts = raw.match(/[()]|[^()]+/g);
     if (parts) tokens.push(...parts);
     else tokens.push(raw);
   }
 
-  // Validate all tokens
   const validToken = /^(S\d+|AND|OR|\(|\))$/;
   for (const token of tokens) {
     if (!validToken.test(token)) {
       console.warn(`Invalid token in recombine_logic: "${token}", treating as AND-all`);
-      // Fallback: mark as false + flag (conservative)
       return Object.values(results).every(v => v);
     }
   }
 
-  // Simple evaluation: handle AND/OR with AND binding tighter
-  // First resolve all tokens to booleans and operators
   try {
-    // Replace S-tokens with their boolean values
     let expr = logic;
     for (const [key, val] of Object.entries(results)) {
       expr = expr.replace(new RegExp(`\\b${key}\\b`, 'g'), val ? 'TRUE' : 'FALSE');
     }
 
-    // Simple recursive descent parser
-    // Tokenize with parenthesis splitting for the recursive descent parser too
     const exprTokens: string[] = [];
     for (const raw of expr.trim().split(/\s+/)) {
       const parts = raw.match(/[()]|[^()]+/g);
@@ -825,7 +955,7 @@ function parsePrimary(tokens: string[], state: { pos: number }): boolean {
 }
 
 // =============================================================================
-// Scoring Functions
+// Scoring Functions (v4.0: parallel subrequirements, decomposition map)
 // =============================================================================
 
 function extractCandidateDuties(workExperience: any[]): string {
@@ -846,27 +976,40 @@ async function scoreCriterionV4(
   workExperience: any[],
   education: any[],
   candidateDuties: string,
-  motivationLetter: string
+  motivationLetter: string,
+  decompositionMap: Map<string, Decomposition>,
+  experienceBullets: string
 ): Promise<CriterionScoreV4> {
-  // Step 2: Get decomposition
-  const decomposition = await getOrCreateDecomposition(jobId, criterion.id, criterion.text);
+  // Step 2: Get decomposition from preloaded map first, fallback to DB
+  let decomposition = decompositionMap.get(criterion.id);
+  if (!decomposition) {
+    decomposition = await getOrCreateDecomposition(jobId, criterion.id, criterion.text);
+  }
 
   const subScores: SubRequirementScore[] = [];
 
-  for (const subReq of decomposition.subrequirements) {
-    if (subReq.type === 'deterministic') {
-      // Handle deterministic subrequirements
-      const subScore = scoreDeterministicSub(subReq, criterion, workExperience, education);
-      subScores.push(subScore);
-    } else {
-      // Step 3: Universal Evaluator
-      const evalResult = await evaluateSubRequirement(subReq, candidateDuties, motivationLetter);
+  // Separate deterministic and LLM subrequirements
+  const deterministicSubs = decomposition.subrequirements.filter(s => s.type === 'deterministic');
+  const llmSubs = decomposition.subrequirements.filter(s => s.type === 'llm');
 
-      // Step 4: Verification Pass
+  // Process deterministic subs immediately (no AI needed)
+  for (const subReq of deterministicSubs) {
+    const subScore = scoreDeterministicSub(subReq, criterion, workExperience, education);
+    subScores.push(subScore);
+  }
+
+  // v4.0 OPTIMIZATION: Process LLM subs in PARALLEL with concurrency limit
+  if (llmSubs.length > 0) {
+    const evalTasks = llmSubs.map(subReq => async () => {
+      // Step 3: Universal Evaluator (with experience bullets)
+      const evalResult = await evaluateSubRequirement(subReq, candidateDuties, motivationLetter, experienceBullets);
+
+      // Step 4: Verification Pass (v4.0: only verify borderline positives)
       let verification: VerifierResult | undefined;
       const flags = [...(evalResult.flags || [])];
 
-      if (evalResult.demonstrated || evalResult.confidence < 0.75) {
+      // v4.0 CHANGE: demonstrated && confidence < 0.80 (was: demonstrated || confidence < 0.75)
+      if (evalResult.demonstrated && evalResult.confidence < 0.80) {
         verification = await verifyEvidence(
           subReq.text,
           evalResult.demonstrated,
@@ -890,17 +1033,37 @@ async function scoreCriterionV4(
         flags.push('REVIEW');
       }
 
-      subScores.push({
+      return {
         id: subReq.id,
         text: subReq.text,
-        type: 'llm',
+        type: 'llm' as const,
         demonstrated: evalResult.demonstrated,
         evidence: evalResult.evidence,
         missing: evalResult.missing,
         confidence: evalResult.confidence,
         flags,
         verification,
-      });
+      } as SubRequirementScore;
+    });
+
+    const llmResults = await runWithConcurrency(evalTasks, MAX_CONCURRENCY);
+    for (const result of llmResults) {
+      if (result.status === 'fulfilled') {
+        subScores.push(result.value);
+      } else {
+        // If a sub fails entirely, mark as not demonstrated
+        console.error('LLM sub evaluation failed:', result.reason);
+        subScores.push({
+          id: 'unknown',
+          text: 'Evaluation failed',
+          type: 'llm',
+          demonstrated: false,
+          evidence: [],
+          missing: 'Evaluation error',
+          confidence: 0,
+          flags: ['EVAL_ERROR'],
+        });
+      }
     }
   }
 
@@ -1004,7 +1167,7 @@ function scoreDeterministicSub(
 }
 
 // =============================================================================
-// Overall Scoring
+// Overall Scoring (unchanged)
 // =============================================================================
 
 function calculateScoringResultV4(
@@ -1041,12 +1204,12 @@ function calculateScoringResultV4(
     passedCount,
     totalCount,
     recommendForLonglist,
-    analysisVersion: '4.0-decomposed-verified'
+    analysisVersion: '4.0-decomposed-verified-parallel'
   };
 }
 
 // =============================================================================
-// Main Handler
+// Main Handler (v4.0: truncation, bullets, preloaded decompositions)
 // =============================================================================
 
 Deno.serve(async (req) => {
@@ -1103,12 +1266,24 @@ Deno.serve(async (req) => {
     const candidateData = application.candidates;
     const workExperience = candidateData.phf_work_experience || candidateData.work_experience || [];
     const education = candidateData.phf_education || candidateData.education || [];
-    const motivationLetter = candidateData.motivation_letter ||
+    const rawMotivationLetter = candidateData.motivation_letter ||
       application.answers?.motivation_letter ||
       application.phf_data?.motivation_letter || '';
-    const candidateDuties = extractCandidateDuties(workExperience);
+    const rawCandidateDuties = extractCandidateDuties(workExperience);
+
+    // v4.0 OPTIMIZATION: Truncate inputs to reduce token count and response time
+    const candidateDuties = truncateText(rawCandidateDuties, MAX_TEXT_LENGTH);
+    const motivationLetter = truncateText(rawMotivationLetter, MAX_TEXT_LENGTH);
+
+    // v4.0 OPTIMIZATION: Extract experience bullets once for all evaluations
+    const experienceBullets = extractExperienceBullets(rawCandidateDuties);
 
     console.log(`Candidate: ${workExperience.length} work experiences, ${education.length} education entries`);
+    console.log(`Text lengths: duties=${candidateDuties.length}, motivation=${motivationLetter.length}, bullets=${experienceBullets.length}`);
+
+    // v4.0 OPTIMIZATION: Preload all decompositions for this job in one batch query
+    const decompositionMap = await preloadDecompositions(jobId, parsedCriteria);
+    console.log(`Preloaded ${decompositionMap.size} decompositions`);
 
     // Score each criterion through v4.0 pipeline
     const criteriaScores: CriterionScoreV4[] = [];
@@ -1152,7 +1327,9 @@ Deno.serve(async (req) => {
       } else {
         // All other criteria go through decomposition + evaluation + verification
         const score = await scoreCriterionV4(
-          criterion, jobId, workExperience, education, candidateDuties, motivationLetter
+          criterion, jobId, workExperience, education,
+          candidateDuties, motivationLetter,
+          decompositionMap, experienceBullets
         );
         criteriaScores.push(score);
       }
