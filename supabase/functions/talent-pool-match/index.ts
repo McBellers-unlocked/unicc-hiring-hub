@@ -588,7 +588,7 @@ serve(async (req) => {
       const { data: retrieved, error: retrieveErr } = await supabase.rpc("match_candidates_by_text", {
         query_text: jobProfile.match_profile_text,
         query_skills: querySkills.map((s: string) => s.toLowerCase()),
-        match_count: 200,
+        match_count: 100,
         similarity_threshold: 0.02,
       });
       if (retrieveErr) {
@@ -617,7 +617,8 @@ serve(async (req) => {
         }
       }
 
-      console.log(`[talent-pool-match] Step D: Scoring ${allCandidates.length} candidates with semantic matching`);
+      const SEMANTIC_CAP = 30;
+      console.log(`[talent-pool-match] Step D: Scoring ${allCandidates.length} candidates (semantic top ${Math.min(allCandidates.length, SEMANTIC_CAP)}, fuzzy rest)`);
       // Step D: Semantic skill matching + Deterministic scoring
       // Fetch full embedding data for all retrieved candidates
       const retrievedIds = allCandidates.map((c: any) => c.candidate_id);
@@ -639,10 +640,11 @@ serve(async (req) => {
       const semanticScoresMap = new Map<string, Map<string, number>>();
       const requiredSkills = jpJson.must_have_skills || [];
       
-      // Process semantic matching in batches of 10 candidates
+      // Process semantic matching in batches of 10 candidates — only top SEMANTIC_CAP
       const SEMANTIC_BATCH = 10;
-      for (let i = 0; i < allCandidates.length; i += SEMANTIC_BATCH) {
+      for (let i = 0; i < Math.min(allCandidates.length, SEMANTIC_CAP); i += SEMANTIC_BATCH) {
         const batch = allCandidates.slice(i, i + SEMANTIC_BATCH);
+        console.log(`[talent-pool-match] Step D: Semantic batch ${Math.floor(i / SEMANTIC_BATCH) + 1}/${Math.ceil(Math.min(allCandidates.length, SEMANTIC_CAP) / SEMANTIC_BATCH)}`);
         const semanticPromises = batch.map(async (c: any) => {
           const emb = embMap.get(c.candidate_id);
           const candidateSkills = emb?.normalized_skills || [];
@@ -657,6 +659,27 @@ serve(async (req) => {
         });
         await Promise.all(semanticPromises);
       }
+
+      // Fuzzy substring fallback for candidates beyond SEMANTIC_CAP
+      for (let i = SEMANTIC_CAP; i < allCandidates.length; i++) {
+        const c = allCandidates[i];
+        const emb = embMap.get(c.candidate_id);
+        const candidateSkills: string[] = emb?.normalized_skills || [];
+        if (candidateSkills.length === 0 || requiredSkills.length === 0) continue;
+        const fuzzyScores = new Map<string, number>();
+        for (const req of requiredSkills) {
+          const reqLower = req.toLowerCase();
+          let best = 0;
+          for (const cs of candidateSkills) {
+            const csLower = cs.toLowerCase();
+            if (csLower === reqLower) { best = 1; break; }
+            if (csLower.includes(reqLower) || reqLower.includes(csLower)) { best = Math.max(best, 0.7); }
+          }
+          fuzzyScores.set(req, best);
+        }
+        semanticScoresMap.set(c.candidate_id, fuzzyScores);
+      }
+      console.log(`[talent-pool-match] Step D: Semantic matching complete. ${semanticScoresMap.size} candidates scored.`);
 
       const scored = allCandidates.map((retrieved: any) => {
         const emb = embMap.get(retrieved.candidate_id);
