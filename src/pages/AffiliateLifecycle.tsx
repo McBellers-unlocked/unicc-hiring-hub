@@ -51,6 +51,7 @@ export default function AffiliateLifecycle() {
   const queryClient = useQueryClient();
   const [activeStage, setActiveStage] = useState<string>(LIFECYCLE_STAGES[0].key);
   const [showLaunchPR, setShowLaunchPR] = useState(false);
+  const [prLaunched, setPrLaunched] = useState(false);
 
   // Fetch affiliate data
   const { data: affiliate, isLoading: affiliateLoading } = useQuery({
@@ -262,9 +263,14 @@ export default function AffiliateLifecycle() {
                 </div>
               </div>
               
-              <Button onClick={() => setShowLaunchPR(true)} size="lg">
+              <Button
+                onClick={() => !prLaunched && setShowLaunchPR(true)}
+                size="lg"
+                className={prLaunched ? 'bg-green-600 hover:bg-green-600 text-white cursor-default' : ''}
+                disabled={prLaunched}
+              >
                 <Rocket className="w-5 h-5 mr-2" />
-                Launch PR
+                {prLaunched ? 'PR Launched' : 'Launch PR'}
               </Button>
 
               <div className="flex flex-wrap gap-4">
@@ -387,6 +393,7 @@ export default function AffiliateLifecycle() {
         <LaunchPRDialog
           open={showLaunchPR}
           onOpenChange={setShowLaunchPR}
+          onSubmitted={() => setPrLaunched(true)}
           recordNumber={recordNumber || ''}
           affiliateName={affiliate.name}
           affiliateUnit={affiliate.unit}

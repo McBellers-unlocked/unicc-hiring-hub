@@ -20,6 +20,7 @@ interface LaunchPRDialogProps {
   affiliateName: string;
   affiliateUnit: string | null;
   affiliateManager: string | null;
+  onSubmitted?: () => void;
   contract: {
     start_date: string | null;
     end_date: string | null;
@@ -33,7 +34,7 @@ interface LaunchPRDialogProps {
 const CURRENCIES = ['USD', 'EUR', 'CHF', 'INR', 'PKR', 'BRL'];
 const UNITS = ['day', 'hour'];
 
-export function LaunchPRDialog({ open, onOpenChange, recordNumber, affiliateName, affiliateUnit, affiliateManager, contract }: LaunchPRDialogProps) {
+export function LaunchPRDialog({ open, onOpenChange, recordNumber, affiliateName, affiliateUnit, affiliateManager, onSubmitted, contract }: LaunchPRDialogProps) {
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState(1);
@@ -113,6 +114,7 @@ export function LaunchPRDialog({ open, onOpenChange, recordNumber, affiliateName
     a.click();
     URL.revokeObjectURL(url);
     toast.success('PR document generated');
+    onSubmitted?.();
     handleDialogClose(false);
   };
 
