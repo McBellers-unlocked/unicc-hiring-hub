@@ -1,40 +1,34 @@
 
 
-# Fix: talent-pool-match Edge Function Timeout
+# Fix: Step D Semantic Matching Timeout
 
 ## Problem
 
-The edge function is crashing/timing out. The logs show the function boots successfully but shuts down ~3 minutes later with no request-processing logs, and the client gets `Failed to fetch`. This is a **wall clock timeout** — the function does too much work in a single invocation:
-
-1. Build job profile (1 GPT-5 call)
-2. Fetch up to 500 candidates, normalize unindexed ones in batches of 10 (potentially 50+ GPT-5-mini calls)
-3. Retrieve top 200 via `match_candidates_by_text` RPC
-4. Run semantic skill matching per batch of 10 candidates (more GPT-5-mini calls)
-5. Generate explanations for top 20 (20 GPT-5 calls)
-
-That's 70+ LLM round-trips in a single HTTP request. Supabase edge functions have a ~150s wall clock limit (or 60s on some plans).
+The logs confirm the function reaches Step D with 150 candidates, then shuts down before completing. Step D makes **one LLM call per candidate** for semantic skill matching — that's 150 GPT-5-mini calls in 15 sequential batches of 10. At ~2-3s per call, that's 45+ minutes of sequential work. The 25s timeout on individual calls doesn't help because the *aggregate* wall clock exceeds the function limit.
 
 ## Fix
 
-Reduce the work per invocation by:
+**Only run semantic skill matching on the top 30 candidates** (by text similarity score). The remaining 120 candidates get the fast fuzzy substring fallback instead. This cuts Step D from ~150 LLM calls to ~30, saving ~4 minutes of execution time.
 
-1. **Cap candidate normalization** — only normalize candidates that don't already have embeddings, and limit to 50 per run (down from 500 fetched). Skip normalization entirely if enough indexed candidates exist.
+Additionally, **cap the retrieval to 100 candidates** instead of 200 (the current `match_count` param), since we only explain the top 10 anyway — there's no value in scoring 150 candidates with expensive LLM calls.
 
-2. **Reduce explanation generation** — drop from top 20 to top 10 candidates getting LLM explanations. The rest get deterministic-only scores.
+## Changes
 
-3. **Add request-level timeouts on LLM calls** — use `AbortSignal.timeout(25000)` on each `fetch` to the AI gateway so a single slow call doesn't stall the entire function.
+**File: `supabase/functions/talent-pool-match/index.ts`**
 
-4. **Add progress logging** — `console.log` at each pipeline stage so we can see where it stalls in edge function logs.
+1. **Line ~644**: Only run semantic matching on the first 30 candidates (sorted by text similarity), not all candidates:
+   - Change `for (let i = 0; i < allCandidates.length; i += SEMANTIC_BATCH)` to `for (let i = 0; i < Math.min(allCandidates.length, 30); i += SEMANTIC_BATCH)`
+   - Add a log line showing how many get semantic vs fuzzy matching
 
-5. **Reduce candidate fetch limit** — fetch 200 candidates instead of 500 for normalization, and reduce batch size awareness.
+2. **Line ~588**: Reduce the `match_count` RPC parameter from 200 to 100 to fetch fewer candidates from retrieval
 
-## File Changes
+3. **Add fuzzy fallback for non-semantic candidates**: After the semantic loop, apply the substring fallback logic for candidates at index 30+ so they still get skill scores (just not LLM-powered ones)
 
-**`supabase/functions/talent-pool-match/index.ts`**:
-- Add `signal: AbortSignal.timeout(25000)` to the `fetch` call in `callAI`
-- Add `console.log` breadcrumbs at each pipeline stage (Steps A through E)
-- Change candidate fetch limit from 500 to 200 (line ~530)
-- Change normalization cap from 100 to 50 (around line ~555)
-- Change explanation generation from top 20 to top 10 (around line ~680)
-- Redeploy the function
+4. **Redeploy** the function
+
+## Expected Result
+
+- Step D drops from ~150 LLM calls to ~30 (3 batches of 10)
+- Total function runtime should drop from 3+ minutes to under 90 seconds
+- Top candidates still get high-quality semantic matching; lower-ranked ones get fast fuzzy scores
 
