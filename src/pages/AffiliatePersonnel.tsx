@@ -525,15 +525,11 @@ export default function AffiliatePersonnel() {
         if (error) throw error;
         toast.success('Affiliate added successfully');
       } else {
-        // Create new affiliate
-        affiliateId = crypto.randomUUID();
-        const { error } = await supabase
-          .from('users')
-          .insert([{
-            id: affiliateId,
+        // Create new affiliate via edge function (handles auth.users FK)
+        const { data: result, error } = await supabase.functions.invoke('create-affiliate', {
+          body: {
             name: data.name,
             email: data.email,
-            personnel_type: 'Affiliate',
             affiliate_type: data.affiliate_type,
             division: data.division || null,
             unit: data.unit || null,
@@ -545,44 +541,52 @@ export default function AffiliatePersonnel() {
             nationality: data.nationality || null,
             gender: data.gender || null,
             first_incumbency_date: data.first_incumbency_date || null,
-          }]);
+            samsaran_pr: data.samsaran_pr || null,
+            contract_start_date: data.contract_start_date || null,
+            contract_end_date: data.contract_end_date || null,
+            days_worked: data.days_worked ?? null,
+          },
+        });
 
         if (error) throw error;
+        if (result?.error) throw new Error(result.error);
+        affiliateId = result.userId;
         toast.success('New affiliate created successfully');
       }
 
-      // Upsert contract history if any contract field is provided
-      if (data.samsaran_pr || data.contract_start_date || data.contract_end_date || data.days_worked != null) {
-        const samsaranPr = data.samsaran_pr || null;
+      // Upsert contract history (for edit/convert flows — new creates are handled by edge function)
+      if (formMode !== 'create' || existingUserId) {
+        if (data.samsaran_pr || data.contract_start_date || data.contract_end_date || data.days_worked != null) {
+          const samsaranPr = data.samsaran_pr || null;
 
-        // Look up existing record by user_id + samsaran_pr
-        const { data: existing } = await supabase
-          .from('affiliate_contract_history')
-          .select('id')
-          .eq('user_id', affiliateId)
-          .eq('samsaran_pr', samsaranPr || '')
-          .maybeSingle();
+          const { data: existing } = await supabase
+            .from('affiliate_contract_history')
+            .select('id')
+            .eq('user_id', affiliateId)
+            .eq('samsaran_pr', samsaranPr || '')
+            .maybeSingle();
 
-        if (existing) {
-          await supabase
-            .from('affiliate_contract_history')
-            .update({
-              start_date: data.contract_start_date || null,
-              end_date: data.contract_end_date || null,
-              samsaran_pr: samsaranPr,
-              days_worked: data.days_worked ?? null,
-            })
-            .eq('id', existing.id);
-        } else {
-          await supabase
-            .from('affiliate_contract_history')
-            .insert({
-              user_id: affiliateId,
-              samsaran_pr: samsaranPr,
-              start_date: data.contract_start_date || null,
-              end_date: data.contract_end_date || null,
-              days_worked: data.days_worked ?? null,
-            } as any);
+          if (existing) {
+            await supabase
+              .from('affiliate_contract_history')
+              .update({
+                start_date: data.contract_start_date || null,
+                end_date: data.contract_end_date || null,
+                samsaran_pr: samsaranPr,
+                days_worked: data.days_worked ?? null,
+              })
+              .eq('id', existing.id);
+          } else {
+            await supabase
+              .from('affiliate_contract_history')
+              .insert({
+                user_id: affiliateId,
+                samsaran_pr: samsaranPr,
+                start_date: data.contract_start_date || null,
+                end_date: data.contract_end_date || null,
+                days_worked: data.days_worked ?? null,
+              } as any);
+          }
         }
       }
 
