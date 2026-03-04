@@ -136,6 +136,7 @@ async function callAI(
       tools,
       tool_choice: toolChoice,
     }),
+    signal: AbortSignal.timeout(25000),
   });
 
   if (!resp.ok) {
@@ -481,6 +482,7 @@ serve(async (req) => {
     if (action === "run_match") {
       const { job_id, filters: matchFilters } = params;
 
+      console.log("[talent-pool-match] Step A: Ensuring job profile exists for job", job_id);
       // Step A: Ensure job profile exists
       let { data: jobProfile } = await supabase
         .from("job_match_profiles")
@@ -522,12 +524,13 @@ serve(async (req) => {
 
       const jpJson = jobProfile.match_profile_json as any;
 
+      console.log("[talent-pool-match] Step B: Checking candidate embeddings");
       // Step B: Ensure candidate embeddings — find candidates needing updates
       const { data: staleCandidates } = await supabase
         .from("candidates")
         .select("id, name, email, skills, education, work_experience, years_of_experience, current_position, professional_summary, location")
         .order("updated_at", { ascending: false })
-        .limit(500);
+        .limit(200);
 
       if (staleCandidates && staleCandidates.length > 0) {
         // Check which already have embeddings
@@ -542,7 +545,8 @@ serve(async (req) => {
 
         // Process in batches of 10 (LLM calls)
         const BATCH_SIZE = 10;
-        for (let i = 0; i < Math.min(needsEmbedding.length, 100); i += BATCH_SIZE) {
+        console.log(`[talent-pool-match] Step B: ${needsEmbedding.length} candidates need embedding (capping at 50)`);
+        for (let i = 0; i < Math.min(needsEmbedding.length, 50); i += BATCH_SIZE) {
           const batch = needsEmbedding.slice(i, i + BATCH_SIZE);
           const promises = batch.map(async (candidate: any) => {
             try {
@@ -578,6 +582,7 @@ serve(async (req) => {
         }
       }
 
+      console.log("[talent-pool-match] Step C: Retrieving candidates via text similarity");
       // Step C: Retrieval using text similarity
       const querySkills = jpJson.must_have_skills || [];
       const { data: retrieved, error: retrieveErr } = await supabase.rpc("match_candidates_by_text", {
@@ -612,6 +617,7 @@ serve(async (req) => {
         }
       }
 
+      console.log(`[talent-pool-match] Step D: Scoring ${allCandidates.length} candidates with semantic matching`);
       // Step D: Semantic skill matching + Deterministic scoring
       // Fetch full embedding data for all retrieved candidates
       const retrievedIds = allCandidates.map((c: any) => c.candidate_id);
@@ -716,9 +722,10 @@ serve(async (req) => {
         .single();
       if (runErr) throw runErr;
 
-      // Step E: LLM explanations for top 20
-      const top20 = scored.slice(0, 20);
-      const explanationPromises = top20.map(async (result) => {
+      // Step E: LLM explanations for top 10
+      console.log("[talent-pool-match] Step E: Generating explanations for top 10 candidates");
+      const top10 = scored.slice(0, 10);
+      const explanationPromises = top10.map(async (result) => {
         try {
           const emb = embMap.get(result.candidate_id);
           const cand = candMap.get(result.candidate_id);
@@ -762,9 +769,10 @@ serve(async (req) => {
       });
 
       await Promise.all(explanationPromises);
+      console.log("[talent-pool-match] Step E: Explanations complete, inserting results");
 
-      // For remaining candidates (21+), add generic reasons
-      for (let i = 20; i < scored.length; i++) {
+      // For remaining candidates (11+), add generic reasons
+      for (let i = 10; i < scored.length; i++) {
         scored[i].reasons = [{ label: "Text similarity match", detail: `Matched based on profile similarity` }];
       }
 
