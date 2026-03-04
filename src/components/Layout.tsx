@@ -179,12 +179,6 @@ export const Layout = ({ children }: LayoutProps) => {
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link to="/admin/affiliate-personnel" className="flex items-center w-full">
-                            <UserCog className="w-4 h-4 mr-2" />
-                            Affiliate Personnel
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
                           <Link to="/admin/org-chart" className="flex items-center w-full">
                             <Network className="w-4 h-4 mr-2" />
                             Organization Chart
@@ -308,6 +302,13 @@ export const Layout = ({ children }: LayoutProps) => {
                         <DropdownMenuItem asChild>
                           <Link to="/operations/documents" className="flex items-center w-full">
                             Document Repository
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/affiliate-personnel" className="flex items-center w-full">
+                            <UserCog className="w-4 h-4 mr-2" />
+                            Affiliate Personnel
                           </Link>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
