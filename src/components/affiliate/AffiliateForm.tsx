@@ -208,15 +208,15 @@ export function AffiliateForm({
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="personal" className="flex items-center gap-2">
+              <TabsTrigger value="personal" className="flex items-center gap-2 pointer-events-none">
                 <User className="h-4 w-4" />
                 Personal
               </TabsTrigger>
-              <TabsTrigger value="contract" className="flex items-center gap-2">
+              <TabsTrigger value="contract" className="flex items-center gap-2 pointer-events-none">
                 <Calendar className="h-4 w-4" />
                 Contract
               </TabsTrigger>
-              <TabsTrigger value="assignment" className="flex items-center gap-2">
+              <TabsTrigger value="assignment" className="flex items-center gap-2 pointer-events-none">
                 <Briefcase className="h-4 w-4" />
                 Assignment
               </TabsTrigger>
@@ -445,10 +445,29 @@ export function AffiliateForm({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {mode === 'create' ? 'Add Affiliate' : 'Save Changes'}
-            </Button>
+            {activeTab !== 'personal' && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActiveTab(activeTab === 'assignment' ? 'contract' : 'personal')}
+                disabled={isLoading}
+              >
+                Back
+              </Button>
+            )}
+            {activeTab === 'assignment' ? (
+              <Button type="submit" disabled={isLoading}>
+                {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {mode === 'create' ? 'Add Affiliate' : 'Save Changes'}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={() => setActiveTab(activeTab === 'personal' ? 'contract' : 'assignment')}
+              >
+                Next
+              </Button>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>
