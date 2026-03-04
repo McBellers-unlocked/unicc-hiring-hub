@@ -1,23 +1,22 @@
 
 
-# Add Step 2 to Launch PR Wizard
-
-## Overview
-Add a second page to the LaunchPR wizard dialog with two pre-filled text fields: "Item Description" and "Direct Appointment Justification". The "Next" button on step 1 advances to step 2.
+# Add Step 3 to Launch PR Wizard
 
 ## Changes
 
 ### `src/components/affiliate/LaunchPRDialog.tsx`
-1. **Accept affiliate info** — Add `affiliateName` and `affiliateUnit` to props (passed from parent)
-2. **Add step state** — `step` state (1 or 2)
-3. **Add form state for step 2** — `itemDescription` and `directAppointmentJustification` strings
-4. **Pre-fill on entering step 2** — When clicking "Next" on step 1, set `step` to 2 and pre-fill:
-   - Item Description: `"Individual consultancy contract for [name], in [unit], from [formatted start date] to [formatted end date]."`
-   - Direct Appointment Justification: `"N/A"`
-5. **Render step 2** — Show two `Textarea` fields (editable) for the two values
-6. **Footer** — Step 2 shows "Back" (returns to step 1) and a placeholder "Submit"/"Next" button
-7. **Reset step to 1** when dialog closes
+1. Add `affiliateManager` prop (string | null)
+2. Add state for step 3 fields: `manager` (pre-filled from `affiliateManager`), `address` (dropdown), `job` (free text)
+3. Update step count in title to "Step X/3"
+4. Step 2 "Next" button advances to step 3 (rename current "Submit" to "Next")
+5. Step 3 renders:
+   - **Manager**: text input pre-filled with affiliate's `line_manager`
+   - **Address**: dropdown with options "Offshore", "Valencia", "Brindisi", "Geneva", "New York", "Rome"
+   - **Job**: free text input
+6. Step 3 footer: "Back" (returns to step 2) and "Submit"
+7. Pre-fill manager when entering step 3
 
 ### `src/pages/AffiliateLifecycle.tsx`
-- Pass `affiliateName={affiliate.name}` and `affiliateUnit={affiliate.unit}` to `LaunchPRDialog`
+- The `users` query already selects affiliate data but doesn't include `line_manager`. Add it to the select and the `AffiliateUser` interface.
+- Pass `affiliateManager={affiliate.line_manager}` to `LaunchPRDialog`
 
