@@ -5688,6 +5688,7 @@ export type Database = {
         }[]
       }
       get_chief_for_division: { Args: { p_division: string }; Returns: string }
+      get_current_user_division: { Args: never; Returns: string }
       get_current_user_name: { Args: never; Returns: string }
       get_series_parts_with_status: {
         Args: { p_candidate_email: string; p_series_id: string }
