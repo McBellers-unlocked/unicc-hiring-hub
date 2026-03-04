@@ -11,12 +11,15 @@ import { CustomDatePicker } from '@/components/ui/date-picker';
 import { differenceInDays, parseISO, format } from 'date-fns';
 import { toast } from 'sonner';
 
+const ADDRESSES = ['Offshore', 'Valencia', 'Brindisi', 'Geneva', 'New York', 'Rome'];
+
 interface LaunchPRDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   recordNumber: string;
   affiliateName: string;
   affiliateUnit: string | null;
+  affiliateManager: string | null;
   contract: {
     start_date: string | null;
     end_date: string | null;
@@ -30,7 +33,7 @@ interface LaunchPRDialogProps {
 const CURRENCIES = ['USD', 'EUR', 'CHF', 'INR', 'PKR', 'BRL'];
 const UNITS = ['day', 'hour'];
 
-export function LaunchPRDialog({ open, onOpenChange, recordNumber, affiliateName, affiliateUnit, contract }: LaunchPRDialogProps) {
+export function LaunchPRDialog({ open, onOpenChange, recordNumber, affiliateName, affiliateUnit, affiliateManager, contract }: LaunchPRDialogProps) {
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState(1);
@@ -41,6 +44,9 @@ export function LaunchPRDialog({ open, onOpenChange, recordNumber, affiliateName
   const [currency, setCurrency] = useState('');
   const [itemDescription, setItemDescription] = useState('');
   const [directAppointmentJustification, setDirectAppointmentJustification] = useState('');
+  const [manager, setManager] = useState('');
+  const [address, setAddress] = useState('');
+  const [job, setJob] = useState('');
 
   // Sync form state when contract data loads or dialog opens
   useEffect(() => {
@@ -65,6 +71,11 @@ export function LaunchPRDialog({ open, onOpenChange, recordNumber, affiliateName
     setItemDescription(`Individual consultancy contract for ${affiliateName}, in ${affiliateUnit || 'N/A'}, from ${startStr} to ${endStr}.`);
     setDirectAppointmentJustification('N/A');
     setStep(2);
+  };
+
+  const handleNextToStep3 = () => {
+    setManager(affiliateManager || '');
+    setStep(3);
   };
 
   const handleDialogClose = (val: boolean) => {
@@ -117,7 +128,7 @@ export function LaunchPRDialog({ open, onOpenChange, recordNumber, affiliateName
     <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Launch PR — {recordNumber} (Step {step}/2)</DialogTitle>
+          <DialogTitle>Launch PR — {recordNumber} (Step {step}/3)</DialogTitle>
         </DialogHeader>
 
         {step === 1 && (
@@ -214,6 +225,46 @@ export function LaunchPRDialog({ open, onOpenChange, recordNumber, affiliateName
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+              <Button onClick={handleNextToStep3}>Next</Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {step === 3 && (
+          <>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Manager</Label>
+                <Input
+                  value={manager}
+                  onChange={(e) => setManager(e.target.value)}
+                  placeholder="Manager name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Address</Label>
+                <Select value={address} onValueChange={setAddress}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select address" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ADDRESSES.map((a) => (
+                      <SelectItem key={a} value={a}>{a}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Job</Label>
+                <Input
+                  value={job}
+                  onChange={(e) => setJob(e.target.value)}
+                  placeholder="Job title"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
               <Button>Submit</Button>
             </DialogFooter>
           </>
