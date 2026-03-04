@@ -1,20 +1,62 @@
 
 
-# Convert Add Affiliate Tabs to Wizard Flow
+## IDOR Vulnerability: Hiring Managers Can View All Job Applications
 
-## Overview
-Replace the free-navigation tabs with a sequential wizard. The bottom-right button says "Next" on the Personal and Contract tabs, advancing to the next tab. Only on the Assignment tab does it say "Add Affiliate" and submit the form.
+### Problem
 
-## Changes — `src/components/affiliate/AffiliateForm.tsx`
+The `applications` table has **two conflicting SELECT RLS policies**:
 
-1. **Remove clickable tab navigation** — Keep the `TabsList` visible for visual context (showing which step you're on) but make the triggers non-interactive (disable clicking to jump between tabs). Alternatively, keep them clickable for going back but control forward movement via the button.
+1. **`"Allow select on applications for staff"`** — correctly scoped, uses `is_job_hiring_manager(auth.uid(), job_id)` to restrict hiring managers to only their assigned jobs.
+2. **`"Staff can view applications"`** — **overly broad**, grants any user with the `Hiring Manager` role blanket access to ALL applications across ALL jobs.
 
-2. **Replace the submit button logic in `DialogFooter`**:
-   - **Personal tab**: "Next" button (type `button`) that sets `activeTab` to `"contract"`
-   - **Contract tab**: "Next" button (type `button`) that sets `activeTab` to `"assignment"`, plus a "Back" button
-   - **Assignment tab**: "Add Affiliate" / "Save Changes" submit button (type `submit`), plus a "Back" button
+Because RLS policies are OR'd together, the broad policy overrides the scoped one. A hiring manager (e.g., `ruiz@unicc.org`) can navigate to `/applications/manage?job=<any-job-id>` and see all applications for jobs they are not assigned to.
 
-3. **Keep Cancel button** on all steps.
+The same issue exists for the **UPDATE** policy — any `Hiring Manager` can update any application.
 
-No other files need changes.
+### Fix Plan
+
+**Single database migration** to:
+
+1. **Drop** the overly broad `"Staff can view applications"` policy.
+2. **Drop** the redundant `"Allow select on applications for staff"` policy (we'll replace both with one correct policy).
+3. **Create** a single, correctly scoped SELECT policy:
+   - Admin, HR Assistant, Chief of HR → full access
+   - Hiring Manager → only via `is_job_hiring_manager(auth.uid(), job_id)`
+   - Panel Member → only for jobs where they are a panel member (via `job_interview_panel_members`)
+4. **Fix the UPDATE policy** — replace the blanket `Hiring Manager` check with `is_job_hiring_manager(auth.uid(), job_id)`.
+
+### Technical Details
+
+```sql
+-- Drop both conflicting SELECT policies
+DROP POLICY IF EXISTS "Staff can view applications" ON public.applications;
+DROP POLICY IF EXISTS "Allow select on applications for staff" ON public.applications;
+
+-- Create single correctly-scoped SELECT policy
+CREATE POLICY "Staff can view applications"
+ON public.applications FOR SELECT TO authenticated
+USING (
+  has_role(auth.uid(), 'Admin'::user_role)
+  OR has_role(auth.uid(), 'HR Assistant'::user_role)
+  OR has_role(auth.uid(), 'Chief of HR'::user_role)
+  OR is_job_hiring_manager(auth.uid(), job_id)
+  OR EXISTS (
+    SELECT 1 FROM public.job_interview_panel_members pm
+    WHERE pm.user_id = auth.uid() AND pm.job_id = applications.job_id
+  )
+);
+
+-- Fix UPDATE policy: scope Hiring Manager to assigned jobs
+DROP POLICY IF EXISTS "Allow update on applications for staff" ON public.applications;
+CREATE POLICY "Allow update on applications for staff"
+ON public.applications FOR UPDATE TO authenticated
+USING (
+  has_role(auth.uid(), 'Admin'::user_role)
+  OR has_role(auth.uid(), 'HR Assistant'::user_role)
+  OR has_role(auth.uid(), 'Chief of HR'::user_role)
+  OR is_job_hiring_manager(auth.uid(), job_id)
+);
+```
+
+No frontend code changes are needed — the RLS fix will enforce the correct access at the database level, regardless of what URL a user navigates to.
 
