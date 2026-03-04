@@ -1,45 +1,47 @@
 
 
-# Add Local Admins for All Duty Stations
+# Product Spec Document Generator for Account Managers
 
-## Current State
+## Overview
+Create a downloadable product specification document that account managers can use to pitch and sell the platform. This will be a standalone page that renders a comprehensive product overview and lets users download it as a styled HTML-to-PDF document.
 
-Only 2 Local Admins are configured (both Valencia):
-- Sandra Ruiz (`ruiz@unicc.org`)
-- Carolina Requeni (`requeni@unicc.org`)
+## Approach
+Build a new page at `/product-spec` that renders a polished, print-ready product specification document with a "Download as PDF" button. The document will use the browser's native `window.print()` with print-specific CSS for clean PDF output (no external PDF library needed).
 
-## Confirmed Emails from Database
+## Document Structure
 
-| Station | Name | Email | Current DB Role |
-|---------|------|-------|-----------------|
-| **Valencia** | Carolina Requeni | `requeni@unicc.org` | Hiring Manager |
-| **Valencia** | Sandra Ruiz | `ruiz@unicc.org` | Hiring Manager |
-| **Geneva** | Aline Dutruel | `dutruel@unicc.org` | Hiring Manager |
-| **Geneva** | Ellen Normand-Quinet | `normand@unicc.org` | Hiring Manager |
-| **Geneva** | Veronika Cavaglieri | `cavaglieri@unicc.org` | Hiring Manager |
-| **Brindisi** | Cristina Argentieri | `argentieric@unicc.org` | Hiring Manager |
-| **Brindisi** | Silvia Valenti | `valenti@unicc.org` | Hiring Manager |
-| **Rome** | Giulia Petrocelli | `petrocelli@unicc.org` | Hiring Manager |
-| **New York** | Sara Mesfin Woldeabezegi | `woldeabezegi@unicc.org` | Hiring Manager |
-| **New York** | Seoyeon Lee | `lees@unicc.org` | **Candidate** (needs update) |
+The product spec will cover these sections:
 
-**Note:** Seoyeon Lee's database role is currently `Candidate` — she'll need to be changed to `Hiring Manager` to get proper RLS access to HR tables.
+1. **Executive Summary** — What the platform is, who it serves, key value proposition
+2. **Platform Modules** — Each major module with description and key capabilities:
+   - Recruitment & Hiring (requisitions, job postings, applications, scoring)
+   - Video Interviews (async interviews, panel reviews, AI analysis)
+   - Assessment Series (multi-stage assessments, builder, scoring)
+   - Talent Pool (candidate database, flags, notes, search)
+   - Skills Framework (679 skills, AI categorization, OSS tracking)
+   - Analytics & Reporting (dashboards, charts, data exports)
+   - HR Operations (appointments, contracts, separations, document repository)
+   - Performance Management (cycles, workplans, reviews)
+   - Organization Chart (interactive org tree visualization)
+3. **Technical Architecture** — Stack overview, security features, scalability
+4. **Security & Compliance** — Auth (MFA), RLS, audit logging, data isolation
+5. **Integration Capabilities** — Supabase, email (Resend), AI (Gemini), storage
+6. **Open Source Foundation** — List of key OSS technologies used
+7. **Deployment Options** — Current AWS Amplify, planned EKS migration
 
-## Changes
+## Technical Implementation
 
-### 1. `src/hooks/useAuth.tsx` (line 58)
-Expand the `localAdminEmails` array from 2 to 10 emails:
-```
-'ruiz@unicc.org', 'requeni@unicc.org',
-'dutruel@unicc.org', 'normand@unicc.org', 'cavaglieri@unicc.org',
-'argentieric@unicc.org', 'valenti@unicc.org',
-'petrocelli@unicc.org',
-'woldeabezegi@unicc.org', 'lees@unicc.org'
-```
+### Files to create
+1. **`src/pages/ProductSpec.tsx`** — Full product spec page with print-optimized layout, a "Download PDF" button (uses `window.print()`), and all content sections
+2. **`src/pages/ProductSpec.print.css`** — Print-specific styles imported in the component for clean PDF output (hide nav, margins, page breaks)
 
-### 2. Update Seoyeon Lee's role
-Change her role from `Candidate` to `Hiring Manager` in the `users` table so she has the same RLS permissions as the other Local Admins.
+### Files to modify
+1. **`src/App.tsx`** — Add route `/product-spec` (accessible without auth so AMs can share the link)
 
-### 3. `supabase/functions/notify-local-admin/index.ts` (lines 10-16)
-Update the `STATION_ADMIN_EMAILS` mapping so notifications go to the correct people (currently uses generic admin inboxes). This is optional — depends on whether you want notifications going to these individual emails or keeping the shared admin inboxes.
+### Design details
+- Clean, professional layout using existing shadcn/ui components
+- UNICC branding colors
+- Print styles that hide the navbar, sidebar, and download button when printing
+- Page break hints between major sections for clean PDF pages
+- The page will be publicly accessible (no auth required) so the URL itself can be shared
 
