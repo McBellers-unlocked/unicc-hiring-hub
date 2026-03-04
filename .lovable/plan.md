@@ -1,34 +1,33 @@
 
 
-# Fix: Step D Semantic Matching Timeout
+# Sandra Ruiz Access Investigation
 
-## Problem
+## Finding: Her setup is correct
 
-The logs confirm the function reaches Step D with 150 candidates, then shuts down before completing. Step D makes **one LLM call per candidate** for semantic skill matching — that's 150 GPT-5-mini calls in 15 sequential batches of 10. At ~2-3s per call, that's 45+ minutes of sequential work. The 25s timeout on individual calls doesn't help because the *aggregate* wall clock exceeds the function limit.
+Sandra Ruiz (`ruiz@unicc.org`) currently has:
+- **Database role**: `Hiring Manager` — this is correct and should NOT be changed
+- **Derived role**: `Local Admin` — automatically granted via hardcoded email list in `useAuth.tsx` (line 58)
 
-## Fix
+Both roles are working as designed:
+- The `Hiring Manager` role gives her RLS SELECT access to `hr_separations` and `hr_appointments` (confirmed in RLS policies)
+- The `Local Admin` derived role shows the "Local Admin" nav link pointing to `/operations/admin` (confirmed in `Layout.tsx` line 317)
+- The route `/operations/admin` has no role guard — any authenticated user can visit it
+- The dashboard itself (`LocalAdminDashboard.tsx`) has no role check — it just reads data filtered by duty station
 
-**Only run semantic skill matching on the top 30 candidates** (by text similarity score). The remaining 120 candidates get the fast fuzzy substring fallback instead. This cuts Step D from ~150 LLM calls to ~30, saving ~4 minutes of execution time.
+## Likely cause
 
-Additionally, **cap the retrieval to 100 candidates** instead of 200 (the current `match_count` param), since we only explain the top 10 anyway — there's no value in scoring 150 candidates with expensive LLM calls.
+Her issue is probably **not** a role problem. Possible causes:
+1. **Session/token issue** — she may need to sign out and sign back in to refresh her JWT and role resolution
+2. **Browser cache** — stale cached state from `localStorage` key `unicconnect_dashboard_tab`
+3. **Navigation confusion** — as a Hiring Manager, she lands on `DualRoleDashboard` (My Tasks / My Career tabs). The "Local Admin" link is in the nav bar, not on her dashboard. She may not be finding it
 
-## Changes
+## Recommendation
 
-**File: `supabase/functions/talent-pool-match/index.ts`**
+No code or database changes needed. Ask Sandra to:
+1. Sign out completely
+2. Clear browser cache / hard refresh
+3. Sign back in
+4. Look for the "Local Admin" link in the top navigation bar
 
-1. **Line ~644**: Only run semantic matching on the first 30 candidates (sorted by text similarity), not all candidates:
-   - Change `for (let i = 0; i < allCandidates.length; i += SEMANTIC_BATCH)` to `for (let i = 0; i < Math.min(allCandidates.length, 30); i += SEMANTIC_BATCH)`
-   - Add a log line showing how many get semantic vs fuzzy matching
-
-2. **Line ~588**: Reduce the `match_count` RPC parameter from 200 to 100 to fetch fewer candidates from retrieval
-
-3. **Add fuzzy fallback for non-semantic candidates**: After the semantic loop, apply the substring fallback logic for candidates at index 30+ so they still get skill scores (just not LLM-powered ones)
-
-4. **Redeploy** the function
-
-## Expected Result
-
-- Step D drops from ~150 LLM calls to ~30 (3 batches of 10)
-- Total function runtime should drop from 3+ minutes to under 90 seconds
-- Top candidates still get high-quality semantic matching; lower-ranked ones get fast fuzzy scores
+If the issue persists after that, we can add diagnostic logging or check the browser console for specific errors.
 
