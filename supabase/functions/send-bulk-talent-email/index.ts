@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
-
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -36,6 +36,28 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Auth guard: require authenticated HR staff
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+    if (!profile || !['Admin', 'HR Assistant', 'Chief of HR'].includes(profile.role)) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     const { recipients, subject, body, cc, attachments }: BulkEmailRequest = await req.json();
 
     console.log(`Sending bulk email to ${recipients.length} recipients`);
