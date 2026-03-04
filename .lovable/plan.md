@@ -1,33 +1,45 @@
 
 
-# Sandra Ruiz Access Investigation
+# Add Local Admins for All Duty Stations
 
-## Finding: Her setup is correct
+## Current State
 
-Sandra Ruiz (`ruiz@unicc.org`) currently has:
-- **Database role**: `Hiring Manager` — this is correct and should NOT be changed
-- **Derived role**: `Local Admin` — automatically granted via hardcoded email list in `useAuth.tsx` (line 58)
+Only 2 Local Admins are configured (both Valencia):
+- Sandra Ruiz (`ruiz@unicc.org`)
+- Carolina Requeni (`requeni@unicc.org`)
 
-Both roles are working as designed:
-- The `Hiring Manager` role gives her RLS SELECT access to `hr_separations` and `hr_appointments` (confirmed in RLS policies)
-- The `Local Admin` derived role shows the "Local Admin" nav link pointing to `/operations/admin` (confirmed in `Layout.tsx` line 317)
-- The route `/operations/admin` has no role guard — any authenticated user can visit it
-- The dashboard itself (`LocalAdminDashboard.tsx`) has no role check — it just reads data filtered by duty station
+## Confirmed Emails from Database
 
-## Likely cause
+| Station | Name | Email | Current DB Role |
+|---------|------|-------|-----------------|
+| **Valencia** | Carolina Requeni | `requeni@unicc.org` | Hiring Manager |
+| **Valencia** | Sandra Ruiz | `ruiz@unicc.org` | Hiring Manager |
+| **Geneva** | Aline Dutruel | `dutruel@unicc.org` | Hiring Manager |
+| **Geneva** | Ellen Normand-Quinet | `normand@unicc.org` | Hiring Manager |
+| **Geneva** | Veronika Cavaglieri | `cavaglieri@unicc.org` | Hiring Manager |
+| **Brindisi** | Cristina Argentieri | `argentieric@unicc.org` | Hiring Manager |
+| **Brindisi** | Silvia Valenti | `valenti@unicc.org` | Hiring Manager |
+| **Rome** | Giulia Petrocelli | `petrocelli@unicc.org` | Hiring Manager |
+| **New York** | Sara Mesfin Woldeabezegi | `woldeabezegi@unicc.org` | Hiring Manager |
+| **New York** | Seoyeon Lee | `lees@unicc.org` | **Candidate** (needs update) |
 
-Her issue is probably **not** a role problem. Possible causes:
-1. **Session/token issue** — she may need to sign out and sign back in to refresh her JWT and role resolution
-2. **Browser cache** — stale cached state from `localStorage` key `unicconnect_dashboard_tab`
-3. **Navigation confusion** — as a Hiring Manager, she lands on `DualRoleDashboard` (My Tasks / My Career tabs). The "Local Admin" link is in the nav bar, not on her dashboard. She may not be finding it
+**Note:** Seoyeon Lee's database role is currently `Candidate` — she'll need to be changed to `Hiring Manager` to get proper RLS access to HR tables.
 
-## Recommendation
+## Changes
 
-No code or database changes needed. Ask Sandra to:
-1. Sign out completely
-2. Clear browser cache / hard refresh
-3. Sign back in
-4. Look for the "Local Admin" link in the top navigation bar
+### 1. `src/hooks/useAuth.tsx` (line 58)
+Expand the `localAdminEmails` array from 2 to 10 emails:
+```
+'ruiz@unicc.org', 'requeni@unicc.org',
+'dutruel@unicc.org', 'normand@unicc.org', 'cavaglieri@unicc.org',
+'argentieric@unicc.org', 'valenti@unicc.org',
+'petrocelli@unicc.org',
+'woldeabezegi@unicc.org', 'lees@unicc.org'
+```
 
-If the issue persists after that, we can add diagnostic logging or check the browser console for specific errors.
+### 2. Update Seoyeon Lee's role
+Change her role from `Candidate` to `Hiring Manager` in the `users` table so she has the same RLS permissions as the other Local Admins.
+
+### 3. `supabase/functions/notify-local-admin/index.ts` (lines 10-16)
+Update the `STATION_ADMIN_EMAILS` mapping so notifications go to the correct people (currently uses generic admin inboxes). This is optional — depends on whether you want notifications going to these individual emails or keeping the shared admin inboxes.
 
