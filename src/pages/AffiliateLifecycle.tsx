@@ -387,6 +387,8 @@ export default function AffiliateLifecycle() {
           open={showLaunchPR}
           onOpenChange={setShowLaunchPR}
           recordNumber={recordNumber || ''}
+          affiliateName={affiliate.name}
+          affiliateUnit={affiliate.unit}
           contract={contract ? {
             start_date: contract.start_date,
             end_date: contract.end_date,

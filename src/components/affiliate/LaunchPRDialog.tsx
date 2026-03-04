@@ -5,15 +5,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CustomDatePicker } from '@/components/ui/date-picker';
-import { differenceInDays, parseISO } from 'date-fns';
+import { differenceInDays, parseISO, format } from 'date-fns';
 import { toast } from 'sonner';
 
 interface LaunchPRDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   recordNumber: string;
+  affiliateName: string;
+  affiliateUnit: string | null;
   contract: {
     start_date: string | null;
     end_date: string | null;
@@ -27,14 +30,17 @@ interface LaunchPRDialogProps {
 const CURRENCIES = ['USD', 'EUR', 'CHF', 'INR', 'PKR', 'BRL'];
 const UNITS = ['day', 'hour'];
 
-export function LaunchPRDialog({ open, onOpenChange, recordNumber, contract }: LaunchPRDialogProps) {
+export function LaunchPRDialog({ open, onOpenChange, recordNumber, affiliateName, affiliateUnit, contract }: LaunchPRDialogProps) {
   const queryClient = useQueryClient();
 
+  const [step, setStep] = useState(1);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [unitPrice, setUnitPrice] = useState('');
   const [unit, setUnit] = useState('');
   const [currency, setCurrency] = useState('');
+  const [itemDescription, setItemDescription] = useState('');
+  const [directAppointmentJustification, setDirectAppointmentJustification] = useState('');
 
   // Sync form state when contract data loads or dialog opens
   useEffect(() => {
@@ -52,6 +58,19 @@ export function LaunchPRDialog({ open, onOpenChange, recordNumber, contract }: L
     : contract?.days_worked ?? null;
 
   const allFieldsFilled = startDate && endDate && unitPrice !== '' && unit !== '' && currency !== '' && daysWorked != null;
+
+  const handleNext = () => {
+    const startStr = startDate ? format(startDate, 'dd MMM yyyy') : '';
+    const endStr = endDate ? format(endDate, 'dd MMM yyyy') : '';
+    setItemDescription(`Individual consultancy contract for ${affiliateName}, in ${affiliateUnit || 'N/A'}, from ${startStr} to ${endStr}.`);
+    setDirectAppointmentJustification('N/A');
+    setStep(2);
+  };
+
+  const handleDialogClose = (val: boolean) => {
+    if (!val) setStep(1);
+    onOpenChange(val);
+  };
 
   const updateContract = useMutation({
     mutationFn: async (fields: Record<string, any>) => {
@@ -95,91 +114,110 @@ export function LaunchPRDialog({ open, onOpenChange, recordNumber, contract }: L
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Launch PR — {recordNumber}</DialogTitle>
+          <DialogTitle>Launch PR — {recordNumber} (Step {step}/2)</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-4 py-4">
-          {/* Start Date */}
-          <div className="space-y-2">
-            <Label>Start Date</Label>
-            <CustomDatePicker
-              selected={startDate}
-              onChange={(d) => handleFieldChange('start_date', d)}
-              placeholderText="Start date"
-            />
-          </div>
+        {step === 1 && (
+          <>
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <div className="space-y-2">
+                <Label>Start Date</Label>
+                <CustomDatePicker
+                  selected={startDate}
+                  onChange={(d) => handleFieldChange('start_date', d)}
+                  placeholderText="Start date"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>End Date</Label>
+                <CustomDatePicker
+                  selected={endDate}
+                  onChange={(d) => handleFieldChange('end_date', d)}
+                  placeholderText="End date"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Days Worked</Label>
+                <Input
+                  value={daysWorked != null ? String(daysWorked) : ''}
+                  readOnly
+                  className="bg-muted"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Unit Price</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={unitPrice}
+                  onChange={(e) => setUnitPrice(e.target.value)}
+                  onBlur={handleUnitPriceBlur}
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Unit</Label>
+                <Select value={unit} onValueChange={(v) => handleFieldChange('unit', v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {UNITS.map((u) => (
+                      <SelectItem key={u} value={u}>{u}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Currency</Label>
+                <Select value={currency} onValueChange={(v) => handleFieldChange('currency', v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => handleDialogClose(false)}>Cancel</Button>
+              <Button disabled={!allFieldsFilled} onClick={handleNext}>Next</Button>
+            </DialogFooter>
+          </>
+        )}
 
-          {/* End Date */}
-          <div className="space-y-2">
-            <Label>End Date</Label>
-            <CustomDatePicker
-              selected={endDate}
-              onChange={(d) => handleFieldChange('end_date', d)}
-              placeholderText="End date"
-            />
-          </div>
-
-          {/* Days Worked (read-only) */}
-          <div className="space-y-2">
-            <Label>Days Worked</Label>
-            <Input
-              value={daysWorked != null ? String(daysWorked) : ''}
-              readOnly
-              className="bg-muted"
-            />
-          </div>
-
-          {/* Unit Price */}
-          <div className="space-y-2">
-            <Label>Unit Price</Label>
-            <Input
-              type="number"
-              step="0.01"
-              value={unitPrice}
-              onChange={(e) => setUnitPrice(e.target.value)}
-              onBlur={handleUnitPriceBlur}
-              placeholder="0.00"
-            />
-          </div>
-
-          {/* Unit */}
-          <div className="space-y-2">
-            <Label>Unit</Label>
-            <Select value={unit} onValueChange={(v) => handleFieldChange('unit', v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select unit" />
-              </SelectTrigger>
-              <SelectContent>
-                {UNITS.map((u) => (
-                  <SelectItem key={u} value={u}>{u}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Currency */}
-          <div className="space-y-2">
-            <Label>Currency</Label>
-            <Select value={currency} onValueChange={(v) => handleFieldChange('currency', v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select currency" />
-              </SelectTrigger>
-              <SelectContent>
-                {CURRENCIES.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button disabled={!allFieldsFilled}>Next</Button>
-        </DialogFooter>
+        {step === 2 && (
+          <>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Item Description</Label>
+                <Textarea
+                  value={itemDescription}
+                  onChange={(e) => setItemDescription(e.target.value)}
+                  rows={4}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Direct Appointment Justification</Label>
+                <Textarea
+                  value={directAppointmentJustification}
+                  onChange={(e) => setDirectAppointmentJustification(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+              <Button>Submit</Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
