@@ -100,6 +100,7 @@ import LocalAdminDashboard from "./pages/operations/LocalAdminDashboard";
 import DocumentRepository from "./pages/operations/DocumentRepository";
 import Settings from "./pages/Settings";
 import EmailHub from "./pages/EmailHub";
+import ProductSpec from "./pages/ProductSpec";
 
 const queryClient = new QueryClient();
 
@@ -216,6 +217,7 @@ const App = () => (
             <Route path="/operations/contract-extensions" element={<ContractExtensions />} />
             <Route path="/operations/documents" element={<DocumentRepository />} />
             <Route path="/admin/email-hub" element={<EmailHub />} />
+            <Route path="/product-spec" element={<ProductSpec />} />
             <Route path="/settings" element={<Settings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
