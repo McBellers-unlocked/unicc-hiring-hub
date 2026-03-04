@@ -78,6 +78,44 @@ export function LaunchPRDialog({ open, onOpenChange, recordNumber, affiliateName
     setStep(3);
   };
 
+  const handleSubmit = () => {
+    const startStr = startDate ? format(startDate, 'dd MMM yyyy') : 'N/A';
+    const endStr = endDate ? format(endDate, 'dd MMM yyyy') : 'N/A';
+    const content = [
+      `Launch PR Summary — ${recordNumber}`,
+      `========================================`,
+      ``,
+      `Step 1: Contract Details`,
+      `------------------------`,
+      `Start Date: ${startStr}`,
+      `End Date: ${endStr}`,
+      `Days Worked: ${daysWorked ?? 'N/A'}`,
+      `Unit Price: ${unitPrice || 'N/A'}`,
+      `Unit: ${unit || 'N/A'}`,
+      `Currency: ${currency || 'N/A'}`,
+      ``,
+      `Step 2: Description`,
+      `------------------------`,
+      `Item Description: ${itemDescription}`,
+      `Direct Appointment Justification: ${directAppointmentJustification}`,
+      ``,
+      `Step 3: Additional Info`,
+      `------------------------`,
+      `Manager: ${manager || 'N/A'}`,
+      `Address: ${address || 'N/A'}`,
+      `Job: ${job || 'N/A'}`,
+    ].join('\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Launch_PR_${recordNumber}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('PR document generated');
+    handleDialogClose(false);
+  };
+
   const handleDialogClose = (val: boolean) => {
     if (!val) setStep(1);
     onOpenChange(val);
@@ -265,7 +303,7 @@ export function LaunchPRDialog({ open, onOpenChange, recordNumber, affiliateName
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
-              <Button>Submit</Button>
+              <Button onClick={handleSubmit}>Submit</Button>
             </DialogFooter>
           </>
         )}
