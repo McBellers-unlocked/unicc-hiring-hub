@@ -266,12 +266,19 @@ export default function AffiliateLifecycle() {
             </div>
 
             {/* Contract Info from PR record */}
-            <div className="mt-6 pt-6 border-t grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="mt-6 pt-6 border-t grid grid-cols-1 md:grid-cols-5 gap-4">
               <div className="flex items-center gap-3">
                 <FileText className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <p className="text-xs text-muted-foreground">Record #</p>
                   <p className="font-medium font-mono">{recordNumber || 'N/A'}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <FileText className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Samsaran PR</p>
+                  <p className="font-medium font-mono">{contract?.samsaran_pr || 'N/A'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
