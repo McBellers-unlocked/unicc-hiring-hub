@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, User, Mail, Calendar, Clock, RefreshCw, FileText } from 'lucide-react';
+import { ArrowLeft, User, Mail, Calendar, Clock, RefreshCw, FileText, Rocket } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
 import { AffiliateLifecycleTimeline } from '@/components/affiliate/AffiliateLifecycleTimeline';
@@ -19,6 +19,7 @@ import {
   LifecycleStageKey 
 } from '@/lib/affiliateLifecycleConfig';
 import { useAuth } from '@/hooks/useAuth';
+import { LaunchPRDialog } from '@/components/affiliate/LaunchPRDialog';
 
 interface AffiliateUser {
   id: string;
@@ -37,6 +38,10 @@ interface ContractRecord {
   gsm_po: string | null;
   start_date: string | null;
   end_date: string | null;
+  unit_price: number | null;
+  unit: string | null;
+  currency: string | null;
+  days_worked: number | null;
 }
 
 export default function AffiliateLifecycle() {
@@ -44,6 +49,7 @@ export default function AffiliateLifecycle() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeStage, setActiveStage] = useState<string>(LIFECYCLE_STAGES[0].key);
+  const [showLaunchPR, setShowLaunchPR] = useState(false);
 
   // Fetch affiliate data
   const { data: affiliate, isLoading: affiliateLoading } = useQuery({
@@ -67,7 +73,7 @@ export default function AffiliateLifecycle() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('affiliate_contract_history')
-        .select('id, record_number, samsaran_pr, samsaran_po, gsm_reg_number, gsm_po, start_date, end_date')
+        .select('id, record_number, samsaran_pr, samsaran_po, gsm_reg_number, gsm_po, start_date, end_date, unit_price, unit, currency, days_worked')
         .eq('record_number', recordNumber!)
         .maybeSingle();
 
@@ -255,6 +261,11 @@ export default function AffiliateLifecycle() {
                 </div>
               </div>
               
+              <Button onClick={() => setShowLaunchPR(true)} size="lg">
+                <Rocket className="w-5 h-5 mr-2" />
+                Launch PR
+              </Button>
+
               <div className="flex flex-wrap gap-4">
                 {affiliate.affiliate_type && (
                   <Badge variant="outline">{affiliate.affiliate_type}</Badge>
@@ -371,6 +382,20 @@ export default function AffiliateLifecycle() {
             />
           )}
         </div>
+        {/* Launch PR Dialog */}
+        <LaunchPRDialog
+          open={showLaunchPR}
+          onOpenChange={setShowLaunchPR}
+          recordNumber={recordNumber || ''}
+          contract={contract ? {
+            start_date: contract.start_date,
+            end_date: contract.end_date,
+            unit_price: contract.unit_price,
+            unit: contract.unit,
+            currency: contract.currency,
+            days_worked: contract.days_worked,
+          } : null}
+        />
       </div>
     </Layout>
   );
