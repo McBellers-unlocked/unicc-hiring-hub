@@ -74,6 +74,49 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // IDOR protection: verify the user owns the file or has admin/HR role
+    const { data: userProfile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const isPrivilegedRole = userProfile?.role && ['Admin', 'HR Assistant', 'Chief of HR'].includes(userProfile.role);
+
+    if (!isPrivilegedRole) {
+      // Check if the file path belongs to an application owned by this user's candidate record
+      const { data: candidate } = await supabase
+        .from('candidates')
+        .select('id')
+        .eq('email', user.email)
+        .single();
+
+      if (!candidate) {
+        console.log('❌ No candidate record found for user');
+        return new Response('Forbidden', { status: 403, headers: corsHeaders });
+      }
+
+      // Check if any of the user's applications reference this file path
+      const { data: apps } = await supabase
+        .from('applications')
+        .select('id, files')
+        .eq('candidate_id', candidate.id);
+
+      const ownsFile = apps?.some(app => {
+        if (!app.files) return false;
+        const filesStr = JSON.stringify(app.files);
+        return filesStr.includes(filePath);
+      });
+
+      // Also check if the file path starts with the candidate's ID (common storage pattern)
+      const pathBelongsToCandidate = filePath.startsWith(candidate.id);
+
+      if (!ownsFile && !pathBelongsToCandidate) {
+        console.log(`❌ User ${user.email} does not own file: ${filePath}`);
+        return new Response('Forbidden', { status: 403, headers: corsHeaders });
+      }
+    }
+
     // Download the file from storage using service role
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('application-files')
