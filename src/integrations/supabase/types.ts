@@ -69,6 +69,7 @@ export type Database = {
           gsm_po: string | null
           gsm_reg_number: string | null
           id: string
+          record_number: string
           samsaran_po: string | null
           samsaran_pr: string | null
           start_date: string | null
@@ -81,6 +82,7 @@ export type Database = {
           gsm_po?: string | null
           gsm_reg_number?: string | null
           id?: string
+          record_number: string
           samsaran_po?: string | null
           samsaran_pr?: string | null
           start_date?: string | null
@@ -93,6 +95,7 @@ export type Database = {
           gsm_po?: string | null
           gsm_reg_number?: string | null
           id?: string
+          record_number?: string
           samsaran_po?: string | null
           samsaran_pr?: string | null
           start_date?: string | null
@@ -115,6 +118,7 @@ export type Database = {
           completed_by: string | null
           contract_cycle_end: string | null
           contract_cycle_start: string | null
+          contract_record_id: string | null
           created_at: string | null
           id: string
           item_key: string
@@ -132,6 +136,7 @@ export type Database = {
           completed_by?: string | null
           contract_cycle_end?: string | null
           contract_cycle_start?: string | null
+          contract_record_id?: string | null
           created_at?: string | null
           id?: string
           item_key: string
@@ -149,6 +154,7 @@ export type Database = {
           completed_by?: string | null
           contract_cycle_end?: string | null
           contract_cycle_start?: string | null
+          contract_record_id?: string | null
           created_at?: string | null
           id?: string
           item_key?: string

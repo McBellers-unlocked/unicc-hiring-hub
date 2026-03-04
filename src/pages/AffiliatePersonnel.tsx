@@ -281,7 +281,7 @@ export default function AffiliatePersonnel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('affiliate_contract_history')
-        .select('user_id, samsaran_pr, start_date, end_date')
+        .select('user_id, record_number, samsaran_pr, start_date, end_date')
         .order('start_date', { ascending: false });
       if (error) throw error;
       return data;
@@ -290,11 +290,11 @@ export default function AffiliatePersonnel() {
 
   // Build lookup: user_id -> most recent contract record
   const contractHistoryMap = useMemo(() => {
-    const map = new Map<string, { samsaran_pr: string | null; start_date: string | null; end_date: string | null }>();
+    const map = new Map<string, { record_number: string; samsaran_pr: string | null; start_date: string | null; end_date: string | null }>();
     if (!contractHistoryData) return map;
     for (const row of contractHistoryData) {
       if (!map.has(row.user_id)) {
-        map.set(row.user_id, { samsaran_pr: row.samsaran_pr, start_date: row.start_date, end_date: row.end_date });
+        map.set(row.user_id, { record_number: row.record_number, samsaran_pr: row.samsaran_pr, start_date: row.start_date, end_date: row.end_date });
       }
     }
     return map;
@@ -582,7 +582,7 @@ export default function AffiliatePersonnel() {
               start_date: data.contract_start_date || null,
               end_date: data.contract_end_date || null,
               days_worked: data.days_worked ?? null,
-            });
+            } as any);
         }
       }
 
@@ -924,22 +924,22 @@ export default function AffiliatePersonnel() {
                                   <Pencil className="h-4 w-4 mr-2" />
                                   Edit
                                 </DropdownMenuItem>
-                                {(() => {
-                                  const latestPr = contractHistoryMap.get(affiliate.id)?.samsaran_pr;
-                                  return latestPr ? (
-                                    <DropdownMenuItem asChild>
-                                      <Link to={`/admin/affiliate-personnel/${affiliate.id}/lifecycle/${encodeURIComponent(latestPr)}`}>
-                                        <ClipboardList className="h-4 w-4 mr-2" />
-                                        Manage Lifecycle
-                                      </Link>
-                                    </DropdownMenuItem>
-                                  ) : (
-                                    <DropdownMenuItem disabled>
-                                      <ClipboardList className="h-4 w-4 mr-2" />
-                                      Manage Lifecycle (No PR)
-                                    </DropdownMenuItem>
-                                  );
-                                })()}
+                                 {(() => {
+                                   const latestRecord = contractHistoryMap.get(affiliate.id);
+                                   return latestRecord?.record_number ? (
+                                     <DropdownMenuItem asChild>
+                                       <Link to={`/admin/affiliate-personnel/${affiliate.id}/lifecycle/${latestRecord.record_number}`}>
+                                         <ClipboardList className="h-4 w-4 mr-2" />
+                                         Manage Lifecycle
+                                       </Link>
+                                     </DropdownMenuItem>
+                                   ) : (
+                                     <DropdownMenuItem disabled>
+                                       <ClipboardList className="h-4 w-4 mr-2" />
+                                       Manage Lifecycle (No Record)
+                                     </DropdownMenuItem>
+                                   );
+                                 })()}
                                 <DropdownMenuItem asChild>
                                   <Link to={`/admin/affiliate-history/${affiliate.id}`}>
                                     <FileSpreadsheet className="h-4 w-4 mr-2" />

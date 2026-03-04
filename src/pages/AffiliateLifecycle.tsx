@@ -40,8 +40,7 @@ interface ContractRecord {
 }
 
 export default function AffiliateLifecycle() {
-  const { id, samsaranPr } = useParams<{ id: string; samsaranPr: string }>();
-  const decodedPr = samsaranPr ? decodeURIComponent(samsaranPr) : '';
+  const { id, recordNumber } = useParams<{ id: string; recordNumber: string }>();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeStage, setActiveStage] = useState<string>(LIFECYCLE_STAGES[0].key);
@@ -62,21 +61,20 @@ export default function AffiliateLifecycle() {
     enabled: !!id,
   });
 
-  // Fetch contract history record for this PR
+  // Fetch contract history record by record_number
   const { data: contract, isLoading: contractLoading } = useQuery({
-    queryKey: ['affiliate-contract-record', id, decodedPr],
+    queryKey: ['affiliate-contract-record', id, recordNumber],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('affiliate_contract_history')
-        .select('id, samsaran_pr, samsaran_po, gsm_reg_number, gsm_po, start_date, end_date')
-        .eq('user_id', id!)
-        .eq('samsaran_pr', decodedPr)
+        .select('id, record_number, samsaran_pr, samsaran_po, gsm_reg_number, gsm_po, start_date, end_date')
+        .eq('record_number', recordNumber!)
         .maybeSingle();
 
       if (error) throw error;
-      return data as ContractRecord | null;
+      return data as (ContractRecord & { record_number: string }) | null;
     },
-    enabled: !!id && !!decodedPr,
+    enabled: !!recordNumber,
   });
 
   // Calculate contract info from the contract history record
@@ -88,20 +86,20 @@ export default function AffiliateLifecycle() {
     endDate: contract.end_date,
   } : null;
 
-  // Fetch or create checklist items filtered by samsaran_pr
+  // Fetch or create checklist items filtered by contract_record_id
   const { data: checklist, isLoading: checklistLoading, refetch: refetchChecklist } = useQuery({
-    queryKey: ['affiliate-lifecycle-checklist', id, decodedPr],
+    queryKey: ['affiliate-lifecycle-checklist', id, recordNumber],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('affiliate_lifecycle_checklists')
         .select('*')
         .eq('user_id', id!)
-        .eq('samsaran_pr', decodedPr);
+        .eq('contract_record_id', recordNumber!);
 
       if (error) throw error;
       return (data || []) as ChecklistItem[];
     },
-    enabled: !!id && !!decodedPr,
+    enabled: !!id && !!recordNumber,
   });
 
   // Initialize checklist items if empty
@@ -119,7 +117,8 @@ export default function AffiliateLifecycle() {
             contract_cycle_start: contract.start_date,
             contract_cycle_end: contract.end_date,
             next_contract_start: contract.start_date,
-            samsaran_pr: decodedPr,
+            samsaran_pr: contract.samsaran_pr || null,
+            contract_record_id: recordNumber,
             stage: stage.key,
             item_key: item.key,
             item_label: item.label,
@@ -271,8 +270,8 @@ export default function AffiliateLifecycle() {
               <div className="flex items-center gap-3">
                 <FileText className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Samsaran PR</p>
-                  <p className="font-medium">{decodedPr || 'N/A'}</p>
+                  <p className="text-xs text-muted-foreground">Record #</p>
+                  <p className="font-medium font-mono">{recordNumber || 'N/A'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">

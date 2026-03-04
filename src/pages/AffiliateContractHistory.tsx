@@ -17,6 +17,7 @@ import AffiliateContractDocuments from '@/components/affiliate/AffiliateContract
 interface ContractHistoryRow {
   id: string;
   user_id: string;
+  record_number: string;
   samsaran_pr: string | null;
   samsaran_po: string | null;
   gsm_reg_number: string | null;
@@ -134,7 +135,7 @@ export default function AffiliateContractHistory() {
       } else {
         const { error } = await supabase
           .from('affiliate_contract_history')
-          .insert({ ...payload, user_id: id! });
+          .insert({ ...payload, user_id: id! } as any);
         if (error) throw error;
       }
     },
@@ -323,6 +324,7 @@ export default function AffiliateContractHistory() {
                 <TableHeader>
                   <TableRow>
                     {([
+                      ['record_number', 'Record #'],
                       ['samsaran_pr', 'Samsaran PR'],
                       ['samsaran_po', 'Samsaran PO'],
                       ['gsm_reg_number', 'GSM Reg Number'],
@@ -343,6 +345,7 @@ export default function AffiliateContractHistory() {
                 <TableBody>
                   {sorted.map((row) => (
                     <TableRow key={row.id}>
+                      <TableCell className="font-mono text-xs font-semibold">{row.record_number}</TableCell>
                       <TableCell>{row.samsaran_pr || '-'}</TableCell>
                       <TableCell>{row.samsaran_po || '-'}</TableCell>
                       <TableCell>{row.gsm_reg_number || '-'}</TableCell>
@@ -362,7 +365,7 @@ export default function AffiliateContractHistory() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button variant="ghost" size="icon" asChild>
-                                  <Link to={row.samsaran_pr ? `/admin/affiliate-personnel/${id}/lifecycle/${encodeURIComponent(row.samsaran_pr)}` : '#'} onClick={(e) => { if (!row.samsaran_pr) { e.preventDefault(); toast.error('No Samsaran PR set for this record'); } }}>
+                                  <Link to={`/admin/affiliate-personnel/${id}/lifecycle/${row.record_number}`}>
                                     <ExternalLink className="h-4 w-4" />
                                   </Link>
                                 </Button>
