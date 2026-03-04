@@ -1,36 +1,23 @@
 
 
-# Add "Launch PR" Button and Wizard Dialog to Lifecycle Management
+# Add Step 2 to Launch PR Wizard
 
 ## Overview
-Add a prominent "Launch PR" button in the affiliate info card between the name/email and the badges (affiliate type, division). Clicking it opens a wizard dialog showing contract record fields that are editable and synced back to the database.
+Add a second page to the LaunchPR wizard dialog with two pre-filled text fields: "Item Description" and "Direct Appointment Justification". The "Next" button on step 1 advances to step 2.
 
 ## Changes
 
-### 1. Update contract query to include new fields (`src/pages/AffiliateLifecycle.tsx`)
-- Add `unit_price`, `unit`, `currency` to the `ContractRecord` interface
-- Add these fields to the `.select()` call in the contract query
+### `src/components/affiliate/LaunchPRDialog.tsx`
+1. **Accept affiliate info** — Add `affiliateName` and `affiliateUnit` to props (passed from parent)
+2. **Add step state** — `step` state (1 or 2)
+3. **Add form state for step 2** — `itemDescription` and `directAppointmentJustification` strings
+4. **Pre-fill on entering step 2** — When clicking "Next" on step 1, set `step` to 2 and pre-fill:
+   - Item Description: `"Individual consultancy contract for [name], in [unit], from [formatted start date] to [formatted end date]."`
+   - Direct Appointment Justification: `"N/A"`
+5. **Render step 2** — Show two `Textarea` fields (editable) for the two values
+6. **Footer** — Step 2 shows "Back" (returns to step 1) and a placeholder "Submit"/"Next" button
+7. **Reset step to 1** when dialog closes
 
-### 2. Add "Launch PR" button in the affiliate info card
-- Place it between the name/email div and the badges div (line 257 area)
-- Style: `bg-primary text-primary-foreground` (matching the blue used for icons/timeline)
-- Icon: `Rocket` from lucide-react
-
-### 3. Create the Launch PR wizard dialog
-- State: `showLaunchPR` boolean, plus local form state for the 6 fields (start_date, end_date, days_worked calculated, unit_price, unit, currency)
-- **Page 1**: Display and edit 6 fields:
-  - Start Date and End Date: date pickers (using `CustomDatePicker`)
-  - Unit Price: numeric input (step="0.01")
-  - Unit: dropdown ("day" / "hour")
-  - Currency: dropdown ("USD", "EUR", "CHF", "INR", "PKR", "BRL")
-  - Days Worked: displayed as read-only (calculated from start/end dates, or from the record)
-- "Next" button disabled if any of the 6 fields is empty/missing
-- On field change: update the contract record in `affiliate_contract_history` via a mutation, then invalidate the contract query
-
-### 4. Add update mutation
-- A mutation that updates `start_date`, `end_date`, `unit_price`, `unit`, `currency` on the `affiliate_contract_history` record by `record_number`
-- On success: invalidate the contract query and show toast
-
-## Files Modified
-- `src/pages/AffiliateLifecycle.tsx` — all changes in this single file (query, button, dialog, mutation)
+### `src/pages/AffiliateLifecycle.tsx`
+- Pass `affiliateName={affiliate.name}` and `affiliateUnit={affiliate.unit}` to `LaunchPRDialog`
 
