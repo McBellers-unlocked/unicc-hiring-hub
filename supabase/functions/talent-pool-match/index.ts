@@ -8,7 +8,8 @@ const corsHeaders = {
 };
 
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-3-flash-preview";
+const MODEL = "openai/gpt-5";
+const MODEL_FAST = "openai/gpt-5-mini";
 
 // ── Prompts ──────────────────────────────────────────────────────────────────
 
@@ -117,7 +118,8 @@ async function callAI(
   system: string,
   userMsg: string,
   tools: any[],
-  toolChoice: any
+  toolChoice: any,
+  model: string = MODEL
 ) {
   const resp = await fetch(AI_GATEWAY, {
     method: "POST",
@@ -126,7 +128,7 @@ async function callAI(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       messages: [
         { role: "system", content: system },
         { role: "user", content: userMsg },
@@ -145,6 +147,81 @@ async function callAI(
   const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
   if (!toolCall) throw new Error("No tool call in AI response");
   return JSON.parse(toolCall.function.arguments);
+}
+
+// ── Semantic Skill Matching Tool ─────────────────────────────────────────────
+
+const semanticSkillMatchTool = {
+  type: "function",
+  function: {
+    name: "semantic_skill_match",
+    description: "Compare required skills against candidate skills semantically. Return a match score for each required skill indicating the best semantic match found among candidate skills.",
+    parameters: {
+      type: "object",
+      properties: {
+        matches: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              required_skill: { type: "string" },
+              best_candidate_skill: { type: "string", description: "Best matching candidate skill, or empty string if no match" },
+              similarity: { type: "number", description: "0.0 to 1.0 semantic similarity score" },
+            },
+            required: ["required_skill", "best_candidate_skill", "similarity"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["matches"],
+      additionalProperties: false,
+    },
+  },
+};
+
+const SEMANTIC_MATCH_SYSTEM = `You are a skill matching engine. Given required skills and candidate skills, determine semantic similarity.
+Consider abbreviations (e.g. ML = Machine Learning), synonyms (e.g. Kubernetes = Container Orchestration),
+and related concepts (e.g. React = Frontend Development has partial similarity ~0.4).
+Score 1.0 for exact/synonym matches, 0.6-0.9 for closely related, 0.3-0.5 for loosely related, 0.0 for unrelated.
+Return ONLY the tool call result.`;
+
+async function getSemanticSkillScores(
+  apiKey: string,
+  requiredSkills: string[],
+  candidateSkills: string[]
+): Promise<Map<string, number>> {
+  const scoreMap = new Map<string, number>();
+  if (requiredSkills.length === 0 || candidateSkills.length === 0) return scoreMap;
+
+  try {
+    const userMsg = `Required skills: ${JSON.stringify(requiredSkills)}
+Candidate skills: ${JSON.stringify(candidateSkills)}`;
+
+    const result = await callAI(
+      apiKey,
+      SEMANTIC_MATCH_SYSTEM,
+      userMsg,
+      [semanticSkillMatchTool],
+      { type: "function", function: { name: "semantic_skill_match" } },
+      MODEL_FAST
+    );
+
+    for (const m of result.matches || []) {
+      scoreMap.set(m.required_skill.toLowerCase(), Math.max(0, Math.min(1, m.similarity)));
+    }
+  } catch (e) {
+    console.error("Semantic skill matching failed, falling back to fuzzy:", e);
+    // Fallback to fuzzy matching
+    for (const req of requiredSkills) {
+      const reqLower = req.toLowerCase();
+      const candidateLower = candidateSkills.map(s => s.toLowerCase());
+      if (candidateLower.some(cs => cs.includes(reqLower) || reqLower.includes(cs))) {
+        scoreMap.set(reqLower, 0.8);
+      }
+    }
+  }
+
+  return scoreMap;
 }
 
 function extractCandidateFields(c: any) {
@@ -200,20 +277,31 @@ function computeDeterministicScore(
     seniority_band?: string;
     education_requirement?: string;
     keywords?: string[];
-  }
+  },
+  semanticScores?: Map<string, number>
 ): { match_score: number; confidence: string; tier: string } {
-  // 1. Skill overlap (50%)
+  // 1. Skill overlap (50%) — uses semantic scores when available
   let skillScore = 0.5; // neutral default
   if (jobProfile.must_have_skills.length > 0 && candidate.normalized_skills.length > 0) {
     const mustHaveLower = jobProfile.must_have_skills.map((s) => s.toLowerCase());
-    const candidateLower = candidate.normalized_skills.map((s) => s.toLowerCase());
-    let matches = 0;
-    for (const req of mustHaveLower) {
-      if (candidateLower.some((cs) => cs.includes(req) || req.includes(cs) || fuzzyMatch(cs, req))) {
-        matches++;
+    if (semanticScores && semanticScores.size > 0) {
+      // Use LLM-powered semantic similarity scores
+      let totalSim = 0;
+      for (const req of mustHaveLower) {
+        totalSim += semanticScores.get(req) || 0;
       }
+      skillScore = totalSim / mustHaveLower.length;
+    } else {
+      // Fallback to substring matching
+      const candidateLower = candidate.normalized_skills.map((s) => s.toLowerCase());
+      let matches = 0;
+      for (const req of mustHaveLower) {
+        if (candidateLower.some((cs) => cs.includes(req) || req.includes(cs))) {
+          matches++;
+        }
+      }
+      skillScore = matches / mustHaveLower.length;
     }
-    skillScore = matches / mustHaveLower.length;
   } else if (candidate.normalized_skills.length === 0) {
     skillScore = 0.5; // neutral
   }
@@ -472,7 +560,7 @@ serve(async (req) => {
               const result = await callAI(apiKey, CANDIDATE_PROFILE_SYSTEM, userMsg, [candidateProfileTool], {
                 type: "function",
                 function: { name: "normalize_candidate" },
-              });
+              }, MODEL_FAST);
 
               await supabase.from("talent_candidate_embeddings").upsert({
                 candidate_id: candidate.id,
@@ -524,7 +612,7 @@ serve(async (req) => {
         }
       }
 
-      // Step D: Deterministic scoring
+      // Step D: Semantic skill matching + Deterministic scoring
       // Fetch full embedding data for all retrieved candidates
       const retrievedIds = allCandidates.map((c: any) => c.candidate_id);
       const { data: embeddingData } = await supabase
@@ -540,6 +628,29 @@ serve(async (req) => {
 
       const embMap = new Map((embeddingData || []).map((e: any) => [e.candidate_id, e]));
       const candMap = new Map((candidateInfo || []).map((c: any) => [c.id, c]));
+
+      // Run semantic skill matching per candidate (batched by unique skill sets)
+      const semanticScoresMap = new Map<string, Map<string, number>>();
+      const requiredSkills = jpJson.must_have_skills || [];
+      
+      // Process semantic matching in batches of 10 candidates
+      const SEMANTIC_BATCH = 10;
+      for (let i = 0; i < allCandidates.length; i += SEMANTIC_BATCH) {
+        const batch = allCandidates.slice(i, i + SEMANTIC_BATCH);
+        const semanticPromises = batch.map(async (c: any) => {
+          const emb = embMap.get(c.candidate_id);
+          const candidateSkills = emb?.normalized_skills || [];
+          if (candidateSkills.length === 0 || requiredSkills.length === 0) return;
+          
+          try {
+            const scores = await getSemanticSkillScores(apiKey, requiredSkills, candidateSkills);
+            semanticScoresMap.set(c.candidate_id, scores);
+          } catch (e) {
+            console.error(`Semantic matching failed for ${c.candidate_id}:`, e);
+          }
+        });
+        await Promise.all(semanticPromises);
+      }
 
       const scored = allCandidates.map((retrieved: any) => {
         const emb = embMap.get(retrieved.candidate_id);
@@ -570,7 +681,8 @@ serve(async (req) => {
             seniority_band: jpJson.seniority_band,
             education_requirement: jpJson.education_requirement,
             keywords: jpJson.keywords || [],
-          }
+          },
+          semanticScoresMap.get(retrieved.candidate_id)
         );
 
         return {
