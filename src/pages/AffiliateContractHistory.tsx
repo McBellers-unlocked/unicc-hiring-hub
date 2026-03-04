@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Plus, Pencil, Trash2, ExternalLink, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -25,6 +26,9 @@ interface ContractHistoryRow {
   start_date: string | null;
   end_date: string | null;
   days_worked: number | null;
+  unit_price: number | null;
+  unit: string | null;
+  currency: string | null;
   created_at: string;
 }
 
@@ -36,9 +40,12 @@ interface FormData {
   start_date: string;
   end_date: string;
   days_worked: string;
+  unit_price: string;
+  unit: string;
+  currency: string;
 }
 
-const emptyForm: FormData = { samsaran_pr: '', samsaran_po: '', gsm_reg_number: '', gsm_po: '', start_date: '', end_date: '', days_worked: '' };
+const emptyForm: FormData = { samsaran_pr: '', samsaran_po: '', gsm_reg_number: '', gsm_po: '', start_date: '', end_date: '', days_worked: '', unit_price: '', unit: '', currency: '' };
 
 export default function AffiliateContractHistory() {
   const { id } = useParams<{ id: string }>();
@@ -125,6 +132,9 @@ export default function AffiliateContractHistory() {
         start_date: data.start_date || null,
         end_date: data.end_date || null,
         days_worked: data.days_worked ? parseInt(data.days_worked, 10) : null,
+        unit_price: data.unit_price ? parseFloat(data.unit_price) : null,
+        unit: data.unit || null,
+        currency: data.currency || null,
       };
       if (editingRow) {
         const { error } = await supabase
@@ -224,6 +234,9 @@ export default function AffiliateContractHistory() {
       start_date: row.start_date || '',
       end_date: row.end_date || '',
       days_worked: row.days_worked != null ? String(row.days_worked) : '',
+      unit_price: row.unit_price != null ? String(row.unit_price) : '',
+      unit: row.unit || '',
+      currency: row.currency || '',
     });
     setDialogOpen(true);
   };
@@ -332,6 +345,9 @@ export default function AffiliateContractHistory() {
                       ['start_date', 'Start Date'],
                       ['end_date', 'End Date'],
                       ['days_worked', 'Days Worked'],
+                      ['unit_price', 'Unit Price'],
+                      ['unit', 'Unit'],
+                      ['currency', 'Currency'],
                     ] as [keyof ContractHistoryRow, string][]).map(([key, label]) => (
                       <TableHead key={key}>
                         <button className="flex items-center hover:text-foreground" onClick={() => toggleSort(key)}>
@@ -353,6 +369,9 @@ export default function AffiliateContractHistory() {
                       <TableCell>{row.start_date ? new Date(row.start_date + 'T00:00:00').toLocaleDateString() : '-'}</TableCell>
                       <TableCell>{row.end_date ? new Date(row.end_date + 'T00:00:00').toLocaleDateString() : '-'}</TableCell>
                       <TableCell>{row.days_worked != null ? row.days_worked : '-'}</TableCell>
+                      <TableCell>{row.unit_price != null ? row.unit_price : '-'}</TableCell>
+                      <TableCell>{row.unit || '-'}</TableCell>
+                      <TableCell>{row.currency || '-'}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
                           <Button variant="ghost" size="icon" onClick={() => openEdit(row)}>
@@ -426,6 +445,38 @@ export default function AffiliateContractHistory() {
               <div>
                 <Label>Days Worked</Label>
                 <Input type="number" value={form.days_worked} onChange={(e) => setForm({ ...form, days_worked: e.target.value })} placeholder="e.g. 220" />
+              </div>
+              <div>
+                <Label>Unit Price</Label>
+                <Input type="number" step="0.01" value={form.unit_price} onChange={(e) => setForm({ ...form, unit_price: e.target.value })} placeholder="e.g. 350.00" />
+              </div>
+              <div>
+                <Label>Unit</Label>
+                <Select value={form.unit} onValueChange={(v) => setForm({ ...form, unit: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">Day</SelectItem>
+                    <SelectItem value="hour">Hour</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Currency</Label>
+                <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="CHF">CHF</SelectItem>
+                    <SelectItem value="INR">INR</SelectItem>
+                    <SelectItem value="PKR">PKR</SelectItem>
+                    <SelectItem value="BRL">BRL</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <DialogFooter>

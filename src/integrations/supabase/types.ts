@@ -64,6 +64,7 @@ export type Database = {
       affiliate_contract_history: {
         Row: {
           created_at: string
+          currency: string | null
           days_worked: number | null
           end_date: string | null
           gsm_po: string | null
@@ -73,10 +74,13 @@ export type Database = {
           samsaran_po: string | null
           samsaran_pr: string | null
           start_date: string | null
+          unit: string | null
+          unit_price: number | null
           user_id: string
         }
         Insert: {
           created_at?: string
+          currency?: string | null
           days_worked?: number | null
           end_date?: string | null
           gsm_po?: string | null
@@ -86,10 +90,13 @@ export type Database = {
           samsaran_po?: string | null
           samsaran_pr?: string | null
           start_date?: string | null
+          unit?: string | null
+          unit_price?: number | null
           user_id: string
         }
         Update: {
           created_at?: string
+          currency?: string | null
           days_worked?: number | null
           end_date?: string | null
           gsm_po?: string | null
@@ -99,6 +106,8 @@ export type Database = {
           samsaran_po?: string | null
           samsaran_pr?: string | null
           start_date?: string | null
+          unit?: string | null
+          unit_price?: number | null
           user_id?: string
         }
         Relationships: [
