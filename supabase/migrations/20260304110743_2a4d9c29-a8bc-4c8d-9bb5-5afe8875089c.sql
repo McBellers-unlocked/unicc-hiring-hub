@@ -1,0 +1,1 @@
+UPDATE public.users SET role = 'Hiring Manager' WHERE email = 'lees@unicc.org' AND role = 'Candidate';
