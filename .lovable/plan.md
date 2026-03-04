@@ -1,22 +1,20 @@
 
 
-# Add Step 3 to Launch PR Wizard
+# Convert Add Affiliate Tabs to Wizard Flow
 
-## Changes
+## Overview
+Replace the free-navigation tabs with a sequential wizard. The bottom-right button says "Next" on the Personal and Contract tabs, advancing to the next tab. Only on the Assignment tab does it say "Add Affiliate" and submit the form.
 
-### `src/components/affiliate/LaunchPRDialog.tsx`
-1. Add `affiliateManager` prop (string | null)
-2. Add state for step 3 fields: `manager` (pre-filled from `affiliateManager`), `address` (dropdown), `job` (free text)
-3. Update step count in title to "Step X/3"
-4. Step 2 "Next" button advances to step 3 (rename current "Submit" to "Next")
-5. Step 3 renders:
-   - **Manager**: text input pre-filled with affiliate's `line_manager`
-   - **Address**: dropdown with options "Offshore", "Valencia", "Brindisi", "Geneva", "New York", "Rome"
-   - **Job**: free text input
-6. Step 3 footer: "Back" (returns to step 2) and "Submit"
-7. Pre-fill manager when entering step 3
+## Changes — `src/components/affiliate/AffiliateForm.tsx`
 
-### `src/pages/AffiliateLifecycle.tsx`
-- The `users` query already selects affiliate data but doesn't include `line_manager`. Add it to the select and the `AffiliateUser` interface.
-- Pass `affiliateManager={affiliate.line_manager}` to `LaunchPRDialog`
+1. **Remove clickable tab navigation** — Keep the `TabsList` visible for visual context (showing which step you're on) but make the triggers non-interactive (disable clicking to jump between tabs). Alternatively, keep them clickable for going back but control forward movement via the button.
+
+2. **Replace the submit button logic in `DialogFooter`**:
+   - **Personal tab**: "Next" button (type `button`) that sets `activeTab` to `"contract"`
+   - **Contract tab**: "Next" button (type `button`) that sets `activeTab` to `"assignment"`, plus a "Back" button
+   - **Assignment tab**: "Add Affiliate" / "Save Changes" submit button (type `submit`), plus a "Back" button
+
+3. **Keep Cancel button** on all steps.
+
+No other files need changes.
 
