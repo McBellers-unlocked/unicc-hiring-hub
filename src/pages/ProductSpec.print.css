@@ -1,0 +1,69 @@
+@media print {
+  /* Hide non-document elements */
+  .no-print,
+  nav,
+  header,
+  aside,
+  .sidebar,
+  button,
+  [role="navigation"] {
+    display: none !important;
+  }
+
+  /* Reset page layout */
+  body {
+    margin: 0;
+    padding: 0;
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Page setup */
+  @page {
+    margin: 1.5cm 2cm;
+    size: A4;
+  }
+
+  /* Page break control */
+  .print-page-break {
+    page-break-before: always;
+    break-before: page;
+  }
+
+  .print-avoid-break {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Typography adjustments for print */
+  .product-spec-doc {
+    font-size: 11pt !important;
+    line-height: 1.5 !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .product-spec-doc h1 {
+    font-size: 22pt !important;
+  }
+
+  .product-spec-doc h2 {
+    font-size: 16pt !important;
+    margin-top: 0.5cm !important;
+  }
+
+  .product-spec-doc h3 {
+    font-size: 13pt !important;
+  }
+
+  /* Ensure cards look clean */
+  .product-spec-doc .border {
+    border-color: #ddd !important;
+  }
+
+  .product-spec-doc .shadow-sm {
+    box-shadow: none !important;
+  }
+}
