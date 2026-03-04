@@ -28,6 +28,7 @@ interface AffiliateUser {
   affiliate_type: string | null;
   division: string | null;
   unit: string | null;
+  line_manager: string | null;
 }
 
 interface ContractRecord {
@@ -57,7 +58,7 @@ export default function AffiliateLifecycle() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, affiliate_type, division, unit')
+        .select('id, name, email, affiliate_type, division, unit, line_manager')
         .eq('id', id)
         .single();
 
@@ -389,6 +390,7 @@ export default function AffiliateLifecycle() {
           recordNumber={recordNumber || ''}
           affiliateName={affiliate.name}
           affiliateUnit={affiliate.unit}
+          affiliateManager={affiliate.line_manager}
           contract={contract ? {
             start_date: contract.start_date,
             end_date: contract.end_date,
