@@ -7,12 +7,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const STATION_ADMIN_EMAILS: Record<string, string> = {
-  "Valencia": "admin_vlc@unicc.org",
-  "Geneva": "admin_gva@unicc.org",
-  "Brindisi": "admin_bsi@unicc.org",
-  "Rome": "admin_ROM@unicc.org",
-  "New York": "admin_ny@unicc.org",
+const STATION_ADMIN_EMAILS: Record<string, string[]> = {
+  "Valencia": ["requeni@unicc.org", "ruiz@unicc.org"],
+  "Geneva": ["dutruel@unicc.org", "normand@unicc.org", "cavaglieri@unicc.org"],
+  "Brindisi": ["argentieric@unicc.org", "valenti@unicc.org"],
+  "Rome": ["petrocelli@unicc.org"],
+  "New York": ["woldeabezegi@unicc.org", "lees@unicc.org"],
 };
 
 interface NotifyLocalAdminRequest {
@@ -215,15 +215,15 @@ serve(async (req) => {
       });
     }
 
-    const recipientEmail = STATION_ADMIN_EMAILS[dutyStation];
-    if (!recipientEmail) {
+    const recipientEmails = STATION_ADMIN_EMAILS[dutyStation];
+    if (!recipientEmails || recipientEmails.length === 0) {
       console.log(`No admin email mapping for duty station: ${dutyStation}. Skipping.`);
       return new Response(JSON.stringify({ success: true, skipped: true, reason: "No admin email for this duty station" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`Sending ${eventType} notification for ${firstName} ${lastName} at ${dutyStation} to ${recipientEmail}`);
+    console.log(`Sending ${eventType} notification for ${firstName} ${lastName} at ${dutyStation} to ${recipientEmails.join(', ')}`);
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -233,7 +233,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: "UNICC Recruitment <recruitment@unicconnect.org>",
-        to: [recipientEmail],
+        to: recipientEmails,
         subject: getSubject(body),
         html: buildEmailHtml(body),
       }),
