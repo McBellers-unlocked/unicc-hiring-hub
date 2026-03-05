@@ -249,6 +249,7 @@ export default function ImportAffiliatePersonnel() {
                 <span>• Current Grade</span>
                 <span>• Staff number</span>
                 <span>• First Incumbency Date (original contract start)</span>
+                <span>• Unit Price / Contract Unit / Currency</span>
               </div>
               <p className="mt-3 text-xs">
                 <strong>Note:</strong> Existing users (matched by email) will be updated. New users will be created with accounts.

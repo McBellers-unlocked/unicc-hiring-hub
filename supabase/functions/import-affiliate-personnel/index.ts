@@ -27,6 +27,9 @@ interface AffiliateRow {
   samsaran_po: string;
   gsm_reg_number: string;
   gsm_po: string;
+  unit_price: string;
+  contract_unit: string;
+  currency: string;
 }
 
 Deno.serve(async (req) => {
@@ -123,6 +126,9 @@ Deno.serve(async (req) => {
     const samsaranPoIndex = findColumn(['samsaran po']);
     const gsmRegNumberIndex = findColumn(['gsm reg']);
     const gsmPoIndex = findColumn(['gsm po']);
+    const unitPriceIndex = findColumn(['unit price', 'unitprice', 'daily rate']);
+    const contractUnitIndex = findColumn(['contract unit', 'billing unit']);
+    const currencyIndex = findColumn(['currency']);
 
     console.log('Column indices:', { emailIndex, firstNameIndex, lastNameIndex, workerTypeIndex, appTypeShortIndex });
 
@@ -201,6 +207,9 @@ Deno.serve(async (req) => {
         samsaran_po: samsaranPoIndex !== -1 ? values[samsaranPoIndex]?.trim() : '',
         gsm_reg_number: gsmRegNumberIndex !== -1 ? values[gsmRegNumberIndex]?.trim() : '',
         gsm_po: gsmPoIndex !== -1 ? values[gsmPoIndex]?.trim() : '',
+        unit_price: unitPriceIndex !== -1 ? values[unitPriceIndex]?.trim() : '',
+        contract_unit: contractUnitIndex !== -1 ? values[contractUnitIndex]?.trim() : '',
+        currency: currencyIndex !== -1 ? values[currencyIndex]?.trim() : '',
       });
     }
 
@@ -331,6 +340,12 @@ Deno.serve(async (req) => {
         if (affiliate.gsm_po) contractData.gsm_po = affiliate.gsm_po;
         if (affiliate.contract_start_date) contractData.start_date = affiliate.contract_start_date;
         if (affiliate.contract_end_date) contractData.end_date = affiliate.contract_end_date;
+        if (affiliate.unit_price) {
+          const parsed = parseFloat(affiliate.unit_price);
+          if (!isNaN(parsed)) contractData.unit_price = parsed;
+        }
+        if (affiliate.contract_unit) contractData.unit = affiliate.contract_unit;
+        if (affiliate.currency) contractData.currency = affiliate.currency;
 
         // Look up existing record by user_id + samsaran_pr
         if (affiliate.samsaran_pr) {
