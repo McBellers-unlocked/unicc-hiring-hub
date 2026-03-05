@@ -1,15 +1,22 @@
 
 
-## Add Financial Fields to Download Template
+## Add "Days Worked" to Affiliate Import and Download Template
 
-Add "Unit Price", "Contract Unit", and "Currency" to the CSV headers in the download template button on line 635 of `src/pages/AffiliatePersonnel.tsx`.
+Three changes across two files:
 
-**Current headers string (line 635):**
-```
-"Samsaran PR,Email Address,First name,Last name,Worker type,Division,Unit,Job title,Line manager,Duty station,Current Grade,Staff number,Nationality,Gender,First Incumbency Date,Samsaran PO,GSM Reg Number,GSM PO,Contract Start Date,Contract End Date"
-```
+**1. Edge Function (`supabase/functions/import-affiliate-personnel/index.ts`)**
+- Add `days_worked: string` to `AffiliateRow` interface (line 32)
+- Add column detection: `const daysWorkedIndex = findColumn(['days worked', 'daysworked']);` (after line 131)
+- Add to parsed row object: `days_worked: daysWorkedIndex !== -1 ? values[daysWorkedIndex]?.trim() : '',` (after line 212)
+- Add to contract data block (after line 348):
+  ```typescript
+  if (affiliate.days_worked) {
+    const parsed = parseFloat(affiliate.days_worked);
+    if (!isNaN(parsed)) contractData.days_worked = parsed;
+  }
+  ```
+- Add `days_worked` to `hasContractData` check (line 333)
 
-**Updated:** Append `,Unit Price,Contract Unit,Currency` to the end.
-
-Single line change, one file.
+**2. Download Template (`src/pages/AffiliatePersonnel.tsx`)**
+- Append `,Days Worked` to the CSV headers string on line 635
 
