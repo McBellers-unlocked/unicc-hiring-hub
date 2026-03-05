@@ -30,6 +30,7 @@ interface AffiliateRow {
   unit_price: string;
   contract_unit: string;
   currency: string;
+  days_worked: string;
 }
 
 Deno.serve(async (req) => {
@@ -129,6 +130,7 @@ Deno.serve(async (req) => {
     const unitPriceIndex = findColumn(['unit price', 'unitprice', 'daily rate']);
     const contractUnitIndex = findColumn(['contract unit', 'billing unit']);
     const currencyIndex = findColumn(['currency']);
+    const daysWorkedIndex = findColumn(['days worked', 'daysworked']);
 
     console.log('Column indices:', { emailIndex, firstNameIndex, lastNameIndex, workerTypeIndex, appTypeShortIndex });
 
@@ -210,6 +212,7 @@ Deno.serve(async (req) => {
         unit_price: unitPriceIndex !== -1 ? values[unitPriceIndex]?.trim() : '',
         contract_unit: contractUnitIndex !== -1 ? values[contractUnitIndex]?.trim() : '',
         currency: currencyIndex !== -1 ? values[currencyIndex]?.trim() : '',
+        days_worked: daysWorkedIndex !== -1 ? values[daysWorkedIndex]?.trim() : '',
       });
     }
 
@@ -330,7 +333,7 @@ Deno.serve(async (req) => {
 
       // Upsert contract history if any contract field is present
       const userId = existingUser?.id || (await supabase.from('users').select('id').ilike('email', affiliate.email).maybeSingle()).data?.id;
-      const hasContractData = affiliate.samsaran_pr || affiliate.samsaran_po || affiliate.gsm_reg_number || affiliate.gsm_po || affiliate.contract_start_date || affiliate.contract_end_date;
+      const hasContractData = affiliate.samsaran_pr || affiliate.samsaran_po || affiliate.gsm_reg_number || affiliate.gsm_po || affiliate.contract_start_date || affiliate.contract_end_date || affiliate.days_worked;
       
       if (userId && hasContractData) {
         const contractData: Record<string, any> = { user_id: userId };
@@ -346,6 +349,10 @@ Deno.serve(async (req) => {
         }
         if (affiliate.contract_unit) contractData.unit = affiliate.contract_unit;
         if (affiliate.currency) contractData.currency = affiliate.currency;
+        if (affiliate.days_worked) {
+          const parsed = parseFloat(affiliate.days_worked);
+          if (!isNaN(parsed)) contractData.days_worked = parsed;
+        }
 
         // Look up existing record by user_id + samsaran_pr
         if (affiliate.samsaran_pr) {
