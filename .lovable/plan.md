@@ -1,62 +1,56 @@
 
 
-## IDOR Vulnerability: Hiring Managers Can View All Job Applications
+## Add Unit Price, Unit, and Currency to Affiliate Import
 
-### Problem
+### Changes
 
-The `applications` table has **two conflicting SELECT RLS policies**:
+**1. Edge Function (`supabase/functions/import-affiliate-personnel/index.ts`)**
+- Add `unit_price`, `unit`, and `currency` to the `AffiliateRow` interface
+- Add column detection for "unit price", "unit" (needs disambiguation from existing unit/section column — use pattern like "price unit" or "billing unit" for the unit field, or detect "unit price" first then use remaining "unit" columns), and "currency"
+- Parse `unit_price` as a float, `unit` as string (day/hour), `currency` as string (USD/EUR/CHF etc.)
+- In the contract history upsert block, include these three fields in `contractData` when present
 
-1. **`"Allow select on applications for staff"`** — correctly scoped, uses `is_job_hiring_manager(auth.uid(), job_id)` to restrict hiring managers to only their assigned jobs.
-2. **`"Staff can view applications"`** — **overly broad**, grants any user with the `Hiring Manager` role blanket access to ALL applications across ALL jobs.
+The tricky part: there's already a `unitIndex` for the organizational unit column. The new "Unit" (day/hour) is a contract field. I'll use distinct patterns:
+- "unit price" → unit_price column (already distinct)
+- For the billing unit (day/hour): use pattern "billing unit" or detect columns named exactly "unit" that appear after "unit price" — actually simpler: use "price unit" or just add it. Looking at the CSV template section in the UI, the expected columns list doesn't mention these yet.
 
-Because RLS policies are OR'd together, the broad policy overrides the scoped one. A hiring manager (e.g., `ruiz@unicc.org`) can navigate to `/applications/manage?job=<any-job-id>` and see all applications for jobs they are not assigned to.
+I'll use these column detection patterns:
+- `unit_price`: patterns `['unit price', 'unitprice', 'daily rate', 'rate']`
+- `contract_unit`: patterns `['billing unit', 'price unit']` — but the user likely just wants a column called "Unit" for day/hour. Since there's already a "Unit" column (org unit), I'll match the *contract* unit by checking for a column header that exactly equals "unit" appearing *after* "unit price", or use a distinct header name. Simplest: detect column headers in order — first "unit" match goes to org unit (existing), if there's a second one or if it matches "contract unit"/"billing unit", use that. 
 
-The same issue exists for the **UPDATE** policy — any `Hiring Manager` can update any application.
+Actually, the simplest approach: rename the expected CSV column to "Contract Unit" or "Billing Unit" to avoid ambiguity with the org "Unit" column. Or better: use exact matching — the existing unit column matches headers containing "unit" broadly, so I'll add specific patterns like `['contract unit', 'billing unit']` for the new field, and document the expected column name as "Contract Unit" in the UI.
 
-### Fix Plan
+Alternatively, looking at the existing column detection, `unitIndex` uses pattern `['unit']` which is very broad. The new fields could use `['unit price']` (already distinct since it has "price"), and for the day/hour unit: `['contract unit', 'billing unit']`. I'll go with "Contract Unit" as the CSV column name.
 
-**Single database migration** to:
-
-1. **Drop** the overly broad `"Staff can view applications"` policy.
-2. **Drop** the redundant `"Allow select on applications for staff"` policy (we'll replace both with one correct policy).
-3. **Create** a single, correctly scoped SELECT policy:
-   - Admin, HR Assistant, Chief of HR → full access
-   - Hiring Manager → only via `is_job_hiring_manager(auth.uid(), job_id)`
-   - Panel Member → only for jobs where they are a panel member (via `job_interview_panel_members`)
-4. **Fix the UPDATE policy** — replace the blanket `Hiring Manager` check with `is_job_hiring_manager(auth.uid(), job_id)`.
+**2. UI (`src/pages/ImportAffiliatePersonnel.tsx`)**
+- Add "Unit Price", "Contract Unit", and "Currency" to the expected CSV columns list
 
 ### Technical Details
 
-```sql
--- Drop both conflicting SELECT policies
-DROP POLICY IF EXISTS "Staff can view applications" ON public.applications;
-DROP POLICY IF EXISTS "Allow select on applications for staff" ON public.applications;
+Edge function changes (lines ~8-30, ~96-126, ~182-204, ~327-333):
 
--- Create single correctly-scoped SELECT policy
-CREATE POLICY "Staff can view applications"
-ON public.applications FOR SELECT TO authenticated
-USING (
-  has_role(auth.uid(), 'Admin'::user_role)
-  OR has_role(auth.uid(), 'HR Assistant'::user_role)
-  OR has_role(auth.uid(), 'Chief of HR'::user_role)
-  OR is_job_hiring_manager(auth.uid(), job_id)
-  OR EXISTS (
-    SELECT 1 FROM public.job_interview_panel_members pm
-    WHERE pm.user_id = auth.uid() AND pm.job_id = applications.job_id
-  )
-);
+1. Add to `AffiliateRow` interface: `unit_price: string; contract_unit: string; currency: string;`
+2. Add column detection after line 125:
+   ```typescript
+   const unitPriceIndex = findColumn(['unit price', 'unitprice', 'daily rate']);
+   const contractUnitIndex = findColumn(['contract unit', 'billing unit']);
+   const currencyIndex = findColumn(['currency']);
+   ```
+3. Add to parsed row object (after line 203):
+   ```typescript
+   unit_price: unitPriceIndex !== -1 ? values[unitPriceIndex]?.trim() : '',
+   contract_unit: contractUnitIndex !== -1 ? values[contractUnitIndex]?.trim() : '',
+   currency: currencyIndex !== -1 ? values[currencyIndex]?.trim() : '',
+   ```
+4. In contract data block (~line 327-333), add:
+   ```typescript
+   if (affiliate.unit_price) {
+     const parsed = parseFloat(affiliate.unit_price);
+     if (!isNaN(parsed)) contractData.unit_price = parsed;
+   }
+   if (affiliate.contract_unit) contractData.unit = affiliate.contract_unit;
+   if (affiliate.currency) contractData.currency = affiliate.currency;
+   ```
 
--- Fix UPDATE policy: scope Hiring Manager to assigned jobs
-DROP POLICY IF EXISTS "Allow update on applications for staff" ON public.applications;
-CREATE POLICY "Allow update on applications for staff"
-ON public.applications FOR UPDATE TO authenticated
-USING (
-  has_role(auth.uid(), 'Admin'::user_role)
-  OR has_role(auth.uid(), 'HR Assistant'::user_role)
-  OR has_role(auth.uid(), 'Chief of HR'::user_role)
-  OR is_job_hiring_manager(auth.uid(), job_id)
-);
-```
-
-No frontend code changes are needed — the RLS fix will enforce the correct access at the database level, regardless of what URL a user navigates to.
+5. Update UI expected columns list to include the three new fields.
 
