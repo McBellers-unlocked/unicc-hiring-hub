@@ -71,7 +71,7 @@ export default function ResetPassword() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <UNICCLogo size="lg" className="text-primary mx-auto mb-4" />
-          <h1 className="text-3xl font-bold">UNICConnect</h1>
+          <h1 className="text-3xl font-bold">UNIQTalent</h1>
           <p className="text-muted-foreground mt-2">Set your new password</p>
         </div>
 

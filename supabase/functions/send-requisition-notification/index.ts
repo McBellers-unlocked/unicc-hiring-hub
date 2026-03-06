@@ -50,12 +50,12 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     const emailResponse = await resend.emails.send({
-      from: "UNICC Recruitment <recruitment@unicconnect.org>",
+      from: "UNIQTalent <recruitment@unicconnect.org>",
       to: ["HRselection@unicc.org"],
       subject: `New Position Description Submitted: ${title}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <img src="https://staging.unicconnect.org/email-assets/unicc_logo.jpg" alt="UNICC Logo" style="max-width: 180px; margin-bottom: 20px;" />
+          <img src="https://staging.unicconnect.org/email-assets/unicc_logo.jpg" alt="UNIQTalent Logo" style="max-width: 180px; margin-bottom: 20px;" />
           
           <h1 style="color: #0066cc; margin-bottom: 20px;">New Position Description Submitted</h1>
           
@@ -88,10 +88,10 @@ const handler = async (req: Request): Promise<Response> => {
             <p style="margin: 0; color: #1e3a8a; font-size: 14px;">Please review and process this requisition. Once approved, it will proceed through the Chief and Director approval workflow.</p>
           </div>
           
-          <p style="margin-top: 30px; font-size: 15px; color: #333;">Best regards,<br><strong>UNICC Recruitment System</strong></p>
+          <p style="margin-top: 30px; font-size: 15px; color: #333;">Best regards,<br><strong>UNIQTalent</strong></p>
           
           <p style="margin-top: 20px; color: #666; font-size: 12px;">
-            This is an automated notification from the UNICC Recruitment System.
+            This is an automated notification from UNIQTalent.
           </p>
         </div>
       `,

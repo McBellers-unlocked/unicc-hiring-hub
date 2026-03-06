@@ -70,14 +70,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email
     const emailResponse = await resend.emails.send({
-      from: "UNICC Recruitment <recruitment@unicconnect.org>",
+      from: "UNIQTalent <recruitment@unicconnect.org>",
       to: [hiringManager.email],
       cc: ["mattvalente85@gmail.com"],
       subject: `Reminder: Please Review and Finalize Position Description - ${requisition.position_title}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <img src="https://cxpnvbphjpntrvvgjhli.supabase.co/storage/v1/object/public/application-files/unicc_logo.jpg" 
-               alt="UNICC Logo" 
+               alt="UNIQTalent Logo" 
                style="max-width: 200px; margin-bottom: 20px;" />
           <h1 style="color: #0066cc;">Reminder: Position Description Review Required</h1>
           
@@ -109,10 +109,10 @@ const handler = async (req: Request): Promise<Response> => {
           
           <p style="margin-top: 30px; color: #333;">
             Best regards,<br><br>
-            <strong>UNICC Talent Acquisition team</strong>
+            <strong>UNIQTalent Team</strong>
           </p>
           <p style="margin-top: 20px; color: #666; font-size: 12px;">
-            This is an automated notification from the UNICC Job Management System.
+            This is an automated notification from UNIQTalent.
           </p>
         </div>
       `,

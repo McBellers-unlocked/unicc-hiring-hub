@@ -70,9 +70,9 @@ const Index = () => {
         <div className="min-h-screen flex items-center justify-center bg-muted/20">
           <div className="text-center max-w-2xl px-4">
             <UNICCLogo size="lg" className="text-primary mx-auto mb-8" />
-            <h1 className="text-4xl font-bold mb-4">Welcome to UNICConnect</h1>
+            <h1 className="text-4xl font-bold mb-4">Welcome to UNIQTalent</h1>
             <p className="text-xl text-muted-foreground mb-8">
-              Streamlined recruitment and applicant management platform for UNICC
+              Streamlined recruitment and applicant management platform
             </p>
             <div className="space-y-4">
               <Link to="/auth">

@@ -166,7 +166,7 @@ const handler = async (req: Request): Promise<Response> => {
                   <!-- Header -->
                   <tr>
                     <td style="background-color: #0066cc; padding: 30px; text-align: center;">
-                      <img src="${logoUrl}" alt="UNICC" style="height: 50px; margin-bottom: 10px;" />
+                      <img src="${logoUrl}" alt="UNIQTalent" style="height: 50px; margin-bottom: 10px;" />
                       <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">Longlist Complete</h1>
                     </td>
                   </tr>
@@ -234,7 +234,7 @@ const handler = async (req: Request): Promise<Response> => {
                   <tr>
                     <td style="background-color: #f8fafc; padding: 20px 30px; text-align: center; border-top: 1px solid #e2e8f0;">
                       <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-                        This is an automated notification from the UNICC Talent Management System.
+                        This is an automated notification from UNIQTalent.
                       </p>
                     </td>
                   </tr>
@@ -248,7 +248,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       try {
         const emailResponse = await resend.emails.send({
-          from: 'UNICC Recruitment <recruitment@unicconnect.org>',
+          from: 'UNIQTalent <recruitment@unicconnect.org>',
           to: [user.email],
           cc: ['hrselection@unicc.org'],
           subject: `Longlist Complete: ${job.title} Ready for Your Review`,

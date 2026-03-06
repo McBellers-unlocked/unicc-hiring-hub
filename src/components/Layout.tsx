@@ -67,7 +67,7 @@ export const Layout = ({ children }: LayoutProps) => {
             <div className="flex items-center space-x-4">
               <Link to="/" className="flex items-center space-x-3">
                 <UNICCLogo size="md" variant="blue" className="text-primary-foreground" />
-                <span className="text-xl font-bold">UNICConnect</span>
+                <span className="text-xl font-bold">UNIQTalent</span>
               </Link>
               
               {user && (
@@ -459,8 +459,8 @@ export const Layout = ({ children }: LayoutProps) => {
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="flex items-center space-x-3">
               <UNICCLogo size="sm" className="text-primary" />
-              <span className="font-semibold">UNICConnect</span>
-              <span className="text-sm">© 2024</span>
+              <span className="font-semibold">UNIQTalent</span>
+              <span className="text-sm">© 2025</span>
             </div>
             
             <div className="flex space-x-6 text-sm">

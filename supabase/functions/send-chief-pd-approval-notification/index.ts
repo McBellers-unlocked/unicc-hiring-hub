@@ -59,14 +59,14 @@ const handler = async (req: Request): Promise<Response> => {
       : new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
     const emailResponse = await resend.emails.send({
-      from: "UNICC Recruitment <recruitment@unicconnect.org>",
+      from: "UNIQTalent <recruitment@unicconnect.org>",
       to: [hiringManager.email],
       cc: ["HRSelection@unicc.org", "valente@unicc.org"],
       subject: `Chief Approved: ${requisition.position_title} - Pending Director Approval`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <img src="https://cxpnvbphjpntrvvgjhli.supabase.co/storage/v1/object/public/application-files/unicc_logo.jpg" 
-               alt="UNICC Logo" style="max-width: 200px; margin-bottom: 20px;" />
+               alt="UNIQTalent Logo" style="max-width: 200px; margin-bottom: 20px;" />
           
           <h1 style="color: #0066cc;">Position Description Approved by Chief</h1>
           
@@ -100,7 +100,7 @@ const handler = async (req: Request): Promise<Response> => {
                You will be notified once approved.</p>
           </div>
           
-          <p style="margin-top: 30px;">Best regards,<br><strong>UNICC Talent Acquisition Team</strong></p>
+          <p style="margin-top: 30px;">Best regards,<br><strong>UNIQTalent Team</strong></p>
           <p style="color: #666; font-size: 12px;">This is an automated notification.</p>
         </div>
       `,

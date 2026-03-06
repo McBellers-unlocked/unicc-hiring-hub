@@ -99,7 +99,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email
     const emailResponse = await resend.emails.send({
-      from: "UNICC Recruitment <recruitment@unicconnect.org>",
+      from: "UNIQTalent <recruitment@unicconnect.org>",
       to: [hiringManager.email],
       cc: ["hrselection@unicc.org"],
       subject: `Your Vacancy is Now Live: ${job.title}`,
@@ -107,7 +107,7 @@ const handler = async (req: Request): Promise<Response> => {
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8fafc;">
           <!-- Header -->
           <div style="background-color: #0066cc; padding: 24px; text-align: center;">
-            <img src="https://staging.unicconnect.org/email-assets/unicc_logo.jpg" alt="UNICC" style="height: 50px;" />
+            <img src="https://staging.unicconnect.org/email-assets/unicc_logo.jpg" alt="UNIQTalent" style="height: 50px;" />
           </div>
           
           <!-- Main Content -->
@@ -189,14 +189,14 @@ const handler = async (req: Request): Promise<Response> => {
             
             <p style="color: #4a5568; font-size: 16px; line-height: 1.6;">
               Best regards,<br/>
-              <strong>UNICC Talent Acquisition Team</strong>
+              <strong>UNIQTalent Team</strong>
             </p>
           </div>
           
           <!-- Footer -->
           <div style="background-color: #f1f5f9; padding: 20px 24px; text-align: center;">
             <p style="color: #64748b; font-size: 12px; margin: 0;">
-              This is an automated message from the UNICC Recruitment System.<br/>
+              This is an automated message from UNIQTalent.<br/>
               Please do not reply directly to this email.
             </p>
           </div>

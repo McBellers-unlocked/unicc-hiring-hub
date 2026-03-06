@@ -99,7 +99,7 @@ const handler = async (req: Request): Promise<Response> => {
         console.log(`Sending email to: ${recipient.email}`);
 
         const emailResponse = await resend.emails.send({
-          from: "UNICC Talent <recruitment@unicconnect.org>",
+          from: "UNIQTalent <recruitment@unicconnect.org>",
           to: [recipient.email],
           ...(cc && cc.length > 0 ? { cc } : {}),
           subject: subject,
