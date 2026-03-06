@@ -22,7 +22,7 @@ export const UNICCLogo = ({
       <img
         src={logoSrc}
         alt="UNIQTalent Logo"
-        className="w-full h-full object-contain"
+        className="w-full h-full object-contain drop-shadow-[0_0_4px_rgba(255,255,255,0.7)]"
       />
     </div>
   );
