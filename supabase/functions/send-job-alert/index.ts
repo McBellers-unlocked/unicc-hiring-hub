@@ -65,7 +65,7 @@ const handler = async (req: Request): Promise<Response> => {
     const unsubscribeUrl = `https://66a1e0bc-1a9e-4295-8718-83774fc48d72.sandbox.lovable.dev/unsubscribe?alert_id=${alert_id}`;
 
     const emailResponse = await resend.emails.send({
-      from: "UNICC Jobs <recruitment@unicconnect.org>",
+      from: "UNIQTalent <recruitment@unicconnect.org>",
       to: [email],
       cc: ["valente@unicc.org"],
       subject: `New Job Alert: ${job.title}`,
@@ -92,7 +92,7 @@ const handler = async (req: Request): Promise<Response> => {
           <hr style="margin: 30px 0; border: none; border-top: 1px solid #e2e8f0;">
           
           <div style="color: #64748b; font-size: 14px; text-align: center;">
-            <p>You're receiving this email because you signed up for job alerts at UNICC.</p>
+            <p>You're receiving this email because you signed up for job alerts at UNIQTalent.</p>
             <p>
               <a href="${unsubscribeUrl}" style="color: #64748b;">Unsubscribe from this alert</a>
             </p>

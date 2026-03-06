@@ -14,14 +14,14 @@ export const UNICCLogo = ({
     lg: 'h-16 w-16',
   };
 
-  // Always use the new clean PNG logo
-  const logoSrc = '/assets/UNICC_logo.png';
+  // UNIQTalent logo
+  const logoSrc = '/assets/uniqtalent_logo.png';
 
   return (
     <div className={`${sizeClasses[size]} ${className}`}>
       <img
         src={logoSrc}
-        alt="UNICC Logo"
+        alt="UNIQTalent Logo"
         className="w-full h-full object-contain"
       />
     </div>

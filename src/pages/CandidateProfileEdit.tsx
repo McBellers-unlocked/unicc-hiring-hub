@@ -812,7 +812,7 @@ export default function CandidateProfileEdit() {
         <Alert className="mb-6 border-primary bg-primary/5">
           <Info className="h-4 w-4" />
           <AlertDescription>
-            <strong>Welcome to UNICConnect!</strong> Complete your profile to be considered for future job openings across the organization. 
+            <strong>Welcome to UNIQTalent!</strong> Complete your profile to be considered for future job openings across the organization. 
             Your profile information will be used to match you with relevant opportunities at UNICC and partner organizations. 
             A complete profile significantly increases your chances of being discovered by hiring managers.
           </AlertDescription>

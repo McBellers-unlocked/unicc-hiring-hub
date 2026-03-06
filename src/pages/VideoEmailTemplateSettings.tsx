@@ -20,7 +20,7 @@ export default function VideoEmailTemplateSettings() {
 
   // Template fields
   const [subject, setSubject] = useState('Your next step for {{jobTitle}}: Pre-Recorded Video Interview');
-  const [fromName, setFromName] = useState('UNICC HR Team');
+  const [fromName, setFromName] = useState('UNIQTalent HR Team');
   const [fromEmail, setFromEmail] = useState('hr@notifications.unicc.org');
   const [headerText, setHeaderText] = useState('🎥 Video Interview Invitation');
   const [headerSubtext, setHeaderSubtext] = useState('Your next step for {{jobTitle}}');
@@ -35,7 +35,7 @@ export default function VideoEmailTemplateSettings() {
   ]);
   const [buttonText, setButtonText] = useState('🚀 Start Your Video Interview');
   const [footerText, setFooterText] = useState('Best of luck with your interview!');
-  const [signatureText, setSignatureText] = useState('UNICC Human Resources Team');
+  const [signatureText, setSignatureText] = useState('UNIQTalent Human Resources Team');
 
   useEffect(() => {
     loadTemplate();

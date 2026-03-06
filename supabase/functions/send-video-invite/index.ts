@@ -100,7 +100,7 @@ const generateVideoInviteHtml = (data: VideoInviteRequest) => `
     </div>
     
     <p>Best of luck with your interview!</p>
-    <p>UNICC Human Resources Team</p>
+    <p>UNIQTalent Human Resources Team</p>
   </div>
 </body>
 </html>
@@ -129,7 +129,7 @@ serve(async (req) => {
       .maybeSingle();
 
     let emailHtml = generateVideoInviteHtml(data);
-    let fromName = 'UNICC HR Team';
+    let fromName = 'UNIQTalent HR Team';
     let fromEmail = 'recruitment@unicconnect.org';
     let subject = `Your next step for ${data.jobTitle}: Pre-Recorded Video Interview`;
 

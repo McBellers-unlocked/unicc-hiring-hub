@@ -232,7 +232,7 @@ export default function VideoInterview() {
         <div className="flex items-center h-16">
           <Link to="/" className="flex items-center space-x-3">
             <UNICCLogo size="md" variant="blue" className="text-primary-foreground" />
-            <span className="text-xl font-bold">UNICConnect</span>
+            <span className="text-xl font-bold">UNIQTalent</span>
           </Link>
         </div>
       </div>

@@ -30,13 +30,13 @@ const handler = async (req: Request): Promise<Response> => {
     const adminEmails = ["admin@unicc.org"]; // Replace with actual admin emails
 
     const emailResponse = await resend.emails.send({
-      from: "UNICCConnect <recruitment@unicconnect.org>",
+      from: "UNIQTalent <recruitment@unicconnect.org>",
       to: adminEmails,
       cc: ["valente@unicc.org"],
-      subject: "New User Signup - UNICCConnect",
+      subject: "New User Signup - UNIQTalent",
       html: `
         <h2>New User Registration</h2>
-        <p>A new user has signed up on UNICCConnect:</p>
+        <p>A new user has signed up on UNIQTalent:</p>
         <ul>
           <li><strong>Name:</strong> ${name}</li>
           <li><strong>Email:</strong> ${email}</li>

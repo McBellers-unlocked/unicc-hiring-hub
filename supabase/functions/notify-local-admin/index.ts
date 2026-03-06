@@ -148,7 +148,7 @@ function buildEmailHtml(req: NotifyLocalAdminRequest): string {
     
     <!-- Logo -->
     <div style="text-align: center; padding: 30px 20px 20px;">
-      <img src="https://staging.unicconnect.org/email-assets/unicc_logo.jpg" alt="UNICC Logo" style="height: 60px;">
+      <img src="https://staging.unicconnect.org/email-assets/unicc_logo.jpg" alt="UNIQTalent Logo" style="height: 60px;">
     </div>
 
     <!-- Header -->
@@ -162,7 +162,7 @@ function buildEmailHtml(req: NotifyLocalAdminRequest): string {
     <div style="padding: 32px;">
       <p>Dear ${req.dutyStation} Admin Team,</p>
       
-      <p>A new <strong>${eventLabel}</strong> has been recorded in the UNICC HR System.</p>
+      <p>A new <strong>${eventLabel}</strong> has been recorded in the UNIQTalent HR System.</p>
 
       <!-- Info Panel -->
       <div style="background-color: #ebf8ff; border-left: 4px solid #3182ce; padding: 20px 24px; margin: 20px 0; border-radius: 0 6px 6px 0;">
@@ -185,11 +185,11 @@ function buildEmailHtml(req: NotifyLocalAdminRequest): string {
 
       <p style="font-size: 14px; color: #718096;">
         Best regards,<br>
-        <strong>UNICC Human Resources</strong>
+        <strong>UNIQTalent Human Resources</strong>
       </p>
 
       <p style="font-size: 12px; color: #a0aec0; margin-top: 16px;">
-        This is an automated notification from the UNICC HR System. Please do not reply to this email.
+        This is an automated notification from UNIQTalent. Please do not reply to this email.
       </p>
     </div>
 
@@ -232,7 +232,7 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "UNICC Recruitment <recruitment@unicconnect.org>",
+        from: "UNIQTalent <recruitment@unicconnect.org>",
         to: recipientEmails,
         subject: getSubject(body),
         html: buildEmailHtml(body),

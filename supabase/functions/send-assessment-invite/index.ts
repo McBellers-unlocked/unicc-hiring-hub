@@ -96,14 +96,14 @@ serve(async (req) => {
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="text-align: center; margin-bottom: 30px;">
-    <img src="https://cxpnvbphjpntrvvgjhli.supabase.co/storage/v1/object/public/application-files/unicc_logo.jpg" alt="UNICC Logo" style="height: 60px;">
+    <img src="https://cxpnvbphjpntrvvgjhli.supabase.co/storage/v1/object/public/application-files/unicc_logo.jpg" alt="UNIQTalent Logo" style="height: 60px;">
   </div>
   
   <h1 style="color: #1a365d; font-size: 24px; margin-bottom: 20px;">Written Assessment Invitation</h1>
   
   <p>Dear ${candidateName},</p>
   
-  <p>You have been invited to complete a written assessment as part of your application process at UNICC.</p>
+  <p>You have been invited to complete a written assessment as part of your application process.</p>
   
   <div style="background-color: #f7fafc; border-left: 4px solid #3182ce; padding: 20px; margin: 20px 0;">
     <h2 style="color: #2d3748; font-size: 18px; margin-top: 0;">${assessmentTitle}</h2>
@@ -148,7 +148,7 @@ serve(async (req) => {
   
   <p style="font-size: 14px; color: #718096;">
     Best regards,<br>
-    UNICC Human Resources
+    UNIQTalent Human Resources
   </p>
 </body>
 </html>
@@ -161,7 +161,7 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "UNICC Recruitment <recruitment@unicconnect.org>",
+        from: "UNIQTalent <recruitment@unicconnect.org>",
         to: [candidateEmail],
         subject: `Written Assessment Invitation: ${assessmentTitle}`,
         html: emailHtml,

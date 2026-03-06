@@ -30,20 +30,20 @@ const handler = async (req: Request): Promise<Response> => {
     const candidatePortalLink = "https://staging.unicconnect.org/my-applications";
 
     const emailResponse = await resend.emails.send({
-      from: "UNICC Recruitment <recruitment@unicconnect.org>",
+      from: "UNIQTalent <recruitment@unicconnect.org>",
       to: [candidateEmail],
       subject: `Thank You for Applying to ${positionTitle}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <img src="https://cxpnvbphjpntrvvgjhli.supabase.co/storage/v1/object/public/application-files/unicc_logo.jpg" 
-               alt="UNICC Logo" 
+               alt="UNIQTalent Logo" 
                style="max-width: 200px; margin-bottom: 20px;" />
           
           <h1 style="color: #0066cc;">Thank You for Applying</h1>
           
           <p>Hi ${candidateFirstName},</p>
           
-          <p>Thank you for your interest in the <strong>${positionTitle}</strong> position at UNICC. We're happy to confirm that we've received your application.</p>
+          <p>Thank you for your interest in the <strong>${positionTitle}</strong> position. We're happy to confirm that we've received your application.</p>
           
           <p>Our team will now review your materials carefully. If your profile aligns with what we're looking for, we'll be in touch about the next steps in the selection process. Either way, you'll hear from us as soon as we have an update.</p>
           
@@ -58,11 +58,11 @@ const handler = async (req: Request): Promise<Response> => {
           
           <p style="margin-top: 30px; color: #333;">
             Wishing you all the best,<br><br>
-            <strong>UNICC Talent Acquisition Team</strong>
+            <strong>UNIQTalent Team</strong>
           </p>
           
           <p style="margin-top: 20px; color: #666; font-size: 12px;">
-            This is an automated notification from the UNICC Recruitment System.
+            This is an automated notification from UNIQTalent.
           </p>
         </div>
       `,

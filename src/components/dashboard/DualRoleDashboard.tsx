@@ -8,7 +8,7 @@ import HiringManagerDashboard from '@/components/dashboard/HiringManagerDashboar
 import ChiefHRDashboard from '@/components/dashboard/ChiefHRDashboard';
 import PanelMemberDashboard from '@/components/dashboard/PanelMemberDashboard';
 
-const STORAGE_KEY = 'unicconnect_dashboard_tab';
+const STORAGE_KEY = 'uniqtalent_dashboard_tab';
 
 const DualRoleDashboard = () => {
   const { userRoles, userName } = useAuth();

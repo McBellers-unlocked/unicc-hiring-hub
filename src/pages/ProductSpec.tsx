@@ -167,7 +167,7 @@ const ProductSpec = () => {
             <UNICCLogo size="lg" />
           </div>
           <h1 className="text-4xl font-bold text-foreground tracking-tight">
-            UNICC HireFlow
+            UNIQTalent
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Integrated Human Resources Management Platform
@@ -175,13 +175,13 @@ const ProductSpec = () => {
           <div className="bg-primary/5 rounded-lg p-6 max-w-3xl mx-auto text-left space-y-3">
             <h2 className="text-lg font-semibold text-foreground">Executive Summary</h2>
             <p className="text-muted-foreground leading-relaxed">
-              UNICC HireFlow is a comprehensive, web-based HR management platform purpose-built for international organizations. 
+              UNIQTalent is a comprehensive, web-based HR management platform purpose-built for international organizations. 
               It covers the full employee lifecycle — from job requisition and recruitment through onboarding, performance management, 
               and separation — in a single, integrated system. The platform replaces fragmented spreadsheets and manual processes 
               with structured workflows, AI-powered automation, and real-time analytics.
             </p>
             <p className="text-muted-foreground leading-relaxed">
-              Designed with UN system requirements in mind, HireFlow supports multi-level approval chains, 
+              Designed with UN system requirements in mind, UNIQTalent supports multi-level approval chains, 
               PHF (Personal History Form) compliance, duty station management across global offices, and 
               role-based access control with full audit logging.
             </p>
@@ -362,8 +362,8 @@ const ProductSpec = () => {
 
         {/* Footer */}
         <footer className="border-t border-border pt-6 text-center text-sm text-muted-foreground no-print">
-          <p>UNICC HireFlow — Product Specification Document</p>
-          <p className="mt-1">For questions, contact the UNICC HR Technology team.</p>
+          <p>UNIQTalent — Product Specification Document</p>
+          <p className="mt-1">For questions, contact the HR Technology team.</p>
         </footer>
       </div>
     </div>

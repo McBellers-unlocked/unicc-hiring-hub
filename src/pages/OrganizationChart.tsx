@@ -87,7 +87,7 @@ export default function OrganizationChartPage() {
       });
       
       const link = document.createElement('a');
-      link.download = 'unicc-org-chart.png';
+      link.download = 'uniqtalent-org-chart.png';
       link.href = dataUrl;
       link.click();
       
