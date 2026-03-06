@@ -1,10 +1,14 @@
 
 
-## Add White Shadow to Logo in Header
+## Replace Shadow with White Text Outline on "UNIQ"
 
-**File**: `src/components/UNICCLogo.tsx`
+**File**: `src/components/Layout.tsx` (line 70)
 
-Add a CSS `drop-shadow` filter with a white glow to the `<img>` element to improve visibility against the blue header background.
+Replace the `textShadow` glow with a CSS text-stroke outline:
 
-Change the `<img>` className to include `drop-shadow-[0_0_4px_rgba(255,255,255,0.7)]`.
+```tsx
+<span style={{ WebkitTextStroke: '0.5px rgba(255,255,255,0.8)' }}>UNIQ</span>
+```
+
+This gives a thin white contour without the soft glow effect.
 
