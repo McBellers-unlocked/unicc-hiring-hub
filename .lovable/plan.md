@@ -1,22 +1,9 @@
 
 
-## Add "Days Worked" to Affiliate Import and Download Template
+## Change Work-Life Balance Box to Yellow
 
-Three changes across two files:
+**File:** `src/pages/LifeAtUNICC.tsx`  
+**Line 54:** Change the color class from `"bg-rose-50 text-rose-600 border-rose-100"` to `"bg-yellow-50 text-yellow-600 border-yellow-100"`.
 
-**1. Edge Function (`supabase/functions/import-affiliate-personnel/index.ts`)**
-- Add `days_worked: string` to `AffiliateRow` interface (line 32)
-- Add column detection: `const daysWorkedIndex = findColumn(['days worked', 'daysworked']);` (after line 131)
-- Add to parsed row object: `days_worked: daysWorkedIndex !== -1 ? values[daysWorkedIndex]?.trim() : '',` (after line 212)
-- Add to contract data block (after line 348):
-  ```typescript
-  if (affiliate.days_worked) {
-    const parsed = parseFloat(affiliate.days_worked);
-    if (!isNaN(parsed)) contractData.days_worked = parsed;
-  }
-  ```
-- Add `days_worked` to `hasContractData` check (line 333)
-
-**2. Download Template (`src/pages/AffiliatePersonnel.tsx`)**
-- Append `,Days Worked` to the CSV headers string on line 635
+Single line change.
 
