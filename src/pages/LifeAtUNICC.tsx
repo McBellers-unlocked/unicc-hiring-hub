@@ -51,7 +51,7 @@ export default function LifeAtUNICC() {
       icon: Heart,
       title: "Work-Life Balance",
       description: "Flexible working hours, remote work options, and up to 90 days of teleworking abroad per year.",
-      color: "bg-yellow-50 text-yellow-600 border-yellow-100"
+      color: "bg-rose-50 text-rose-600 border-rose-100"
     }
   ];
 
