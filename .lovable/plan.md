@@ -1,21 +1,15 @@
 
 
-## Fix Header Cut Off on Right Side
+## Fix Header Still Cut Off on Right Side
 
-The root cause is in `src/App.css` (line 2-3):
+The header background stops before the right edge because content somewhere in the page is wider than the viewport, causing horizontal overflow. The header is set to its natural width but doesn't stretch to cover the scrollable overflow area.
 
-```css
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-}
+**Fix**: Add `overflow-x: hidden` to the root container to prevent any content from causing horizontal scroll, and ensure the header stretches full width.
+
+**Changes in `src/components/Layout.tsx`** (line 62):
+```
+<div className="min-h-screen bg-background overflow-x-hidden">
 ```
 
-This constrains the entire application including the header to 1280px, causing the blue background to not extend to the right edge on wider screens.
-
-**Fix**: Remove `max-width` and `margin: 0 auto` from `#root` in `src/App.css`. The layout components already handle their own width constraints via `container mx-auto`.
-
-Also remove `padding: 2rem` and `text-align: center` which are Vite boilerplate defaults that shouldn't be applied globally.
-
-Single file change — clean up `src/App.css` to remove these restrictive root styles.
+This prevents any child content from creating horizontal overflow that would leave the header background short of the right edge.
 
