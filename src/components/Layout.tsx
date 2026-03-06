@@ -67,7 +67,7 @@ export const Layout = ({ children }: LayoutProps) => {
             <div className="flex items-center space-x-4">
               <Link to="/" className="flex items-center space-x-3">
                 <UNICCLogo size="md" variant="blue" className="text-primary-foreground" />
-                <span className="text-xl font-bold"><span style={{ textShadow: '0 0 3px rgba(255,255,255,0.6)' }}>UNIQ</span>Talent</span>
+                <span className="text-xl font-bold"><span style={{ WebkitTextStroke: '0.5px rgba(255,255,255,0.8)' }}>UNIQ</span>Talent</span>
               </Link>
               
               {user && (
