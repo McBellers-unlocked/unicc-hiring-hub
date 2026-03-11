@@ -115,6 +115,12 @@ export default function AffiliateContractHistory() {
     return null;
   }, [totalDaysWorked, rows]);
 
+  const oldestRecordId = useMemo(() => {
+    if (!rows?.length) return null;
+    const sorted = [...rows].sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
+    return sorted[0].id;
+  }, [rows]);
+
   const contractBreakEnd = useMemo(() => {
     if (!contractBreakStart) return null;
     const d = new Date(contractBreakStart);
