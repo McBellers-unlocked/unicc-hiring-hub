@@ -953,22 +953,26 @@ export default function AffiliatePersonnel() {
                                      </DropdownMenuItem>
                                    );
                                  })()}
-                                 {(() => {
-                                   const latestRecord = contractHistoryMap.get(affiliate.id);
-                                   return latestRecord?.record_number ? (
-                                     <DropdownMenuItem asChild>
-                                       <Link to={`/admin/affiliate-personnel/${affiliate.id}/lifecycle/${latestRecord.record_number}`}>
-                                         <ClipboardList className="h-4 w-4 mr-2" />
-                                         Manage Lifecycle
-                                       </Link>
-                                     </DropdownMenuItem>
-                                   ) : (
-                                     <DropdownMenuItem disabled>
-                                       <ClipboardList className="h-4 w-4 mr-2" />
-                                       Manage Lifecycle (No Record)
-                                     </DropdownMenuItem>
-                                   );
-                                 })()}
+                                  {(() => {
+                                    const latestRecord = contractHistoryMap.get(affiliate.id);
+                                    const count = contractCountMap.get(affiliate.id) || 0;
+                                    if (!latestRecord?.record_number || count <= 1) {
+                                      return (
+                                        <DropdownMenuItem disabled>
+                                          <ClipboardList className="h-4 w-4 mr-2" />
+                                          Manage Lifecycle
+                                        </DropdownMenuItem>
+                                      );
+                                    }
+                                    return (
+                                      <DropdownMenuItem asChild>
+                                        <Link to={`/admin/affiliate-personnel/${affiliate.id}/lifecycle/${latestRecord.record_number}`}>
+                                          <ClipboardList className="h-4 w-4 mr-2" />
+                                          Manage Lifecycle
+                                        </Link>
+                                      </DropdownMenuItem>
+                                    );
+                                  })()}
                                 <DropdownMenuItem asChild>
                                   <Link to={`/admin/affiliate-history/${affiliate.id}`}>
                                     <FileSpreadsheet className="h-4 w-4 mr-2" />
