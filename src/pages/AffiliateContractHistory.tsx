@@ -115,6 +115,12 @@ export default function AffiliateContractHistory() {
     return null;
   }, [totalDaysWorked, rows]);
 
+  const oldestRecordId = useMemo(() => {
+    if (!rows?.length) return null;
+    const sorted = [...rows].sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
+    return sorted[0].id;
+  }, [rows]);
+
   const contractBreakEnd = useMemo(() => {
     if (!contractBreakStart) return null;
     const d = new Date(contractBreakStart);
@@ -384,12 +390,15 @@ export default function AffiliateContractHistory() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button variant="ghost" size="icon" asChild>
-                                  <Link to={`/admin/affiliate-personnel/${id}/lifecycle/${row.record_number}`}>
+                                  <Link to={row.id === oldestRecordId
+                                    ? `/admin/affiliate-personnel/${id}/onboarding/${row.record_number}`
+                                    : `/admin/affiliate-personnel/${id}/lifecycle/${row.record_number}`
+                                  }>
                                     <ExternalLink className="h-4 w-4" />
                                   </Link>
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent>Go to Lifecycle</TooltipContent>
+                              <TooltipContent>{row.id === oldestRecordId ? 'Go to Onboarding' : 'Go to Lifecycle'}</TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
                         </div>

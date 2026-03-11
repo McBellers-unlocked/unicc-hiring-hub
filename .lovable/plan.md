@@ -1,13 +1,14 @@
-## Conditional Lifecycle/Onboarding Link in Contract History
 
-### What to do
 
-**File**: `src/pages/AffiliateContractHistory.tsx`
+## Replace Shadow with White Text Outline on "UNIQ"
 
-1. **Determine the oldest record** — Compute the oldest record by sorting rows by `start_date`. The oldest (or only) record routes to `/onboarding/`, all others route to `/lifecycle/`.
-2. **Update the link (~line 387)** — Replace the hardcoded `/lifecycle/` path with a conditional:
-  - If the row is the oldest record (or the only one), link to `/admin/affiliate-personnel/${id}/onboarding/${row.record_number}`
-  - Otherwise, link to `/admin/affiliate-personnel/${id}/lifecycle/${row.record_number}`
-3. **Update the tooltip** — Change tooltip text to "Go to Onboarding" or "Go to Lifecycle" accordingly.
+**File**: `src/components/Layout.tsx` (line 70)
 
-The oldest record is determined by comparing `created_at` timestamps across all rows (not just filtered/sorted view).
+Replace the `textShadow` glow with a CSS text-stroke outline:
+
+```tsx
+<span style={{ WebkitTextStroke: '0.5px rgba(255,255,255,0.8)' }}>UNIQ</span>
+```
+
+This gives a thin white contour without the soft glow effect.
+
