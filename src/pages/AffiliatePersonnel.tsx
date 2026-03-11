@@ -932,6 +932,22 @@ export default function AffiliatePersonnel() {
                                    const latestRecord = contractHistoryMap.get(affiliate.id);
                                    return latestRecord?.record_number ? (
                                      <DropdownMenuItem asChild>
+                                       <Link to={`/admin/affiliate-personnel/${affiliate.id}/onboarding/${latestRecord.record_number}`}>
+                                         <ClipboardList className="h-4 w-4 mr-2" />
+                                         Onboarding
+                                       </Link>
+                                     </DropdownMenuItem>
+                                   ) : (
+                                     <DropdownMenuItem disabled>
+                                       <ClipboardList className="h-4 w-4 mr-2" />
+                                       Onboarding (No Record)
+                                     </DropdownMenuItem>
+                                   );
+                                 })()}
+                                 {(() => {
+                                   const latestRecord = contractHistoryMap.get(affiliate.id);
+                                   return latestRecord?.record_number ? (
+                                     <DropdownMenuItem asChild>
                                        <Link to={`/admin/affiliate-personnel/${affiliate.id}/lifecycle/${latestRecord.record_number}`}>
                                          <ClipboardList className="h-4 w-4 mr-2" />
                                          Manage Lifecycle
