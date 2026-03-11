@@ -394,7 +394,7 @@ export default function AffiliateContractHistory() {
                                     ? `/admin/affiliate-personnel/${id}/onboarding/${row.record_number}`
                                     : `/admin/affiliate-personnel/${id}/lifecycle/${row.record_number}`
                                   }>
-                                    <ExternalLink className="h-4 w-4" />
+                                    <ExternalLink className={`h-4 w-4 ${row.id === oldestRecordId ? 'text-orange-500' : 'text-blue-500'}`} />
                                   </Link>
                                 </Button>
                               </TooltipTrigger>
