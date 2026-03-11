@@ -1,17 +1,14 @@
 
 
-## Clone Lifecycle Page as Onboarding Page
+## Replace Shadow with White Text Outline on "UNIQ"
 
-### What to do
+**File**: `src/components/Layout.tsx` (line 70)
 
-1. **Create `src/pages/AffiliateOnboarding.tsx`** — Copy of `AffiliateLifecycle.tsx` with these changes:
-   - Title: "Onboarding Management" instead of "Lifecycle Management"
-   - Subtitle: "First contract workflow" instead of "Contract onboarding workflow"
-   - Route uses `/onboarding/` instead of `/lifecycle/`
+Replace the `textShadow` glow with a CSS text-stroke outline:
 
-2. **Add route in `src/App.tsx`**:
-   - Import `AffiliateOnboarding`
-   - Add route: `/admin/affiliate-personnel/:id/onboarding/:recordNumber`
+```tsx
+<span style={{ WebkitTextStroke: '0.5px rgba(255,255,255,0.8)' }}>UNIQ</span>
+```
 
-Everything else (timeline, checklist, Launch PR, contract info) remains identical.
+This gives a thin white contour without the soft glow effect.
 
