@@ -288,7 +288,7 @@ export default function AffiliatePersonnel() {
     },
   });
 
-  // Build lookup: user_id -> most recent contract record
+  // Build lookup: user_id -> most recent contract record + count
   const contractHistoryMap = useMemo(() => {
     const map = new Map<string, { record_number: string; samsaran_pr: string | null; start_date: string | null; end_date: string | null }>();
     if (!contractHistoryData) return map;
@@ -296,6 +296,15 @@ export default function AffiliatePersonnel() {
       if (!map.has(row.user_id)) {
         map.set(row.user_id, { record_number: row.record_number, samsaran_pr: row.samsaran_pr, start_date: row.start_date, end_date: row.end_date });
       }
+    }
+    return map;
+  }, [contractHistoryData]);
+
+  const contractCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!contractHistoryData) return map;
+    for (const row of contractHistoryData) {
+      map.set(row.user_id, (map.get(row.user_id) || 0) + 1);
     }
     return map;
   }, [contractHistoryData]);
