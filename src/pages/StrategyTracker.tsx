@@ -113,10 +113,10 @@ const StrategyTracker = () => {
         .select("id, name, email")
         .not("name", "is", null)
         .ilike("email", "%@unicc.org")
-        .or("name.ilike.%LAVAL%,name.ilike.%NEGYESI%,name.ilike.%VALENTE%,name.ilike.%ARISTA%,name.ilike.%LEHTINEN%")
+        .or("name.ilike.%LAVAL%,name.ilike.%NEGYESI%,name.ilike.%VALENTE%,name.ilike.%ARISTA%,name.ilike.%LEHTINEN%,name.ilike.%ROMANO%,name.ilike.%GUARDENO%")
         .order("name");
       if (error) throw error;
-      const surnames = ["LAVAL", "NEGYESI", "VALENTE", "ARISTA", "LEHTINEN"];
+      const surnames = ["LAVAL", "NEGYESI", "VALENTE", "ARISTA", "LEHTINEN", "ROMANO", "GUARDENO"];
       const seen = new Set<string>();
       const unique: { id: string; name: string }[] = [];
       for (const user of (data ?? [])) {
@@ -299,7 +299,7 @@ const StrategyTracker = () => {
                         <PopoverTrigger asChild>
                           <Button variant="ghost" className="h-8 px-2 text-xs font-normal justify-start w-full truncate">
                             {item.owner.length > 0
-                              ? item.owner.map((o) => o.split(" ").pop()).join(", ")
+                              ? item.owner.map((o) => o.split(" ")[0]).join(", ")
                               : "Select owners"}
                           </Button>
                         </PopoverTrigger>
