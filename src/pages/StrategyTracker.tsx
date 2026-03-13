@@ -74,6 +74,7 @@ const StrategyTracker = () => {
         .from("users")
         .select("id, name")
         .not("name", "is", null)
+        .or("name.ilike.%LAVAL%,name.ilike.%NEGYESI%,name.ilike.%VALENTE%,name.ilike.%ARISTA%,name.ilike.%LEHTINEN%")
         .order("name");
       if (error) throw error;
       return data as { id: string; name: string }[];
