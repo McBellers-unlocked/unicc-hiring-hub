@@ -98,7 +98,7 @@ const newItem = (): StrategyItem => ({
   updates: [],
   prioritisationUpdates: [],
   pillar: "",
-  participants: "",
+  participants: [],
 });
 
 const StrategyTracker = () => {
