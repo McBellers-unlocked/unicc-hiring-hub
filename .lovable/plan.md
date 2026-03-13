@@ -1,10 +1,14 @@
 
 
-## Filter Owner Dropdown to 5 Specific Users
+## Replace Shadow with White Text Outline on "UNIQ"
 
-**File**: `src/pages/StrategyTracker.tsx`
+**File**: `src/components/Layout.tsx` (line 70)
 
-Add a filter to the Supabase query (or post-query filter) to only include users whose names contain: LAVAL, NEGYESI, VALENTE, ARISTA, LEHTINEN.
+Replace the `textShadow` glow with a CSS text-stroke outline:
 
-Use an `.or()` filter with `name.ilike` patterns, or filter client-side after fetch. This keeps the dropdown limited to exactly those 5 people.
+```tsx
+<span style={{ WebkitTextStroke: '0.5px rgba(255,255,255,0.8)' }}>UNIQ</span>
+```
+
+This gives a thin white contour without the soft glow effect.
 
