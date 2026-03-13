@@ -5,6 +5,7 @@ import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { UNICCLogo } from "@/components/UNICCLogo";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ShieldAlert } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
