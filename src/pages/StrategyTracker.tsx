@@ -8,12 +8,14 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, ChevronDown, Check } from "lucide-react";
+import { Plus, Trash2, ChevronDown, Send } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { formatDistanceToNow } from "date-fns";
 
 const YEARS = ["2026", "2027", "2028"] as const;
 const STATUSES = ["Achieved", "In progress", "Paused", "Not started"] as const;
@@ -27,6 +29,14 @@ const PILLARS = [
 ] as const;
 
 type Status = (typeof STATUSES)[number];
+
+type UpdateEntry = {
+  id: string;
+  text: string;
+  author: string;
+  date: string;
+};
+
 type StrategyItem = {
   id: string;
   actionItem: string;
@@ -34,8 +44,8 @@ type StrategyItem = {
   status: Status;
   owner: string[];
   priority: string;
-  updates: string;
-  prioritisationUpdates: string;
+  updates: UpdateEntry[];
+  prioritisationUpdates: UpdateEntry[];
   pillar: string;
   participants: string;
 };
@@ -56,10 +66,20 @@ const PRIORITY_STYLES: Record<string, string> = {
 
 const STORAGE_KEY = "strategy-tracker-items";
 
+const migrateUpdatesField = (val: any): UpdateEntry[] => {
+  if (Array.isArray(val)) return val;
+  if (typeof val === "string" && val.trim()) {
+    return [{ id: crypto.randomUUID(), text: val, author: "Unknown", date: new Date().toISOString() }];
+  }
+  return [];
+};
+
 const migrateItem = (item: any): StrategyItem => ({
   ...item,
   year: Array.isArray(item.year) ? item.year : (item.year ? [item.year] : ["2026"]),
   owner: Array.isArray(item.owner) ? item.owner : (item.owner ? [item.owner] : []),
+  updates: migrateUpdatesField(item.updates),
+  prioritisationUpdates: migrateUpdatesField(item.prioritisationUpdates),
 });
 
 const newItem = (): StrategyItem => ({
@@ -69,13 +89,15 @@ const newItem = (): StrategyItem => ({
   status: "Not started",
   owner: [],
   priority: "",
-  updates: "",
-  prioritisationUpdates: "",
+  updates: [],
+  prioritisationUpdates: [],
   pillar: "",
   participants: "",
 });
 
 const StrategyTracker = () => {
+  const { userName } = useAuth();
+
   const { data: users = [] } = useQuery({
     queryKey: ["strategy-tracker-users"],
     queryFn: async () => {
@@ -111,18 +133,38 @@ const StrategyTracker = () => {
   });
 
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [newUpdateText, setNewUpdateText] = useState<Record<string, string>>({});
+  const [newPriorUpdateText, setNewPriorUpdateText] = useState<Record<string, string>>({});
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
   const update = useCallback(
-    (id: string, field: keyof StrategyItem, value: string | string[]) => {
+    (id: string, field: keyof StrategyItem, value: any) => {
       setItems((prev) =>
         prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
       );
     },
     []
+  );
+
+  const addUpdateEntry = useCallback(
+    (itemId: string, field: "updates" | "prioritisationUpdates", text: string) => {
+      if (!text.trim()) return;
+      const entry: UpdateEntry = {
+        id: crypto.randomUUID(),
+        text: text.trim(),
+        author: userName || "Unknown",
+        date: new Date().toISOString(),
+      };
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === itemId ? { ...item, [field]: [entry, ...item[field]] } : item
+        )
+      );
+    },
+    [userName]
   );
 
   const toggleArrayValue = useCallback(
@@ -278,25 +320,77 @@ const StrategyTracker = () => {
                     <TableRow className="bg-muted/20">
                       <TableCell colSpan={6} className="pt-0 pb-4 px-6">
                         <div className="grid grid-cols-2 gap-4 mt-2">
-                          <div className="space-y-1">
+                          <div className="space-y-2">
                             <label className="text-xs font-medium text-muted-foreground">Updates</label>
-                            <Textarea
-                              value={item.updates}
-                              onChange={(e) => update(item.id, "updates", e.target.value)}
-                              className="min-h-[60px] resize-y text-sm"
-                              placeholder="Updates..."
-                              rows={2}
-                            />
+                            <div className="flex gap-2">
+                              <Textarea
+                                value={newUpdateText[item.id] || ""}
+                                onChange={(e) => setNewUpdateText((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                                className="min-h-[40px] resize-y text-sm flex-1"
+                                placeholder="Add an update..."
+                                rows={1}
+                              />
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-9 w-9 shrink-0"
+                                onClick={() => {
+                                  addUpdateEntry(item.id, "updates", newUpdateText[item.id] || "");
+                                  setNewUpdateText((prev) => ({ ...prev, [item.id]: "" }));
+                                }}
+                                disabled={!newUpdateText[item.id]?.trim()}
+                              >
+                                <Send className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            {item.updates.length > 0 && (
+                              <div className="max-h-[120px] overflow-y-auto space-y-1.5">
+                                {item.updates.map((entry) => (
+                                  <div key={entry.id} className="rounded-md bg-muted/50 px-3 py-2 text-sm">
+                                    <p className="whitespace-pre-wrap">{entry.text}</p>
+                                    <p className="text-[11px] text-muted-foreground mt-1">
+                                      {entry.author} · {formatDistanceToNow(new Date(entry.date), { addSuffix: true })}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                          <div className="space-y-1">
+                          <div className="space-y-2">
                             <label className="text-xs font-medium text-muted-foreground">Prioritisation Updates</label>
-                            <Textarea
-                              value={item.prioritisationUpdates}
-                              onChange={(e) => update(item.id, "prioritisationUpdates", e.target.value)}
-                              className="min-h-[60px] resize-y text-sm"
-                              placeholder="Prioritisation updates..."
-                              rows={2}
-                            />
+                            <div className="flex gap-2">
+                              <Textarea
+                                value={newPriorUpdateText[item.id] || ""}
+                                onChange={(e) => setNewPriorUpdateText((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                                className="min-h-[40px] resize-y text-sm flex-1"
+                                placeholder="Add a prioritisation update..."
+                                rows={1}
+                              />
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-9 w-9 shrink-0"
+                                onClick={() => {
+                                  addUpdateEntry(item.id, "prioritisationUpdates", newPriorUpdateText[item.id] || "");
+                                  setNewPriorUpdateText((prev) => ({ ...prev, [item.id]: "" }));
+                                }}
+                                disabled={!newPriorUpdateText[item.id]?.trim()}
+                              >
+                                <Send className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            {item.prioritisationUpdates.length > 0 && (
+                              <div className="max-h-[120px] overflow-y-auto space-y-1.5">
+                                {item.prioritisationUpdates.map((entry) => (
+                                  <div key={entry.id} className="rounded-md bg-muted/50 px-3 py-2 text-sm">
+                                    <p className="whitespace-pre-wrap">{entry.text}</p>
+                                    <p className="text-[11px] text-muted-foreground mt-1">
+                                      {entry.author} · {formatDistanceToNow(new Date(entry.date), { addSuffix: true })}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <div className="space-y-1">
                             <label className="text-xs font-medium text-muted-foreground">2025 Pillar</label>
