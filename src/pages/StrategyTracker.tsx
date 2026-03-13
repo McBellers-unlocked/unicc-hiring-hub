@@ -250,17 +250,26 @@ const StrategyTracker = () => {
                       </Select>
                     </TableCell>
                     <TableCell>
-                      <Select value={item.owner || "_none"} onValueChange={(v) => update(item.id, "owner", v === "_none" ? "" : v)}>
-                        <SelectTrigger className="h-8 border-none shadow-none bg-transparent text-xs">
-                          <SelectValue placeholder="Select owner" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="_none">Select owner</SelectItem>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" className="h-8 px-2 text-xs font-normal justify-start w-full truncate">
+                            {item.owner.length > 0
+                              ? item.owner.map((o) => o.split(" ").pop()).join(", ")
+                              : "Select owners"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-56 p-2" align="start">
                           {users.map((u) => (
-                            <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
+                            <label key={u.id} className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm">
+                              <Checkbox
+                                checked={item.owner.includes(u.name)}
+                                onCheckedChange={() => toggleArrayValue(item.id, "owner", u.name)}
+                              />
+                              <span className="truncate">{u.name}</span>
+                            </label>
                           ))}
-                        </SelectContent>
-                      </Select>
+                        </PopoverContent>
+                      </Popover>
                     </TableCell>
                   </TableRow>
 
