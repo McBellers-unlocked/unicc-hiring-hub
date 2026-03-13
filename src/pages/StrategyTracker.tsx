@@ -321,14 +321,28 @@ const StrategyTracker = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {[...items].sort((a, b) => {
-                const idxA = PILLARS.indexOf(a.pillar as any);
-                const idxB = PILLARS.indexOf(b.pillar as any);
-                const orderA = idxA === -1 ? PILLARS.length : idxA;
-                const orderB = idxB === -1 ? PILLARS.length : idxB;
-                return orderA - orderB;
-              }).map((item) => (
+              {(() => {
+                let lastPillar = "";
+                return [...items].sort((a, b) => {
+                  const idxA = PILLARS.indexOf(a.pillar as any);
+                  const idxB = PILLARS.indexOf(b.pillar as any);
+                  const orderA = idxA === -1 ? PILLARS.length : idxA;
+                  const orderB = idxB === -1 ? PILLARS.length : idxB;
+                  return orderA - orderB;
+                }).map((item) => {
+                  const showPillarHeader = item.pillar && item.pillar !== lastPillar;
+                  if (item.pillar) lastPillar = item.pillar;
+                  return (
                 <React.Fragment key={item.id}>
+                  {showPillarHeader && (
+                    <TableRow className="bg-primary/5">
+                      <TableCell colSpan={6} className="py-2 px-4">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-primary">
+                          {item.pillar}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  )}
                   <TableRow className="border-b-0">
                     <TableCell className="p-2">
                       <Button
@@ -565,7 +579,9 @@ const StrategyTracker = () => {
                     </TableRow>
                   )}
                 </React.Fragment>
-              ))}
+                  );
+                });
+              })()}
             </TableBody>
           </Table>
         </div>
