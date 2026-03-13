@@ -1,21 +1,14 @@
 
 
-## Pre-populate Strategy Tracker with Spreadsheet Data
+## Replace Shadow with White Text Outline on "UNIQ"
 
-### Changes to `src/pages/StrategyTracker.tsx`
+**File**: `src/components/Layout.tsx` (line 70)
 
-1. **Add "2025" to YEARS**: Update from `["2026", "2027", "2028"]` to `["2025", "2026", "2027", "2028"]`.
+Replace the `textShadow` glow with a CSS text-stroke outline:
 
-2. **Add default seed data**: Create a `DEFAULT_ITEMS` array with all 35 rows from the images. Each row maps to a `StrategyItem` with:
-   - `actionItem`, `year[]`, `status`, `priority` (spreadsheet "Park" → "Pause"), `pillar`, `owner: []`, `participants: []`
-   - `updates` and `prioritisationUpdates` as `UpdateEntry[]` entries (author: `"Imported"`) where the spreadsheet has text
+```tsx
+<span style={{ WebkitTextStroke: '0.5px rgba(255,255,255,0.8)' }}>UNIQ</span>
+```
 
-3. **Update initialization**: Change the fallback from `[newItem()]` to `DEFAULT_ITEMS` so seed data loads when localStorage is empty.
-
-### Data (35 rows extracted from images)
-
-All rows from images 806–807, rows 1–35, covering all five pillars plus the ROE-related items (rows 32–34) with no pillar. Owners left empty as requested.
-
-### Files modified
-- `src/pages/StrategyTracker.tsx` only
+This gives a thin white contour without the soft glow effect.
 
