@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
 
-const YEARS = ["2026", "2027", "2028"] as const;
+const YEARS = ["2025", "2026", "2027", "2028"] as const;
 const STATUSES = ["Achieved", "In progress", "Paused", "Not started"] as const;
 const PRIORITIES = ["Critical", "Important", "Low", "Pause"] as const;
 const PILLARS = [
