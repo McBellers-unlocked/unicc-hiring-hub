@@ -299,7 +299,7 @@ const StrategyTracker = () => {
                         <PopoverTrigger asChild>
                           <Button variant="ghost" className="h-8 px-2 text-xs font-normal justify-start w-full truncate">
                             {item.owner.length > 0
-                              ? item.owner.map((o) => o.split(" ").pop()).join(", ")
+                              ? item.owner.map((o) => o.split(" ")[0]).join(", ")
                               : "Select owners"}
                           </Button>
                         </PopoverTrigger>
