@@ -117,9 +117,23 @@ const StrategyTracker = () => {
   }, [items]);
 
   const update = useCallback(
-    (id: string, field: keyof StrategyItem, value: string) => {
+    (id: string, field: keyof StrategyItem, value: string | string[]) => {
       setItems((prev) =>
         prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
+      );
+    },
+    []
+  );
+
+  const toggleArrayValue = useCallback(
+    (id: string, field: "year" | "owner", val: string) => {
+      setItems((prev) =>
+        prev.map((item) => {
+          if (item.id !== id) return item;
+          const arr = item[field];
+          const next = arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
+          return { ...item, [field]: next };
+        })
       );
     },
     []
