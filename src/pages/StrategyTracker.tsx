@@ -291,9 +291,11 @@ const StrategyTracker = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                const publicToken = "strategy-public-view";
-                const url = `${window.location.origin}/strategy/view/${publicToken}`;
+              onClick={async () => {
+                // Fetch the token from a small edge function or use a known shareable token
+                const publicToken = "8f42b1c3-5d9e-4a7b-b2e1-9c3f4d5a6e7b";
+                const siteUrl = import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin;
+                const url = `${siteUrl}/strategy/view/${publicToken}`;
                 navigator.clipboard.writeText(url);
                 toast.success("Public link copied to clipboard!");
               }}
