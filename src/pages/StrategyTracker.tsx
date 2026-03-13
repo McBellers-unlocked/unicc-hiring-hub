@@ -8,12 +8,14 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, ChevronDown, Check } from "lucide-react";
+import { Plus, Trash2, ChevronDown, Send } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { formatDistanceToNow } from "date-fns";
 
 const YEARS = ["2026", "2027", "2028"] as const;
 const STATUSES = ["Achieved", "In progress", "Paused", "Not started"] as const;
@@ -27,6 +29,14 @@ const PILLARS = [
 ] as const;
 
 type Status = (typeof STATUSES)[number];
+
+type UpdateEntry = {
+  id: string;
+  text: string;
+  author: string;
+  date: string;
+};
+
 type StrategyItem = {
   id: string;
   actionItem: string;
@@ -34,8 +44,8 @@ type StrategyItem = {
   status: Status;
   owner: string[];
   priority: string;
-  updates: string;
-  prioritisationUpdates: string;
+  updates: UpdateEntry[];
+  prioritisationUpdates: UpdateEntry[];
   pillar: string;
   participants: string;
 };
@@ -56,10 +66,20 @@ const PRIORITY_STYLES: Record<string, string> = {
 
 const STORAGE_KEY = "strategy-tracker-items";
 
+const migrateUpdatesField = (val: any): UpdateEntry[] => {
+  if (Array.isArray(val)) return val;
+  if (typeof val === "string" && val.trim()) {
+    return [{ id: crypto.randomUUID(), text: val, author: "Unknown", date: new Date().toISOString() }];
+  }
+  return [];
+};
+
 const migrateItem = (item: any): StrategyItem => ({
   ...item,
   year: Array.isArray(item.year) ? item.year : (item.year ? [item.year] : ["2026"]),
   owner: Array.isArray(item.owner) ? item.owner : (item.owner ? [item.owner] : []),
+  updates: migrateUpdatesField(item.updates),
+  prioritisationUpdates: migrateUpdatesField(item.prioritisationUpdates),
 });
 
 const newItem = (): StrategyItem => ({
@@ -69,8 +89,8 @@ const newItem = (): StrategyItem => ({
   status: "Not started",
   owner: [],
   priority: "",
-  updates: "",
-  prioritisationUpdates: "",
+  updates: [],
+  prioritisationUpdates: [],
   pillar: "",
   participants: "",
 });
