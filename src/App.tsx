@@ -102,6 +102,7 @@ import DocumentRepository from "./pages/operations/DocumentRepository";
 import Settings from "./pages/Settings";
 import EmailHub from "./pages/EmailHub";
 import ProductSpec from "./pages/ProductSpec";
+import StrategyTracker from "./pages/StrategyTracker";
 
 const queryClient = new QueryClient();
 
@@ -221,6 +222,7 @@ const App = () => (
             <Route path="/admin/email-hub" element={<EmailHub />} />
             <Route path="/product-spec" element={<ProductSpec />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/strategy-tracker" element={<StrategyTracker />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
