@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, ChevronDown, Send, X, ShieldAlert } from "lucide-react";
+import { Plus, Trash2, ChevronDown, Send, X, ShieldAlert, Link2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -287,9 +287,25 @@ const StrategyTracker = () => {
           <h1 className="text-2xl font-bold text-foreground">
             HR Strategy Tracker
           </h1>
-          <Button onClick={() => addRowMutation.mutate()} size="sm" disabled={addRowMutation.isPending}>
-            <Plus className="h-4 w-4 mr-1" /> Add Row
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                // Fetch the token from a small edge function or use a known shareable token
+                const publicToken = "8f42b1c3-5d9e-4a7b-b2e1-9c3f4d5a6e7b";
+                const siteUrl = import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin;
+                const url = `${siteUrl}/strategy/view/${publicToken}`;
+                navigator.clipboard.writeText(url);
+                toast.success("Public link copied to clipboard!");
+              }}
+            >
+              <Link2 className="h-4 w-4 mr-1" /> Copy Public Link
+            </Button>
+            <Button onClick={() => addRowMutation.mutate()} size="sm" disabled={addRowMutation.isPending}>
+              <Plus className="h-4 w-4 mr-1" /> Add Row
+            </Button>
+          </div>
         </div>
 
         <div className="border rounded-lg overflow-auto">
