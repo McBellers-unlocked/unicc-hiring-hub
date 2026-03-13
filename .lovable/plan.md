@@ -1,14 +1,14 @@
+## Fix: Deduplicate Owner Dropdown
 
+The Supabase `.or()` filter **is working correctly** — it only returns users matching LAVAL, NEGYESI, VALENTE, ARISTA, LEHTINEN. However, there are **duplicate entries** in the database (e.g., 3× "Matt Valente", 2× "Matthew Valente"), which makes the dropdown look like it's showing "everyone." Just [valente@unicc.org](mailto:valente@unicc.org) - just [unicc.org](http://unicc.org) addresses
 
-## Replace Shadow with White Text Outline on "UNIQ"
+&nbsp;
 
-**File**: `src/components/Layout.tsx` (line 70)
+### Plan
 
-Replace the `textShadow` glow with a CSS text-stroke outline:
+**File**: `src/pages/StrategyTracker.tsx`
 
-```tsx
-<span style={{ WebkitTextStroke: '0.5px rgba(255,255,255,0.8)' }}>UNIQ</span>
-```
+1. **Deduplicate by name** — After fetching, filter to unique names so each person appears once. Use a `Map` or `Set` on the `name` field.
+2. **Normalize names** — Pick one canonical entry per person (e.g., first occurrence alphabetically) to avoid "Matt Valente" vs "Matthew Valente" duplicates. Alternatively, hardcode the 5 display names and match by surname pattern.
 
-This gives a thin white contour without the soft glow effect.
-
+Given the messy data, the cleanest approach: keep the Supabase query for validation but deduplicate client-side by surname, showing only one entry per person.
