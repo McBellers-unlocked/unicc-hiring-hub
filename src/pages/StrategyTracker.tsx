@@ -116,7 +116,7 @@ const StrategyTracker = () => {
         .or("name.ilike.%LAVAL%,name.ilike.%NEGYESI%,name.ilike.%VALENTE%,name.ilike.%ARISTA%,name.ilike.%LEHTINEN%,name.ilike.%ROMANO%,name.ilike.%GUARDENO%")
         .order("name");
       if (error) throw error;
-      const surnames = ["LAVAL", "NEGYESI", "VALENTE", "ARISTA", "LEHTINEN"];
+      const surnames = ["LAVAL", "NEGYESI", "VALENTE", "ARISTA", "LEHTINEN", "ROMANO", "GUARDENO"];
       const seen = new Set<string>();
       const unique: { id: string; name: string }[] = [];
       for (const user of (data ?? [])) {
