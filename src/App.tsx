@@ -103,6 +103,7 @@ import Settings from "./pages/Settings";
 import EmailHub from "./pages/EmailHub";
 import ProductSpec from "./pages/ProductSpec";
 import StrategyTracker from "./pages/StrategyTracker";
+import StrategyTrackerPublic from "./pages/StrategyTrackerPublic";
 
 const queryClient = new QueryClient();
 
