@@ -30,9 +30,9 @@ type Status = (typeof STATUSES)[number];
 type StrategyItem = {
   id: string;
   actionItem: string;
-  year: string;
+  year: string[];
   status: Status;
-  owner: string;
+  owner: string[];
   priority: string;
   updates: string;
   prioritisationUpdates: string;
