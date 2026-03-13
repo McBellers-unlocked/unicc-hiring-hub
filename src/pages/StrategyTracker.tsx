@@ -289,13 +289,13 @@ const StrategyTracker = () => {
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-56 p-2" align="start">
-                          {users.map((u) => (
-                            <label key={u.id} className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm">
+                          {OWNERS.map((owner) => (
+                            <label key={owner} className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm">
                               <Checkbox
-                                checked={item.owner.includes(u.name)}
-                                onCheckedChange={() => toggleArrayValue(item.id, "owner", u.name)}
+                                checked={item.owner.includes(owner)}
+                                onCheckedChange={() => toggleArrayValue(item.id, "owner", owner)}
                               />
-                              <span className="truncate">{u.name}</span>
+                              <span className="truncate">{owner}</span>
                             </label>
                           ))}
                         </PopoverContent>
