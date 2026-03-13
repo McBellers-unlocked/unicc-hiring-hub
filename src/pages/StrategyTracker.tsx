@@ -9,6 +9,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const YEARS = ["2026", "2027", "2028"] as const;
 const STATUSES = ["Achieved", "In progress", "Paused", "Not started"] as const;
