@@ -222,6 +222,7 @@ const App = () => (
             <Route path="/admin/email-hub" element={<EmailHub />} />
             <Route path="/product-spec" element={<ProductSpec />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/strategy-tracker" element={<StrategyTracker />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
