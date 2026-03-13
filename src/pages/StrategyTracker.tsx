@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
+import { DEFAULT_ITEMS } from "@/data/strategyTrackerDefaults";
 
 const YEARS = ["2025", "2026", "2027", "2028"] as const;
 const STATUSES = ["Achieved", "In progress", "Paused", "Not started"] as const;
