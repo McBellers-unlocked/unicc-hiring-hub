@@ -114,30 +114,6 @@ const newItem = (): StrategyItem => ({
 const StrategyTracker = () => {
   const { userName } = useAuth();
 
-  const { data: users = [] } = useQuery({
-    queryKey: ["strategy-tracker-users"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("users")
-        .select("id, name, email")
-        .not("name", "is", null)
-        .ilike("email", "%@unicc.org")
-        .or("name.ilike.%LAVAL%,name.ilike.%NEGYESI%,name.ilike.%VALENTE%,name.ilike.%ARISTA%,name.ilike.%LEHTINEN%,name.ilike.%ROMANO%,name.ilike.%GUARDENO%")
-        .order("name");
-      if (error) throw error;
-      const surnames = ["LAVAL", "NEGYESI", "VALENTE", "ARISTA", "LEHTINEN", "ROMANO", "GUARDENO"];
-      const seen = new Set<string>();
-      const unique: { id: string; name: string }[] = [];
-      for (const user of (data ?? [])) {
-        const surname = surnames.find(s => user.name?.toUpperCase().includes(s));
-        if (surname && !seen.has(surname)) {
-          seen.add(surname);
-          unique.push({ id: user.id, name: user.name });
-        }
-      }
-      return unique;
-    },
-  });
 
   const [items, setItems] = useState<StrategyItem[]>(() => {
     return DEFAULT_ITEMS;
