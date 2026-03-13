@@ -65,6 +65,16 @@ const PRIORITY_STYLES: Record<string, string> = {
   Pause: "bg-gray-100 text-gray-600",
 };
 
+const OWNERS = [
+  "Frederic LAVAL",
+  "Anna NEGYESI-MOUYSSET",
+  "Matthew VALENTE",
+  "Diego ARISTA VINAIXA",
+  "Olga LEHTINEN",
+  "Francesca ROMANO",
+  "Isabel GUARDENO",
+];
+
 const STORAGE_KEY = "strategy-tracker-items";
 
 const migrateUpdatesField = (val: any): UpdateEntry[] => {
