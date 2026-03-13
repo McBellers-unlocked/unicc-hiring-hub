@@ -8,10 +8,11 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, ChevronDown, Send } from "lucide-react";
+import { Plus, Trash2, ChevronDown, Send, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -47,7 +48,7 @@ type StrategyItem = {
   updates: UpdateEntry[];
   prioritisationUpdates: UpdateEntry[];
   pillar: string;
-  participants: string;
+  participants: string[];
 };
 
 const STATUS_STYLES: Record<Status, string> = {
@@ -80,6 +81,11 @@ const migrateItem = (item: any): StrategyItem => ({
   owner: Array.isArray(item.owner) ? item.owner : (item.owner ? [item.owner] : []),
   updates: migrateUpdatesField(item.updates),
   prioritisationUpdates: migrateUpdatesField(item.prioritisationUpdates),
+  participants: Array.isArray(item.participants)
+    ? item.participants
+    : typeof item.participants === "string" && item.participants.trim()
+      ? item.participants.split(",").map((s: string) => s.trim()).filter(Boolean)
+      : [],
 });
 
 const newItem = (): StrategyItem => ({
@@ -92,7 +98,7 @@ const newItem = (): StrategyItem => ({
   updates: [],
   prioritisationUpdates: [],
   pillar: "",
-  participants: "",
+  participants: [],
 });
 
 const StrategyTracker = () => {
@@ -135,6 +141,7 @@ const StrategyTracker = () => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [newUpdateText, setNewUpdateText] = useState<Record<string, string>>({});
   const [newPriorUpdateText, setNewPriorUpdateText] = useState<Record<string, string>>({});
+  const [participantInput, setParticipantInput] = useState<Record<string, string>>({});
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
@@ -411,11 +418,37 @@ const StrategyTracker = () => {
                           <div className="space-y-1">
                             <label className="text-xs font-medium text-muted-foreground">Participants</label>
                             <Input
-                              value={item.participants}
-                              onChange={(e) => update(item.id, "participants", e.target.value)}
+                              value={participantInput[item.id] || ""}
+                              onChange={(e) => setParticipantInput((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  const val = (participantInput[item.id] || "").trim();
+                                  if (val && !item.participants.includes(val)) {
+                                    update(item.id, "participants", [...item.participants, val]);
+                                  }
+                                  setParticipantInput((prev) => ({ ...prev, [item.id]: "" }));
+                                }
+                              }}
                               className="h-9 text-sm"
-                              placeholder="Participants..."
+                              placeholder="Type a participant and press Enter..."
                             />
+                            {item.participants.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                {item.participants.map((p) => (
+                                  <Badge key={p} variant="secondary" className="gap-1 pr-1">
+                                    {p}
+                                    <button
+                                      type="button"
+                                      className="ml-0.5 rounded-full hover:bg-muted-foreground/20 p-0.5"
+                                      onClick={() => update(item.id, "participants", item.participants.filter((v) => v !== p))}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="flex justify-end mt-3">
