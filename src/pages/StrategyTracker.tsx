@@ -67,6 +67,19 @@ const newItem = (): StrategyItem => ({
 });
 
 const StrategyTracker = () => {
+  const { data: users = [] } = useQuery({
+    queryKey: ["strategy-tracker-users"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, name")
+        .not("name", "is", null)
+        .order("name");
+      if (error) throw error;
+      return data as { id: string; name: string }[];
+    },
+  });
+
   const [items, setItems] = useState<StrategyItem[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
