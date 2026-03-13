@@ -9,16 +9,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const YEARS = ["2026", "2027", "2028"] as const;
 const STATUSES = ["Achieved", "In progress", "Paused", "Not started"] as const;
-const OWNERS = [
-  "Frederic LAVAL",
-  "Anna NEGYESI-MOUYSSET",
-  "Olga L",
-  "Diego Arsita",
-  "Matt VALENTE",
-] as const;
 const PRIORITIES = ["Critical", "Important", "Low", "Pause"] as const;
 const PILLARS = [
   "Establish a best in class approach to talent acquisition",
@@ -72,6 +67,19 @@ const newItem = (): StrategyItem => ({
 });
 
 const StrategyTracker = () => {
+  const { data: users = [] } = useQuery({
+    queryKey: ["strategy-tracker-users"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, name")
+        .not("name", "is", null)
+        .order("name");
+      if (error) throw error;
+      return data as { id: string; name: string }[];
+    },
+  });
+
   const [items, setItems] = useState<StrategyItem[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -186,8 +194,8 @@ const StrategyTracker = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="_none">Select owner</SelectItem>
-                        {OWNERS.map((o) => (
-                          <SelectItem key={o} value={o}>{o}</SelectItem>
+                        {users.map((u) => (
+                          <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
