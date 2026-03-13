@@ -81,6 +81,11 @@ const migrateItem = (item: any): StrategyItem => ({
   owner: Array.isArray(item.owner) ? item.owner : (item.owner ? [item.owner] : []),
   updates: migrateUpdatesField(item.updates),
   prioritisationUpdates: migrateUpdatesField(item.prioritisationUpdates),
+  participants: Array.isArray(item.participants)
+    ? item.participants
+    : typeof item.participants === "string" && item.participants.trim()
+      ? item.participants.split(",").map((s: string) => s.trim()).filter(Boolean)
+      : [],
 });
 
 const newItem = (): StrategyItem => ({
