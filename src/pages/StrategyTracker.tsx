@@ -56,12 +56,18 @@ const PRIORITY_STYLES: Record<string, string> = {
 
 const STORAGE_KEY = "strategy-tracker-items";
 
+const migrateItem = (item: any): StrategyItem => ({
+  ...item,
+  year: Array.isArray(item.year) ? item.year : (item.year ? [item.year] : ["2026"]),
+  owner: Array.isArray(item.owner) ? item.owner : (item.owner ? [item.owner] : []),
+});
+
 const newItem = (): StrategyItem => ({
   id: crypto.randomUUID(),
   actionItem: "",
-  year: "2026",
+  year: ["2026"],
   status: "Not started",
-  owner: "",
+  owner: [],
   priority: "",
   updates: "",
   prioritisationUpdates: "",
