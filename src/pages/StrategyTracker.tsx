@@ -113,7 +113,7 @@ const StrategyTracker = () => {
         .select("id, name, email")
         .not("name", "is", null)
         .ilike("email", "%@unicc.org")
-        .or("name.ilike.%LAVAL%,name.ilike.%NEGYESI%,name.ilike.%VALENTE%,name.ilike.%ARISTA%,name.ilike.%LEHTINEN%")
+        .or("name.ilike.%LAVAL%,name.ilike.%NEGYESI%,name.ilike.%VALENTE%,name.ilike.%ARISTA%,name.ilike.%LEHTINEN%,name.ilike.%ROMANO%,name.ilike.%GUARDENO%")
         .order("name");
       if (error) throw error;
       const surnames = ["LAVAL", "NEGYESI", "VALENTE", "ARISTA", "LEHTINEN"];
