@@ -79,7 +79,6 @@ const StrategyTracker = () => {
         .or("name.ilike.%LAVAL%,name.ilike.%NEGYESI%,name.ilike.%VALENTE%,name.ilike.%ARISTA%,name.ilike.%LEHTINEN%")
         .order("name");
       if (error) throw error;
-      // Deduplicate by surname – keep first match per surname
       const surnames = ["LAVAL", "NEGYESI", "VALENTE", "ARISTA", "LEHTINEN"];
       const seen = new Set<string>();
       const unique: { id: string; name: string }[] = [];
@@ -103,6 +102,8 @@ const StrategyTracker = () => {
     }
   });
 
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
@@ -115,6 +116,15 @@ const StrategyTracker = () => {
     },
     []
   );
+
+  const toggleRow = (id: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const addRow = () => setItems((prev) => [...prev, newItem()]);
   const deleteRow = (id: string) =>
@@ -136,167 +146,159 @@ const StrategyTracker = () => {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40">
-                <TableHead className="min-w-[240px]">Action Item</TableHead>
+                <TableHead className="w-10" />
+                <TableHead className="min-w-[300px]">Action Item</TableHead>
                 <TableHead className="min-w-[100px]">Year</TableHead>
                 <TableHead className="min-w-[140px]">Status</TableHead>
-                <TableHead className="min-w-[180px]">Owner</TableHead>
                 <TableHead className="min-w-[120px]">Priority</TableHead>
-                <TableHead className="min-w-[200px]">Updates</TableHead>
-                <TableHead className="min-w-[200px]">Prioritisation Updates</TableHead>
-                <TableHead className="min-w-[280px]">2025 Pillar</TableHead>
-                <TableHead className="min-w-[180px]">Participants</TableHead>
-                <TableHead className="w-10" />
+                <TableHead className="min-w-[180px]">Owner</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.map((item) => (
-                <TableRow key={item.id}>
-                  {/* Action Item */}
-                  <TableCell>
-                    <Input
-                      value={item.actionItem}
-                      onChange={(e) => update(item.id, "actionItem", e.target.value)}
-                      className="border-none shadow-none bg-transparent h-8 px-1"
-                      placeholder="Enter action item..."
-                    />
-                  </TableCell>
+                <React.Fragment key={item.id}>
+                  {/* Main row */}
+                  <TableRow className="border-b-0">
+                    <TableCell className="p-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => toggleRow(item.id)}
+                      >
+                        <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${expandedRows.has(item.id) ? "rotate-180" : ""}`} />
+                      </Button>
+                    </TableCell>
+                    <TableCell>
+                      <Textarea
+                        value={item.actionItem}
+                        onChange={(e) => update(item.id, "actionItem", e.target.value)}
+                        className="border-none shadow-none bg-transparent px-1 min-h-[80px] resize-y text-sm"
+                        placeholder="Enter action item..."
+                        rows={3}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Select value={item.year} onValueChange={(v) => update(item.id, "year", v)}>
+                        <SelectTrigger className="h-8 border-none shadow-none bg-transparent">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {YEARS.map((y) => (
+                            <SelectItem key={y} value={y}>{y}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Select value={item.status} onValueChange={(v) => update(item.id, "status", v)}>
+                        <SelectTrigger className={`h-8 border-none shadow-none rounded-full text-xs font-medium px-3 ${STATUS_STYLES[item.status]}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STATUSES.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[s]}`}>{s}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Select value={item.priority || "_none"} onValueChange={(v) => update(item.id, "priority", v === "_none" ? "" : v)}>
+                        <SelectTrigger className={`h-8 border-none shadow-none rounded-full text-xs font-medium px-3 ${item.priority ? PRIORITY_STYLES[item.priority] || "" : ""}`}>
+                          <SelectValue placeholder="Set priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="_none">Set priority</SelectItem>
+                          {PRIORITIES.map((p) => (
+                            <SelectItem key={p} value={p}>
+                              <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${PRIORITY_STYLES[p]}`}>{p}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Select value={item.owner || "_none"} onValueChange={(v) => update(item.id, "owner", v === "_none" ? "" : v)}>
+                        <SelectTrigger className="h-8 border-none shadow-none bg-transparent text-xs">
+                          <SelectValue placeholder="Select owner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="_none">Select owner</SelectItem>
+                          {users.map((u) => (
+                            <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  </TableRow>
 
-                  {/* Year */}
-                  <TableCell>
-                    <Select
-                      value={item.year}
-                      onValueChange={(v) => update(item.id, "year", v)}
-                    >
-                      <SelectTrigger className="h-8 border-none shadow-none bg-transparent">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {YEARS.map((y) => (
-                          <SelectItem key={y} value={y}>{y}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-
-                  {/* Status */}
-                  <TableCell>
-                    <Select
-                      value={item.status}
-                      onValueChange={(v) => update(item.id, "status", v)}
-                    >
-                      <SelectTrigger className={`h-8 border-none shadow-none rounded-full text-xs font-medium px-3 ${STATUS_STYLES[item.status]}`}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {STATUSES.map((s) => (
-                          <SelectItem key={s} value={s}>
-                            <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[s]}`}>{s}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-
-                  {/* Owner */}
-                  <TableCell>
-                    <Select
-                      value={item.owner || "_none"}
-                      onValueChange={(v) => update(item.id, "owner", v === "_none" ? "" : v)}
-                    >
-                      <SelectTrigger className="h-8 border-none shadow-none bg-transparent text-xs">
-                        <SelectValue placeholder="Select owner" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="_none">Select owner</SelectItem>
-                        {users.map((u) => (
-                          <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-
-                  {/* Priority */}
-                  <TableCell>
-                    <Select
-                      value={item.priority || "_none"}
-                      onValueChange={(v) => update(item.id, "priority", v === "_none" ? "" : v)}
-                    >
-                      <SelectTrigger className={`h-8 border-none shadow-none rounded-full text-xs font-medium px-3 ${item.priority ? PRIORITY_STYLES[item.priority] || "" : ""}`}>
-                        <SelectValue placeholder="Set priority" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="_none">Set priority</SelectItem>
-                        {PRIORITIES.map((p) => (
-                          <SelectItem key={p} value={p}>
-                            <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${PRIORITY_STYLES[p]}`}>{p}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-
-                  {/* Updates */}
-                  <TableCell>
-                    <Input
-                      value={item.updates}
-                      onChange={(e) => update(item.id, "updates", e.target.value)}
-                      className="border-none shadow-none bg-transparent h-8 px-1"
-                      placeholder="Updates..."
-                    />
-                  </TableCell>
-
-                  {/* Prioritisation Updates */}
-                  <TableCell>
-                    <Input
-                      value={item.prioritisationUpdates}
-                      onChange={(e) => update(item.id, "prioritisationUpdates", e.target.value)}
-                      className="border-none shadow-none bg-transparent h-8 px-1"
-                      placeholder="Prioritisation updates..."
-                    />
-                  </TableCell>
-
-                  {/* 2025 Pillar */}
-                  <TableCell>
-                    <Select
-                      value={item.pillar || "_none"}
-                      onValueChange={(v) => update(item.id, "pillar", v === "_none" ? "" : v)}
-                    >
-                      <SelectTrigger className="h-8 border-none shadow-none bg-transparent text-xs">
-                        <SelectValue placeholder="Select pillar" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="_none">Select pillar</SelectItem>
-                        {PILLARS.map((p) => (
-                          <SelectItem key={p} value={p}>
-                            <span className="line-clamp-1">{p}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-
-                  {/* Participants */}
-                  <TableCell>
-                    <Input
-                      value={item.participants}
-                      onChange={(e) => update(item.id, "participants", e.target.value)}
-                      className="border-none shadow-none bg-transparent h-8 px-1"
-                      placeholder="Participants..."
-                    />
-                  </TableCell>
-
-                  {/* Delete */}
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                      onClick={() => deleteRow(item.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                  {/* Expandable detail row */}
+                  {expandedRows.has(item.id) && (
+                    <TableRow className="bg-muted/20">
+                      <TableCell colSpan={6} className="pt-0 pb-4 px-6">
+                        <div className="grid grid-cols-2 gap-4 mt-2">
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground">Updates</label>
+                            <Textarea
+                              value={item.updates}
+                              onChange={(e) => update(item.id, "updates", e.target.value)}
+                              className="min-h-[60px] resize-y text-sm"
+                              placeholder="Updates..."
+                              rows={2}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground">Prioritisation Updates</label>
+                            <Textarea
+                              value={item.prioritisationUpdates}
+                              onChange={(e) => update(item.id, "prioritisationUpdates", e.target.value)}
+                              className="min-h-[60px] resize-y text-sm"
+                              placeholder="Prioritisation updates..."
+                              rows={2}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground">2025 Pillar</label>
+                            <Select value={item.pillar || "_none"} onValueChange={(v) => update(item.id, "pillar", v === "_none" ? "" : v)}>
+                              <SelectTrigger className="h-9 text-xs">
+                                <SelectValue placeholder="Select pillar" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="_none">Select pillar</SelectItem>
+                                {PILLARS.map((p) => (
+                                  <SelectItem key={p} value={p}>
+                                    <span className="line-clamp-1">{p}</span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground">Participants</label>
+                            <Input
+                              value={item.participants}
+                              onChange={(e) => update(item.id, "participants", e.target.value)}
+                              className="h-9 text-sm"
+                              placeholder="Participants..."
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end mt-3">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground hover:text-destructive"
+                            onClick={() => deleteRow(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" /> Delete
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </React.Fragment>
               ))}
             </TableBody>
           </Table>
