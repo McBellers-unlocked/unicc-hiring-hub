@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, ChevronDown, Send, X, ShieldAlert } from "lucide-react";
+import { Plus, Trash2, ChevronDown, Send, X, ShieldAlert, Link2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
