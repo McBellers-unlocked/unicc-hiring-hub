@@ -4508,6 +4508,54 @@ export type Database = {
           },
         ]
       }
+      strategy_tracker_items: {
+        Row: {
+          action_item: string
+          created_at: string
+          created_by: string | null
+          id: string
+          owner: string[]
+          participants: string[]
+          pillar: string
+          prioritisation_updates: Json
+          priority: string
+          status: string
+          updated_at: string
+          updates: Json
+          year: string[]
+        }
+        Insert: {
+          action_item?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          owner?: string[]
+          participants?: string[]
+          pillar?: string
+          prioritisation_updates?: Json
+          priority?: string
+          status?: string
+          updated_at?: string
+          updates?: Json
+          year?: string[]
+        }
+        Update: {
+          action_item?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          owner?: string[]
+          participants?: string[]
+          pillar?: string
+          prioritisation_updates?: Json
+          priority?: string
+          status?: string
+          updated_at?: string
+          updates?: Json
+          year?: string[]
+        }
+        Relationships: []
+      }
       system_settings: {
         Row: {
           created_at: string
@@ -5643,6 +5691,10 @@ export type Database = {
       book_interview_slot: {
         Args: { p_application_id: string; p_slot_id: string }
         Returns: Json
+      }
+      can_access_strategy_tracker: {
+        Args: { p_user_id: string }
+        Returns: boolean
       }
       can_approve_as_chief: {
         Args: { p_requisition_id: string; p_user_id: string }
