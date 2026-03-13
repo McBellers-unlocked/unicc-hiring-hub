@@ -8,8 +8,10 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, ChevronDown } from "lucide-react";
+import { Plus, Trash2, ChevronDown, Check } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -28,9 +30,9 @@ type Status = (typeof STATUSES)[number];
 type StrategyItem = {
   id: string;
   actionItem: string;
-  year: string;
+  year: string[];
   status: Status;
-  owner: string;
+  owner: string[];
   priority: string;
   updates: string;
   prioritisationUpdates: string;
@@ -54,12 +56,18 @@ const PRIORITY_STYLES: Record<string, string> = {
 
 const STORAGE_KEY = "strategy-tracker-items";
 
+const migrateItem = (item: any): StrategyItem => ({
+  ...item,
+  year: Array.isArray(item.year) ? item.year : (item.year ? [item.year] : ["2026"]),
+  owner: Array.isArray(item.owner) ? item.owner : (item.owner ? [item.owner] : []),
+});
+
 const newItem = (): StrategyItem => ({
   id: crypto.randomUUID(),
   actionItem: "",
-  year: "2026",
+  year: ["2026"],
   status: "Not started",
-  owner: "",
+  owner: [],
   priority: "",
   updates: "",
   prioritisationUpdates: "",
@@ -96,7 +104,7 @@ const StrategyTracker = () => {
   const [items, setItems] = useState<StrategyItem[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [newItem()];
+      return stored ? (JSON.parse(stored) as any[]).map(migrateItem) : [newItem()];
     } catch {
       return [newItem()];
     }
@@ -109,9 +117,23 @@ const StrategyTracker = () => {
   }, [items]);
 
   const update = useCallback(
-    (id: string, field: keyof StrategyItem, value: string) => {
+    (id: string, field: keyof StrategyItem, value: string | string[]) => {
       setItems((prev) =>
         prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
+      );
+    },
+    []
+  );
+
+  const toggleArrayValue = useCallback(
+    (id: string, field: "year" | "owner", val: string) => {
+      setItems((prev) =>
+        prev.map((item) => {
+          if (item.id !== id) return item;
+          const arr = item[field];
+          const next = arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
+          return { ...item, [field]: next };
+        })
       );
     },
     []
@@ -179,16 +201,24 @@ const StrategyTracker = () => {
                       />
                     </TableCell>
                     <TableCell>
-                      <Select value={item.year} onValueChange={(v) => update(item.id, "year", v)}>
-                        <SelectTrigger className="h-8 border-none shadow-none bg-transparent">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" className="h-8 px-2 text-xs font-normal justify-start w-full">
+                            {item.year.length > 0 ? item.year.join(", ") : "Select years"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-36 p-2" align="start">
                           {YEARS.map((y) => (
-                            <SelectItem key={y} value={y}>{y}</SelectItem>
+                            <label key={y} className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm">
+                              <Checkbox
+                                checked={item.year.includes(y)}
+                                onCheckedChange={() => toggleArrayValue(item.id, "year", y)}
+                              />
+                              {y}
+                            </label>
                           ))}
-                        </SelectContent>
-                      </Select>
+                        </PopoverContent>
+                      </Popover>
                     </TableCell>
                     <TableCell>
                       <Select value={item.status} onValueChange={(v) => update(item.id, "status", v)}>
@@ -220,17 +250,26 @@ const StrategyTracker = () => {
                       </Select>
                     </TableCell>
                     <TableCell>
-                      <Select value={item.owner || "_none"} onValueChange={(v) => update(item.id, "owner", v === "_none" ? "" : v)}>
-                        <SelectTrigger className="h-8 border-none shadow-none bg-transparent text-xs">
-                          <SelectValue placeholder="Select owner" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="_none">Select owner</SelectItem>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" className="h-8 px-2 text-xs font-normal justify-start w-full truncate">
+                            {item.owner.length > 0
+                              ? item.owner.map((o) => o.split(" ").pop()).join(", ")
+                              : "Select owners"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-56 p-2" align="start">
                           {users.map((u) => (
-                            <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
+                            <label key={u.id} className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm">
+                              <Checkbox
+                                checked={item.owner.includes(u.name)}
+                                onCheckedChange={() => toggleArrayValue(item.id, "owner", u.name)}
+                              />
+                              <span className="truncate">{u.name}</span>
+                            </label>
                           ))}
-                        </SelectContent>
-                      </Select>
+                        </PopoverContent>
+                      </Popover>
                     </TableCell>
                   </TableRow>
 

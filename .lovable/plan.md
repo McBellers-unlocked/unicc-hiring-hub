@@ -1,24 +1,14 @@
 
 
-## Multi-Select Years and Owners
+## Replace Shadow with White Text Outline on "UNIQ"
 
-### What changes
+**File**: `src/components/Layout.tsx` (line 70)
 
-**File**: `src/pages/StrategyTracker.tsx`
+Replace the `textShadow` glow with a CSS text-stroke outline:
 
-Replace the single-select `<Select>` dropdowns for **Year** and **Owner** with multi-select controls using Popover + Checkbox pattern (since Radix Select doesn't support multi-select natively).
+```tsx
+<span style={{ WebkitTextStroke: '0.5px rgba(255,255,255,0.8)' }}>UNIQ</span>
+```
 
-### Type changes
-- `StrategyItem.year`: change from `string` to `string[]` (default `["2026"]`)
-- `StrategyItem.owner`: change from `string` to `string[]` (default `[]`)
-
-### UI approach
-For both Year and Owner columns, use a `<Popover>` containing a list of `<Checkbox>` items. The trigger button shows selected values as comma-separated text or badges (e.g., "2026, 2027" or "LAVAL, VALENTE").
-
-### Components used
-- `@radix-ui/react-popover` (already installed) — for the dropdown container
-- `@radix-ui/react-checkbox` (already installed) — for each selectable option
-
-### Migration note
-- Existing localStorage data uses `string` for year/owner. Add a migration helper on load: if `year` is a string, wrap it in an array; if `owner` is a string, wrap non-empty values in an array.
+This gives a thin white contour without the soft glow effect.
 
