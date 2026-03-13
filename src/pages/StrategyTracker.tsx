@@ -72,12 +72,24 @@ const StrategyTracker = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("users")
-        .select("id, name")
+        .select("id, name, email")
         .not("name", "is", null)
+        .ilike("email", "%@unicc.org")
         .or("name.ilike.%LAVAL%,name.ilike.%NEGYESI%,name.ilike.%VALENTE%,name.ilike.%ARISTA%,name.ilike.%LEHTINEN%")
         .order("name");
       if (error) throw error;
-      return data as { id: string; name: string }[];
+      // Deduplicate by surname – keep first match per surname
+      const surnames = ["LAVAL", "NEGYESI", "VALENTE", "ARISTA", "LEHTINEN"];
+      const seen = new Set<string>();
+      const unique: { id: string; name: string }[] = [];
+      for (const user of (data ?? [])) {
+        const surname = surnames.find(s => user.name?.toUpperCase().includes(s));
+        if (surname && !seen.has(surname)) {
+          seen.add(surname);
+          unique.push({ id: user.id, name: user.name });
+        }
+      }
+      return unique;
     },
   });
 
