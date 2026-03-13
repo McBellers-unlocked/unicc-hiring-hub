@@ -194,8 +194,8 @@ const StrategyTracker = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="_none">Select owner</SelectItem>
-                        {OWNERS.map((o) => (
-                          <SelectItem key={o} value={o}>{o}</SelectItem>
+                        {users.map((u) => (
+                          <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
