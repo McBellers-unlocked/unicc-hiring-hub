@@ -141,6 +141,7 @@ const StrategyTracker = () => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [newUpdateText, setNewUpdateText] = useState<Record<string, string>>({});
   const [newPriorUpdateText, setNewPriorUpdateText] = useState<Record<string, string>>({});
+  const [participantInput, setParticipantInput] = useState<Record<string, string>>({});
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
