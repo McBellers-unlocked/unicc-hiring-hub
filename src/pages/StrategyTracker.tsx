@@ -287,9 +287,23 @@ const StrategyTracker = () => {
           <h1 className="text-2xl font-bold text-foreground">
             HR Strategy Tracker
           </h1>
-          <Button onClick={() => addRowMutation.mutate()} size="sm" disabled={addRowMutation.isPending}>
-            <Plus className="h-4 w-4 mr-1" /> Add Row
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const publicToken = "strategy-public-view";
+                const url = `${window.location.origin}/strategy/view/${publicToken}`;
+                navigator.clipboard.writeText(url);
+                toast.success("Public link copied to clipboard!");
+              }}
+            >
+              <Link2 className="h-4 w-4 mr-1" /> Copy Public Link
+            </Button>
+            <Button onClick={() => addRowMutation.mutate()} size="sm" disabled={addRowMutation.isPending}>
+              <Plus className="h-4 w-4 mr-1" /> Add Row
+            </Button>
+          </div>
         </div>
 
         <div className="border rounded-lg overflow-auto">

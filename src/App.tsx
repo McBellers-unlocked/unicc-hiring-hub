@@ -224,6 +224,7 @@ const App = () => (
             <Route path="/product-spec" element={<ProductSpec />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/strategy-tracker" element={<StrategyTracker />} />
+            <Route path="/strategy/view/:token" element={<StrategyTrackerPublic />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -122,3 +122,6 @@ verify_jwt = false
 
 [functions.talent-pool-match]
 verify_jwt = false
+
+[functions.get-strategy-tracker-public]
+verify_jwt = false
