@@ -13,7 +13,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
@@ -66,6 +65,16 @@ const PRIORITY_STYLES: Record<string, string> = {
   Pause: "bg-gray-100 text-gray-600",
 };
 
+const OWNERS = [
+  "Frederic LAVAL",
+  "Anna NEGYESI-MOUYSSET",
+  "Matthew VALENTE",
+  "Diego ARISTA VINAIXA",
+  "Olga LEHTINEN",
+  "Francesca ROMANO",
+  "Isabel GUARDENO",
+];
+
 const STORAGE_KEY = "strategy-tracker-items";
 
 const migrateUpdatesField = (val: any): UpdateEntry[] => {
@@ -105,30 +114,6 @@ const newItem = (): StrategyItem => ({
 const StrategyTracker = () => {
   const { userName } = useAuth();
 
-  const { data: users = [] } = useQuery({
-    queryKey: ["strategy-tracker-users"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("users")
-        .select("id, name, email")
-        .not("name", "is", null)
-        .ilike("email", "%@unicc.org")
-        .or("name.ilike.%LAVAL%,name.ilike.%NEGYESI%,name.ilike.%VALENTE%,name.ilike.%ARISTA%,name.ilike.%LEHTINEN%,name.ilike.%ROMANO%,name.ilike.%GUARDENO%")
-        .order("name");
-      if (error) throw error;
-      const surnames = ["LAVAL", "NEGYESI", "VALENTE", "ARISTA", "LEHTINEN", "ROMANO", "GUARDENO"];
-      const seen = new Set<string>();
-      const unique: { id: string; name: string }[] = [];
-      for (const user of (data ?? [])) {
-        const surname = surnames.find(s => user.name?.toUpperCase().includes(s));
-        if (surname && !seen.has(surname)) {
-          seen.add(surname);
-          unique.push({ id: user.id, name: user.name });
-        }
-      }
-      return unique;
-    },
-  });
 
   const [items, setItems] = useState<StrategyItem[]>(() => {
     return DEFAULT_ITEMS;
@@ -304,13 +289,13 @@ const StrategyTracker = () => {
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-56 p-2" align="start">
-                          {users.map((u) => (
-                            <label key={u.id} className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm">
+                          {OWNERS.map((owner) => (
+                            <label key={owner} className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm">
                               <Checkbox
-                                checked={item.owner.includes(u.name)}
-                                onCheckedChange={() => toggleArrayValue(item.id, "owner", u.name)}
+                                checked={item.owner.includes(owner)}
+                                onCheckedChange={() => toggleArrayValue(item.id, "owner", owner)}
                               />
-                              <span className="truncate">{u.name}</span>
+                              <span className="truncate">{owner}</span>
                             </label>
                           ))}
                         </PopoverContent>
