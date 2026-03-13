@@ -104,7 +104,7 @@ const StrategyTracker = () => {
   const [items, setItems] = useState<StrategyItem[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [newItem()];
+      return stored ? (JSON.parse(stored) as any[]).map(migrateItem) : [newItem()];
     } catch {
       return [newItem()];
     }
