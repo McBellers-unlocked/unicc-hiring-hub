@@ -1,14 +1,18 @@
 
 
-## Replace Shadow with White Text Outline on "UNIQ"
+## Add Pillar Group Headers to HR Strategy Tracker View
 
-**File**: `src/components/Layout.tsx` (line 70)
+### What
+Add the same pillar section header rows that exist in the public/management view (`StrategyTrackerPublic.tsx`) to the main HR view (`StrategyTracker.tsx`).
 
-Replace the `textShadow` glow with a CSS text-stroke outline:
+### Implementation
 
-```tsx
-<span style={{ WebkitTextStroke: '0.5px rgba(255,255,255,0.8)' }}>UNIQ</span>
-```
+**File: `src/pages/StrategyTracker.tsx`**
 
-This gives a thin white contour without the soft glow effect.
+1. Track `lastPillar` before the sorted `.map()` call (using a closure variable, same pattern as the public page).
+2. Inside the `.map()`, check if the current item's pillar differs from `lastPillar`. If so, render a full-width header row with the pillar name styled as `bg-primary/5` with uppercase tracking text.
+3. Update `lastPillar` after the check.
+4. The header row spans all 6 columns (`colSpan={6}`), matching the public view exactly.
+
+This is a small change — roughly 10 lines added to the existing `.map()` block.
 
