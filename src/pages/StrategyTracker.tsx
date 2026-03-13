@@ -201,16 +201,24 @@ const StrategyTracker = () => {
                       />
                     </TableCell>
                     <TableCell>
-                      <Select value={item.year} onValueChange={(v) => update(item.id, "year", v)}>
-                        <SelectTrigger className="h-8 border-none shadow-none bg-transparent">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" className="h-8 px-2 text-xs font-normal justify-start w-full">
+                            {item.year.length > 0 ? item.year.join(", ") : "Select years"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-36 p-2" align="start">
                           {YEARS.map((y) => (
-                            <SelectItem key={y} value={y}>{y}</SelectItem>
+                            <label key={y} className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm">
+                              <Checkbox
+                                checked={item.year.includes(y)}
+                                onCheckedChange={() => toggleArrayValue(item.id, "year", y)}
+                              />
+                              {y}
+                            </label>
                           ))}
-                        </SelectContent>
-                      </Select>
+                        </PopoverContent>
+                      </Popover>
                     </TableCell>
                     <TableCell>
                       <Select value={item.status} onValueChange={(v) => update(item.id, "status", v)}>
