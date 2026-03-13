@@ -1,14 +1,22 @@
 
 
-## Replace Shadow with White Text Outline on "UNIQ"
+## Collapsible Row Layout for Strategy Tracker
 
-**File**: `src/components/Layout.tsx` (line 70)
+### What changes
 
-Replace the `textShadow` glow with a CSS text-stroke outline:
+**File**: `src/pages/StrategyTracker.tsx`
 
-```tsx
-<span style={{ WebkitTextStroke: '0.5px rgba(255,255,255,0.8)' }}>UNIQ</span>
-```
+Restructure each row into two parts:
 
-This gives a thin white contour without the soft glow effect.
+1. **Main row** (always visible): Action Item (as a multi-line textarea, 3-4 rows tall), Year, Status, Priority, Owner, and a chevron toggle button
+2. **Expandable detail row** (hidden by default): Updates, Prioritisation Updates, 2025 Pillar, Participants, Delete button — shown when the chevron is clicked
+
+### How
+
+- Add `expandedRows` state (`Set<string>`) to track which rows are expanded
+- Replace the `Input` for Action Item with a `textarea` element (3-4 rows, ~80px height) so full text is visible
+- Reduce the table headers to: Action Item, Year, Status, Priority, Owner, and a toggle column
+- Use Radix `Collapsible` (already installed) or simply conditionally render a second `TableRow` beneath each main row containing the detail fields in a grid/flex layout
+- The chevron rotates when expanded (ChevronDown icon from lucide)
+- Detail row spans all columns with a subtle background, containing labeled fields for Updates, Prioritisation Updates, Pillar, Participants, and the delete button
 
