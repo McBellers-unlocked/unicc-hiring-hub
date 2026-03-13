@@ -305,7 +305,13 @@ const StrategyTracker = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((item) => (
+              {[...items].sort((a, b) => {
+                const idxA = PILLARS.indexOf(a.pillar as any);
+                const idxB = PILLARS.indexOf(b.pillar as any);
+                const orderA = idxA === -1 ? PILLARS.length : idxA;
+                const orderB = idxB === -1 ? PILLARS.length : idxB;
+                return orderA - orderB;
+              }).map((item) => (
                 <React.Fragment key={item.id}>
                   <TableRow className="border-b-0">
                     <TableCell className="p-2">
