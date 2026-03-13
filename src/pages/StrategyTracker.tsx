@@ -14,13 +14,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 const YEARS = ["2026", "2027", "2028"] as const;
 const STATUSES = ["Achieved", "In progress", "Paused", "Not started"] as const;
-const OWNERS = [
-  "Frederic LAVAL",
-  "Anna NEGYESI-MOUYSSET",
-  "Olga L",
-  "Diego Arsita",
-  "Matt VALENTE",
-] as const;
 const PRIORITIES = ["Critical", "Important", "Low", "Pause"] as const;
 const PILLARS = [
   "Establish a best in class approach to talent acquisition",
