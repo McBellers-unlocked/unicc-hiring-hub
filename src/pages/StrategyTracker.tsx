@@ -48,7 +48,7 @@ type StrategyItem = {
   updates: UpdateEntry[];
   prioritisationUpdates: UpdateEntry[];
   pillar: string;
-  participants: string;
+  participants: string[];
 };
 
 const STATUS_STYLES: Record<Status, string> = {
