@@ -102,6 +102,7 @@ import DocumentRepository from "./pages/operations/DocumentRepository";
 import Settings from "./pages/Settings";
 import EmailHub from "./pages/EmailHub";
 import ProductSpec from "./pages/ProductSpec";
+import StrategyTracker from "./pages/StrategyTracker";
 
 const queryClient = new QueryClient();
 

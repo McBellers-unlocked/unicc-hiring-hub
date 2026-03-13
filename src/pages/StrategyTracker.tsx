@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import Layout from "@/components/Layout";
+import { Layout } from "@/components/Layout";
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from "@/components/ui/table";
