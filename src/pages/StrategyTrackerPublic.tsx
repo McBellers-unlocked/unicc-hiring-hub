@@ -121,9 +121,16 @@ const StrategyTrackerPublic = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card px-6 py-4">
-        <h1 className="text-2xl font-bold text-foreground">HR Strategy Tracker</h1>
-        <p className="text-sm text-muted-foreground mt-1">UNICC — Read-only view</p>
+      <header className="border-b px-6 py-3 flex items-center gap-4" style={{ backgroundColor: '#006cb5' }}>
+        <UNICCLogo size="sm" />
+        <div className="flex items-baseline gap-1">
+          <span className="text-lg font-bold" style={{ WebkitTextStroke: '0.8px white', WebkitTextFillColor: 'transparent' }}>UNIQ</span>
+          <span className="text-lg font-bold text-white">Talent</span>
+        </div>
+        <div className="ml-auto text-right">
+          <p className="text-sm font-medium text-white">HR Strategy Tracker</p>
+          <p className="text-xs text-white/70">Read-only view</p>
+        </div>
       </header>
 
       <div className="p-6">
