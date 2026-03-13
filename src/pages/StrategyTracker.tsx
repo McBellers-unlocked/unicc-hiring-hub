@@ -96,6 +96,8 @@ const newItem = (): StrategyItem => ({
 });
 
 const StrategyTracker = () => {
+  const { userName } = useAuth();
+
   const { data: users = [] } = useQuery({
     queryKey: ["strategy-tracker-users"],
     queryFn: async () => {
@@ -131,18 +133,38 @@ const StrategyTracker = () => {
   });
 
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [newUpdateText, setNewUpdateText] = useState<Record<string, string>>({});
+  const [newPriorUpdateText, setNewPriorUpdateText] = useState<Record<string, string>>({});
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
   const update = useCallback(
-    (id: string, field: keyof StrategyItem, value: string | string[]) => {
+    (id: string, field: keyof StrategyItem, value: any) => {
       setItems((prev) =>
         prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
       );
     },
     []
+  );
+
+  const addUpdateEntry = useCallback(
+    (itemId: string, field: "updates" | "prioritisationUpdates", text: string) => {
+      if (!text.trim()) return;
+      const entry: UpdateEntry = {
+        id: crypto.randomUUID(),
+        text: text.trim(),
+        author: userName || "Unknown",
+        date: new Date().toISOString(),
+      };
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === itemId ? { ...item, [field]: [entry, ...item[field]] } : item
+        )
+      );
+    },
+    [userName]
   );
 
   const toggleArrayValue = useCallback(
