@@ -269,9 +269,14 @@ export default function AffiliateOnboarding() {
                   <Briefcase className="w-5 h-5 mr-2" />
                   {jobLinked ? 'Job Linked' : 'Create/Link Job'}
                 </Button>
-                <Button size="lg" onClick={() => console.log('Create/Link Worker')}>
+                <Button
+                  size="lg"
+                  onClick={() => !workerLinked && setShowLinkWorker(true)}
+                  className={workerLinked ? 'bg-green-600 hover:bg-green-600 text-white cursor-default' : ''}
+                  disabled={workerLinked}
+                >
                   <UserPlus className="w-5 h-5 mr-2" />
-                  Create/Link Worker
+                  {workerLinked ? 'Worker Linked' : 'Create/Link Worker'}
                 </Button>
                 <Button
                   size="lg"
