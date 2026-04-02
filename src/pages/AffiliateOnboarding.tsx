@@ -30,6 +30,7 @@ interface AffiliateUser {
   division: string | null;
   unit: string | null;
   line_manager: string | null;
+  job_title: string | null;
 }
 
 interface ContractRecord {
