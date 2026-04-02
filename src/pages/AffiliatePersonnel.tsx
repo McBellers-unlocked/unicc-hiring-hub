@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Users, Search, Upload, Calendar, AlertTriangle, CheckCircle, Clock, Building2, UserPlus, MoreHorizontal, Pencil, ClipboardList, FileSpreadsheet, ArrowUp, ArrowDown, ArrowUpDown, Download, Trash2 } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { AffiliateForm, AffiliateFormData } from '@/components/affiliate/AffiliateForm';
@@ -729,63 +730,50 @@ export default function AffiliatePersonnel() {
           mode={formMode}
         />
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-9 gap-4 mb-8">
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <p className="text-xs text-muted-foreground">Total Affiliates</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-blue-600">{stats.ics}</div>
-              <p className="text-xs text-muted-foreground">Consultants (IC)</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-green-600">{stats.interns}</div>
-              <p className="text-xs text-muted-foreground">Interns</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-purple-600">{stats.unvs}</div>
-              <p className="text-xs text-muted-foreground">UN Volunteers</p>
-            </CardContent>
-          </Card>
-          <Card className={stats.critical14 > 0 ? 'border-red-500 bg-red-50' : ''}>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-red-600">{stats.critical14}</div>
-              <p className="text-xs text-muted-foreground">Critical (≤14d)</p>
-            </CardContent>
-          </Card>
-          <Card className={stats.expiring60 > 0 ? 'border-purple-500/50' : ''}>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-purple-600">{stats.expiring60}</div>
-              <p className="text-xs text-muted-foreground">Expiring (15-60d)</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-muted-foreground">{stats.notYetStarted}</div>
-              <p className="text-xs text-muted-foreground">Starting Soon</p>
-            </CardContent>
-          </Card>
-          <Card className={stats.contractBreak > 0 ? 'border-yellow-500/50' : ''}>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-yellow-600">{stats.contractBreak}</div>
-              <p className="text-xs text-muted-foreground">Contract Break</p>
-            </CardContent>
-          </Card>
-          <Card className={stats.noData > 0 ? 'border-destructive/50' : ''}>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-destructive">{stats.noData}</div>
-              <p className="text-xs text-muted-foreground">No Data</p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Affiliate Type Chart */}
+        <Card className="mb-8">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Affiliates by Type</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[200px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={[
+                    { name: 'IC', count: stats.ics, fill: 'hsl(var(--primary))' },
+                    { name: 'UNV', count: stats.unvs, fill: 'hsl(var(--accent-foreground))' },
+                    { name: 'Intern', count: stats.interns, fill: 'hsl(var(--muted-foreground))' },
+                  ]}
+                  layout="vertical"
+                  margin={{ top: 5, right: 40, left: 10, bottom: 5 }}
+                >
+                  <XAxis type="number" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="name" width={60} tick={{ fill: 'hsl(var(--foreground))', fontSize: 13, fontWeight: 500 }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const item = payload[0]?.payload;
+                      return (
+                        <div className="bg-popover border rounded-lg shadow-lg px-3 py-2 text-sm">
+                          <span className="font-medium">{item?.name}</span>: {item?.count}
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar dataKey="count" radius={[0, 6, 6, 0]} maxBarSize={28}>
+                    {[
+                      { fill: 'hsl(var(--primary))' },
+                      { fill: 'hsl(var(--accent-foreground))' },
+                      { fill: 'hsl(var(--muted-foreground))' },
+                    ].map((entry, index) => (
+                      <Cell key={index} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Filters */}
         <Card className="mb-6">
