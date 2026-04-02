@@ -55,6 +55,7 @@ export default function AffiliateOnboarding() {
   const [showLaunchPR, setShowLaunchPR] = useState(false);
   const [prLaunched, setPrLaunched] = useState(false);
   const [showLinkJob, setShowLinkJob] = useState(false);
+  const [jobLinked, setJobLinked] = useState(false);
 
   const { data: affiliate, isLoading: affiliateLoading } = useQuery({
     queryKey: ['affiliate', id],
