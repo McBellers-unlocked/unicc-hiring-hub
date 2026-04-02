@@ -37,6 +37,15 @@ export function LinkJobDialog({ open, onOpenChange, affiliateJobTitle, onJobCrea
     toast.success('Job linked with Samsaran');
     setSearchQuery('');
     setSelectedTitle(null);
+    onJobCreated?.();
+    onOpenChange(false);
+  };
+
+  const handleCreate = () => {
+    toast.success('Job created in Samsaran');
+    setSearchQuery('');
+    setSelectedTitle(null);
+    onJobCreated?.();
     onOpenChange(false);
   };
 
