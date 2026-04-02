@@ -54,6 +54,7 @@ export default function AffiliateOnboarding() {
   const [activeStage, setActiveStage] = useState<string>(LIFECYCLE_STAGES[0].key);
   const [showLaunchPR, setShowLaunchPR] = useState(false);
   const [prLaunched, setPrLaunched] = useState(false);
+  const [showLinkJob, setShowLinkJob] = useState(false);
 
   const { data: affiliate, isLoading: affiliateLoading } = useQuery({
     queryKey: ['affiliate', id],
