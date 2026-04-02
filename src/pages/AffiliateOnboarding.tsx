@@ -20,6 +20,7 @@ import {
 } from '@/lib/affiliateLifecycleConfig';
 import { useAuth } from '@/hooks/useAuth';
 import { LaunchPRDialog } from '@/components/affiliate/LaunchPRDialog';
+import { LinkJobDialog } from '@/components/affiliate/LinkJobDialog';
 
 interface AffiliateUser {
   id: string;
@@ -29,6 +30,7 @@ interface AffiliateUser {
   division: string | null;
   unit: string | null;
   line_manager: string | null;
+  job_title: string | null;
 }
 
 interface ContractRecord {
@@ -52,13 +54,14 @@ export default function AffiliateOnboarding() {
   const [activeStage, setActiveStage] = useState<string>(LIFECYCLE_STAGES[0].key);
   const [showLaunchPR, setShowLaunchPR] = useState(false);
   const [prLaunched, setPrLaunched] = useState(false);
+  const [showLinkJob, setShowLinkJob] = useState(false);
 
   const { data: affiliate, isLoading: affiliateLoading } = useQuery({
     queryKey: ['affiliate', id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, affiliate_type, division, unit, line_manager')
+        .select('id, name, email, affiliate_type, division, unit, line_manager, job_title')
         .eq('id', id)
         .single();
       if (error) throw error;
@@ -247,7 +250,7 @@ export default function AffiliateOnboarding() {
               </div>
               
               <div className="flex items-center gap-2">
-                <Button size="lg" onClick={() => console.log('Create/Link Job')}>
+                <Button size="lg" onClick={() => setShowLinkJob(true)}>
                   <Briefcase className="w-5 h-5 mr-2" />
                   Create/Link Job
                 </Button>
@@ -385,6 +388,11 @@ export default function AffiliateOnboarding() {
             />
           )}
         </div>
+        <LinkJobDialog
+          open={showLinkJob}
+          onOpenChange={setShowLinkJob}
+          affiliateJobTitle={affiliate.job_title}
+        />
         <LaunchPRDialog
           open={showLaunchPR}
           onOpenChange={setShowLaunchPR}
