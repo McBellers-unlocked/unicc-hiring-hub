@@ -22,9 +22,10 @@ interface LinkJobDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   affiliateJobTitle: string | null;
+  onJobCreated?: () => void;
 }
 
-export function LinkJobDialog({ open, onOpenChange, affiliateJobTitle }: LinkJobDialogProps) {
+export function LinkJobDialog({ open, onOpenChange, affiliateJobTitle, onJobCreated }: LinkJobDialogProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
 
@@ -36,6 +37,15 @@ export function LinkJobDialog({ open, onOpenChange, affiliateJobTitle }: LinkJob
     toast.success('Job linked with Samsaran');
     setSearchQuery('');
     setSelectedTitle(null);
+    onJobCreated?.();
+    onOpenChange(false);
+  };
+
+  const handleCreate = () => {
+    toast.success('Job created in Samsaran');
+    setSearchQuery('');
+    setSelectedTitle(null);
+    onJobCreated?.();
     onOpenChange(false);
   };
 
@@ -96,6 +106,7 @@ export function LinkJobDialog({ open, onOpenChange, affiliateJobTitle }: LinkJob
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={handleCreate}>Create new record</Button>
           <Button disabled={!selectedTitle} onClick={handleLink}>Link</Button>
         </DialogFooter>
       </DialogContent>

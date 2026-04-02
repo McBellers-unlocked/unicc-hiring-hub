@@ -55,6 +55,7 @@ export default function AffiliateOnboarding() {
   const [showLaunchPR, setShowLaunchPR] = useState(false);
   const [prLaunched, setPrLaunched] = useState(false);
   const [showLinkJob, setShowLinkJob] = useState(false);
+  const [jobLinked, setJobLinked] = useState(false);
 
   const { data: affiliate, isLoading: affiliateLoading } = useQuery({
     queryKey: ['affiliate', id],
@@ -250,9 +251,14 @@ export default function AffiliateOnboarding() {
               </div>
               
               <div className="flex items-center gap-2">
-                <Button size="lg" onClick={() => setShowLinkJob(true)}>
+                <Button
+                  size="lg"
+                  onClick={() => !jobLinked && setShowLinkJob(true)}
+                  className={jobLinked ? 'bg-green-600 hover:bg-green-600 text-white cursor-default' : ''}
+                  disabled={jobLinked}
+                >
                   <Briefcase className="w-5 h-5 mr-2" />
-                  Create/Link Job
+                  {jobLinked ? 'Job Linked' : 'Create/Link Job'}
                 </Button>
                 <Button size="lg" onClick={() => console.log('Create/Link Worker')}>
                   <UserPlus className="w-5 h-5 mr-2" />
@@ -392,6 +398,7 @@ export default function AffiliateOnboarding() {
           open={showLinkJob}
           onOpenChange={setShowLinkJob}
           affiliateJobTitle={affiliate.job_title}
+          onJobCreated={() => setJobLinked(true)}
         />
         <LaunchPRDialog
           open={showLaunchPR}
