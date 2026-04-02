@@ -477,14 +477,14 @@ export function AffiliateForm({
               </Button>
             )}
             {activeTab === 'assignment' ? (
-              <Button type="submit" disabled={isLoading}>
+              <Button type="button" disabled={isLoading} onClick={handleFinalSubmit}>
                 {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {mode === 'create' ? 'Add Affiliate' : 'Save Changes'}
               </Button>
             ) : (
               <Button
                 type="button"
-                onClick={() => setActiveTab(activeTab === 'personal' ? 'contract' : 'assignment')}
+                onClick={handleNext}
               >
                 Next
               </Button>
