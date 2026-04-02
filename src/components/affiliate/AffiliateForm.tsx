@@ -404,20 +404,40 @@ export function AffiliateForm({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="division">Division</Label>
-                  <Input
-                    id="division"
-                    {...register('division')}
-                    placeholder="Organizational division"
-                  />
+                  <Select
+                    value={selectedDivision || ''}
+                    onValueChange={(value) => {
+                      setValue('division', value);
+                      setValue('unit', '');
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select division" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(DIVISIONS).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="unit">Unit</Label>
-                  <Input
-                    id="unit"
-                    {...register('unit')}
-                    placeholder="Sub-unit or team"
-                  />
+                  <Select
+                    value={watch('unit') || ''}
+                    onValueChange={(value) => setValue('unit', value)}
+                    disabled={!selectedDivision}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={selectedDivision ? "Select unit" : "Select a division first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedDivision && DIVISION_UNITS[selectedDivision]?.map((unit) => (
+                        <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
