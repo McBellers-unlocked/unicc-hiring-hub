@@ -294,14 +294,6 @@ export function LaunchPRDialog({ open, onOpenChange, recordNumber, affiliateName
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Job</Label>
-                <Input
-                  value={job}
-                  onChange={(e) => setJob(e.target.value)}
-                  placeholder="Job title"
-                />
-              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
