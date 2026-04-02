@@ -47,7 +47,7 @@ export function LaunchPRDialog({ open, onOpenChange, recordNumber, affiliateName
   const [directAppointmentJustification, setDirectAppointmentJustification] = useState('');
   const [manager, setManager] = useState('');
   const [address, setAddress] = useState('');
-  const [job, setJob] = useState('');
+  
 
   // Sync form state when contract data loads or dialog opens
   useEffect(() => {
@@ -104,7 +104,6 @@ export function LaunchPRDialog({ open, onOpenChange, recordNumber, affiliateName
       `------------------------`,
       `Manager: ${manager || 'N/A'}`,
       `Address: ${address || 'N/A'}`,
-      `Job: ${job || 'N/A'}`,
     ].join('\n');
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -293,14 +292,6 @@ export function LaunchPRDialog({ open, onOpenChange, recordNumber, affiliateName
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Job</Label>
-                <Input
-                  value={job}
-                  onChange={(e) => setJob(e.target.value)}
-                  placeholder="Job title"
-                />
               </div>
             </div>
             <DialogFooter>
