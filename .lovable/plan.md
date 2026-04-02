@@ -1,31 +1,17 @@
 
 
-## Fix: Prevent Early Form Submission on Contract Tab
+## Replace KPI Cards with Bar Chart
 
-### Problem
-When filling fields on the "Contract" tab, pressing Enter in any input triggers the native form submit. Since the email field is now optional, the form validation passes with just name and affiliate_type, causing the form to submit prematurely without the user ever seeing the Assignment tab.
+### What
+Remove the 9 stats cards at the top of `/admin/affiliate-personnel` and replace them with a single bar chart showing the count of ICs, UNVs, and Interns.
 
-### Solution
+### Implementation
 
-**File: `src/components/affiliate/AffiliateForm.tsx`**
+**File: `src/pages/AffiliatePersonnel.tsx`**
 
-1. Wrap the `handleFormSubmit` to only allow submission when `activeTab === 'assignment'`. If the user somehow triggers submit on an earlier tab, auto-advance to the next tab instead of submitting.
+1. **Add imports**: Import `BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell` from `recharts`.
 
-Change the form's `onSubmit` handler:
-```tsx
-const guardedSubmit = (data: AffiliateFormData) => {
-  if (activeTab !== 'assignment') {
-    setActiveTab(activeTab === 'personal' ? 'contract' : 'assignment');
-    return;
-  }
-  return handleFormSubmit(data);
-};
-```
+2. **Replace the stats cards block** (lines 732-788) with a single `Card` containing a horizontal `BarChart` with 3 bars (IC, UNV, Intern), using the existing `stats.ics`, `stats.unvs`, and `stats.interns` values. Each bar will have a distinct color (blue for IC, purple for UNV, green for Intern). The chart will be compact (~200px height) to keep the page concise.
 
-And update the form tag:
-```tsx
-<form onSubmit={handleSubmit(guardedSubmit)} ...>
-```
-
-This ensures the form only actually submits when the user is on the final (Assignment) tab, regardless of how submission is triggered.
+3. **Keep the `stats` object** as-is since it's still used for the chart data and potentially elsewhere.
 
