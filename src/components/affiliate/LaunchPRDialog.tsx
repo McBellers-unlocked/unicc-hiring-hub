@@ -47,7 +47,7 @@ export function LaunchPRDialog({ open, onOpenChange, recordNumber, affiliateName
   const [directAppointmentJustification, setDirectAppointmentJustification] = useState('');
   const [manager, setManager] = useState('');
   const [address, setAddress] = useState('');
-  const [job, setJob] = useState('');
+  
 
   // Sync form state when contract data loads or dialog opens
   useEffect(() => {
