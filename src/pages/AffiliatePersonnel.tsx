@@ -639,6 +639,7 @@ export default function AffiliatePersonnel() {
   };
 
   return (
+    <>
     <Layout>
       <div className="container mx-auto py-8 px-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
