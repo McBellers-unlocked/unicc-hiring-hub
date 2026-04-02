@@ -1,21 +1,31 @@
 
 
-## Add "Delete Record" Option to Affiliate Personnel Context Menu
+## Fix: Prevent Early Form Submission on Contract Tab
 
-### What
-Add a "Delete record" option to the dropdown menu for each affiliate in `/admin/affiliate-personnel`. Clicking it opens a confirmation dialog. "Yes" deletes the affiliate from the `users` table (and cascading related records). "No" closes the dialog with no effect.
+### Problem
+When filling fields on the "Contract" tab, pressing Enter in any input triggers the native form submit. Since the email field is now optional, the form validation passes with just name and affiliate_type, causing the form to submit prematurely without the user ever seeing the Assignment tab.
 
-### Implementation
+### Solution
 
-**File: `src/pages/AffiliatePersonnel.tsx`**
+**File: `src/components/affiliate/AffiliateForm.tsx`**
 
-1. **Add imports**: Import `Trash2` from lucide-react, and `AlertDialog`, `AlertDialogAction`, `AlertDialogCancel`, `AlertDialogContent`, `AlertDialogDescription`, `AlertDialogFooter`, `AlertDialogHeader`, `AlertDialogTitle` from the alert-dialog component.
+1. Wrap the `handleFormSubmit` to only allow submission when `activeTab === 'assignment'`. If the user somehow triggers submit on an earlier tab, auto-advance to the next tab instead of submitting.
 
-2. **Add state**: `deletingAffiliate` state (`AffiliateUser | null`) to track which affiliate is pending deletion.
+Change the form's `onSubmit` handler:
+```tsx
+const guardedSubmit = (data: AffiliateFormData) => {
+  if (activeTab !== 'assignment') {
+    setActiveTab(activeTab === 'personal' ? 'contract' : 'assignment');
+    return;
+  }
+  return handleFormSubmit(data);
+};
+```
 
-3. **Add delete mutation**: A `useMutation` that calls `supabase.from('users').delete().eq('id', affiliate.id)`, invalidates the affiliates query on success, and shows a toast.
+And update the form tag:
+```tsx
+<form onSubmit={handleSubmit(guardedSubmit)} ...>
+```
 
-4. **Add menu item**: After the "Contract History" `DropdownMenuItem` (line 981), add a `DropdownMenuSeparator` and a new `DropdownMenuItem` with `Trash2` icon and text "Delete record", styled with `text-destructive`. On click, sets `deletingAffiliate`.
-
-5. **Add AlertDialog**: Outside the table, render an `AlertDialog` controlled by `deletingAffiliate`. Shows "Are you sure you want to delete this record?" with Yes/No buttons. "Yes" triggers the delete mutation; "No" closes the dialog.
+This ensures the form only actually submits when the user is on the final (Assignment) tab, regardless of how submission is triggered.
 
