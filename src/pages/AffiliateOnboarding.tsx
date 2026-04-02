@@ -424,6 +424,16 @@ export default function AffiliateOnboarding() {
           onOpenChange={setShowLinkVendor}
           onVendorCreated={() => setVendorLinked(true)}
         />
+        <LinkWorkerDialog
+          open={showLinkWorker}
+          onOpenChange={setShowLinkWorker}
+          affiliateName={affiliate.name}
+          contractStartDate={contract?.start_date || null}
+          affiliateDutyStation={affiliate.duty_station}
+          affiliateFirstIncumbency={affiliate.first_incumbency_date}
+          affiliateGender={affiliate.gender}
+          onWorkerCreated={() => setWorkerLinked(true)}
+        />
         <LaunchPRDialog
           open={showLaunchPR}
           onOpenChange={setShowLaunchPR}
