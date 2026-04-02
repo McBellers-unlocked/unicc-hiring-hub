@@ -1,27 +1,34 @@
 
 
-## Create/Link Vendor Wizard Dialog
+## Create/Link Worker Wizard Dialog
 
 ### What
-Add a vendor wizard dialog to the "Create/Link Vendor" button, similar to the Job wizard but with vendor-specific fields (Name, Group, GSM Supplier Number) and a searchable dummy vendor list.
+Add a new "Create/Link Worker" wizard dialog, similar to the existing Job and Vendor wizards. It includes a search bar with dummy people names and pre-filled form fields sourced from the affiliate's data.
 
-### Implementation
+### Changes
 
-**1. Create `src/components/affiliate/LinkVendorDialog.tsx`**
-- Mirror the `LinkJobDialog` pattern.
-- Dummy vendor list: ~8 company names (e.g., "Accenture", "Deloitte Consulting", "McKinsey & Company", "PwC Advisory", "KPMG International", "Capgemini", "IBM Consulting", "Booz Allen Hamilton").
-- Search bar labeled "Search vendors in Samsaran" filtering the list.
-- Below the search results, three fields:
-  - **Name**: free text `Input`
-  - **Group**: read-only `Input` pre-filled with "Individual service contractor"
-  - **GSM Supplier Number**: free text `Input`
-- Footer: Cancel, "Create new record" (always enabled), "Link" (enabled when a vendor is selected from the list).
-- On Link: `toast.success('Vendor linked to Samsaran')`, call `onVendorCreated`, close.
-- On Create: `toast.success('Vendor created in Samsaran')`, call `onVendorCreated`, close.
+**1. Update `AffiliateUser` interface and query in `src/pages/AffiliateOnboarding.tsx`**
+- Add `duty_station`, `first_incumbency_date`, and `gender` to the interface and the Supabase select query.
+- Add `workerLinked` and `showLinkWorker` state.
+- Wire the "Create/Link Worker" button to open the dialog; turn green with "Worker Linked" text when done.
+- Render `<LinkWorkerDialog>` with props: `affiliateName`, `contractStartDate` (from contract), `affiliateDutyStation`, `affiliateFirstIncumbency`, `affiliateGender`.
 
-**2. Update `src/pages/AffiliateOnboarding.tsx`**
-- Add `vendorLinked` state and `showLinkVendor` state.
-- Wire "Create/Link Vendor" button to open the dialog.
-- Turn button green with text "Vendor Linked" when `vendorLinked` is true (same pattern as Job/PR buttons).
-- Render `<LinkVendorDialog>` with appropriate props.
+**2. Create `src/components/affiliate/LinkWorkerDialog.tsx`**
+- Search bar: "Search workers in Samsaran" with dummy people names (e.g., "Maria Garcia", "James Smith", "Aisha Patel", "Chen Wei", "Fatima Al-Hassan", "Lucas Müller", "Yuki Tanaka", "Priya Sharma").
+- Selectable list below the search bar (same pattern as LinkJobDialog).
+- Form fields below, all editable and pre-filled:
+  - **First Name** — split from `affiliateName` (first word)
+  - **Last Name** — split from `affiliateName` (remaining words)
+  - **Contract Employment Start Date** — from `contractStartDate`
+  - **Office Location** — from `affiliateDutyStation`
+  - **Original Hire Date** — from `affiliateFirstIncumbency`
+  - **Gender** — from `affiliateGender`
+- Footer: Cancel, "Create new record" (always enabled), "Link" (enabled when a worker is selected).
+- On Link: `toast.success('Worker linked to Samsaran')`, call `onWorkerCreated`, close.
+- On Create: `toast.success('Worker created in Samsaran')`, call `onWorkerCreated`, close.
+
+### Technical details
+- Date fields displayed as formatted strings (dd MMM yyyy) in text inputs.
+- All fields are editable (not read-only) so the user can override pre-filled values.
+- Follows the exact same component pattern as `LinkJobDialog` and `LinkVendorDialog`.
 
