@@ -21,6 +21,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { LaunchPRDialog } from '@/components/affiliate/LaunchPRDialog';
 import { LinkJobDialog } from '@/components/affiliate/LinkJobDialog';
+import { LinkVendorDialog } from '@/components/affiliate/LinkVendorDialog';
 
 interface AffiliateUser {
   id: string;
