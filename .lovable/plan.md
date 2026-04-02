@@ -1,21 +1,19 @@
 
 
-## Move UNV and Interns Below Affiliate Personnel
+## Remove Email Required Validation for Affiliate Creation
 
 ### What
-Move the "UNV" and "Interns" menu items from their current position in the HR Operations dropdown (lines 252-261) to after "Affiliate Personnel" (after line 313), making them the last two items in the dropdown.
+Make the "Email" field optional when creating a new affiliate, while keeping it required when editing.
 
 ### Implementation
 
-**File: `src/components/Layout.tsx`**
+**File: `src/components/affiliate/AffiliateForm.tsx`**
 
-1. **Remove** lines 252-261 (UNV and Interns menu items).
-2. **Insert** them after the Affiliate Personnel item (after line 313), just before `</DropdownMenuContent>`.
+1. Change the Zod schema to make `email` conditionally required based on mode, or simply make it optional in the schema:
+   - Change `email: z.string().email('Invalid email')` to `email: z.string().email('Invalid email').optional().or(z.literal(''))`
+2. Remove the red asterisk `*` next to the Email label when `mode === 'create'`.
 
-Final order at the bottom of the dropdown:
-- Document Repository
-- *(separator)*
-- Affiliate Personnel
-- UNV
-- Interns
+**File: `supabase/functions/create-affiliate/index.ts`**
+
+3. Remove `email` from the required-field check (line 37) so only `name` and `affiliate_type` are mandatory server-side.
 
