@@ -22,6 +22,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { LaunchPRDialog } from '@/components/affiliate/LaunchPRDialog';
 import { LinkJobDialog } from '@/components/affiliate/LinkJobDialog';
 import { LinkVendorDialog } from '@/components/affiliate/LinkVendorDialog';
+import { LinkWorkerDialog } from '@/components/affiliate/LinkWorkerDialog';
 
 interface AffiliateUser {
   id: string;
@@ -32,6 +33,9 @@ interface AffiliateUser {
   unit: string | null;
   line_manager: string | null;
   job_title: string | null;
+  duty_station: string | null;
+  first_incumbency_date: string | null;
+  gender: string | null;
 }
 
 interface ContractRecord {
@@ -59,13 +63,15 @@ export default function AffiliateOnboarding() {
   const [jobLinked, setJobLinked] = useState(false);
   const [showLinkVendor, setShowLinkVendor] = useState(false);
   const [vendorLinked, setVendorLinked] = useState(false);
+  const [showLinkWorker, setShowLinkWorker] = useState(false);
+  const [workerLinked, setWorkerLinked] = useState(false);
 
   const { data: affiliate, isLoading: affiliateLoading } = useQuery({
     queryKey: ['affiliate', id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, affiliate_type, division, unit, line_manager, job_title')
+        .select('id, name, email, affiliate_type, division, unit, line_manager, job_title, duty_station, first_incumbency_date, gender')
         .eq('id', id)
         .single();
       if (error) throw error;
@@ -263,9 +269,14 @@ export default function AffiliateOnboarding() {
                   <Briefcase className="w-5 h-5 mr-2" />
                   {jobLinked ? 'Job Linked' : 'Create/Link Job'}
                 </Button>
-                <Button size="lg" onClick={() => console.log('Create/Link Worker')}>
+                <Button
+                  size="lg"
+                  onClick={() => !workerLinked && setShowLinkWorker(true)}
+                  className={workerLinked ? 'bg-green-600 hover:bg-green-600 text-white cursor-default' : ''}
+                  disabled={workerLinked}
+                >
                   <UserPlus className="w-5 h-5 mr-2" />
-                  Create/Link Worker
+                  {workerLinked ? 'Worker Linked' : 'Create/Link Worker'}
                 </Button>
                 <Button
                   size="lg"
@@ -412,6 +423,16 @@ export default function AffiliateOnboarding() {
           open={showLinkVendor}
           onOpenChange={setShowLinkVendor}
           onVendorCreated={() => setVendorLinked(true)}
+        />
+        <LinkWorkerDialog
+          open={showLinkWorker}
+          onOpenChange={setShowLinkWorker}
+          affiliateName={affiliate.name}
+          contractStartDate={contract?.start_date || null}
+          affiliateDutyStation={affiliate.duty_station}
+          affiliateFirstIncumbency={affiliate.first_incumbency_date}
+          affiliateGender={affiliate.gender}
+          onWorkerCreated={() => setWorkerLinked(true)}
         />
         <LaunchPRDialog
           open={showLaunchPR}
