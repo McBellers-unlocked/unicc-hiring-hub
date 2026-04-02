@@ -275,6 +275,14 @@ export default function AffiliatePersonnel() {
 
   const deleteAffiliateMutation = useMutation({
     mutationFn: async (affiliateId: string) => {
+      // Delete related records first to avoid FK constraint violations
+      const deletes = [
+        supabase.from('affiliate_contract_documents').delete().eq('user_id', affiliateId),
+        supabase.from('affiliate_contract_history').delete().eq('user_id', affiliateId),
+        supabase.from('affiliate_lifecycle_checklists').delete().eq('user_id', affiliateId),
+      ];
+      await Promise.all(deletes);
+
       const { error } = await supabase.from('users').delete().eq('id', affiliateId);
       if (error) throw error;
     },
