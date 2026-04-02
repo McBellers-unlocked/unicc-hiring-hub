@@ -21,6 +21,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { LaunchPRDialog } from '@/components/affiliate/LaunchPRDialog';
 import { LinkJobDialog } from '@/components/affiliate/LinkJobDialog';
+import { LinkVendorDialog } from '@/components/affiliate/LinkVendorDialog';
 
 interface AffiliateUser {
   id: string;
@@ -56,6 +57,8 @@ export default function AffiliateOnboarding() {
   const [prLaunched, setPrLaunched] = useState(false);
   const [showLinkJob, setShowLinkJob] = useState(false);
   const [jobLinked, setJobLinked] = useState(false);
+  const [showLinkVendor, setShowLinkVendor] = useState(false);
+  const [vendorLinked, setVendorLinked] = useState(false);
 
   const { data: affiliate, isLoading: affiliateLoading } = useQuery({
     queryKey: ['affiliate', id],
@@ -264,9 +267,14 @@ export default function AffiliateOnboarding() {
                   <UserPlus className="w-5 h-5 mr-2" />
                   Create/Link Worker
                 </Button>
-                <Button size="lg" onClick={() => console.log('Create/Link Vendor')}>
+                <Button
+                  size="lg"
+                  onClick={() => !vendorLinked && setShowLinkVendor(true)}
+                  className={vendorLinked ? 'bg-green-600 hover:bg-green-600 text-white cursor-default' : ''}
+                  disabled={vendorLinked}
+                >
                   <Building2 className="w-5 h-5 mr-2" />
-                  Create/Link Vendor
+                  {vendorLinked ? 'Vendor Linked' : 'Create/Link Vendor'}
                 </Button>
                 <Button
                   onClick={() => !prLaunched && setShowLaunchPR(true)}
@@ -399,6 +407,11 @@ export default function AffiliateOnboarding() {
           onOpenChange={setShowLinkJob}
           affiliateJobTitle={affiliate.job_title}
           onJobCreated={() => setJobLinked(true)}
+        />
+        <LinkVendorDialog
+          open={showLinkVendor}
+          onOpenChange={setShowLinkVendor}
+          onVendorCreated={() => setVendorLinked(true)}
         />
         <LaunchPRDialog
           open={showLaunchPR}
