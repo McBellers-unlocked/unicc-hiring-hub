@@ -271,6 +271,23 @@ export default function AffiliatePersonnel() {
   const [editingAffiliate, setEditingAffiliate] = useState<AffiliateUser | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBackfilling, setIsBackfilling] = useState(false);
+  const [deletingAffiliate, setDeletingAffiliate] = useState<AffiliateUser | null>(null);
+
+  const deleteAffiliateMutation = useMutation({
+    mutationFn: async (affiliateId: string) => {
+      const { error } = await supabase.from('users').delete().eq('id', affiliateId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['affiliate-personnel'] });
+      toast.success('Record deleted successfully');
+      setDeletingAffiliate(null);
+    },
+    onError: (error: any) => {
+      toast.error('Failed to delete record: ' + error.message);
+      setDeletingAffiliate(null);
+    },
+  });
 
   const { data: affiliates, isLoading } = useQuery({
     queryKey: ['affiliate-personnel'],
