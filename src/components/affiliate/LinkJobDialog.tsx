@@ -25,7 +25,7 @@ interface LinkJobDialogProps {
   onJobCreated?: () => void;
 }
 
-export function LinkJobDialog({ open, onOpenChange, affiliateJobTitle }: LinkJobDialogProps) {
+export function LinkJobDialog({ open, onOpenChange, affiliateJobTitle, onJobCreated }: LinkJobDialogProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
 
