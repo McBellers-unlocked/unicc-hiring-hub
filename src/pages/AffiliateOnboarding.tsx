@@ -32,6 +32,9 @@ interface AffiliateUser {
   unit: string | null;
   line_manager: string | null;
   job_title: string | null;
+  duty_station: string | null;
+  first_incumbency_date: string | null;
+  gender: string | null;
 }
 
 interface ContractRecord {
