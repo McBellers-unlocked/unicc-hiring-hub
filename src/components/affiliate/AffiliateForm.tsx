@@ -180,6 +180,14 @@ export function AffiliateForm({
     await onSubmit(data, selectedUserId || undefined);
   };
 
+  const guardedSubmit = (data: AffiliateFormData) => {
+    if (activeTab !== 'assignment') {
+      setActiveTab(activeTab === 'personal' ? 'contract' : 'assignment');
+      return;
+    }
+    return handleFormSubmit(data);
+  };
+
   const contractStartDate = watch('contract_start_date');
   const contractEndDate = watch('contract_end_date');
   const firstIncumbencyDate = watch('first_incumbency_date');
@@ -195,7 +203,7 @@ export function AffiliateForm({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(guardedSubmit)} className="space-y-4">
           {mode === 'create' && (
             <div className="space-y-2">
               <Label>Search Existing Staff (Optional)</Label>
