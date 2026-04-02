@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, User, Mail, Calendar, Clock, RefreshCw, FileText, Rocket } from 'lucide-react';
+import { ArrowLeft, User, Mail, Calendar, Clock, RefreshCw, FileText, Rocket, Briefcase, UserPlus, Building2 } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
 import { AffiliateLifecycleTimeline } from '@/components/affiliate/AffiliateLifecycleTimeline';
