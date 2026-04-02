@@ -106,6 +106,7 @@ export function LinkJobDialog({ open, onOpenChange, affiliateJobTitle, onJobCrea
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={handleCreate}>Create new record</Button>
           <Button disabled={!selectedTitle} onClick={handleLink}>Link</Button>
         </DialogFooter>
       </DialogContent>

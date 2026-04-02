@@ -398,6 +398,7 @@ export default function AffiliateOnboarding() {
           open={showLinkJob}
           onOpenChange={setShowLinkJob}
           affiliateJobTitle={affiliate.job_title}
+          onJobCreated={() => setJobLinked(true)}
         />
         <LaunchPRDialog
           open={showLaunchPR}
