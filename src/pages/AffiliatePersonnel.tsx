@@ -1029,5 +1029,25 @@ export default function AffiliatePersonnel() {
         </Card>
       </div>
     </Layout>
+
+      <AlertDialog open={!!deletingAffiliate} onOpenChange={(open) => { if (!open) setDeletingAffiliate(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete record</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this record?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletingAffiliate && deleteAffiliateMutation.mutate(deletingAffiliate.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
   );
 }
