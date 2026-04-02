@@ -32,8 +32,8 @@ Deno.serve(async (req) => {
       samsaran_pr, contract_start_date, contract_end_date, days_worked,
     } = body;
 
-    if (!name || !email || !affiliate_type) {
-      return new Response(JSON.stringify({ error: 'name, email, and affiliate_type are required' }), {
+    if (!name || !affiliate_type) {
+      return new Response(JSON.stringify({ error: 'name and affiliate_type are required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

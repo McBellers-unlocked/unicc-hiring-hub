@@ -240,7 +240,7 @@ export function AffiliateForm({
 
                 <div className="space-y-2">
                   <Label htmlFor="email">
-                    Email <span className="text-destructive">*</span>
+                    Email {mode === 'edit' && <span className="text-destructive">*</span>}
                   </Label>
                   <Input
                     id="email"
