@@ -250,16 +250,6 @@ export const Layout = ({ children }: LayoutProps) => {
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link to="/operations/unv" className="flex items-center w-full">
-                            UNV
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link to="/operations/interns" className="flex items-center w-full">
-                            Interns
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
                           <Link to="/operations/stdas" className="flex items-center w-full">
                             STDAs
                           </Link>
