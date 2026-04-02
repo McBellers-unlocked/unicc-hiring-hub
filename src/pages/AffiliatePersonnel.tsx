@@ -13,9 +13,20 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Users, Search, Upload, Calendar, AlertTriangle, CheckCircle, Clock, Building2, UserPlus, MoreHorizontal, Pencil, ClipboardList, FileSpreadsheet, ArrowUp, ArrowDown, ArrowUpDown, Download } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Users, Search, Upload, Calendar, AlertTriangle, CheckCircle, Clock, Building2, UserPlus, MoreHorizontal, Pencil, ClipboardList, FileSpreadsheet, ArrowUp, ArrowDown, ArrowUpDown, Download, Trash2 } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { AffiliateForm, AffiliateFormData } from '@/components/affiliate/AffiliateForm';
