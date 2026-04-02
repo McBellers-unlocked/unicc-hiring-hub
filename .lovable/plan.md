@@ -1,18 +1,21 @@
 
 
-## Add Pillar Group Headers to HR Strategy Tracker View
+## Move UNV and Interns Below Affiliate Personnel
 
 ### What
-Add the same pillar section header rows that exist in the public/management view (`StrategyTrackerPublic.tsx`) to the main HR view (`StrategyTracker.tsx`).
+Move the "UNV" and "Interns" menu items from their current position in the HR Operations dropdown (lines 252-261) to after "Affiliate Personnel" (after line 313), making them the last two items in the dropdown.
 
 ### Implementation
 
-**File: `src/pages/StrategyTracker.tsx`**
+**File: `src/components/Layout.tsx`**
 
-1. Track `lastPillar` before the sorted `.map()` call (using a closure variable, same pattern as the public page).
-2. Inside the `.map()`, check if the current item's pillar differs from `lastPillar`. If so, render a full-width header row with the pillar name styled as `bg-primary/5` with uppercase tracking text.
-3. Update `lastPillar` after the check.
-4. The header row spans all 6 columns (`colSpan={6}`), matching the public view exactly.
+1. **Remove** lines 252-261 (UNV and Interns menu items).
+2. **Insert** them after the Affiliate Personnel item (after line 313), just before `</DropdownMenuContent>`.
 
-This is a small change — roughly 10 lines added to the existing `.map()` block.
+Final order at the bottom of the dropdown:
+- Document Repository
+- *(separator)*
+- Affiliate Personnel
+- UNV
+- Interns
 
