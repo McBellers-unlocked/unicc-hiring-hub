@@ -207,6 +207,7 @@ export function AffiliateForm({
   const firstIncumbencyDate = watch('first_incumbency_date');
   const affiliateType = watch('affiliate_type');
   const gender = watch('gender');
+  const selectedDivision = watch('division');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
