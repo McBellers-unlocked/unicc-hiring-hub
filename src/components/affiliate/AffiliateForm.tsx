@@ -89,6 +89,7 @@ export function AffiliateForm({
     setValue,
     watch,
     reset,
+    trigger,
     formState: { errors },
   } = useForm<AffiliateFormData>({
     resolver: zodResolver(affiliateSchema),
@@ -180,12 +181,24 @@ export function AffiliateForm({
     await onSubmit(data, selectedUserId || undefined);
   };
 
-  const guardedSubmit = (data: AffiliateFormData) => {
-    if (activeTab !== 'assignment') {
-      setActiveTab(activeTab === 'personal' ? 'contract' : 'assignment');
-      return;
+  const handleNext = async () => {
+    if (activeTab === 'personal') {
+      const valid = await trigger(['name', 'affiliate_type']);
+      if (valid) setActiveTab('contract');
+    } else if (activeTab === 'contract') {
+      setActiveTab('assignment');
     }
-    return handleFormSubmit(data);
+  };
+
+  const handleFinalSubmit = () => {
+    handleSubmit(handleFormSubmit)();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && activeTab !== 'assignment') {
+      e.preventDefault();
+      handleNext();
+    }
   };
 
   const contractStartDate = watch('contract_start_date');
@@ -203,7 +216,7 @@ export function AffiliateForm({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(guardedSubmit)} className="space-y-4">
+        <form onSubmit={(e) => e.preventDefault()} onKeyDown={handleKeyDown} className="space-y-4">
           {mode === 'create' && (
             <div className="space-y-2">
               <Label>Search Existing Staff (Optional)</Label>
@@ -464,14 +477,14 @@ export function AffiliateForm({
               </Button>
             )}
             {activeTab === 'assignment' ? (
-              <Button type="submit" disabled={isLoading}>
+              <Button type="button" disabled={isLoading} onClick={handleFinalSubmit}>
                 {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {mode === 'create' ? 'Add Affiliate' : 'Save Changes'}
               </Button>
             ) : (
               <Button
                 type="button"
-                onClick={() => setActiveTab(activeTab === 'personal' ? 'contract' : 'assignment')}
+                onClick={handleNext}
               >
                 Next
               </Button>
