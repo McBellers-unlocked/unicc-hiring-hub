@@ -203,7 +203,7 @@ export function AffiliateForm({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(guardedSubmit)} className="space-y-4">
           {mode === 'create' && (
             <div className="space-y-2">
               <Label>Search Existing Staff (Optional)</Label>
