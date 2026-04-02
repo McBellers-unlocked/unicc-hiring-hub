@@ -22,6 +22,7 @@ interface LinkJobDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   affiliateJobTitle: string | null;
+  onJobCreated?: () => void;
 }
 
 export function LinkJobDialog({ open, onOpenChange, affiliateJobTitle }: LinkJobDialogProps) {
