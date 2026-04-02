@@ -104,7 +104,6 @@ export function LaunchPRDialog({ open, onOpenChange, recordNumber, affiliateName
       `------------------------`,
       `Manager: ${manager || 'N/A'}`,
       `Address: ${address || 'N/A'}`,
-      `Job: ${job || 'N/A'}`,
     ].join('\n');
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
