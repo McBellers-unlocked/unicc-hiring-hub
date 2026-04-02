@@ -20,6 +20,7 @@ import {
 } from '@/lib/affiliateLifecycleConfig';
 import { useAuth } from '@/hooks/useAuth';
 import { LaunchPRDialog } from '@/components/affiliate/LaunchPRDialog';
+import { LinkJobDialog } from '@/components/affiliate/LinkJobDialog';
 
 interface AffiliateUser {
   id: string;
