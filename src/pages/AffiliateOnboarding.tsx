@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, User, Mail, Calendar, Clock, RefreshCw, FileText, Rocket } from 'lucide-react';
+import { ArrowLeft, User, Mail, Calendar, Clock, RefreshCw, FileText, Rocket, Briefcase, UserPlus, Building2 } from 'lucide-react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
 import { AffiliateLifecycleTimeline } from '@/components/affiliate/AffiliateLifecycleTimeline';
@@ -246,15 +246,29 @@ export default function AffiliateOnboarding() {
                 </div>
               </div>
               
-              <Button
-                onClick={() => !prLaunched && setShowLaunchPR(true)}
-                size="lg"
-                className={prLaunched ? 'bg-green-600 hover:bg-green-600 text-white cursor-default' : ''}
-                disabled={prLaunched}
-              >
-                <Rocket className="w-5 h-5 mr-2" />
-                {prLaunched ? 'PR Launched' : 'Launch PR'}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="lg" onClick={() => console.log('Create/Link Job')}>
+                  <Briefcase className="w-5 h-5 mr-2" />
+                  Create/Link Job
+                </Button>
+                <Button variant="outline" size="lg" onClick={() => console.log('Create/Link Worker')}>
+                  <UserPlus className="w-5 h-5 mr-2" />
+                  Create/Link Worker
+                </Button>
+                <Button variant="outline" size="lg" onClick={() => console.log('Create/Link Vendor')}>
+                  <Building2 className="w-5 h-5 mr-2" />
+                  Create/Link Vendor
+                </Button>
+                <Button
+                  onClick={() => !prLaunched && setShowLaunchPR(true)}
+                  size="lg"
+                  className={prLaunched ? 'bg-green-600 hover:bg-green-600 text-white cursor-default' : ''}
+                  disabled={prLaunched}
+                >
+                  <Rocket className="w-5 h-5 mr-2" />
+                  {prLaunched ? 'PR Launched' : 'Launch PR'}
+                </Button>
+              </div>
 
               <div className="flex flex-wrap gap-4">
                 {affiliate.affiliate_type && (
