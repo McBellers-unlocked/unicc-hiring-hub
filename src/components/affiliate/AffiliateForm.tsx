@@ -89,6 +89,7 @@ export function AffiliateForm({
     setValue,
     watch,
     reset,
+    trigger,
     formState: { errors },
   } = useForm<AffiliateFormData>({
     resolver: zodResolver(affiliateSchema),
