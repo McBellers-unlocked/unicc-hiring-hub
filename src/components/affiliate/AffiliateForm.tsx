@@ -180,6 +180,14 @@ export function AffiliateForm({
     await onSubmit(data, selectedUserId || undefined);
   };
 
+  const guardedSubmit = (data: AffiliateFormData) => {
+    if (activeTab !== 'assignment') {
+      setActiveTab(activeTab === 'personal' ? 'contract' : 'assignment');
+      return;
+    }
+    return handleFormSubmit(data);
+  };
+
   const contractStartDate = watch('contract_start_date');
   const contractEndDate = watch('contract_end_date');
   const firstIncumbencyDate = watch('first_incumbency_date');
