@@ -61,7 +61,7 @@ export default function AffiliateOnboarding() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, affiliate_type, division, unit, line_manager')
+        .select('id, name, email, affiliate_type, division, unit, line_manager, job_title')
         .eq('id', id)
         .single();
       if (error) throw error;
