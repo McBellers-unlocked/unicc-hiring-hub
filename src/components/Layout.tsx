@@ -301,6 +301,16 @@ export const Layout = ({ children }: LayoutProps) => {
                             Affiliate Personnel
                           </Link>
                         </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/operations/unv" className="flex items-center w-full">
+                            UNV
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/operations/interns" className="flex items-center w-full">
+                            Interns
+                          </Link>
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
