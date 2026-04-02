@@ -181,12 +181,24 @@ export function AffiliateForm({
     await onSubmit(data, selectedUserId || undefined);
   };
 
-  const guardedSubmit = (data: AffiliateFormData) => {
-    if (activeTab !== 'assignment') {
-      setActiveTab(activeTab === 'personal' ? 'contract' : 'assignment');
-      return;
+  const handleNext = async () => {
+    if (activeTab === 'personal') {
+      const valid = await trigger(['name', 'affiliate_type']);
+      if (valid) setActiveTab('contract');
+    } else if (activeTab === 'contract') {
+      setActiveTab('assignment');
     }
-    return handleFormSubmit(data);
+  };
+
+  const handleFinalSubmit = () => {
+    handleSubmit(handleFormSubmit)();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && activeTab !== 'assignment') {
+      e.preventDefault();
+      handleNext();
+    }
   };
 
   const contractStartDate = watch('contract_start_date');
