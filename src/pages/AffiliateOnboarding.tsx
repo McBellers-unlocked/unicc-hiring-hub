@@ -250,7 +250,7 @@ export default function AffiliateOnboarding() {
               </div>
               
               <div className="flex items-center gap-2">
-                <Button size="lg" onClick={() => console.log('Create/Link Job')}>
+                <Button size="lg" onClick={() => setShowLinkJob(true)}>
                   <Briefcase className="w-5 h-5 mr-2" />
                   Create/Link Job
                 </Button>
