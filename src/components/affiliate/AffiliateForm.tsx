@@ -28,7 +28,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 
 const affiliateSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  email: z.string().email('Invalid email'),
+  email: z.string().email('Invalid email').optional().or(z.literal('')),
   affiliate_type: z.string().min(1, 'Affiliate type is required'),
   division: z.string().optional(),
   unit: z.string().optional(),
@@ -240,7 +240,7 @@ export function AffiliateForm({
 
                 <div className="space-y-2">
                   <Label htmlFor="email">
-                    Email <span className="text-destructive">*</span>
+                    Email {mode === 'edit' && <span className="text-destructive">*</span>}
                   </Label>
                   <Input
                     id="email"
