@@ -63,7 +63,7 @@ export function LinkJobDialog({ open, onOpenChange, affiliateJobTitle }: LinkJob
         </div>
 
         <div>
-          <label className="text-sm font-medium mb-1.5 block">Search Similar Titles</label>
+          <label className="text-sm font-medium mb-1.5 block"><label className="text-sm font-medium mb-1.5 block">Search titles in Samsaran</label></label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
