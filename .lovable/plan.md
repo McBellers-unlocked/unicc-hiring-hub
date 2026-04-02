@@ -1,40 +1,19 @@
 
 
-## Add "Create/Link Job", "Create/Link Worker", and "Create/Link Vendor" Buttons
+## Convert Division and Unit to Dropdowns in Affiliate Form
 
 ### What
-Add three new buttons to the left of the existing "Launch PR" button in the Affiliate Info Card on the onboarding page. These are placeholder action buttons for now.
+Replace the free-text `Division` and `Unit` inputs in the Assignment tab of the Add Affiliate wizard with dropdown selects, using the same options as the Initial Position Request form.
 
 ### Implementation
 
-**File: `src/pages/AffiliateOnboarding.tsx`**
+**File: `src/components/affiliate/AffiliateForm.tsx`**
 
-1. **Add imports**: Import `Briefcase`, `UserPlus`, `Building2` icons from `lucide-react`.
+1. **Add imports**: Import `DIVISIONS`, `DIVISION_UNITS` from `@/lib/organizationConstants`, and `Select, SelectContent, SelectItem, SelectTrigger, SelectValue` from `@/components/ui/select`.
 
-2. **Add buttons before "Launch PR"** (around line 248-257): Wrap the Launch PR button and the three new buttons in a `flex` container with `gap-2`. The three new buttons use `variant="outline"` to visually distinguish them from the primary Launch PR button:
-   - **Create/Link Job** — `Briefcase` icon
-   - **Create/Link Worker** — `UserPlus` icon
-   - **Create/Link Vendor** — `Building2` icon
+2. **Replace Division input** (lines 403-410): Replace the `<Input>` with a `<Select>` populated from `DIVISIONS` (keys as values, full names as labels). Use `setValue('division', ...)` on change and `watch('division')` for the current value. Also reset the `unit` field when division changes.
 
-The buttons will be non-functional placeholders for now (logging to console on click), ready for future dialog/workflow integration.
+3. **Replace Unit input** (lines 412-419): Replace with a `<Select>` populated from `DIVISION_UNITS[selectedDivision]`. The options are filtered based on the selected division. If no division is selected, show a disabled placeholder.
 
-### Technical detail
-Replace the single Launch PR `<Button>` block with:
-```tsx
-<div className="flex items-center gap-2">
-  <Button variant="outline" size="lg" onClick={() => console.log('Create/Link Job')}>
-    <Briefcase className="w-5 h-5 mr-2" />
-    Create/Link Job
-  </Button>
-  <Button variant="outline" size="lg" onClick={() => console.log('Create/Link Worker')}>
-    <UserPlus className="w-5 h-5 mr-2" />
-    Create/Link Worker
-  </Button>
-  <Button variant="outline" size="lg" onClick={() => console.log('Create/Link Vendor')}>
-    <Building2 className="w-5 h-5 mr-2" />
-    Create/Link Vendor
-  </Button>
-  <Button ...existing Launch PR button... />
-</div>
-```
+4. **Wire up with react-hook-form**: Since `Select` from radix doesn't work with `register`, use `Controller` or manual `watch`/`setValue` pattern (consistent with how the form already works).
 
