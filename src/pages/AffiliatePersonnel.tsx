@@ -13,9 +13,20 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Users, Search, Upload, Calendar, AlertTriangle, CheckCircle, Clock, Building2, UserPlus, MoreHorizontal, Pencil, ClipboardList, FileSpreadsheet, ArrowUp, ArrowDown, ArrowUpDown, Download } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Users, Search, Upload, Calendar, AlertTriangle, CheckCircle, Clock, Building2, UserPlus, MoreHorizontal, Pencil, ClipboardList, FileSpreadsheet, ArrowUp, ArrowDown, ArrowUpDown, Download, Trash2 } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { AffiliateForm, AffiliateFormData } from '@/components/affiliate/AffiliateForm';
@@ -260,6 +271,23 @@ export default function AffiliatePersonnel() {
   const [editingAffiliate, setEditingAffiliate] = useState<AffiliateUser | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBackfilling, setIsBackfilling] = useState(false);
+  const [deletingAffiliate, setDeletingAffiliate] = useState<AffiliateUser | null>(null);
+
+  const deleteAffiliateMutation = useMutation({
+    mutationFn: async (affiliateId: string) => {
+      const { error } = await supabase.from('users').delete().eq('id', affiliateId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['affiliate-personnel'] });
+      toast.success('Record deleted successfully');
+      setDeletingAffiliate(null);
+    },
+    onError: (error: any) => {
+      toast.error('Failed to delete record: ' + error.message);
+      setDeletingAffiliate(null);
+    },
+  });
 
   const { data: affiliates, isLoading } = useQuery({
     queryKey: ['affiliate-personnel'],
@@ -611,6 +639,7 @@ export default function AffiliatePersonnel() {
   };
 
   return (
+    <>
     <Layout>
       <div className="container mx-auto py-8 px-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
@@ -979,6 +1008,14 @@ export default function AffiliatePersonnel() {
                                     Contract History
                                   </Link>
                                 </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => setDeletingAffiliate(affiliate)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete record
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -993,5 +1030,25 @@ export default function AffiliatePersonnel() {
         </Card>
       </div>
     </Layout>
+    <AlertDialog open={!!deletingAffiliate} onOpenChange={(open) => { if (!open) setDeletingAffiliate(null); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete record</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete this record?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>No</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => deletingAffiliate && deleteAffiliateMutation.mutate(deletingAffiliate.id)}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Yes
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
