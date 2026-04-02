@@ -388,6 +388,11 @@ export default function AffiliateOnboarding() {
             />
           )}
         </div>
+        <LinkJobDialog
+          open={showLinkJob}
+          onOpenChange={setShowLinkJob}
+          affiliateJobTitle={affiliate.job_title}
+        />
         <LaunchPRDialog
           open={showLaunchPR}
           onOpenChange={setShowLaunchPR}
