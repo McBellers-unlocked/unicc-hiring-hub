@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText, ChevronDown, Building, FileCheck, User, LayoutDashboard, Shield, Heart, GraduationCap, BookOpen, Target, ClipboardList, ClipboardCheck, UserCog, Network, Upload, Cog, Mail } from 'lucide-react';
-import { UNICCLogo } from '@/components/UNICCLogo';
+import headerLogo from '@/assets/uniqtalent-header-logo.png';
 
 interface LayoutProps {
   children: ReactNode;
@@ -61,35 +61,34 @@ export const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Header */}
-      <header className="bg-[#006cb5] text-white shadow-lg">
+      <header className="bg-[#F7FAFC] border-b border-[#D9E6F2] text-[#243B53] sticky top-0 z-50">
         <div className="container mx-auto px-4">
           <div className="flex items-center h-16">
             <div className="flex items-center space-x-4">
-              <Link to="/" className="flex items-center space-x-3">
-                <UNICCLogo size="md" variant="blue" className="text-primary-foreground" />
-                <span className="text-xl font-bold"><span style={{ WebkitTextStroke: '0.8px hsl(var(--primary-foreground))', WebkitTextFillColor: 'transparent' }}>UNIQ</span>Talent</span>
+              <Link to="/" className="flex items-center">
+                <img src={headerLogo} alt="UNIQTalent" className="h-9 w-auto" />
               </Link>
               
               {user && (
                 <nav className="hidden md:flex items-center space-x-6 ml-8">
-                  <Link to="/dashboard" className="flex items-center hover:opacity-80 transition-colors py-2">
+                  <Link to="/dashboard" className="flex items-center hover:text-[#009EDB] transition-colors py-2">
                     <LayoutDashboard className="w-4 h-4 mr-1" />
                     Dashboard
                   </Link>
                   
-                  <Link to="/jobs" className="flex items-center hover:opacity-80 transition-colors py-2">
+                  <Link to="/jobs" className="flex items-center hover:text-[#009EDB] transition-colors py-2">
                     <Briefcase className="w-4 h-4 mr-1" />
                     Jobs
                   </Link>
                   
-                  <Link to="/life-at-unicc" className="flex items-center hover:opacity-80 transition-colors py-2">
+                  <Link to="/life-at-unicc" className="flex items-center hover:text-[#009EDB] transition-colors py-2">
                     <Heart className="w-4 h-4 mr-1" />
                     Life at UNICC
                   </Link>
                   
                   {(hasAdminAccess || hasHiringManagerAccess) && (
                     <DropdownMenu>
-                      <DropdownMenuTrigger className="flex items-center hover:opacity-80 transition-colors py-2 focus:outline-none">
+                      <DropdownMenuTrigger className="flex items-center hover:text-[#009EDB] transition-colors py-2 focus:outline-none">
                         <Building className="w-4 h-4 mr-1" />
                         Pipeline
                         <ChevronDown className="w-3 h-3 ml-1" />
@@ -141,7 +140,7 @@ export const Layout = ({ children }: LayoutProps) => {
                   
             {hasAdminAccess && (
                     <DropdownMenu>
-                      <DropdownMenuTrigger className="flex items-center hover:opacity-80 transition-colors py-2 focus:outline-none">
+                      <DropdownMenuTrigger className="flex items-center hover:text-[#009EDB] transition-colors py-2 focus:outline-none">
                         <Settings className="w-4 h-4 mr-1" />
                         Manage
                         <ChevronDown className="w-3 h-3 ml-1" />
@@ -220,7 +219,7 @@ export const Layout = ({ children }: LayoutProps) => {
                   )}
                   
                   {(hasAdminAccess || hasHiringManagerAccess || isPanelMember) && (
-                    <Link to="/applications" className="flex items-center hover:opacity-80 transition-colors py-2">
+                    <Link to="/applications" className="flex items-center hover:text-[#009EDB] transition-colors py-2">
                       <UserCheck className="w-4 h-4 mr-1" />
                       Applications
                     </Link>
@@ -228,7 +227,7 @@ export const Layout = ({ children }: LayoutProps) => {
                   
                   {hasAdminAccess && (
                     <DropdownMenu>
-                      <DropdownMenuTrigger className="flex items-center hover:opacity-80 transition-colors py-2 focus:outline-none">
+                      <DropdownMenuTrigger className="flex items-center hover:text-[#009EDB] transition-colors py-2 focus:outline-none">
                         <Cog className="w-4 h-4 mr-1" />
                         HR Operations
                         <ChevronDown className="w-3 h-3 ml-1" />
@@ -316,7 +315,7 @@ export const Layout = ({ children }: LayoutProps) => {
                   )}
                   
                   {isLocalAdmin && !hasAdminAccess && (
-                    <Link to="/operations/admin" className="flex items-center hover:opacity-80 transition-colors py-2">
+                    <Link to="/operations/admin" className="flex items-center hover:text-[#009EDB] transition-colors py-2">
                       <Building className="w-4 h-4 mr-1" />
                       Local Admin
                     </Link>
@@ -325,7 +324,7 @@ export const Layout = ({ children }: LayoutProps) => {
                   {/* My Career dropdown for staff members */}
                   {hasStaffRole && (
                     <DropdownMenu>
-                      <DropdownMenuTrigger className="flex items-center hover:opacity-80 transition-colors py-2 focus:outline-none">
+                      <DropdownMenuTrigger className="flex items-center hover:text-[#009EDB] transition-colors py-2 focus:outline-none">
                         <GraduationCap className="w-4 h-4 mr-1" />
                         My Career
                         <ChevronDown className="w-3 h-3 ml-1" />
@@ -369,7 +368,7 @@ export const Layout = ({ children }: LayoutProps) => {
                   
                   {/* Direct link for pure candidates */}
                   {isCandidate && !hasStaffRole && (
-                    <Link to="/my-applications" className="flex items-center hover:opacity-80 transition-colors py-2">
+                    <Link to="/my-applications" className="flex items-center hover:text-[#009EDB] transition-colors py-2">
                       <UserCheck className="w-4 h-4 mr-1" />
                       My Applications
                     </Link>
@@ -382,8 +381,8 @@ export const Layout = ({ children }: LayoutProps) => {
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 hover:bg-primary-foreground/10">
-                      <Avatar className="h-9 w-9 border-2 border-primary-foreground/20">
+                    <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 hover:bg-[#009EDB]/10">
+                      <Avatar className="h-9 w-9 border-2 border-[#D9E6F2]">
                         <AvatarImage src="" alt={userName || ''} />
                         <AvatarFallback className={`${getAvatarColorByRole(userRoles)} font-semibold text-sm`}>
                           {userName
@@ -458,8 +457,7 @@ export const Layout = ({ children }: LayoutProps) => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="flex items-center space-x-3">
-              <UNICCLogo size="sm" className="text-primary" />
-              <span className="font-semibold">UNIQTalent</span>
+              <img src={headerLogo} alt="UNIQTalent" className="h-6 w-auto" />
               <span className="text-sm">© 2025</span>
             </div>
             
