@@ -61,12 +61,12 @@ export const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Header */}
-      <header className="bg-[#F7FAFC] border-b border-[#D9E6F2] text-[#243B53] sticky top-0 z-50">
+      <header className="bg-[#F8FAFC] border-b border-[#E5E7EB] text-[#243B53] sticky top-0 z-50 shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
         <div className="container mx-auto px-4">
           <div className="flex items-center h-16">
             <div className="flex items-center space-x-4">
               <Link to="/" className="flex items-center">
-                <img src={headerLogo} alt="UNIQTalent" className="h-9 w-auto" />
+                <img src={headerLogo} alt="UNIQTalent" className="h-10 w-auto" />
               </Link>
               
               {user && (
