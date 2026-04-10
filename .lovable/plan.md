@@ -1,34 +1,28 @@
 
 
-## Create/Link Worker Wizard Dialog
+## Update Header to Use Uploaded Logo with Light Background
 
 ### What
-Add a new "Create/Link Worker" wizard dialog, similar to the existing Job and Vendor wizards. It includes a search bar with dummy people names and pre-filled form fields sourced from the affiliate's data.
+Replace the dark blue header with a light, executive-style header using the uploaded UNIQTalent logo image. Remove the text-based "UNIQTalent" label entirely.
 
 ### Changes
 
-**1. Update `AffiliateUser` interface and query in `src/pages/AffiliateOnboarding.tsx`**
-- Add `duty_station`, `first_incumbency_date`, and `gender` to the interface and the Supabase select query.
-- Add `workerLinked` and `showLinkWorker` state.
-- Wire the "Create/Link Worker" button to open the dialog; turn green with "Worker Linked" text when done.
-- Render `<LinkWorkerDialog>` with props: `affiliateName`, `contractStartDate` (from contract), `affiliateDutyStation`, `affiliateFirstIncumbency`, `affiliateGender`.
+**1. Copy logo to project**
+- Copy `user-uploads://uniccsub_UNIQTalent_@2x-8_1.png` to `src/assets/uniqtalent-header-logo.png`
 
-**2. Create `src/components/affiliate/LinkWorkerDialog.tsx`**
-- Search bar: "Search workers in Samsaran" with dummy people names (e.g., "Maria Garcia", "James Smith", "Aisha Patel", "Chen Wei", "Fatima Al-Hassan", "Lucas Müller", "Yuki Tanaka", "Priya Sharma").
-- Selectable list below the search bar (same pattern as LinkJobDialog).
-- Form fields below, all editable and pre-filled:
-  - **First Name** — split from `affiliateName` (first word)
-  - **Last Name** — split from `affiliateName` (remaining words)
-  - **Contract Employment Start Date** — from `contractStartDate`
-  - **Office Location** — from `affiliateDutyStation`
-  - **Original Hire Date** — from `affiliateFirstIncumbency`
-  - **Gender** — from `affiliateGender`
-- Footer: Cancel, "Create new record" (always enabled), "Link" (enabled when a worker is selected).
-- On Link: `toast.success('Worker linked to Samsaran')`, call `onWorkerCreated`, close.
-- On Create: `toast.success('Worker created in Samsaran')`, call `onWorkerCreated`, close.
+**2. Update `src/components/Layout.tsx`**
+- **Header background**: Change from `bg-[#006cb5]` to `bg-[#F7FAFC]` with bottom border `border-b border-[#D9E6F2]`
+- **Remove text colors**: Drop `text-white` from header; all nav text becomes `text-[#243B53]`
+- **Logo area** (line ~68-71): Replace the `UNICCLogo` component + styled text span with a single `<img>` tag importing the uploaded logo. Size it at roughly `h-9` (prominent but not oversized). Remove the "UNIQ...Talent" text entirely.
+- **Nav link styling**: Replace `hover:opacity-80` with `hover:text-[#009EDB]` for clear hover states on the light background
+- **Dropdown triggers**: Same dark navy base color with blue hover
+- **Avatar / user section**: Ensure contrast works on light background (already uses its own colored badges)
+- **Mobile menu button**: Update from white icon to dark navy
 
-### Technical details
-- Date fields displayed as formatted strings (dd MMM yyyy) in text inputs.
-- All fields are editable (not read-only) so the user can override pre-filled values.
-- Follows the exact same component pattern as `LinkJobDialog` and `LinkVendorDialog`.
+### Visual result
+- Clean light header (#F7FAFC) with subtle bottom border (#D9E6F2)
+- Full-color UNIQTalent + "Powered by UNICC" logo on the left
+- Dark navy (#243B53) nav labels and icons
+- UN blue (#009EDB) on hover/active states
+- No redundant text — logo speaks for itself
 
