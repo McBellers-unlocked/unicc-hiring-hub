@@ -69,7 +69,7 @@ const matchExisting = (
   index: { bySn: Map<string, ExistingRow>; byEmail: Map<string, ExistingRow> },
 ): ExistingRow | undefined => {
   const sn =
-    normEmail(row['GSM Staff Number']) || normEmail(row['Samsaran Staff number']);
+    normEmail(row['Staff Number']) || normEmail(row['GSM Staff Number']) || normEmail(row['Samsaran Staff number']);
   const em =
     normEmail(row['GSM Email Address']) || normEmail(row['Samsaran Email address']);
   if (sn && index.bySn.has(sn)) return index.bySn.get(sn);
