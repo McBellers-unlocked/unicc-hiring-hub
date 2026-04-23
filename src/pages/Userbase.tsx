@@ -1,6 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
+import { EditableCell } from '@/components/userbase/EditableCell';
+import { MissingValuesPanel, REQUIRED_FIELDS } from '@/components/userbase/MissingValuesPanel';
 import * as XLSX from 'xlsx';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -161,6 +165,53 @@ const fetchDistinct = async (col: keyof Filters): Promise<string[]> => {
 
 export default function Userbase() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { userRoles } = useAuth();
+  const canEdit = userRoles.includes('Admin') || userRoles.includes('HR Assistant');
+  const lastToastRef = useRef<number>(0);
+
+  const REQUIRED_KEYS = useMemo(() => new Set(REQUIRED_FIELDS.map((f) => f.key)), []);
+  const DATE_KEYS = useMemo(
+    () => new Set(['first_incumbency_start_date', 'entry_on_duty_date_who', 'date_of_birth', 'apa_start_date', 'contract_start_date', 'contract_end_date']),
+    [],
+  );
+
+  const handleCellSave = async (rowId: string, column: string, newValue: string | null): Promise<boolean> => {
+    const queryKeys = queryClient.getQueriesData({ queryKey: ['users_clean'] });
+    const previousSnapshots: Array<[any, any]> = [];
+    queryKeys.forEach(([key, value]: any) => {
+      if (!value || !value.rows) return;
+      previousSnapshots.push([key, value]);
+      const newRows = value.rows.map((r: any) =>
+        r.id === rowId ? { ...r, [column]: newValue } : r,
+      );
+      queryClient.setQueryData(key, { ...value, rows: newRows });
+    });
+
+    const { error } = await supabase
+      .from('users_clean')
+      .update({ [column]: newValue, imported_at: new Date().toISOString() })
+      .eq('id', rowId);
+
+    if (error) {
+      previousSnapshots.forEach(([key, value]) => queryClient.setQueryData(key, value));
+      toast.error(`Failed to save: ${error.message}`);
+      return false;
+    }
+
+    const now = Date.now();
+    if (now - lastToastRef.current > 3000) {
+      toast.success('Saved');
+      lastToastRef.current = now;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['users_clean:missing'] });
+    if (['division', 'unit', 'worker_type', 'category', 'source', 'office_location'].includes(column)) {
+      queryClient.invalidateQueries({ queryKey: ['users_clean:distinct', column] });
+    }
+    return true;
+  };
+
 
   // Table state
   const [page, setPage] = useState(1);
@@ -380,6 +431,7 @@ export default function Userbase() {
             {tableInfo?.latest?.imported_at && (
               <> · last imported {new Date(tableInfo.latest.imported_at).toLocaleString()}</>
             )}
+            {canEdit && <> · <span className="text-foreground/70">editable</span> (double-click a cell)</>}
           </p>
         </div>
 
@@ -541,8 +593,16 @@ export default function Userbase() {
               {!isLoading && !isError && data?.rows.map((row) => (
                 <TableRow key={row.id}>
                   {visibleCols.map((c) => (
-                    <TableCell key={c.key} className="whitespace-nowrap text-sm">
-                      {row[c.key] ?? ''}
+                    <TableCell key={c.key} className="whitespace-nowrap text-sm p-1">
+                      <EditableCell
+                        value={row[c.key]}
+                        rowId={row.id}
+                        column={c.key}
+                        isDate={DATE_KEYS.has(c.key)}
+                        isRequired={REQUIRED_KEYS.has(c.key)}
+                        editable={canEdit}
+                        onSave={handleCellSave}
+                      />
                     </TableCell>
                   ))}
                 </TableRow>
@@ -593,6 +653,8 @@ export default function Userbase() {
             </Pagination>
           </div>
         </div>
+
+        <MissingValuesPanel workerTypeOptions={distinct.worker_type} />
       </div>
     </Layout>
   );
