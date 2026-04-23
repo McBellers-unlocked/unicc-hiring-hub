@@ -80,7 +80,7 @@ import { StaffSearchCombobox, type StaffMember } from '@/components/operations/S
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 interface UnitRow {
   id: string;
