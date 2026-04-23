@@ -750,6 +750,8 @@ export default function Userbase() {
           </AlertDialogContent>
         </AlertDialog>
 
+        <AddUserbaseRowDialog open={addRowOpen} onOpenChange={setAddRowOpen} />
+
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-3">
           <div className="text-sm text-muted-foreground">
             Showing {fromN.toLocaleString()}–{toN.toLocaleString()} of {total.toLocaleString()}
