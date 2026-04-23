@@ -184,18 +184,6 @@ export const Layout = ({ children }: LayoutProps) => {
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link to="/admin/import-staff-list" className="flex items-center w-full">
-                            <Upload className="w-4 h-4 mr-2" />
-                            Import Staff List
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link to="/analytics" className="flex items-center w-full">
-                            <BarChart3 className="w-4 h-4 mr-2" />
-                            Hiring Analytics
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
                           <Link to="/admin/performance-cycles" className="flex items-center w-full">
                             <ClipboardCheck className="w-4 h-4 mr-2" />
                             Performance Cycles
@@ -313,7 +301,31 @@ export const Layout = ({ children }: LayoutProps) => {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
-                  
+
+                  {hasAdminAccess && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="flex items-center hover:text-[#009EDB] transition-colors py-2 focus:outline-none">
+                        <BarChart3 className="w-4 h-4 mr-1" />
+                        Analytics
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="bg-popover border border-border shadow-lg">
+                        <DropdownMenuItem asChild>
+                          <Link to="/analytics" className="flex items-center w-full">
+                            <BarChart3 className="w-4 h-4 mr-2" />
+                            Hiring Analytics
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/import-staff-list" className="flex items-center w-full">
+                            <Upload className="w-4 h-4 mr-2" />
+                            Import Staff List
+                          </Link>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+
                   {isLocalAdmin && !hasAdminAccess && (
                     <Link to="/operations/admin" className="flex items-center hover:text-[#009EDB] transition-colors py-2">
                       <Building className="w-4 h-4 mr-1" />
