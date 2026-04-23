@@ -1,65 +1,146 @@
 
 
-## Parse GSM + Samsaran extracts → Unified Userbase
+## Persist Userbase to Supabase + Advanced Table Controls
 
-### Overview
-On clicking **Parse Data** in `/admin/import-userbase`, parse both XLSX/CSV files in-browser, transform per the rules, outer-join on **Staff Number**, store the result in `sessionStorage`, then navigate to a new `/admin/userbase` page that renders the merged table. Add **Userbase** to the Analytics dropdown above the separator.
+### 1. Database — new table `users_clean`
 
-### 1. Parsing & transformation — `src/pages/ImportUserbase.tsx`
+Create via migration. Stores the merged GSM+Samsaran dataset as the canonical source of truth, replacing `sessionStorage`.
 
-Use the existing `xlsx` (SheetJS) library already in the project (used by `ImportStaffList`). Replace the placeholder `handleParse` with a real pipeline:
+**Schema**
+```sql
+create table public.users_clean (
+  id uuid primary key default gen_random_uuid(),
+  -- GSM fields
+  full_name text,
+  gsm_staff_number text,
+  nationality text,
+  gsm_gender text,
+  date_of_birth text,
+  gsm_email_address text,
+  service_time_current_org text,
+  official_duty_station text,
+  apa_start_date text,
+  job_name text,
+  position_name text,
+  first_incumbency_start_date date,
+  entry_on_duty_date_who date,
+  appointment_type text,
+  contract_start_date text,
+  contract_end_date text,
+  current_grade text,
+  current_step text,
+  reporting_lines text,
+  category text,
+  -- Samsaran fields
+  first_name text,
+  last_name text,
+  search_name text,
+  samsaran_gender text,
+  samsaran_staff_number text,
+  samsaran_email_address text,
+  worker_type text,
+  intern text,
+  unit text,
+  job_title text,
+  line_manager text,
+  office_location text,
+  division text,
+  -- Bookkeeping
+  match_key text,                       -- sn:<num> or em:<email>
+  source text not null,                 -- 'gsm' | 'samsaran' | 'both'
+  imported_at timestamptz not null default now(),
+  imported_by uuid references auth.users(id)
+);
 
-**GSM transform**
-- Read sheet → JSON rows.
-- Keep only these columns (case-insensitive header match):
-  `Full Name, Staff Number, Nationality, Gender, Date of Birth, Email Address, Service time (Current Organization), Official Duty Station, APA Start Date, Job Name, Position Name, First Incumbency Start Date, Entry on duty date WHO, Appointment Type, Contract Start Date, Contract End Date, Current Grade, Current Step, Reporting lines (name of supervisor)`
-- Add `Category` = first character of `Current Grade` (uppercased, trimmed; empty if missing).
-- Normalize `First Incumbency Start Date` and `Entry on duty date WHO` to ISO `YYYY-MM-DD`. Handle Excel serial numbers (number → JS Date via `XLSX.SSF.parse_date_code`) and string dates (`new Date(...)` fallback). Invalid → empty string.
-- `Gender`: `Female → Woman`, `Male → Man` (case-insensitive); other values pass through.
+create index users_clean_match_key_idx on public.users_clean(match_key);
+create index users_clean_email_idx on public.users_clean(lower(coalesce(samsaran_email_address, gsm_email_address)));
+create index users_clean_division_idx on public.users_clean(division);
+create index users_clean_unit_idx on public.users_clean(unit);
+create index users_clean_worker_type_idx on public.users_clean(worker_type);
+```
 
-**Samsaran transform**
-- Read sheet → JSON rows.
-- Keep only: `First name, Last name, Search name, Gender, Staff number, Email address, Worker type, Intern, Department, Job title, Line manager, Office location`.
-- Rename `Department` → `Unit`.
-- Add `Division`: lookup from `DIVISION_UNITS` (`src/lib/organizationConstants`) — for each row's `Unit` value, find the division code whose units list contains that unit (match on the `(CODE)` extracted via the same `extractCode` helper used in `UnitsAndDivisions.tsx`, falling back to substring match on the full unit name). Empty if no match.
-- `Gender`: `Male → Man`, `Female → Woman`.
-- `Worker type`: `Contractor → Affiliate`, `Employee → Staff` (case-insensitive); other values pass through.
-- Drop rows where `Email address` is blank/whitespace.
+**RLS** — restricted to admin/HR only (consistent with existing `users` table policy pattern via `get_current_user_division` / role checks):
+- SELECT: roles `Admin`, `HR Assistant`, `Chief of HR`.
+- INSERT/UPDATE/DELETE: roles `Admin`, `HR Assistant`.
+- No public/anon access.
 
-**Outer join**
-- Join key: **Staff Number** (trimmed string; case-insensitive). Fallback secondary key: lowercase email when staff number is missing on one side.
-- Build a `Map<key, mergedRow>`. For matched rows, GSM fields and Samsaran fields coexist as separate columns (no overwriting). For GSM-only or Samsaran-only rows, the other side's columns are empty strings.
-- Final column order: all GSM kept columns + `Category`, then all Samsaran kept columns (with `Department` renamed to `Unit`) + `Division`. Duplicate logical fields (e.g. Gender appears in both) are kept as `GSM Gender` / `Samsaran Gender` to preserve provenance — same for `Staff Number`, `Email`, `Gender`.
+### 2. Persistence flow — `src/pages/ImportUserbase.tsx`
 
-**Handoff**
-- Persist `{ columns: string[], rows: Record<string,string>[], generatedAt: ISO }` to `sessionStorage` under key `userbase:merged`.
-- Toast success and `navigate('/admin/userbase')`.
-- On parse failure (missing required headers, unreadable file): toast error, do not navigate, do not clear existing storage.
+After the existing client-side parse/transform/outer-join in `handleParse`:
 
-### 2. New page — `src/pages/Userbase.tsx`
+1. Map merged rows to `users_clean` column names (snake_case keys above).
+2. Compute `source`:
+   - GSM-only row → `'gsm'`
+   - Samsaran-only → `'samsaran'`
+   - Both → `'both'`
+3. Wipe-and-replace strategy: `delete from users_clean` then `insert` the new batch in chunks of 500 (Supabase row-payload safety). Wrap in a single client-visible "Saving to database…" toast progression.
+4. On success: also keep the `sessionStorage` write (as cache for instant render), then `navigate('/admin/userbase')`.
+5. On failure: toast error, keep session data so user can still preview.
+6. `imported_by = auth.uid()`.
 
-- `Layout` wrapper, page title **Userbase**, subtitle showing `<row count> rows · merged <date>`.
-- Read from `sessionStorage`. If empty, show empty state with a button "Go to Import Userbase" → `/admin/import-userbase`.
-- Toolbar:
-  - Search input (filters across all columns, case-insensitive substring).
-  - **Download CSV** button — exports the currently filtered rows using SheetJS (`XLSX.utils.json_to_sheet` → `sheet_to_csv`).
-- Table: shadcn `Table` inside a `max-h-[70vh] overflow-auto` wrapper with `sticky top-0` header. Render every column from the stored `columns` array; cells are plain text. Pagination not required for v1 (the dataset is one-shot per session).
+Rationale: the dataset is a full periodic refresh, not incremental — wipe-and-replace is simpler than upsert/merge and matches user intent ("refresh the user base").
 
-### 3. Routing & navigation
+### 3. Userbase page — `src/pages/Userbase.tsx` (rewrite)
 
-- `src/App.tsx`: import `Userbase` and add `<Route path="/admin/userbase" element={<Userbase />} />` above the catch-all.
-- `src/components/Layout.tsx` Analytics dropdown (lines 312–338): add a new `DropdownMenuItem` for **Userbase** (`/admin/userbase`, `Users` icon) immediately after **Hiring Analytics** and before the existing `DropdownMenuSeparator`, so it sits in the upper group.
+Replace session-only render with a Supabase-backed, server-paginated table.
+
+**Data fetching**
+- React Query `useQuery(['users_clean', { page, pageSize, sort, filters, search }])`.
+- Single Supabase call per page using `.range(from, to)` + `.order(col, { ascending })` + `.ilike()` filters + `.count: 'exact'` for total.
+- Global search → `.or('full_name.ilike.%q%,gsm_email_address.ilike.%q%,samsaran_email_address.ilike.%q%,gsm_staff_number.ilike.%q%,samsaran_staff_number.ilike.%q%,unit.ilike.%q%,job_title.ilike.%q%')` (debounced 300ms).
+- If table is empty → existing empty state with "Go to Import Userbase" CTA.
+
+**Sort**
+- Click any column header → toggles asc / desc / none. Single-column sort. Default order: `imported_at desc, full_name asc`.
+- Sort icon (chevron) in header.
+
+**Pagination**
+- shadcn `Pagination` component at the bottom.
+- Page size selector (25 / 50 / 100 / 250). Default 50.
+- Display "Showing X–Y of N".
+
+**Server-side filters**
+- Toolbar above table with a "Filters" popover. Each chip filter is sent as a Supabase predicate:
+  - **Division** — multi-select from distinct values (loaded once via dedicated query).
+  - **Unit** — searchable multi-select (distinct).
+  - **Worker type** — multi-select (`Staff`, `Affiliate`, `Intern`, etc.).
+  - **Category** — multi-select (`P`, `G`, `D`, …).
+  - **Source** — `gsm` / `samsaran` / `both`.
+  - **Office location** — multi-select.
+- Active filters render as removable chips under the toolbar.
+- Multi-value filters use `.in('column', […])`.
+
+**Column show/hide**
+- "Columns" dropdown (shadcn `DropdownMenu` with checkbox items) listing every column with a checkbox.
+- Visible-column state persisted in `localStorage` under `userbase:visible-columns`.
+- A "Reset to defaults" item restores the default visible set.
+- Default-visible set (rest hidden but toggleable): `Full Name, Unit, Division, Job Title, Worker Type, Category, Office Location, Samsaran Email Address, GSM Staff Number, Line Manager`.
+
+**Download CSV**
+- Two modes via split button:
+  - **Current page** — exports rendered rows.
+  - **All matching filters** — fetches all matching rows in chunks of 1000 via `.range()` loop, then exports.
+- Export honours both column visibility and current filters/sort.
+
+**Header strip**
+- Title `Userbase` · subtitle `<total> rows · last imported <imported_at MAX> by <user>` (small extra query for the latest `imported_at`).
+
+### 4. Routing & Layout — unchanged
+- Route `/admin/userbase` and Analytics dropdown entry already exist.
+
+### 5. Cleanup
+- Remove `sessionStorage` reliance for display (kept only as transient cache during the navigate hop after import).
+- Keep merge/transform logic exactly as-is in `ImportUserbase.tsx`; only the post-merge handoff changes.
 
 ### Technical notes
+- Auth required — page redirects unauthenticated users via existing layout/auth guard.
+- All filter/sort/search predicates run server-side; the client never holds the full dataset (handles >10k rows cleanly).
+- Date columns (`first_incumbency_start_date`, `entry_on_duty_date_who`) typed as `date`; everything else stays `text` to absorb messy source values without insert failures.
+- Indices on the most-filtered columns (`division`, `unit`, `worker_type`, email lower-case) keep paginated queries snappy.
+- `src/integrations/supabase/types.ts` regenerates automatically after the migration.
 
-- `xlsx` package is already a dependency (used by `ImportStaffList.tsx`); no new install required.
-- Date conversion helper handles three inputs: number (Excel serial), `Date` instance, string. Output `''` on `NaN`.
-- Division lookup uses the existing `DIVISION_UNITS` and `extractCode` patterns from `UnitsAndDivisions.tsx` to stay consistent with how the org structure is parsed elsewhere.
-- All processing is client-side; no DB schema changes, no edge functions, no Supabase calls.
-- `sessionStorage` (not `localStorage`) so the merged dataset clears on tab close — appropriate for a working/preview view that has not been formally persisted.
-
-### Out of scope (future)
-- Persisting the merged Userbase to Supabase.
-- Column show/hide, sort, pagination, server-side filters.
-- Bulk reconciliation against existing `users` table.
+### Out of scope
+- Diff/reconciliation against existing `public.users` table.
+- Edit-in-place on `users_clean` rows.
+- Saved filter presets.
 
