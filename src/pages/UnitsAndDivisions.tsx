@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -199,12 +200,51 @@ export default function UnitsAndDivisions() {
   const initialRows = useMemo(buildInitialRows, []);
   const [activeRows, setActiveRows] = useState<UnitRow[]>(initialRows);
   const [decommissionedRows, setDecommissionedRows] = useState<UnitRow[]>([]);
-  const [pendingDecommissionId, setPendingDecommissionId] = useState<string | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('active');
 
   const updateRow = (id: string, field: keyof UnitRow, value: string) => {
     setActiveRows((prev) =>
       prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
     );
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const toggleRowSelection = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked) setSelectedIds(new Set(activeRows.map((r) => r.id)));
+    else setSelectedIds(new Set());
+  };
+
+  const handleDecommissionClick = () => {
+    if (!selectionMode) {
+      setSelectionMode(true);
+      return;
+    }
+    if (selectedIds.size === 0) {
+      toast.message('Select at least one unit to decommission.');
+      return;
+    }
+    setConfirmOpen(true);
+  };
+
+  const handleTabChange = (v: string) => {
+    setActiveTab(v);
+    if (v !== 'active' && selectionMode) exitSelectionMode();
   };
 
   const handleSave = () => {
@@ -214,20 +254,22 @@ export default function UnitsAndDivisions() {
   const handleReset = () => {
     setActiveRows(buildInitialRows());
     setDecommissionedRows([]);
+    exitSelectionMode();
     toast.message('Reverted to default values');
   };
 
   const confirmDecommission = () => {
-    if (!pendingDecommissionId) return;
-    const row = activeRows.find((r) => r.id === pendingDecommissionId);
-    if (!row) {
-      setPendingDecommissionId(null);
+    const ids = selectedIds;
+    if (ids.size === 0) {
+      setConfirmOpen(false);
       return;
     }
-    setActiveRows((prev) => prev.filter((r) => r.id !== pendingDecommissionId));
-    setDecommissionedRows((prev) => [row, ...prev]);
-    setPendingDecommissionId(null);
-    toast.success('Unit decommissioned');
+    const toMove = activeRows.filter((r) => ids.has(r.id));
+    setActiveRows((prev) => prev.filter((r) => !ids.has(r.id)));
+    setDecommissionedRows((prev) => [...toMove, ...prev]);
+    setConfirmOpen(false);
+    exitSelectionMode();
+    toast.success(`Decommissioned ${toMove.length} unit(s)`);
   };
 
   const handleRestore = (id: string) => {
@@ -375,26 +417,45 @@ export default function UnitsAndDivisions() {
                 className="hidden"
                 onChange={handleImportFile}
               />
-              <Button variant="outline" onClick={handleDownloadTemplate}>
+              <Button variant="outline" onClick={handleDownloadTemplate} disabled={selectionMode}>
                 <Download className="w-4 h-4 mr-2" />
                 Download table
               </Button>
-              <Button variant="outline" onClick={handleImportClick}>
+              <Button variant="outline" onClick={handleImportClick} disabled={selectionMode}>
                 <Upload className="w-4 h-4 mr-2" />
                 Import
               </Button>
-              <Button variant="outline" onClick={handleReset}>
+              <Button variant="outline" onClick={handleReset} disabled={selectionMode}>
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Reset
               </Button>
-              <Button onClick={handleSave}>
+              {activeTab === 'active' && (
+                <>
+                  <Button
+                    variant={selectionMode && selectedIds.size > 0 ? 'destructive' : 'outline'}
+                    onClick={handleDecommissionClick}
+                  >
+                    <Archive className="w-4 h-4 mr-2" />
+                    {selectionMode
+                      ? `Decommission selected (${selectedIds.size})`
+                      : 'Decommission'}
+                  </Button>
+                  {selectionMode && (
+                    <Button variant="ghost" onClick={exitSelectionMode}>
+                      <X className="w-4 h-4 mr-2" />
+                      Cancel
+                    </Button>
+                  )}
+                </>
+              )}
+              <Button onClick={handleSave} disabled={selectionMode}>
                 <Save className="w-4 h-4 mr-2" />
                 Save
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="active" className="w-full">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               <TabsList>
                 <TabsTrigger value="active">
                   Active ({activeRows.length})
@@ -409,18 +470,46 @@ export default function UnitsAndDivisions() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        {selectionMode && (
+                          <TableHead className="w-[44px]">
+                            <Checkbox
+                              aria-label="Select all units"
+                              checked={
+                                activeRows.length > 0 && selectedIds.size === activeRows.length
+                                  ? true
+                                  : selectedIds.size === 0
+                                  ? false
+                                  : 'indeterminate'
+                              }
+                              onCheckedChange={(c) => toggleSelectAll(c === true)}
+                            />
+                          </TableHead>
+                        )}
                         <TableHead className="min-w-[280px] whitespace-nowrap">Unit full name</TableHead>
                         <TableHead className="min-w-[120px]">Unit</TableHead>
                         <TableHead className="min-w-[280px]">Parent Section</TableHead>
                         <TableHead className="min-w-[300px]">Division full name</TableHead>
                         <TableHead className="min-w-[110px]">Division</TableHead>
                         <TableHead className="min-w-[280px]">Manager</TableHead>
-                        <TableHead className="min-w-[160px] text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {activeRows.map((row) => (
-                        <TableRow key={row.id}>
+                      {activeRows.map((row) => {
+                        const isSelected = selectedIds.has(row.id);
+                        return (
+                        <TableRow
+                          key={row.id}
+                          className={cn(selectionMode && isSelected && 'bg-muted/50')}
+                        >
+                          {selectionMode && (
+                            <TableCell className="w-[44px]">
+                              <Checkbox
+                                aria-label={`Select ${row.fullName}`}
+                                checked={isSelected}
+                                onCheckedChange={(c) => toggleRowSelection(row.id, c === true)}
+                              />
+                            </TableCell>
+                          )}
                           <TableCell className="font-medium align-middle whitespace-nowrap">
                             {row.fullName}
                           </TableCell>
@@ -462,19 +551,9 @@ export default function UnitsAndDivisions() {
                               onChange={(v) => updateRow(row.id, 'manager', v)}
                             />
                           </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => setPendingDecommissionId(row.id)}
-                            >
-                              <Archive className="w-4 h-4 mr-2" />
-                              Decommission
-                            </Button>
-                          </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -541,14 +620,14 @@ export default function UnitsAndDivisions() {
       </div>
 
       <AlertDialog
-        open={pendingDecommissionId !== null}
-        onOpenChange={(open) => !open && setPendingDecommissionId(null)}
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Decommission this unit?</AlertDialogTitle>
+            <AlertDialogTitle>Decommission selected units?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will move the unit to the Decommissioned tab. You can restore it later.
+              This will move {selectedIds.size} unit(s) to the Decommissioned tab. You can restore them later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
