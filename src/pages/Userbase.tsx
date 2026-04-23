@@ -592,8 +592,16 @@ export default function Userbase() {
               {!isLoading && !isError && data?.rows.map((row) => (
                 <TableRow key={row.id}>
                   {visibleCols.map((c) => (
-                    <TableCell key={c.key} className="whitespace-nowrap text-sm">
-                      {row[c.key] ?? ''}
+                    <TableCell key={c.key} className="whitespace-nowrap text-sm p-1">
+                      <EditableCell
+                        value={row[c.key]}
+                        rowId={row.id}
+                        column={c.key}
+                        isDate={DATE_KEYS.has(c.key)}
+                        isRequired={REQUIRED_KEYS.has(c.key)}
+                        editable={canEdit}
+                        onSave={handleCellSave}
+                      />
                     </TableCell>
                   ))}
                 </TableRow>
