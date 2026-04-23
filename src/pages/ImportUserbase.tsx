@@ -456,7 +456,9 @@ export default function ImportUserbase() {
       // Insert in chunks of 500
       const dbRows = rows.map((r) => toDbRow(r, importedBy));
       for (const batch of chunk(dbRows, 500)) {
-        const { error: insErr } = await supabase.from('users_clean').insert(batch);
+        const { error: insErr } = await supabase
+          .from('users_clean')
+          .insert(batch as any);
         if (insErr) throw insErr;
       }
 
