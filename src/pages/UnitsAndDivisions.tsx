@@ -32,7 +32,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Save, RotateCcw, ChevronsUpDown, X, Check } from 'lucide-react';
+import { ArrowLeft, Save, RotateCcw, ChevronsUpDown, X, Check, Upload, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { DIVISIONS, DIVISION_UNITS } from '@/lib/organizationConstants';
 import { StaffSearchCombobox, type StaffMember } from '@/components/operations/StaffSearchCombobox';
