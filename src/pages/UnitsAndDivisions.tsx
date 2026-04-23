@@ -230,6 +230,15 @@ export default function UnitsAndDivisions() {
     else setSelectedIds(new Set());
   };
 
+  const sortedActiveRows = useMemo(
+    () => [...activeRows].sort((a, b) => a.unit.localeCompare(b.unit, undefined, { sensitivity: 'base' })),
+    [activeRows]
+  );
+  const sortedDecommissionedRows = useMemo(
+    () => [...decommissionedRows].sort((a, b) => a.unit.localeCompare(b.unit, undefined, { sensitivity: 'base' })),
+    [decommissionedRows]
+  );
+
   const handleDecommissionClick = () => {
     if (!selectionMode) {
       setSelectionMode(true);
@@ -576,7 +585,7 @@ export default function UnitsAndDivisions() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {activeRows.map((row) => {
+                      {sortedActiveRows.map((row) => {
                         const isSelected = selectedIds.has(row.id);
                         return (
                         <TableRow
@@ -661,7 +670,7 @@ export default function UnitsAndDivisions() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {decommissionedRows.map((row) => (
+                        {sortedDecommissionedRows.map((row) => (
                           <TableRow key={row.id}>
                             <TableCell className="font-medium whitespace-nowrap">
                               {row.fullName}
