@@ -71,9 +71,10 @@ const buildInitialRows = (): UnitRow[] => {
   return rows;
 };
 
-const ALL_UNIT_NAMES: string[] = Object.values(DIVISION_UNITS)
-  .flat()
-  .sort((a, b) => a.localeCompare(b));
+const ALL_UNIT_NAMES: string[] = [
+  ...Object.values(DIVISIONS),
+  ...Object.values(DIVISION_UNITS).flat(),
+].sort((a, b) => a.localeCompare(b));
 
 interface ParentSectionPickerProps {
   value: string;
@@ -89,15 +90,15 @@ const ParentSectionPicker = ({ value, onChange }: ParentSectionPickerProps) => {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between font-normal"
+          className="w-full justify-between font-normal h-auto min-h-10 py-2 text-left"
         >
-          <span className={cn('truncate', !value && 'text-muted-foreground')}>
+          <span className={cn('whitespace-normal break-words', !value && 'text-muted-foreground')}>
             {value || 'Select parent section…'}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[360px] p-0" align="start">
+      <PopoverContent className="w-[460px] p-0" align="start">
         <Command>
           <CommandInput placeholder="Search unit…" />
           <CommandList>
@@ -188,7 +189,7 @@ export default function UnitsAndDivisions() {
 
   return (
     <Layout>
-      <div className="container mx-auto py-8 px-4 max-w-7xl">
+      <div className="container mx-auto py-8 px-4 max-w-[1600px]">
         <Button
           variant="ghost"
           onClick={() => navigate(-1)}
@@ -222,18 +223,18 @@ export default function UnitsAndDivisions() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[24%]">Unit full name</TableHead>
-                    <TableHead className="w-[10%]">Unit</TableHead>
-                    <TableHead className="w-[18%]">Parent Section</TableHead>
-                    <TableHead className="w-[18%]">Division full name</TableHead>
-                    <TableHead className="w-[8%]">Division</TableHead>
-                    <TableHead className="w-[22%]">Manager</TableHead>
+                    <TableHead className="min-w-[280px] whitespace-nowrap">Unit full name</TableHead>
+                    <TableHead className="min-w-[120px]">Unit</TableHead>
+                    <TableHead className="min-w-[280px]">Parent Section</TableHead>
+                    <TableHead className="min-w-[300px]">Division full name</TableHead>
+                    <TableHead className="min-w-[110px]">Division</TableHead>
+                    <TableHead className="min-w-[280px]">Manager</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.map((row) => (
                     <TableRow key={row.id}>
-                      <TableCell className="font-medium align-middle">
+                      <TableCell className="font-medium align-middle whitespace-nowrap">
                         {row.fullName}
                       </TableCell>
                       <TableCell>
@@ -253,7 +254,7 @@ export default function UnitsAndDivisions() {
                           value={row.division}
                           onValueChange={(v) => updateRow(row.id, 'division', v)}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="h-auto min-h-10 py-2 text-left [&>span]:whitespace-normal [&>span]:line-clamp-none">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
