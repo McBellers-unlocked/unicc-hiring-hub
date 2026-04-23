@@ -192,7 +192,7 @@ export const Layout = ({ children }: LayoutProps) => {
                         <DropdownMenuItem asChild>
                           <Link to="/analytics" className="flex items-center w-full">
                             <BarChart3 className="w-4 h-4 mr-2" />
-                            Analytics
+                            Hiring Analytics
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
