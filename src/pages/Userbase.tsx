@@ -563,6 +563,32 @@ export default function Userbase() {
                 <DropdownMenuItem onClick={downloadAll}>All matching filters</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {canEdit && (
+              removeMode ? (
+                <>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setConfirmBulkDelete(true)}
+                    disabled={selectedIds.size === 0}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete selected ({selectedIds.size})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => { setRemoveMode(false); setSelectedIds(new Set()); }}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <Button variant="outline" onClick={() => setRemoveMode(true)}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Remove rows
+                </Button>
+              )
+            )}
           </div>
         </div>
 
