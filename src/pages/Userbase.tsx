@@ -58,7 +58,18 @@ import {
   Filter,
   Columns3,
   X,
+  Trash2,
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { MAPPED_COLUMNS } from '@/lib/userbaseChangeSet';
 
@@ -209,6 +220,25 @@ export default function Userbase() {
       queryClient.invalidateQueries({ queryKey: ['users_clean:distinct', column] });
     }
     return true;
+  };
+
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteRow = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    const { error } = await supabase.from('users_clean').delete().eq('id', pendingDelete.id);
+    setDeleting(false);
+    if (error) {
+      toast.error(`Failed to delete: ${error.message}`);
+      return;
+    }
+    toast.success('Row deleted');
+    setPendingDelete(null);
+    queryClient.invalidateQueries({ queryKey: ['users_clean'] });
+    queryClient.invalidateQueries({ queryKey: ['users_clean:meta'] });
+    queryClient.invalidateQueries({ queryKey: ['users_clean:missing'] });
   };
 
   const [page, setPage] = useState(1);
@@ -576,26 +606,31 @@ export default function Userbase() {
                         </TableHead>
                       );
                     })}
+                    {canEdit && (
+                      <TableHead className="whitespace-nowrap w-12 text-center sticky right-0 bg-background">
+                        Actions
+                      </TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading && (
                     <TableRow>
-                      <TableCell colSpan={visibleCols.length} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={visibleCols.length + (canEdit ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                         Loading…
                       </TableCell>
                     </TableRow>
                   )}
                   {isError && (
                     <TableRow>
-                      <TableCell colSpan={visibleCols.length} className="text-center py-8 text-destructive">
+                      <TableCell colSpan={visibleCols.length + (canEdit ? 1 : 0)} className="text-center py-8 text-destructive">
                         Error loading data: {error instanceof Error ? error.message : 'unknown'}
                       </TableCell>
                     </TableRow>
                   )}
                   {!isLoading && !isError && (data?.rows.length ?? 0) === 0 && (
                     <TableRow>
-                      <TableCell colSpan={visibleCols.length} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={visibleCols.length + (canEdit ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                         No matching rows.
                       </TableCell>
                     </TableRow>
@@ -615,6 +650,22 @@ export default function Userbase() {
                           />
                         </TableCell>
                       ))}
+                      {canEdit && (
+                        <TableCell className="p-1 text-center sticky right-0 bg-background">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => setPendingDelete({
+                              id: row.id,
+                              name: row.full_name || row.gsm_email_address || row.samsaran_email_address || row.id,
+                            })}
+                            aria-label="Delete row"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -622,6 +673,27 @@ export default function Userbase() {
             </div>
           </div>
         </div>
+
+        <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this row?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently remove <span className="font-medium text-foreground">{pendingDelete?.name}</span> from the userbase. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => { e.preventDefault(); handleDeleteRow(); }}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? 'Deleting…' : 'Delete'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-3">
           <div className="text-sm text-muted-foreground">
