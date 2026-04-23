@@ -1,37 +1,49 @@
 
 
-## Update Units and Divisions Table
+## Add "Decommissioned Units and Divisions" Tab
+
+### What
+Convert the Units and Divisions page into a two-tab layout:
+1. **Active Units and Divisions** (current table + new "Decommission" action column)
+2. **Decommissioned Units and Divisions** (same columns + "Restore" action column)
+
+Decommissioning moves a row from the active list to the decommissioned list via a confirmation dialog.
 
 ### Changes — `src/pages/UnitsAndDivisions.tsx`
 
-**1. Column restructure (6 columns total):**
-| Unit full name | Unit | Parent Section | Division full name | Division | Manager |
+**1. Tabs layout**
+- Wrap the table in shadcn `Tabs` (`src/components/ui/tabs.tsx`):
+  - `TabsList` with two triggers: "Active" and "Decommissioned" (with a count badge, e.g. `Decommissioned (3)`).
+  - `TabsContent` for each, each rendering its own table.
+- Header buttons (Download template, Import, Reset, Save) stay above the tabs and continue to act on the **active** rows (Import replaces active; template exports active rows; Reset restores defaults for active and clears decommissioned).
 
-- **Division full name**: renamed from current "Division". Same `Select` showing the full label (e.g. "Cybersecurity division (CS)"), bound to the division code.
-- **Division** (new): read-only text cell showing only the 2-letter acronym (CS, DD, DS, DO, MS, OP), derived automatically from the selected Division full name. Updates reactively when Division full name changes.
+**2. State model**
+- Split state into two arrays:
+  - `activeRows: UnitRow[]` (current `rows`)
+  - `decommissionedRows: UnitRow[]` (initially empty)
+- `handleReset` resets both: `activeRows = buildInitialRows()`, `decommissionedRows = []`.
 
-**2. Parent Section — convert to searchable dropdown:**
-- Replace the free-text `Input` with a `Combobox` (Popover + Command pattern, same as `StaffSearchCombobox`).
-- Options: every "Unit full name" from the same `DIVISION_UNITS` flattened list (~50 entries), alphabetically sorted, with a "— None —" option to clear.
-- Includes built-in search filter via `CommandInput`.
+**3. Active table — new "Actions" column**
+- Append a final `TableHead` "Actions" (min-w ~120px, right-aligned).
+- Each row gets a destructive-outline `Button` with `Archive` (lucide) icon + "Decommission" label.
+- Clicking opens an `AlertDialog` (shadcn — already in project): title "Decommission this unit?", description "This will move the unit to the Decommissioned tab. You can restore it later.", actions Cancel / Confirm.
+- On confirm: remove row from `activeRows`, prepend to `decommissionedRows`, toast success.
 
-**3. Manager — convert to staff search combobox:**
-- Replace the free-text `Input` with a reuse of `StaffSearchCombobox` (`src/components/operations/StaffSearchCombobox.tsx`), which already queries the `users` table with debounced search, name/email filtering, and grade badges.
-- On select, store the staff member's `name` in `row.manager`. Display the selected name in the trigger button.
-- Add a small "Clear" affordance (X button) to remove a selection.
+**4. Decommissioned table**
+- Same 6 data columns as active, all read-only (plain text cells; no inputs/comboboxes) to make intent clear.
+- Final "Actions" column with a "Restore" button (`Undo2` icon, outline). On click: remove from `decommissionedRows`, append to `activeRows`, toast success. (No confirmation dialog needed for restore — it's reversible.)
+- Empty state: when `decommissionedRows.length === 0`, render a centered muted message "No decommissioned units." instead of an empty table.
 
-**4. State model update (`UnitRow`):**
-- Keep `division` (the code) as the source of truth.
-- `parentSection` continues to hold the full unit name string (now picked from a list).
-- `manager` continues to hold a string (the staff member's name).
-- No new fields needed — the "Division" acronym column is purely derived.
+**5. Confirmation dialog**
+- Use a single shared `AlertDialog` controlled by `pendingDecommissionId: string | null` state, rather than one dialog per row, to keep the DOM light.
 
-**5. Layout:**
-- Adjust column widths to fit 6 columns: e.g. `24% / 10% / 18% / 18% / 8% / 22%`.
-- Table remains inside the existing `Card` with the same Save/Reset buttons (still UI-only, toast feedback).
+**6. Imports added**
+- `Tabs, TabsList, TabsTrigger, TabsContent` from `@/components/ui/tabs`
+- `AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle` from `@/components/ui/alert-dialog`
+- `Archive, Undo2` from `lucide-react`
 
 ### Notes
-- No backend/schema changes — page remains client-side state with toast on Save.
-- `StaffSearchCombobox` is reused as-is; no edits to that component.
-- Permission gating unchanged (Analytics dropdown / `hasAdminAccess`).
+- Still UI-only / client state — no DB schema changes. A future migration can add an `is_decommissioned` flag if persistence is required.
+- CSV import/export and Save scope stay limited to active rows (decommissioned units are intentionally excluded from the working set).
+- Permissions unchanged.
 
