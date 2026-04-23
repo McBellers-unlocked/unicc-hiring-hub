@@ -377,7 +377,7 @@ export default function UnitsAndDivisions() {
               />
               <Button variant="outline" onClick={handleDownloadTemplate}>
                 <Download className="w-4 h-4 mr-2" />
-                Download template
+                Download table
               </Button>
               <Button variant="outline" onClick={handleImportClick}>
                 <Upload className="w-4 h-4 mr-2" />
