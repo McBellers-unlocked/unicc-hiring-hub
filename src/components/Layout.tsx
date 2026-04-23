@@ -316,6 +316,12 @@ export const Layout = ({ children }: LayoutProps) => {
                             Hiring Analytics
                           </Link>
                         </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/userbase" className="flex items-center w-full">
+                            <Users className="w-4 h-4 mr-2" />
+                            Userbase
+                          </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
                           <Link to="/admin/import-userbase" className="flex items-center w-full">
