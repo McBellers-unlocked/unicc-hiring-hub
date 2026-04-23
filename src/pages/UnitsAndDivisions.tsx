@@ -71,9 +71,10 @@ const buildInitialRows = (): UnitRow[] => {
   return rows;
 };
 
-const ALL_UNIT_NAMES: string[] = Object.values(DIVISION_UNITS)
-  .flat()
-  .sort((a, b) => a.localeCompare(b));
+const ALL_UNIT_NAMES: string[] = [
+  ...Object.values(DIVISIONS),
+  ...Object.values(DIVISION_UNITS).flat(),
+].sort((a, b) => a.localeCompare(b));
 
 interface ParentSectionPickerProps {
   value: string;
