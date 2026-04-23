@@ -254,7 +254,7 @@ export default function UnitsAndDivisions() {
                           value={row.division}
                           onValueChange={(v) => updateRow(row.id, 'division', v)}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="h-auto min-h-10 py-2 text-left [&>span]:whitespace-normal [&>span]:line-clamp-none">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
