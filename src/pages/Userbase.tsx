@@ -60,6 +60,7 @@ import {
   X,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { MAPPED_COLUMNS } from '@/lib/userbaseChangeSet';
 
 // --- Column metadata ---
 
@@ -69,47 +70,27 @@ interface ColDef {
   filter?: 'division' | 'unit' | 'worker_type' | 'category' | 'source' | 'office_location';
 }
 
+const FILTER_KEYS: Record<string, ColDef['filter']> = {
+  division: 'division',
+  unit: 'unit',
+  worker_type: 'worker_type',
+  category: 'category',
+  office_location: 'office_location',
+};
+
+// Derived from the importer's MAPPED_COLUMNS so the table reflects every column
+// produced by the GSM + Samsaran merge. `source` is appended as bookkeeping.
 const COLUMNS: ColDef[] = [
-  { key: 'full_name', label: 'Full Name' },
-  { key: 'gsm_staff_number', label: 'GSM Staff Number' },
-  { key: 'samsaran_staff_number', label: 'Samsaran Staff Number' },
-  { key: 'nationality', label: 'Nationality' },
-  { key: 'gsm_gender', label: 'GSM Gender' },
-  { key: 'samsaran_gender', label: 'Samsaran Gender' },
-  { key: 'date_of_birth', label: 'Date of Birth' },
-  { key: 'gsm_email_address', label: 'GSM Email Address' },
-  { key: 'samsaran_email_address', label: 'Samsaran Email Address' },
-  { key: 'service_time_current_org', label: 'Service time (Current Organization)' },
-  { key: 'official_duty_station', label: 'Official Duty Station' },
-  { key: 'apa_start_date', label: 'APA Start Date' },
-  { key: 'job_name', label: 'Job Name' },
-  { key: 'position_name', label: 'Position Name' },
-  { key: 'first_incumbency_start_date', label: 'First Incumbency Start Date' },
-  { key: 'entry_on_duty_date_who', label: 'Entry on duty date WHO' },
-  { key: 'appointment_type', label: 'Appointment Type' },
-  { key: 'contract_start_date', label: 'Contract Start Date' },
-  { key: 'contract_end_date', label: 'Contract End Date' },
-  { key: 'current_grade', label: 'Current Grade' },
-  { key: 'current_step', label: 'Current Step' },
-  { key: 'reporting_lines', label: 'Reporting lines (supervisor)' },
-  { key: 'category', label: 'Category', filter: 'category' },
-  { key: 'first_name', label: 'First name' },
-  { key: 'last_name', label: 'Last name' },
-  { key: 'search_name', label: 'Search name' },
-  { key: 'worker_type', label: 'Worker type', filter: 'worker_type' },
-  { key: 'intern', label: 'Intern' },
-  { key: 'unit', label: 'Unit', filter: 'unit' },
-  { key: 'job_title', label: 'Job title' },
-  { key: 'line_manager', label: 'Line manager' },
-  { key: 'office_location', label: 'Office location', filter: 'office_location' },
-  { key: 'division', label: 'Division', filter: 'division' },
+  ...MAPPED_COLUMNS.map((c) => ({
+    key: c.db,
+    label: c.label,
+    filter: FILTER_KEYS[c.db],
+  })),
   { key: 'source', label: 'Source', filter: 'source' },
 ];
 
-const DEFAULT_VISIBLE = new Set([
-  'full_name', 'unit', 'division', 'job_title', 'worker_type', 'category',
-  'office_location', 'samsaran_email_address', 'gsm_staff_number', 'line_manager',
-]);
+// Show every parsed column by default; users can hide via the Columns menu.
+const DEFAULT_VISIBLE = new Set(COLUMNS.map((c) => c.key));
 
 const VISIBLE_COLS_KEY = 'userbase:visible-columns';
 const PAGE_SIZE_KEY = 'userbase:page-size';
