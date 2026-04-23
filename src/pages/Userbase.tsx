@@ -222,6 +222,25 @@ export default function Userbase() {
     return true;
   };
 
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteRow = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    const { error } = await supabase.from('users_clean').delete().eq('id', pendingDelete.id);
+    setDeleting(false);
+    if (error) {
+      toast.error(`Failed to delete: ${error.message}`);
+      return;
+    }
+    toast.success('Row deleted');
+    setPendingDelete(null);
+    queryClient.invalidateQueries({ queryKey: ['users_clean'] });
+    queryClient.invalidateQueries({ queryKey: ['users_clean:meta'] });
+    queryClient.invalidateQueries({ queryKey: ['users_clean:missing'] });
+  };
+
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(() => {
     const v = Number(localStorage.getItem(PAGE_SIZE_KEY));
