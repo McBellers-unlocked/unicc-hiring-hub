@@ -284,20 +284,26 @@ const buildMergedColumns = (): { columns: string[]; gsmMap: Record<string, strin
   const samsMap: Record<string, string> = {};
   for (const c of GSM_OUT_COLUMNS) {
     if (c === 'Staff Number') gsmMap[c] = OVERLAP_RENAMES.StaffNumber.gsm;
-    else if (c === 'Gender') gsmMap[c] = OVERLAP_RENAMES.Gender.gsm;
     else if (c === 'Email Address') gsmMap[c] = OVERLAP_RENAMES.Email.gsm;
     else gsmMap[c] = c;
   }
   for (const c of SAMSARAN_OUT_COLUMNS) {
     if (c === 'Staff number') samsMap[c] = OVERLAP_RENAMES.StaffNumber.sams;
-    else if (c === 'Gender') samsMap[c] = OVERLAP_RENAMES.Gender.sams;
     else if (c === 'Email address') samsMap[c] = OVERLAP_RENAMES.Email.sams;
     else samsMap[c] = c;
   }
-  const columns = [
+  // Build merged column list, deduping the unified 'Gender' column.
+  const seen = new Set<string>();
+  const columns: string[] = [];
+  for (const c of [
     ...GSM_OUT_COLUMNS.map((c) => gsmMap[c]),
     ...SAMSARAN_OUT_COLUMNS.map((c) => samsMap[c]),
-  ];
+  ]) {
+    if (!seen.has(c)) {
+      seen.add(c);
+      columns.push(c);
+    }
+  }
   return { columns, gsmMap, samsMap };
 };
 
