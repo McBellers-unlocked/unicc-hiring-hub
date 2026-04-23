@@ -230,6 +230,15 @@ export default function UnitsAndDivisions() {
     else setSelectedIds(new Set());
   };
 
+  const sortedActiveRows = useMemo(
+    () => [...activeRows].sort((a, b) => a.unit.localeCompare(b.unit, undefined, { sensitivity: 'base' })),
+    [activeRows]
+  );
+  const sortedDecommissionedRows = useMemo(
+    () => [...decommissionedRows].sort((a, b) => a.unit.localeCompare(b.unit, undefined, { sensitivity: 'base' })),
+    [decommissionedRows]
+  );
+
   const handleDecommissionClick = () => {
     if (!selectionMode) {
       setSelectionMode(true);
