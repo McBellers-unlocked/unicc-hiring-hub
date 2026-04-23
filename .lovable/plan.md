@@ -1,49 +1,48 @@
 
 
-## Add "Decommissioned Units and Divisions" Tab
-
-### What
-Convert the Units and Divisions page into a two-tab layout:
-1. **Active Units and Divisions** (current table + new "Decommission" action column)
-2. **Decommissioned Units and Divisions** (same columns + "Restore" action column)
-
-Decommissioning moves a row from the active list to the decommissioned list via a confirmation dialog.
+## Decommission Workflow → Bulk Selection Mode
 
 ### Changes — `src/pages/UnitsAndDivisions.tsx`
 
-**1. Tabs layout**
-- Wrap the table in shadcn `Tabs` (`src/components/ui/tabs.tsx`):
-  - `TabsList` with two triggers: "Active" and "Decommissioned" (with a count badge, e.g. `Decommissioned (3)`).
-  - `TabsContent` for each, each rendering its own table.
-- Header buttons (Download template, Import, Reset, Save) stay above the tabs and continue to act on the **active** rows (Import replaces active; template exports active rows; Reset restores defaults for active and clears decommissioned).
+**1. Remove per-row Decommission button**
+- Drop the trailing "Actions" column (and its header) from the **Active** table.
+- Each row no longer has its own Decommission button.
 
-**2. State model**
-- Split state into two arrays:
-  - `activeRows: UnitRow[]` (current `rows`)
-  - `decommissionedRows: UnitRow[]` (initially empty)
-- `handleReset` resets both: `activeRows = buildInitialRows()`, `decommissionedRows = []`.
+**2. New header button: "Decommission"**
+- Add a new button in the header toolbar, placed **between Reset and Save**, so the order becomes:
+  `Download table | Import | Reset | Decommission | Save`
+- Variant: `outline`, with `Archive` icon. Only visible/enabled on the **Active** tab.
 
-**3. Active table — new "Actions" column**
-- Append a final `TableHead` "Actions" (min-w ~120px, right-aligned).
-- Each row gets a destructive-outline `Button` with `Archive` (lucide) icon + "Decommission" label.
-- Clicking opens an `AlertDialog` (shadcn — already in project): title "Decommission this unit?", description "This will move the unit to the Decommissioned tab. You can restore it later.", actions Cancel / Confirm.
-- On confirm: remove row from `activeRows`, prepend to `decommissionedRows`, toast success.
+**3. Selection mode (two-click flow)**
+- New state: `selectionMode: boolean`, `selectedIds: Set<string>`.
+- **First click on Decommission** → enters selection mode:
+  - Button label changes to `Decommission selected (N)` and switches to `destructive` variant when N > 0.
+  - A new "Cancel" button appears next to it to exit selection mode (clears `selectedIds`, `selectionMode = false`).
+  - The Active table gains a leading checkbox column:
+    - Header: a "select all" checkbox (indeterminate when partial) toggling every active row.
+    - Each row: a `Checkbox` (shadcn `@/components/ui/checkbox`) bound to `selectedIds`.
+  - Selected rows get a subtle `bg-muted/50` highlight.
+  - Other header buttons (Download/Import/Reset/Save) remain visible but are disabled while in selection mode to avoid conflicting actions.
+- **Second click on Decommission** (with ≥1 selected) → opens the existing `AlertDialog`:
+  - Title: "Decommission selected units?"
+  - Description: "This will move N unit(s) to the Decommissioned tab. You can restore them later." (N reflects current selection count.)
+  - Confirm → move all selected rows from `activeRows` to `decommissionedRows` (prepended, preserving original order), clear selection, exit selection mode, toast `Decommissioned N unit(s)`.
+  - Cancel → dialog closes; selection mode and selected rows are preserved so the user can adjust.
+- If clicked with 0 selected → no dialog; show a small inline hint or toast: "Select at least one unit to decommission."
 
-**4. Decommissioned table**
-- Same 6 data columns as active, all read-only (plain text cells; no inputs/comboboxes) to make intent clear.
-- Final "Actions" column with a "Restore" button (`Undo2` icon, outline). On click: remove from `decommissionedRows`, append to `activeRows`, toast success. (No confirmation dialog needed for restore — it's reversible.)
-- Empty state: when `decommissionedRows.length === 0`, render a centered muted message "No decommissioned units." instead of an empty table.
+**4. State / dialog cleanup**
+- Replace `pendingDecommissionId: string | null` with `confirmOpen: boolean`.
+- Update `confirmDecommission` to operate on `selectedIds` instead of a single id.
 
-**5. Confirmation dialog**
-- Use a single shared `AlertDialog` controlled by `pendingDecommissionId: string | null` state, rather than one dialog per row, to keep the DOM light.
+**5. Tab behavior**
+- Switching to the **Decommissioned** tab while in selection mode automatically exits selection mode and clears `selectedIds`.
+- The Decommissioned tab is unchanged (still has per-row "Restore").
 
-**6. Imports added**
-- `Tabs, TabsList, TabsTrigger, TabsContent` from `@/components/ui/tabs`
-- `AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle` from `@/components/ui/alert-dialog`
-- `Archive, Undo2` from `lucide-react`
+**6. Imports**
+- Add `Checkbox` from `@/components/ui/checkbox`.
+- Keep `Archive`, `Undo2`; add `XCircle` (or reuse `X`) for the Cancel-selection button.
 
 ### Notes
-- Still UI-only / client state — no DB schema changes. A future migration can add an `is_decommissioned` flag if persistence is required.
-- CSV import/export and Save scope stay limited to active rows (decommissioned units are intentionally excluded from the working set).
-- Permissions unchanged.
+- Still UI-only state; no schema changes.
+- Keyboard/a11y: select-all checkbox uses `aria-label="Select all units"`; row checkboxes use `aria-label={`Select ${row.fullName}`}`.
 
