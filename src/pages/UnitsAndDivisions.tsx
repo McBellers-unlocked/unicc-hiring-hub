@@ -33,6 +33,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Tabs,
   TabsContent,
@@ -60,7 +61,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft,
-  Save,
   RotateCcw,
   ChevronsUpDown,
   X,
@@ -71,11 +71,16 @@ import {
   Undo2,
   CheckCircle2,
   RefreshCw,
+  Plus,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DIVISIONS, DIVISION_UNITS } from '@/lib/organizationConstants';
 import { StaffSearchCombobox, type StaffMember } from '@/components/operations/StaffSearchCombobox';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
 
 interface UnitRow {
   id: string;
@@ -84,26 +89,46 @@ interface UnitRow {
   parentSection: string;
   division: string;
   manager: string;
+  status: 'active' | 'decommissioned';
 }
+
+interface OrgUnitDb {
+  id: string;
+  full_name: string;
+  unit: string;
+  parent_section: string | null;
+  division: string;
+  manager: string | null;
+  status: string;
+}
+
+const dbToRow = (r: OrgUnitDb): UnitRow => ({
+  id: r.id,
+  fullName: r.full_name,
+  unit: r.unit,
+  parentSection: r.parent_section ?? '',
+  division: r.division,
+  manager: r.manager ?? '',
+  status: (r.status === 'decommissioned' ? 'decommissioned' : 'active'),
+});
 
 const extractCode = (fullName: string): string => {
   const match = fullName.match(/\(([^)]+)\)\s*$/);
   return match ? match[1] : '';
 };
 
-const buildInitialRows = (): UnitRow[] => {
-  const rows: UnitRow[] = [];
+// Default seed list (used by Reset)
+const buildSeedRows = () => {
+  const rows: { full_name: string; unit: string; division: string }[] = [];
   Object.keys(DIVISIONS).forEach((divCode) => {
     const units = DIVISION_UNITS[divCode] || [];
-    const sorted = [...units].sort((a, b) => a.localeCompare(b));
-    sorted.forEach((fullName, idx) => {
+    units.forEach((fullName) => {
+      // strip trailing " (CODE)" from the seed full names
+      const cleanName = fullName.replace(/\s*\([^)]+\)\s*$/, '');
       rows.push({
-        id: `${divCode}-${idx}`,
-        fullName,
+        full_name: cleanName,
         unit: extractCode(fullName),
-        parentSection: '',
         division: divCode,
-        manager: '',
       });
     });
   });
@@ -118,9 +143,10 @@ const ALL_UNIT_NAMES: string[] = [
 interface ParentSectionPickerProps {
   value: string;
   onChange: (v: string) => void;
+  onCommit?: (v: string) => void;
 }
 
-const ParentSectionPicker = ({ value, onChange }: ParentSectionPickerProps) => {
+const ParentSectionPicker = ({ value, onChange, onCommit }: ParentSectionPickerProps) => {
   const [open, setOpen] = useState(false);
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -147,6 +173,7 @@ const ParentSectionPicker = ({ value, onChange }: ParentSectionPickerProps) => {
                 value="__none__"
                 onSelect={() => {
                   onChange('');
+                  onCommit?.('');
                   setOpen(false);
                 }}
               >
@@ -158,6 +185,7 @@ const ParentSectionPicker = ({ value, onChange }: ParentSectionPickerProps) => {
                   value={name}
                   onSelect={() => {
                     onChange(name);
+                    onCommit?.(name);
                     setOpen(false);
                   }}
                 >
@@ -181,9 +209,10 @@ const ParentSectionPicker = ({ value, onChange }: ParentSectionPickerProps) => {
 interface ManagerPickerProps {
   value: string;
   onChange: (v: string) => void;
+  onCommit?: (v: string) => void;
 }
 
-const ManagerPicker = ({ value, onChange }: ManagerPickerProps) => {
+const ManagerPicker = ({ value, onChange, onCommit }: ManagerPickerProps) => {
   if (value) {
     return (
       <div className="flex items-center gap-1">
@@ -191,7 +220,7 @@ const ManagerPicker = ({ value, onChange }: ManagerPickerProps) => {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => onChange('')}
+          onClick={() => { onChange(''); onCommit?.(''); }}
           aria-label="Clear manager"
         >
           <X className="h-4 w-4" />
@@ -201,28 +230,199 @@ const ManagerPicker = ({ value, onChange }: ManagerPickerProps) => {
   }
   return (
     <StaffSearchCombobox
-      onSelect={(staff: StaffMember) => onChange(staff.name)}
+      onSelect={(staff: StaffMember) => { onChange(staff.name); onCommit?.(staff.name); }}
     />
   );
 };
 
+// ============== Add row dialog ==============
+interface AddOrgUnitDialogProps {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  existingUnits: string[];
+  onCreated: () => void;
+}
+
+const AddOrgUnitDialog = ({ open, onOpenChange, existingUnits, onCreated }: AddOrgUnitDialogProps) => {
+  const [fullName, setFullName] = useState('');
+  const [unit, setUnit] = useState('');
+  const [parentSection, setParentSection] = useState('');
+  const [division, setDivision] = useState('');
+  const [manager, setManager] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const reset = () => {
+    setFullName(''); setUnit(''); setParentSection('');
+    setDivision(''); setManager(''); setSaving(false);
+  };
+
+  const existingLower = useMemo(
+    () => new Set(existingUnits.map((u) => u.trim().toLowerCase())),
+    [existingUnits]
+  );
+  const unitTrim = unit.trim();
+  const unitDuplicate = unitTrim !== '' && existingLower.has(unitTrim.toLowerCase());
+
+  const canSave =
+    fullName.trim() !== '' &&
+    unitTrim !== '' &&
+    !unitDuplicate &&
+    Object.keys(DIVISIONS).includes(division);
+
+  const handleSave = async () => {
+    if (!canSave) return;
+    setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from('org_units').insert({
+      full_name: fullName.trim(),
+      unit: unitTrim,
+      parent_section: parentSection.trim(),
+      division,
+      manager: manager.trim(),
+      status: 'active',
+      created_by: user?.id ?? null,
+    });
+    setSaving(false);
+    if (error) {
+      toast.error(`Failed to add unit: ${error.message}`);
+      return;
+    }
+    toast.success('Unit added');
+    onCreated();
+    reset();
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Add a new unit</DialogTitle>
+          <DialogDescription>
+            Create a new organizational unit. Fields marked with * are required.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="overflow-y-auto max-h-[60vh] space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="add-fullname">Unit full name *</Label>
+            <Input
+              id="add-fullname"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="e.g. Project Portfolio Unit"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="add-unit">Unit (code) *</Label>
+            <Input
+              id="add-unit"
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+              placeholder="e.g. DDPM"
+              className={cn(unitDuplicate && 'border-destructive focus-visible:ring-destructive')}
+            />
+            {unitDuplicate && (
+              <p className="text-xs text-destructive">A unit with this code already exists.</p>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <Label>Parent Section</Label>
+            <ParentSectionPicker value={parentSection} onChange={setParentSection} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Division *</Label>
+            <Select value={division} onValueChange={setDivision}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select division…" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(DIVISIONS).map(([code, label]) => (
+                  <SelectItem key={code} value={code}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Manager</Label>
+            <ManagerPicker value={manager} onChange={setManager} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>Cancel</Button>
+          <Button onClick={handleSave} disabled={!canSave || saving}>
+            {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            Add unit
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// ============== Page ==============
 export default function UnitsAndDivisions() {
   const navigate = useNavigate();
-  const initialRows = useMemo(buildInitialRows, []);
-  const [activeRows, setActiveRows] = useState<UnitRow[]>(initialRows);
-  const [decommissionedRows, setDecommissionedRows] = useState<UnitRow[]>([]);
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('active');
   const [importResult, setImportResult] = useState<{ added: string[]; updated: string[]; skipped: string[] } | null>(null);
   const [importResultOpen, setImportResultOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
 
-  const updateRow = (id: string, field: keyof UnitRow, value: string) => {
-    setActiveRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
-    );
+  // Permission gate (matches RLS): Admin / HR Assistant / Chief of HR
+  const userRole = (user as any)?.role || (user as any)?.user_metadata?.role;
+  const canEdit = ['Admin', 'HR Assistant', 'Chief of HR'].includes(userRole);
+
+  const { data: rows = [], isLoading, error } = useQuery({
+    queryKey: ['org_units'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('org_units')
+        .select('*')
+        .order('unit', { ascending: true });
+      if (error) throw error;
+      return (data as OrgUnitDb[]).map(dbToRow);
+    },
+  });
+
+  const activeRows = useMemo(() => rows.filter((r) => r.status === 'active'), [rows]);
+  const decommissionedRows = useMemo(() => rows.filter((r) => r.status === 'decommissioned'), [rows]);
+
+  const refetch = () => queryClient.invalidateQueries({ queryKey: ['org_units'] });
+
+  // Optimistic local edit + persist on commit
+  const persistField = async (id: string, dbField: string, value: string) => {
+    const { error } = await supabase
+      .from('org_units')
+      .update({ [dbField]: value })
+      .eq('id', id);
+    if (error) {
+      toast.error(`Failed to save: ${error.message}`);
+      refetch();
+    }
   };
+
+  // For inline edits, we keep an optimistic patch map so typing feels immediate
+  const [optimistic, setOptimistic] = useState<Record<string, Partial<UnitRow>>>({});
+  const applyOptimistic = (id: string, patch: Partial<UnitRow>) => {
+    setOptimistic((prev) => ({ ...prev, [id]: { ...(prev[id] || {}), ...patch } }));
+  };
+  const clearOptimistic = (id: string) => {
+    setOptimistic((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
+
+  const mergedActive = useMemo(
+    () => activeRows.map((r) => ({ ...r, ...(optimistic[r.id] || {}) })),
+    [activeRows, optimistic]
+  );
 
   const exitSelectionMode = () => {
     setSelectionMode(false);
@@ -244,8 +444,8 @@ export default function UnitsAndDivisions() {
   };
 
   const sortedActiveRows = useMemo(
-    () => [...activeRows].sort((a, b) => a.unit.localeCompare(b.unit, undefined, { sensitivity: 'base' })),
-    [activeRows]
+    () => [...mergedActive].sort((a, b) => a.unit.localeCompare(b.unit, undefined, { sensitivity: 'base' })),
+    [mergedActive]
   );
   const sortedDecommissionedRows = useMemo(
     () => [...decommissionedRows].sort((a, b) => a.unit.localeCompare(b.unit, undefined, { sensitivity: 'base' })),
@@ -269,36 +469,55 @@ export default function UnitsAndDivisions() {
     if (v !== 'active' && selectionMode) exitSelectionMode();
   };
 
-  const handleSave = () => {
-    toast.success('Units and Divisions saved');
-  };
-
-  const handleReset = () => {
-    setActiveRows(buildInitialRows());
-    setDecommissionedRows([]);
+  const handleReset = async () => {
+    setResetConfirmOpen(false);
+    const { error: delErr } = await supabase.from('org_units').delete().not('id', 'is', null);
+    if (delErr) {
+      toast.error(`Reset failed: ${delErr.message}`);
+      return;
+    }
+    const seed = buildSeedRows().map((r) => ({ ...r, status: 'active' as const }));
+    const { error: insErr } = await supabase.from('org_units').insert(seed);
+    if (insErr) {
+      toast.error(`Reset insert failed: ${insErr.message}`);
+      return;
+    }
+    setOptimistic({});
     exitSelectionMode();
-    toast.message('Reverted to default values');
+    refetch();
+    toast.success('Reset to defaults');
   };
 
-  const confirmDecommission = () => {
-    const ids = selectedIds;
-    if (ids.size === 0) {
+  const confirmDecommission = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) {
       setConfirmOpen(false);
       return;
     }
-    const toMove = activeRows.filter((r) => ids.has(r.id));
-    setActiveRows((prev) => prev.filter((r) => !ids.has(r.id)));
-    setDecommissionedRows((prev) => [...toMove, ...prev]);
+    const { error } = await supabase
+      .from('org_units')
+      .update({ status: 'decommissioned' })
+      .in('id', ids);
     setConfirmOpen(false);
     exitSelectionMode();
-    toast.success(`Decommissioned ${toMove.length} unit(s)`);
+    if (error) {
+      toast.error(`Failed: ${error.message}`);
+      return;
+    }
+    refetch();
+    toast.success(`Decommissioned ${ids.length} unit(s)`);
   };
 
-  const handleRestore = (id: string) => {
-    const row = decommissionedRows.find((r) => r.id === id);
-    if (!row) return;
-    setDecommissionedRows((prev) => prev.filter((r) => r.id !== id));
-    setActiveRows((prev) => [...prev, row]);
+  const handleRestore = async (id: string) => {
+    const { error } = await supabase
+      .from('org_units')
+      .update({ status: 'active' })
+      .eq('id', id);
+    if (error) {
+      toast.error(`Failed to restore: ${error.message}`);
+      return;
+    }
+    refetch();
     toast.success('Unit restored');
   };
 
@@ -311,7 +530,7 @@ export default function UnitsAndDivisions() {
 
   const handleDownloadTemplate = () => {
     const headers = ['Unit full name', 'Unit', 'Parent Section', 'Division full name', 'Division', 'Manager'];
-    const lines = [headers.join(',')];
+    const lines = [headers.join(',')]
     activeRows.forEach((r) => {
       lines.push([
         r.fullName,
@@ -403,19 +622,12 @@ export default function UnitsAndDivisions() {
         return;
       }
 
-      // Pre-flight: ensure every row has a Unit (primary key)
       const blankUnit = imported.find((r) => !r.unit.trim());
       if (blankUnit) {
         toast.error("Import failed: every row must have a 'Unit' value (primary key).");
         return;
       }
 
-      // Pre-flight: duplicate Unit values in the imported file (case-insensitive)
-      const seen = new Map<string, number>();
-      imported.forEach((r) => {
-        const key = r.unit.trim().toLowerCase();
-        seen.set(key, (seen.get(key) || 0) + 1);
-      });
       const dupes = imported
         .map((r) => r.unit.trim())
         .filter((u, i, arr) => arr.findIndex((x) => x.toLowerCase() === u.toLowerCase()) !== i);
@@ -428,55 +640,67 @@ export default function UnitsAndDivisions() {
         return;
       }
 
-      // Partition imported rows: skip those colliding with decommissioned units
       const decommissionedKeys = new Map(
         decommissionedRows.map((r) => [r.unit.trim().toLowerCase(), r.unit])
       );
+      const activeIndex = new Map<string, UnitRow>();
+      activeRows.forEach((r) => activeIndex.set(r.unit.trim().toLowerCase(), r));
+
       const skippedUnits: string[] = [];
-      const toMerge: typeof imported = [];
+      const updatedUnits: string[] = [];
+      const addedUnits: string[] = [];
+      const updateOps: Promise<any>[] = [];
+      const insertPayload: any[] = [];
+
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+
       imported.forEach((r) => {
-        if (decommissionedKeys.has(r.unit.trim().toLowerCase())) {
+        const key = r.unit.trim().toLowerCase();
+        if (decommissionedKeys.has(key)) {
           skippedUnits.push(r.unit);
+          return;
+        }
+        const existing = activeIndex.get(key);
+        if (existing) {
+          updateOps.push(
+            Promise.resolve(
+              supabase.from('org_units').update({
+                full_name: r.fullName,
+                unit: r.unit,
+                parent_section: r.parentSection,
+                division: r.division,
+                manager: r.manager,
+              }).eq('id', existing.id)
+            )
+          );
+          updatedUnits.push(r.unit);
         } else {
-          toMerge.push(r);
+          insertPayload.push({
+            full_name: r.fullName,
+            unit: r.unit,
+            parent_section: r.parentSection,
+            division: r.division,
+            manager: r.manager,
+            status: 'active',
+            created_by: authUser?.id ?? null,
+          });
+          addedUnits.push(r.unit);
         }
       });
 
-      // Outer-join merge keyed on Unit (case-insensitive)
-      const activeIndex = new Map<string, number>();
-      activeRows.forEach((r, i) => {
-        activeIndex.set(r.unit.trim().toLowerCase(), i);
-      });
-      const merged = [...activeRows];
-      const addedUnits: string[] = [];
-      const updatedUnits: string[] = [];
-      const ts = Date.now();
-      toMerge.forEach((imp, idx) => {
-        const key = imp.unit.trim().toLowerCase();
-        const existingIdx = activeIndex.get(key);
-        if (existingIdx !== undefined) {
-          merged[existingIdx] = {
-            ...merged[existingIdx],
-            fullName: imp.fullName,
-            unit: imp.unit,
-            parentSection: imp.parentSection,
-            division: imp.division,
-            manager: imp.manager,
-          };
-          updatedUnits.push(imp.unit);
-        } else {
-          merged.push({
-            id: `imp-${ts}-${idx}`,
-            fullName: imp.fullName,
-            unit: imp.unit,
-            parentSection: imp.parentSection,
-            division: imp.division,
-            manager: imp.manager,
-          });
-          addedUnits.push(imp.unit);
-        }
-      });
-      setActiveRows(merged);
+      const updateResults = await Promise.all(updateOps);
+      const updateErr = updateResults.find((res: any) => res?.error)?.error;
+      let insertErr: any = null;
+      if (insertPayload.length > 0) {
+        const { error } = await supabase.from('org_units').insert(insertPayload);
+        insertErr = error;
+      }
+
+      if (updateErr || insertErr) {
+        toast.error(`Import error: ${(updateErr || insertErr).message}`);
+      }
+
+      refetch();
       setImportResult({ added: addedUnits, updated: updatedUnits, skipped: skippedUnits });
       setImportResultOpen(true);
     } catch (err) {
@@ -513,19 +737,29 @@ export default function UnitsAndDivisions() {
                 className="hidden"
                 onChange={handleImportFile}
               />
+              {canEdit && !selectionMode && (
+                <Button variant="default" onClick={() => setAddOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add row
+                </Button>
+              )}
               <Button variant="outline" onClick={handleDownloadTemplate} disabled={selectionMode}>
                 <Download className="w-4 h-4 mr-2" />
                 Download table
               </Button>
-              <Button variant="outline" onClick={handleImportClick} disabled={selectionMode}>
-                <Upload className="w-4 h-4 mr-2" />
-                Import
-              </Button>
-              <Button variant="outline" onClick={handleReset} disabled={selectionMode}>
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Reset
-              </Button>
-              {activeTab === 'active' && (
+              {canEdit && (
+                <>
+                  <Button variant="outline" onClick={handleImportClick} disabled={selectionMode}>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Import
+                  </Button>
+                  <Button variant="outline" onClick={() => setResetConfirmOpen(true)} disabled={selectionMode}>
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Reset
+                  </Button>
+                </>
+              )}
+              {canEdit && activeTab === 'active' && (
                 <>
                   <Button
                     variant={selectionMode && selectedIds.size > 0 ? 'destructive' : 'outline'}
@@ -544,13 +778,19 @@ export default function UnitsAndDivisions() {
                   )}
                 </>
               )}
-              <Button onClick={handleSave} disabled={selectionMode}>
-                <Save className="w-4 h-4 mr-2" />
-                Save
-              </Button>
             </div>
           </CardHeader>
           <CardContent>
+            {isLoading ? (
+              <div className="py-12 text-center text-muted-foreground">
+                <Loader2 className="w-5 h-5 animate-spin inline mr-2" />
+                Loading units…
+              </div>
+            ) : error ? (
+              <div className="py-12 text-center text-destructive text-sm">
+                Failed to load units. Please refresh.
+              </div>
+            ) : (
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               <TabsList>
                 <TabsTrigger value="active">
@@ -592,6 +832,7 @@ export default function UnitsAndDivisions() {
                     <TableBody>
                       {sortedActiveRows.map((row) => {
                         const isSelected = selectedIds.has(row.id);
+                        const editable = canEdit;
                         return (
                         <TableRow
                           key={row.id}
@@ -612,19 +853,41 @@ export default function UnitsAndDivisions() {
                           <TableCell>
                             <Input
                               value={row.unit}
-                              onChange={(e) => updateRow(row.id, 'unit', e.target.value)}
+                              disabled={!editable}
+                              onChange={(e) => applyOptimistic(row.id, { unit: e.target.value })}
+                              onBlur={async (e) => {
+                                const v = e.target.value;
+                                const original = activeRows.find((r) => r.id === row.id)?.unit ?? '';
+                                if (v !== original) {
+                                  await persistField(row.id, 'unit', v);
+                                }
+                                clearOptimistic(row.id);
+                                refetch();
+                              }}
                             />
                           </TableCell>
                           <TableCell>
                             <ParentSectionPicker
                               value={row.parentSection}
-                              onChange={(v) => updateRow(row.id, 'parentSection', v)}
+                              onChange={(v) => applyOptimistic(row.id, { parentSection: v })}
+                              onCommit={async (v) => {
+                                if (!editable) return;
+                                await persistField(row.id, 'parent_section', v);
+                                clearOptimistic(row.id);
+                                refetch();
+                              }}
                             />
                           </TableCell>
                           <TableCell>
                             <Select
                               value={row.division}
-                              onValueChange={(v) => updateRow(row.id, 'division', v)}
+                              disabled={!editable}
+                              onValueChange={async (v) => {
+                                applyOptimistic(row.id, { division: v });
+                                await persistField(row.id, 'division', v);
+                                clearOptimistic(row.id);
+                                refetch();
+                              }}
                             >
                               <SelectTrigger className="h-auto min-h-10 py-2 text-left [&>span]:whitespace-normal [&>span]:line-clamp-none">
                                 <SelectValue />
@@ -644,7 +907,13 @@ export default function UnitsAndDivisions() {
                           <TableCell>
                             <ManagerPicker
                               value={row.manager}
-                              onChange={(v) => updateRow(row.id, 'manager', v)}
+                              onChange={(v) => applyOptimistic(row.id, { manager: v })}
+                              onCommit={async (v) => {
+                                if (!editable) return;
+                                await persistField(row.id, 'manager', v);
+                                clearOptimistic(row.id);
+                                refetch();
+                              }}
                             />
                           </TableCell>
                         </TableRow>
@@ -694,14 +963,16 @@ export default function UnitsAndDivisions() {
                               {row.manager || <span className="text-muted-foreground">—</span>}
                             </TableCell>
                             <TableCell className="text-right">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleRestore(row.id)}
-                              >
-                                <Undo2 className="w-4 h-4 mr-2" />
-                                Restore
-                              </Button>
+                              {canEdit && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleRestore(row.id)}
+                                >
+                                  <Undo2 className="w-4 h-4 mr-2" />
+                                  Restore
+                                </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -711,6 +982,7 @@ export default function UnitsAndDivisions() {
                 )}
               </TabsContent>
             </Tabs>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -735,13 +1007,38 @@ export default function UnitsAndDivisions() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset to defaults?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete ALL current rows (including decommissioned ones)
+              and reinsert the default Units & Divisions list. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReset}>
+              Yes, reset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AddOrgUnitDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        existingUnits={rows.map((r) => r.unit)}
+        onCreated={refetch}
+      />
+
       <Dialog open={importResultOpen} onOpenChange={setImportResultOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Import complete</DialogTitle>
             <DialogDescription>
               {importResult
-                ? `${importResult.added.length} added · ${importResult.updated.length} updated · ${importResult.skipped.length} skipped · ${activeRows.length - importResult.updated.length} kept`
+                ? `${importResult.added.length} added · ${importResult.updated.length} updated · ${importResult.skipped.length} skipped`
                 : ''}
             </DialogDescription>
           </DialogHeader>
