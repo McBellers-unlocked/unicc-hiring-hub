@@ -1,80 +1,55 @@
+## Investigation: Why Some GSM↔Samsaran Records Aren't Joining
 
+### What I found in `users_clean`
 
-## Headcount Analytics page (`/admin/headcount`)
+- `alberca@unicc.org` exists as **two rows**:
+  - GSM row → `match_key = sn:s305687` (staff number `S305687`, no Samsaran data)
+  - Samsaran row → `match_key = em:alberca@unicc.org` (no staff number, same email)
+- This pattern is widespread, not isolated:
+  - **335** distinct emails appear on more than one row.
+  - **332 of 341** Samsaran-only rows have a blank `samsaran_staff_number`.
+  - GSM rows almost always have a staff number; Samsaran rows almost never do.
 
-A new client-side page reading from `users_clean`, slotted into the Analytics dropdown between **Userbase** and the separator. No DB / schema changes.
+### Root cause
 
-### 1. Routing & navigation
-- Add page `src/pages/Headcount.tsx`.
-- `src/App.tsx`: register route `/admin/headcount` → `<Headcount />` (admin guard, same pattern as Userbase).
-- `src/components/Layout.tsx`: insert a new `DropdownMenuItem` linking to `/admin/headcount` with a `PieChart` icon, immediately after the Userbase item and before the existing `<DropdownMenuSeparator />` at line 325.
+In `src/pages/ImportUserbase.tsx`, `keyOf()` builds the merge key with **staff number first, email as fallback**:
 
-### 2. Data fetching
-- Single React Query: `['users_clean:headcount', filters]`.
-- One Supabase call selecting only the columns needed: `gsm_gender, samsaran_gender, worker_type, category, division, office_location, current_grade, nationality, appointment_type`.
-- Filters applied server-side via `.in()` predicates:
-  - `worker_type` (multi-select from distinct values)
-  - `division` (multi-select from distinct values)
-  - `office_location` (multi-select from distinct values)
-- Distinct-value queries: 3 small parallel queries to populate filter dropdowns (cached separately as `['users_clean:distinct', column]` — same key already used by `Userbase.tsx`, so they're shared).
-- Pagination: pull all matching rows in 1000-row chunks via `.range()` loop (the dataset is small, full-table aggregation is needed). Show a count at the top.
-
-### 3. Layout
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Headcount    (subtitle: N people · last imported …)         │
-├─────────────────────────────────────────────────────────────┤
-│ Filter bar:  [Worker type ▾]  [Division ▾]  [Location ▾]    │
-│              active chips · "Reset"                         │
-├─────────────────────────────────────────────────────────────┤
-│ KPI strip — one card per Division (count + % of total)      │
-├──────────────────────────┬──────────────────────────────────┤
-│ Pie: Gender (Man/Woman/  │ Pie: Staff vs Affiliate          │
-│ Other) — Recharts        │ (worker_type)                    │
-├──────────────────────────┼──────────────────────────────────┤
-│ Bar: Headcount per       │ Bar: Headcount per Worker Type   │
-│ Category (P/G/D/…)       │ stacked by Division              │
-├──────────────────────────┴──────────────────────────────────┤
-│ Bar histogram: Distribution by Grade (sorted G3→D1, color   │
-│ by category)                                                │
-├─────────────────────────────────────────────────────────────┤
-│ Bar: Headcount per Office Location (top 10)                 │
-├──────────────────────────┬──────────────────────────────────┤
-│ Bar: Top 10 Nationalities│ Bar: Headcount per Division ×    │
-│                          │ Gender (grouped)                 │
-└──────────────────────────┴──────────────────────────────────┘
+```ts
+if (sn) return `sn:${sn}`;
+if (em) return `em:${em}`;
 ```
 
-All charts use existing **Recharts** (already in the project — see `WorkforceComposition`) and shadcn `Card` for framing.
+So for someone like Alberca:
 
-### 4. Aggregation rules (client-side, in `useMemo` from the fetched rows)
-- **Gender**: prefer `samsaran_gender`, fall back to `gsm_gender`. Normalize lower-case `man/woman` → "Man"/"Woman"; everything else → "Other/Unknown".
-- **Staff vs Affiliate**: `worker_type` value as-is. Empty → "Unknown".
-- **Category**: `category` (P / G / D). Empty → "Unspecified".
-- **Division KPI cards**: render one card per distinct `division`; sort by count desc; show count + share of total.
-- **Grade histogram**: order by canonical `GRADES` array from `src/lib/organizationConstants.ts` (G3…D1); rows whose grade is missing are excluded from the grade chart only.
-- **Location**: use `office_location`, top 10 by count, "Other" bucket for the rest.
-- **Nationality**: top 10 by count, "Other" bucket; rows with null nationality excluded.
-- **Division × Gender**: grouped bar (one cluster per division, two bars Man/Woman). Other genders excluded from this chart.
+- GSM extract has staff number → key becomes `sn:s305687`
+- Samsaran extract has **no staff number** (Samsaran simply doesn't carry it for most workers) → key falls back to `em:alberca@unicc.org`
 
-### 5. Filter chip toolbar
-- Reuse the same MultiSelect / chip pattern already used in `src/pages/Userbase.tsx`. Active filters shown as removable chips under the toolbar with a "Reset all" button.
+The two keys never collide, so `outerJoin()` writes **two separate rows**, and on persistence the unique constraint on `match_key` happily keeps both. The "outer join" is actually keying each side on a different column whenever Samsaran is missing the staff number — which is the norm, not an exception.
 
-### 6. Permissions
-- Same gate as Userbase: roles `Admin`, `HR Assistant`, `Chief of HR` via `useAuth`. Others → `<Navigate to="/" />`.
+A second, smaller contributor: case/whitespace. `keyOf` already lowercases and trims, so that's fine — the dominant cause is the asymmetric key strategy above.
 
-### 7. Empty / loading
-- `Skeleton` placeholders for KPI cards and charts while loading.
-- If `users_clean` is empty, show the same empty state as Userbase with a CTA to `/admin/import-userbase`.
+### Fix plan (two parts)
 
-### Technical notes
-- Pure client-side computation — no SQL aggregations needed; the table is small and we already need the rows for multiple charts.
-- Brand colors: primary `#009CDE` (UNIQTalent) for main bars; reuse existing chart palette already used in `WorkforceComposition.tsx` for consistency.
-- No edits to `users_clean`, no migrations, no edge functions.
+**1. Two-pass match in `outerJoin()` (`src/pages/ImportUserbase.tsx`)**
+
+Replace the current single-key approach with an index that lets a Samsaran row find its GSM partner by **either** staff number **or** email, and vice-versa. Email matching should be prioritized.
+
+- Build the GSM map first, indexing each GSM row under **both** keys it owns: `sn:<staff>` *and* `em:<email>` (whichever exist).
+- For each Samsaran row, look up by `sn:<staff>` first, then by `em:<email>`. If either hits, merge into that GSM row and mark `source = 'both'`.
+- Only if neither lookup hits, insert a new Samsaran-only row.
+- Pick a **canonical** `match_key` per merged row, preferring `sn:` when available, else `em:`. This becomes the upsert conflict target.
+
+**2. Reconcile the existing duplicates already in `users_clean**`
+
+A one-time SQL migration that, for every email present in both a GSM-only row and a Samsaran-only row:
+
+- Copies the Samsaran columns onto the GSM row (`first_name`, `last_name`, `search_name`, `samsaran_gender`, `samsaran_staff_number`, `samsaran_email_address`, `worker_type`, `intern`, `unit`, `job_title`, `line_manager`, `office_location`, `division`).
+- Sets that row's `source = 'both'` and refreshes `imported_at`.
+- Deletes the now-redundant Samsaran-only row.
+
+Match on `LOWER(TRIM(gsm_email_address)) = LOWER(TRIM(samsaran_email_address))`. Only collapse pairs where the GSM row's `samsaran_email_address` is currently null/empty (i.e. genuinely unmerged), to avoid touching rows that were intentionally separate.
 
 ### Out of scope
-- Time-series / historical headcount evolution (would require snapshotting `users_clean`).
-- Drill-through from a chart segment to the Userbase table with filters pre-applied.
-- CSV export of the aggregated tables.
 
+- Changing the unique constraint shape (still keyed on `match_key`, just chosen more robustly).
+- Cross-import fuzzy matching on names — staff number + email is sufficient to fix the observed cases.
