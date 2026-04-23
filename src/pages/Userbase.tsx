@@ -59,7 +59,9 @@ import {
   Columns3,
   X,
   Trash2,
+  Plus,
 } from 'lucide-react';
+import { AddUserbaseRowDialog } from '@/components/userbase/AddUserbaseRowDialog';
 import {
   AlertDialog,
   AlertDialogAction,
