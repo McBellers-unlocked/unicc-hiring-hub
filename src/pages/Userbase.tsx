@@ -181,6 +181,7 @@ export default function Userbase() {
   const { userRoles } = useAuth();
   const canEdit = userRoles.includes('Admin') || userRoles.includes('HR Assistant');
   const lastToastRef = useRef<number>(0);
+  const [addRowOpen, setAddRowOpen] = useState(false);
 
   const REQUIRED_KEYS = useMemo(() => new Set(REQUIRED_FIELDS.map((f) => f.key)), []);
   const DATE_KEYS = useMemo(
