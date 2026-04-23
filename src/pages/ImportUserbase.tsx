@@ -8,6 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, ArrowLeft, FileSpreadsheet, X, Sparkles } from 'lucide-react';
 import { DIVISION_UNITS } from '@/lib/organizationConstants';
 import { supabase } from '@/integrations/supabase/client';
+import { ImportChangePreview, type RowChange } from '@/components/userbase/ImportChangePreview';
+import { computeChangeSet, fetchExistingRows } from '@/lib/userbaseChangeSet';
 
 const ALLOWED_EXTENSIONS = ['.csv', '.xls', '.xlsx'];
 const ALLOWED_MIME_TYPES = [
@@ -419,6 +421,12 @@ export default function ImportUserbase() {
   const [gsmFile, setGsmFile] = useState<File | null>(null);
   const [samsaranFile, setSamsaranFile] = useState<File | null>(null);
   const [parsing, setParsing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [computing, setComputing] = useState(false);
+  const [parsedRows, setParsedRows] = useState<MergedRow[] | null>(null);
+  const [parsedColumns, setParsedColumns] = useState<string[] | null>(null);
+  const [changes, setChanges] = useState<RowChange[] | null>(null);
+  const [parseSummary, setParseSummary] = useState<{ gsm: number; sams: number } | null>(null);
 
   const bothFilesReady = !!gsmFile && !!samsaranFile;
 
@@ -434,27 +442,63 @@ export default function ImportUserbase() {
       const sams = transformSamsaran(samsRaw);
       const { columns, rows } = outerJoin(gsm, sams);
 
-      // Cache for instant render on next page
       sessionStorage.setItem(
         'userbase:merged',
         JSON.stringify({ columns, rows, generatedAt: new Date().toISOString() }),
       );
 
-      // Persist to Supabase
-      toast({ title: 'Saving to database…', description: `Persisting ${rows.length} records.` });
+      setParsedRows(rows);
+      setParsedColumns(columns);
+      setParseSummary({ gsm: gsm.length, sams: sams.length });
+
+      // Fetch existing and compute diff
+      setComputing(true);
+      setChanges([]);
+      const existing = await fetchExistingRows();
+      const diff = computeChangeSet(rows, existing);
+      setChanges(diff);
+      setComputing(false);
+
+      toast({
+        title: 'Parsed successfully',
+        description: `${rows.length} merged records ready for review.`,
+      });
+    } catch (err) {
+      console.error('Parse error', err);
+      toast({
+        title: 'Parse failed',
+        description: err instanceof Error ? err.message : 'Unable to parse the files.',
+        variant: 'destructive',
+      });
+      setComputing(false);
+    } finally {
+      setParsing(false);
+    }
+  };
+
+  const handleCancelPreview = () => {
+    setParsedRows(null);
+    setParsedColumns(null);
+    setChanges(null);
+    setParseSummary(null);
+  };
+
+  const handleConfirmSave = async () => {
+    if (!parsedRows || !changes) return;
+    setSaving(true);
+    try {
+      toast({ title: 'Saving to database…', description: `Persisting ${parsedRows.length} records.` });
 
       const { data: authData } = await supabase.auth.getUser();
       const importedBy = authData.user?.id ?? null;
 
-      // Wipe existing
       const { error: delErr } = await supabase
         .from('users_clean')
         .delete()
         .not('id', 'is', null);
       if (delErr) throw delErr;
 
-      // Insert in chunks of 500
-      const dbRows = rows.map((r) => toDbRow(r, importedBy));
+      const dbRows = parsedRows.map((r) => toDbRow(r, importedBy));
       for (const batch of chunk(dbRows, 500)) {
         const { error: insErr } = await supabase
           .from('users_clean')
@@ -462,22 +506,26 @@ export default function ImportUserbase() {
         if (insErr) throw insErr;
       }
 
+      const newCount = changes.filter((c) => c.status === 'new').length;
+      const updatedCount = changes.filter((c) => c.status === 'updated').length;
       toast({
         title: 'Userbase saved',
-        description: `${rows.length} records saved (GSM: ${gsm.length}, Samsaran: ${sams.length}).`,
+        description: `${parsedRows.length} records saved (${newCount} new, ${updatedCount} updated).`,
       });
       navigate('/admin/userbase');
     } catch (err) {
-      console.error('Parse/save error', err);
+      console.error('Save error', err);
       toast({
         title: 'Save failed',
         description: err instanceof Error ? err.message : 'Unable to persist the merged userbase.',
         variant: 'destructive',
       });
     } finally {
-      setParsing(false);
+      setSaving(false);
     }
   };
+
+  const showPreview = parsedRows !== null;
 
   return (
     <Layout>
@@ -496,38 +544,59 @@ export default function ImportUserbase() {
           </CardHeader>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <DropZone
-            title="Import GSM Extract"
-            subtitle="Upload a CSV or Excel file containing GSM Assignment details data"
-            inputId="gsm-extract-input"
-            file={gsmFile}
-            onFileChange={setGsmFile}
-          />
-          <DropZone
-            title="Import Samsaran Extract"
-            subtitle="Upload a Samsaran worker extract"
-            inputId="samsaran-extract-input"
-            file={samsaranFile}
-            onFileChange={setSamsaranFile}
-          />
-        </div>
+        {!showPreview && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <DropZone
+                title="Import GSM Extract"
+                subtitle="Upload a CSV or Excel file containing GSM Assignment details data"
+                inputId="gsm-extract-input"
+                file={gsmFile}
+                onFileChange={setGsmFile}
+              />
+              <DropZone
+                title="Import Samsaran Extract"
+                subtitle="Upload a Samsaran worker extract"
+                inputId="samsaran-extract-input"
+                file={samsaranFile}
+                onFileChange={setSamsaranFile}
+              />
+            </div>
 
-        <div className="mt-6 flex flex-col items-center gap-2">
-          <Button
-            onClick={handleParse}
-            disabled={!bothFilesReady || parsing}
-            className="w-full max-w-sm"
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            {parsing ? 'Parsing & saving…' : 'Parse Data'}
-          </Button>
-          {!bothFilesReady && (
-            <p className="text-xs text-muted-foreground">
-              Upload both GSM and Samsaran extracts to enable parsing.
-            </p>
-          )}
-        </div>
+            <div className="mt-6 flex flex-col items-center gap-2">
+              <Button
+                onClick={handleParse}
+                disabled={!bothFilesReady || parsing}
+                className="w-full max-w-sm"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                {parsing ? 'Parsing…' : 'Parse Data'}
+              </Button>
+              {!bothFilesReady && (
+                <p className="text-xs text-muted-foreground">
+                  Upload both GSM and Samsaran extracts to enable parsing.
+                </p>
+              )}
+            </div>
+          </>
+        )}
+
+        {showPreview && (
+          <>
+            {parseSummary && (
+              <p className="text-sm text-muted-foreground mb-4">
+                Parsed {parsedRows!.length} merged records (GSM: {parseSummary.gsm}, Samsaran: {parseSummary.sams}).
+              </p>
+            )}
+            <ImportChangePreview
+              changes={changes ?? []}
+              loading={computing}
+              onCancel={handleCancelPreview}
+              onConfirm={handleConfirmSave}
+              saving={saving}
+            />
+          </>
+        )}
       </div>
     </Layout>
   );
