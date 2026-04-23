@@ -1,40 +1,28 @@
 
 
-## Import Result Dialog — Show Added & Modified Units
+## Import Userbase — "Parse Data" Button
 
-### Change — `src/pages/UnitsAndDivisions.tsx`
+### Change — `src/pages/ImportUserbase.tsx`
 
-Replace the post-import success toast with a modal dialog that lists exactly which units were added and which were updated, so the user can verify the outcome before continuing.
+Currently each `DropZone` manages its own file state internally and exposes its own per-zone "Upload" button. To gate a single bottom-level "Parse Data" action on both files being present, file state must be lifted into the parent `ImportUserbase` component.
 
-**1. Track per-unit outcomes during merge**
-Inside `handleImportFile`, while iterating `toMerge`, push the imported `unit` code into one of two arrays:
-- `addedUnits: string[]` — rows with no matching active `Unit` (newly inserted).
-- `updatedUnits: string[]` — rows whose `Unit` matched an existing active row (overwritten in place).
-- `skippedUnits` (existing) — rows matching a decommissioned `Unit`.
+**1. Lift file state to parent**
+- In `ImportUserbase`, add two state slots: `gsmFile: File | null` and `samsaranFile: File | null`.
+- Convert `DropZone` to a controlled component: accept `file`, `onFileChange(file: File | null)` props instead of managing its own state.
+- Remove the per-zone "Upload" button and `uploading` state from `DropZone` (the per-zone upload was a placeholder; it's superseded by the unified Parse Data action). The drop area, validation toast, and selected-file row with the remove (X) button stay.
 
-**2. New state + dialog**
-- Add state: `importResult: { added: string[]; updated: string[]; skipped: string[] } | null` and `importResultOpen: boolean`.
-- After a successful merge, set `importResult` and open the dialog (instead of the current `toast.success` summary). The secondary `toast.info` for skipped decommissioned units is removed since the dialog now covers it.
+**2. Add "Parse Data" button**
+- Below the two-column grid, render a centered full-width-on-mobile / `max-w-sm` centered button:
+  - Label: `Parse Data` (becomes `Parsing…` while running)
+  - `disabled={!gsmFile || !samsaranFile || parsing}`
+  - On click: set `parsing = true`, simulate work with a short `await` (placeholder, matching the existing pattern), then `toast.success` `"Both extracts received. Parsing pipeline will be wired up next."` and reset `parsing`.
+- Helper text under the button when disabled: `Upload both GSM and Samsaran extracts to enable parsing.` Hidden once both files are present.
 
-**3. Dialog UI (shadcn `Dialog`)**
-- Title: `Import complete`
-- Description: `<added> added · <updated> updated · <skipped> skipped · <untouched> kept`
-- Body: three collapsible/scrollable sections, each only rendered when its list is non-empty:
-  - **Added (N)** — green check icon, list of unit codes.
-  - **Updated (N)** — blue refresh icon, list of unit codes.
-  - **Skipped — decommissioned (N)** — amber archive icon, list of unit codes with helper text "Restore them first to update."
-- Each list is rendered as a wrapping set of `Badge` chips inside a `max-h-48 overflow-y-auto` container so long imports remain scannable.
-- Footer: single `Close` button.
-
-**4. Validation errors unchanged**
-Pre-flight failures (blank `Unit`, internal duplicates) continue to use `toast.error` and abort before opening the dialog.
-
-**5. Imports to add**
-- `Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter` from `@/components/ui/dialog`
-- `Badge` from `@/components/ui/badge` (if not already imported)
-- `CheckCircle2, RefreshCw, Archive` from `lucide-react` (Archive already imported)
+**3. Imports**
+- No new shadcn imports. Keep existing `Button`, `useToast`, icons. Add `Sparkles` (or reuse an existing icon) as the leading icon on the Parse Data button — optional, low-priority.
 
 ### Notes
-- Purely client-side; no schema or parser changes.
-- Sorting, decommission/restore flow, and selection mode are untouched.
+- Purely client-side; no backend wiring (placeholder parse stays as a `setTimeout`).
+- File-type validation, drag/drop UX, and the remove (X) affordance are unchanged.
+- Layout: button sits inside the existing `container … max-w-6xl` wrapper, directly below the two-column grid, with `mt-6` spacing.
 
