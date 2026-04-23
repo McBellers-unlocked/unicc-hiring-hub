@@ -59,7 +59,9 @@ import {
   Columns3,
   X,
   Trash2,
+  Plus,
 } from 'lucide-react';
+import { AddUserbaseRowDialog } from '@/components/userbase/AddUserbaseRowDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -179,6 +181,7 @@ export default function Userbase() {
   const { userRoles } = useAuth();
   const canEdit = userRoles.includes('Admin') || userRoles.includes('HR Assistant');
   const lastToastRef = useRef<number>(0);
+  const [addRowOpen, setAddRowOpen] = useState(false);
 
   const REQUIRED_KEYS = useMemo(() => new Set(REQUIRED_FIELDS.map((f) => f.key)), []);
   const DATE_KEYS = useMemo(
@@ -551,6 +554,13 @@ export default function Userbase() {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {canEdit && !removeMode && (
+              <Button variant="outline" onClick={() => setAddRowOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add row
+              </Button>
+            )}
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
@@ -739,6 +749,8 @@ export default function Userbase() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <AddUserbaseRowDialog open={addRowOpen} onOpenChange={setAddRowOpen} />
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-3">
           <div className="text-sm text-muted-foreground">
