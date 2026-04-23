@@ -1,28 +1,65 @@
 
 
-## Import Userbase — "Parse Data" Button
+## Parse GSM + Samsaran extracts → Unified Userbase
 
-### Change — `src/pages/ImportUserbase.tsx`
+### Overview
+On clicking **Parse Data** in `/admin/import-userbase`, parse both XLSX/CSV files in-browser, transform per the rules, outer-join on **Staff Number**, store the result in `sessionStorage`, then navigate to a new `/admin/userbase` page that renders the merged table. Add **Userbase** to the Analytics dropdown above the separator.
 
-Currently each `DropZone` manages its own file state internally and exposes its own per-zone "Upload" button. To gate a single bottom-level "Parse Data" action on both files being present, file state must be lifted into the parent `ImportUserbase` component.
+### 1. Parsing & transformation — `src/pages/ImportUserbase.tsx`
 
-**1. Lift file state to parent**
-- In `ImportUserbase`, add two state slots: `gsmFile: File | null` and `samsaranFile: File | null`.
-- Convert `DropZone` to a controlled component: accept `file`, `onFileChange(file: File | null)` props instead of managing its own state.
-- Remove the per-zone "Upload" button and `uploading` state from `DropZone` (the per-zone upload was a placeholder; it's superseded by the unified Parse Data action). The drop area, validation toast, and selected-file row with the remove (X) button stay.
+Use the existing `xlsx` (SheetJS) library already in the project (used by `ImportStaffList`). Replace the placeholder `handleParse` with a real pipeline:
 
-**2. Add "Parse Data" button**
-- Below the two-column grid, render a centered full-width-on-mobile / `max-w-sm` centered button:
-  - Label: `Parse Data` (becomes `Parsing…` while running)
-  - `disabled={!gsmFile || !samsaranFile || parsing}`
-  - On click: set `parsing = true`, simulate work with a short `await` (placeholder, matching the existing pattern), then `toast.success` `"Both extracts received. Parsing pipeline will be wired up next."` and reset `parsing`.
-- Helper text under the button when disabled: `Upload both GSM and Samsaran extracts to enable parsing.` Hidden once both files are present.
+**GSM transform**
+- Read sheet → JSON rows.
+- Keep only these columns (case-insensitive header match):
+  `Full Name, Staff Number, Nationality, Gender, Date of Birth, Email Address, Service time (Current Organization), Official Duty Station, APA Start Date, Job Name, Position Name, First Incumbency Start Date, Entry on duty date WHO, Appointment Type, Contract Start Date, Contract End Date, Current Grade, Current Step, Reporting lines (name of supervisor)`
+- Add `Category` = first character of `Current Grade` (uppercased, trimmed; empty if missing).
+- Normalize `First Incumbency Start Date` and `Entry on duty date WHO` to ISO `YYYY-MM-DD`. Handle Excel serial numbers (number → JS Date via `XLSX.SSF.parse_date_code`) and string dates (`new Date(...)` fallback). Invalid → empty string.
+- `Gender`: `Female → Woman`, `Male → Man` (case-insensitive); other values pass through.
 
-**3. Imports**
-- No new shadcn imports. Keep existing `Button`, `useToast`, icons. Add `Sparkles` (or reuse an existing icon) as the leading icon on the Parse Data button — optional, low-priority.
+**Samsaran transform**
+- Read sheet → JSON rows.
+- Keep only: `First name, Last name, Search name, Gender, Staff number, Email address, Worker type, Intern, Department, Job title, Line manager, Office location`.
+- Rename `Department` → `Unit`.
+- Add `Division`: lookup from `DIVISION_UNITS` (`src/lib/organizationConstants`) — for each row's `Unit` value, find the division code whose units list contains that unit (match on the `(CODE)` extracted via the same `extractCode` helper used in `UnitsAndDivisions.tsx`, falling back to substring match on the full unit name). Empty if no match.
+- `Gender`: `Male → Man`, `Female → Woman`.
+- `Worker type`: `Contractor → Affiliate`, `Employee → Staff` (case-insensitive); other values pass through.
+- Drop rows where `Email address` is blank/whitespace.
 
-### Notes
-- Purely client-side; no backend wiring (placeholder parse stays as a `setTimeout`).
-- File-type validation, drag/drop UX, and the remove (X) affordance are unchanged.
-- Layout: button sits inside the existing `container … max-w-6xl` wrapper, directly below the two-column grid, with `mt-6` spacing.
+**Outer join**
+- Join key: **Staff Number** (trimmed string; case-insensitive). Fallback secondary key: lowercase email when staff number is missing on one side.
+- Build a `Map<key, mergedRow>`. For matched rows, GSM fields and Samsaran fields coexist as separate columns (no overwriting). For GSM-only or Samsaran-only rows, the other side's columns are empty strings.
+- Final column order: all GSM kept columns + `Category`, then all Samsaran kept columns (with `Department` renamed to `Unit`) + `Division`. Duplicate logical fields (e.g. Gender appears in both) are kept as `GSM Gender` / `Samsaran Gender` to preserve provenance — same for `Staff Number`, `Email`, `Gender`.
+
+**Handoff**
+- Persist `{ columns: string[], rows: Record<string,string>[], generatedAt: ISO }` to `sessionStorage` under key `userbase:merged`.
+- Toast success and `navigate('/admin/userbase')`.
+- On parse failure (missing required headers, unreadable file): toast error, do not navigate, do not clear existing storage.
+
+### 2. New page — `src/pages/Userbase.tsx`
+
+- `Layout` wrapper, page title **Userbase**, subtitle showing `<row count> rows · merged <date>`.
+- Read from `sessionStorage`. If empty, show empty state with a button "Go to Import Userbase" → `/admin/import-userbase`.
+- Toolbar:
+  - Search input (filters across all columns, case-insensitive substring).
+  - **Download CSV** button — exports the currently filtered rows using SheetJS (`XLSX.utils.json_to_sheet` → `sheet_to_csv`).
+- Table: shadcn `Table` inside a `max-h-[70vh] overflow-auto` wrapper with `sticky top-0` header. Render every column from the stored `columns` array; cells are plain text. Pagination not required for v1 (the dataset is one-shot per session).
+
+### 3. Routing & navigation
+
+- `src/App.tsx`: import `Userbase` and add `<Route path="/admin/userbase" element={<Userbase />} />` above the catch-all.
+- `src/components/Layout.tsx` Analytics dropdown (lines 312–338): add a new `DropdownMenuItem` for **Userbase** (`/admin/userbase`, `Users` icon) immediately after **Hiring Analytics** and before the existing `DropdownMenuSeparator`, so it sits in the upper group.
+
+### Technical notes
+
+- `xlsx` package is already a dependency (used by `ImportStaffList.tsx`); no new install required.
+- Date conversion helper handles three inputs: number (Excel serial), `Date` instance, string. Output `''` on `NaN`.
+- Division lookup uses the existing `DIVISION_UNITS` and `extractCode` patterns from `UnitsAndDivisions.tsx` to stay consistent with how the org structure is parsed elsewhere.
+- All processing is client-side; no DB schema changes, no edge functions, no Supabase calls.
+- `sessionStorage` (not `localStorage`) so the merged dataset clears on tab close — appropriate for a working/preview view that has not been formally persisted.
+
+### Out of scope (future)
+- Persisting the merged Userbase to Supabase.
+- Column show/hide, sort, pagination, server-side filters.
+- Bulk reconciliation against existing `users` table.
 
