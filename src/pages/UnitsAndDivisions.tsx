@@ -620,14 +620,14 @@ export default function UnitsAndDivisions() {
       </div>
 
       <AlertDialog
-        open={pendingDecommissionId !== null}
-        onOpenChange={(open) => !open && setPendingDecommissionId(null)}
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Decommission this unit?</AlertDialogTitle>
+            <AlertDialogTitle>Decommission selected units?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will move the unit to the Decommissioned tab. You can restore it later.
+              This will move {selectedIds.size} unit(s) to the Decommissioned tab. You can restore them later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
