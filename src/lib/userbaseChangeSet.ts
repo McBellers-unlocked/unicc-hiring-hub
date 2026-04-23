@@ -7,7 +7,7 @@ export const MAPPED_COLUMNS: { label: string; db: string }[] = [
   { label: 'Full Name', db: 'full_name' },
   { label: 'GSM Staff Number', db: 'gsm_staff_number' },
   { label: 'Nationality', db: 'nationality' },
-  { label: 'GSM Gender', db: 'gsm_gender' },
+  { label: 'Gender', db: 'gsm_gender' },
   { label: 'Date of Birth', db: 'date_of_birth' },
   { label: 'GSM Email Address', db: 'gsm_email_address' },
   { label: 'Service time (Current Organization)', db: 'service_time_current_org' },
