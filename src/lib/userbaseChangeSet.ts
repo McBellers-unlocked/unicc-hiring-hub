@@ -90,7 +90,7 @@ export async function fetchExistingRows(): Promise<ExistingRow[]> {
       .select(cols)
       .range(from, from + pageSize - 1);
     if (error) throw error;
-    const batch = (data ?? []) as ExistingRow[];
+    const batch = (data ?? []) as unknown as ExistingRow[];
     all.push(...batch);
     if (batch.length < pageSize) break;
     from += pageSize;
