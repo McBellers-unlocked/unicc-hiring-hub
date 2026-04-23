@@ -189,7 +189,7 @@ export default function UnitsAndDivisions() {
 
   return (
     <Layout>
-      <div className="container mx-auto py-8 px-4 max-w-7xl">
+      <div className="container mx-auto py-8 px-4 max-w-[1600px]">
         <Button
           variant="ghost"
           onClick={() => navigate(-1)}
