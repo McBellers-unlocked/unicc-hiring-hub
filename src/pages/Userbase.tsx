@@ -616,21 +616,21 @@ export default function Userbase() {
                 <TableBody>
                   {isLoading && (
                     <TableRow>
-                      <TableCell colSpan={visibleCols.length} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={visibleCols.length + (canEdit ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                         Loading…
                       </TableCell>
                     </TableRow>
                   )}
                   {isError && (
                     <TableRow>
-                      <TableCell colSpan={visibleCols.length} className="text-center py-8 text-destructive">
+                      <TableCell colSpan={visibleCols.length + (canEdit ? 1 : 0)} className="text-center py-8 text-destructive">
                         Error loading data: {error instanceof Error ? error.message : 'unknown'}
                       </TableCell>
                     </TableRow>
                   )}
                   {!isLoading && !isError && (data?.rows.length ?? 0) === 0 && (
                     <TableRow>
-                      <TableCell colSpan={visibleCols.length} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={visibleCols.length + (canEdit ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                         No matching rows.
                       </TableCell>
                     </TableRow>
@@ -650,6 +650,22 @@ export default function Userbase() {
                           />
                         </TableCell>
                       ))}
+                      {canEdit && (
+                        <TableCell className="p-1 text-center sticky right-0 bg-background">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => setPendingDelete({
+                              id: row.id,
+                              name: row.full_name || row.gsm_email_address || row.samsaran_email_address || row.id,
+                            })}
+                            aria-label="Delete row"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -657,6 +673,27 @@ export default function Userbase() {
             </div>
           </div>
         </div>
+
+        <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this row?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently remove <span className="font-medium text-foreground">{pendingDelete?.name}</span> from the userbase. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => { e.preventDefault(); handleDeleteRow(); }}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? 'Deleting…' : 'Delete'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-3">
           <div className="text-sm text-muted-foreground">
