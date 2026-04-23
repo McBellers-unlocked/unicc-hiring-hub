@@ -215,6 +215,8 @@ export default function UnitsAndDivisions() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('active');
+  const [importResult, setImportResult] = useState<{ added: string[]; updated: string[]; skipped: string[] } | null>(null);
+  const [importResultOpen, setImportResultOpen] = useState(false);
 
   const updateRow = (id: string, field: keyof UnitRow, value: string) => {
     setActiveRows((prev) =>
