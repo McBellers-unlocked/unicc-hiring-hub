@@ -448,8 +448,8 @@ export default function UnitsAndDivisions() {
         activeIndex.set(r.unit.trim().toLowerCase(), i);
       });
       const merged = [...activeRows];
-      let added = 0;
-      let updated = 0;
+      const addedUnits: string[] = [];
+      const updatedUnits: string[] = [];
       const ts = Date.now();
       toMerge.forEach((imp, idx) => {
         const key = imp.unit.trim().toLowerCase();
@@ -463,7 +463,7 @@ export default function UnitsAndDivisions() {
             division: imp.division,
             manager: imp.manager,
           };
-          updated++;
+          updatedUnits.push(imp.unit);
         } else {
           merged.push({
             id: `imp-${ts}-${idx}`,
@@ -473,20 +473,12 @@ export default function UnitsAndDivisions() {
             division: imp.division,
             manager: imp.manager,
           });
-          added++;
+          addedUnits.push(imp.unit);
         }
       });
-      const untouched = activeRows.length - updated;
-      const skipped = skippedUnits.length;
       setActiveRows(merged);
-      toast.success(
-        `Imported: ${added} added, ${updated} updated, ${skipped} skipped (decommissioned), ${untouched} kept.`
-      );
-      if (skipped > 0) {
-        const shown = skippedUnits.slice(0, 5).join(', ');
-        const more = skipped > 5 ? `, +${skipped - 5} more` : '';
-        toast.info(`Skipped decommissioned units: ${shown}${more}. Restore them first to update.`);
-      }
+      setImportResult({ added: addedUnits, updated: updatedUnits, skipped: skippedUnits });
+      setImportResultOpen(true);
     } catch (err) {
       console.error(err);
       toast.error('Failed to read file.');
