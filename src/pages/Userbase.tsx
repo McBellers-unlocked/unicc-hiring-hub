@@ -87,9 +87,33 @@ const COLUMNS: ColDef[] = [
   { key: 'source', label: 'Source', filter: 'source' },
 ];
 
-const DEFAULT_VISIBLE = new Set(COLUMNS.map((c) => c.key));
+const DEFAULT_VISIBLE_ORDER = [
+  'samsaran_email_address', 'gsm_email_address', 'gsm_staff_number',
+  'full_name', 'first_name', 'last_name', 'gsm_gender',
+  'worker_type', 'unit', 'division',
+  'official_duty_station', 'office_location',
+  'position_name', 'job_title',
+  'reporting_lines', 'line_manager',
+  'current_grade', 'nationality',
+];
+const DEFAULT_VISIBLE = new Set(DEFAULT_VISIBLE_ORDER);
 
-const VISIBLE_COLS_KEY = 'userbase:visible-columns:v2';
+const SOURCE_BY_DB: Record<string, 'gsm' | 'samsaran'> = {
+  full_name: 'gsm', first_name: 'gsm', last_name: 'gsm',
+  gsm_staff_number: 'gsm', gsm_email_address: 'gsm', gsm_gender: 'gsm',
+  nationality: 'gsm', date_of_birth: 'gsm', service_time_current_org: 'gsm',
+  official_duty_station: 'gsm', apa_start_date: 'gsm', job_name: 'gsm',
+  position_name: 'gsm', first_incumbency_start_date: 'gsm', entry_on_duty_date_who: 'gsm',
+  appointment_type: 'gsm', contract_start_date: 'gsm', contract_end_date: 'gsm',
+  current_grade: 'gsm', current_step: 'gsm', reporting_lines: 'gsm',
+  category: 'gsm', search_name: 'gsm',
+  samsaran_staff_number: 'samsaran', samsaran_email_address: 'samsaran',
+  worker_type: 'samsaran', intern: 'samsaran', unit: 'samsaran',
+  job_title: 'samsaran', line_manager: 'samsaran', office_location: 'samsaran',
+  division: 'samsaran',
+};
+
+const VISIBLE_COLS_KEY = 'userbase:visible-columns:v3';
 const PAGE_SIZE_KEY = 'userbase:page-size';
 
 const SEARCH_COLS = [
@@ -291,7 +315,21 @@ export default function Userbase() {
     office_location: distinctQueries[5].data ?? [],
   };
 
-  const visibleCols = useMemo(() => COLUMNS.filter((c) => visible.has(c.key)), [visible]);
+  const visibleCols = useMemo(() => {
+    const byKey = new Map(COLUMNS.map((c) => [c.key, c]));
+    const ordered: ColDef[] = [];
+    const seen = new Set<string>();
+    DEFAULT_VISIBLE_ORDER.forEach((k) => {
+      if (visible.has(k) && byKey.has(k)) {
+        ordered.push(byKey.get(k)!);
+        seen.add(k);
+      }
+    });
+    COLUMNS.forEach((c) => {
+      if (visible.has(c.key) && !seen.has(c.key)) ordered.push(c);
+    });
+    return ordered;
+  }, [visible]);
 
   const total = data?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -519,17 +557,25 @@ export default function Userbase() {
               <Table className="min-w-max">
                 <TableHeader className="sticky top-0 bg-background z-10">
                   <TableRow>
-                    {visibleCols.map((c) => (
-                      <TableHead key={c.key} className="whitespace-nowrap">
-                        <button
-                          className="inline-flex items-center gap-1 hover:text-foreground"
-                          onClick={() => toggleSort(c.key)}
-                        >
-                          {c.label}
-                          {sortIcon(c.key)}
-                        </button>
-                      </TableHead>
-                    ))}
+                    {visibleCols.map((c) => {
+                      const src = SOURCE_BY_DB[c.key];
+                      const tint = src === 'gsm'
+                        ? 'bg-green-100 text-green-900 dark:bg-green-950/40 dark:text-green-200'
+                        : src === 'samsaran'
+                          ? 'bg-blue-100 text-blue-900 dark:bg-blue-950/40 dark:text-blue-200'
+                          : '';
+                      return (
+                        <TableHead key={c.key} className={`whitespace-nowrap ${tint}`}>
+                          <button
+                            className="inline-flex items-center gap-1 hover:text-foreground"
+                            onClick={() => toggleSort(c.key)}
+                          >
+                            {c.label}
+                            {sortIcon(c.key)}
+                          </button>
+                        </TableHead>
+                      );
+                    })}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
