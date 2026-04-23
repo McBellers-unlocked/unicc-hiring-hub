@@ -1,91 +1,72 @@
 
 
-## Add row manually to Userbase
+## Persist Units & Divisions to Supabase + "Add row" button
 
-Add an "Add row" button next to "Remove rows" / "Download CSV" that opens a multi-step wizard to insert a new record into `users_clean`. Email, worker type, unit and division are required.
+The Units and Divisions page currently lives entirely in memory — `activeRows` is built from the `DIVISIONS` / `DIVISION_UNITS` constants and Save/Decommission/Import only mutate React state. We'll back it with a Supabase table and add an "Add row" button next to "Download table".
 
-### UI — `src/pages/Userbase.tsx`
+### 1. New Supabase table — `org_units`
 
-New button (admin/HR only, hidden while in remove mode):
+Migration creates:
 
 ```
-[ + Add row ]   [ Download CSV ]   [ Remove rows ]
+org_units (
+  id            uuid PK default gen_random_uuid(),
+  full_name     text not null,
+  unit          text not null,                 -- short code, e.g. "DDPM"
+  parent_section text default '',
+  division      text not null,                 -- code: CS/DD/DS/DO/MS/OP
+  manager       text default '',
+  status        text not null default 'active' check (status in ('active','decommissioned')),
+  created_at    timestamptz default now(),
+  updated_at    timestamptz default now(),
+  created_by    uuid references auth.users(id),
+  unique (lower(unit))                          -- unit code is the primary key
+)
 ```
 
-Clicking opens `<AddUserbaseRowDialog>` (new component).
+- Trigger to auto-update `updated_at`.
+- RLS enabled.
+  - **SELECT**: any authenticated user (the table is referenced everywhere for filters/dropdowns).
+  - **INSERT / UPDATE / DELETE**: restricted to roles `Admin`, `HR Assistant`, `Chief of HR` (matching the existing admin gating pattern in this project — checked via the `users` table by `auth.uid()`).
+- One-time data seed: insert one row per entry in `DIVISIONS` × `DIVISION_UNITS` so the live Supabase table starts with the same content currently shown in the UI. `status='active'` for all.
 
-### Wizard — `src/components/userbase/AddUserbaseRowDialog.tsx` (new)
+### 2. Page rewrite — `src/pages/UnitsAndDivisions.tsx`
 
-A `Dialog` with a 4-step wizard, scrollable body (per dialog-scrolling memory: wrap content in `<div className="overflow-y-auto max-h-[60vh]">`). Step indicator at top, Back / Next / Save buttons at bottom.
+**Data loading**
+- Replace `useMemo(buildInitialRows)` with a `useQuery(['org_units'])` call to `supabase.from('org_units').select('*')`.
+- Split into `activeRows` / `decommissionedRows` by `status`.
+- Loading + error states shown in the table area.
 
-**Step 1 — Identity & Contact** (required fields marked *)
-- Source (radio: GSM / Samsaran / Manual — default `Manual`) → maps to `source` column
-- GSM Email Address *
-- Samsaran Email address *  
-  (At least ONE of the two emails must be provided. If only one is filled, the other is left null. Validation: at least one valid email.)
-- Full Name, First Name, Last Name
-- GSM Staff Number, Samsaran Staff Number
-- Search Name
+**Add row button** (new, next to Download table):
+```
+[ + Add row ] [ Download table ] [ Import ] [ Reset ] [ Decommission ] [ Save ]
+```
+- Opens a small `Dialog` (`AddOrgUnitDialog`, defined inline in the page) with fields:
+  - **Unit full name** *  (text)
+  - **Unit (code)** *    (text — required, must be unique vs existing `unit` codes case-insensitive; live validation)
+  - **Parent Section** (existing `ParentSectionPicker`)
+  - **Division** *       (existing `DIVISIONS` Select)
+  - **Manager**          (existing `ManagerPicker`)
+- On submit: `supabase.from('org_units').insert({...status:'active'})`; on success, toast + invalidate the `org_units` query so the table refreshes.
+- Visible only when the user has edit rights (Admin / HR Assistant / Chief of HR — same gate as RLS).
 
-> **Mandatory rule:** at least one email address is required. (User said "Email address" — we treat either GSM or Samsaran email as satisfying this.)
+**Persist existing actions to Supabase**
+- `updateRow` (inline edits to Unit / Parent / Division / Manager) → `supabase.from('org_units').update(...).eq('id', id)` debounced on blur (use `onBlur` instead of `onChange` for the persistence call; local state still updates immediately for responsiveness).
+- `confirmDecommission` → `update({status:'decommissioned'}).in('id', ids)`.
+- `handleRestore` → `update({status:'active'}).eq('id', id)`.
+- `handleSave` button: now redundant for inline edits (they auto-save on blur). Keep it as a manual "Refresh from server" or remove it. **Decision: remove the Save button** since every mutation persists immediately — keeping it would mislead users into thinking unsaved changes exist.
+- `handleReset`: re-runs the seed (admin-only confirmation dialog: "Reset to defaults will delete all current rows and reinsert from defaults"). Implemented as `delete()` + bulk `insert()` of the seed list. Confirmation `AlertDialog` required.
+- Import flow: same merge logic as today, but the final `setActiveRows(merged)` is replaced by a bulk `upsert` to `org_units` keyed on `unit` (case-insensitive — we lowercase before upsert), then refetch.
 
-**Step 2 — Employment** (required fields marked *)
-- Worker Type * (Select: Staff, IC, UNV, Intern, Affiliate, Other — free text fallback)
-- Unit * (text input)
-- Division * (Select using `DIVISIONS` from `organizationConstants.ts`: CS, DD, DS, DO, MS, OP)
-- Job Name, Job Title, Position Name
-- Category, Appointment Type
-- Current Grade (Select from `GRADES`), Current Step
-- Line Manager, Reporting Lines
-- Intern (checkbox / yes-no)
+### 3. Out of scope
 
-**Step 3 — Location & Personal**
-- Official Duty Station (Select from `LOCATIONS`)
-- Office Location (text)
-- GSM Gender (Select: Male / Female / Other)
-- Nationality (text)
-- Date of Birth (date)
-
-**Step 4 — Dates & Service**
-- APA Start Date
-- First Incumbency Start Date
-- Entry on Duty Date (WHO)
-- Contract Start Date
-- Contract End Date
-- Service Time Current Org (text/number)
-
-### Validation
-
-Zod schema enforces:
-- `worker_type`: non-empty
-- `unit`: non-empty
-- `division`: must be one of CS/DD/DS/DO/MS/OP
-- At least one of `gsm_email_address` / `samsaran_email_address` is a valid email
-- Both email fields, if filled, must be valid email format
-- Date fields: valid ISO date or null
-
-"Next" button on each step is disabled until that step's required fields pass validation; Step 1 also blocks if no email is provided.
-
-### Save behavior
-
-On final "Save":
-1. Build payload — only include keys with non-empty values; nulls for blanks.
-2. Default `source = 'manual'` if user didn't pick one.
-3. `supabase.from('users_clean').insert(payload).select().single()`.
-4. On success: toast "Row added", close dialog, invalidate `['users_clean']`, `['users_clean:meta']`, `['users_clean:missing']`.
-5. On failure: toast error message; keep wizard open with values preserved.
-
-### Permissions
-
-Button visible only when `canEdit === true` (Admin / HR Assistant), matching the existing edit + delete gating.
-
-### Out of scope
-- Bulk add / CSV upload from this dialog (already handled by Import Userbase).
-- Editing existing rows from this dialog (handled by inline `EditableCell`).
-- Auto-derived fields like `full_name = first + last` (user enters both independently).
-- Adding new enum values to `worker_type` or `division` lists.
+- Replacing the in-code constants `DIVISIONS` / `DIVISION_UNITS` everywhere else in the codebase. Those continue to be the source of truth for divisions and for any module that imports the constants. The `org_units` table is the editable, persisted view of unit data shown on this admin page; downstream pages keep reading the constants until a separate task migrates them.
+- Editing division codes/labels themselves (only units are editable in this UI today).
+- Audit log entries for each change.
+- Cascade updates to other tables when a unit is renamed or decommissioned.
 
 ### Files touched
-- `src/pages/Userbase.tsx` — new "Add row" button + dialog mount + state.
-- `src/components/userbase/AddUserbaseRowDialog.tsx` — new wizard component.
+
+- New migration: create `org_units` table, RLS policies, `updated_at` trigger, seed insert.
+- `src/pages/UnitsAndDivisions.tsx` — fetch/mutate via Supabase, add `+ Add row` button + `AddOrgUnitDialog`, blur-to-persist edits, remove now-redundant Save button, wire decommission/restore/import to Supabase.
 
