@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Save, RotateCcw, ChevronsUpDown, X, Check } from 'lucide-react';
+import { ArrowLeft, Save, RotateCcw, ChevronsUpDown, X, Check, Upload, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { DIVISIONS, DIVISION_UNITS } from '@/lib/organizationConstants';
 import { StaffSearchCombobox, type StaffMember } from '@/components/operations/StaffSearchCombobox';
@@ -187,6 +187,115 @@ export default function UnitsAndDivisions() {
     toast.message('Reverted to default values');
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const csvEscape = (v: string) => {
+    const s = (v ?? '').toString();
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+
+  const handleDownloadTemplate = () => {
+    const headers = ['Unit full name', 'Unit', 'Parent Section', 'Division full name', 'Division', 'Manager'];
+    const lines = [headers.join(',')];
+    rows.forEach((r) => {
+      lines.push([
+        r.fullName,
+        r.unit,
+        r.parentSection,
+        DIVISIONS[r.division] || '',
+        r.division,
+        r.manager,
+      ].map(csvEscape).join(','));
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'units-and-divisions-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Template downloaded');
+  };
+
+  const parseCsv = (text: string): string[][] => {
+    const out: string[][] = [];
+    let row: string[] = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQuotes) {
+        if (c === '"' && text[i + 1] === '"') { cur += '"'; i++; }
+        else if (c === '"') { inQuotes = false; }
+        else { cur += c; }
+      } else {
+        if (c === '"') inQuotes = true;
+        else if (c === ',') { row.push(cur); cur = ''; }
+        else if (c === '\n') { row.push(cur); out.push(row); row = []; cur = ''; }
+        else if (c === '\r') { /* skip */ }
+        else cur += c;
+      }
+    }
+    if (cur.length > 0 || row.length > 0) { row.push(cur); out.push(row); }
+    return out.filter((r) => r.some((v) => v.trim() !== ''));
+  };
+
+  const handleImportClick = () => fileInputRef.current?.click();
+
+  const divisionLabelToCode = (label: string): string => {
+    const entry = Object.entries(DIVISIONS).find(([, l]) => l === label);
+    return entry ? entry[0] : '';
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const name = file.name.toLowerCase();
+    if (!name.endsWith('.csv')) {
+      toast.error('Please upload a .csv file (use the downloaded template).');
+      return;
+    }
+    try {
+      const text = await file.text();
+      const parsed = parseCsv(text);
+      if (parsed.length < 2) {
+        toast.error('File is empty or missing data rows.');
+        return;
+      }
+      const dataRows = parsed.slice(1);
+      const imported: UnitRow[] = dataRows.map((r, idx) => {
+        const fullName = (r[0] || '').trim();
+        const unit = (r[1] || '').trim();
+        const parentSection = (r[2] || '').trim();
+        const divFullName = (r[3] || '').trim();
+        const divCodeCsv = (r[4] || '').trim().toUpperCase();
+        const manager = (r[5] || '').trim();
+        const division =
+          (DIVISIONS[divCodeCsv] ? divCodeCsv : '') ||
+          divisionLabelToCode(divFullName) ||
+          '';
+        return {
+          id: `imp-${idx}`,
+          fullName,
+          unit: unit || extractCode(fullName),
+          parentSection,
+          division,
+          manager,
+        };
+      }).filter((r) => r.fullName);
+      if (imported.length === 0) {
+        toast.error('No valid rows found.');
+        return;
+      }
+      setRows(imported);
+      toast.success(`Imported ${imported.length} rows`);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to read file.');
+    }
+  };
+
   return (
     <Layout>
       <div className="container mx-auto py-8 px-4 max-w-[1600px]">
@@ -207,7 +316,22 @@ export default function UnitsAndDivisions() {
                 Editable directory of organizational units and sections used across the platform.
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={handleImportFile}
+              />
+              <Button variant="outline" onClick={handleDownloadTemplate}>
+                <Download className="w-4 h-4 mr-2" />
+                Download template
+              </Button>
+              <Button variant="outline" onClick={handleImportClick}>
+                <Upload className="w-4 h-4 mr-2" />
+                Import
+              </Button>
               <Button variant="outline" onClick={handleReset}>
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Reset
