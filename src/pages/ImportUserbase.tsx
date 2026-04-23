@@ -275,7 +275,6 @@ const SAMSARAN_OUT_COLUMNS = [
 ];
 
 const OVERLAP_RENAMES: Record<string, { gsm: string; sams: string }> = {
-  StaffNumber: { gsm: 'GSM Staff Number', sams: 'Samsaran Staff number' },
   Email: { gsm: 'GSM Email Address', sams: 'Samsaran Email address' },
 };
 
@@ -283,12 +282,12 @@ const buildMergedColumns = (): { columns: string[]; gsmMap: Record<string, strin
   const gsmMap: Record<string, string> = {};
   const samsMap: Record<string, string> = {};
   for (const c of GSM_OUT_COLUMNS) {
-    if (c === 'Staff Number') gsmMap[c] = OVERLAP_RENAMES.StaffNumber.gsm;
+    if (c === 'Staff Number') gsmMap[c] = 'Staff Number';
     else if (c === 'Email Address') gsmMap[c] = OVERLAP_RENAMES.Email.gsm;
     else gsmMap[c] = c;
   }
   for (const c of SAMSARAN_OUT_COLUMNS) {
-    if (c === 'Staff number') samsMap[c] = OVERLAP_RENAMES.StaffNumber.sams;
+    if (c === 'Staff number') samsMap[c] = 'Staff Number';
     else if (c === 'Email address') samsMap[c] = OVERLAP_RENAMES.Email.sams;
     else samsMap[c] = c;
   }
