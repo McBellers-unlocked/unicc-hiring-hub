@@ -406,19 +406,19 @@ export default function UnitsAndDivisions() {
         return;
       }
 
-      // Pre-flight: collisions with decommissioned rows
+      // Partition imported rows: skip those colliding with decommissioned units
       const decommissionedKeys = new Map(
         decommissionedRows.map((r) => [r.unit.trim().toLowerCase(), r.unit])
       );
-      const collision = imported.find((r) =>
-        decommissionedKeys.has(r.unit.trim().toLowerCase())
-      );
-      if (collision) {
-        toast.error(
-          `Import failed: Unit '${collision.unit}' exists in Decommissioned. Restore it first or change the code.`
-        );
-        return;
-      }
+      const skippedUnits: string[] = [];
+      const toMerge: typeof imported = [];
+      imported.forEach((r) => {
+        if (decommissionedKeys.has(r.unit.trim().toLowerCase())) {
+          skippedUnits.push(r.unit);
+        } else {
+          toMerge.push(r);
+        }
+      });
 
       // Outer-join merge keyed on Unit (case-insensitive)
       const activeIndex = new Map<string, number>();
@@ -426,13 +426,11 @@ export default function UnitsAndDivisions() {
         activeIndex.set(r.unit.trim().toLowerCase(), i);
       });
       const merged = [...activeRows];
-      const importedKeys = new Set<string>();
       let added = 0;
       let updated = 0;
       const ts = Date.now();
-      imported.forEach((imp, idx) => {
+      toMerge.forEach((imp, idx) => {
         const key = imp.unit.trim().toLowerCase();
-        importedKeys.add(key);
         const existingIdx = activeIndex.get(key);
         if (existingIdx !== undefined) {
           merged[existingIdx] = {
@@ -457,8 +455,16 @@ export default function UnitsAndDivisions() {
         }
       });
       const untouched = activeRows.length - updated;
+      const skipped = skippedUnits.length;
       setActiveRows(merged);
-      toast.success(`Imported: ${added} added, ${updated} updated, ${untouched} kept.`);
+      toast.success(
+        `Imported: ${added} added, ${updated} updated, ${skipped} skipped (decommissioned), ${untouched} kept.`
+      );
+      if (skipped > 0) {
+        const shown = skippedUnits.slice(0, 5).join(', ');
+        const more = skipped > 5 ? `, +${skipped - 5} more` : '';
+        toast.info(`Skipped decommissioned units: ${shown}${more}. Restore them first to update.`);
+      }
     } catch (err) {
       console.error(err);
       toast.error('Failed to read file.');
