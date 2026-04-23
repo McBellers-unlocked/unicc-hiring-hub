@@ -394,7 +394,7 @@ const COLUMN_TO_DB: Record<string, string> = {
   'First name': 'first_name',
   'Last name': 'last_name',
   'Search name': 'search_name',
-  'Samsaran Gender': 'samsaran_gender',
+  
   'Samsaran Staff number': 'samsaran_staff_number',
   'Samsaran Email address': 'samsaran_email_address',
   'Worker type': 'worker_type',
