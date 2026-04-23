@@ -311,27 +311,28 @@ export const Layout = ({ children }: LayoutProps) => {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="bg-popover border border-border shadow-lg">
                         <DropdownMenuItem asChild>
+                          <Link to="/analytics" className="flex items-center w-full">
+                            <BarChart3 className="w-4 h-4 mr-2" />
+                            Hiring Analytics
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
                           <Link to="/admin/import-userbase" className="flex items-center w-full">
                             <Upload className="w-4 h-4 mr-2" />
                             Import Userbase
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link to="/admin/units-divisions" className="flex items-center w-full">
-                            <Building2 className="w-4 h-4 mr-2" />
-                            Units and Divisions
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link to="/analytics" className="flex items-center w-full">
-                            <BarChart3 className="w-4 h-4 mr-2" />
-                            Hiring Analytics
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
                           <Link to="/admin/import-staff-list" className="flex items-center w-full">
                             <Upload className="w-4 h-4 mr-2" />
                             Import Staff List
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/units-divisions" className="flex items-center w-full">
+                            <Building2 className="w-4 h-4 mr-2" />
+                            Units and Divisions
                           </Link>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
