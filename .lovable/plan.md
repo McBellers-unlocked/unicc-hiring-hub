@@ -1,48 +1,29 @@
 
 
-## Decommission Workflow → Bulk Selection Mode
+## Import: Duplicate Check + Outer Join Merge
 
-### Changes — `src/pages/UnitsAndDivisions.tsx`
+### Changes — `src/pages/UnitsAndDivisions.tsx` (`handleImportFile`)
 
-**1. Remove per-row Decommission button**
-- Drop the trailing "Actions" column (and its header) from the **Active** table.
-- Each row no longer has its own Decommission button.
+**1. Duplicate check on the imported file**
+Before merging, scan the parsed rows for duplicate values in the `Unit` column (case-insensitive, trimmed). Empty `Unit` values are also rejected since the field is the primary key.
 
-**2. New header button: "Decommission"**
-- Add a new button in the header toolbar, placed **between Reset and Save**, so the order becomes:
-  `Download table | Import | Reset | Decommission | Save`
-- Variant: `outline`, with `Archive` icon. Only visible/enabled on the **Active** tab.
+- If any `Unit` is blank → `toast.error("Import failed: every row must have a 'Unit' value (primary key).")` and abort (no state change).
+- If duplicates are found → `toast.error("Import failed: duplicate Unit values found: <code1>, <code2>…")` (list up to 5), and abort.
 
-**3. Selection mode (two-click flow)**
-- New state: `selectionMode: boolean`, `selectedIds: Set<string>`.
-- **First click on Decommission** → enters selection mode:
-  - Button label changes to `Decommission selected (N)` and switches to `destructive` variant when N > 0.
-  - A new "Cancel" button appears next to it to exit selection mode (clears `selectedIds`, `selectionMode = false`).
-  - The Active table gains a leading checkbox column:
-    - Header: a "select all" checkbox (indeterminate when partial) toggling every active row.
-    - Each row: a `Checkbox` (shadcn `@/components/ui/checkbox`) bound to `selectedIds`.
-  - Selected rows get a subtle `bg-muted/50` highlight.
-  - Other header buttons (Download/Import/Reset/Save) remain visible but are disabled while in selection mode to avoid conflicting actions.
-- **Second click on Decommission** (with ≥1 selected) → opens the existing `AlertDialog`:
-  - Title: "Decommission selected units?"
-  - Description: "This will move N unit(s) to the Decommissioned tab. You can restore them later." (N reflects current selection count.)
-  - Confirm → move all selected rows from `activeRows` to `decommissionedRows` (prepended, preserving original order), clear selection, exit selection mode, toast `Decommissioned N unit(s)`.
-  - Cancel → dialog closes; selection mode and selected rows are preserved so the user can adjust.
-- If clicked with 0 selected → no dialog; show a small inline hint or toast: "Select at least one unit to decommission."
+**2. Outer-join merge against current active rows**
+Replace the current "replace all active rows" behavior with an outer join keyed on `Unit` (case-insensitive):
 
-**4. State / dialog cleanup**
-- Replace `pendingDecommissionId: string | null` with `confirmOpen: boolean`.
-- Update `confirmDecommission` to operate on `selectedIds` instead of a single id.
+- For each imported row:
+  - If a matching `Unit` exists in `activeRows` → **update** that row in place with imported values (`fullName`, `parentSection`, `division`, `manager`, and `unit` normalized to the imported casing). Keep its existing `id` so React keys / selection remain stable.
+  - If no match → **add** as a new row with a fresh id (`imp-<timestamp>-<idx>`).
+- Active rows whose `Unit` is **not** present in the imported file are **kept as-is** (outer join — no deletions).
+- Decommissioned rows are untouched. However, also reject the import if any imported `Unit` collides with a `Unit` already in `decommissionedRows` — toast: `"Import failed: Unit '<code>' exists in Decommissioned. Restore it first or change the code."` (prevents two rows sharing the same primary key across tabs).
 
-**5. Tab behavior**
-- Switching to the **Decommissioned** tab while in selection mode automatically exits selection mode and clears `selectedIds`.
-- The Decommissioned tab is unchanged (still has per-row "Restore").
-
-**6. Imports**
-- Add `Checkbox` from `@/components/ui/checkbox`.
-- Keep `Archive`, `Undo2`; add `XCircle` (or reuse `X`) for the Cancel-selection button.
+**3. Result toast**
+After a successful merge, show a summary: `Imported: <added> added, <updated> updated, <untouched> kept.`
 
 ### Notes
-- Still UI-only state; no schema changes.
-- Keyboard/a11y: select-all checkbox uses `aria-label="Select all units"`; row checkboxes use `aria-label={`Select ${row.fullName}`}`.
+- All checks are pre-flight: state is only mutated once every validation passes, so a failed import leaves the table unchanged.
+- No schema changes; behavior is purely client-side.
+- CSV parser, template download, and decommission flow are unchanged.
 
