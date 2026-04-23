@@ -1,45 +1,37 @@
 
 
-## Add "Units and Divisions" Page Under Analytics
+## Update Units and Divisions Table
 
-### What
-A new admin page listing every Unit/Section used in the Initial Position Request form, displayed as an editable 5-column table. Accessible from the Analytics dropdown, just below "Import Userbase".
+### Changes — `src/pages/UnitsAndDivisions.tsx`
 
-### Source Data
-Pre-fill rows from `DIVISION_UNITS` in `src/lib/organizationConstants.ts` (flattened across all 6 divisions — ~50 unit/section entries). Each entry like `"CISO Section (CISO)"` parses into:
-- **Unit full name** (prefilled, read-only label): the original string, e.g. `"CISO Section (CISO)"`
-- **Unit** (editable): the parenthetical code, e.g. `"CISO"`
-- **Parent Section** (editable): blank by default
-- **Division** (editable dropdown): prefilled with the division code (CS/DD/DS/DO/MS/OP) derived from which `DIVISION_UNITS` array the entry came from
-- **Manager** (editable text): blank by default
+**1. Column restructure (6 columns total):**
+| Unit full name | Unit | Parent Section | Division full name | Division | Manager |
 
-### Files
+- **Division full name**: renamed from current "Division". Same `Select` showing the full label (e.g. "Cybersecurity division (CS)"), bound to the division code.
+- **Division** (new): read-only text cell showing only the 2-letter acronym (CS, DD, DS, DO, MS, OP), derived automatically from the selected Division full name. Updates reactively when Division full name changes.
 
-**1. New page — `src/pages/UnitsAndDivisions.tsx`**
-- Wrapped in `<Layout>` with a Back button and `Card` titled "Units and Divisions" + subtitle.
-- Uses the existing shadcn `Table` component (`src/components/ui/table.tsx`).
-- Columns: Unit full name | Unit | Parent Section | Division | Manager.
-- "Unit full name" rendered as plain text (the canonical reference); the other 4 columns rendered as inline editable inputs (`Input` for text, `Select` for Division using the 6 division codes from `DIVISIONS`).
-- Local React state (`useState`) holds the editable rows seeded from `DIVISION_UNITS`. Edits update local state immediately.
-- A "Save" button at the top-right shows a success toast (placeholder — no backend persistence yet, mirroring the Import Userbase pattern). A "Reset" button restores the prefilled values.
-- Sorted alphabetically by Unit full name within each division, divisions in `DIVISIONS` declaration order.
+**2. Parent Section — convert to searchable dropdown:**
+- Replace the free-text `Input` with a `Combobox` (Popover + Command pattern, same as `StaffSearchCombobox`).
+- Options: every "Unit full name" from the same `DIVISION_UNITS` flattened list (~50 entries), alphabetically sorted, with a "— None —" option to clear.
+- Includes built-in search filter via `CommandInput`.
 
-**2. Routing — `src/App.tsx`**
-- Import `UnitsAndDivisions`.
-- Add `<Route path="/admin/units-divisions" element={<UnitsAndDivisions />} />` above the catch-all.
+**3. Manager — convert to staff search combobox:**
+- Replace the free-text `Input` with a reuse of `StaffSearchCombobox` (`src/components/operations/StaffSearchCombobox.tsx`), which already queries the `users` table with debounced search, name/email filtering, and grade badges.
+- On select, store the staff member's `name` in `row.manager`. Display the selected name in the trigger button.
+- Add a small "Clear" affordance (X button) to remove a selection.
 
-**3. Top-bar navigation — `src/components/Layout.tsx`**
-- In the Analytics dropdown, insert a new item directly **below "Import Userbase"** and above "Hiring Analytics":
-  - Label: **Units and Divisions**
-  - Path: `/admin/units-divisions`
-  - Icon: `Building2` (lucide — semantically fits org structure; will be added to existing lucide imports)
-- Final Analytics dropdown order:
-  1. Import Userbase
-  2. Units and Divisions
-  3. Hiring Analytics
-  4. Import Staff List
+**4. State model update (`UnitRow`):**
+- Keep `division` (the code) as the source of truth.
+- `parentSection` continues to hold the full unit name string (now picked from a list).
+- `manager` continues to hold a string (the staff member's name).
+- No new fields needed — the "Division" acronym column is purely derived.
+
+**5. Layout:**
+- Adjust column widths to fit 6 columns: e.g. `24% / 10% / 18% / 18% / 8% / 22%`.
+- Table remains inside the existing `Card` with the same Save/Reset buttons (still UI-only, toast feedback).
 
 ### Notes
-- UI-only: edits are not persisted to the database in this step. A future migration can introduce a `units_divisions` table seeded from this same constant if persistence is required.
-- Permission gating inherits from the Analytics dropdown (`hasAdminAccess`).
+- No backend/schema changes — page remains client-side state with toast on Save.
+- `StaffSearchCombobox` is reused as-is; no edits to that component.
+- Permission gating unchanged (Analytics dropdown / `hasAdminAccess`).
 
