@@ -363,7 +363,7 @@ const AddOrgUnitDialog = ({ open, onOpenChange, existingUnits, onCreated }: AddO
 export default function UnitsAndDivisions() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { userRoles } = useAuth();
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
