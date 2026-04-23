@@ -417,26 +417,45 @@ export default function UnitsAndDivisions() {
                 className="hidden"
                 onChange={handleImportFile}
               />
-              <Button variant="outline" onClick={handleDownloadTemplate}>
+              <Button variant="outline" onClick={handleDownloadTemplate} disabled={selectionMode}>
                 <Download className="w-4 h-4 mr-2" />
                 Download table
               </Button>
-              <Button variant="outline" onClick={handleImportClick}>
+              <Button variant="outline" onClick={handleImportClick} disabled={selectionMode}>
                 <Upload className="w-4 h-4 mr-2" />
                 Import
               </Button>
-              <Button variant="outline" onClick={handleReset}>
+              <Button variant="outline" onClick={handleReset} disabled={selectionMode}>
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Reset
               </Button>
-              <Button onClick={handleSave}>
+              {activeTab === 'active' && (
+                <>
+                  <Button
+                    variant={selectionMode && selectedIds.size > 0 ? 'destructive' : 'outline'}
+                    onClick={handleDecommissionClick}
+                  >
+                    <Archive className="w-4 h-4 mr-2" />
+                    {selectionMode
+                      ? `Decommission selected (${selectedIds.size})`
+                      : 'Decommission'}
+                  </Button>
+                  {selectionMode && (
+                    <Button variant="ghost" onClick={exitSelectionMode}>
+                      <X className="w-4 h-4 mr-2" />
+                      Cancel
+                    </Button>
+                  )}
+                </>
+              )}
+              <Button onClick={handleSave} disabled={selectionMode}>
                 <Save className="w-4 h-4 mr-2" />
                 Save
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="active" className="w-full">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               <TabsList>
                 <TabsTrigger value="active">
                   Active ({activeRows.length})
