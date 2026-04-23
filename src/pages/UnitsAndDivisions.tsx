@@ -470,18 +470,46 @@ export default function UnitsAndDivisions() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        {selectionMode && (
+                          <TableHead className="w-[44px]">
+                            <Checkbox
+                              aria-label="Select all units"
+                              checked={
+                                activeRows.length > 0 && selectedIds.size === activeRows.length
+                                  ? true
+                                  : selectedIds.size === 0
+                                  ? false
+                                  : 'indeterminate'
+                              }
+                              onCheckedChange={(c) => toggleSelectAll(c === true)}
+                            />
+                          </TableHead>
+                        )}
                         <TableHead className="min-w-[280px] whitespace-nowrap">Unit full name</TableHead>
                         <TableHead className="min-w-[120px]">Unit</TableHead>
                         <TableHead className="min-w-[280px]">Parent Section</TableHead>
                         <TableHead className="min-w-[300px]">Division full name</TableHead>
                         <TableHead className="min-w-[110px]">Division</TableHead>
                         <TableHead className="min-w-[280px]">Manager</TableHead>
-                        <TableHead className="min-w-[160px] text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {activeRows.map((row) => (
-                        <TableRow key={row.id}>
+                      {activeRows.map((row) => {
+                        const isSelected = selectedIds.has(row.id);
+                        return (
+                        <TableRow
+                          key={row.id}
+                          className={cn(selectionMode && isSelected && 'bg-muted/50')}
+                        >
+                          {selectionMode && (
+                            <TableCell className="w-[44px]">
+                              <Checkbox
+                                aria-label={`Select ${row.fullName}`}
+                                checked={isSelected}
+                                onCheckedChange={(c) => toggleRowSelection(row.id, c === true)}
+                              />
+                            </TableCell>
+                          )}
                           <TableCell className="font-medium align-middle whitespace-nowrap">
                             {row.fullName}
                           </TableCell>
@@ -523,19 +551,9 @@ export default function UnitsAndDivisions() {
                               onChange={(v) => updateRow(row.id, 'manager', v)}
                             />
                           </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => setPendingDecommissionId(row.id)}
-                            >
-                              <Archive className="w-4 h-4 mr-2" />
-                              Decommission
-                            </Button>
-                          </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
