@@ -315,7 +315,21 @@ export default function Userbase() {
     office_location: distinctQueries[5].data ?? [],
   };
 
-  const visibleCols = useMemo(() => COLUMNS.filter((c) => visible.has(c.key)), [visible]);
+  const visibleCols = useMemo(() => {
+    const byKey = new Map(COLUMNS.map((c) => [c.key, c]));
+    const ordered: ColDef[] = [];
+    const seen = new Set<string>();
+    DEFAULT_VISIBLE_ORDER.forEach((k) => {
+      if (visible.has(k) && byKey.has(k)) {
+        ordered.push(byKey.get(k)!);
+        seen.add(k);
+      }
+    });
+    COLUMNS.forEach((c) => {
+      if (visible.has(c.key) && !seen.has(c.key)) ordered.push(c);
+    });
+    return ordered;
+  }, [visible]);
 
   const total = data?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
