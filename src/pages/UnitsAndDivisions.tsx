@@ -670,7 +670,7 @@ export default function UnitsAndDivisions() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {decommissionedRows.map((row) => (
+                        {sortedDecommissionedRows.map((row) => (
                           <TableRow key={row.id}>
                             <TableCell className="font-medium whitespace-nowrap">
                               {row.fullName}
