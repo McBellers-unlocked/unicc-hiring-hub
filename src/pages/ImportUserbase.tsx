@@ -276,7 +276,6 @@ const SAMSARAN_OUT_COLUMNS = [
 
 const OVERLAP_RENAMES: Record<string, { gsm: string; sams: string }> = {
   StaffNumber: { gsm: 'GSM Staff Number', sams: 'Samsaran Staff number' },
-  Gender: { gsm: 'GSM Gender', sams: 'Samsaran Gender' },
   Email: { gsm: 'GSM Email Address', sams: 'Samsaran Email address' },
 };
 
@@ -285,20 +284,26 @@ const buildMergedColumns = (): { columns: string[]; gsmMap: Record<string, strin
   const samsMap: Record<string, string> = {};
   for (const c of GSM_OUT_COLUMNS) {
     if (c === 'Staff Number') gsmMap[c] = OVERLAP_RENAMES.StaffNumber.gsm;
-    else if (c === 'Gender') gsmMap[c] = OVERLAP_RENAMES.Gender.gsm;
     else if (c === 'Email Address') gsmMap[c] = OVERLAP_RENAMES.Email.gsm;
     else gsmMap[c] = c;
   }
   for (const c of SAMSARAN_OUT_COLUMNS) {
     if (c === 'Staff number') samsMap[c] = OVERLAP_RENAMES.StaffNumber.sams;
-    else if (c === 'Gender') samsMap[c] = OVERLAP_RENAMES.Gender.sams;
     else if (c === 'Email address') samsMap[c] = OVERLAP_RENAMES.Email.sams;
     else samsMap[c] = c;
   }
-  const columns = [
+  // Build merged column list, deduping the unified 'Gender' column.
+  const seen = new Set<string>();
+  const columns: string[] = [];
+  for (const c of [
     ...GSM_OUT_COLUMNS.map((c) => gsmMap[c]),
     ...SAMSARAN_OUT_COLUMNS.map((c) => samsMap[c]),
-  ];
+  ]) {
+    if (!seen.has(c)) {
+      seen.add(c);
+      columns.push(c);
+    }
+  }
   return { columns, gsmMap, samsMap };
 };
 
@@ -339,7 +344,17 @@ const outerJoin = (
     const k = keyOf(s['Staff number'], s['Email address']);
     const existing = merged.get(k);
     if (existing) {
-      for (const [src, dst] of Object.entries(samsMap)) existing[dst] = s[src] ?? '';
+      for (const [src, dst] of Object.entries(samsMap)) {
+        const samsVal = s[src] ?? '';
+        if (dst === 'Gender') {
+          // Precedence: GSM wins; Samsaran only fills when GSM is blank.
+          if (!existing[dst] || !String(existing[dst]).trim()) {
+            existing[dst] = samsVal;
+          }
+        } else {
+          existing[dst] = samsVal;
+        }
+      }
       existing.__source = 'both';
     } else {
       const row: MergedRow = { ...empty(gsmMap), ...empty(samsMap) };
@@ -359,7 +374,7 @@ const COLUMN_TO_DB: Record<string, string> = {
   'Full Name': 'full_name',
   'GSM Staff Number': 'gsm_staff_number',
   'Nationality': 'nationality',
-  'GSM Gender': 'gsm_gender',
+  'Gender': 'gsm_gender',
   'Date of Birth': 'date_of_birth',
   'GSM Email Address': 'gsm_email_address',
   'Service time (Current Organization)': 'service_time_current_org',
@@ -379,7 +394,7 @@ const COLUMN_TO_DB: Record<string, string> = {
   'First name': 'first_name',
   'Last name': 'last_name',
   'Search name': 'search_name',
-  'Samsaran Gender': 'samsaran_gender',
+  
   'Samsaran Staff number': 'samsaran_staff_number',
   'Samsaran Email address': 'samsaran_email_address',
   'Worker type': 'worker_type',
@@ -403,6 +418,7 @@ const toDbRow = (row: MergedRow, importedBy: string | null) => {
       out[dbCol] = v === '' ? null : v;
     }
   }
+  out.samsaran_gender = null;
   out.source = row.__source ?? 'gsm';
   out.match_key = row.__match_key ?? null;
   out.imported_by = importedBy;
