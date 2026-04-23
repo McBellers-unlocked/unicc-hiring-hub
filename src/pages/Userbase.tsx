@@ -606,6 +606,11 @@ export default function Userbase() {
                         </TableHead>
                       );
                     })}
+                    {canEdit && (
+                      <TableHead className="whitespace-nowrap w-12 text-center sticky right-0 bg-background">
+                        Actions
+                      </TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
