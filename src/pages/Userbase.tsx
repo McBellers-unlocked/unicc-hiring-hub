@@ -589,7 +589,7 @@ export default function Userbase() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {[25, 50, 100, 250].map((n) => (
+                  {[20, 50, 100, 250].map((n) => (
                     <SelectItem key={n} value={String(n)}>{n}</SelectItem>
                   ))}
                 </SelectContent>
