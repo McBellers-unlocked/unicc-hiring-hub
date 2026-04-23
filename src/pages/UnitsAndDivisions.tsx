@@ -32,7 +32,34 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Save, RotateCcw, ChevronsUpDown, X, Check, Upload, Download } from 'lucide-react';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  ArrowLeft,
+  Save,
+  RotateCcw,
+  ChevronsUpDown,
+  X,
+  Check,
+  Upload,
+  Download,
+  Archive,
+  Undo2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { DIVISIONS, DIVISION_UNITS } from '@/lib/organizationConstants';
 import { StaffSearchCombobox, type StaffMember } from '@/components/operations/StaffSearchCombobox';
@@ -170,10 +197,12 @@ const ManagerPicker = ({ value, onChange }: ManagerPickerProps) => {
 export default function UnitsAndDivisions() {
   const navigate = useNavigate();
   const initialRows = useMemo(buildInitialRows, []);
-  const [rows, setRows] = useState<UnitRow[]>(initialRows);
+  const [activeRows, setActiveRows] = useState<UnitRow[]>(initialRows);
+  const [decommissionedRows, setDecommissionedRows] = useState<UnitRow[]>([]);
+  const [pendingDecommissionId, setPendingDecommissionId] = useState<string | null>(null);
 
   const updateRow = (id: string, field: keyof UnitRow, value: string) => {
-    setRows((prev) =>
+    setActiveRows((prev) =>
       prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
     );
   };
@@ -183,8 +212,30 @@ export default function UnitsAndDivisions() {
   };
 
   const handleReset = () => {
-    setRows(buildInitialRows());
+    setActiveRows(buildInitialRows());
+    setDecommissionedRows([]);
     toast.message('Reverted to default values');
+  };
+
+  const confirmDecommission = () => {
+    if (!pendingDecommissionId) return;
+    const row = activeRows.find((r) => r.id === pendingDecommissionId);
+    if (!row) {
+      setPendingDecommissionId(null);
+      return;
+    }
+    setActiveRows((prev) => prev.filter((r) => r.id !== pendingDecommissionId));
+    setDecommissionedRows((prev) => [row, ...prev]);
+    setPendingDecommissionId(null);
+    toast.success('Unit decommissioned');
+  };
+
+  const handleRestore = (id: string) => {
+    const row = decommissionedRows.find((r) => r.id === id);
+    if (!row) return;
+    setDecommissionedRows((prev) => prev.filter((r) => r.id !== id));
+    setActiveRows((prev) => [...prev, row]);
+    toast.success('Unit restored');
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -197,7 +248,7 @@ export default function UnitsAndDivisions() {
   const handleDownloadTemplate = () => {
     const headers = ['Unit full name', 'Unit', 'Parent Section', 'Division full name', 'Division', 'Manager'];
     const lines = [headers.join(',')];
-    rows.forEach((r) => {
+    activeRows.forEach((r) => {
       lines.push([
         r.fullName,
         r.unit,
@@ -288,7 +339,7 @@ export default function UnitsAndDivisions() {
         toast.error('No valid rows found.');
         return;
       }
-      setRows(imported);
+      setActiveRows(imported);
       toast.success(`Imported ${imported.length} rows`);
     } catch (err) {
       console.error(err);
@@ -343,70 +394,171 @@ export default function UnitsAndDivisions() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="border rounded-md">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-[280px] whitespace-nowrap">Unit full name</TableHead>
-                    <TableHead className="min-w-[120px]">Unit</TableHead>
-                    <TableHead className="min-w-[280px]">Parent Section</TableHead>
-                    <TableHead className="min-w-[300px]">Division full name</TableHead>
-                    <TableHead className="min-w-[110px]">Division</TableHead>
-                    <TableHead className="min-w-[280px]">Manager</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell className="font-medium align-middle whitespace-nowrap">
-                        {row.fullName}
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          value={row.unit}
-                          onChange={(e) => updateRow(row.id, 'unit', e.target.value)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <ParentSectionPicker
-                          value={row.parentSection}
-                          onChange={(v) => updateRow(row.id, 'parentSection', v)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={row.division}
-                          onValueChange={(v) => updateRow(row.id, 'division', v)}
-                        >
-                          <SelectTrigger className="h-auto min-h-10 py-2 text-left [&>span]:whitespace-normal [&>span]:line-clamp-none">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(DIVISIONS).map(([code, label]) => (
-                              <SelectItem key={code} value={code}>
-                                {label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm text-muted-foreground">
-                        {row.division}
-                      </TableCell>
-                      <TableCell>
-                        <ManagerPicker
-                          value={row.manager}
-                          onChange={(v) => updateRow(row.id, 'manager', v)}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <Tabs defaultValue="active" className="w-full">
+              <TabsList>
+                <TabsTrigger value="active">
+                  Active ({activeRows.length})
+                </TabsTrigger>
+                <TabsTrigger value="decommissioned">
+                  Decommissioned ({decommissionedRows.length})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="active" className="mt-4">
+                <div className="border rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[280px] whitespace-nowrap">Unit full name</TableHead>
+                        <TableHead className="min-w-[120px]">Unit</TableHead>
+                        <TableHead className="min-w-[280px]">Parent Section</TableHead>
+                        <TableHead className="min-w-[300px]">Division full name</TableHead>
+                        <TableHead className="min-w-[110px]">Division</TableHead>
+                        <TableHead className="min-w-[280px]">Manager</TableHead>
+                        <TableHead className="min-w-[160px] text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {activeRows.map((row) => (
+                        <TableRow key={row.id}>
+                          <TableCell className="font-medium align-middle whitespace-nowrap">
+                            {row.fullName}
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={row.unit}
+                              onChange={(e) => updateRow(row.id, 'unit', e.target.value)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <ParentSectionPicker
+                              value={row.parentSection}
+                              onChange={(v) => updateRow(row.id, 'parentSection', v)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={row.division}
+                              onValueChange={(v) => updateRow(row.id, 'division', v)}
+                            >
+                              <SelectTrigger className="h-auto min-h-10 py-2 text-left [&>span]:whitespace-normal [&>span]:line-clamp-none">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(DIVISIONS).map(([code, label]) => (
+                                  <SelectItem key={code} value={code}>
+                                    {label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm text-muted-foreground">
+                            {row.division}
+                          </TableCell>
+                          <TableCell>
+                            <ManagerPicker
+                              value={row.manager}
+                              onChange={(v) => updateRow(row.id, 'manager', v)}
+                            />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => setPendingDecommissionId(row.id)}
+                            >
+                              <Archive className="w-4 h-4 mr-2" />
+                              Decommission
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="decommissioned" className="mt-4">
+                {decommissionedRows.length === 0 ? (
+                  <div className="border rounded-md py-12 text-center text-muted-foreground">
+                    No decommissioned units.
+                  </div>
+                ) : (
+                  <div className="border rounded-md">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[280px] whitespace-nowrap">Unit full name</TableHead>
+                          <TableHead className="min-w-[120px]">Unit</TableHead>
+                          <TableHead className="min-w-[280px]">Parent Section</TableHead>
+                          <TableHead className="min-w-[300px]">Division full name</TableHead>
+                          <TableHead className="min-w-[110px]">Division</TableHead>
+                          <TableHead className="min-w-[280px]">Manager</TableHead>
+                          <TableHead className="min-w-[140px] text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {decommissionedRows.map((row) => (
+                          <TableRow key={row.id}>
+                            <TableCell className="font-medium whitespace-nowrap">
+                              {row.fullName}
+                            </TableCell>
+                            <TableCell>{row.unit}</TableCell>
+                            <TableCell className="whitespace-normal break-words">
+                              {row.parentSection || <span className="text-muted-foreground">—</span>}
+                            </TableCell>
+                            <TableCell className="whitespace-normal break-words">
+                              {DIVISIONS[row.division] || ''}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm text-muted-foreground">
+                              {row.division}
+                            </TableCell>
+                            <TableCell>
+                              {row.manager || <span className="text-muted-foreground">—</span>}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleRestore(row.id)}
+                              >
+                                <Undo2 className="w-4 h-4 mr-2" />
+                                Restore
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog
+        open={pendingDecommissionId !== null}
+        onOpenChange={(open) => !open && setPendingDecommissionId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Decommission this unit?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will move the unit to the Decommissioned tab. You can restore it later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDecommission}>
+              Yes, decommission
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
