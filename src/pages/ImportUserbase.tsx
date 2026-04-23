@@ -371,7 +371,7 @@ const outerJoin = (
 
 const COLUMN_TO_DB: Record<string, string> = {
   'Full Name': 'full_name',
-  'GSM Staff Number': 'gsm_staff_number',
+  'Staff Number': 'gsm_staff_number',
   'Nationality': 'nationality',
   'Gender': 'gsm_gender',
   'Date of Birth': 'date_of_birth',
