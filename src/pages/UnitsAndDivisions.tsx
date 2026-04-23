@@ -223,12 +223,12 @@ export default function UnitsAndDivisions() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[24%]">Unit full name</TableHead>
-                    <TableHead className="w-[10%]">Unit</TableHead>
-                    <TableHead className="w-[18%]">Parent Section</TableHead>
-                    <TableHead className="w-[18%]">Division full name</TableHead>
-                    <TableHead className="w-[8%]">Division</TableHead>
-                    <TableHead className="w-[22%]">Manager</TableHead>
+                    <TableHead className="min-w-[280px] whitespace-nowrap">Unit full name</TableHead>
+                    <TableHead className="min-w-[120px]">Unit</TableHead>
+                    <TableHead className="min-w-[280px]">Parent Section</TableHead>
+                    <TableHead className="min-w-[300px]">Division full name</TableHead>
+                    <TableHead className="min-w-[110px]">Division</TableHead>
+                    <TableHead className="min-w-[280px]">Manager</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
