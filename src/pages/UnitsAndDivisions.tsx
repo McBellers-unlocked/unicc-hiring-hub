@@ -663,13 +663,15 @@ export default function UnitsAndDivisions() {
         const existing = activeIndex.get(key);
         if (existing) {
           updateOps.push(
-            supabase.from('org_units').update({
-              full_name: r.fullName,
-              unit: r.unit,
-              parent_section: r.parentSection,
-              division: r.division,
-              manager: r.manager,
-            }).eq('id', existing.id)
+            Promise.resolve(
+              supabase.from('org_units').update({
+                full_name: r.fullName,
+                unit: r.unit,
+                parent_section: r.parentSection,
+                division: r.division,
+                manager: r.manager,
+              }).eq('id', existing.id)
+            )
           );
           updatedUnits.push(r.unit);
         } else {
