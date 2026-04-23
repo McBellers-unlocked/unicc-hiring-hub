@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText, ChevronDown, Building, Building2, FileCheck, User, LayoutDashboard, Shield, Heart, GraduationCap, BookOpen, Target, ClipboardList, ClipboardCheck, UserCog, Network, Upload, Cog, Mail } from 'lucide-react';
+import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText, ChevronDown, Building, Building2, FileCheck, User, LayoutDashboard, Shield, Heart, GraduationCap, BookOpen, Target, ClipboardList, ClipboardCheck, UserCog, Network, Upload, Cog, Mail, PieChart } from 'lucide-react';
 import headerLogo from '@/assets/uniqtalent-header-logo.png';
 
 interface LayoutProps {
