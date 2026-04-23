@@ -50,6 +50,15 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import {
   ArrowLeft,
   Save,
   RotateCcw,
@@ -60,6 +69,8 @@ import {
   Download,
   Archive,
   Undo2,
+  CheckCircle2,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DIVISIONS, DIVISION_UNITS } from '@/lib/organizationConstants';
@@ -204,6 +215,8 @@ export default function UnitsAndDivisions() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('active');
+  const [importResult, setImportResult] = useState<{ added: string[]; updated: string[]; skipped: string[] } | null>(null);
+  const [importResultOpen, setImportResultOpen] = useState(false);
 
   const updateRow = (id: string, field: keyof UnitRow, value: string) => {
     setActiveRows((prev) =>
@@ -435,8 +448,8 @@ export default function UnitsAndDivisions() {
         activeIndex.set(r.unit.trim().toLowerCase(), i);
       });
       const merged = [...activeRows];
-      let added = 0;
-      let updated = 0;
+      const addedUnits: string[] = [];
+      const updatedUnits: string[] = [];
       const ts = Date.now();
       toMerge.forEach((imp, idx) => {
         const key = imp.unit.trim().toLowerCase();
@@ -450,7 +463,7 @@ export default function UnitsAndDivisions() {
             division: imp.division,
             manager: imp.manager,
           };
-          updated++;
+          updatedUnits.push(imp.unit);
         } else {
           merged.push({
             id: `imp-${ts}-${idx}`,
@@ -460,20 +473,12 @@ export default function UnitsAndDivisions() {
             division: imp.division,
             manager: imp.manager,
           });
-          added++;
+          addedUnits.push(imp.unit);
         }
       });
-      const untouched = activeRows.length - updated;
-      const skipped = skippedUnits.length;
       setActiveRows(merged);
-      toast.success(
-        `Imported: ${added} added, ${updated} updated, ${skipped} skipped (decommissioned), ${untouched} kept.`
-      );
-      if (skipped > 0) {
-        const shown = skippedUnits.slice(0, 5).join(', ');
-        const more = skipped > 5 ? `, +${skipped - 5} more` : '';
-        toast.info(`Skipped decommissioned units: ${shown}${more}. Restore them first to update.`);
-      }
+      setImportResult({ added: addedUnits, updated: updatedUnits, skipped: skippedUnits });
+      setImportResultOpen(true);
     } catch (err) {
       console.error(err);
       toast.error('Failed to read file.');
@@ -729,6 +734,76 @@ export default function UnitsAndDivisions() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={importResultOpen} onOpenChange={setImportResultOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Import complete</DialogTitle>
+            <DialogDescription>
+              {importResult
+                ? `${importResult.added.length} added · ${importResult.updated.length} updated · ${importResult.skipped.length} skipped · ${activeRows.length - importResult.updated.length} kept`
+                : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {importResult && importResult.added.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-semibold">Added ({importResult.added.length})</h3>
+                </div>
+                <div className="max-h-48 overflow-y-auto flex flex-wrap gap-1.5 p-2 rounded-md border bg-muted/30">
+                  {importResult.added.map((u, i) => (
+                    <Badge key={`a-${i}`} variant="default">
+                      {u}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {importResult && importResult.updated.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <RefreshCw className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-semibold">Updated ({importResult.updated.length})</h3>
+                </div>
+                <div className="max-h-48 overflow-y-auto flex flex-wrap gap-1.5 p-2 rounded-md border bg-muted/30">
+                  {importResult.updated.map((u, i) => (
+                    <Badge key={`u-${i}`} variant="secondary">
+                      {u}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {importResult && importResult.skipped.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Archive className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold">Skipped — decommissioned ({importResult.skipped.length})</h3>
+                </div>
+                <div className="max-h-48 overflow-y-auto flex flex-wrap gap-1.5 p-2 rounded-md border bg-muted/30">
+                  {importResult.skipped.map((u, i) => (
+                    <Badge key={`s-${i}`} variant="outline">
+                      {u}
+                    </Badge>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1.5">Restore them first to update.</p>
+              </div>
+            )}
+            {importResult &&
+              importResult.added.length === 0 &&
+              importResult.updated.length === 0 &&
+              importResult.skipped.length === 0 && (
+                <p className="text-sm text-muted-foreground">No changes were applied.</p>
+              )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setImportResultOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
