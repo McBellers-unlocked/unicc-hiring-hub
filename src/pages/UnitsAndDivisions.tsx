@@ -585,7 +585,7 @@ export default function UnitsAndDivisions() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {activeRows.map((row) => {
+                      {sortedActiveRows.map((row) => {
                         const isSelected = selectedIds.has(row.id);
                         return (
                         <TableRow
