@@ -1,32 +1,40 @@
 
 
-## Import: Skip Rows Matching Decommissioned Units
+## Import Result Dialog — Show Added & Modified Units
 
-### Change — `src/pages/UnitsAndDivisions.tsx` (`handleImportFile`)
+### Change — `src/pages/UnitsAndDivisions.tsx`
 
-Currently, if an imported `Unit` matches a record in the **Decommissioned** tab, the entire import is **rejected**. Update this behavior to instead **silently skip** those rows and continue importing the rest.
+Replace the post-import success toast with a modal dialog that lists exactly which units were added and which were updated, so the user can verify the outcome before continuing.
 
-**New behavior**
-- Build a lookup set of decommissioned `Unit` codes (case-insensitive, trimmed).
-- While iterating imported rows, partition them into:
-  - `skipped[]` — imported rows whose `Unit` exists in `decommissionedRows` (do not add, do not update, do not touch the decommissioned record).
-  - `toMerge[]` — remaining rows, which proceed through the existing outer-join merge against `activeRows` (update if Unit matches active, add if new).
-- Decommissioned rows remain untouched in all cases.
+**1. Track per-unit outcomes during merge**
+Inside `handleImportFile`, while iterating `toMerge`, push the imported `unit` code into one of two arrays:
+- `addedUnits: string[]` — rows with no matching active `Unit` (newly inserted).
+- `updatedUnits: string[]` — rows whose `Unit` matched an existing active row (overwritten in place).
+- `skippedUnits` (existing) — rows matching a decommissioned `Unit`.
 
-**Validation order (unchanged for the first two)**
-1. Reject if any imported `Unit` is blank.
-2. Reject if the imported file contains internal duplicate `Unit` values.
-3. **(Replaces current rule)** Decommissioned collisions no longer abort the import — they are skipped.
+**2. New state + dialog**
+- Add state: `importResult: { added: string[]; updated: string[]; skipped: string[] } | null` and `importResultOpen: boolean`.
+- After a successful merge, set `importResult` and open the dialog (instead of the current `toast.success` summary). The secondary `toast.info` for skipped decommissioned units is removed since the dialog now covers it.
 
-**Result toast**
-Update the summary to include skipped count:
-`Imported: <added> added, <updated> updated, <skipped> skipped (decommissioned), <untouched> kept.`
+**3. Dialog UI (shadcn `Dialog`)**
+- Title: `Import complete`
+- Description: `<added> added · <updated> updated · <skipped> skipped · <untouched> kept`
+- Body: three collapsible/scrollable sections, each only rendered when its list is non-empty:
+  - **Added (N)** — green check icon, list of unit codes.
+  - **Updated (N)** — blue refresh icon, list of unit codes.
+  - **Skipped — decommissioned (N)** — amber archive icon, list of unit codes with helper text "Restore them first to update."
+- Each list is rendered as a wrapping set of `Badge` chips inside a `max-h-48 overflow-y-auto` container so long imports remain scannable.
+- Footer: single `Close` button.
 
-If `skipped > 0`, also emit a secondary `toast.info` listing up to 5 skipped Unit codes:
-`Skipped decommissioned units: <code1>, <code2>… Restore them first to update.`
+**4. Validation errors unchanged**
+Pre-flight failures (blank `Unit`, internal duplicates) continue to use `toast.error` and abort before opening the dialog.
+
+**5. Imports to add**
+- `Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter` from `@/components/ui/dialog`
+- `Badge` from `@/components/ui/badge` (if not already imported)
+- `CheckCircle2, RefreshCw, Archive` from `lucide-react` (Archive already imported)
 
 ### Notes
-- Pre-flight validation still runs before any state mutation.
-- No schema changes; purely client-side.
-- Decommission/restore flow, CSV parser, and template download are unchanged.
+- Purely client-side; no schema or parser changes.
+- Sorting, decommission/restore flow, and selection mode are untouched.
 
