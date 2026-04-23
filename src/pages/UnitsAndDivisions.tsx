@@ -200,12 +200,51 @@ export default function UnitsAndDivisions() {
   const initialRows = useMemo(buildInitialRows, []);
   const [activeRows, setActiveRows] = useState<UnitRow[]>(initialRows);
   const [decommissionedRows, setDecommissionedRows] = useState<UnitRow[]>([]);
-  const [pendingDecommissionId, setPendingDecommissionId] = useState<string | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('active');
 
   const updateRow = (id: string, field: keyof UnitRow, value: string) => {
     setActiveRows((prev) =>
       prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
     );
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const toggleRowSelection = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked) setSelectedIds(new Set(activeRows.map((r) => r.id)));
+    else setSelectedIds(new Set());
+  };
+
+  const handleDecommissionClick = () => {
+    if (!selectionMode) {
+      setSelectionMode(true);
+      return;
+    }
+    if (selectedIds.size === 0) {
+      toast.message('Select at least one unit to decommission.');
+      return;
+    }
+    setConfirmOpen(true);
+  };
+
+  const handleTabChange = (v: string) => {
+    setActiveTab(v);
+    if (v !== 'active' && selectionMode) exitSelectionMode();
   };
 
   const handleSave = () => {
@@ -215,20 +254,22 @@ export default function UnitsAndDivisions() {
   const handleReset = () => {
     setActiveRows(buildInitialRows());
     setDecommissionedRows([]);
+    exitSelectionMode();
     toast.message('Reverted to default values');
   };
 
   const confirmDecommission = () => {
-    if (!pendingDecommissionId) return;
-    const row = activeRows.find((r) => r.id === pendingDecommissionId);
-    if (!row) {
-      setPendingDecommissionId(null);
+    const ids = selectedIds;
+    if (ids.size === 0) {
+      setConfirmOpen(false);
       return;
     }
-    setActiveRows((prev) => prev.filter((r) => r.id !== pendingDecommissionId));
-    setDecommissionedRows((prev) => [row, ...prev]);
-    setPendingDecommissionId(null);
-    toast.success('Unit decommissioned');
+    const toMove = activeRows.filter((r) => ids.has(r.id));
+    setActiveRows((prev) => prev.filter((r) => !ids.has(r.id)));
+    setDecommissionedRows((prev) => [...toMove, ...prev]);
+    setConfirmOpen(false);
+    exitSelectionMode();
+    toast.success(`Decommissioned ${toMove.length} unit(s)`);
   };
 
   const handleRestore = (id: string) => {
