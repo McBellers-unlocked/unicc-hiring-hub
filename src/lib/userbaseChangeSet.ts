@@ -114,7 +114,7 @@ export function computeChangeSet(
     const email =
       norm(row['GSM Email Address']) || norm(row['Samsaran Email address']);
     const staffNumber =
-      norm(row['GSM Staff Number']) || norm(row['Samsaran Staff number']);
+      norm(row['Staff Number']) || norm(row['GSM Staff Number']) || norm(row['Samsaran Staff number']);
     const source = String(row.__source ?? 'gsm');
     const matchKey = String(row.__match_key ?? `${staffNumber}|${email}`);
 
