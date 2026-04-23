@@ -418,6 +418,7 @@ const toDbRow = (row: MergedRow, importedBy: string | null) => {
       out[dbCol] = v === '' ? null : v;
     }
   }
+  out.samsaran_gender = null;
   out.source = row.__source ?? 'gsm';
   out.match_key = row.__match_key ?? null;
   out.imported_by = importedBy;
