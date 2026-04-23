@@ -276,7 +276,6 @@ const SAMSARAN_OUT_COLUMNS = [
 
 const OVERLAP_RENAMES: Record<string, { gsm: string; sams: string }> = {
   StaffNumber: { gsm: 'GSM Staff Number', sams: 'Samsaran Staff number' },
-  Gender: { gsm: 'GSM Gender', sams: 'Samsaran Gender' },
   Email: { gsm: 'GSM Email Address', sams: 'Samsaran Email address' },
 };
 
