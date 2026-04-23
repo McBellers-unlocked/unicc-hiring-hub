@@ -357,7 +357,7 @@ export default function UnitsAndDivisions() {
         return;
       }
       const dataRows = parsed.slice(1);
-      const imported: UnitRow[] = dataRows.map((r, idx) => {
+      const imported = dataRows.map((r) => {
         const fullName = (r[0] || '').trim();
         const unit = (r[1] || '').trim();
         const parentSection = (r[2] || '').trim();
@@ -369,7 +369,6 @@ export default function UnitsAndDivisions() {
           divisionLabelToCode(divFullName) ||
           '';
         return {
-          id: `imp-${idx}`,
           fullName,
           unit: unit || extractCode(fullName),
           parentSection,
@@ -381,8 +380,85 @@ export default function UnitsAndDivisions() {
         toast.error('No valid rows found.');
         return;
       }
-      setActiveRows(imported);
-      toast.success(`Imported ${imported.length} rows`);
+
+      // Pre-flight: ensure every row has a Unit (primary key)
+      const blankUnit = imported.find((r) => !r.unit.trim());
+      if (blankUnit) {
+        toast.error("Import failed: every row must have a 'Unit' value (primary key).");
+        return;
+      }
+
+      // Pre-flight: duplicate Unit values in the imported file (case-insensitive)
+      const seen = new Map<string, number>();
+      imported.forEach((r) => {
+        const key = r.unit.trim().toLowerCase();
+        seen.set(key, (seen.get(key) || 0) + 1);
+      });
+      const dupes = imported
+        .map((r) => r.unit.trim())
+        .filter((u, i, arr) => arr.findIndex((x) => x.toLowerCase() === u.toLowerCase()) !== i);
+      const uniqueDupes = Array.from(new Set(dupes.map((d) => d.toLowerCase())))
+        .map((lc) => dupes.find((d) => d.toLowerCase() === lc) as string);
+      if (uniqueDupes.length > 0) {
+        const shown = uniqueDupes.slice(0, 5).join(', ');
+        const more = uniqueDupes.length > 5 ? `, +${uniqueDupes.length - 5} more` : '';
+        toast.error(`Import failed: duplicate Unit values found: ${shown}${more}`);
+        return;
+      }
+
+      // Pre-flight: collisions with decommissioned rows
+      const decommissionedKeys = new Map(
+        decommissionedRows.map((r) => [r.unit.trim().toLowerCase(), r.unit])
+      );
+      const collision = imported.find((r) =>
+        decommissionedKeys.has(r.unit.trim().toLowerCase())
+      );
+      if (collision) {
+        toast.error(
+          `Import failed: Unit '${collision.unit}' exists in Decommissioned. Restore it first or change the code.`
+        );
+        return;
+      }
+
+      // Outer-join merge keyed on Unit (case-insensitive)
+      const activeIndex = new Map<string, number>();
+      activeRows.forEach((r, i) => {
+        activeIndex.set(r.unit.trim().toLowerCase(), i);
+      });
+      const merged = [...activeRows];
+      const importedKeys = new Set<string>();
+      let added = 0;
+      let updated = 0;
+      const ts = Date.now();
+      imported.forEach((imp, idx) => {
+        const key = imp.unit.trim().toLowerCase();
+        importedKeys.add(key);
+        const existingIdx = activeIndex.get(key);
+        if (existingIdx !== undefined) {
+          merged[existingIdx] = {
+            ...merged[existingIdx],
+            fullName: imp.fullName,
+            unit: imp.unit,
+            parentSection: imp.parentSection,
+            division: imp.division,
+            manager: imp.manager,
+          };
+          updated++;
+        } else {
+          merged.push({
+            id: `imp-${ts}-${idx}`,
+            fullName: imp.fullName,
+            unit: imp.unit,
+            parentSection: imp.parentSection,
+            division: imp.division,
+            manager: imp.manager,
+          });
+          added++;
+        }
+      });
+      const untouched = activeRows.length - updated;
+      setActiveRows(merged);
+      toast.success(`Imported: ${added} added, ${updated} updated, ${untouched} kept.`);
     } catch (err) {
       console.error(err);
       toast.error('Failed to read file.');
