@@ -557,17 +557,25 @@ export default function Userbase() {
               <Table className="min-w-max">
                 <TableHeader className="sticky top-0 bg-background z-10">
                   <TableRow>
-                    {visibleCols.map((c) => (
-                      <TableHead key={c.key} className="whitespace-nowrap">
-                        <button
-                          className="inline-flex items-center gap-1 hover:text-foreground"
-                          onClick={() => toggleSort(c.key)}
-                        >
-                          {c.label}
-                          {sortIcon(c.key)}
-                        </button>
-                      </TableHead>
-                    ))}
+                    {visibleCols.map((c) => {
+                      const src = SOURCE_BY_DB[c.key];
+                      const tint = src === 'gsm'
+                        ? 'bg-green-100 text-green-900 dark:bg-green-950/40 dark:text-green-200'
+                        : src === 'samsaran'
+                          ? 'bg-blue-100 text-blue-900 dark:bg-blue-950/40 dark:text-blue-200'
+                          : '';
+                      return (
+                        <TableHead key={c.key} className={`whitespace-nowrap ${tint}`}>
+                          <button
+                            className="inline-flex items-center gap-1 hover:text-foreground"
+                            onClick={() => toggleSort(c.key)}
+                          >
+                            {c.label}
+                            {sortIcon(c.key)}
+                          </button>
+                        </TableHead>
+                      );
+                    })}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
