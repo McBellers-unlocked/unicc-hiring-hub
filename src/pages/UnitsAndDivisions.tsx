@@ -234,7 +234,7 @@ export default function UnitsAndDivisions() {
                 <TableBody>
                   {rows.map((row) => (
                     <TableRow key={row.id}>
-                      <TableCell className="font-medium align-middle">
+                      <TableCell className="font-medium align-middle whitespace-nowrap">
                         {row.fullName}
                       </TableCell>
                       <TableCell>
