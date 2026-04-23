@@ -48,6 +48,7 @@ import ImportSkills from "./pages/ImportSkills";
 import ImportStaffData from "./pages/ImportStaffData";
 import ImportStaffList from "./pages/ImportStaffList";
 import ImportUserbase from "./pages/ImportUserbase";
+import UnitsAndDivisions from "./pages/UnitsAndDivisions";
 import NotFound from "./pages/NotFound";
 import InitialRequestForm from "./pages/InitialRequestForm";
 import InitialRequestReview from "./pages/InitialRequestReview";
@@ -175,6 +176,7 @@ const App = () => (
             <Route path="/admin/import-staff-data" element={<ImportStaffData />} />
             <Route path="/admin/import-staff-list" element={<ImportStaffList />} />
             <Route path="/admin/import-userbase" element={<ImportUserbase />} />
+            <Route path="/admin/units-divisions" element={<UnitsAndDivisions />} />
             <Route path="/admin/import-whed" element={<ImportWHED />} />
             <Route path="/admin/skills-review" element={<AdminSkillsReview />} />
             <Route path="/admin/assessments" element={<AdminAssessments />} />
