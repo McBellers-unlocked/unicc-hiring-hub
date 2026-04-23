@@ -345,7 +345,7 @@ const outerJoin = (
     if (existing) {
       for (const [src, dst] of Object.entries(samsMap)) {
         const samsVal = s[src] ?? '';
-        if (dst === 'Gender') {
+        if (dst === 'Gender' || dst === 'Staff Number') {
           // Precedence: GSM wins; Samsaran only fills when GSM is blank.
           if (!existing[dst] || !String(existing[dst]).trim()) {
             existing[dst] = samsVal;
