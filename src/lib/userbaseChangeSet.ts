@@ -5,7 +5,7 @@ import type { RowChange, FieldDiff } from '@/components/userbase/ImportChangePre
 // Excludes bookkeeping (imported_at, match_key, source, imported_by).
 export const MAPPED_COLUMNS: { label: string; db: string }[] = [
   { label: 'Full Name', db: 'full_name' },
-  { label: 'GSM Staff Number', db: 'gsm_staff_number' },
+  { label: 'Staff Number', db: 'gsm_staff_number' },
   { label: 'Nationality', db: 'nationality' },
   { label: 'Gender', db: 'gsm_gender' },
   { label: 'Date of Birth', db: 'date_of_birth' },
