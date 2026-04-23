@@ -554,6 +554,13 @@ export default function Userbase() {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {canEdit && !removeMode && (
+              <Button variant="outline" onClick={() => setAddRowOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add row
+              </Button>
+            )}
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
