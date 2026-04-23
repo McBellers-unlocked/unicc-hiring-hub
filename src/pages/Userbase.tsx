@@ -431,6 +431,7 @@ export default function Userbase() {
             {tableInfo?.latest?.imported_at && (
               <> · last imported {new Date(tableInfo.latest.imported_at).toLocaleString()}</>
             )}
+            {canEdit && <> · <span className="text-foreground/70">editable</span> (double-click a cell)</>}
           </p>
         </div>
 
