@@ -92,7 +92,7 @@ export function EditableCell({
         'min-h-[1.5rem] px-1 py-0.5 rounded text-sm transition-colors',
         editable && 'cursor-text hover:bg-muted/40',
         showRequiredBorder && 'border-l-2 border-destructive pl-1.5',
-        flash && 'bg-success/10',
+        flash && 'bg-primary/10',
       )}
       title={editable ? 'Double-click to edit' : undefined}
     >
