@@ -734,6 +734,76 @@ export default function UnitsAndDivisions() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={importResultOpen} onOpenChange={setImportResultOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Import complete</DialogTitle>
+            <DialogDescription>
+              {importResult
+                ? `${importResult.added.length} added · ${importResult.updated.length} updated · ${importResult.skipped.length} skipped · ${activeRows.length - importResult.updated.length} kept`
+                : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {importResult && importResult.added.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <h3 className="text-sm font-semibold">Added ({importResult.added.length})</h3>
+                </div>
+                <div className="max-h-48 overflow-y-auto flex flex-wrap gap-1.5 p-2 rounded-md border bg-muted/30">
+                  {importResult.added.map((u, i) => (
+                    <Badge key={`a-${i}`} variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100">
+                      {u}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {importResult && importResult.updated.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <RefreshCw className="h-4 w-4 text-blue-600" />
+                  <h3 className="text-sm font-semibold">Updated ({importResult.updated.length})</h3>
+                </div>
+                <div className="max-h-48 overflow-y-auto flex flex-wrap gap-1.5 p-2 rounded-md border bg-muted/30">
+                  {importResult.updated.map((u, i) => (
+                    <Badge key={`u-${i}`} variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                      {u}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {importResult && importResult.skipped.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Archive className="h-4 w-4 text-amber-600" />
+                  <h3 className="text-sm font-semibold">Skipped — decommissioned ({importResult.skipped.length})</h3>
+                </div>
+                <div className="max-h-48 overflow-y-auto flex flex-wrap gap-1.5 p-2 rounded-md border bg-muted/30">
+                  {importResult.skipped.map((u, i) => (
+                    <Badge key={`s-${i}`} variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+                      {u}
+                    </Badge>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1.5">Restore them first to update.</p>
+              </div>
+            )}
+            {importResult &&
+              importResult.added.length === 0 &&
+              importResult.updated.length === 0 &&
+              importResult.skipped.length === 0 && (
+                <p className="text-sm text-muted-foreground">No changes were applied.</p>
+              )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setImportResultOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
