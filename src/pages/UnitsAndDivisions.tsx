@@ -316,7 +316,22 @@ export default function UnitsAndDivisions() {
                 Editable directory of organizational units and sections used across the platform.
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={handleImportFile}
+              />
+              <Button variant="outline" onClick={handleDownloadTemplate}>
+                <Download className="w-4 h-4 mr-2" />
+                Download template
+              </Button>
+              <Button variant="outline" onClick={handleImportClick}>
+                <Upload className="w-4 h-4 mr-2" />
+                Import
+              </Button>
               <Button variant="outline" onClick={handleReset}>
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Reset
