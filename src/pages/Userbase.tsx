@@ -222,20 +222,25 @@ export default function Userbase() {
     return true;
   };
 
-  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+  const [removeMode, setRemoveMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const handleDeleteRow = async () => {
-    if (!pendingDelete) return;
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
     setDeleting(true);
-    const { error } = await supabase.from('users_clean').delete().eq('id', pendingDelete.id);
+    const ids = Array.from(selectedIds);
+    const { error } = await supabase.from('users_clean').delete().in('id', ids);
     setDeleting(false);
     if (error) {
       toast.error(`Failed to delete: ${error.message}`);
       return;
     }
-    toast.success('Row deleted');
-    setPendingDelete(null);
+    toast.success(`${ids.length} row${ids.length === 1 ? '' : 's'} deleted`);
+    setConfirmBulkDelete(false);
+    setSelectedIds(new Set());
+    setRemoveMode(false);
     queryClient.invalidateQueries({ queryKey: ['users_clean'] });
     queryClient.invalidateQueries({ queryKey: ['users_clean:meta'] });
     queryClient.invalidateQueries({ queryKey: ['users_clean:missing'] });
@@ -558,6 +563,32 @@ export default function Userbase() {
                 <DropdownMenuItem onClick={downloadAll}>All matching filters</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {canEdit && (
+              removeMode ? (
+                <>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setConfirmBulkDelete(true)}
+                    disabled={selectedIds.size === 0}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete selected ({selectedIds.size})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => { setRemoveMode(false); setSelectedIds(new Set()); }}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <Button variant="outline" onClick={() => setRemoveMode(true)}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Remove rows
+                </Button>
+              )
+            )}
           </div>
         </div>
 
@@ -587,6 +618,26 @@ export default function Userbase() {
               <Table className="min-w-max">
                 <TableHeader className="sticky top-0 bg-background z-10">
                   <TableRow>
+                    {removeMode && canEdit && (
+                      <TableHead className="w-10 sticky left-0 bg-background">
+                        <Checkbox
+                          checked={
+                            (data?.rows.length ?? 0) > 0 &&
+                            data!.rows.every((r) => selectedIds.has(r.id))
+                          }
+                          onCheckedChange={(v) => {
+                            setSelectedIds((cur) => {
+                              const next = new Set(cur);
+                              (data?.rows ?? []).forEach((r) => {
+                                if (v) next.add(r.id); else next.delete(r.id);
+                              });
+                              return next;
+                            });
+                          }}
+                          aria-label="Select all on page"
+                        />
+                      </TableHead>
+                    )}
                     {visibleCols.map((c) => {
                       const src = SOURCE_BY_DB[c.key];
                       const tint = src === 'gsm'
@@ -606,37 +657,47 @@ export default function Userbase() {
                         </TableHead>
                       );
                     })}
-                    {canEdit && (
-                      <TableHead className="whitespace-nowrap w-12 text-center sticky right-0 bg-background">
-                        Actions
-                      </TableHead>
-                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading && (
                     <TableRow>
-                      <TableCell colSpan={visibleCols.length + (canEdit ? 1 : 0)} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={visibleCols.length + (removeMode && canEdit ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                         Loading…
                       </TableCell>
                     </TableRow>
                   )}
                   {isError && (
                     <TableRow>
-                      <TableCell colSpan={visibleCols.length + (canEdit ? 1 : 0)} className="text-center py-8 text-destructive">
+                      <TableCell colSpan={visibleCols.length + (removeMode && canEdit ? 1 : 0)} className="text-center py-8 text-destructive">
                         Error loading data: {error instanceof Error ? error.message : 'unknown'}
                       </TableCell>
                     </TableRow>
                   )}
                   {!isLoading && !isError && (data?.rows.length ?? 0) === 0 && (
                     <TableRow>
-                      <TableCell colSpan={visibleCols.length + (canEdit ? 1 : 0)} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={visibleCols.length + (removeMode && canEdit ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                         No matching rows.
                       </TableCell>
                     </TableRow>
                   )}
                   {!isLoading && !isError && data?.rows.map((row) => (
-                    <TableRow key={row.id}>
+                    <TableRow key={row.id} data-state={selectedIds.has(row.id) ? 'selected' : undefined}>
+                      {removeMode && canEdit && (
+                        <TableCell className="p-1 sticky left-0 bg-background">
+                          <Checkbox
+                            checked={selectedIds.has(row.id)}
+                            onCheckedChange={(v) => {
+                              setSelectedIds((cur) => {
+                                const next = new Set(cur);
+                                if (v) next.add(row.id); else next.delete(row.id);
+                                return next;
+                              });
+                            }}
+                            aria-label="Select row"
+                          />
+                        </TableCell>
+                      )}
                       {visibleCols.map((c) => (
                         <TableCell key={c.key} className="whitespace-nowrap text-sm p-1">
                           <EditableCell
@@ -645,27 +706,11 @@ export default function Userbase() {
                             column={c.key}
                             isDate={DATE_KEYS.has(c.key)}
                             isRequired={REQUIRED_KEYS.has(c.key)}
-                            editable={canEdit}
+                            editable={canEdit && !removeMode}
                             onSave={handleCellSave}
                           />
                         </TableCell>
                       ))}
-                      {canEdit && (
-                        <TableCell className="p-1 text-center sticky right-0 bg-background">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                            onClick={() => setPendingDelete({
-                              id: row.id,
-                              name: row.full_name || row.gsm_email_address || row.samsaran_email_address || row.id,
-                            })}
-                            aria-label="Delete row"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -674,18 +719,18 @@ export default function Userbase() {
           </div>
         </div>
 
-        <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
+        <AlertDialog open={confirmBulkDelete} onOpenChange={(o) => !o && setConfirmBulkDelete(false)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete this row?</AlertDialogTitle>
+              <AlertDialogTitle>Delete {selectedIds.size} row{selectedIds.size === 1 ? '' : 's'}?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently remove <span className="font-medium text-foreground">{pendingDelete?.name}</span> from the userbase. This action cannot be undone.
+                This will permanently remove the selected row{selectedIds.size === 1 ? '' : 's'} from the userbase. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={(e) => { e.preventDefault(); handleDeleteRow(); }}
+                onClick={(e) => { e.preventDefault(); handleBulkDelete(); }}
                 disabled={deleting}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
