@@ -4,7 +4,7 @@ import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, ArrowLeft, FileSpreadsheet, X } from 'lucide-react';
+import { Upload, ArrowLeft, FileSpreadsheet, X, Sparkles } from 'lucide-react';
 
 const ALLOWED_EXTENSIONS = ['.csv', '.xls', '.xlsx'];
 const ALLOWED_MIME_TYPES = [
@@ -30,12 +30,12 @@ interface DropZoneProps {
   title: string;
   subtitle: string;
   inputId: string;
+  file: File | null;
+  onFileChange: (file: File | null) => void;
 }
 
-function DropZone({ title, subtitle, inputId }: DropZoneProps) {
-  const [file, setFile] = useState<File | null>(null);
+function DropZone({ title, subtitle, inputId, file, onFileChange }: DropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -49,19 +49,7 @@ function DropZone({ title, subtitle, inputId }: DropZoneProps) {
       });
       return;
     }
-    setFile(selected);
-  };
-
-  const handleUpload = async () => {
-    if (!file) return;
-    setUploading(true);
-    // Placeholder: backend wiring to be added later
-    await new Promise((r) => setTimeout(r, 600));
-    setUploading(false);
-    toast({
-      title: 'File ready',
-      description: `${file.name} accepted. Backend ingestion will be wired up next.`,
-    });
+    onFileChange(selected);
   };
 
   return (
@@ -126,7 +114,7 @@ function DropZone({ title, subtitle, inputId }: DropZoneProps) {
               size="icon"
               onClick={(e) => {
                 e.stopPropagation();
-                setFile(null);
+                onFileChange(null);
               }}
               aria-label="Remove file"
             >
@@ -134,10 +122,6 @@ function DropZone({ title, subtitle, inputId }: DropZoneProps) {
             </Button>
           </div>
         )}
-
-        <Button onClick={handleUpload} disabled={!file || uploading} className="w-full">
-          {uploading ? 'Uploading...' : 'Upload'}
-        </Button>
       </CardContent>
     </Card>
   );
@@ -145,6 +129,23 @@ function DropZone({ title, subtitle, inputId }: DropZoneProps) {
 
 export default function ImportUserbase() {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [gsmFile, setGsmFile] = useState<File | null>(null);
+  const [samsaranFile, setSamsaranFile] = useState<File | null>(null);
+  const [parsing, setParsing] = useState(false);
+
+  const bothFilesReady = !!gsmFile && !!samsaranFile;
+
+  const handleParse = async () => {
+    if (!bothFilesReady) return;
+    setParsing(true);
+    await new Promise((r) => setTimeout(r, 800));
+    setParsing(false);
+    toast({
+      title: 'Extracts received',
+      description: 'Both extracts received. Parsing pipeline will be wired up next.',
+    });
+  };
 
   return (
     <Layout>
@@ -168,12 +169,32 @@ export default function ImportUserbase() {
             title="Import GSM Extract"
             subtitle="Upload a CSV or Excel file containing GSM Assignment details data"
             inputId="gsm-extract-input"
+            file={gsmFile}
+            onFileChange={setGsmFile}
           />
           <DropZone
             title="Import Samsaran Extract"
             subtitle="Upload a Samsaran worker extract"
             inputId="samsaran-extract-input"
+            file={samsaranFile}
+            onFileChange={setSamsaranFile}
           />
+        </div>
+
+        <div className="mt-6 flex flex-col items-center gap-2">
+          <Button
+            onClick={handleParse}
+            disabled={!bothFilesReady || parsing}
+            className="w-full max-w-sm"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            {parsing ? 'Parsing…' : 'Parse Data'}
+          </Button>
+          {!bothFilesReady && (
+            <p className="text-xs text-muted-foreground">
+              Upload both GSM and Samsaran extracts to enable parsing.
+            </p>
+          )}
         </div>
       </div>
     </Layout>
