@@ -344,7 +344,17 @@ const outerJoin = (
     const k = keyOf(s['Staff number'], s['Email address']);
     const existing = merged.get(k);
     if (existing) {
-      for (const [src, dst] of Object.entries(samsMap)) existing[dst] = s[src] ?? '';
+      for (const [src, dst] of Object.entries(samsMap)) {
+        const samsVal = s[src] ?? '';
+        if (dst === 'Gender') {
+          // Precedence: GSM wins; Samsaran only fills when GSM is blank.
+          if (!existing[dst] || !String(existing[dst]).trim()) {
+            existing[dst] = samsVal;
+          }
+        } else {
+          existing[dst] = samsVal;
+        }
+      }
       existing.__source = 'both';
     } else {
       const row: MergedRow = { ...empty(gsmMap), ...empty(samsMap) };
