@@ -222,20 +222,25 @@ export default function Userbase() {
     return true;
   };
 
-  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+  const [removeMode, setRemoveMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const handleDeleteRow = async () => {
-    if (!pendingDelete) return;
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
     setDeleting(true);
-    const { error } = await supabase.from('users_clean').delete().eq('id', pendingDelete.id);
+    const ids = Array.from(selectedIds);
+    const { error } = await supabase.from('users_clean').delete().in('id', ids);
     setDeleting(false);
     if (error) {
       toast.error(`Failed to delete: ${error.message}`);
       return;
     }
-    toast.success('Row deleted');
-    setPendingDelete(null);
+    toast.success(`${ids.length} row${ids.length === 1 ? '' : 's'} deleted`);
+    setConfirmBulkDelete(false);
+    setSelectedIds(new Set());
+    setRemoveMode(false);
     queryClient.invalidateQueries({ queryKey: ['users_clean'] });
     queryClient.invalidateQueries({ queryKey: ['users_clean:meta'] });
     queryClient.invalidateQueries({ queryKey: ['users_clean:missing'] });
