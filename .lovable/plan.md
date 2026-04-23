@@ -1,61 +1,70 @@
 
 
-## Switch Userbase Import from Wipe-and-Replace to Upsert (Outer Join)
+## Editable Userbase Table + Missing-Values Warning Panel
 
-### Problem
-Current `handleParse` in `src/pages/ImportUserbase.tsx` deletes all rows in `users_clean` before inserting the new batch. This destroys historical rows that aren't present in the latest GSM/Samsaran extracts.
+### 1. Inline editing — `src/pages/Userbase.tsx`
 
-### Goal
-Each new import should **outer-join into `users_clean`**: existing rows matched by `match_key` are updated in place; new rows are inserted; rows already in `users_clean` that aren't in the new import are left untouched.
+**Interaction model**
+- Double-click any cell (or single click a small pencil affordance on hover) to enter edit mode for that cell.
+- The cell becomes a focused input/textarea (`<Input>` for short text, `<Textarea>` for fields like `reporting_lines`/`line_manager`).
+- `Enter` or blur → save. `Esc` → cancel without saving.
+- Keyboard navigation: `Tab` moves to the next visible cell in the row.
 
----
+**Save flow**
+- On commit, fire an optimistic update of the React Query cache for `['users_clean', …]` so the new value is immediately visible.
+- Issue `supabase.from('users_clean').update({ [column]: newValue, imported_at: now() }).eq('id', row.id)`.
+- On success: tiny toast "Saved" (debounced — only show on first save in a 3s window to avoid noise).
+- On failure: revert cache, show destructive toast with the Postgres error message.
+- Date columns (`first_incumbency_start_date`, `entry_on_duty_date_who`) — use a date input; empty string → write `null`.
+- Text columns: trim; empty string → write `null` so warning panel picks it up.
 
-### 1. Database — add unique constraint on `match_key`
+**Permissions**
+- RLS already grants `UPDATE` to `Admin` and `HR Assistant`. For other roles the cell stays read-only (cursor `default`, no edit affordance). Detect role via existing `useAuth`/`useUserRole` pattern used elsewhere in the app (look up the actual hook during implementation; fall back to checking role via a one-shot `users` lookup if no hook exists).
 
-`upsert(..., { onConflict: 'match_key' })` requires a unique index. Migration:
+**No schema change required** — `users_clean` columns are already nullable text/date.
 
-```sql
--- Drop rows with null/empty match_key (cannot be uniquely matched)
-delete from public.users_clean where match_key is null or match_key = '';
+### 2. Missing-values warning panel — new section below the table
 
--- Enforce uniqueness so upsert can target it
-alter table public.users_clean
-  add constraint users_clean_match_key_unique unique (match_key);
-```
+A second card titled **"Rows with missing values"** sits under the main table inside the same page container.
 
-The existing non-unique `users_clean_match_key_idx` stays (Postgres uses the new unique index for lookups too; the old one is harmless but can be dropped in the same migration to keep things clean).
+**What it shows**
+- For each row in `users_clean` that has at least one blank/null value in a configurable set of "required" columns, display:
+  - Full Name (or staff number / email if name missing)
+  - Source (`gsm` / `samsaran` / `both`) as a badge
+  - Worker type
+  - A list of missing field labels rendered as small destructive-tinted badges (e.g. `Division`, `Unit`, `Job Title`).
+- Required columns checked (chosen as the operationally important set):
+  `full_name, samsaran_email_address, gsm_email_address, division, unit, job_title, worker_type, office_location, line_manager, category`.
+  A row is flagged if **any** of these are null/empty.
 
-### 2. `src/pages/ImportUserbase.tsx` — replace delete+insert with upsert
+**Toolbar**
+- A `Worker type` filter (`Select` with options derived from distinct `worker_type` values + an "All" option). Filters the warning list only.
+- Count badge: "N rows need attention".
+- Optional small "Export missing" button → CSV of the warning rows (id, name, email, worker_type, missing_fields joined with `;`). Reuses the existing SheetJS export helper.
 
-**Remove**
-- The `supabase.from('users_clean').delete().not('id', 'is', null)` block.
+**Data fetching**
+- Separate React Query: `['users_clean:missing', { workerType }]`.
+- Query selects only the columns needed for the check + display, with `.or()` predicate covering `is null` for each required column (e.g. `full_name.is.null,division.is.null,…`). Plus `worker_type.eq.<value>` when a filter is active.
+- For empty-string detection (since some fields may be `''` rather than `null`), apply a client-side filter after fetch on the same row set — cheap because the query already narrows to flagged rows.
+- Pagination: simple "Show 50 / 100 / all" select; default 50. Server-side `.range()` mirroring the main table pattern.
+- Invalidate this query after any cell save so warnings update live.
 
-**Change**
-- Filter out merged rows whose `match_key` is empty (no staff number AND no email) before persisting — they cannot be deduped and would otherwise accumulate as duplicates on every import.
-- Replace the chunked `.insert(batch)` loop with a chunked `.upsert(batch, { onConflict: 'match_key', ignoreDuplicates: false })` loop. Chunk size stays 500.
-- Keep `imported_at` as `default now()` so each upsert refreshes the timestamp on touched rows (existing column default already handles inserts; for updates we explicitly set `imported_at: new Date().toISOString()` in `toDbRow` so refreshed rows surface as "recently imported"). Add `imported_at` to the mapped payload.
-- Toast copy updates: `"Saving to database…"` → `"Merging into userbase…"`; success toast becomes `"Userbase updated — {n} records merged (existing rows refreshed, new rows added)."`
+**Layout**
+- Card with header (title + filter + count), then a compact `Table` (Name, Source, Worker Type, Missing Fields). Sticky header inside `max-h-[40vh] overflow-auto` to keep the page scrollable.
 
-**Keep**
-- All parsing, transformation, outer-join, and `match_key` derivation logic (`sn:<staff>` / `em:<email>`) exactly as is — that key is what makes upsert behave as an outer join against `users_clean`.
-- `sessionStorage` cache + navigate to `/admin/userbase`.
-
-### 3. `src/pages/Userbase.tsx` — no changes required
-
-Server-side queries, filters, sort, pagination, and CSV export already read whatever is in `users_clean` and continue to work. Subtitle "last imported …" naturally reflects the most recent `imported_at` from upserted rows.
-
----
+### 3. Small UX touches
+- Edited cells briefly flash a subtle background (`bg-success/10` 600ms) on successful save.
+- Cells in the "required" set that are blank get a thin destructive left border in the main table — visual link to the warnings panel.
+- Subtitle in page header gains "· editable" tag so users know rows are mutable.
 
 ### Technical notes
-- **Conflict target**: `match_key` (now unique). For a row appearing in both extracts the key is `sn:<staff_number>`; rows with only an email use `em:<email>`. Empty-key rows are dropped pre-upsert.
-- **Behavior**:
-  - Same person appears in new import → row updated in place (all 35 mapped columns overwritten, `imported_at` refreshed, `imported_by` updated).
-  - New person → inserted with a fresh UUID.
-  - Person no longer in latest extract → untouched (no deletion).
-- No RLS changes needed — `Admin` / `HR Assistant` already have UPDATE on `users_clean` per the existing migration.
-- One-time data hygiene: the migration deletes any pre-existing rows with null/empty `match_key` so the unique constraint can be created. These rows cannot be re-matched anyway.
+- All edits go through `supabase.from('users_clean').update(...).eq('id', id)` — no edge function needed.
+- `imported_at` is touched on each edit so the page subtitle ("last imported …") reflects manual updates too.
+- React Query invalidations: after a save, invalidate both `['users_clean', …]` (current page) and `['users_clean:missing', …]` (warning panel). Distinct-value queries (`['users_clean:distinct', col]`) are also invalidated when the edited column is one of the filter columns (`division`, `unit`, `worker_type`, `category`, `source`, `office_location`).
+- Column show/hide, sort, server-side filters, pagination, and CSV export already in place are unchanged.
 
 ### Out of scope
-- Soft-delete / archival of stale rows (e.g. people who left). Can be added later as a `last_seen_in_import_at` column + filter.
-- Per-column merge strategy (e.g. preserving Samsaran fields when only GSM is re-imported). Current behavior overwrites all mapped columns from the new merged row.
+- Bulk edit / multi-row selection.
+- Field-level validation rules (e.g. enforcing date format) — relying on Postgres column types.
+- Audit log of who changed what (could later be wired into `audit_logs` via a trigger if desired).
 
