@@ -653,6 +653,8 @@ export default function Userbase() {
             </Pagination>
           </div>
         </div>
+
+        <MissingValuesPanel workerTypeOptions={distinct.worker_type} />
       </div>
     </Layout>
   );
