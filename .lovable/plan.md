@@ -1,70 +1,80 @@
 
 
-## Editable Userbase Table + Missing-Values Warning Panel
+## Headcount Analytics page (`/admin/headcount`)
 
-### 1. Inline editing — `src/pages/Userbase.tsx`
+A new client-side page reading from `users_clean`, slotted into the Analytics dropdown between **Userbase** and the separator. No DB / schema changes.
 
-**Interaction model**
-- Double-click any cell (or single click a small pencil affordance on hover) to enter edit mode for that cell.
-- The cell becomes a focused input/textarea (`<Input>` for short text, `<Textarea>` for fields like `reporting_lines`/`line_manager`).
-- `Enter` or blur → save. `Esc` → cancel without saving.
-- Keyboard navigation: `Tab` moves to the next visible cell in the row.
+### 1. Routing & navigation
+- Add page `src/pages/Headcount.tsx`.
+- `src/App.tsx`: register route `/admin/headcount` → `<Headcount />` (admin guard, same pattern as Userbase).
+- `src/components/Layout.tsx`: insert a new `DropdownMenuItem` linking to `/admin/headcount` with a `PieChart` icon, immediately after the Userbase item and before the existing `<DropdownMenuSeparator />` at line 325.
 
-**Save flow**
-- On commit, fire an optimistic update of the React Query cache for `['users_clean', …]` so the new value is immediately visible.
-- Issue `supabase.from('users_clean').update({ [column]: newValue, imported_at: now() }).eq('id', row.id)`.
-- On success: tiny toast "Saved" (debounced — only show on first save in a 3s window to avoid noise).
-- On failure: revert cache, show destructive toast with the Postgres error message.
-- Date columns (`first_incumbency_start_date`, `entry_on_duty_date_who`) — use a date input; empty string → write `null`.
-- Text columns: trim; empty string → write `null` so warning panel picks it up.
+### 2. Data fetching
+- Single React Query: `['users_clean:headcount', filters]`.
+- One Supabase call selecting only the columns needed: `gsm_gender, samsaran_gender, worker_type, category, division, office_location, current_grade, nationality, appointment_type`.
+- Filters applied server-side via `.in()` predicates:
+  - `worker_type` (multi-select from distinct values)
+  - `division` (multi-select from distinct values)
+  - `office_location` (multi-select from distinct values)
+- Distinct-value queries: 3 small parallel queries to populate filter dropdowns (cached separately as `['users_clean:distinct', column]` — same key already used by `Userbase.tsx`, so they're shared).
+- Pagination: pull all matching rows in 1000-row chunks via `.range()` loop (the dataset is small, full-table aggregation is needed). Show a count at the top.
 
-**Permissions**
-- RLS already grants `UPDATE` to `Admin` and `HR Assistant`. For other roles the cell stays read-only (cursor `default`, no edit affordance). Detect role via existing `useAuth`/`useUserRole` pattern used elsewhere in the app (look up the actual hook during implementation; fall back to checking role via a one-shot `users` lookup if no hook exists).
+### 3. Layout
 
-**No schema change required** — `users_clean` columns are already nullable text/date.
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Headcount    (subtitle: N people · last imported …)         │
+├─────────────────────────────────────────────────────────────┤
+│ Filter bar:  [Worker type ▾]  [Division ▾]  [Location ▾]    │
+│              active chips · "Reset"                         │
+├─────────────────────────────────────────────────────────────┤
+│ KPI strip — one card per Division (count + % of total)      │
+├──────────────────────────┬──────────────────────────────────┤
+│ Pie: Gender (Man/Woman/  │ Pie: Staff vs Affiliate          │
+│ Other) — Recharts        │ (worker_type)                    │
+├──────────────────────────┼──────────────────────────────────┤
+│ Bar: Headcount per       │ Bar: Headcount per Worker Type   │
+│ Category (P/G/D/…)       │ stacked by Division              │
+├──────────────────────────┴──────────────────────────────────┤
+│ Bar histogram: Distribution by Grade (sorted G3→D1, color   │
+│ by category)                                                │
+├─────────────────────────────────────────────────────────────┤
+│ Bar: Headcount per Office Location (top 10)                 │
+├──────────────────────────┬──────────────────────────────────┤
+│ Bar: Top 10 Nationalities│ Bar: Headcount per Division ×    │
+│                          │ Gender (grouped)                 │
+└──────────────────────────┴──────────────────────────────────┘
+```
 
-### 2. Missing-values warning panel — new section below the table
+All charts use existing **Recharts** (already in the project — see `WorkforceComposition`) and shadcn `Card` for framing.
 
-A second card titled **"Rows with missing values"** sits under the main table inside the same page container.
+### 4. Aggregation rules (client-side, in `useMemo` from the fetched rows)
+- **Gender**: prefer `samsaran_gender`, fall back to `gsm_gender`. Normalize lower-case `man/woman` → "Man"/"Woman"; everything else → "Other/Unknown".
+- **Staff vs Affiliate**: `worker_type` value as-is. Empty → "Unknown".
+- **Category**: `category` (P / G / D). Empty → "Unspecified".
+- **Division KPI cards**: render one card per distinct `division`; sort by count desc; show count + share of total.
+- **Grade histogram**: order by canonical `GRADES` array from `src/lib/organizationConstants.ts` (G3…D1); rows whose grade is missing are excluded from the grade chart only.
+- **Location**: use `office_location`, top 10 by count, "Other" bucket for the rest.
+- **Nationality**: top 10 by count, "Other" bucket; rows with null nationality excluded.
+- **Division × Gender**: grouped bar (one cluster per division, two bars Man/Woman). Other genders excluded from this chart.
 
-**What it shows**
-- For each row in `users_clean` that has at least one blank/null value in a configurable set of "required" columns, display:
-  - Full Name (or staff number / email if name missing)
-  - Source (`gsm` / `samsaran` / `both`) as a badge
-  - Worker type
-  - A list of missing field labels rendered as small destructive-tinted badges (e.g. `Division`, `Unit`, `Job Title`).
-- Required columns checked (chosen as the operationally important set):
-  `full_name, samsaran_email_address, gsm_email_address, division, unit, job_title, worker_type, office_location, line_manager, category`.
-  A row is flagged if **any** of these are null/empty.
+### 5. Filter chip toolbar
+- Reuse the same MultiSelect / chip pattern already used in `src/pages/Userbase.tsx`. Active filters shown as removable chips under the toolbar with a "Reset all" button.
 
-**Toolbar**
-- A `Worker type` filter (`Select` with options derived from distinct `worker_type` values + an "All" option). Filters the warning list only.
-- Count badge: "N rows need attention".
-- Optional small "Export missing" button → CSV of the warning rows (id, name, email, worker_type, missing_fields joined with `;`). Reuses the existing SheetJS export helper.
+### 6. Permissions
+- Same gate as Userbase: roles `Admin`, `HR Assistant`, `Chief of HR` via `useAuth`. Others → `<Navigate to="/" />`.
 
-**Data fetching**
-- Separate React Query: `['users_clean:missing', { workerType }]`.
-- Query selects only the columns needed for the check + display, with `.or()` predicate covering `is null` for each required column (e.g. `full_name.is.null,division.is.null,…`). Plus `worker_type.eq.<value>` when a filter is active.
-- For empty-string detection (since some fields may be `''` rather than `null`), apply a client-side filter after fetch on the same row set — cheap because the query already narrows to flagged rows.
-- Pagination: simple "Show 50 / 100 / all" select; default 50. Server-side `.range()` mirroring the main table pattern.
-- Invalidate this query after any cell save so warnings update live.
-
-**Layout**
-- Card with header (title + filter + count), then a compact `Table` (Name, Source, Worker Type, Missing Fields). Sticky header inside `max-h-[40vh] overflow-auto` to keep the page scrollable.
-
-### 3. Small UX touches
-- Edited cells briefly flash a subtle background (`bg-success/10` 600ms) on successful save.
-- Cells in the "required" set that are blank get a thin destructive left border in the main table — visual link to the warnings panel.
-- Subtitle in page header gains "· editable" tag so users know rows are mutable.
+### 7. Empty / loading
+- `Skeleton` placeholders for KPI cards and charts while loading.
+- If `users_clean` is empty, show the same empty state as Userbase with a CTA to `/admin/import-userbase`.
 
 ### Technical notes
-- All edits go through `supabase.from('users_clean').update(...).eq('id', id)` — no edge function needed.
-- `imported_at` is touched on each edit so the page subtitle ("last imported …") reflects manual updates too.
-- React Query invalidations: after a save, invalidate both `['users_clean', …]` (current page) and `['users_clean:missing', …]` (warning panel). Distinct-value queries (`['users_clean:distinct', col]`) are also invalidated when the edited column is one of the filter columns (`division`, `unit`, `worker_type`, `category`, `source`, `office_location`).
-- Column show/hide, sort, server-side filters, pagination, and CSV export already in place are unchanged.
+- Pure client-side computation — no SQL aggregations needed; the table is small and we already need the rows for multiple charts.
+- Brand colors: primary `#009CDE` (UNIQTalent) for main bars; reuse existing chart palette already used in `WorkforceComposition.tsx` for consistency.
+- No edits to `users_clean`, no migrations, no edge functions.
 
 ### Out of scope
-- Bulk edit / multi-row selection.
-- Field-level validation rules (e.g. enforcing date format) — relying on Postgres column types.
-- Audit log of who changed what (could later be wired into `audit_logs` via a trigger if desired).
+- Time-series / historical headcount evolution (would require snapshotting `users_clean`).
+- Drill-through from a chart segment to the Userbase table with filters pre-applied.
+- CSV export of the aggregated tables.
 
