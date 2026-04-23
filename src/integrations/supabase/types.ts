@@ -4913,6 +4913,129 @@ export type Database = {
           },
         ]
       }
+      users_clean: {
+        Row: {
+          apa_start_date: string | null
+          appointment_type: string | null
+          category: string | null
+          contract_end_date: string | null
+          contract_start_date: string | null
+          current_grade: string | null
+          current_step: string | null
+          date_of_birth: string | null
+          division: string | null
+          entry_on_duty_date_who: string | null
+          first_incumbency_start_date: string | null
+          first_name: string | null
+          full_name: string | null
+          gsm_email_address: string | null
+          gsm_gender: string | null
+          gsm_staff_number: string | null
+          id: string
+          imported_at: string
+          imported_by: string | null
+          intern: string | null
+          job_name: string | null
+          job_title: string | null
+          last_name: string | null
+          line_manager: string | null
+          match_key: string | null
+          nationality: string | null
+          office_location: string | null
+          official_duty_station: string | null
+          position_name: string | null
+          reporting_lines: string | null
+          samsaran_email_address: string | null
+          samsaran_gender: string | null
+          samsaran_staff_number: string | null
+          search_name: string | null
+          service_time_current_org: string | null
+          source: string
+          unit: string | null
+          worker_type: string | null
+        }
+        Insert: {
+          apa_start_date?: string | null
+          appointment_type?: string | null
+          category?: string | null
+          contract_end_date?: string | null
+          contract_start_date?: string | null
+          current_grade?: string | null
+          current_step?: string | null
+          date_of_birth?: string | null
+          division?: string | null
+          entry_on_duty_date_who?: string | null
+          first_incumbency_start_date?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          gsm_email_address?: string | null
+          gsm_gender?: string | null
+          gsm_staff_number?: string | null
+          id?: string
+          imported_at?: string
+          imported_by?: string | null
+          intern?: string | null
+          job_name?: string | null
+          job_title?: string | null
+          last_name?: string | null
+          line_manager?: string | null
+          match_key?: string | null
+          nationality?: string | null
+          office_location?: string | null
+          official_duty_station?: string | null
+          position_name?: string | null
+          reporting_lines?: string | null
+          samsaran_email_address?: string | null
+          samsaran_gender?: string | null
+          samsaran_staff_number?: string | null
+          search_name?: string | null
+          service_time_current_org?: string | null
+          source: string
+          unit?: string | null
+          worker_type?: string | null
+        }
+        Update: {
+          apa_start_date?: string | null
+          appointment_type?: string | null
+          category?: string | null
+          contract_end_date?: string | null
+          contract_start_date?: string | null
+          current_grade?: string | null
+          current_step?: string | null
+          date_of_birth?: string | null
+          division?: string | null
+          entry_on_duty_date_who?: string | null
+          first_incumbency_start_date?: string | null
+          first_name?: string | null
+          full_name?: string | null
+          gsm_email_address?: string | null
+          gsm_gender?: string | null
+          gsm_staff_number?: string | null
+          id?: string
+          imported_at?: string
+          imported_by?: string | null
+          intern?: string | null
+          job_name?: string | null
+          job_title?: string | null
+          last_name?: string | null
+          line_manager?: string | null
+          match_key?: string | null
+          nationality?: string | null
+          office_location?: string | null
+          official_duty_station?: string | null
+          position_name?: string | null
+          reporting_lines?: string | null
+          samsaran_email_address?: string | null
+          samsaran_gender?: string | null
+          samsaran_staff_number?: string | null
+          search_name?: string | null
+          service_time_current_org?: string | null
+          source?: string
+          unit?: string | null
+          worker_type?: string | null
+        }
+        Relationships: []
+      }
       video_answers: {
         Row: {
           application_id: string
