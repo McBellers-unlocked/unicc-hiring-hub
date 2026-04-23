@@ -28,7 +28,7 @@ export const MAPPED_COLUMNS: { label: string; db: string }[] = [
   { label: 'Last name', db: 'last_name' },
   { label: 'Search name', db: 'search_name' },
   
-  { label: 'Samsaran Staff number', db: 'samsaran_staff_number' },
+  
   { label: 'Samsaran Email address', db: 'samsaran_email_address' },
   { label: 'Worker type', db: 'worker_type' },
   { label: 'Intern', db: 'intern' },
