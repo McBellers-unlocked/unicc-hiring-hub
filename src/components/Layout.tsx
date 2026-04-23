@@ -322,6 +322,12 @@ export const Layout = ({ children }: LayoutProps) => {
                             Userbase
                           </Link>
                         </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/headcount" className="flex items-center w-full">
+                            <PieChart className="w-4 h-4 mr-2" />
+                            Headcount
+                          </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
                           <Link to="/admin/import-userbase" className="flex items-center w-full">
