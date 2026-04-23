@@ -373,9 +373,10 @@ export default function UnitsAndDivisions() {
   const [importResultOpen, setImportResultOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
 
-  // Permission gate (matches RLS): Admin / HR Assistant / Chief of HR
-  const userRole = (user as any)?.role || (user as any)?.user_metadata?.role;
-  const canEdit = ['Admin', 'HR Assistant', 'Chief of HR'].includes(userRole);
+  // Permission gate: edit rights for HR admin roles (RLS enforces a stricter subset on the DB side)
+  const canEdit = userRoles.some(r =>
+    ['Admin', 'HR Assistant', 'Chief of HR', 'Local Admin', 'Chief of Division'].includes(r)
+  );
 
   const { data: rows = [], isLoading, error } = useQuery({
     queryKey: ['org_units'],
