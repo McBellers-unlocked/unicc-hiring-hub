@@ -1,23 +1,40 @@
 
 
-## Show All Parsed Columns in Userbase Table
+## Unify Gender column in Userbase import
 
-Make the Userbase table display every column produced by the GSM + Samsaran merge (the full `MAPPED_COLUMNS` list from `src/lib/userbaseChangeSet.ts`), instead of the current reduced subset.
+Currently the merge keeps two separate columns — `GSM Gender` (`gsm_gender`) and `Samsaran Gender` (`samsaran_gender`) — to avoid overwrites when both files disagree. This change collapses them into a single `Gender` column at parse time, with a clear precedence rule.
 
-### Change — `src/pages/Userbase.tsx`
+### Precedence rule
+For each merged row:
+1. If GSM gender is non-empty → use GSM value.
+2. Else if Samsaran gender is non-empty → use Samsaran value.
+3. Else → empty.
 
-1. **Column definitions**: Replace the current hand-picked `COLUMNS` array with the full set from `MAPPED_COLUMNS` (import from `@/lib/userbaseChangeSet`). Each entry maps DB column → human label, already aligned with what the importer writes.
-2. **Default visibility**: All mapped columns visible by default. The existing column show/hide toggle (already in the page) keeps users in control if they want to narrow the view.
-3. **Select query**: Update the Supabase `.select(...)` to request every DB column in the mapped list (plus `id`, `imported_at`, `source`, `match_key` for row identity / badges).
-4. **Sort + filter columns**: Keep current sortable columns; sortability stays driven by the column definition. No change to server-side filter logic.
-5. **CSV export**: Export now includes all visible columns automatically (existing logic already iterates over visible columns).
-6. **Editable cells**: Inline edit continues to work for all text columns; date columns (`date_of_birth`, `apa_start_date`, contract dates, etc.) remain editable as plain text — Postgres column types enforce format, errors surface in the existing toast.
+(So GSM always wins on conflict; either side fills in when the other is blank.)
 
-### Single source of truth
-Both the importer preview and the Userbase table now read from `MAPPED_COLUMNS`, so any future column added to the import shows up in both places automatically.
+Both inputs continue to flow through the existing `normalizeGender` helper (Female → Woman, Male → Man) before precedence is applied.
+
+### Changes — `src/pages/ImportUserbase.tsx`
+
+1. **Merge step (`outerJoin`)**: After both GSM and Samsaran values are written into the merged row, compute a unified `Gender` field using the rule above. Drop `GSM Gender` and `Samsaran Gender` from the output column list; replace with a single `Gender`.
+2. **Column lists**:
+   - Remove `Gender` from `OVERLAP_RENAMES` (no longer split).
+   - `GSM_OUT_COLUMNS` keeps `Gender` (raw GSM gender stays under that label internally during transform).
+   - `SAMSARAN_OUT_COLUMNS` keeps `Gender` (same).
+   - Final merged columns expose **one** `Gender` column instead of two.
+3. **DB mapping (`COLUMN_TO_DB`)**: Map the unified `Gender` → `gsm_gender` (reuse the existing column as the canonical store). Stop writing to `samsaran_gender` from the importer; the column stays in the table for now but receives `null` on every import going forward.
+4. **Preview diff**: Because `MAPPED_COLUMNS` (in `src/lib/userbaseChangeSet.ts`) drives both the change preview and the Userbase table, update it to:
+   - Replace the two gender entries with a single `{ label: 'Gender', db: 'gsm_gender' }`.
+   - Remove the `samsaran_gender` entry.
+
+### Changes — `src/pages/Userbase.tsx`
+No code change needed: it reads columns from `MAPPED_COLUMNS`, so the unified `Gender` column appears automatically and `Samsaran Gender` disappears from the table view.
+
+### Data already in DB
+Existing rows keep their `gsm_gender` / `samsaran_gender` values until the next import. On the next successful import, `gsm_gender` is rewritten with the unified value (GSM-prevails), and `samsaran_gender` is set to null. No backfill migration is run; the data converges naturally on next parse + save.
 
 ### Out of scope
-- Reordering columns by drag-and-drop.
-- Per-column type-aware editors (date pickers, dropdowns) — text input remains.
-- Adding bookkeeping columns (`imported_by`, `imported_at`) to the table; they stay hidden.
+- Dropping the `samsaran_gender` column from the database schema.
+- Backfilling historical rows that were imported before this change without re-running the import.
+- Changing precedence for any other overlapping fields (Staff Number, Email) — those keep dual columns.
 
