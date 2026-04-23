@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -19,9 +18,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Save, RotateCcw } from 'lucide-react';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import { ArrowLeft, Save, RotateCcw, ChevronsUpDown, X, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { DIVISIONS, DIVISION_UNITS } from '@/lib/organizationConstants';
+import { StaffSearchCombobox, type StaffMember } from '@/components/operations/StaffSearchCombobox';
+import { cn } from '@/lib/utils';
 
 interface UnitRow {
   id: string;
@@ -54,6 +69,101 @@ const buildInitialRows = (): UnitRow[] => {
     });
   });
   return rows;
+};
+
+const ALL_UNIT_NAMES: string[] = Object.values(DIVISION_UNITS)
+  .flat()
+  .sort((a, b) => a.localeCompare(b));
+
+interface ParentSectionPickerProps {
+  value: string;
+  onChange: (v: string) => void;
+}
+
+const ParentSectionPicker = ({ value, onChange }: ParentSectionPickerProps) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between font-normal"
+        >
+          <span className={cn('truncate', !value && 'text-muted-foreground')}>
+            {value || 'Select parent section…'}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[360px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search unit…" />
+          <CommandList>
+            <CommandEmpty>No unit found.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="__none__"
+                onSelect={() => {
+                  onChange('');
+                  setOpen(false);
+                }}
+              >
+                <span className="text-muted-foreground">— None —</span>
+              </CommandItem>
+              {ALL_UNIT_NAMES.map((name) => (
+                <CommandItem
+                  key={name}
+                  value={name}
+                  onSelect={() => {
+                    onChange(name);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      'mr-2 h-4 w-4',
+                      value === name ? 'opacity-100' : 'opacity-0'
+                    )}
+                  />
+                  <span className="truncate">{name}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+interface ManagerPickerProps {
+  value: string;
+  onChange: (v: string) => void;
+}
+
+const ManagerPicker = ({ value, onChange }: ManagerPickerProps) => {
+  if (value) {
+    return (
+      <div className="flex items-center gap-1">
+        <Input value={value} readOnly className="flex-1" />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onChange('')}
+          aria-label="Clear manager"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <StaffSearchCombobox
+      onSelect={(staff: StaffMember) => onChange(staff.name)}
+    />
+  );
 };
 
 export default function UnitsAndDivisions() {
@@ -112,10 +222,11 @@ export default function UnitsAndDivisions() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[28%]">Unit full name</TableHead>
-                    <TableHead className="w-[12%]">Unit</TableHead>
-                    <TableHead className="w-[20%]">Parent Section</TableHead>
-                    <TableHead className="w-[18%]">Division</TableHead>
+                    <TableHead className="w-[24%]">Unit full name</TableHead>
+                    <TableHead className="w-[10%]">Unit</TableHead>
+                    <TableHead className="w-[18%]">Parent Section</TableHead>
+                    <TableHead className="w-[18%]">Division full name</TableHead>
+                    <TableHead className="w-[8%]">Division</TableHead>
                     <TableHead className="w-[22%]">Manager</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -132,10 +243,9 @@ export default function UnitsAndDivisions() {
                         />
                       </TableCell>
                       <TableCell>
-                        <Input
+                        <ParentSectionPicker
                           value={row.parentSection}
-                          onChange={(e) => updateRow(row.id, 'parentSection', e.target.value)}
-                          placeholder="—"
+                          onChange={(v) => updateRow(row.id, 'parentSection', v)}
                         />
                       </TableCell>
                       <TableCell>
@@ -155,11 +265,13 @@ export default function UnitsAndDivisions() {
                           </SelectContent>
                         </Select>
                       </TableCell>
+                      <TableCell className="font-mono text-sm text-muted-foreground">
+                        {row.division}
+                      </TableCell>
                       <TableCell>
-                        <Input
+                        <ManagerPicker
                           value={row.manager}
-                          onChange={(e) => updateRow(row.id, 'manager', e.target.value)}
-                          placeholder="—"
+                          onChange={(v) => updateRow(row.id, 'manager', v)}
                         />
                       </TableCell>
                     </TableRow>
