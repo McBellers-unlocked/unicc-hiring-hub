@@ -65,8 +65,8 @@ import { MAPPED_COLUMNS } from '@/lib/userbaseChangeSet';
 // --- Column metadata ---
 
 interface ColDef {
-  key: string;        // db column
-  label: string;      // display
+  key: string;
+  label: string;
   filter?: 'division' | 'unit' | 'worker_type' | 'category' | 'source' | 'office_location';
 }
 
@@ -78,8 +78,6 @@ const FILTER_KEYS: Record<string, ColDef['filter']> = {
   office_location: 'office_location',
 };
 
-// Derived from the importer's MAPPED_COLUMNS so the table reflects every column
-// produced by the GSM + Samsaran merge. `source` is appended as bookkeeping.
 const COLUMNS: ColDef[] = [
   ...MAPPED_COLUMNS.map((c) => ({
     key: c.db,
@@ -89,10 +87,9 @@ const COLUMNS: ColDef[] = [
   { key: 'source', label: 'Source', filter: 'source' },
 ];
 
-// Show every parsed column by default; users can hide via the Columns menu.
 const DEFAULT_VISIBLE = new Set(COLUMNS.map((c) => c.key));
 
-const VISIBLE_COLS_KEY = 'userbase:visible-columns';
+const VISIBLE_COLS_KEY = 'userbase:visible-columns:v2';
 const PAGE_SIZE_KEY = 'userbase:page-size';
 
 const SEARCH_COLS = [
@@ -127,7 +124,6 @@ const useDebounced = <T,>(value: T, ms: number): T => {
 };
 
 const fetchDistinct = async (col: keyof Filters): Promise<string[]> => {
-  // Pull a generous sample to derive distinct values client-side (Supabase has no native DISTINCT in PostgREST).
   const { data, error } = await supabase
     .from('users_clean')
     .select(col)
@@ -141,8 +137,6 @@ const fetchDistinct = async (col: keyof Filters): Promise<string[]> => {
   });
   return Array.from(set).sort();
 };
-
-// --- Main page ---
 
 export default function Userbase() {
   const navigate = useNavigate();
@@ -193,8 +187,6 @@ export default function Userbase() {
     return true;
   };
 
-
-  // Table state
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(() => {
     const v = Number(localStorage.getItem(PAGE_SIZE_KEY));
@@ -206,12 +198,13 @@ export default function Userbase() {
   const debouncedSearch = useDebounced(search, 300);
   const [filters, setFilters] = useState<Filters>(emptyFilters);
 
-  // Visible columns
   const [visible, setVisible] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem(VISIBLE_COLS_KEY);
       if (raw) return new Set(JSON.parse(raw));
-    } catch { /* ignore */ }
+    } catch {
+      // ignore
+    }
     return new Set(DEFAULT_VISIBLE);
   });
 
@@ -223,10 +216,10 @@ export default function Userbase() {
     localStorage.setItem(PAGE_SIZE_KEY, String(pageSize));
   }, [pageSize]);
 
-  // Reset page on filter/search/sort change
-  useEffect(() => { setPage(1); }, [debouncedSearch, filters, pageSize, sortKey, sortDir]);
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, filters, pageSize, sortKey, sortDir]);
 
-  // Build server query
   const buildQuery = (forCount = false) => {
     let q = supabase
       .from('users_clean')
@@ -246,7 +239,6 @@ export default function Userbase() {
     return q;
   };
 
-  // Main data query
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['users_clean', { page, pageSize, sortKey, sortDir, debouncedSearch, filters }],
     queryFn: async () => {
@@ -264,7 +256,6 @@ export default function Userbase() {
     },
   });
 
-  // Total count of all rows in the table (for empty-state detection)
   const { data: tableInfo } = useQuery({
     queryKey: ['users_clean:meta'],
     queryFn: async () => {
@@ -283,7 +274,6 @@ export default function Userbase() {
     },
   });
 
-  // Distinct values for filters
   const filterCols: (keyof Filters)[] = ['division', 'unit', 'worker_type', 'category', 'source', 'office_location'];
   const distinctQueries = filterCols.map((c) =>
     useQuery({
@@ -343,7 +333,6 @@ export default function Userbase() {
 
   const activeFilterCount = Object.values(filters).reduce((s, a) => s + a.length, 0);
 
-  // CSV export
   const exportRows = (rows: Record<string, any>[]) => {
     const cols = visibleCols.map((c) => c.label);
     const data = rows.map((r) => {
@@ -378,7 +367,6 @@ export default function Userbase() {
     exportRows(all);
   };
 
-  // Empty state — table never imported
   if (tableInfo && tableInfo.total === 0) {
     return (
       <Layout>
@@ -416,7 +404,6 @@ export default function Userbase() {
           </p>
         </div>
 
-        {/* Toolbar */}
         <div className="flex flex-col lg:flex-row gap-3 mb-3">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -429,7 +416,6 @@ export default function Userbase() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {/* Filters popover */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline">
@@ -460,7 +446,6 @@ export default function Userbase() {
               </PopoverContent>
             </Popover>
 
-            {/* Columns dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
@@ -482,7 +467,6 @@ export default function Userbase() {
                         return next;
                       });
                     }}
-                    onSelect={(e) => e.preventDefault()}
                   >
                     {c.label}
                   </DropdownMenuCheckboxItem>
@@ -494,7 +478,6 @@ export default function Userbase() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Download dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
@@ -510,7 +493,6 @@ export default function Userbase() {
           </div>
         </div>
 
-        {/* Active filter chips */}
         {activeFilterCount > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-3">
             {(Object.keys(filters) as (keyof Filters)[]).flatMap((k) =>
@@ -531,68 +513,70 @@ export default function Userbase() {
           </div>
         )}
 
-        {/* Table */}
-        <div className="border rounded-md overflow-auto" style={{ maxHeight: '65vh' }}>
-          <Table>
-            <TableHeader className="sticky top-0 bg-background z-10">
-              <TableRow>
-                {visibleCols.map((c) => (
-                  <TableHead key={c.key} className="whitespace-nowrap">
-                    <button
-                      className="inline-flex items-center gap-1 hover:text-foreground"
-                      onClick={() => toggleSort(c.key)}
-                    >
-                      {c.label}
-                      {sortIcon(c.key)}
-                    </button>
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && (
-                <TableRow>
-                  <TableCell colSpan={visibleCols.length} className="text-center py-8 text-muted-foreground">
-                    Loading…
-                  </TableCell>
-                </TableRow>
-              )}
-              {isError && (
-                <TableRow>
-                  <TableCell colSpan={visibleCols.length} className="text-center py-8 text-destructive">
-                    Error loading data: {error instanceof Error ? error.message : 'unknown'}
-                  </TableCell>
-                </TableRow>
-              )}
-              {!isLoading && !isError && (data?.rows.length ?? 0) === 0 && (
-                <TableRow>
-                  <TableCell colSpan={visibleCols.length} className="text-center py-8 text-muted-foreground">
-                    No matching rows.
-                  </TableCell>
-                </TableRow>
-              )}
-              {!isLoading && !isError && data?.rows.map((row) => (
-                <TableRow key={row.id}>
-                  {visibleCols.map((c) => (
-                    <TableCell key={c.key} className="whitespace-nowrap text-sm p-1">
-                      <EditableCell
-                        value={row[c.key]}
-                        rowId={row.id}
-                        column={c.key}
-                        isDate={DATE_KEYS.has(c.key)}
-                        isRequired={REQUIRED_KEYS.has(c.key)}
-                        editable={canEdit}
-                        onSave={handleCellSave}
-                      />
-                    </TableCell>
+        <div className="border rounded-md overflow-hidden">
+          <div className="overflow-x-auto">
+            <div className="overflow-y-auto" style={{ maxHeight: '65vh' }}>
+              <Table className="min-w-max">
+                <TableHeader className="sticky top-0 bg-background z-10">
+                  <TableRow>
+                    {visibleCols.map((c) => (
+                      <TableHead key={c.key} className="whitespace-nowrap">
+                        <button
+                          className="inline-flex items-center gap-1 hover:text-foreground"
+                          onClick={() => toggleSort(c.key)}
+                        >
+                          {c.label}
+                          {sortIcon(c.key)}
+                        </button>
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading && (
+                    <TableRow>
+                      <TableCell colSpan={visibleCols.length} className="text-center py-8 text-muted-foreground">
+                        Loading…
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {isError && (
+                    <TableRow>
+                      <TableCell colSpan={visibleCols.length} className="text-center py-8 text-destructive">
+                        Error loading data: {error instanceof Error ? error.message : 'unknown'}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {!isLoading && !isError && (data?.rows.length ?? 0) === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={visibleCols.length} className="text-center py-8 text-muted-foreground">
+                        No matching rows.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {!isLoading && !isError && data?.rows.map((row) => (
+                    <TableRow key={row.id}>
+                      {visibleCols.map((c) => (
+                        <TableCell key={c.key} className="whitespace-nowrap text-sm p-1">
+                          <EditableCell
+                            value={row[c.key]}
+                            rowId={row.id}
+                            column={c.key}
+                            isDate={DATE_KEYS.has(c.key)}
+                            isRequired={REQUIRED_KEYS.has(c.key)}
+                            editable={canEdit}
+                            onSave={handleCellSave}
+                          />
+                        </TableCell>
+                      ))}
+                    </TableRow>
                   ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </div>
 
-        {/* Pagination footer */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-3">
           <div className="text-sm text-muted-foreground">
             Showing {fromN.toLocaleString()}–{toN.toLocaleString()} of {total.toLocaleString()}
