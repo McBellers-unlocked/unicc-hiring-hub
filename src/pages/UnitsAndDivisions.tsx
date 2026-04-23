@@ -90,15 +90,15 @@ const ParentSectionPicker = ({ value, onChange }: ParentSectionPickerProps) => {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between font-normal"
+          className="w-full justify-between font-normal h-auto min-h-10 py-2 text-left"
         >
-          <span className={cn('truncate', !value && 'text-muted-foreground')}>
+          <span className={cn('whitespace-normal break-words', !value && 'text-muted-foreground')}>
             {value || 'Select parent section…'}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[360px] p-0" align="start">
+      <PopoverContent className="w-[460px] p-0" align="start">
         <Command>
           <CommandInput placeholder="Search unit…" />
           <CommandList>
