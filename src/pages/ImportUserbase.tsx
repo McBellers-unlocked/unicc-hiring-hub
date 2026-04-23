@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Upload, ArrowLeft, FileSpreadsheet, X, Sparkles } from 'lucide-react';
 import { DIVISION_UNITS } from '@/lib/organizationConstants';
+import { supabase } from '@/integrations/supabase/client';
 
 const ALLOWED_EXTENSIONS = ['.csv', '.xls', '.xlsx'];
 const ALLOWED_MIME_TYPES = [
@@ -171,7 +172,6 @@ const lookupDivision = (unit: string, lookup: Map<string, string>): string => {
   }
   const direct = lookup.get(trimmed.toLowerCase());
   if (direct) return direct;
-  // Fallback: substring match
   for (const [key, val] of lookup.entries()) {
     if (key.length > 2 && (trimmed.toLowerCase().includes(key) || key.includes(trimmed.toLowerCase()))) {
       return val;
@@ -212,7 +212,6 @@ const normalizeWorkerType = (w: unknown): string => {
   return String(w ?? '');
 };
 
-// Find original header in a row matching the wanted column (case/whitespace-insensitive)
 const findHeader = (row: Record<string, unknown>, wanted: string): string | null => {
   const want = wanted.toLowerCase().replace(/\s+/g, ' ').trim();
   for (const key of Object.keys(row)) {
@@ -273,7 +272,6 @@ const SAMSARAN_OUT_COLUMNS = [
   'Worker type', 'Intern', 'Unit', 'Job title', 'Line manager', 'Office location', 'Division',
 ];
 
-// Columns that overlap logically — prefix with provenance
 const OVERLAP_RENAMES: Record<string, { gsm: string; sams: string }> = {
   StaffNumber: { gsm: 'GSM Staff Number', sams: 'Samsaran Staff number' },
   Gender: { gsm: 'GSM Gender', sams: 'Samsaran Gender' },
@@ -302,6 +300,11 @@ const buildMergedColumns = (): { columns: string[]; gsmMap: Record<string, strin
   return { columns, gsmMap, samsMap };
 };
 
+interface MergedRow extends Record<string, string> {
+  __source?: 'gsm' | 'samsaran' | 'both';
+  __match_key?: string;
+}
+
 const outerJoin = (
   gsmRows: Record<string, string>[],
   samsRows: Record<string, string>[],
@@ -310,7 +313,7 @@ const outerJoin = (
   const empty = (mapVals: Record<string, string>) =>
     Object.fromEntries(Object.values(mapVals).map((c) => [c, '']));
 
-  const merged = new Map<string, Record<string, string>>();
+  const merged = new Map<string, MergedRow>();
   let unmatchedIdx = 0;
 
   const keyOf = (staffNum: string, email: string) => {
@@ -323,19 +326,91 @@ const outerJoin = (
 
   for (const g of gsmRows) {
     const k = keyOf(g['Staff Number'], g['Email Address']);
-    const row: Record<string, string> = { ...empty(gsmMap), ...empty(samsMap) };
+    const row: MergedRow = { ...empty(gsmMap), ...empty(samsMap) };
     for (const [src, dst] of Object.entries(gsmMap)) row[dst] = g[src] ?? '';
+    row.__source = 'gsm';
+    row.__match_key = k;
     merged.set(k, row);
   }
 
   for (const s of samsRows) {
     const k = keyOf(s['Staff number'], s['Email address']);
-    const existing = merged.get(k) ?? { ...empty(gsmMap), ...empty(samsMap) };
-    for (const [src, dst] of Object.entries(samsMap)) existing[dst] = s[src] ?? '';
-    merged.set(k, existing);
+    const existing = merged.get(k);
+    if (existing) {
+      for (const [src, dst] of Object.entries(samsMap)) existing[dst] = s[src] ?? '';
+      existing.__source = 'both';
+    } else {
+      const row: MergedRow = { ...empty(gsmMap), ...empty(samsMap) };
+      for (const [src, dst] of Object.entries(samsMap)) row[dst] = s[src] ?? '';
+      row.__source = 'samsaran';
+      row.__match_key = k;
+      merged.set(k, row);
+    }
   }
 
   return { columns, rows: Array.from(merged.values()) };
+};
+
+// ---- DB row mapping ----
+
+const COLUMN_TO_DB: Record<string, string> = {
+  'Full Name': 'full_name',
+  'GSM Staff Number': 'gsm_staff_number',
+  'Nationality': 'nationality',
+  'GSM Gender': 'gsm_gender',
+  'Date of Birth': 'date_of_birth',
+  'GSM Email Address': 'gsm_email_address',
+  'Service time (Current Organization)': 'service_time_current_org',
+  'Official Duty Station': 'official_duty_station',
+  'APA Start Date': 'apa_start_date',
+  'Job Name': 'job_name',
+  'Position Name': 'position_name',
+  'First Incumbency Start Date': 'first_incumbency_start_date',
+  'Entry on duty date WHO': 'entry_on_duty_date_who',
+  'Appointment Type': 'appointment_type',
+  'Contract Start Date': 'contract_start_date',
+  'Contract End Date': 'contract_end_date',
+  'Current Grade': 'current_grade',
+  'Current Step': 'current_step',
+  'Reporting lines (name of supervisor)': 'reporting_lines',
+  'Category': 'category',
+  'First name': 'first_name',
+  'Last name': 'last_name',
+  'Search name': 'search_name',
+  'Samsaran Gender': 'samsaran_gender',
+  'Samsaran Staff number': 'samsaran_staff_number',
+  'Samsaran Email address': 'samsaran_email_address',
+  'Worker type': 'worker_type',
+  'Intern': 'intern',
+  'Unit': 'unit',
+  'Job title': 'job_title',
+  'Line manager': 'line_manager',
+  'Office location': 'office_location',
+  'Division': 'division',
+};
+
+const DATE_DB_COLS = new Set(['first_incumbency_start_date', 'entry_on_duty_date_who']);
+
+const toDbRow = (row: MergedRow, importedBy: string | null) => {
+  const out: Record<string, unknown> = {};
+  for (const [label, dbCol] of Object.entries(COLUMN_TO_DB)) {
+    const v = row[label] ?? '';
+    if (DATE_DB_COLS.has(dbCol)) {
+      out[dbCol] = v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
+    } else {
+      out[dbCol] = v === '' ? null : v;
+    }
+  }
+  out.source = row.__source ?? 'gsm';
+  out.match_key = row.__match_key ?? null;
+  out.imported_by = importedBy;
+  return out;
+};
+
+const chunk = <T,>(arr: T[], size: number): T[][] => {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
 };
 
 export default function ImportUserbase() {
@@ -359,20 +434,42 @@ export default function ImportUserbase() {
       const sams = transformSamsaran(samsRaw);
       const { columns, rows } = outerJoin(gsm, sams);
 
+      // Cache for instant render on next page
       sessionStorage.setItem(
         'userbase:merged',
         JSON.stringify({ columns, rows, generatedAt: new Date().toISOString() }),
       );
+
+      // Persist to Supabase
+      toast({ title: 'Saving to database…', description: `Persisting ${rows.length} records.` });
+
+      const { data: authData } = await supabase.auth.getUser();
+      const importedBy = authData.user?.id ?? null;
+
+      // Wipe existing
+      const { error: delErr } = await supabase
+        .from('users_clean')
+        .delete()
+        .not('id', 'is', null);
+      if (delErr) throw delErr;
+
+      // Insert in chunks of 500
+      const dbRows = rows.map((r) => toDbRow(r, importedBy));
+      for (const batch of chunk(dbRows, 500)) {
+        const { error: insErr } = await supabase.from('users_clean').insert(batch);
+        if (insErr) throw insErr;
+      }
+
       toast({
-        title: 'Parsing complete',
-        description: `Merged ${rows.length} records (GSM: ${gsm.length}, Samsaran: ${sams.length}).`,
+        title: 'Userbase saved',
+        description: `${rows.length} records saved (GSM: ${gsm.length}, Samsaran: ${sams.length}).`,
       });
       navigate('/admin/userbase');
     } catch (err) {
-      console.error('Parse error', err);
+      console.error('Parse/save error', err);
       toast({
-        title: 'Parsing failed',
-        description: err instanceof Error ? err.message : 'Unable to read one of the files.',
+        title: 'Save failed',
+        description: err instanceof Error ? err.message : 'Unable to persist the merged userbase.',
         variant: 'destructive',
       });
     } finally {
@@ -421,7 +518,7 @@ export default function ImportUserbase() {
             className="w-full max-w-sm"
           >
             <Sparkles className="w-4 h-4 mr-2" />
-            {parsing ? 'Parsing…' : 'Parse Data'}
+            {parsing ? 'Parsing & saving…' : 'Parse Data'}
           </Button>
           {!bothFilesReady && (
             <p className="text-xs text-muted-foreground">
