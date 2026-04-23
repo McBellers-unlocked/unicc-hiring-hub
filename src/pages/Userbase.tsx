@@ -190,7 +190,7 @@ export default function Userbase() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(() => {
     const v = Number(localStorage.getItem(PAGE_SIZE_KEY));
-    return [25, 50, 100, 250].includes(v) ? v : 50;
+    return [20, 50, 100, 250].includes(v) ? v : 20;
   });
   const [sortKey, setSortKey] = useState<string>('imported_at');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
