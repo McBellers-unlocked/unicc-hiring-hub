@@ -3654,6 +3654,45 @@ export type Database = {
         }
         Relationships: []
       }
+      org_units: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          division: string
+          full_name: string
+          id: string
+          manager: string
+          parent_section: string
+          status: string
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          division: string
+          full_name: string
+          id?: string
+          manager?: string
+          parent_section?: string
+          status?: string
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          division?: string
+          full_name?: string
+          id?: string
+          manager?: string
+          parent_section?: string
+          status?: string
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       panel_interview_invitations: {
         Row: {
           application_id: string
@@ -5823,6 +5862,7 @@ export type Database = {
         Args: { p_requisition_id: string; p_user_id: string }
         Returns: boolean
       }
+      can_edit_org_units: { Args: { _user_id: string }; Returns: boolean }
       categorize_skill: {
         Args: { skill_name: string }
         Returns: {
