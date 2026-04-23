@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText, ChevronDown, Building, FileCheck, User, LayoutDashboard, Shield, Heart, GraduationCap, BookOpen, Target, ClipboardList, ClipboardCheck, UserCog, Network, Upload, Cog, Mail } from 'lucide-react';
+import { Users, LogOut, Settings, Briefcase, UserCheck, BarChart3, FileText, ChevronDown, Building, Building2, FileCheck, User, LayoutDashboard, Shield, Heart, GraduationCap, BookOpen, Target, ClipboardList, ClipboardCheck, UserCog, Network, Upload, Cog, Mail } from 'lucide-react';
 import headerLogo from '@/assets/uniqtalent-header-logo.png';
 
 interface LayoutProps {
@@ -314,6 +314,12 @@ export const Layout = ({ children }: LayoutProps) => {
                           <Link to="/admin/import-userbase" className="flex items-center w-full">
                             <Upload className="w-4 h-4 mr-2" />
                             Import Userbase
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin/units-divisions" className="flex items-center w-full">
+                            <Building2 className="w-4 h-4 mr-2" />
+                            Units and Divisions
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
