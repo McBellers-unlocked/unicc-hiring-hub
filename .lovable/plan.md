@@ -1,40 +1,41 @@
 
 
-## Unify Gender column in Userbase import
-
-Currently the merge keeps two separate columns — `GSM Gender` (`gsm_gender`) and `Samsaran Gender` (`samsaran_gender`) — to avoid overwrites when both files disagree. This change collapses them into a single `Gender` column at parse time, with a clear precedence rule.
-
-### Precedence rule
-For each merged row:
-1. If GSM gender is non-empty → use GSM value.
-2. Else if Samsaran gender is non-empty → use Samsaran value.
-3. Else → empty.
-
-(So GSM always wins on conflict; either side fills in when the other is blank.)
-
-Both inputs continue to flow through the existing `normalizeGender` helper (Female → Woman, Male → Man) before precedence is applied.
-
-### Changes — `src/pages/ImportUserbase.tsx`
-
-1. **Merge step (`outerJoin`)**: After both GSM and Samsaran values are written into the merged row, compute a unified `Gender` field using the rule above. Drop `GSM Gender` and `Samsaran Gender` from the output column list; replace with a single `Gender`.
-2. **Column lists**:
-   - Remove `Gender` from `OVERLAP_RENAMES` (no longer split).
-   - `GSM_OUT_COLUMNS` keeps `Gender` (raw GSM gender stays under that label internally during transform).
-   - `SAMSARAN_OUT_COLUMNS` keeps `Gender` (same).
-   - Final merged columns expose **one** `Gender` column instead of two.
-3. **DB mapping (`COLUMN_TO_DB`)**: Map the unified `Gender` → `gsm_gender` (reuse the existing column as the canonical store). Stop writing to `samsaran_gender` from the importer; the column stays in the table for now but receives `null` on every import going forward.
-4. **Preview diff**: Because `MAPPED_COLUMNS` (in `src/lib/userbaseChangeSet.ts`) drives both the change preview and the Userbase table, update it to:
-   - Replace the two gender entries with a single `{ label: 'Gender', db: 'gsm_gender' }`.
-   - Remove the `samsaran_gender` entry.
+## Reorder & color-code Userbase columns by source
 
 ### Changes — `src/pages/Userbase.tsx`
-No code change needed: it reads columns from `MAPPED_COLUMNS`, so the unified `Gender` column appears automatically and `Samsaran Gender` disappears from the table view.
 
-### Data already in DB
-Existing rows keep their `gsm_gender` / `samsaran_gender` values until the next import. On the next successful import, `gsm_gender` is rewritten with the unified value (GSM-prevails), and `samsaran_gender` is set to null. No backfill migration is run; the data converges naturally on next parse + save.
+**1. Default visible columns + display order**
+
+Replace `DEFAULT_VISIBLE` (currently "all columns") with this exact ordered list, and bump the localStorage key to `userbase:visible-columns:v3` so existing users get the new default:
+
+```
+samsaran_email_address, gsm_email_address, gsm_staff_number,
+full_name, first_name, last_name, gsm_gender,
+worker_type, unit, division,
+official_duty_station, office_location,
+position_name, job_title,
+reporting_lines, line_manager,
+current_grade, nationality
+```
+
+Build `visibleCols` by mapping over this ordered list (instead of filtering `COLUMNS`), so the table renders columns in the requested order regardless of `MAPPED_COLUMNS` order. Columns not in the default list remain togglable via the existing **Columns** dropdown (which still lists all `MAPPED_COLUMNS`).
+
+**2. Header color by source**
+
+Add a `SOURCE_BY_DB` map keyed by db column name → `'gsm' | 'samsaran'`:
+
+- **GSM (green header)**: `full_name`, `first_name`, `last_name`, `gsm_staff_number`, `gsm_email_address`, `gsm_gender`, `nationality`, `date_of_birth`, `service_time_current_org`, `official_duty_station`, `apa_start_date`, `job_name`, `position_name`, `first_incumbency_start_date`, `entry_on_duty_date_who`, `appointment_type`, `contract_start_date`, `contract_end_date`, `current_grade`, `current_step`, `reporting_lines`, `category`, `search_name`
+- **Samsaran (blue header)**: `samsaran_staff_number`, `samsaran_email_address`, `worker_type`, `intern`, `unit`, `job_title`, `line_manager`, `office_location`, `division`
+- `source` column: neutral (no tint)
+
+In the `<TableHead>` render, apply a class based on source:
+- GSM → `bg-green-100 text-green-900 dark:bg-green-950/40 dark:text-green-200`
+- Samsaran → `bg-blue-100 text-blue-900 dark:bg-blue-950/40 dark:text-blue-200`
+
+The sticky header background already exists; the per-cell tint sits on top of it.
 
 ### Out of scope
-- Dropping the `samsaran_gender` column from the database schema.
-- Backfilling historical rows that were imported before this change without re-running the import.
-- Changing precedence for any other overlapping fields (Staff Number, Email) — those keep dual columns.
+- Changing column source assignments at runtime.
+- Tinting body cells (only headers are colored).
+- Removing the now-hidden columns from the DB or from `MAPPED_COLUMNS` — they remain available via the Columns toggle.
 
