@@ -1,29 +1,32 @@
 
 
-## Import: Duplicate Check + Outer Join Merge
+## Import: Skip Rows Matching Decommissioned Units
 
-### Changes — `src/pages/UnitsAndDivisions.tsx` (`handleImportFile`)
+### Change — `src/pages/UnitsAndDivisions.tsx` (`handleImportFile`)
 
-**1. Duplicate check on the imported file**
-Before merging, scan the parsed rows for duplicate values in the `Unit` column (case-insensitive, trimmed). Empty `Unit` values are also rejected since the field is the primary key.
+Currently, if an imported `Unit` matches a record in the **Decommissioned** tab, the entire import is **rejected**. Update this behavior to instead **silently skip** those rows and continue importing the rest.
 
-- If any `Unit` is blank → `toast.error("Import failed: every row must have a 'Unit' value (primary key).")` and abort (no state change).
-- If duplicates are found → `toast.error("Import failed: duplicate Unit values found: <code1>, <code2>…")` (list up to 5), and abort.
+**New behavior**
+- Build a lookup set of decommissioned `Unit` codes (case-insensitive, trimmed).
+- While iterating imported rows, partition them into:
+  - `skipped[]` — imported rows whose `Unit` exists in `decommissionedRows` (do not add, do not update, do not touch the decommissioned record).
+  - `toMerge[]` — remaining rows, which proceed through the existing outer-join merge against `activeRows` (update if Unit matches active, add if new).
+- Decommissioned rows remain untouched in all cases.
 
-**2. Outer-join merge against current active rows**
-Replace the current "replace all active rows" behavior with an outer join keyed on `Unit` (case-insensitive):
+**Validation order (unchanged for the first two)**
+1. Reject if any imported `Unit` is blank.
+2. Reject if the imported file contains internal duplicate `Unit` values.
+3. **(Replaces current rule)** Decommissioned collisions no longer abort the import — they are skipped.
 
-- For each imported row:
-  - If a matching `Unit` exists in `activeRows` → **update** that row in place with imported values (`fullName`, `parentSection`, `division`, `manager`, and `unit` normalized to the imported casing). Keep its existing `id` so React keys / selection remain stable.
-  - If no match → **add** as a new row with a fresh id (`imp-<timestamp>-<idx>`).
-- Active rows whose `Unit` is **not** present in the imported file are **kept as-is** (outer join — no deletions).
-- Decommissioned rows are untouched. However, also reject the import if any imported `Unit` collides with a `Unit` already in `decommissionedRows` — toast: `"Import failed: Unit '<code>' exists in Decommissioned. Restore it first or change the code."` (prevents two rows sharing the same primary key across tabs).
+**Result toast**
+Update the summary to include skipped count:
+`Imported: <added> added, <updated> updated, <skipped> skipped (decommissioned), <untouched> kept.`
 
-**3. Result toast**
-After a successful merge, show a summary: `Imported: <added> added, <updated> updated, <untouched> kept.`
+If `skipped > 0`, also emit a secondary `toast.info` listing up to 5 skipped Unit codes:
+`Skipped decommissioned units: <code1>, <code2>… Restore them first to update.`
 
 ### Notes
-- All checks are pre-flight: state is only mutated once every validation passes, so a failed import leaves the table unchanged.
-- No schema changes; behavior is purely client-side.
-- CSV parser, template download, and decommission flow are unchanged.
+- Pre-flight validation still runs before any state mutation.
+- No schema changes; purely client-side.
+- Decommission/restore flow, CSV parser, and template download are unchanged.
 
