@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -32,8 +32,18 @@ export interface RowChange {
   newFieldsCount: number;
 }
 
+export interface UnmatchedExtractRow {
+  id: string;
+  source: 'GSM only' | 'Samsaran Staff only';
+  name: string;
+  email: string;
+  staffNumber: string;
+  workerType?: string;
+}
+
 interface Props {
   changes: RowChange[];
+  unmatchedRows: UnmatchedExtractRow[];
   loading: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -45,8 +55,8 @@ interface Props {
 const truncate = (s: string, n = 30) =>
   s.length > n ? s.slice(0, n - 1) + '…' : s;
 
-export function ImportChangePreview({ changes, loading, onCancel, onConfirm, saving, rejectedKeys, onToggleRejected }: Props) {
-  const [tab, setTab] = useState<'all' | 'new' | 'updated' | 'unchanged'>('all');
+export function ImportChangePreview({ changes, unmatchedRows, loading, onCancel, onConfirm, saving, rejectedKeys, onToggleRejected }: Props) {
+  const [tab, setTab] = useState<'all' | 'new' | 'updated' | 'unchanged' | 'unmatched'>('all');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<RowChange | null>(null);
 
@@ -66,6 +76,7 @@ export function ImportChangePreview({ changes, loading, onCancel, onConfirm, sav
       if (tab === 'new' && r.status !== 'new') return false;
       if (tab === 'updated' && (r.status !== 'updated' || r.isServiceTimeOnly)) return false;
       if (tab === 'unchanged' && r.status !== 'unchanged') return false;
+      if (tab === 'unmatched') return false;
       if (tab === 'all' && (r.status === 'unchanged' || r.isServiceTimeOnly)) return false;
       if (!q) return true;
       return (
@@ -113,6 +124,7 @@ export function ImportChangePreview({ changes, loading, onCancel, onConfirm, sav
                 <TabsTrigger value="new">New ({counts.new})</TabsTrigger>
                 <TabsTrigger value="updated">Updated ({counts.updated})</TabsTrigger>
                 <TabsTrigger value="unchanged">Unchanged ({counts.unchanged})</TabsTrigger>
+                <TabsTrigger value="unmatched">Unmatched extracts ({unmatchedRows.length})</TabsTrigger>
               </TabsList>
             </Tabs>
             <Input
@@ -127,17 +139,47 @@ export function ImportChangePreview({ changes, loading, onCancel, onConfirm, sav
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
-                  <TableHead className="w-[100px]">Status</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Staff #</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Changes</TableHead>
-                  <TableHead className="w-[110px] text-right">Action</TableHead>
+                  {tab === 'unmatched' ? (
+                    <>
+                      <TableHead className="w-[170px]">Source</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Staff #</TableHead>
+                      <TableHead>Worker type</TableHead>
+                    </>
+                  ) : (
+                    <>
+                      <TableHead className="w-[100px]">Status</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Staff #</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead>Changes</TableHead>
+                      <TableHead className="w-[110px] text-right">Action</TableHead>
+                    </>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.length === 0 ? (
+                {tab === 'unmatched' ? (
+                  unmatchedRows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        No unmatched GSM or Samsaran Staff rows.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    unmatchedRows.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell><Badge variant="outline">{r.source}</Badge></TableCell>
+                        <TableCell className="font-medium">{r.name || '—'}</TableCell>
+                        <TableCell className="text-sm">{r.email || '—'}</TableCell>
+                        <TableCell className="text-sm">{r.staffNumber || '—'}</TableCell>
+                        <TableCell className="text-sm">{r.workerType || '—'}</TableCell>
+                      </TableRow>
+                    ))
+                  )
+                ) : filtered.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       No rows to display.

@@ -1,59 +1,61 @@
-## Update Import Userbase review controls
+## Add unmatched GSM/Samsaran comparison tab
 
-In `/admin/import-userbase`, adjust the “Review changes before saving” step so routine service-time-only updates do not clutter the review, and reviewers can reject individual rows before confirming.
+In `/admin/import-userbase`, add another tab inside “Review changes before saving” that lists source rows that do not match between GSM and Samsaran.
 
-### 1. Auto-approve service-time-only updates
+### 1. Compute unmatched extract rows during parse
 
-- Treat rows whose only changed field is `Service time (Current Organization)` / `service_time_current_org` as auto-approved.
-- Do not display those rows as “updated” in the default review list.
-- Keep them included in the final save payload by default, so the incoming service time still overwrites the current Supabase value.
-- Update counts/labels so the visible “Updated” count reflects rows that need review, while a small note can indicate how many service-time-only rows will be auto-approved.
+After parsing both files:
 
-### 2. Add per-row reject action
+- Build match keys using the same logic as the merge process:
+  - email  first,
+  - staff number fallback,
+  - ignore blank/anonymous fallback rows for meaningful cross-file matching.
+- Compare:
+  - GSM rows against Samsaran rows where `Worker type === 'Staff'` only.
+  - Samsaran Staff rows against GSM rows.
+- Exclude Samsaran rows with `Worker type === 'Affiliate'` from this comparison only.
 
-- Add a “Reject” button/action on each review row for `new` and reviewable `updated` records.
-- When a row is rejected:
-  - it is visually marked as rejected or removed from the pending save count,
-  - it will not be included in the save operation,
-  - for an existing Supabase row, the current Supabase row remains unchanged,
-  - for a new row, no new row is inserted.
-- Allow rejected rows to be restored before confirming, using an “Undo” / “Restore” action.
+Result categories:
 
-### 3. Save only approved rows without wiping rejected rows
+- `GSM only`: exists in GSM, no matching Samsaran Staff row.
+- `Samsaran Staff only`: exists in Samsaran as Staff, no matching GSM row.
 
-Current save logic deletes all rows from `users_clean` and reinserts the full parsed dataset. That would overwrite rejected rows anyway, so it must change.
+### 2. Add a new tab in the review component
 
-Implement save as a merge:
+Update `ImportChangePreview` tabs to include:
 
-- Fetch/index existing rows before review and keep enough identity data to know whether a parsed row already exists.
-- On confirm:
-  - insert approved `new` rows,
-  - update approved `updated` rows,
-  - include auto-approved service-time-only updates,
-  - skip rejected rows entirely.
-- Do not delete the entire `users_clean` table during this flow.
+```text
+All changes | New | Updated | Unchanged | Unmatched extracts
+```
 
-### 4. Technical details
+The new tab will show a table with:
 
-Files to update:
+- Source: `GSM only` or `Samsaran Staff only`
+- Name
+- Email
+- Staff number
+- Worker type, for Samsaran rows
 
-- `src/lib/userbaseChangeSet.ts`
-  - add metadata to each `RowChange`, including whether it is service-time-only and the existing row `id` when matched.
-  - keep existing matching by staff number/email.
+This tab is informational and does not require approve/reject controls.
 
-- `src/components/userbase/ImportChangePreview.tsx`
-  - add rejected row state/props or controlled rejected IDs from parent.
-  - add per-row Reject/Restore buttons.
-  - hide or de-emphasize service-time-only updates from the default review list.
-  - adjust pending counts and confirm button text to exclude rejected rows.
+### 3. Preserve current save behavior
+
+- Do not change the existing merge/save rules from the previous update.
+- Rejected rows remain skipped.
+- Service-time-only updates remain auto-approved.
+- The unmatched tab does not block saving and does not create separate database actions.
+
+### Files to update
 
 - `src/pages/ImportUserbase.tsx`
-  - keep track of rejected rows.
-  - replace full delete/reinsert with insert/update operations for approved rows only.
-  - pass rejection controls into `ImportChangePreview`.
+  - compute unmatched GSM/Samsaran Staff rows during parse.
+  - store and pass them into the preview component.
+  - clear unmatched state when cancelling/resetting preview.
+- `src/components/userbase/ImportChangePreview.tsx`
+  - add `unmatchedRows` prop/type.
+  - add the “Unmatched extracts” tab and render the informational table.
 
 ### Out of scope
 
-- New database tables or Supabase schema changes.
-- Changing the CSV/GSM/Samsaran parsing rules.
-- Editing individual field-level diffs inside the review screen; this request rejects or accepts an entire row.
+- Changing how rows are merged into `users_clean`.
+- Excluding Affiliates from import/save generally; Affiliates are excluded only from this unmatched comparison, as requested.

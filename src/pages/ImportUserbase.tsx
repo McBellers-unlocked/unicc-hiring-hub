@@ -8,7 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, ArrowLeft, FileSpreadsheet, X, Sparkles } from 'lucide-react';
 import { DIVISION_UNITS } from '@/lib/organizationConstants';
 import { supabase } from '@/integrations/supabase/client';
-import { ImportChangePreview, type RowChange } from '@/components/userbase/ImportChangePreview';
+import type { Database } from '@/integrations/supabase/types';
+import { ImportChangePreview, type RowChange, type UnmatchedExtractRow } from '@/components/userbase/ImportChangePreview';
 import { computeChangeSet, fetchExistingRows } from '@/lib/userbaseChangeSet';
 
 const ALLOWED_EXTENSIONS = ['.csv', '.xls', '.xlsx'];
@@ -367,6 +368,51 @@ const outerJoin = (
   return { columns, rows: Array.from(merged.values()) };
 };
 
+const comparisonKeyOf = (email: string, staffNum: string) => {
+  const em = (email || '').toString().trim().toLowerCase();
+  if (em) return `em:${em}`;
+  const sn = (staffNum || '').toString().trim().toLowerCase();
+  if (sn) return `sn:${sn}`;
+  return '';
+};
+
+const computeUnmatchedExtractRows = (
+  gsmRows: Record<string, string>[],
+  samsRows: Record<string, string>[],
+): UnmatchedExtractRow[] => {
+  const samsStaffRows = samsRows.filter((r) => (r['Worker type'] || '').trim().toLowerCase() === 'staff');
+  const gsmKeys = new Set(gsmRows.map((r) => comparisonKeyOf(r['Email Address'], r['Staff Number'])).filter(Boolean));
+  const samsStaffKeys = new Set(samsStaffRows.map((r) => comparisonKeyOf(r['Email address'], r['Staff number'])).filter(Boolean));
+
+  return [
+    ...gsmRows
+      .filter((r) => {
+        const key = comparisonKeyOf(r['Email Address'], r['Staff Number']);
+        return key && !samsStaffKeys.has(key);
+      })
+      .map((r, idx) => ({
+        id: `gsm-${idx}-${comparisonKeyOf(r['Email Address'], r['Staff Number'])}`,
+        source: 'GSM only' as const,
+        name: r['Full Name'] || '',
+        email: r['Email Address'] || '',
+        staffNumber: r['Staff Number'] || '',
+      })),
+    ...samsStaffRows
+      .filter((r) => {
+        const key = comparisonKeyOf(r['Email address'], r['Staff number']);
+        return key && !gsmKeys.has(key);
+      })
+      .map((r, idx) => ({
+        id: `sams-${idx}-${comparisonKeyOf(r['Email address'], r['Staff number'])}`,
+        source: 'Samsaran Staff only' as const,
+        name: [r['First name'], r['Last name']].filter(Boolean).join(' ') || r['Search name'] || '',
+        email: r['Email address'] || '',
+        staffNumber: r['Staff number'] || '',
+        workerType: r['Worker type'] || '',
+      })),
+  ];
+};
+
 // ---- DB row mapping ----
 
 const COLUMN_TO_DB: Record<string, string> = {
@@ -407,14 +453,16 @@ const COLUMN_TO_DB: Record<string, string> = {
 
 const DATE_DB_COLS = new Set(['first_incumbency_start_date', 'entry_on_duty_date_who']);
 
-const toDbRow = (row: MergedRow, importedBy: string | null) => {
-  const out: Record<string, unknown> = {};
+type UsersCleanInsert = Database['public']['Tables']['users_clean']['Insert'];
+
+const toDbRow = (row: MergedRow, importedBy: string | null): UsersCleanInsert => {
+  const out: Partial<UsersCleanInsert> = {};
   for (const [label, dbCol] of Object.entries(COLUMN_TO_DB)) {
     const v = row[label] ?? '';
     if (DATE_DB_COLS.has(dbCol)) {
-      out[dbCol] = v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
+      out[dbCol as keyof UsersCleanInsert] = (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null) as never;
     } else {
-      out[dbCol] = v === '' ? null : v;
+      out[dbCol as keyof UsersCleanInsert] = (v === '' ? null : v) as never;
     }
   }
   out.samsaran_gender = null;
@@ -422,7 +470,7 @@ const toDbRow = (row: MergedRow, importedBy: string | null) => {
   out.source = row.__source ?? 'gsm';
   out.match_key = row.__match_key ?? null;
   out.imported_by = importedBy;
-  return out;
+  return out as UsersCleanInsert;
 };
 
 const chunk = <T,>(arr: T[], size: number): T[][] => {
@@ -442,6 +490,7 @@ export default function ImportUserbase() {
   const [parsedRows, setParsedRows] = useState<MergedRow[] | null>(null);
   const [parsedColumns, setParsedColumns] = useState<string[] | null>(null);
   const [changes, setChanges] = useState<RowChange[] | null>(null);
+  const [unmatchedRows, setUnmatchedRows] = useState<UnmatchedExtractRow[]>([]);
   const [rejectedKeys, setRejectedKeys] = useState<Set<string>>(new Set());
   const [parseSummary, setParseSummary] = useState<{ gsm: number; sams: number } | null>(null);
 
@@ -458,6 +507,7 @@ export default function ImportUserbase() {
       const gsm = transformGsm(gsmRaw);
       const sams = transformSamsaran(samsRaw);
       const { columns, rows } = outerJoin(gsm, sams);
+      const unmatched = computeUnmatchedExtractRows(gsm, sams);
 
       sessionStorage.setItem(
         'userbase:merged',
@@ -467,6 +517,7 @@ export default function ImportUserbase() {
       setParsedRows(rows);
       setParsedColumns(columns);
       setParseSummary({ gsm: gsm.length, sams: sams.length });
+      setUnmatchedRows(unmatched);
       setRejectedKeys(new Set());
 
       // Fetch existing and compute diff
@@ -498,6 +549,7 @@ export default function ImportUserbase() {
     setParsedRows(null);
     setParsedColumns(null);
     setChanges(null);
+    setUnmatchedRows([]);
     setRejectedKeys(new Set());
     setParseSummary(null);
   };
@@ -533,7 +585,7 @@ export default function ImportUserbase() {
       for (const batch of chunk(rowsToInsert, 500)) {
         const { error: insErr } = await supabase
           .from('users_clean')
-          .insert(batch as any);
+          .insert(batch);
         if (insErr) throw insErr;
       }
 
@@ -542,7 +594,7 @@ export default function ImportUserbase() {
         if (!row) continue;
         const { error: updErr } = await supabase
           .from('users_clean')
-          .update(toDbRow(row, importedBy) as any)
+          .update(toDbRow(row, importedBy))
           .eq('id', change.existingId!);
         if (updErr) throw updErr;
       }
@@ -631,6 +683,7 @@ export default function ImportUserbase() {
             )}
             <ImportChangePreview
               changes={changes ?? []}
+              unmatchedRows={unmatchedRows}
               loading={computing}
               onCancel={handleCancelPreview}
               onConfirm={handleConfirmSave}
