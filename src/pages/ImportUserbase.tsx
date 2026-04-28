@@ -165,6 +165,30 @@ const buildUnitToDivision = (): Map<string, string> => {
   return map;
 };
 
+const fetchUnitToDivision = async (): Promise<Map<string, string>> => {
+  const lookup = buildUnitToDivision();
+  const { data, error } = await supabase
+    .from('org_units')
+    .select('unit, full_name, division')
+    .eq('status', 'active');
+
+  if (error) {
+    console.warn('Unable to load org_units for division lookup; using static fallback.', error);
+    return lookup;
+  }
+
+  (data ?? []).forEach((row) => {
+    const division = String(row.division ?? '').trim();
+    if (!division) return;
+    const unit = String(row.unit ?? '').trim();
+    const fullName = String(row.full_name ?? '').trim();
+    if (unit) lookup.set(unit.toLowerCase(), division);
+    if (fullName) lookup.set(fullName.toLowerCase(), division);
+  });
+
+  return lookup;
+};
+
 const lookupDivision = (unit: string, lookup: Map<string, string>): string => {
   if (!unit) return '';
   const trimmed = unit.toString().trim();
@@ -249,8 +273,7 @@ const transformGsm = (rows: Record<string, unknown>[]) => {
   });
 };
 
-const transformSamsaran = (rows: Record<string, unknown>[]) => {
-  const lookup = buildUnitToDivision();
+const transformSamsaran = (rows: Record<string, unknown>[], lookup: Map<string, string>) => {
   const result: Record<string, string>[] = [];
   for (const row of rows) {
     const out: Record<string, string> = {};
@@ -500,12 +523,13 @@ export default function ImportUserbase() {
     if (!bothFilesReady) return;
     setParsing(true);
     try {
-      const [gsmRaw, samsRaw] = await Promise.all([
+      const [gsmRaw, samsRaw, unitLookup] = await Promise.all([
         readSheet(gsmFile!),
         readSheet(samsaranFile!),
+        fetchUnitToDivision(),
       ]);
       const gsm = transformGsm(gsmRaw);
-      const sams = transformSamsaran(samsRaw);
+      const sams = transformSamsaran(samsRaw, unitLookup);
       const { columns, rows } = outerJoin(gsm, sams);
       const unmatched = computeUnmatchedExtractRows(gsm, sams);
 
