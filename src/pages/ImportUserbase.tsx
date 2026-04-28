@@ -585,7 +585,7 @@ export default function ImportUserbase() {
       for (const batch of chunk(rowsToInsert, 500)) {
         const { error: insErr } = await supabase
           .from('users_clean')
-          .insert(batch as any);
+          .insert(batch);
         if (insErr) throw insErr;
       }
 
@@ -594,7 +594,7 @@ export default function ImportUserbase() {
         if (!row) continue;
         const { error: updErr } = await supabase
           .from('users_clean')
-          .update(toDbRow(row, importedBy) as any)
+          .update(toDbRow(row, importedBy))
           .eq('id', change.existingId!);
         if (updErr) throw updErr;
       }
