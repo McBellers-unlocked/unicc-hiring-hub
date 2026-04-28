@@ -487,6 +487,7 @@ export default function ImportUserbase() {
   const [parsedRows, setParsedRows] = useState<MergedRow[] | null>(null);
   const [parsedColumns, setParsedColumns] = useState<string[] | null>(null);
   const [changes, setChanges] = useState<RowChange[] | null>(null);
+  const [unmatchedRows, setUnmatchedRows] = useState<UnmatchedExtractRow[]>([]);
   const [rejectedKeys, setRejectedKeys] = useState<Set<string>>(new Set());
   const [parseSummary, setParseSummary] = useState<{ gsm: number; sams: number } | null>(null);
 
@@ -503,6 +504,7 @@ export default function ImportUserbase() {
       const gsm = transformGsm(gsmRaw);
       const sams = transformSamsaran(samsRaw);
       const { columns, rows } = outerJoin(gsm, sams);
+      const unmatched = computeUnmatchedExtractRows(gsm, sams);
 
       sessionStorage.setItem(
         'userbase:merged',
@@ -512,6 +514,7 @@ export default function ImportUserbase() {
       setParsedRows(rows);
       setParsedColumns(columns);
       setParseSummary({ gsm: gsm.length, sams: sams.length });
+      setUnmatchedRows(unmatched);
       setRejectedKeys(new Set());
 
       // Fetch existing and compute diff
@@ -543,6 +546,7 @@ export default function ImportUserbase() {
     setParsedRows(null);
     setParsedColumns(null);
     setChanges(null);
+    setUnmatchedRows([]);
     setRejectedKeys(new Set());
     setParseSummary(null);
   };
@@ -676,6 +680,7 @@ export default function ImportUserbase() {
             )}
             <ImportChangePreview
               changes={changes ?? []}
+              unmatchedRows={unmatchedRows}
               loading={computing}
               onCancel={handleCancelPreview}
               onConfirm={handleConfirmSave}
