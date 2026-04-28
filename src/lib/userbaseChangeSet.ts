@@ -49,6 +49,7 @@ export interface MergedRowLike {
 }
 
 export interface ExistingRow {
+  id?: string;
   [key: string]: unknown;
 }
 
@@ -78,7 +79,7 @@ const matchExisting = (
 };
 
 export async function fetchExistingRows(): Promise<ExistingRow[]> {
-  const cols = MAPPED_COLUMNS.map((c) => c.db).join(',');
+  const cols = ['id', ...MAPPED_COLUMNS.map((c) => c.db)].join(',');
   const all: ExistingRow[] = [];
   const pageSize = 1000;
   let from = 0;
@@ -152,6 +153,8 @@ export function computeChangeSet(
     out.push({
       matchKey,
       status: diffs.length === 0 ? 'unchanged' : 'updated',
+      existingId: typeof match.id === 'string' ? match.id : undefined,
+      isServiceTimeOnly: diffs.length === 1 && diffs[0].db === 'service_time_current_org',
       name,
       email,
       staffNumber,
