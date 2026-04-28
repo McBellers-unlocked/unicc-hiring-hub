@@ -8,7 +8,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { InlineTrackChanges } from '@/components/InlineTrackChanges';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RotateCcw, XCircle } from 'lucide-react';
 
 export type ChangeStatus = 'new' | 'updated' | 'unchanged';
 
@@ -22,6 +22,8 @@ export interface FieldDiff {
 export interface RowChange {
   matchKey: string;
   status: ChangeStatus;
+  existingId?: string;
+  isServiceTimeOnly?: boolean;
   name: string;
   email: string;
   staffNumber: string;
@@ -36,12 +38,14 @@ interface Props {
   onCancel: () => void;
   onConfirm: () => void;
   saving: boolean;
+  rejectedKeys: Set<string>;
+  onToggleRejected: (matchKey: string) => void;
 }
 
 const truncate = (s: string, n = 30) =>
   s.length > n ? s.slice(0, n - 1) + '…' : s;
 
-export function ImportChangePreview({ changes, loading, onCancel, onConfirm, saving }: Props) {
+export function ImportChangePreview({ changes, loading, onCancel, onConfirm, saving, rejectedKeys, onToggleRejected }: Props) {
   const [tab, setTab] = useState<'all' | 'new' | 'updated' | 'unchanged'>('all');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<RowChange | null>(null);
@@ -49,6 +53,7 @@ export function ImportChangePreview({ changes, loading, onCancel, onConfirm, sav
   const counts = useMemo(() => {
     const c = { new: 0, updated: 0, unchanged: 0, fields: 0 };
     for (const r of changes) {
+      if (r.status === 'updated' && r.isServiceTimeOnly) return;
       c[r.status]++;
       if (r.status === 'updated') c.fields += r.diffs.length;
     }
@@ -59,9 +64,9 @@ export function ImportChangePreview({ changes, loading, onCancel, onConfirm, sav
     const q = search.trim().toLowerCase();
     return changes.filter((r) => {
       if (tab === 'new' && r.status !== 'new') return false;
-      if (tab === 'updated' && r.status !== 'updated') return false;
+      if (tab === 'updated' && (r.status !== 'updated' || r.isServiceTimeOnly)) return false;
       if (tab === 'unchanged' && r.status !== 'unchanged') return false;
-      if (tab === 'all' && r.status === 'unchanged') return false;
+      if (tab === 'all' && (r.status === 'unchanged' || r.isServiceTimeOnly)) return false;
       if (!q) return true;
       return (
         r.name.toLowerCase().includes(q) ||
@@ -71,7 +76,8 @@ export function ImportChangePreview({ changes, loading, onCancel, onConfirm, sav
     });
   }, [changes, tab, search]);
 
-  const pendingCount = counts.new + counts.updated;
+  const autoApprovedCount = changes.filter((r) => r.status === 'updated' && r.isServiceTimeOnly && !rejectedKeys.has(r.matchKey)).length;
+  const pendingCount = changes.filter((r) => (r.status === 'new' || r.status === 'updated') && !rejectedKeys.has(r.matchKey)).length;
 
   if (loading) {
     return (
