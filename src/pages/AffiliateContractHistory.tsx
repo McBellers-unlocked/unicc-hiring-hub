@@ -99,6 +99,11 @@ export default function AffiliateContractHistory() {
 
   const daysInIteration = useMemo(() => totalDaysWorked % 220, [totalDaysWorked]);
 
+  const hasReachedIterationLimit = useMemo(
+    () => daysInIteration >= 220 || (totalDaysWorked > 0 && totalDaysWorked % 220 === 0),
+    [daysInIteration, totalDaysWorked]
+  );
+
   const contractBreakStart = useMemo(() => {
     if (totalDaysWorked > 0 && totalDaysWorked % 220 === 0 && rows?.length) {
       const latestEnd = rows
@@ -273,7 +278,9 @@ export default function AffiliateContractHistory() {
           <Card>
             <CardContent className="p-6">
               <p className="text-sm font-medium text-muted-foreground">Days Worked in This Iteration</p>
-              <h3 className="text-3xl font-bold mt-2">{daysInIteration} <span className="text-sm font-normal text-muted-foreground">/ 220</span></h3>
+              <h3 className={`text-3xl font-bold mt-2 ${hasReachedIterationLimit ? 'text-destructive' : ''}`}>
+                {daysInIteration} <span className={`text-sm font-normal ${hasReachedIterationLimit ? 'text-destructive' : 'text-muted-foreground'}`}>/ 220</span>
+              </h3>
             </CardContent>
           </Card>
           <Card>
