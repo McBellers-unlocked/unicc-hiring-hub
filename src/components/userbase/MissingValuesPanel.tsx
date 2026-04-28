@@ -37,14 +37,26 @@ const REQUIRED_FIELDS: { key: string; label: string }[] = [
 
 const GSM_ORIGIN_REQUIRED_FIELDS = new Set(['full_name', 'gsm_email_address']);
 
-const isBlank = (v: any) => v == null || String(v).trim() === '';
+type MissingValuesRow = Record<string, unknown> & {
+  id: string;
+  full_name?: string | null;
+  gsm_staff_number?: string | null;
+  samsaran_staff_number?: string | null;
+  gsm_email_address?: string | null;
+  samsaran_email_address?: string | null;
+  worker_type?: string | null;
+  source?: string | null;
+};
 
-const getMissingFields = (row: any) => REQUIRED_FIELDS.filter((field) => isBlank(row[field.key]));
+const isBlank = (v: unknown) => v == null || String(v).trim() === '';
 
-const isAffiliateWorker = (row: any) =>
+const getMissingFields = (row: MissingValuesRow) =>
+  REQUIRED_FIELDS.filter((field) => isBlank(row[field.key]));
+
+const isAffiliateWorker = (row: MissingValuesRow) =>
   String(row.worker_type ?? '').trim().toLowerCase() === 'affiliate';
 
-const isMissingOnlyGsmOriginFields = (row: any) => {
+const isMissingOnlyGsmOriginFields = (row: MissingValuesRow) => {
   const missing = getMissingFields(row);
   return (
     missing.length > 0 &&
@@ -88,7 +100,7 @@ export function MissingValuesPanel({ workerTypeOptions }: Props) {
       const { data, error } = await q;
       if (error) throw error;
       
-      let rows = (data ?? []) as any[];
+      let rows = (data ?? []) as MissingValuesRow[];
 
       // Second pass: rows where any required field is '' (not null) — fetch a broader page
       // and merge. Bounded to 5000 rows total.
@@ -100,7 +112,7 @@ export function MissingValuesPanel({ workerTypeOptions }: Props) {
         if (workerType !== 'all') q2 = q2.eq('worker_type', workerType);
         const { data: data2 } = await q2;
         const existing = new Set(rows.map((r) => r.id));
-        (data2 ?? []).forEach((r: any) => {
+        ((data2 ?? []) as MissingValuesRow[]).forEach((r) => {
           if (!existing.has(r.id) && getMissingFields(r).length > 0) {
             rows.push(r);
             existing.add(r.id);
