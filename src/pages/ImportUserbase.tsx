@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, ArrowLeft, FileSpreadsheet, X, Sparkles } from 'lucide-react';
 import { DIVISION_UNITS } from '@/lib/organizationConstants';
 import { supabase } from '@/integrations/supabase/client';
-import { ImportChangePreview, type RowChange } from '@/components/userbase/ImportChangePreview';
+import { ImportChangePreview, type RowChange, type UnmatchedExtractRow } from '@/components/userbase/ImportChangePreview';
 import { computeChangeSet, fetchExistingRows } from '@/lib/userbaseChangeSet';
 
 const ALLOWED_EXTENSIONS = ['.csv', '.xls', '.xlsx'];
@@ -365,6 +365,51 @@ const outerJoin = (
   }
 
   return { columns, rows: Array.from(merged.values()) };
+};
+
+const comparisonKeyOf = (email: string, staffNum: string) => {
+  const em = (email || '').toString().trim().toLowerCase();
+  if (em) return `em:${em}`;
+  const sn = (staffNum || '').toString().trim().toLowerCase();
+  if (sn) return `sn:${sn}`;
+  return '';
+};
+
+const computeUnmatchedExtractRows = (
+  gsmRows: Record<string, string>[],
+  samsRows: Record<string, string>[],
+): UnmatchedExtractRow[] => {
+  const samsStaffRows = samsRows.filter((r) => (r['Worker type'] || '').trim().toLowerCase() === 'staff');
+  const gsmKeys = new Set(gsmRows.map((r) => comparisonKeyOf(r['Email Address'], r['Staff Number'])).filter(Boolean));
+  const samsStaffKeys = new Set(samsStaffRows.map((r) => comparisonKeyOf(r['Email address'], r['Staff number'])).filter(Boolean));
+
+  return [
+    ...gsmRows
+      .filter((r) => {
+        const key = comparisonKeyOf(r['Email Address'], r['Staff Number']);
+        return key && !samsStaffKeys.has(key);
+      })
+      .map((r, idx) => ({
+        id: `gsm-${idx}-${comparisonKeyOf(r['Email Address'], r['Staff Number'])}`,
+        source: 'GSM only' as const,
+        name: r['Full Name'] || '',
+        email: r['Email Address'] || '',
+        staffNumber: r['Staff Number'] || '',
+      })),
+    ...samsStaffRows
+      .filter((r) => {
+        const key = comparisonKeyOf(r['Email address'], r['Staff number']);
+        return key && !gsmKeys.has(key);
+      })
+      .map((r, idx) => ({
+        id: `sams-${idx}-${comparisonKeyOf(r['Email address'], r['Staff number'])}`,
+        source: 'Samsaran Staff only' as const,
+        name: [r['First name'], r['Last name']].filter(Boolean).join(' ') || r['Search name'] || '',
+        email: r['Email address'] || '',
+        staffNumber: r['Staff number'] || '',
+        workerType: r['Worker type'] || '',
+      })),
+  ];
 };
 
 // ---- DB row mapping ----
