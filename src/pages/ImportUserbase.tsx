@@ -442,6 +442,7 @@ export default function ImportUserbase() {
   const [parsedRows, setParsedRows] = useState<MergedRow[] | null>(null);
   const [parsedColumns, setParsedColumns] = useState<string[] | null>(null);
   const [changes, setChanges] = useState<RowChange[] | null>(null);
+  const [rejectedKeys, setRejectedKeys] = useState<Set<string>>(new Set());
   const [parseSummary, setParseSummary] = useState<{ gsm: number; sams: number } | null>(null);
 
   const bothFilesReady = !!gsmFile && !!samsaranFile;
@@ -466,6 +467,7 @@ export default function ImportUserbase() {
       setParsedRows(rows);
       setParsedColumns(columns);
       setParseSummary({ gsm: gsm.length, sams: sams.length });
+      setRejectedKeys(new Set());
 
       // Fetch existing and compute diff
       setComputing(true);
@@ -496,37 +498,60 @@ export default function ImportUserbase() {
     setParsedRows(null);
     setParsedColumns(null);
     setChanges(null);
+    setRejectedKeys(new Set());
     setParseSummary(null);
+  };
+
+  const handleToggleRejected = (matchKey: string) => {
+    setRejectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(matchKey)) next.delete(matchKey);
+      else next.add(matchKey);
+      return next;
+    });
   };
 
   const handleConfirmSave = async () => {
     if (!parsedRows || !changes) return;
     setSaving(true);
     try {
-      toast({ title: 'Saving to database…', description: `Persisting ${parsedRows.length} records.` });
+      const approvedChanges = changes.filter(
+        (c) => (c.status === 'new' || c.status === 'updated') && !rejectedKeys.has(c.matchKey),
+      );
+      toast({ title: 'Saving to database…', description: `Persisting ${approvedChanges.length} approved records.` });
 
       const { data: authData } = await supabase.auth.getUser();
       const importedBy = authData.user?.id ?? null;
 
-      const { error: delErr } = await supabase
-        .from('users_clean')
-        .delete()
-        .not('id', 'is', null);
-      if (delErr) throw delErr;
+      const rowByKey = new Map(parsedRows.map((r) => [String(r.__match_key ?? ''), r]));
+      const rowsToInsert = approvedChanges
+        .filter((c) => c.status === 'new')
+        .map((c) => rowByKey.get(c.matchKey))
+        .filter((r): r is MergedRow => Boolean(r))
+        .map((r) => toDbRow(r, importedBy));
 
-      const dbRows = parsedRows.map((r) => toDbRow(r, importedBy));
-      for (const batch of chunk(dbRows, 500)) {
+      for (const batch of chunk(rowsToInsert, 500)) {
         const { error: insErr } = await supabase
           .from('users_clean')
           .insert(batch as any);
         if (insErr) throw insErr;
       }
 
-      const newCount = changes.filter((c) => c.status === 'new').length;
-      const updatedCount = changes.filter((c) => c.status === 'updated').length;
+      for (const change of approvedChanges.filter((c) => c.status === 'updated' && c.existingId)) {
+        const row = rowByKey.get(change.matchKey);
+        if (!row) continue;
+        const { error: updErr } = await supabase
+          .from('users_clean')
+          .update(toDbRow(row, importedBy) as any)
+          .eq('id', change.existingId!);
+        if (updErr) throw updErr;
+      }
+
+      const newCount = approvedChanges.filter((c) => c.status === 'new').length;
+      const updatedCount = approvedChanges.filter((c) => c.status === 'updated').length;
       toast({
         title: 'Userbase saved',
-        description: `${parsedRows.length} records saved (${newCount} new, ${updatedCount} updated).`,
+        description: `${approvedChanges.length} records saved (${newCount} new, ${updatedCount} updated, ${rejectedKeys.size} rejected).`,
       });
       navigate('/admin/userbase');
     } catch (err) {
