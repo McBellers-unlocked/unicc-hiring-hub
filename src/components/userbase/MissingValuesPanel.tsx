@@ -100,7 +100,7 @@ export function MissingValuesPanel({ workerTypeOptions }: Props) {
       const { data, error } = await q;
       if (error) throw error;
       
-      let rows = (data ?? []) as MissingValuesRow[];
+      let rows = (data ?? []) as unknown as MissingValuesRow[];
 
       // Second pass: rows where any required field is '' (not null) — fetch a broader page
       // and merge. Bounded to 5000 rows total.
@@ -112,7 +112,7 @@ export function MissingValuesPanel({ workerTypeOptions }: Props) {
         if (workerType !== 'all') q2 = q2.eq('worker_type', workerType);
         const { data: data2 } = await q2;
         const existing = new Set(rows.map((r) => r.id));
-        ((data2 ?? []) as MissingValuesRow[]).forEach((r) => {
+        ((data2 ?? []) as unknown as MissingValuesRow[]).forEach((r) => {
           if (!existing.has(r.id) && getMissingFields(r).length > 0) {
             rows.push(r);
             existing.add(r.id);
