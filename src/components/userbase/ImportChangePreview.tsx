@@ -124,6 +124,7 @@ export function ImportChangePreview({ changes, unmatchedRows, loading, onCancel,
                 <TabsTrigger value="new">New ({counts.new})</TabsTrigger>
                 <TabsTrigger value="updated">Updated ({counts.updated})</TabsTrigger>
                 <TabsTrigger value="unchanged">Unchanged ({counts.unchanged})</TabsTrigger>
+                <TabsTrigger value="unmatched">Unmatched extracts ({unmatchedRows.length})</TabsTrigger>
               </TabsList>
             </Tabs>
             <Input
@@ -138,17 +139,47 @@ export function ImportChangePreview({ changes, unmatchedRows, loading, onCancel,
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
-                  <TableHead className="w-[100px]">Status</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Staff #</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Changes</TableHead>
-                  <TableHead className="w-[110px] text-right">Action</TableHead>
+                  {tab === 'unmatched' ? (
+                    <>
+                      <TableHead className="w-[170px]">Source</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Staff #</TableHead>
+                      <TableHead>Worker type</TableHead>
+                    </>
+                  ) : (
+                    <>
+                      <TableHead className="w-[100px]">Status</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Staff #</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead>Changes</TableHead>
+                      <TableHead className="w-[110px] text-right">Action</TableHead>
+                    </>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.length === 0 ? (
+                {tab === 'unmatched' ? (
+                  unmatchedRows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        No unmatched GSM or Samsaran Staff rows.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    unmatchedRows.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell><Badge variant="outline">{r.source}</Badge></TableCell>
+                        <TableCell className="font-medium">{r.name || '—'}</TableCell>
+                        <TableCell className="text-sm">{r.email || '—'}</TableCell>
+                        <TableCell className="text-sm">{r.staffNumber || '—'}</TableCell>
+                        <TableCell className="text-sm">{r.workerType || '—'}</TableCell>
+                      </TableRow>
+                    ))
+                  )
+                ) : filtered.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       No rows to display.
