@@ -626,10 +626,10 @@ export default function Userbase() {
           <div className="overflow-x-auto">
             <div className="overflow-y-auto" style={{ maxHeight: '65vh' }}>
               <Table className="min-w-max">
-                <TableHeader className="sticky top-0 bg-background z-10">
+                <TableHeader>
                   <TableRow>
                     {removeMode && canEdit && (
-                      <TableHead className="w-10 sticky left-0 bg-background">
+                      <TableHead className="w-10 sticky top-0 left-0 z-30 bg-background">
                         <Checkbox
                           checked={
                             (data?.rows.length ?? 0) > 0 &&
@@ -656,7 +656,7 @@ export default function Userbase() {
                           ? 'bg-blue-100 text-blue-900 dark:bg-blue-950/40 dark:text-blue-200'
                           : '';
                       return (
-                        <TableHead key={c.key} className={`whitespace-nowrap ${tint}`}>
+                        <TableHead key={c.key} className={`sticky top-0 z-20 whitespace-nowrap bg-background ${tint}`}>
                           <button
                             className="inline-flex items-center gap-1 hover:text-foreground"
                             onClick={() => toggleSort(c.key)}
