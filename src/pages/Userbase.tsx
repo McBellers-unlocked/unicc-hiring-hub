@@ -593,10 +593,22 @@ export default function Userbase() {
                   </Button>
                 </>
               ) : (
-                <Button variant="outline" onClick={() => setRemoveMode(true)}>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Remove rows
-                </Button>
+                <div className="flex items-center gap-3">
+                  <Button variant="outline" onClick={() => setRemoveMode(true)}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Remove rows
+                  </Button>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                      <span className="h-2.5 w-2.5 rounded-sm bg-blue-100 ring-1 ring-blue-300 dark:bg-blue-950/40 dark:ring-blue-700" />
+                      Samsaran
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                      <span className="h-2.5 w-2.5 rounded-sm bg-green-100 ring-1 ring-green-300 dark:bg-green-950/40 dark:ring-green-700" />
+                      GSM
+                    </span>
+                  </div>
+                </div>
               )
             )}
           </div>
