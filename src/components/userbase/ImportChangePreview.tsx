@@ -32,8 +32,18 @@ export interface RowChange {
   newFieldsCount: number;
 }
 
+export interface UnmatchedExtractRow {
+  id: string;
+  source: 'GSM only' | 'Samsaran Staff only';
+  name: string;
+  email: string;
+  staffNumber: string;
+  workerType?: string;
+}
+
 interface Props {
   changes: RowChange[];
+  unmatchedRows: UnmatchedExtractRow[];
   loading: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -45,8 +55,8 @@ interface Props {
 const truncate = (s: string, n = 30) =>
   s.length > n ? s.slice(0, n - 1) + '…' : s;
 
-export function ImportChangePreview({ changes, loading, onCancel, onConfirm, saving, rejectedKeys, onToggleRejected }: Props) {
-  const [tab, setTab] = useState<'all' | 'new' | 'updated' | 'unchanged'>('all');
+export function ImportChangePreview({ changes, unmatchedRows, loading, onCancel, onConfirm, saving, rejectedKeys, onToggleRejected }: Props) {
+  const [tab, setTab] = useState<'all' | 'new' | 'updated' | 'unchanged' | 'unmatched'>('all');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<RowChange | null>(null);
 
@@ -66,6 +76,7 @@ export function ImportChangePreview({ changes, loading, onCancel, onConfirm, sav
       if (tab === 'new' && r.status !== 'new') return false;
       if (tab === 'updated' && (r.status !== 'updated' || r.isServiceTimeOnly)) return false;
       if (tab === 'unchanged' && r.status !== 'unchanged') return false;
+      if (tab === 'unmatched') return false;
       if (tab === 'all' && (r.status === 'unchanged' || r.isServiceTimeOnly)) return false;
       if (!q) return true;
       return (
