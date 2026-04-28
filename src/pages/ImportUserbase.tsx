@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, ArrowLeft, FileSpreadsheet, X, Sparkles } from 'lucide-react';
 import { DIVISION_UNITS } from '@/lib/organizationConstants';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { ImportChangePreview, type RowChange, type UnmatchedExtractRow } from '@/components/userbase/ImportChangePreview';
 import { computeChangeSet, fetchExistingRows } from '@/lib/userbaseChangeSet';
 
@@ -452,14 +453,16 @@ const COLUMN_TO_DB: Record<string, string> = {
 
 const DATE_DB_COLS = new Set(['first_incumbency_start_date', 'entry_on_duty_date_who']);
 
-const toDbRow = (row: MergedRow, importedBy: string | null) => {
-  const out: Record<string, unknown> = {};
+type UsersCleanInsert = Database['public']['Tables']['users_clean']['Insert'];
+
+const toDbRow = (row: MergedRow, importedBy: string | null): UsersCleanInsert => {
+  const out: Partial<UsersCleanInsert> = {};
   for (const [label, dbCol] of Object.entries(COLUMN_TO_DB)) {
     const v = row[label] ?? '';
     if (DATE_DB_COLS.has(dbCol)) {
-      out[dbCol] = v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
+      out[dbCol as keyof UsersCleanInsert] = (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null) as never;
     } else {
-      out[dbCol] = v === '' ? null : v;
+      out[dbCol as keyof UsersCleanInsert] = (v === '' ? null : v) as never;
     }
   }
   out.samsaran_gender = null;
@@ -467,7 +470,7 @@ const toDbRow = (row: MergedRow, importedBy: string | null) => {
   out.source = row.__source ?? 'gsm';
   out.match_key = row.__match_key ?? null;
   out.imported_by = importedBy;
-  return out;
+  return out as UsersCleanInsert;
 };
 
 const chunk = <T,>(arr: T[], size: number): T[][] => {
