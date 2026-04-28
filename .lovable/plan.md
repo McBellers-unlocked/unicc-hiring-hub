@@ -1,35 +1,12 @@
-Plan to update Userbase → Rows with missing values
+Plan:
 
-I will update `src/components/userbase/MissingValuesPanel.tsx` only.
-
-Changes to make:
-1. Reuse the existing GSM-origin required-field definition:
-   - `full_name`
-   - `gsm_email_address`
-
-2. Add a display/export helper for missing fields so affiliate personnel do not show GSM-origin fields in the “Missing Fields” column:
-   - If `worker_type` is `Affiliate` case-insensitive, remove GSM-origin fields from the displayed missing-field list.
-   - If the row is not Affiliate, keep the existing missing-field list unchanged.
-
-3. Apply that helper consistently to:
-   - The “Missing Fields” badges in the table.
-   - The `missing_fields` value in the CSV export.
-
-4. Keep the existing row filtering logic intact:
-   - Affiliate rows missing only GSM-origin fields remain excluded from the table.
-   - Affiliate rows missing any non-GSM field remain visible, but their badges/export will only list the non-GSM missing fields.
+1. Update `/admin/affiliate-history/:id` so the “Days Worked in This Iteration” KPI turns red when the iteration reaches the 220-day limit.
+2. Treat both displayed states as threshold hits:
+   - `daysInIteration >= 220`, if the value is ever shown directly as 220.
+   - `totalDaysWorked > 0 && totalDaysWorked % 220 === 0`, because the current modulo logic displays `0 / 220` exactly when a 220-day cycle has been completed.
+3. Apply red/destructive styling to the KPI value and `/ 220` suffix only when the threshold is reached, leaving the card layout unchanged.
 
 Technical details:
-```ts
-const getDisplayMissingFields = (row: MissingValuesRow) => {
-  const missing = getMissingFields(row);
-
-  if (!isAffiliateWorker(row)) return missing;
-
-  return missing.filter(
-    (field) => !GSM_ORIGIN_REQUIRED_FIELDS.has(field.key),
-  );
-};
-```
-
-No database, import, or RLS changes are needed.
+- File to edit: `src/pages/AffiliateContractHistory.tsx`.
+- Add a boolean such as `hasReachedIterationLimit` near the existing `daysInIteration` calculation.
+- Use a conditional class on the `<h3>` for “Days Worked in This Iteration”, e.g. normal styling by default and `text-destructive` when the threshold is reached.
