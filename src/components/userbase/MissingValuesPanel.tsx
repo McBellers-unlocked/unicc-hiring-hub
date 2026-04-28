@@ -35,7 +35,34 @@ const REQUIRED_FIELDS: { key: string; label: string }[] = [
   { key: 'category', label: 'Category' },
 ];
 
-const isBlank = (v: any) => v == null || String(v).trim() === '';
+const GSM_ORIGIN_REQUIRED_FIELDS = new Set(['full_name', 'gsm_email_address']);
+
+type MissingValuesRow = Record<string, unknown> & {
+  id: string;
+  full_name?: string | null;
+  gsm_staff_number?: string | null;
+  samsaran_staff_number?: string | null;
+  gsm_email_address?: string | null;
+  samsaran_email_address?: string | null;
+  worker_type?: string | null;
+  source?: string | null;
+};
+
+const isBlank = (v: unknown) => v == null || String(v).trim() === '';
+
+const getMissingFields = (row: MissingValuesRow) =>
+  REQUIRED_FIELDS.filter((field) => isBlank(row[field.key]));
+
+const isAffiliateWorker = (row: MissingValuesRow) =>
+  String(row.worker_type ?? '').trim().toLowerCase() === 'affiliate';
+
+const isMissingOnlyGsmOriginFields = (row: MissingValuesRow) => {
+  const missing = getMissingFields(row);
+  return (
+    missing.length > 0 &&
+    missing.every((field) => GSM_ORIGIN_REQUIRED_FIELDS.has(field.key))
+  );
+};
 
 interface Props {
   workerTypeOptions: string[];
@@ -73,7 +100,7 @@ export function MissingValuesPanel({ workerTypeOptions }: Props) {
       const { data, error } = await q;
       if (error) throw error;
       
-      let rows = (data ?? []) as any[];
+      let rows = (data ?? []) as unknown as MissingValuesRow[];
 
       // Second pass: rows where any required field is '' (not null) — fetch a broader page
       // and merge. Bounded to 5000 rows total.
@@ -85,8 +112,8 @@ export function MissingValuesPanel({ workerTypeOptions }: Props) {
         if (workerType !== 'all') q2 = q2.eq('worker_type', workerType);
         const { data: data2 } = await q2;
         const existing = new Set(rows.map((r) => r.id));
-        (data2 ?? []).forEach((r: any) => {
-          if (!existing.has(r.id) && REQUIRED_FIELDS.some((f) => isBlank(r[f.key]))) {
+        ((data2 ?? []) as unknown as MissingValuesRow[]).forEach((r) => {
+          if (!existing.has(r.id) && getMissingFields(r).length > 0) {
             rows.push(r);
             existing.add(r.id);
           }
@@ -94,7 +121,9 @@ export function MissingValuesPanel({ workerTypeOptions }: Props) {
       }
 
       // Final client-side filter to be sure
-      rows = rows.filter((r) => REQUIRED_FIELDS.some((f) => isBlank(r[f.key])));
+      rows = rows.filter(
+        (r) => getMissingFields(r).length > 0 && !(isAffiliateWorker(r) && isMissingOnlyGsmOriginFields(r)),
+      );
       return rows;
     },
   });
@@ -107,7 +136,7 @@ export function MissingValuesPanel({ workerTypeOptions }: Props) {
       name: r.full_name ?? r.samsaran_email_address ?? r.gsm_email_address ?? '',
       email: r.samsaran_email_address ?? r.gsm_email_address ?? '',
       worker_type: r.worker_type ?? '',
-      missing_fields: REQUIRED_FIELDS.filter((f) => isBlank(r[f.key]))
+      missing_fields: getMissingFields(r)
         .map((f) => f.label)
         .join('; '),
     }));
@@ -195,7 +224,7 @@ export function MissingValuesPanel({ workerTypeOptions }: Props) {
               )}
               {!isLoading &&
                 rows.map((r) => {
-                  const missing = REQUIRED_FIELDS.filter((f) => isBlank(r[f.key]));
+                  const missing = getMissingFields(r);
                   const displayName =
                     r.full_name ||
                     r.samsaran_email_address ||
