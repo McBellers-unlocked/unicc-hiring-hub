@@ -154,7 +154,7 @@ export function computeChangeSet(
       matchKey,
       status: diffs.length === 0 ? 'unchanged' : 'updated',
       existingId: typeof match.id === 'string' ? match.id : undefined,
-      isServiceTimeOnly: diffs.length === 1 && diffs[0].db === 'service_time_current_org',
+      isServiceTimeOnly: diffs.length === 1 && diffs[0].column === 'service_time_current_org',
       name,
       email,
       staffNumber,
