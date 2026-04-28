@@ -635,6 +635,8 @@ export default function ImportUserbase() {
               onCancel={handleCancelPreview}
               onConfirm={handleConfirmSave}
               saving={saving}
+              rejectedKeys={rejectedKeys}
+              onToggleRejected={handleToggleRejected}
             />
           </>
         )}
