@@ -64,6 +64,14 @@ const isMissingOnlyGsmOriginFields = (row: MissingValuesRow) => {
   );
 };
 
+const getDisplayMissingFields = (row: MissingValuesRow) => {
+  const missing = getMissingFields(row);
+
+  if (!isAffiliateWorker(row)) return missing;
+
+  return missing.filter((field) => !GSM_ORIGIN_REQUIRED_FIELDS.has(field.key));
+};
+
 interface Props {
   workerTypeOptions: string[];
 }
@@ -136,7 +144,7 @@ export function MissingValuesPanel({ workerTypeOptions }: Props) {
       name: r.full_name ?? r.samsaran_email_address ?? r.gsm_email_address ?? '',
       email: r.samsaran_email_address ?? r.gsm_email_address ?? '',
       worker_type: r.worker_type ?? '',
-      missing_fields: getMissingFields(r)
+      missing_fields: getDisplayMissingFields(r)
         .map((f) => f.label)
         .join('; '),
     }));
@@ -224,7 +232,7 @@ export function MissingValuesPanel({ workerTypeOptions }: Props) {
               )}
               {!isLoading &&
                 rows.map((r) => {
-                  const missing = getMissingFields(r);
+                  const missing = getDisplayMissingFields(r);
                   const displayName =
                     r.full_name ||
                     r.samsaran_email_address ||

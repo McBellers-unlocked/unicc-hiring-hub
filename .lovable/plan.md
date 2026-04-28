@@ -3,41 +3,31 @@ Plan to update Userbase → Rows with missing values
 I will update `src/components/userbase/MissingValuesPanel.tsx` only.
 
 Changes to make:
-1. Define the GSM-origin required fields used by the missing-values logic:
+1. Reuse the existing GSM-origin required-field definition:
    - `full_name`
    - `gsm_email_address`
 
-2. Keep the existing required-field detection intact, then add a final frontend filter so that a row is excluded when:
-   - `worker_type` is `Affiliate`, case-insensitive, and
-   - every missing required field is one of the GSM-origin fields above.
+2. Add a display/export helper for missing fields so affiliate personnel do not show GSM-origin fields in the “Missing Fields” column:
+   - If `worker_type` is `Affiliate` case-insensitive, remove GSM-origin fields from the displayed missing-field list.
+   - If the row is not Affiliate, keep the existing missing-field list unchanged.
 
-3. Keep affiliate rows visible when they are missing any non-GSM required field, including:
-   - `samsaran_email_address`
-   - `division`
-   - `unit`
-   - `job_title`
-   - `worker_type`
-   - `office_location`
-   - `line_manager`
-   - `category`
+3. Apply that helper consistently to:
+   - The “Missing Fields” badges in the table.
+   - The `missing_fields` value in the CSV export.
 
-4. Ensure the displayed row count and export output both use the filtered `rows` array, so affiliate rows missing only GSM-origin values are not shown or exported.
+4. Keep the existing row filtering logic intact:
+   - Affiliate rows missing only GSM-origin fields remain excluded from the table.
+   - Affiliate rows missing any non-GSM field remain visible, but their badges/export will only list the non-GSM missing fields.
 
 Technical details:
 ```ts
-const GSM_ORIGIN_REQUIRED_FIELDS = new Set(['full_name', 'gsm_email_address']);
-
-const getMissingFields = (row: any) =>
-  REQUIRED_FIELDS.filter((field) => isBlank(row[field.key]));
-
-const isAffiliateWorker = (row: any) =>
-  String(row.worker_type ?? '').trim().toLowerCase() === 'affiliate';
-
-const isMissingOnlyGsmOriginFields = (row: any) => {
+const getDisplayMissingFields = (row: MissingValuesRow) => {
   const missing = getMissingFields(row);
-  return (
-    missing.length > 0 &&
-    missing.every((field) => GSM_ORIGIN_REQUIRED_FIELDS.has(field.key))
+
+  if (!isAffiliateWorker(row)) return missing;
+
+  return missing.filter(
+    (field) => !GSM_ORIGIN_REQUIRED_FIELDS.has(field.key),
   );
 };
 ```
