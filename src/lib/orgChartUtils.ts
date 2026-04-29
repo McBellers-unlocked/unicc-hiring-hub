@@ -16,6 +16,7 @@ export interface OrgNode {
     directReports: number;
     isStack?: boolean;
     stackMembers?: OrgNode[];
+    hasManagees?: boolean;
   };
   children: OrgNode[];
 }
@@ -174,12 +175,18 @@ export function buildOrgTree(
     }
   });
   
+  const markManageeStatus = (node: OrgNode) => {
+    node.attributes.hasManagees = node.children.length > 0;
+    node.children.forEach(markManageeStatus);
+  };
+
   // Sort children alphabetically at each level
   const sortChildren = (node: OrgNode) => {
     node.children.sort((a, b) => a.name.localeCompare(b.name));
     node.children.forEach(sortChildren);
   };
   
+  rootNodes.forEach(markManageeStatus);
   rootNodes.forEach(sortChildren);
   rootNodes.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -230,7 +237,9 @@ const createLeafStackNode = (parent: OrgNode, leafChildren: OrgNode[]): OrgNode 
 export function stackBottomLayerReports(nodes: OrgNode[], threshold = 3): OrgNode[] {
   const transformNode = (node: OrgNode): OrgNode => {
     const transformedChildren = node.children.map(transformNode);
-    const leafChildren = transformedChildren.filter((child) => child.children.length === 0 && !child.attributes.isStack);
+    const leafChildren = transformedChildren.filter(
+      (child) => child.children.length === 0 && !child.attributes.isStack && !child.attributes.hasManagees
+    );
 
     if (leafChildren.length > threshold) {
       const nonLeafChildren = transformedChildren.filter((child) => child.children.length > 0 || child.attributes.isStack);
