@@ -14,6 +14,8 @@ export interface OrgNode {
     email: string;
     dutyStation?: string;
     directReports: number;
+    isStack?: boolean;
+    stackMembers?: OrgNode[];
   };
   children: OrgNode[];
 }
