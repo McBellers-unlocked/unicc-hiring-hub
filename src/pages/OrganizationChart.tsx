@@ -19,6 +19,41 @@ import { Users, Layers, Building2, TrendingUp, Network } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { toast } from 'sonner';
 
+interface UserbaseOrgRow {
+  id: string;
+  full_name: string | null;
+  samsaran_email_address: string | null;
+  gsm_email_address: string | null;
+  job_title: string | null;
+  position_name: string | null;
+  division: string | null;
+  unit: string | null;
+  current_grade: string | null;
+  worker_type: string | null;
+  category: string | null;
+  line_manager: string | null;
+  official_duty_station: string | null;
+  office_location: string | null;
+}
+
+const cleanValue = (value?: string | null) => {
+  const cleaned = value?.trim();
+  return cleaned && cleaned !== '-' ? cleaned : null;
+};
+
+const mapUserbaseRowToOrgUser = (row: UserbaseOrgRow): UserData => ({
+  id: row.id,
+  name: cleanValue(row.full_name) ?? cleanValue(row.samsaran_email_address) ?? cleanValue(row.gsm_email_address) ?? 'Unknown',
+  email: cleanValue(row.samsaran_email_address) ?? cleanValue(row.gsm_email_address) ?? '',
+  job_title: cleanValue(row.job_title) ?? cleanValue(row.position_name),
+  division: cleanValue(row.division) ?? cleanValue(row.unit),
+  current_grade: cleanValue(row.current_grade),
+  personnel_type: cleanValue(row.worker_type) ?? cleanValue(row.category),
+  affiliate_type: cleanValue(row.category),
+  line_manager: cleanValue(row.line_manager),
+  duty_station: cleanValue(row.official_duty_station) ?? cleanValue(row.office_location),
+});
+
 export default function OrganizationChartPage() {
   const chartRef = useRef<HTMLDivElement>(null);
   const [selectedDivision, setSelectedDivision] = useState('all');
@@ -27,18 +62,18 @@ export default function OrganizationChartPage() {
   const [orientation, setOrientation] = useState<'vertical' | 'horizontal'>('vertical');
   const [zoom, setZoom] = useState(0.7);
 
-  // Fetch users with line_manager data
+  // Fetch userbase records with line_manager data
   const { data: users, isLoading } = useQuery({
-    queryKey: ['org-chart-users'],
+    queryKey: ['org-chart-users-clean'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('users')
-        .select('id, name, email, job_title, division, current_grade, personnel_type, affiliate_type, line_manager, duty_station')
-        .not('name', 'is', null)
-        .order('name');
+        .from('users_clean')
+        .select('id, full_name, samsaran_email_address, gsm_email_address, job_title, position_name, division, unit, current_grade, worker_type, category, line_manager, official_duty_station, office_location')
+        .not('full_name', 'is', null)
+        .order('full_name');
       
       if (error) throw error;
-      return data as UserData[];
+      return (data as UserbaseOrgRow[]).map(mapUserbaseRowToOrgUser);
     },
   });
 
