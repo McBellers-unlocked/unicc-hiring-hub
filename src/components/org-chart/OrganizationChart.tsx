@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useMemo } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import Tree from 'react-d3-tree';
 import { OrgNode } from '@/lib/orgChartUtils';
 import { OrgChartNode } from './OrgChartNode';
@@ -33,6 +33,12 @@ export function OrganizationChart({
       });
     }
   }, [orientation]);
+
+  useEffect(() => {
+    onContainerResize();
+    window.addEventListener('resize', onContainerResize);
+    return () => window.removeEventListener('resize', onContainerResize);
+  }, [onContainerResize]);
 
   // Transform data for react-d3-tree format
   const treeData = useMemo(() => {
@@ -116,13 +122,13 @@ export function OrganizationChart({
             <DialogTitle>{selectedNode?.name}</DialogTitle>
           </DialogHeader>
           {selectedNode && (
-            <div className="space-y-4">
+            <div className="overflow-y-auto max-h-[60vh] space-y-4">
               <div className="text-lg font-medium text-muted-foreground">
                 {selectedNode.attributes.title}
               </div>
               
               <div className="flex flex-wrap gap-2">
-                {selectedNode.attributes.grade && (
+                {selectedNode.attributes.grade && !selectedNode.attributes.isAffiliate && (
                   <Badge variant="outline">{selectedNode.attributes.grade}</Badge>
                 )}
                 <Badge variant="secondary">{selectedNode.attributes.personnelType}</Badge>
