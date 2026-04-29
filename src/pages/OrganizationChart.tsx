@@ -10,6 +10,7 @@ import {
   filterTreeByPersonnelType, 
   limitTreeDepth,
   getTreeStats,
+  stackBottomLayerReports,
   hasReportingLine,
   isAffiliatePersonnel,
   UserData
@@ -118,6 +119,7 @@ export default function OrganizationChartPage() {
     tree = filterTreeByDivision(tree, selectedDivision);
     tree = filterTreeByPersonnelType(tree, selectedTypes);
     tree = limitTreeDepth(tree, selectedDepth);
+    tree = stackBottomLayerReports(tree);
     
     const treeStats = getTreeStats(tree);
 
