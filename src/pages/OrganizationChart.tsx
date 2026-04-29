@@ -10,6 +10,9 @@ import {
   filterTreeByPersonnelType, 
   limitTreeDepth,
   getTreeStats,
+  getDivisionSegmentTree,
+  hasReportingLine,
+  isAffiliatePersonnel,
   OrgNode,
   UserData
 } from '@/lib/orgChartUtils';
@@ -53,6 +56,9 @@ const mapUserbaseRowToOrgUser = (row: UserbaseOrgRow): UserData => ({
   line_manager: cleanValue(row.line_manager),
   duty_station: cleanValue(row.official_duty_station) ?? cleanValue(row.office_location),
 });
+
+const isSameerChauhan = (user: UserData) =>
+  user.email?.toLowerCase().trim() === 'chauhan@unicc.org' || /sameer/i.test(user.name) && /chauhan/i.test(user.name);
 
 export default function OrganizationChartPage() {
   const chartRef = useRef<HTMLDivElement>(null);
