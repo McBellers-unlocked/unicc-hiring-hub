@@ -7,6 +7,7 @@ export interface OrgNode {
     sourceName?: string;
     title: string;
     division: string;
+    unit?: string;
     grade: string;
     personnelType: string;
     affiliateType?: string;
@@ -27,6 +28,7 @@ export interface UserData {
   email: string;
   job_title?: string | null;
   division?: string | null;
+  unit?: string | null;
   current_grade?: string | null;
   personnel_type?: string | null;
   affiliate_type?: string | null;
@@ -148,6 +150,7 @@ export function buildOrgTree(
         sourceName: user.name,
         title: user.job_title || 'No title',
         division: user.division || 'Unknown',
+        unit: user.unit || undefined,
         grade: isAffiliate ? '' : user.current_grade || '',
         personnelType: user.personnel_type || user.affiliate_type || 'Staff',
         affiliateType: user.affiliate_type || undefined,
