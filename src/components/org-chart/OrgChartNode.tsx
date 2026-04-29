@@ -24,13 +24,13 @@ export const OrgChartNode = memo(({ nodeDatum, isCollapsed, onToggle, onNodeClic
     .slice(0, 2);
 
   if (isStack) {
-    const stackHeight = Math.min(320, Math.max(96, stackMembers.length * 46 + 16));
+    const stackHeight = Math.min(360, Math.max(112, stackMembers.length * 56 + 20));
 
     return (
       <g>
-        <foreignObject x={-140} y={-24} width={280} height={stackHeight}>
-          <div className="w-full h-full rounded-lg border-2 border-border bg-card shadow-md p-2 overflow-hidden">
-            <div className="flex h-full flex-col gap-1.5 overflow-y-auto pr-1">
+        <foreignObject x={-160} y={18} width={320} height={stackHeight}>
+          <div className="w-full h-full rounded-lg border-2 border-border bg-card shadow-md p-2.5 overflow-hidden">
+            <div className="flex h-full flex-col gap-2 overflow-y-auto pr-1">
               {stackMembers.map((member) => {
                 const memberColors = getPersonnelTypeColor(member.attributes.personnelType);
                 const memberInitials = member.name
@@ -45,19 +45,19 @@ export const OrgChartNode = memo(({ nodeDatum, isCollapsed, onToggle, onNodeClic
                     key={member.attributes.id}
                     type="button"
                     onClick={() => onNodeClick?.(member)}
-                    className={`w-full rounded-md border ${memberColors.border} ${memberColors.bg} px-2 py-1.5 text-left transition-colors hover:bg-accent`}
+                    className={`w-full min-h-12 shrink-0 rounded-md border ${memberColors.border} ${memberColors.bg} px-2 py-1.5 text-left transition-colors hover:bg-accent`}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex min-w-0 items-center gap-2">
                       <Avatar className="h-7 w-7 shrink-0">
                         <AvatarFallback className={`text-[10px] font-semibold ${memberColors.text} bg-background`}>
                           {memberInitials}
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-xs font-semibold leading-tight text-foreground">
+                        <div className="truncate text-xs font-semibold leading-tight text-foreground" title={member.name}>
                           {member.name}
                         </div>
-                        <div className="truncate text-[10px] leading-snug text-muted-foreground">
+                        <div className="truncate text-[10px] leading-snug text-muted-foreground" title={member.attributes.title}>
                           {member.attributes.title}
                         </div>
                       </div>
