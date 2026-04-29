@@ -53,6 +53,7 @@ export function OrganizationChart({
           id: 'root',
           title: 'Organization',
           division: '',
+          unit: '',
           grade: '',
           personnelType: '',
           email: '',
@@ -143,6 +144,13 @@ export function OrganizationChart({
                   <Building2 className="h-4 w-4 text-muted-foreground" />
                   <span>{selectedNode.attributes.division}</span>
                 </div>
+
+                {selectedNode.attributes.unit && (
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <span>{selectedNode.attributes.unit}</span>
+                  </div>
+                )}
                 
                 {selectedNode.attributes.dutyStation && (
                   <div className="flex items-center gap-2">
