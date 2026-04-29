@@ -107,7 +107,10 @@ const findSameerChauhanKey = (users: UserData[], userKeys: Map<string, string>):
  * Build a hierarchical org tree from flat user data
  * Uses line_manager field to establish parent-child relationships
  */
-export function buildOrgTree(users: UserData[]): OrgNode[] {
+export function buildOrgTree(
+  users: UserData[],
+  options: { attachDisconnectedToRoot?: boolean } = {}
+): OrgNode[] {
   // Create a map for quick lookup by name (normalized)
   const nameToNodeMap = new Map<string, OrgNode>();
   const userPrimaryKeys = new Map<string, string>();
@@ -189,6 +192,15 @@ export function buildOrgTree(users: UserData[]): OrgNode[] {
     };
     markReachable(sameerRoot);
 
+    if (options.attachDisconnectedToRoot) {
+      rootNodes
+        .filter((node) => node.attributes.id !== sameerRoot.attributes.id && !reachable.has(node.attributes.id))
+        .forEach((node) => {
+          sameerRoot.children.push(node);
+          markReachable(node);
+        });
+    }
+
     sameerRoot.attributes.directReports = sameerRoot.children.length;
     sortChildren(sameerRoot);
     return [sameerRoot];
@@ -204,15 +216,14 @@ export function filterTreeByDivision(nodes: OrgNode[], division: string): OrgNod
   if (!division || division === 'all') return nodes;
   
   const filterNode = (node: OrgNode): OrgNode | null => {
-    // Check if this node matches
-    const nodeMatches = node.attributes.division === division;
+    const isRootAnchor = node.attributes.email?.toLowerCase().trim() === 'chauhan@unicc.org';
+    const nodeMatches = isRootAnchor || node.attributes.division === division;
     
     // Recursively filter children
     const filteredChildren = node.children
       .map(filterNode)
       .filter((n): n is OrgNode => n !== null);
     
-    // Include node if it matches or has matching descendants
     if (nodeMatches || filteredChildren.length > 0) {
       return {
         ...node,
@@ -228,28 +239,6 @@ export function filterTreeByDivision(nodes: OrgNode[], division: string): OrgNod
   };
   
   return nodes.map(filterNode).filter((n): n is OrgNode => n !== null);
-}
-
-export function getDivisionSegmentTree(nodes: OrgNode[], division: string): OrgNode[] {
-  const preserveAncestors = (node: OrgNode): OrgNode | null => {
-    const children = node.children
-      .map(preserveAncestors)
-      .filter((child): child is OrgNode => child !== null);
-    const matchesDivision = node.attributes.division === division;
-
-    if (!matchesDivision && children.length === 0) return null;
-
-    return {
-      ...node,
-      attributes: {
-        ...node.attributes,
-        directReports: children.length,
-      },
-      children,
-    };
-  };
-
-  return nodes.map(preserveAncestors).filter((node): node is OrgNode => node !== null);
 }
 
 /**

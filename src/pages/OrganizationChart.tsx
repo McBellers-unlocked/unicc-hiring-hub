@@ -10,10 +10,8 @@ import {
   filterTreeByPersonnelType, 
   limitTreeDepth,
   getTreeStats,
-  getDivisionSegmentTree,
   hasReportingLine,
   isAffiliatePersonnel,
-  OrgNode,
   UserData
 } from '@/lib/orgChartUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -84,8 +82,8 @@ export default function OrganizationChartPage() {
   });
 
   // Build and filter org tree
-  const { orgTree, segmentedTrees, stats, divisions, personnelTypes } = useMemo(() => {
-    if (!users) return { orgTree: [], segmentedTrees: [], stats: null, divisions: [], personnelTypes: [] };
+  const { orgTree, stats, divisions, personnelTypes } = useMemo(() => {
+    if (!users) return { orgTree: [], stats: null, divisions: [], personnelTypes: [] };
 
     const chartUsers = users
       .filter((user) => hasReportingLine(user.line_manager) || isSameerChauhan(user))
@@ -107,8 +105,14 @@ export default function OrganizationChartPage() {
       if (u.personnel_type) typeSet.add(u.personnel_type);
     });
 
+    const visibleUsers = selectedDivision === 'all'
+      ? chartUsers
+      : chartUsers.filter((user) => isSameerChauhan(user) || user.division === selectedDivision);
+
     // Build tree
-    let tree = buildOrgTree(chartUsers);
+    let tree = buildOrgTree(visibleUsers, {
+      attachDisconnectedToRoot: selectedDivision !== 'all',
+    });
     
     // Apply filters
     tree = filterTreeByDivision(tree, selectedDivision);
@@ -116,18 +120,9 @@ export default function OrganizationChartPage() {
     tree = limitTreeDepth(tree, selectedDepth);
     
     const treeStats = getTreeStats(tree);
-    const segmentSourceTree = filterTreeByPersonnelType(buildOrgTree(chartUsers), selectedTypes);
-    const divisionSegments = Array.from(divSet)
-      .sort()
-      .map((division) => ({
-        division,
-        tree: limitTreeDepth(getDivisionSegmentTree(segmentSourceTree, division), selectedDepth),
-      }))
-      .filter((segment) => segment.tree.length > 0);
 
     return {
       orgTree: tree,
-      segmentedTrees: divisionSegments,
       stats: treeStats,
       divisions: Array.from(divSet).sort(),
       personnelTypes: Array.from(typeSet).sort(),
@@ -270,37 +265,16 @@ export default function OrganizationChartPage() {
 
         {/* Chart */}
         <div ref={chartRef} className="mt-6 space-y-6">
-          {selectedDivision === 'all' ? (
-            segmentedTrees.map(({ division, tree }) => (
-              <Card key={division}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Building2 className="h-5 w-5 text-primary" />
-                    {division}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="h-[620px] w-full overflow-hidden bg-background">
-                    <OrgChartComponent 
-                      data={tree} 
-                      orientation={orientation}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <Card>
-              <CardContent className="p-0">
-                <div className="h-[650px] w-full overflow-hidden rounded-lg bg-background">
-                  <OrgChartComponent 
-                    data={orgTree} 
-                    orientation={orientation}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <Card>
+            <CardContent className="p-0">
+              <div className="h-[650px] w-full overflow-hidden rounded-lg bg-background">
+                <OrgChartComponent 
+                  data={orgTree} 
+                  orientation={orientation}
+                />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Division breakdown */}
