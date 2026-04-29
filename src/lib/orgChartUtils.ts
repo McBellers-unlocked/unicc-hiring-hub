@@ -226,6 +226,28 @@ export function filterTreeByDivision(nodes: OrgNode[], division: string): OrgNod
   return nodes.map(filterNode).filter((n): n is OrgNode => n !== null);
 }
 
+export function getDivisionSegmentTree(nodes: OrgNode[], division: string): OrgNode[] {
+  const preserveAncestors = (node: OrgNode): OrgNode | null => {
+    const children = node.children
+      .map(preserveAncestors)
+      .filter((child): child is OrgNode => child !== null);
+    const matchesDivision = node.attributes.division === division;
+
+    if (!matchesDivision && children.length === 0) return null;
+
+    return {
+      ...node,
+      attributes: {
+        ...node.attributes,
+        directReports: children.length,
+      },
+      children,
+    };
+  };
+
+  return nodes.map(preserveAncestors).filter((node): node is OrgNode => node !== null);
+}
+
 /**
  * Filter the org tree by personnel type
  */
