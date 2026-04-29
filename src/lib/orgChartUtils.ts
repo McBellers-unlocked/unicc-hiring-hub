@@ -4,11 +4,13 @@ export interface OrgNode {
   name: string;
   attributes: {
     id: string;
+    sourceName?: string;
     title: string;
     division: string;
     grade: string;
     personnelType: string;
     affiliateType?: string;
+    isAffiliate?: boolean;
     email: string;
     dutyStation?: string;
     directReports: number;
@@ -30,6 +32,32 @@ export interface UserData {
 }
 
 const TITLE_WORDS = new Set(['mr', 'ms', 'mrs', 'miss', 'dr', 'prof', 'sir', 'madam']);
+
+export const hasReportingLine = (manager?: string | null): boolean => {
+  const cleaned = manager?.trim();
+  return !!cleaned && cleaned !== '-';
+};
+
+export const isAffiliatePersonnel = (user: Pick<UserData, 'personnel_type' | 'affiliate_type'>): boolean => {
+  const type = `${user.personnel_type ?? ''} ${user.affiliate_type ?? ''}`.toLowerCase();
+  return type.includes('affiliate') || ['ic', 'intern', 'unv', 'jpo'].some((label) => type.split(/\s+/).includes(label));
+};
+
+const formatNameToken = (token: string, forceUppercase = false): string => {
+  if (!token) return token;
+  if (forceUppercase) return token.toUpperCase();
+  return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
+};
+
+export const formatDisplayName = (name: string): string => {
+  if (!name.includes(',')) return name.trim();
+
+  const [lastName, rest] = name.split(',', 2);
+  const firstTokens = tokenizeName(rest || '').map((token) => formatNameToken(token));
+  const lastTokens = tokenizeName(lastName || '').map((token) => formatNameToken(token, true));
+  const formatted = [...firstTokens, ...lastTokens].join(' ').trim();
+  return formatted || name.trim();
+};
 
 const tokenizeName = (name: string): string[] =>
   name
