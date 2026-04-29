@@ -340,6 +340,7 @@ export function limitTreeDepth(nodes: OrgNode[], maxDepth: number, currentDepth 
       attributes: {
         ...node.attributes,
         directReports: 0,
+        hasManagees: node.attributes.hasManagees || node.children.length > 0,
       },
       children: [],
     }));
