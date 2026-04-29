@@ -20,7 +20,7 @@ export function OrganizationChart({
 }: OrganizationChartProps) {
   const treeContainerRef = useRef<HTMLDivElement>(null);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(0.7);
+  const [zoom, setZoom] = useState(0.58);
   const [selectedNode, setSelectedNode] = useState<OrgNode | null>(null);
 
   // Center the tree on initial render
@@ -63,8 +63,15 @@ export function OrganizationChart({
     onNodeClick?.(node);
   };
 
-  const renderCustomNode = useCallback(({ nodeDatum }: { nodeDatum: any }) => {
-    return <OrgChartNode nodeDatum={nodeDatum} onNodeClick={handleNodeClick} />;
+  const renderCustomNode = useCallback(({ nodeDatum, toggleNode }: { nodeDatum: any; toggleNode: () => void }) => {
+    return (
+      <OrgChartNode
+        nodeDatum={nodeDatum}
+        isCollapsed={nodeDatum.__rd3t?.collapsed}
+        onToggle={toggleNode}
+        onNodeClick={handleNodeClick}
+      />
+    );
   }, []);
 
   if (!treeData) {
@@ -91,9 +98,10 @@ export function OrganizationChart({
             setZoom(newZoom);
             setTranslate(newTranslate);
           }}
-          nodeSize={{ x: 220, y: 140 }}
-          separation={{ siblings: 1.2, nonSiblings: 1.5 }}
+          nodeSize={{ x: 320, y: 180 }}
+          separation={{ siblings: 1.1, nonSiblings: 1.35 }}
           renderCustomNodeElement={renderCustomNode}
+          collapsible
           pathFunc="step"
           pathClassFunc={() => 'stroke-muted-foreground/40 stroke-2 fill-none'}
           enableLegacyTransitions
