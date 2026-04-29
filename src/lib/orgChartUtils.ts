@@ -416,7 +416,7 @@ export function getTreeStats(nodes: OrgNode[]) {
       maxDepth = Math.max(maxDepth, depth);
 
       if (node.attributes.isStack) {
-        node.attributes.stackMembers?.forEach(countPerson);
+        node.stackMembers?.forEach(countPerson);
         return;
       }
 
