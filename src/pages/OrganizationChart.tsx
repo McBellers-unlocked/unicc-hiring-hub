@@ -84,20 +84,31 @@ export default function OrganizationChartPage() {
   });
 
   // Build and filter org tree
-  const { orgTree, stats, divisions, personnelTypes } = useMemo(() => {
-    if (!users) return { orgTree: [], stats: null, divisions: [], personnelTypes: [] };
+  const { orgTree, segmentedTrees, stats, divisions, personnelTypes } = useMemo(() => {
+    if (!users) return { orgTree: [], segmentedTrees: [], stats: null, divisions: [], personnelTypes: [] };
+
+    const chartUsers = users
+      .filter((user) => hasReportingLine(user.line_manager) || isSameerChauhan(user))
+      .map((user) => {
+        const isAffiliate = isAffiliatePersonnel(user);
+        return {
+          ...user,
+          current_grade: isAffiliate ? null : user.current_grade,
+          affiliate_type: isAffiliate ? user.affiliate_type || user.personnel_type || 'Affiliate' : user.affiliate_type,
+        };
+      });
 
     // Get unique divisions and personnel types
     const divSet = new Set<string>();
     const typeSet = new Set<string>();
     
-    users.forEach(u => {
+    chartUsers.forEach(u => {
       if (u.division) divSet.add(u.division);
       if (u.personnel_type) typeSet.add(u.personnel_type);
     });
 
     // Build tree
-    let tree = buildOrgTree(users);
+    let tree = buildOrgTree(chartUsers);
     
     // Apply filters
     tree = filterTreeByDivision(tree, selectedDivision);
@@ -105,9 +116,18 @@ export default function OrganizationChartPage() {
     tree = limitTreeDepth(tree, selectedDepth);
     
     const treeStats = getTreeStats(tree);
+    const segmentSourceTree = filterTreeByPersonnelType(buildOrgTree(chartUsers), selectedTypes);
+    const divisionSegments = Array.from(divSet)
+      .sort()
+      .map((division) => ({
+        division,
+        tree: limitTreeDepth(getDivisionSegmentTree(segmentSourceTree, division), selectedDepth),
+      }))
+      .filter((segment) => segment.tree.length > 0);
 
     return {
       orgTree: tree,
+      segmentedTrees: divisionSegments,
       stats: treeStats,
       divisions: Array.from(divSet).sort(),
       personnelTypes: Array.from(typeSet).sort(),
