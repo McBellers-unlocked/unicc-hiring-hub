@@ -115,17 +115,20 @@ export function buildOrgTree(users: UserData[]): OrgNode[] {
   // First pass: create all nodes and add to map
   users.forEach(user => {
     const normalizedName = getPrimaryNameKey(user.name);
+    const isAffiliate = isAffiliatePersonnel(user);
     userPrimaryKeys.set(user.id, normalizedName);
     
     const node: OrgNode = {
-      name: user.name,
+      name: formatDisplayName(user.name),
       attributes: {
         id: user.id,
+        sourceName: user.name,
         title: user.job_title || 'No title',
         division: user.division || 'Unknown',
-        grade: user.current_grade || '',
-        personnelType: user.personnel_type || 'Staff',
+        grade: isAffiliate ? '' : user.current_grade || '',
+        personnelType: user.personnel_type || user.affiliate_type || 'Staff',
         affiliateType: user.affiliate_type || undefined,
+        isAffiliate,
         email: user.email,
         dutyStation: user.duty_station || undefined,
         directReports: 0,
@@ -147,7 +150,7 @@ export function buildOrgTree(users: UserData[]): OrgNode[] {
     
     if (!node) return;
     
-    if (user.line_manager) {
+    if (hasReportingLine(user.line_manager)) {
       const managerNode = getNameKeys(user.line_manager)
         .map((key) => nameToNodeMap.get(key))
         .find(Boolean);
@@ -185,19 +188,6 @@ export function buildOrgTree(users: UserData[]): OrgNode[] {
       node.children.forEach(markReachable);
     };
     markReachable(sameerRoot);
-
-    const disconnectedRoots = rootNodes.filter((node) => node.attributes.id !== sameerRoot.attributes.id && !reachable.has(node.attributes.id));
-    const fallbackDisconnected = disconnectedRoots.length
-      ? disconnectedRoots
-      : users
-          .map((user) => nameToNodeMap.get(userPrimaryKeys.get(user.id) ?? getPrimaryNameKey(user.name)))
-          .filter((node): node is OrgNode => !!node && node.attributes.id !== sameerRoot.attributes.id && !reachable.has(node.attributes.id));
-
-    fallbackDisconnected.forEach((node) => {
-      if (!sameerRoot.children.some((child) => child.attributes.id === node.attributes.id)) {
-        sameerRoot.children.push(node);
-      }
-    });
 
     sameerRoot.attributes.directReports = sameerRoot.children.length;
     sortChildren(sameerRoot);
