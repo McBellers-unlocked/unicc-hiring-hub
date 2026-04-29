@@ -32,6 +32,7 @@ export interface UserData {
   affiliate_type?: string | null;
   line_manager?: string | null;
   duty_station?: string | null;
+  has_managees?: boolean;
 }
 
 const TITLE_WORDS = new Set(['mr', 'ms', 'mrs', 'miss', 'dr', 'prof', 'sir', 'madam']);
@@ -106,6 +107,22 @@ const findSameerChauhanKey = (users: UserData[], userKeys: Map<string, string>):
   return sameer ? userKeys.get(sameer.id) ?? null : null;
 };
 
+
+export function markUsersWithManagees(users: UserData[]): UserData[] {
+  const managerKeys = new Set<string>();
+
+  users.forEach((user) => {
+    if (hasReportingLine(user.line_manager)) {
+      getNameKeys(user.line_manager).forEach((key) => managerKeys.add(key));
+    }
+  });
+
+  return users.map((user) => ({
+    ...user,
+    has_managees: getNameKeys(user.name).some((key) => managerKeys.has(key)),
+  }));
+}
+
 /**
  * Build a hierarchical org tree from flat user data
  * Uses line_manager field to establish parent-child relationships
@@ -138,6 +155,7 @@ export function buildOrgTree(
         email: user.email,
         dutyStation: user.duty_station || undefined,
         directReports: 0,
+        hasManagees: user.has_managees || false,
       },
       children: [],
     };
@@ -176,7 +194,7 @@ export function buildOrgTree(
   });
   
   const markManageeStatus = (node: OrgNode) => {
-    node.attributes.hasManagees = node.children.length > 0;
+    node.attributes.hasManagees = node.attributes.hasManagees || node.children.length > 0;
     node.children.forEach(markManageeStatus);
   };
 
