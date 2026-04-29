@@ -29,22 +29,65 @@ export interface UserData {
   duty_station?: string | null;
 }
 
+const TITLE_WORDS = new Set(['mr', 'ms', 'mrs', 'miss', 'dr', 'prof', 'sir', 'madam']);
+
+const tokenizeName = (name: string): string[] =>
+  name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z\s,-]/g, ' ')
+    .split(/[\s,-]+/)
+    .map((part) => part.trim())
+    .filter((part) => part && !TITLE_WORDS.has(part));
+
+const getNameKeys = (name: string): string[] => {
+  const exact = name.toLowerCase().trim();
+  const keys = new Set<string>([exact]);
+  const tokens = tokenizeName(name);
+
+  if (tokens.length) {
+    keys.add(tokens.join(' '));
+    keys.add([...tokens].sort().join(' '));
+  }
+
+  if (name.includes(',')) {
+    const [lastName, rest] = name.split(',', 2);
+    const reorderedTokens = [...tokenizeName(rest || ''), ...tokenizeName(lastName || '')];
+    if (reorderedTokens.length) {
+      keys.add(reorderedTokens.join(' '));
+      keys.add([...reorderedTokens].sort().join(' '));
+    }
+  }
+
+  return Array.from(keys).filter(Boolean);
+};
+
+const getPrimaryNameKey = (name: string): string => getNameKeys(name)[0] || name.toLowerCase().trim();
+
+const findSameerChauhanKey = (users: UserData[], userKeys: Map<string, string>): string | null => {
+  const sameer = users.find((user) => {
+    const email = user.email?.toLowerCase().trim();
+    const nameKeys = getNameKeys(user.name);
+    return email === 'chauhan@unicc.org' || nameKeys.includes('sameer chauhan') || nameKeys.includes('chauhan sameer');
+  });
+
+  return sameer ? userKeys.get(sameer.id) ?? null : null;
+};
+
 /**
  * Build a hierarchical org tree from flat user data
  * Uses line_manager field to establish parent-child relationships
  */
 export function buildOrgTree(users: UserData[]): OrgNode[] {
   // Create a map for quick lookup by name (normalized)
-  const userMap = new Map<string, UserData>();
   const nameToNodeMap = new Map<string, OrgNode>();
-  
-  // Normalize name for matching
-  const normalizeName = (name: string) => name.toLowerCase().trim();
+  const userPrimaryKeys = new Map<string, string>();
   
   // First pass: create all nodes and add to map
   users.forEach(user => {
-    const normalizedName = normalizeName(user.name);
-    userMap.set(normalizedName, user);
+    const normalizedName = getPrimaryNameKey(user.name);
+    userPrimaryKeys.set(user.id, normalizedName);
     
     const node: OrgNode = {
       name: user.name,
@@ -62,7 +105,7 @@ export function buildOrgTree(users: UserData[]): OrgNode[] {
       children: [],
     };
     
-    nameToNodeMap.set(normalizedName, node);
+    getNameKeys(user.name).forEach((key) => nameToNodeMap.set(key, node));
   });
   
   // Track root nodes (users with no manager or manager not in dataset)
@@ -71,14 +114,15 @@ export function buildOrgTree(users: UserData[]): OrgNode[] {
   
   // Second pass: establish parent-child relationships
   users.forEach(user => {
-    const normalizedName = normalizeName(user.name);
+    const normalizedName = userPrimaryKeys.get(user.id) ?? getPrimaryNameKey(user.name);
     const node = nameToNodeMap.get(normalizedName);
     
     if (!node) return;
     
     if (user.line_manager) {
-      const normalizedManagerName = normalizeName(user.line_manager);
-      const managerNode = nameToNodeMap.get(normalizedManagerName);
+      const managerNode = getNameKeys(user.line_manager)
+        .map((key) => nameToNodeMap.get(key))
+        .find(Boolean);
       
       if (managerNode) {
         managerNode.children.push(node);
@@ -102,6 +146,35 @@ export function buildOrgTree(users: UserData[]): OrgNode[] {
   
   rootNodes.forEach(sortChildren);
   rootNodes.sort((a, b) => a.name.localeCompare(b.name));
+
+  const sameerKey = findSameerChauhanKey(users, userPrimaryKeys);
+  const sameerRoot = sameerKey ? nameToNodeMap.get(sameerKey) : null;
+
+  if (sameerRoot) {
+    const reachable = new Set<string>();
+    const markReachable = (node: OrgNode) => {
+      reachable.add(node.attributes.id);
+      node.children.forEach(markReachable);
+    };
+    markReachable(sameerRoot);
+
+    const disconnectedRoots = rootNodes.filter((node) => node.attributes.id !== sameerRoot.attributes.id && !reachable.has(node.attributes.id));
+    const fallbackDisconnected = disconnectedRoots.length
+      ? disconnectedRoots
+      : users
+          .map((user) => nameToNodeMap.get(userPrimaryKeys.get(user.id) ?? getPrimaryNameKey(user.name)))
+          .filter((node): node is OrgNode => !!node && node.attributes.id !== sameerRoot.attributes.id && !reachable.has(node.attributes.id));
+
+    fallbackDisconnected.forEach((node) => {
+      if (!sameerRoot.children.some((child) => child.attributes.id === node.attributes.id)) {
+        sameerRoot.children.push(node);
+      }
+    });
+
+    sameerRoot.attributes.directReports = sameerRoot.children.length;
+    sortChildren(sameerRoot);
+    return [sameerRoot];
+  }
   
   return rootNodes;
 }
