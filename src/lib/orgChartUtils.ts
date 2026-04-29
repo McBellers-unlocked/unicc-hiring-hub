@@ -363,6 +363,8 @@ export function getPersonnelTypeColor(type: string): { bg: string; border: strin
       return { bg: 'bg-orange-50', border: 'border-orange-500', text: 'text-orange-700' };
     case 'JPO':
       return { bg: 'bg-cyan-50', border: 'border-cyan-500', text: 'text-cyan-700' };
+    case 'Affiliate':
+      return { bg: 'bg-muted', border: 'border-primary/50', text: 'text-primary' };
     default:
       return { bg: 'bg-gray-50', border: 'border-gray-400', text: 'text-gray-700' };
   }
