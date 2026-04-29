@@ -373,20 +373,30 @@ export function getTreeStats(nodes: OrgNode[]) {
   const divisionCounts: Record<string, number> = {};
   const typeCounts: Record<string, number> = {};
   
+  const countPerson = (node: OrgNode) => {
+    totalNodes++;
+
+    const div = node.attributes.division;
+    divisionCounts[div] = (divisionCounts[div] || 0) + 1;
+
+    const type = node.attributes.personnelType;
+    typeCounts[type] = (typeCounts[type] || 0) + 1;
+  };
+
   const traverse = (nodeList: OrgNode[], depth: number) => {
     nodeList.forEach(node => {
-      totalNodes++;
       maxDepth = Math.max(maxDepth, depth);
+
+      if (node.attributes.isStack) {
+        node.attributes.stackMembers?.forEach(countPerson);
+        return;
+      }
+
+      countPerson(node);
       
       if (node.children.length > 0) {
         managersCount++;
       }
-      
-      const div = node.attributes.division;
-      divisionCounts[div] = (divisionCounts[div] || 0) + 1;
-      
-      const type = node.attributes.personnelType;
-      typeCounts[type] = (typeCounts[type] || 0) + 1;
       
       traverse(node.children, depth + 1);
     });
