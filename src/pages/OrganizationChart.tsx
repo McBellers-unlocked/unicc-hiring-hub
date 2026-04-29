@@ -12,7 +12,6 @@ import {
   getTreeStats,
   hasReportingLine,
   isAffiliatePersonnel,
-  OrgNode,
   UserData
 } from '@/lib/orgChartUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
