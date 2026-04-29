@@ -25,6 +25,8 @@ import { toast } from 'sonner';
 interface UserbaseOrgRow {
   id: string;
   full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
   samsaran_email_address: string | null;
   gsm_email_address: string | null;
   job_title: string | null;
@@ -44,9 +46,20 @@ const cleanValue = (value?: string | null) => {
   return cleaned && cleaned !== '-' ? cleaned : null;
 };
 
+const getUserbaseDisplayName = (row: UserbaseOrgRow) => {
+  const fullName = cleanValue(row.full_name);
+  if (fullName) return fullName;
+
+  const firstName = cleanValue(row.first_name);
+  const lastName = cleanValue(row.last_name);
+  const combinedName = [firstName, lastName].filter(Boolean).join(' ').trim();
+
+  return combinedName || cleanValue(row.samsaran_email_address) || cleanValue(row.gsm_email_address) || 'Unknown';
+};
+
 const mapUserbaseRowToOrgUser = (row: UserbaseOrgRow): UserData => ({
   id: row.id,
-  name: cleanValue(row.full_name) ?? cleanValue(row.samsaran_email_address) ?? cleanValue(row.gsm_email_address) ?? 'Unknown',
+  name: getUserbaseDisplayName(row),
   email: cleanValue(row.samsaran_email_address) ?? cleanValue(row.gsm_email_address) ?? '',
   job_title: cleanValue(row.job_title) ?? cleanValue(row.position_name),
   division: cleanValue(row.division) ?? cleanValue(row.unit),
@@ -74,9 +87,9 @@ export default function OrganizationChartPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users_clean')
-        .select('id, full_name, samsaran_email_address, gsm_email_address, job_title, position_name, division, unit, current_grade, worker_type, category, line_manager, official_duty_station, office_location')
-        .not('full_name', 'is', null)
-        .order('full_name');
+        .select('id, full_name, first_name, last_name, samsaran_email_address, gsm_email_address, job_title, position_name, division, unit, current_grade, worker_type, category, line_manager, official_duty_station, office_location')
+        .or('full_name.not.is.null,first_name.not.is.null,last_name.not.is.null,samsaran_email_address.not.is.null,gsm_email_address.not.is.null')
+        .order('full_name', { nullsFirst: false });
       
       if (error) throw error;
       return (data as UserbaseOrgRow[]).map(mapUserbaseRowToOrgUser);
