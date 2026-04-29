@@ -45,8 +45,13 @@ export const OrgChartNode = memo(({ nodeDatum, isCollapsed, onToggle, onNodeClic
                     key={member.attributes.id}
                     type="button"
                     onClick={() => onNodeClick?.(member)}
-                    className={`w-full min-h-12 shrink-0 rounded-md border ${memberColors.border} ${memberColors.bg} px-2 py-1.5 text-left transition-colors hover:bg-accent`}
+                    className={`relative w-full min-h-12 shrink-0 overflow-hidden rounded-md border ${memberColors.border} ${memberColors.bg} px-2 py-1.5 text-left transition-colors hover:bg-accent`}
                   >
+                    {member.attributes.unit && (
+                      <div className="pointer-events-none absolute inset-x-2 top-0 truncate text-right text-[9px] font-semibold uppercase tracking-wide text-muted-foreground/20">
+                        {member.attributes.unit}
+                      </div>
+                    )}
                     <div className="flex min-w-0 items-center gap-2">
                       <Avatar className="h-7 w-7 shrink-0">
                         <AvatarFallback className={`text-[10px] font-semibold ${memberColors.text} bg-background`}>
@@ -79,12 +84,17 @@ export const OrgChartNode = memo(({ nodeDatum, isCollapsed, onToggle, onNodeClic
         <div
           onClick={() => onNodeClick?.(nodeDatum)}
           className={`
-            w-full h-full rounded-lg border-2 shadow-md
+            relative w-full h-full overflow-hidden rounded-lg border-2 shadow-md
             ${typeColors.bg} ${typeColors.border}
             transition-all duration-200 hover:shadow-lg
             flex flex-col p-3 bg-card
           `}
         >
+          {nodeDatum.attributes.unit && (
+            <div className="pointer-events-none absolute inset-x-2 top-1 truncate text-right text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/20">
+              {nodeDatum.attributes.unit}
+            </div>
+          )}
           <div className="flex items-start gap-2.5 min-w-0">
             <Avatar className="h-9 w-9 shrink-0">
               <AvatarFallback className={`text-xs font-semibold ${typeColors.text} bg-background`}>

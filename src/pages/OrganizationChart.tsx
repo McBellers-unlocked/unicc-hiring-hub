@@ -7,7 +7,8 @@ import { OrgChartControls } from '@/components/org-chart/OrgChartControls';
 import { 
   buildOrgTree, 
   filterTreeByDivision, 
-  filterTreeByPersonnelType, 
+  filterTreeByPersonnelType,
+  hasReportingLine, 
   limitTreeDepth,
   getTreeStats,
   stackBottomLayerReports,
@@ -62,6 +63,7 @@ const mapUserbaseRowToOrgUser = (row: UserbaseOrgRow): UserData => ({
   email: cleanValue(row.samsaran_email_address) ?? cleanValue(row.gsm_email_address) ?? '',
   job_title: cleanValue(row.job_title) ?? cleanValue(row.position_name),
   division: cleanValue(row.division) ?? cleanValue(row.unit),
+  unit: cleanValue(row.unit),
   current_grade: cleanValue(row.current_grade),
   personnel_type: cleanValue(row.worker_type) ?? cleanValue(row.category),
   affiliate_type: cleanValue(row.category),
@@ -96,8 +98,8 @@ export default function OrganizationChartPage() {
   });
 
   // Build and filter org tree
-  const { orgTree, stats, divisions, personnelTypes } = useMemo(() => {
-    if (!users) return { orgTree: [], stats: null, divisions: [], personnelTypes: [] };
+  const { orgTree, missingReportingLineTree, stats, divisions, personnelTypes } = useMemo(() => {
+    if (!users) return { orgTree: [], missingReportingLineTree: [], stats: null, divisions: [], personnelTypes: [] };
 
     const chartUsers = markUsersWithManagees(users)
       .map((user) => {
@@ -118,9 +120,20 @@ export default function OrganizationChartPage() {
       if (u.personnel_type) typeSet.add(u.personnel_type);
     });
 
+    const missingReportingLineUsers = chartUsers.filter(
+      (user) => !isSameerChauhan(user) && !hasReportingLine(user.line_manager)
+    );
+    const hierarchyUsers = chartUsers.filter(
+      (user) => isSameerChauhan(user) || hasReportingLine(user.line_manager)
+    );
+
     const visibleUsers = selectedDivision === 'all'
-      ? chartUsers
-      : chartUsers.filter((user) => isSameerChauhan(user) || user.division === selectedDivision);
+      ? hierarchyUsers
+      : hierarchyUsers.filter((user) => isSameerChauhan(user) || user.division === selectedDivision);
+
+    const visibleMissingReportingLineUsers = selectedDivision === 'all'
+      ? missingReportingLineUsers
+      : missingReportingLineUsers.filter((user) => user.division === selectedDivision);
 
     // Build tree
     let tree = buildOrgTree(visibleUsers, {
@@ -133,10 +146,13 @@ export default function OrganizationChartPage() {
     tree = limitTreeDepth(tree, selectedDepth);
     tree = stackBottomLayerReports(tree);
     
-    const treeStats = getTreeStats(tree);
+    let missingReportingLineTree = stackBottomLayerReports(buildOrgTree(visibleMissingReportingLineUsers), 0);
+    missingReportingLineTree = filterTreeByPersonnelType(missingReportingLineTree, selectedTypes);
+    const treeStats = getTreeStats([...tree, ...missingReportingLineTree]);
 
     return {
       orgTree: tree,
+      missingReportingLineTree,
       stats: treeStats,
       divisions: Array.from(divSet).sort(),
       personnelTypes: Array.from(typeSet).sort(),
@@ -289,6 +305,25 @@ export default function OrganizationChartPage() {
               </div>
             </CardContent>
           </Card>
+
+          {missingReportingLineTree.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Users className="h-5 w-5 text-muted-foreground" />
+                  Personnel missing a reporting line
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="h-[420px] w-full overflow-hidden rounded-lg bg-background">
+                  <OrgChartComponent
+                    data={missingReportingLineTree}
+                    orientation={orientation}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Division breakdown */}
