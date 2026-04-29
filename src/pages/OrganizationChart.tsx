@@ -146,7 +146,8 @@ export default function OrganizationChartPage() {
     tree = limitTreeDepth(tree, selectedDepth);
     tree = stackBottomLayerReports(tree);
     
-    const missingReportingLineTree = stackBottomLayerReports(buildOrgTree(visibleMissingReportingLineUsers), 0);
+    let missingReportingLineTree = stackBottomLayerReports(buildOrgTree(visibleMissingReportingLineUsers), 0);
+    missingReportingLineTree = filterTreeByPersonnelType(missingReportingLineTree, selectedTypes);
     const treeStats = getTreeStats([...tree, ...missingReportingLineTree]);
 
     return {
