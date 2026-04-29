@@ -2,15 +2,18 @@ import { memo } from 'react';
 import { OrgNode, getPersonnelTypeColor } from '@/lib/orgChartUtils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Users } from 'lucide-react';
+import { ChevronDown, ChevronRight, Users } from 'lucide-react';
 
 interface OrgChartNodeProps {
   nodeDatum: OrgNode;
+  isCollapsed?: boolean;
+  onToggle?: () => void;
   onNodeClick?: (node: OrgNode) => void;
 }
 
-export const OrgChartNode = memo(({ nodeDatum, onNodeClick }: OrgChartNodeProps) => {
+export const OrgChartNode = memo(({ nodeDatum, isCollapsed, onToggle, onNodeClick }: OrgChartNodeProps) => {
   const typeColors = getPersonnelTypeColor(nodeDatum.attributes.personnelType);
+  const hasChildren = nodeDatum.attributes.directReports > 0;
   const initials = nodeDatum.name
     .split(' ')
     .map(n => n[0])
@@ -19,56 +22,65 @@ export const OrgChartNode = memo(({ nodeDatum, onNodeClick }: OrgChartNodeProps)
     .slice(0, 2);
 
   return (
-    <g onClick={() => onNodeClick?.(nodeDatum)} style={{ cursor: 'pointer' }}>
+    <g style={{ cursor: 'pointer' }}>
       {/* Card background */}
-      <foreignObject x={-100} y={-50} width={200} height={100}>
+      <foreignObject x={-140} y={-64} width={280} height={128}>
         <div
+          onClick={() => onNodeClick?.(nodeDatum)}
           className={`
             w-full h-full rounded-lg border-2 shadow-md
             ${typeColors.bg} ${typeColors.border}
-            transition-all duration-200 hover:shadow-lg hover:scale-105
-            flex flex-col items-center justify-center p-2
+            transition-all duration-200 hover:shadow-lg
+            flex flex-col p-3 bg-card
           `}
         >
-          {/* Avatar */}
-          <Avatar className="h-8 w-8 mb-1">
-            <AvatarFallback className={`text-xs font-semibold ${typeColors.text} bg-white`}>
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          
-          {/* Name */}
-          <div className="text-xs font-semibold text-foreground text-center truncate w-full px-1">
-            {nodeDatum.name}
-          </div>
-          
-          {/* Title */}
-          <div className="text-[10px] text-muted-foreground text-center truncate w-full px-1">
-            {nodeDatum.attributes.title}
+          <div className="flex items-start gap-2.5 min-w-0">
+            <Avatar className="h-9 w-9 shrink-0">
+              <AvatarFallback className={`text-xs font-semibold ${typeColors.text} bg-background`}>
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold leading-tight text-foreground break-words line-clamp-2">
+                {nodeDatum.name}
+              </div>
+              <div className="mt-1 text-[11px] leading-snug text-muted-foreground break-words line-clamp-2">
+                {nodeDatum.attributes.title}
+              </div>
+            </div>
           </div>
           
           {/* Badges row */}
-          <div className="flex items-center gap-1 mt-1">
-            {nodeDatum.attributes.grade && (
+          <div className="flex items-center justify-between gap-2 mt-auto pt-2">
+            <div className="flex items-center gap-1 min-w-0">
+            {nodeDatum.attributes.grade && !nodeDatum.attributes.isAffiliate && (
               <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">
                 {nodeDatum.attributes.grade}
               </Badge>
             )}
             <Badge 
               variant="secondary" 
-              className={`text-[9px] px-1 py-0 h-4 ${typeColors.text}`}
+              className={`text-[10px] px-1.5 py-0 h-5 max-w-24 truncate ${typeColors.text}`}
             >
               {nodeDatum.attributes.personnelType}
             </Badge>
-          </div>
-          
-          {/* Direct reports indicator */}
-          {nodeDatum.attributes.directReports > 0 && (
-            <div className="flex items-center gap-0.5 text-[9px] text-muted-foreground mt-0.5">
-              <Users className="h-2.5 w-2.5" />
-              {nodeDatum.attributes.directReports}
             </div>
-          )}
+            {hasChildren && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onToggle?.();
+                }}
+                className="flex shrink-0 items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+                aria-label={isCollapsed ? 'Expand direct reports' : 'Collapse direct reports'}
+              >
+                {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                <Users className="h-3 w-3" />
+                {nodeDatum.attributes.directReports}
+              </button>
+            )}
+          </div>
         </div>
       </foreignObject>
     </g>

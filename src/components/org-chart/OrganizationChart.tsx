@@ -1,5 +1,6 @@
-import { useCallback, useRef, useState, useMemo } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import Tree from 'react-d3-tree';
+import type { CustomNodeElementProps } from 'react-d3-tree';
 import { OrgNode } from '@/lib/orgChartUtils';
 import { OrgChartNode } from './OrgChartNode';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -20,7 +21,7 @@ export function OrganizationChart({
 }: OrganizationChartProps) {
   const treeContainerRef = useRef<HTMLDivElement>(null);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(0.7);
+  const [zoom, setZoom] = useState(0.58);
   const [selectedNode, setSelectedNode] = useState<OrgNode | null>(null);
 
   // Center the tree on initial render
@@ -33,6 +34,12 @@ export function OrganizationChart({
       });
     }
   }, [orientation]);
+
+  useEffect(() => {
+    onContainerResize();
+    window.addEventListener('resize', onContainerResize);
+    return () => window.removeEventListener('resize', onContainerResize);
+  }, [onContainerResize]);
 
   // Transform data for react-d3-tree format
   const treeData = useMemo(() => {
@@ -58,14 +65,21 @@ export function OrganizationChart({
     return data[0];
   }, [data]);
 
-  const handleNodeClick = (node: OrgNode) => {
+  const handleNodeClick = useCallback((node: OrgNode) => {
     setSelectedNode(node);
     onNodeClick?.(node);
-  };
+  }, [onNodeClick]);
 
-  const renderCustomNode = useCallback(({ nodeDatum }: { nodeDatum: any }) => {
-    return <OrgChartNode nodeDatum={nodeDatum} onNodeClick={handleNodeClick} />;
-  }, []);
+  const renderCustomNode = useCallback(({ nodeDatum, toggleNode }: CustomNodeElementProps) => {
+    return (
+      <OrgChartNode
+        nodeDatum={nodeDatum as unknown as OrgNode}
+        isCollapsed={nodeDatum.__rd3t?.collapsed}
+        onToggle={toggleNode}
+        onNodeClick={handleNodeClick}
+      />
+    );
+  }, [handleNodeClick]);
 
   if (!treeData) {
     return (
@@ -91,9 +105,10 @@ export function OrganizationChart({
             setZoom(newZoom);
             setTranslate(newTranslate);
           }}
-          nodeSize={{ x: 220, y: 140 }}
-          separation={{ siblings: 1.2, nonSiblings: 1.5 }}
+          nodeSize={{ x: 320, y: 180 }}
+          separation={{ siblings: 1.1, nonSiblings: 1.35 }}
           renderCustomNodeElement={renderCustomNode}
+          collapsible
           pathFunc="step"
           pathClassFunc={() => 'stroke-muted-foreground/40 stroke-2 fill-none'}
           enableLegacyTransitions
@@ -108,13 +123,13 @@ export function OrganizationChart({
             <DialogTitle>{selectedNode?.name}</DialogTitle>
           </DialogHeader>
           {selectedNode && (
-            <div className="space-y-4">
+            <div className="overflow-y-auto max-h-[60vh] space-y-4">
               <div className="text-lg font-medium text-muted-foreground">
                 {selectedNode.attributes.title}
               </div>
               
               <div className="flex flex-wrap gap-2">
-                {selectedNode.attributes.grade && (
+                {selectedNode.attributes.grade && !selectedNode.attributes.isAffiliate && (
                   <Badge variant="outline">{selectedNode.attributes.grade}</Badge>
                 )}
                 <Badge variant="secondary">{selectedNode.attributes.personnelType}</Badge>

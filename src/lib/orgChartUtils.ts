@@ -4,11 +4,13 @@ export interface OrgNode {
   name: string;
   attributes: {
     id: string;
+    sourceName?: string;
     title: string;
     division: string;
     grade: string;
     personnelType: string;
     affiliateType?: string;
+    isAffiliate?: boolean;
     email: string;
     dutyStation?: string;
     directReports: number;
@@ -30,6 +32,32 @@ export interface UserData {
 }
 
 const TITLE_WORDS = new Set(['mr', 'ms', 'mrs', 'miss', 'dr', 'prof', 'sir', 'madam']);
+
+export const hasReportingLine = (manager?: string | null): boolean => {
+  const cleaned = manager?.trim();
+  return !!cleaned && cleaned !== '-';
+};
+
+export const isAffiliatePersonnel = (user: Pick<UserData, 'personnel_type' | 'affiliate_type'>): boolean => {
+  const type = `${user.personnel_type ?? ''} ${user.affiliate_type ?? ''}`.toLowerCase();
+  return type.includes('affiliate') || ['ic', 'intern', 'unv', 'jpo'].some((label) => type.split(/\s+/).includes(label));
+};
+
+const formatNameToken = (token: string, forceUppercase = false): string => {
+  if (!token) return token;
+  if (forceUppercase) return token.toUpperCase();
+  return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
+};
+
+export const formatDisplayName = (name: string): string => {
+  if (!name.includes(',')) return name.trim();
+
+  const [lastName, rest] = name.split(',', 2);
+  const firstTokens = tokenizeName(rest || '').map((token) => formatNameToken(token));
+  const lastTokens = tokenizeName(lastName || '').map((token) => formatNameToken(token, true));
+  const formatted = [...firstTokens, ...lastTokens].join(' ').trim();
+  return formatted || name.trim();
+};
 
 const tokenizeName = (name: string): string[] =>
   name
@@ -87,17 +115,20 @@ export function buildOrgTree(users: UserData[]): OrgNode[] {
   // First pass: create all nodes and add to map
   users.forEach(user => {
     const normalizedName = getPrimaryNameKey(user.name);
+    const isAffiliate = isAffiliatePersonnel(user);
     userPrimaryKeys.set(user.id, normalizedName);
     
     const node: OrgNode = {
-      name: user.name,
+      name: formatDisplayName(user.name),
       attributes: {
         id: user.id,
+        sourceName: user.name,
         title: user.job_title || 'No title',
         division: user.division || 'Unknown',
-        grade: user.current_grade || '',
-        personnelType: user.personnel_type || 'Staff',
+        grade: isAffiliate ? '' : user.current_grade || '',
+        personnelType: user.personnel_type || user.affiliate_type || 'Staff',
         affiliateType: user.affiliate_type || undefined,
+        isAffiliate,
         email: user.email,
         dutyStation: user.duty_station || undefined,
         directReports: 0,
@@ -119,7 +150,7 @@ export function buildOrgTree(users: UserData[]): OrgNode[] {
     
     if (!node) return;
     
-    if (user.line_manager) {
+    if (hasReportingLine(user.line_manager)) {
       const managerNode = getNameKeys(user.line_manager)
         .map((key) => nameToNodeMap.get(key))
         .find(Boolean);
@@ -158,19 +189,6 @@ export function buildOrgTree(users: UserData[]): OrgNode[] {
     };
     markReachable(sameerRoot);
 
-    const disconnectedRoots = rootNodes.filter((node) => node.attributes.id !== sameerRoot.attributes.id && !reachable.has(node.attributes.id));
-    const fallbackDisconnected = disconnectedRoots.length
-      ? disconnectedRoots
-      : users
-          .map((user) => nameToNodeMap.get(userPrimaryKeys.get(user.id) ?? getPrimaryNameKey(user.name)))
-          .filter((node): node is OrgNode => !!node && node.attributes.id !== sameerRoot.attributes.id && !reachable.has(node.attributes.id));
-
-    fallbackDisconnected.forEach((node) => {
-      if (!sameerRoot.children.some((child) => child.attributes.id === node.attributes.id)) {
-        sameerRoot.children.push(node);
-      }
-    });
-
     sameerRoot.attributes.directReports = sameerRoot.children.length;
     sortChildren(sameerRoot);
     return [sameerRoot];
@@ -198,6 +216,10 @@ export function filterTreeByDivision(nodes: OrgNode[], division: string): OrgNod
     if (nodeMatches || filteredChildren.length > 0) {
       return {
         ...node,
+        attributes: {
+          ...node.attributes,
+          directReports: filteredChildren.length,
+        },
         children: filteredChildren,
       };
     }
@@ -206,6 +228,28 @@ export function filterTreeByDivision(nodes: OrgNode[], division: string): OrgNod
   };
   
   return nodes.map(filterNode).filter((n): n is OrgNode => n !== null);
+}
+
+export function getDivisionSegmentTree(nodes: OrgNode[], division: string): OrgNode[] {
+  const preserveAncestors = (node: OrgNode): OrgNode | null => {
+    const children = node.children
+      .map(preserveAncestors)
+      .filter((child): child is OrgNode => child !== null);
+    const matchesDivision = node.attributes.division === division;
+
+    if (!matchesDivision && children.length === 0) return null;
+
+    return {
+      ...node,
+      attributes: {
+        ...node.attributes,
+        directReports: children.length,
+      },
+      children,
+    };
+  };
+
+  return nodes.map(preserveAncestors).filter((node): node is OrgNode => node !== null);
 }
 
 /**
@@ -224,6 +268,10 @@ export function filterTreeByPersonnelType(nodes: OrgNode[], types: string[]): Or
     if (nodeMatches || filteredChildren.length > 0) {
       return {
         ...node,
+        attributes: {
+          ...node.attributes,
+          directReports: filteredChildren.length,
+        },
         children: filteredChildren,
       };
     }
@@ -241,14 +289,25 @@ export function limitTreeDepth(nodes: OrgNode[], maxDepth: number, currentDepth 
   if (currentDepth >= maxDepth) {
     return nodes.map(node => ({
       ...node,
+      attributes: {
+        ...node.attributes,
+        directReports: 0,
+      },
       children: [],
     }));
   }
   
-  return nodes.map(node => ({
-    ...node,
-    children: limitTreeDepth(node.children, maxDepth, currentDepth + 1),
-  }));
+  return nodes.map(node => {
+    const children = limitTreeDepth(node.children, maxDepth, currentDepth + 1);
+    return {
+      ...node,
+      attributes: {
+        ...node.attributes,
+        directReports: children.length,
+      },
+      children,
+    };
+  });
 }
 
 /**
@@ -323,6 +382,8 @@ export function getPersonnelTypeColor(type: string): { bg: string; border: strin
       return { bg: 'bg-orange-50', border: 'border-orange-500', text: 'text-orange-700' };
     case 'JPO':
       return { bg: 'bg-cyan-50', border: 'border-cyan-500', text: 'text-cyan-700' };
+    case 'Affiliate':
+      return { bg: 'bg-muted', border: 'border-primary/50', text: 'text-primary' };
     default:
       return { bg: 'bg-gray-50', border: 'border-gray-400', text: 'text-gray-700' };
   }
