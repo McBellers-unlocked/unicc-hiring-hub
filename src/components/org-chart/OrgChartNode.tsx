@@ -13,13 +13,64 @@ interface OrgChartNodeProps {
 
 export const OrgChartNode = memo(({ nodeDatum, isCollapsed, onToggle, onNodeClick }: OrgChartNodeProps) => {
   const typeColors = getPersonnelTypeColor(nodeDatum.attributes.personnelType);
-  const hasChildren = nodeDatum.attributes.directReports > 0;
+  const isStack = !!nodeDatum.attributes.isStack;
+  const stackMembers = nodeDatum.attributes.stackMembers ?? [];
+  const hasChildren = !isStack && nodeDatum.attributes.directReports > 0;
   const initials = nodeDatum.name
     .split(' ')
     .map(n => n[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);
+
+  if (isStack) {
+    const stackHeight = Math.min(320, Math.max(96, stackMembers.length * 46 + 16));
+
+    return (
+      <g>
+        <foreignObject x={-140} y={-stackHeight / 2} width={280} height={stackHeight}>
+          <div className="w-full h-full rounded-lg border-2 border-border bg-card shadow-md p-2 overflow-hidden">
+            <div className="flex h-full flex-col gap-1.5 overflow-y-auto pr-1">
+              {stackMembers.map((member) => {
+                const memberColors = getPersonnelTypeColor(member.attributes.personnelType);
+                const memberInitials = member.name
+                  .split(' ')
+                  .map((part) => part[0])
+                  .join('')
+                  .toUpperCase()
+                  .slice(0, 2);
+
+                return (
+                  <button
+                    key={member.attributes.id}
+                    type="button"
+                    onClick={() => onNodeClick?.(member)}
+                    className={`w-full rounded-md border ${memberColors.border} ${memberColors.bg} px-2 py-1.5 text-left transition-colors hover:bg-accent`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Avatar className="h-7 w-7 shrink-0">
+                        <AvatarFallback className={`text-[10px] font-semibold ${memberColors.text} bg-background`}>
+                          {memberInitials}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-xs font-semibold leading-tight text-foreground">
+                          {member.name}
+                        </div>
+                        <div className="truncate text-[10px] leading-snug text-muted-foreground">
+                          {member.attributes.title}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </foreignObject>
+      </g>
+    );
+  }
 
   return (
     <g style={{ cursor: 'pointer' }}>
