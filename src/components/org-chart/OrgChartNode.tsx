@@ -24,7 +24,7 @@ export const OrgChartNode = memo(({ nodeDatum, isCollapsed, onToggle, onNodeClic
     .slice(0, 2);
 
   if (isStack) {
-    const stackHeight = Math.max(96, stackMembers.length * 46 + 16);
+    const stackHeight = Math.min(320, Math.max(96, stackMembers.length * 46 + 16));
 
     return (
       <g>
