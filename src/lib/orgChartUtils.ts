@@ -211,6 +211,54 @@ export function buildOrgTree(
   return rootNodes;
 }
 
+const createLeafStackNode = (parent: OrgNode, leafChildren: OrgNode[]): OrgNode => ({
+  name: `${leafChildren.length} team members`,
+  attributes: {
+    id: `${parent.attributes.id}-leaf-stack`,
+    title: 'Bottom-layer direct reports',
+    division: parent.attributes.division,
+    grade: '',
+    personnelType: 'Group',
+    email: '',
+    directReports: leafChildren.length,
+    isStack: true,
+    stackMembers: leafChildren,
+  },
+  children: [],
+});
+
+export function stackBottomLayerReports(nodes: OrgNode[], threshold = 3): OrgNode[] {
+  const transformNode = (node: OrgNode): OrgNode => {
+    const transformedChildren = node.children.map(transformNode);
+    const leafChildren = transformedChildren.filter((child) => child.children.length === 0 && !child.attributes.isStack);
+
+    if (leafChildren.length > threshold) {
+      const nonLeafChildren = transformedChildren.filter((child) => child.children.length > 0 || child.attributes.isStack);
+      const children = [...nonLeafChildren, createLeafStackNode(node, leafChildren)];
+
+      return {
+        ...node,
+        attributes: {
+          ...node.attributes,
+          directReports: children.reduce((total, child) => total + (child.attributes.isStack ? child.attributes.directReports : 1), 0),
+        },
+        children,
+      };
+    }
+
+    return {
+      ...node,
+      attributes: {
+        ...node.attributes,
+        directReports: transformedChildren.length,
+      },
+      children: transformedChildren,
+    };
+  };
+
+  return nodes.map(transformNode);
+}
+
 /**
  * Filter the org tree by division
  */
