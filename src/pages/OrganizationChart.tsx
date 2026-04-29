@@ -11,6 +11,7 @@ import {
   limitTreeDepth,
   getTreeStats,
   stackBottomLayerReports,
+  markUsersWithManagees,
   hasReportingLine,
   isAffiliatePersonnel,
   UserData
@@ -86,7 +87,7 @@ export default function OrganizationChartPage() {
   const { orgTree, stats, divisions, personnelTypes } = useMemo(() => {
     if (!users) return { orgTree: [], stats: null, divisions: [], personnelTypes: [] };
 
-    const chartUsers = users
+    const chartUsers = markUsersWithManagees(users)
       .filter((user) => hasReportingLine(user.line_manager) || isSameerChauhan(user))
       .map((user) => {
         const isAffiliate = isAffiliatePersonnel(user);

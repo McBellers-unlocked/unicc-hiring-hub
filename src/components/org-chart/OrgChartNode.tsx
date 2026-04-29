@@ -28,7 +28,7 @@ export const OrgChartNode = memo(({ nodeDatum, isCollapsed, onToggle, onNodeClic
 
     return (
       <g>
-        <foreignObject x={-140} y={-stackHeight / 2} width={280} height={stackHeight}>
+        <foreignObject x={-140} y={-24} width={280} height={stackHeight}>
           <div className="w-full h-full rounded-lg border-2 border-border bg-card shadow-md p-2 overflow-hidden">
             <div className="flex h-full flex-col gap-1.5 overflow-y-auto pr-1">
               {stackMembers.map((member) => {

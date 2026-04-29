@@ -16,6 +16,7 @@ export interface OrgNode {
     directReports: number;
     isStack?: boolean;
     stackMembers?: OrgNode[];
+    hasManagees?: boolean;
   };
   children: OrgNode[];
 }
@@ -31,6 +32,7 @@ export interface UserData {
   affiliate_type?: string | null;
   line_manager?: string | null;
   duty_station?: string | null;
+  has_managees?: boolean;
 }
 
 const TITLE_WORDS = new Set(['mr', 'ms', 'mrs', 'miss', 'dr', 'prof', 'sir', 'madam']);
@@ -105,6 +107,22 @@ const findSameerChauhanKey = (users: UserData[], userKeys: Map<string, string>):
   return sameer ? userKeys.get(sameer.id) ?? null : null;
 };
 
+
+export function markUsersWithManagees(users: UserData[]): UserData[] {
+  const managerKeys = new Set<string>();
+
+  users.forEach((user) => {
+    if (hasReportingLine(user.line_manager)) {
+      getNameKeys(user.line_manager).forEach((key) => managerKeys.add(key));
+    }
+  });
+
+  return users.map((user) => ({
+    ...user,
+    has_managees: getNameKeys(user.name).some((key) => managerKeys.has(key)),
+  }));
+}
+
 /**
  * Build a hierarchical org tree from flat user data
  * Uses line_manager field to establish parent-child relationships
@@ -137,6 +155,7 @@ export function buildOrgTree(
         email: user.email,
         dutyStation: user.duty_station || undefined,
         directReports: 0,
+        hasManagees: user.has_managees || false,
       },
       children: [],
     };
@@ -174,12 +193,18 @@ export function buildOrgTree(
     }
   });
   
+  const markManageeStatus = (node: OrgNode) => {
+    node.attributes.hasManagees = node.attributes.hasManagees || node.children.length > 0;
+    node.children.forEach(markManageeStatus);
+  };
+
   // Sort children alphabetically at each level
   const sortChildren = (node: OrgNode) => {
     node.children.sort((a, b) => a.name.localeCompare(b.name));
     node.children.forEach(sortChildren);
   };
   
+  rootNodes.forEach(markManageeStatus);
   rootNodes.forEach(sortChildren);
   rootNodes.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -230,7 +255,9 @@ const createLeafStackNode = (parent: OrgNode, leafChildren: OrgNode[]): OrgNode 
 export function stackBottomLayerReports(nodes: OrgNode[], threshold = 3): OrgNode[] {
   const transformNode = (node: OrgNode): OrgNode => {
     const transformedChildren = node.children.map(transformNode);
-    const leafChildren = transformedChildren.filter((child) => child.children.length === 0 && !child.attributes.isStack);
+    const leafChildren = transformedChildren.filter(
+      (child) => child.children.length === 0 && !child.attributes.isStack && !child.attributes.hasManagees
+    );
 
     if (leafChildren.length > threshold) {
       const nonLeafChildren = transformedChildren.filter((child) => child.children.length > 0 || child.attributes.isStack);
@@ -331,6 +358,7 @@ export function limitTreeDepth(nodes: OrgNode[], maxDepth: number, currentDepth 
       attributes: {
         ...node.attributes,
         directReports: 0,
+        hasManagees: node.attributes.hasManagees || node.children.length > 0,
       },
       children: [],
     }));
