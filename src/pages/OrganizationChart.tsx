@@ -12,7 +12,6 @@ import {
   getTreeStats,
   stackBottomLayerReports,
   markUsersWithManagees,
-  hasReportingLine,
   isAffiliatePersonnel,
   UserData
 } from '@/lib/orgChartUtils';
@@ -83,7 +82,7 @@ export default function OrganizationChartPage() {
 
   // Fetch userbase records with line_manager data
   const { data: users, isLoading } = useQuery({
-    queryKey: ['org-chart-users-clean'],
+    queryKey: ['org-chart-users-clean-v2'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('users_clean')
@@ -101,7 +100,6 @@ export default function OrganizationChartPage() {
     if (!users) return { orgTree: [], stats: null, divisions: [], personnelTypes: [] };
 
     const chartUsers = markUsersWithManagees(users)
-      .filter((user) => hasReportingLine(user.line_manager) || isSameerChauhan(user))
       .map((user) => {
         const isAffiliate = isAffiliatePersonnel(user);
         return {
@@ -126,7 +124,7 @@ export default function OrganizationChartPage() {
 
     // Build tree
     let tree = buildOrgTree(visibleUsers, {
-      attachDisconnectedToRoot: selectedDivision !== 'all',
+      attachDisconnectedToRoot: true,
     });
     
     // Apply filters
