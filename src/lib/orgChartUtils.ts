@@ -216,6 +216,10 @@ export function filterTreeByDivision(nodes: OrgNode[], division: string): OrgNod
     if (nodeMatches || filteredChildren.length > 0) {
       return {
         ...node,
+        attributes: {
+          ...node.attributes,
+          directReports: filteredChildren.length,
+        },
         children: filteredChildren,
       };
     }
@@ -264,6 +268,10 @@ export function filterTreeByPersonnelType(nodes: OrgNode[], types: string[]): Or
     if (nodeMatches || filteredChildren.length > 0) {
       return {
         ...node,
+        attributes: {
+          ...node.attributes,
+          directReports: filteredChildren.length,
+        },
         children: filteredChildren,
       };
     }
@@ -281,14 +289,25 @@ export function limitTreeDepth(nodes: OrgNode[], maxDepth: number, currentDepth 
   if (currentDepth >= maxDepth) {
     return nodes.map(node => ({
       ...node,
+      attributes: {
+        ...node.attributes,
+        directReports: 0,
+      },
       children: [],
     }));
   }
   
-  return nodes.map(node => ({
-    ...node,
-    children: limitTreeDepth(node.children, maxDepth, currentDepth + 1),
-  }));
+  return nodes.map(node => {
+    const children = limitTreeDepth(node.children, maxDepth, currentDepth + 1);
+    return {
+      ...node,
+      attributes: {
+        ...node.attributes,
+        directReports: children.length,
+      },
+      children,
+    };
+  });
 }
 
 /**
