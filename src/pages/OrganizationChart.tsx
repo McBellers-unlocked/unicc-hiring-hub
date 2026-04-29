@@ -269,19 +269,39 @@ export default function OrganizationChartPage() {
         />
 
         {/* Chart */}
-        <Card className="mt-6">
-          <CardContent className="p-0">
-            <div 
-              ref={chartRef}
-              className="h-[600px] w-full overflow-hidden rounded-lg bg-background"
-            >
-              <OrgChartComponent 
-                data={orgTree} 
-                orientation={orientation}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <div ref={chartRef} className="mt-6 space-y-6">
+          {selectedDivision === 'all' ? (
+            segmentedTrees.map(({ division, tree }) => (
+              <Card key={division}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Building2 className="h-5 w-5 text-primary" />
+                    {division}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="h-[620px] w-full overflow-hidden bg-background">
+                    <OrgChartComponent 
+                      data={tree} 
+                      orientation={orientation}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <div className="h-[650px] w-full overflow-hidden rounded-lg bg-background">
+                  <OrgChartComponent 
+                    data={orgTree} 
+                    orientation={orientation}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         {/* Division breakdown */}
         {stats && (
