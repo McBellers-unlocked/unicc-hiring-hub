@@ -1,52 +1,40 @@
-I’ll update the Organization Chart so it is cleaner, division-segmented, includes affiliates, and supports collapsible branches.
+I’ll revise the Organization Chart changes so the chart is no longer segmented into separate division cards, and division filtering only shows records that truly belong to the selected division.
 
 Implementation plan:
 
-1. Data source and filtering
-   - Keep using `users_clean` as the main source, matching the Analytics/Userbase page.
-   - Include both Staff and Affiliate records from `users_clean`.
-   - Exclude records that do not have a real reporting line, while still keeping Sameer Chauhan as the required top/root record even though his `line_manager` is blank.
-   - Treat blank, `-`, and whitespace-only `line_manager` values as missing.
-   - For affiliates, display their affiliate/personnel type but suppress the grade badge/grade display.
+1. Remove division segmentation from the page
+   - Stop rendering one chart card per division when the Division filter is set to “All”.
+   - Render a single org chart again for both “All” and selected divisions.
+   - Remove the `segmentedTrees` logic from `src/pages/OrganizationChart.tsx`.
+   - Remove the unused `getDivisionSegmentTree` import and helper if it is no longer needed.
 
-2. Hierarchy behavior
-   - Keep Sameer Chauhan at the top of the complete chart.
-   - Build reporting relationships using the existing robust name-matching logic.
-   - Stop attaching unrelated/orphaned personnel to Sameer just to keep them visible; disconnected records without a valid path/reporting line will be excluded from the rendered chart.
-   - Preserve child sorting alphabetically within each manager.
+2. Fix incorrect records appearing in division filters
+   - Change the division filter behavior so selecting a division does not include people from other divisions merely because they are ancestors/managers of matching records.
+   - For example, if Milena GRECUCCIO is marked as DO in `users_clean`, she will not appear when CS is selected.
+   - Keep Sameer Chauhan as the required top/root node only when needed to anchor the filtered chart, but avoid showing unrelated non-matching personnel in the filtered result.
 
-3. Division segmentation
-   - Add a division-segmented presentation mode to the page.
-   - Show separate chart sections/cards per division (for example DO, DD, CS, DS, MS, OP), each using the hierarchy filtered to that division and retaining manager ancestors where needed so the reporting path remains understandable.
-   - Keep the existing division dropdown usable for focusing on one division, but make the default “All” view render division segments rather than one overwhelming mixed chart.
-   - Update stats/breakdown to count only included chart records, not excluded records without reporting lines.
+3. Preserve readable hierarchy without cross-division leakage
+   - For a selected division, build the chart from the same Userbase source (`users_clean`) but restrict displayed personnel to:
+     - Sameer Chauhan as the top anchor, and
+     - personnel whose `division` exactly matches the selected division, and
+     - only valid reporting relationships among those displayed records.
+   - If a selected-division employee reports through a manager from another division, that non-matching manager will not be displayed as a normal record. The employee will remain under the closest valid displayed manager if available, otherwise under Sameer as the division anchor.
+   - This keeps filtering accurate by division while still producing a usable chart.
 
-4. Visual cleanup for readability
-   - Redesign org chart node cards with wider boxes and more vertical room.
-   - Remove aggressive name truncation; use wrapping/line-clamp behavior so names like “KRAVITZ, Ms Meredith Rachel” are readable.
-   - Prefer a cleaned display name format for chart labels, e.g. `Meredith Rachel KRAVITZ`, while preserving the full source details in the dialog where useful.
-   - Increase font size/contrast for names and simplify badges so the name remains the primary visible element.
-   - Increase `react-d3-tree` node spacing to match the larger readable boxes.
+4. Keep previous accepted improvements
+   - Continue excluding personnel without valid reporting lines, except Sameer Chauhan.
+   - Continue including affiliates, with grade hidden for affiliate records.
+   - Keep the improved node readability and collapsible boxes.
+   - Keep the existing Division dropdown as a filter, not as a segmentation control.
 
-5. Collapsible boxes
-   - Enable explicit collapse/expand controls on each node with children.
-   - Use `react-d3-tree`’s built-in `toggleNode` support in the custom node renderer.
-   - Make clicking the expand/collapse control toggle children, while clicking the main card still opens the person detail dialog.
-   - Add a small direct-report count indicator so users know which boxes can expand.
-
-Technical files to update:
-- `src/lib/orgChartUtils.ts`
-  - Add helpers for display-name cleanup, affiliate detection, missing reporting-line detection, strict tree construction, and division-preserving filtering.
-  - Remove/replace the current orphan-attachment fallback.
-
+Technical files to update after approval:
 - `src/pages/OrganizationChart.tsx`
-  - Include affiliates from `users_clean`, map affiliate records without grade, filter out records without reporting lines except Sameer, and render segmented division chart cards for the default All view.
+  - Remove segmented rendering and compute a single filtered tree.
+  - Make stats and breakdown reflect the currently displayed tree.
 
-- `src/components/org-chart/OrganizationChart.tsx`
-  - Pass `toggleNode` into the custom node component, enable collapsibility, and adjust tree spacing/zoom defaults for larger readable cards.
-
-- `src/components/org-chart/OrgChartNode.tsx`
-  - Redesign node visuals, wrap names, hide grade for affiliates, and add a clear expand/collapse control.
+- `src/lib/orgChartUtils.ts`
+  - Replace the current division filtering logic with a strict division-filter strategy that prevents non-matching personnel from appearing.
+  - Remove or leave unused segmentation helper only if no longer referenced.
 
 - `src/components/org-chart/OrgChartControls.tsx` if needed
-  - Adjust labels/help text to reflect division segmentation and included personnel types.
+  - Keep labels simple: Division remains a filter, not a segmentation mode.
