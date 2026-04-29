@@ -15,10 +15,10 @@ export interface OrgNode {
     dutyStation?: string;
     directReports: number;
     isStack?: boolean;
-    stackMembers?: OrgNode[];
     hasManagees?: boolean;
   };
   children: OrgNode[];
+  stackMembers?: OrgNode[];
 }
 
 export interface UserData {
@@ -247,9 +247,9 @@ const createLeafStackNode = (parent: OrgNode, leafChildren: OrgNode[]): OrgNode 
     email: '',
     directReports: leafChildren.length,
     isStack: true,
-    stackMembers: leafChildren,
   },
   children: [],
+  stackMembers: leafChildren,
 });
 
 export function stackBottomLayerReports(nodes: OrgNode[], threshold = 3): OrgNode[] {
