@@ -14,7 +14,7 @@ interface OrgChartNodeProps {
 export const OrgChartNode = memo(({ nodeDatum, isCollapsed, onToggle, onNodeClick }: OrgChartNodeProps) => {
   const typeColors = getPersonnelTypeColor(nodeDatum.attributes.personnelType);
   const isStack = !!nodeDatum.attributes.isStack;
-  const stackMembers = nodeDatum.attributes.stackMembers ?? [];
+  const stackMembers = nodeDatum.stackMembers ?? [];
   const hasChildren = !isStack && nodeDatum.attributes.directReports > 0;
   const initials = nodeDatum.name
     .split(' ')
