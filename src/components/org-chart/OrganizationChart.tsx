@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import Tree from 'react-d3-tree';
+import type { CustomNodeElementProps } from 'react-d3-tree';
 import { OrgNode } from '@/lib/orgChartUtils';
 import { OrgChartNode } from './OrgChartNode';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -64,21 +65,21 @@ export function OrganizationChart({
     return data[0];
   }, [data]);
 
-  const handleNodeClick = (node: OrgNode) => {
+  const handleNodeClick = useCallback((node: OrgNode) => {
     setSelectedNode(node);
     onNodeClick?.(node);
-  };
+  }, [onNodeClick]);
 
-  const renderCustomNode = useCallback(({ nodeDatum, toggleNode }: { nodeDatum: any; toggleNode: () => void }) => {
+  const renderCustomNode = useCallback(({ nodeDatum, toggleNode }: CustomNodeElementProps) => {
     return (
       <OrgChartNode
-        nodeDatum={nodeDatum}
+        nodeDatum={nodeDatum as unknown as OrgNode}
         isCollapsed={nodeDatum.__rd3t?.collapsed}
         onToggle={toggleNode}
         onNodeClick={handleNodeClick}
       />
     );
-  }, []);
+  }, [handleNodeClick]);
 
   if (!treeData) {
     return (
