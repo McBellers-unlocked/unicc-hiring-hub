@@ -1,53 +1,52 @@
-Plan to update Manage / Organization Chart
+I’ll update the Organization Chart so it is cleaner, division-segmented, includes affiliates, and supports collapsible branches.
 
-1. Change the chart data source
-- Update `/admin/org-chart` to read from `public.users_clean`, matching the Analytics / Userbase page source.
-- Select the relevant Userbase fields:
-  - `id`
-  - `full_name`
-  - `samsaran_email_address` / `gsm_email_address`
-  - `job_title` / `position_name`
-  - `division`, `unit`
-  - `current_grade`
-  - `worker_type`, `category`
-  - `line_manager`
-  - `official_duty_station` / `office_location`
-- Prefer Samsaran fields where they are the authoritative source for org structure, especially `job_title`, `line_manager`, `unit`, and `division`; use GSM fields as display fallbacks where needed.
+Implementation plan:
 
-2. Normalize names so hierarchy matching works
-- The existing org chart matches `line_manager` directly against employee `name`.
-- Userbase currently stores employee names like `CHAUHAN, Mr Sameer`, while line managers often appear like `Sameer CHAUHAN`.
-- Add normalization logic in `src/lib/orgChartUtils.ts` to create comparable keys from both formats by:
-  - removing honorifics/titles such as Mr, Ms, Mrs, Miss, Dr
-  - ignoring punctuation and excess whitespace
-  - supporting both `LASTNAME, Firstname` and `Firstname LASTNAME`
-  - falling back to the existing exact lowercase match when appropriate
-- This should reduce the large number of unmatched manager relationships from Userbase.
+1. Data source and filtering
+   - Keep using `users_clean` as the main source, matching the Analytics/Userbase page.
+   - Include both Staff and Affiliate records from `users_clean`.
+   - Exclude records that do not have a real reporting line, while still keeping Sameer Chauhan as the required top/root record even though his `line_manager` is blank.
+   - Treat blank, `-`, and whitespace-only `line_manager` values as missing.
+   - For affiliates, display their affiliate/personnel type but suppress the grade badge/grade display.
 
-3. Force Sameer Chauhan as the top/root node
-- Add a root selection rule that identifies Sameer Chauhan from Userbase, using robust matching on `full_name` and/or email `chauhan@unicc.org`.
-- Build the hierarchy below him using `line_manager` relationships.
-- Employees without a resolvable path under Sameer will be handled safely rather than breaking the chart.
+2. Hierarchy behavior
+   - Keep Sameer Chauhan at the top of the complete chart.
+   - Build reporting relationships using the existing robust name-matching logic.
+   - Stop attaching unrelated/orphaned personnel to Sameer just to keep them visible; disconnected records without a valid path/reporting line will be excluded from the rendered chart.
+   - Preserve child sorting alphabetically within each manager.
 
-4. Handle unmatched or disconnected employees
-- Keep employees whose manager cannot be found in the dataset visible where possible.
-- Attach disconnected records below Sameer in a clear fallback grouping or as additional top-level children under Sameer, depending on what the current chart component supports cleanly.
-- Avoid creating multiple top-level roots unless there is no Sameer record available.
+3. Division segmentation
+   - Add a division-segmented presentation mode to the page.
+   - Show separate chart sections/cards per division (for example DO, DD, CS, DS, MS, OP), each using the hierarchy filtered to that division and retaining manager ancestors where needed so the reporting path remains understandable.
+   - Keep the existing division dropdown usable for focusing on one division, but make the default “All” view render division segments rather than one overwhelming mixed chart.
+   - Update stats/breakdown to count only included chart records, not excluded records without reporting lines.
 
-5. Update labels, filters, and stats
-- Keep the existing chart controls, division/personnel filters, depth filter, orientation, export, and stats cards.
-- Populate divisions/personnel types from `users_clean` instead of `users`.
-- Display `worker_type` as personnel type, with `category` as fallback if needed.
-- Use `official_duty_station` first, then `office_location` as fallback.
+4. Visual cleanup for readability
+   - Redesign org chart node cards with wider boxes and more vertical room.
+   - Remove aggressive name truncation; use wrapping/line-clamp behavior so names like “KRAVITZ, Ms Meredith Rachel” are readable.
+   - Prefer a cleaned display name format for chart labels, e.g. `Meredith Rachel KRAVITZ`, while preserving the full source details in the dialog where useful.
+   - Increase font size/contrast for names and simplify badges so the name remains the primary visible element.
+   - Increase `react-d3-tree` node spacing to match the larger readable boxes.
 
-6. Validation
-- Verify that the query finds `CHAUHAN, Mr Sameer` / `chauhan@unicc.org`.
-- Verify Sameer appears as the single top node in the org chart.
-- Verify direct/indirect reports are placed under managers after name normalization.
-- Confirm the chart still renders when filters are applied and when export is used.
+5. Collapsible boxes
+   - Enable explicit collapse/expand controls on each node with children.
+   - Use `react-d3-tree`’s built-in `toggleNode` support in the custom node renderer.
+   - Make clicking the expand/collapse control toggle children, while clicking the main card still opens the person detail dialog.
+   - Add a small direct-report count indicator so users know which boxes can expand.
 
-Technical files expected to change
-- `src/pages/OrganizationChart.tsx`
+Technical files to update:
 - `src/lib/orgChartUtils.ts`
+  - Add helpers for display-name cleanup, affiliate detection, missing reporting-line detection, strict tree construction, and division-preserving filtering.
+  - Remove/replace the current orphan-attachment fallback.
 
-No database schema change is expected.
+- `src/pages/OrganizationChart.tsx`
+  - Include affiliates from `users_clean`, map affiliate records without grade, filter out records without reporting lines except Sameer, and render segmented division chart cards for the default All view.
+
+- `src/components/org-chart/OrganizationChart.tsx`
+  - Pass `toggleNode` into the custom node component, enable collapsibility, and adjust tree spacing/zoom defaults for larger readable cards.
+
+- `src/components/org-chart/OrgChartNode.tsx`
+  - Redesign node visuals, wrap names, hide grade for affiliates, and add a clear expand/collapse control.
+
+- `src/components/org-chart/OrgChartControls.tsx` if needed
+  - Adjust labels/help text to reflect division segmentation and included personnel types.
