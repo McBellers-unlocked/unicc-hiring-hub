@@ -1,40 +1,129 @@
-I’ll revise the Organization Chart changes so the chart is no longer segmented into separate division cards, and division filtering only shows records that truly belong to the selected division.
+# Interactive Workflow Documentation (Single-Page HTML)
 
-Implementation plan:
+Build a self-contained HTML file that visualizes the **Recruitment lifecycle** as a clickable Cytoscape.js graph of high-level modules. A side panel lists actions; clicking one highlights the participating nodes and animates edges in sequence, with annotations showing payload, auth/RLS gates, and DB tables touched.
 
-1. Remove division segmentation from the page
-   - Stop rendering one chart card per division when the Division filter is set to “All”.
-   - Render a single org chart again for both “All” and selected divisions.
-   - Remove the `segmentedTrees` logic from `src/pages/OrganizationChart.tsx`.
-   - Remove the unused `getDivisionSegmentTree` import and helper if it is no longer needed.
+## Deliverable
 
-2. Fix incorrect records appearing in division filters
-   - Change the division filter behavior so selecting a division does not include people from other divisions merely because they are ancestors/managers of matching records.
-   - For example, if Milena GRECUCCIO is marked as DO in `users_clean`, she will not appear when CS is selected.
-   - Keep Sameer Chauhan as the required top/root node only when needed to anchor the filtered chart, but avoid showing unrelated non-matching personnel in the filtered result.
+One file: `/mnt/documents/workflow-explorer.html`
+- Self-contained: Cytoscape.js + dagre layout loaded from CDN, no build step
+- Drives entirely off an embedded `WORKFLOWS_JSON` constant — editable to add/modify flows
+- Light/dark friendly, UNIQTalent brand color `#009CDE` for highlights
 
-3. Preserve readable hierarchy without cross-division leakage
-   - For a selected division, build the chart from the same Userbase source (`users_clean`) but restrict displayed personnel to:
-     - Sameer Chauhan as the top anchor, and
-     - personnel whose `division` exactly matches the selected division, and
-     - only valid reporting relationships among those displayed records.
-   - If a selected-division employee reports through a manager from another division, that non-matching manager will not be displayed as a normal record. The employee will remain under the closest valid displayed manager if available, otherwise under Sameer as the division anchor.
-   - This keeps filtering accurate by division while still producing a usable chart.
+## Layout
 
-4. Keep previous accepted improvements
-   - Continue excluding personnel without valid reporting lines, except Sameer Chauhan.
-   - Continue including affiliates, with grade hidden for affiliate records.
-   - Keep the improved node readability and collapsible boxes.
-   - Keep the existing Division dropdown as a filter, not as a segmentation control.
+```text
++----------------------------------------------------------+
+|  UNIQTalent — Workflow Explorer        [search actions]  |
++------------------+---------------------------------------+
+|  ACTIONS         |                                       |
+|  > Submit Req    |        Cytoscape graph                |
+|    Approve PD    |        (nodes = modules,              |
+|    Publish Job   |         edges fade to 10% until       |
+|    Apply to Job  |         an action is selected)        |
+|    AI Score      |                                       |
+|    Invite Video  |                                       |
+|    ...           |                                       |
++------------------+---------------------------------------+
+|  STEP DETAILS (selected action, step N of M)             |
+|  From: HiringManagerReview  ->  To: send-chief-hr-...    |
+|  Payload: { requisitionId, reviewerId }                  |
+|  Auth/RLS: requires role 'hiring_manager' AND own req    |
+|  DB: UPDATE job_requisitions SET hr_review_status=...    |
+|  [Prev] [Auto-play] [Next]                               |
++----------------------------------------------------------+
+```
 
-Technical files to update after approval:
-- `src/pages/OrganizationChart.tsx`
-  - Remove segmented rendering and compute a single filtered tree.
-  - Make stats and breakdown reflect the currently displayed tree.
+## High-level nodes (~20)
 
-- `src/lib/orgChartUtils.ts`
-  - Replace the current division filtering logic with a strict division-filter strategy that prevents non-matching personnel from appearing.
-  - Remove or leave unused segmentation helper only if no longer referenced.
+Grouped by layer (Cytoscape compound nodes):
 
-- `src/components/org-chart/OrgChartControls.tsx` if needed
-  - Keep labels simple: Division remains a filter, not a segmentation mode.
+- **UI Layer**: `JobRequisitions`, `ChiefHRReview`, `Jobs (public)`, `JobApplication`, `MyApplications`, `JobManagement`, `VideoInterview`, `BookInterviewSlot`, `ReviewCommittee`, `EmailHub`
+- **Edge Functions**: `convert-requisition-to-job`, `send-requisition-notification`, `send-chief-hr-review-notification`, `send-application-confirmation`, `trigger-batch-scoring`, `send-video-invite`, `upload-video-answer`, `video-assignment-webhook`
+- **Data/Infra**: `Supabase Auth`, `Postgres + RLS`, `Supabase Storage`, `Lovable AI Gateway`, `Resend`
+
+## Workflows in v1 (Recruitment lifecycle)
+
+Each is one entry in `WORKFLOWS_JSON.actions[]`, ordered steps with `{from, to, label, payload, auth, db}`:
+
+1. Submit job requisition (HM)
+2. Chief HR review & route to Director
+3. Director approval -> convert to job posting
+4. Publish vacancy
+5. Candidate applies
+6. Auto AI scoring (pg_net trigger -> batch)
+7. Bulk video assignment + invite email
+8. Candidate records video answer (upload to Storage)
+9. Schedule panel interview slot
+10. Panel interview feedback submission
+11. Review committee approval
+12. Offer email send
+
+## JSON schema (drives everything)
+
+```json
+{
+  "nodes": [
+    { "id": "JobRequisitions", "label": "Job Requisitions", "layer": "ui", "file": "src/pages/JobRequisitions.tsx" }
+  ],
+  "actions": [
+    {
+      "id": "submit-requisition",
+      "title": "Submit Job Requisition",
+      "summary": "Hiring manager submits a new requisition for HR review.",
+      "steps": [
+        {
+          "from": "JobRequisitions",
+          "to": "Postgres + RLS",
+          "label": "INSERT requisition",
+          "payload": "{ title, division, grade, contractType, dutyStation }",
+          "auth": "Authenticated user; RLS allows insert when created_by = auth.uid()",
+          "db": "INSERT job_requisitions; trigger sets initial hr_review_status='pending'"
+        },
+        {
+          "from": "JobRequisitions",
+          "to": "send-requisition-notification",
+          "label": "invoke()",
+          "payload": "{ requisitionId }",
+          "auth": "JWT forwarded; function verifies role",
+          "db": "SELECT job_requisitions; SELECT users for HR focal points"
+        },
+        {
+          "from": "send-requisition-notification",
+          "to": "Resend",
+          "label": "send email",
+          "payload": "{ to: hrFocals, cc: hraffiliatemanagement, subject, html }",
+          "auth": "RESEND_API_KEY (server-only)",
+          "db": "—"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Interaction behavior
+
+- **Click action** -> dim all edges/nodes to 10% opacity, then walk steps:
+  - Highlight `from` node, animate edge to `to` node in brand color, highlight `to` node
+  - Show step details panel
+- **Auto-play** button steps every 1.5s; **Prev/Next** for manual stepping
+- **Hover node** -> tooltip with module description and source file path
+- **Search** filters action list
+
+## Technical details
+
+- Single `<script>` block. CDN: `cytoscape@3`, `cytoscape-dagre@2`, `dagre@0.8`
+- Layout: `dagre` top-down, with compound parent nodes for layer grouping
+- Styling: inline `<style>`; CSS vars for theme; uses HSL values
+- Edge animation: increment `line-color` + `width` via `cy.style().update()` and `ele.animate()`
+- No external assets required; file opens directly in any browser
+
+## Out of scope (v1)
+
+- HR Operations, Assessments, Auth, Email Hub, Skills workflows (structure supports adding them later by appending to `WORKFLOWS_JSON.actions[]`)
+- File path / line range annotations
+- Persisting JSON externally (it's embedded; user can edit the HTML to extend)
+
+## File QA
+
+After generating, open the HTML in a headless browser, screenshot it, click 2 actions, screenshot each, and confirm: graph renders, no JS console errors, edge highlight visible, step details populate.
