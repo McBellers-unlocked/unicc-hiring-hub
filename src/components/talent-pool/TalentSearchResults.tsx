@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { JobMatchingService } from "@/lib/jobMatching";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { getRegionForCountry, resolveCountryName, extractCountriesFromLocation } from "@/lib/unRegions";
 
 const PAGE_SIZE = 50;
 
@@ -47,6 +48,9 @@ interface NormalizedTalent {
   has_security_clearance?: boolean;
   work_experience?: any[];
   professional_summary?: string | null;
+  // Geographic
+  present_nationality?: string | null;
+  nationality?: string | null;
 }
 
 export function TalentSearchResults({
@@ -168,6 +172,7 @@ export function TalentSearchResults({
         has_security_clearance: c.has_security_clearance,
         work_experience: Array.isArray(c.work_experience) ? c.work_experience : [],
         professional_summary: c.professional_summary,
+        present_nationality: (c as any).present_nationality ?? null,
       });
     });
   }
@@ -210,6 +215,7 @@ export function TalentSearchResults({
         current_grade: s.current_grade,
         entry_on_duty_date: s.entry_on_duty_date,
         line_manager: s.line_manager,
+        nationality: (s as any).nationality ?? null,
       });
     });
   }
@@ -294,6 +300,34 @@ export function TalentSearchResults({
         if (filters.minTenure && tenure < filters.minTenure) return false;
         if (filters.maxTenure && filters.maxTenure < 30 && tenure > filters.maxTenure)
           return false;
+      }
+    }
+
+    // Geographic filters (Region / Member State / Nationality) — applied to all sources
+    if (
+      filters.regions.length > 0 ||
+      filters.memberStates.length > 0 ||
+      filters.nationalities.length > 0
+    ) {
+      const personCountries = new Set<string>();
+      const natRaw = person._source === "internal" ? person.nationality : person.present_nationality;
+      const natResolved = resolveCountryName(natRaw);
+      if (natResolved) personCountries.add(natResolved);
+      for (const c of extractCountriesFromLocation(person.location)) {
+        personCountries.add(c);
+      }
+
+      if (filters.nationalities.length > 0) {
+        if (!filters.nationalities.some((n) => personCountries.has(n))) return false;
+      }
+      if (filters.memberStates.length > 0) {
+        if (!filters.memberStates.some((n) => personCountries.has(n))) return false;
+      }
+      if (filters.regions.length > 0) {
+        const personRegions = [...personCountries]
+          .map((c) => getRegionForCountry(c))
+          .filter((r): r is NonNullable<typeof r> => Boolean(r));
+        if (!filters.regions.some((r) => personRegions.includes(r as any))) return false;
       }
     }
 

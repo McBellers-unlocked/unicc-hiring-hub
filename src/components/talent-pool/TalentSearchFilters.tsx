@@ -13,12 +13,16 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Search, Filter, X, Grid3x3, List, Building2, Globe } from "lucide-react";
+import { Search, Filter, X, Grid3x3, List, Building2, Globe, Check, ChevronsUpDown } from "lucide-react";
 import { SearchFilters } from "@/pages/TalentPool";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+import { UN_REGIONAL_GROUPS, UN_MEMBER_STATES } from "@/lib/unRegions";
 
 interface TalentSearchFiltersProps {
   filters: SearchFilters;
@@ -99,6 +103,9 @@ export function TalentSearchFilters({
       divisions: [],
       dutyStations: [],
       grades: [],
+      regions: [],
+      memberStates: [],
+      nationalities: [],
     });
   };
 
@@ -271,6 +278,39 @@ export function TalentSearchFilters({
                 </div>
               )}
 
+              {/* Geographic filters (Region / Member State / Nationality) — apply to all sources */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Region (UN groups)</Label>
+                <div className="flex flex-wrap gap-2">
+                  {UN_REGIONAL_GROUPS.map((region) => (
+                    <Badge
+                      key={region}
+                      variant={filters.regions.includes(region) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => toggleArrayFilter("regions", region)}
+                    >
+                      {region}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <MultiCountryFilter
+                label="Member State"
+                placeholder="Search UN member states..."
+                values={filters.memberStates}
+                options={UN_MEMBER_STATES}
+                onChange={(next) => handleFilterChange("memberStates", next)}
+              />
+
+              <MultiCountryFilter
+                label="Nationality"
+                placeholder="Search nationalities..."
+                values={filters.nationalities}
+                options={UN_MEMBER_STATES}
+                onChange={(next) => handleFilterChange("nationalities", next)}
+              />
+
               {/* Internal-specific filters */}
               {showInternalFilters && (
                 <>
@@ -415,6 +455,67 @@ export function TalentSearchFilters({
           </CollapsibleContent>
         </Collapsible>
       </Card>
+    </div>
+  );
+}
+
+interface MultiCountryFilterProps {
+  label: string;
+  placeholder: string;
+  values: string[];
+  options: string[];
+  onChange: (next: string[]) => void;
+}
+
+function MultiCountryFilter({ label, placeholder, values, options, onChange }: MultiCountryFilterProps) {
+  const [open, setOpen] = useState(false);
+  const toggle = (val: string) => {
+    onChange(values.includes(val) ? values.filter((v) => v !== val) : [...values, val]);
+  };
+  return (
+    <div className="space-y-2">
+      <Label className="text-sm font-medium">{label}</Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+            <span className="truncate text-muted-foreground">
+              {values.length === 0 ? placeholder : `${values.length} selected`}
+            </span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[320px] p-0" align="start">
+          <Command>
+            <CommandInput placeholder={placeholder} />
+            <CommandList>
+              <CommandEmpty>No country found.</CommandEmpty>
+              <CommandGroup>
+                {options.map((opt) => {
+                  const selected = values.includes(opt);
+                  return (
+                    <CommandItem key={opt} value={opt} onSelect={() => toggle(opt)}>
+                      <Check className={cn("mr-2 h-4 w-4", selected ? "opacity-100" : "opacity-0")} />
+                      {opt}
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      {values.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {values.map((v) => (
+            <Badge key={v} variant="secondary" className="gap-1">
+              {v}
+              <button type="button" onClick={() => toggle(v)} className="ml-0.5 hover:text-foreground">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

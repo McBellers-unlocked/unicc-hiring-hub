@@ -41,6 +41,10 @@ export interface SearchFilters {
   maxTenure?: number;
   lineManager?: string;
   openSourceOnly?: boolean;
+  // Geographic filters (apply to all sources)
+  regions: string[];
+  memberStates: string[];
+  nationalities: string[];
 }
 
 export default function TalentPool() {
@@ -58,6 +62,9 @@ export default function TalentPool() {
     divisions: [],
     dutyStations: [],
     grades: [],
+    regions: [],
+    memberStates: [],
+    nationalities: [],
   });
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<string>("updated_desc");
@@ -70,7 +77,7 @@ export default function TalentPool() {
   // Clear selection when filters change
   useEffect(() => {
     setSelectedIds([]);
-  }, [filters.talentSource, filters.skills, filters.searchText, filters.divisions, filters.dutyStations, filters.grades]);
+  }, [filters.talentSource, filters.skills, filters.searchText, filters.divisions, filters.dutyStations, filters.grades, filters.regions, filters.memberStates, filters.nationalities]);
 
   // Fetch selected staff details for email dialog
   const { data: selectedStaff } = useQuery({
