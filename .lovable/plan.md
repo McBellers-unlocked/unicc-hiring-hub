@@ -1,39 +1,33 @@
 ## Goal
-Add a dedicated **Nationality reporting** section to `/admin/headcount` so HR/Admin can analyse workforce composition by nationality (respecting the existing filter bar).
+Make the Nationality section on `/admin/headcount` interactive: click any nationality (in chart or table) to drill down to the underlying people, with search inside the drill-down.
 
-## What you'll see on the page
-A new "Nationality" card group placed after the existing charts, containing:
+## What changes
 
-1. **Headline KPIs**
-   - Total nationalities represented
-   - Top nationality (name + count + %)
-   - % of workforce from top 5 nationalities (concentration indicator)
+1. **Clickable nationality rows & bars**
+   - In the "All nationalities" table, the nationality name becomes a button.
+   - In the Top 15 / Gender / Worker-type charts, clicking a bar opens the same drill-down.
 
-2. **Top 15 nationalities — horizontal bar chart**
-   Replaces the current "Top 10 + Other" pie treatment with a clearer ranked bar (count + % share label).
+2. **Drill-down side sheet** (slides in from the right)
+   - Title: `🇺🇳 {Nationality} — {count} people`
+   - Mini summary chips: Women / Men / Other split, top division, top location, top worker type.
+   - **Search box** filtering by name, email, division, office location, grade, job title, or worker type (client-side, case-insensitive).
+   - Sortable people table: Name · Job title · Division · Location · Grade · Worker type · Gender. Sticky header, virtual-friendly height cap with scroll.
+   - **Download CSV** button — exports the (filtered) drill-down list.
+   - Honours the page-level filter bar (Worker type / Division / Location) already applied to the underlying rows.
 
-3. **Nationality × Gender breakdown** (stacked bar, top 10)
-   Man / Woman / Other-Unknown per nationality — supports diversity reporting.
-
-4. **Nationality × Worker type** (stacked bar, top 10)
-   Staff vs Affiliate vs other worker types per nationality.
-
-5. **Full searchable table**
-   All nationalities with columns: Nationality · Headcount · % of total · Women % · Men %. Sortable by any column, search box, and a **Download CSV** button (respects active filters).
-
-All visuals honour the existing Worker type / Division / Location filter bar already on the page.
+3. **Search box already at the top of the Nationality table stays** — it filters the aggregate table. The new search inside the sheet filters the drill-down people list.
 
 ## Technical notes
-- New file `src/components/analytics/NationalityReport.tsx` containing the KPIs, charts and table. Keeps `Headcount.tsx` lean.
-- Reuse the `rowsQuery` rows already fetched in `Headcount.tsx` — pass them down as a prop, so no additional DB calls.
-- Extend the existing `agg` memo in `Headcount.tsx` (or compute inside the new component from the same rows) to produce:
-  - `nationalityFull`: full sorted list `{ name, count, men, women, other, workerTypes: Record<string, number> }`
-  - Top-N slices for charts
-- Use semantic tokens / existing `PALETTE` and `GENDER_COLORS` constants — no new colors.
-- CSV export: client-side blob download, filename `nationality-report-YYYY-MM-DD.csv`.
-- Keep the existing "Top 10 + Other" nationality pie or remove it (replaced by the richer section) — I'll remove it to avoid duplication; let me know if you'd rather keep it.
+
+- Extend `rowsQuery` in `Headcount.tsx` to also select `full_name`, `email`, `job_title`, `current_grade`, `office_location`, `division` (most are already selected). Pass the full row list to `NationalityReport`.
+- In `NationalityReport.tsx`:
+  - Add `selectedNationality` state and a shadcn `Sheet` (right side, `w-full sm:max-w-3xl`).
+  - Build `peopleByNationality` memo (Map<nationality, Row[]>) once.
+  - On click handlers from chart `<Bar onClick>` and table row buttons → set selected nationality.
+  - Drill-down search uses local `useState` string; filter via `.toLowerCase().includes(q)` across the searchable fields.
+  - CSV export reuses existing blob-download pattern, filename `nationality-{name}-{date}.csv`.
+- All styling via semantic tokens / existing `PALETTE` + `GENDER_COLORS`.
 
 ## Out of scope
-- World map visualisation (can add later if wanted).
-- Trend over time (would need historical snapshots).
-- Region/continent grouping (would need a nationality→region lookup table).
+- Linking from drill-down rows to individual user profile pages (can be a follow-up).
+- Server-side pagination (full row set is already loaded for the page).
