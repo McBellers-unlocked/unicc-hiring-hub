@@ -29,6 +29,7 @@ import {
 import { cn } from '@/lib/utils';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
 import { getFitTier } from '@/lib/fitTier';
+import { CandidateFitSummary } from './CandidateFitSummary';
 
 interface CandidateApplicationCardProps {
   application: any;
@@ -398,6 +399,9 @@ const getStatusBadge = (status: string) => {
             )}
           </div>
         </div>
+
+        {/* Candidate Fit Summary — essential vs desirable criteria */}
+        <CandidateFitSummary application={application} />
 
         {/* Experience - Prominent metric cards */}
         <div className="p-3 bg-muted/30 rounded-lg my-4">
