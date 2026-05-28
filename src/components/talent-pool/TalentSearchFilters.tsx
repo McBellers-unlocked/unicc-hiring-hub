@@ -278,6 +278,39 @@ export function TalentSearchFilters({
                 </div>
               )}
 
+              {/* Geographic filters (Region / Member State / Nationality) — apply to all sources */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Region (UN groups)</Label>
+                <div className="flex flex-wrap gap-2">
+                  {UN_REGIONAL_GROUPS.map((region) => (
+                    <Badge
+                      key={region}
+                      variant={filters.regions.includes(region) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => toggleArrayFilter("regions", region)}
+                    >
+                      {region}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <MultiCountryFilter
+                label="Member State"
+                placeholder="Search UN member states..."
+                values={filters.memberStates}
+                options={UN_MEMBER_STATES}
+                onChange={(next) => handleFilterChange("memberStates", next)}
+              />
+
+              <MultiCountryFilter
+                label="Nationality"
+                placeholder="Search nationalities..."
+                values={filters.nationalities}
+                options={UN_MEMBER_STATES}
+                onChange={(next) => handleFilterChange("nationalities", next)}
+              />
+
               {/* Internal-specific filters */}
               {showInternalFilters && (
                 <>
