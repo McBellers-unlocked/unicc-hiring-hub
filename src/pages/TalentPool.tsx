@@ -41,6 +41,10 @@ export interface SearchFilters {
   maxTenure?: number;
   lineManager?: string;
   openSourceOnly?: boolean;
+  // Geographic filters (apply to all sources)
+  regions: string[];
+  memberStates: string[];
+  nationalities: string[];
 }
 
 export default function TalentPool() {
