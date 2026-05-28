@@ -163,7 +163,7 @@ export default function Headcount() {
       for (let i = 0; i < 50; i++) {
         let q = supabase
           .from('users_clean')
-          .select('gsm_gender, samsaran_gender, worker_type, category, division, office_location, current_grade, nationality, appointment_type')
+          .select('gsm_gender, samsaran_gender, worker_type, category, division, office_location, current_grade, nationality, appointment_type, full_name, gsm_email_address, samsaran_email_address, job_title')
           .range(from, from + CHUNK - 1);
 
         if (filters.worker_type.length) q = q.in('worker_type', filters.worker_type);
