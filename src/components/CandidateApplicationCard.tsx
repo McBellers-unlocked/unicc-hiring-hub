@@ -29,6 +29,7 @@ import {
 import { cn } from '@/lib/utils';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
 import { getFitTier } from '@/lib/fitTier';
+import { CandidateFitSummary } from './CandidateFitSummary';
 
 interface CandidateApplicationCardProps {
   application: any;
