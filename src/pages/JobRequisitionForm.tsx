@@ -27,6 +27,7 @@ import { EssentialExperienceTemplateModal } from '@/components/EssentialExperien
 import { StaffEssentialEducationTemplateModal } from '@/components/StaffEssentialEducationTemplateModal';
 import TurndownService from 'turndown';
 import { Label } from "@/components/ui/label";
+import { AIGeneratePositionDescription } from "@/components/requisition/AIGeneratePositionDescription";
 
 // Organizational structure
 const DIVISIONS = {
@@ -1641,6 +1642,36 @@ export default function JobRequisitionForm() {
               <CardDescription>Detailed description of the role and responsibilities</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <AIGeneratePositionDescription
+                getContext={() => ({
+                  positionTitle: form.getValues('position_title') || '',
+                  natureOfPosition: form.getValues('nature_of_position') || '',
+                  gradeLevel: (form.getValues as any)('grade_level') || (form.getValues as any)('level') || '',
+                  dutyStation: (form.getValues('duty_station') || []).join(', '),
+                  unitSectionDivision: form.getValues('unit_section_division') || '',
+                  objectivesOfProgramme: (form.getValues as any)('objectives_of_programme') || '',
+                })}
+                currentPurpose={form.watch('purpose_of_position') || ''}
+                currentDuties={form.watch('main_duties_responsibilities') || ''}
+                onApply={(result, mode) => {
+                  const curP = form.getValues('purpose_of_position') || '';
+                  const curD = form.getValues('main_duties_responsibilities') || '';
+                  if (mode === 'overwrite' || !curP.trim()) {
+                    if (result.purpose_of_position) {
+                      form.setValue('purpose_of_position', result.purpose_of_position, { shouldDirty: true, shouldValidate: true });
+                    }
+                  }
+                  if (mode === 'overwrite' || !curD.trim()) {
+                    if (result.main_duties_responsibilities) {
+                      form.setValue(
+                        'main_duties_responsibilities',
+                        fixMarkdownFormatting(result.main_duties_responsibilities),
+                        { shouldDirty: true, shouldValidate: true },
+                      );
+                    }
+                  }
+                }}
+              />
               <FormField
                 control={form.control}
                 name="purpose_of_position"

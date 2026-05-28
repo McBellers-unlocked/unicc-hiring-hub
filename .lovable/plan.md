@@ -1,80 +1,76 @@
-## Talent Pool — Region / Member State / Nationality filters
+# AI-Assisted Position Description Population
 
-Add three new filters that apply to **all talent sources** (All / External / Internal). They sit alongside the existing filters in `TalentSearchFilters.tsx` and are applied client-side in `TalentSearchResults.tsx`.
+Add the ability to auto-populate **Purpose of the Position** and **Main Duties and Responsibilities** on the Job Requisition form, driven by the position title (and other already-entered context). Users can optionally attach one or more existing JD files (PDF/DOCX/TXT) as additional grounding context for the AI.
 
-### Matching rule
+## UX
 
-A candidate matches a value if **either** their nationality **or** their location resolves to it:
-- External (`candidates`): `present_nationality` OR `location`
-- Internal (`users`): `nationality` OR `duty_station`
+In `src/pages/JobRequisitionForm.tsx`, inside the "Position Description" card header, add a small toolbar with two actions:
 
-For Region, the candidate's country (from either field) is mapped to its UN regional group; the candidate matches if any selected region contains that country.
+1. **Generate with AI** — primary button (sparkles icon). Enabled once `position_title` and `nature_of_position` are filled.
+2. **Attach existing JD(s)** — outline button (paperclip icon). Opens a file picker (multi-select, accepts `.pdf`, `.docx`, `.doc`, `.txt`, up to ~5 MB each). Attached files are listed as removable chips below the toolbar; they are kept in component state only (not persisted) and re-used on subsequent generations.
 
-### New filter state
+Clicking **Generate with AI** opens a confirmation dialog when either target field already has content, warning that it will overwrite (with options: Overwrite both / Fill only empty / Cancel).
 
-In `src/pages/TalentPool.tsx` extend `SearchFilters`:
-```ts
-regions: string[];        // UN regional groups
-memberStates: string[];   // UN member-state country names
-nationalities: string[];  // same vocabulary as memberStates; separate filter
-```
-Defaulted to `[]`. Cleared by "Clear filters" and tracked in the `useEffect` selection-reset deps.
+While generating, both target fields show a skeleton/loading overlay and the button shows a spinner. On success, fields are populated and toast confirms; on error, toast surfaces the gateway error (402/429/etc).
 
-### New reference data
+## Generation Flow
 
-New file `src/lib/unRegions.ts`:
-- `UN_REGIONAL_GROUPS`: 5 groups — `Africa`, `Asia-Pacific`, `Eastern Europe`, `Latin America & Caribbean (GRULAC)`, `Western Europe & Others (WEOG)`.
-- `UN_MEMBER_STATES`: 193 UN member-state country names (canonical English spellings matching `src/lib/countries.ts` where possible).
-- `COUNTRY_TO_REGION: Record<string, RegionKey>` mapping each member state → its UN group.
-- Helper `getRegionForCountry(name) → RegionKey | null` that is case-insensitive and tolerant of common variants (e.g. "USA" → "United States of America", "UK" → "United Kingdom").
+Client gathers:
+- `position_title`, `nature_of_position`, `grade_level`, `duty_station`, `unit_section_division`, `objectives_of_programme` (if filled)
+- Attached JD files: parsed client-side to plain text where possible (use existing PDF parsing pattern if any; otherwise send base64 to the edge function for parsing).
 
-Nationality dropdown uses `UN_MEMBER_STATES` (matches user choice "All UN member states").
+To keep this simple and consistent with the rest of the codebase, send everything to a new edge function which does parsing + AI call server-side.
 
-### UI in `TalentSearchFilters.tsx`
+## Backend — new Edge Function
 
-Add a new section (visible for every `talentSource`) before "Internal-specific filters":
+`supabase/functions/generate-position-description/index.ts`
 
-- **Region** — wrap of `Badge` toggles for the 5 UN regional groups (same pattern as Division/Grade).
-- **Member State** — searchable multi-select using a `Command` popover (193 entries is too many for badges). Selected values render as removable chips below.
-- **Nationality** — same searchable multi-select pattern as Member State.
+- Verifies JWT (user must be authenticated).
+- Accepts JSON body:
+  ```
+  {
+    positionTitle, natureOfPosition, gradeLevel?, dutyStation?,
+    unitSectionDivision?, objectivesOfProgramme?,
+    attachments?: [{ filename, mimeType, base64 }]
+  }
+  ```
+- Validates with Zod.
+- For each attachment, extracts text:
+  - `.txt` → decode base64
+  - `.pdf` → `npm:pdf-parse` (or `unpdf`)
+  - `.docx` → `npm:mammoth`
+  - Truncate each to ~15k chars; cap total attached context at ~40k chars.
+- Calls Lovable AI Gateway (`google/gemini-3-flash-preview`) via the standard provider helper used elsewhere, with `Output.object` structured output:
+  ```
+  { purpose_of_position: string, main_duties_responsibilities: string }
+  ```
+- System prompt instructs the model to:
+  - Write in UNICC/UN tone, third person, present tense.
+  - Purpose: 2–4 sentences explaining context and main purpose.
+  - Main Duties: Markdown bulleted list, each bullet structured WHAT / WHY / HOW (matching the existing helper text at line 1743).
+  - Use attached JDs as grounding when provided; otherwise infer from title + nature + grade.
+  - Do not invent project/client names; leave `[SUPERVISOR TITLE]`-style placeholders only where the existing template uses them.
+- Returns `{ purpose_of_position, main_duties_responsibilities }`.
 
-Also extend `clearFilters` to reset the three new arrays.
+## Frontend wiring
 
-### Filter application in `TalentSearchResults.tsx`
+- New file `src/components/requisition/AIGeneratePositionDescription.tsx` exporting the toolbar + dialog.
+- Wired into Position Description card in `JobRequisitionForm.tsx`. On success calls:
+  ```
+  form.setValue('purpose_of_position', result.purpose_of_position, { shouldDirty: true });
+  form.setValue('main_duties_responsibilities', fixMarkdownFormatting(result.main_duties_responsibilities), { shouldDirty: true });
+  ```
+- Reads files via `FileReader.readAsDataURL`, strips data URL prefix to get base64, invokes the function with `supabase.functions.invoke('generate-position-description', { body })`.
+- Error handling surfaces 402 (credits) and 429 (rate limit) per gateway guidelines.
 
-In the client-side filter block (around line 218 onwards), after the existing checks, add:
+## Files
 
-```ts
-const personCountries = new Set<string>();
-const nat = person._source === "internal" ? person.nationality : person.present_nationality;
-if (nat) personCountries.add(normalize(nat));
-if (person.location) personCountries.add(normalize(person.location));
+- New: `supabase/functions/generate-position-description/index.ts`
+- New: `src/components/requisition/AIGeneratePositionDescription.tsx`
+- Edited: `src/pages/JobRequisitionForm.tsx` (toolbar in Position Description card, state for attachments and loading, integration)
 
-if (filters.nationalities.length && !filters.nationalities.some(n => personCountries.has(normalize(n)))) return false;
-if (filters.memberStates.length && !filters.memberStates.some(n => personCountries.has(normalize(n)))) return false;
-if (filters.regions.length) {
-  const personRegions = [...personCountries].map(getRegionForCountry).filter(Boolean);
-  if (!filters.regions.some(r => personRegions.includes(r))) return false;
-}
-```
+## Non-goals (for now)
 
-Normalization: lowercase + trim + strip trailing country qualifiers ("Republic of", commas). For `location`, split on `,` and check each token so "Rome, Italy" matches "Italy".
-
-Extend `NormalizedTalent` to carry `present_nationality` (external) and `nationality` (internal); both populated in the two `forEach` blocks.
-
-### Saved searches
-
-`SavedSearchManager` already round-trips arbitrary `SearchFilters` so the three new arrays serialize for free — no change needed beyond defaults.
-
-### Non-goals
-
-- No backend / schema change. Country list is static.
-- No fuzzy matching beyond the small alias table in `unRegions.ts`.
-- "Member State" and "Nationality" use the same vocabulary intentionally; they remain separate filters so users can e.g. require "nationality = France" but "based in any African member state".
-
-### Files touched
-
-- `src/pages/TalentPool.tsx` — extend `SearchFilters` + initial state + selection-reset deps.
-- `src/components/talent-pool/TalentSearchFilters.tsx` — add 3 UI controls + clear-filters update.
-- `src/components/talent-pool/TalentSearchResults.tsx` — extend `NormalizedTalent`, populate new fields, apply new filters.
-- `src/lib/unRegions.ts` — new file (regions, member states, country→region map, helpers).
+- No JD library/storage — attachments are session-only.
+- No ML/embedding-based retrieval from past requisitions (future work, as noted by the user).
+- No changes to other fields (experience, education, competencies).
