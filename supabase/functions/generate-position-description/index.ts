@@ -9,8 +9,7 @@ const corsHeaders = {
 
 interface Attachment {
   filename: string;
-  mimeType: string;
-  base64: string;
+  text: string;
 }
 
 interface RequestBody {
@@ -25,40 +24,6 @@ interface RequestBody {
 
 const MAX_PER_FILE = 15000;
 const MAX_TOTAL_CONTEXT = 40000;
-
-function base64ToUint8Array(b64: string): Uint8Array {
-  const bin = atob(b64);
-  const arr = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-  return arr;
-}
-
-async function extractText(att: Attachment): Promise<string> {
-  const name = (att.filename || '').toLowerCase();
-  const mt = (att.mimeType || '').toLowerCase();
-  try {
-    if (name.endsWith('.txt') || mt.startsWith('text/')) {
-      return new TextDecoder().decode(base64ToUint8Array(att.base64));
-    }
-    if (name.endsWith('.docx') || mt.includes('officedocument.wordprocessingml')) {
-      const mammoth: any = await import('npm:mammoth@1.8.0');
-      const buf = base64ToUint8Array(att.base64);
-      const result = await mammoth.extractRawText({ buffer: buf });
-      return result.value || '';
-    }
-    if (name.endsWith('.pdf') || mt === 'application/pdf') {
-      const { extractText: pdfExtract, getDocumentProxy } = await import('npm:unpdf@0.12.1');
-      const buf = base64ToUint8Array(att.base64);
-      const pdf = await getDocumentProxy(buf);
-      const { text } = await pdfExtract(pdf, { mergePages: true });
-      return Array.isArray(text) ? text.join('\n') : (text || '');
-    }
-  } catch (e) {
-    console.error('Extract failed for', att.filename, e);
-    return '';
-  }
-  return '';
-}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -99,13 +64,13 @@ serve(async (req) => {
       });
     }
 
-    // Extract attachment text
+    // Build attachment context from pre-extracted text
     let attachmentContext = '';
     if (Array.isArray(body.attachments) && body.attachments.length > 0) {
       const parts: string[] = [];
       let total = 0;
       for (const att of body.attachments) {
-        const text = (await extractText(att)).trim();
+        const text = (att.text || '').trim();
         if (!text) continue;
         const truncated = text.slice(0, MAX_PER_FILE);
         const block = `--- Attached JD: ${att.filename} ---\n${truncated}\n`;
