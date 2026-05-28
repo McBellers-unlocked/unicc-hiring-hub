@@ -172,6 +172,7 @@ export function TalentSearchResults({
         has_security_clearance: c.has_security_clearance,
         work_experience: Array.isArray(c.work_experience) ? c.work_experience : [],
         professional_summary: c.professional_summary,
+        present_nationality: (c as any).present_nationality ?? null,
       });
     });
   }
