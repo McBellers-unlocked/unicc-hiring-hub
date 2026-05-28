@@ -99,6 +99,9 @@ export function TalentSearchFilters({
       divisions: [],
       dutyStations: [],
       grades: [],
+      regions: [],
+      memberStates: [],
+      nationalities: [],
     });
   };
 
