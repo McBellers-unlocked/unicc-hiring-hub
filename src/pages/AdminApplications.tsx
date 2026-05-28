@@ -995,13 +995,14 @@ export default function AdminApplications() {
     const matchesLanguage = languageFilter === 'all' || 
                            languages.toLowerCase().includes(languageFilter.toLowerCase());
 
-    // AI Score filter
+    // AI Score / Fit tier filter
     const score = app.screening_scores?.ai_score;
-    const matchesAiScore = aiScoreFilter === 'all' || 
-                          (aiScoreFilter === 'high' && score !== null && score !== undefined && score >= 80) ||
-                          (aiScoreFilter === 'medium' && score !== null && score !== undefined && score >= 70 && score < 80) ||
-                          (aiScoreFilter === 'low' && score !== null && score !== undefined && score < 70) ||
-                          (aiScoreFilter === 'not_scored' && (score === null || score === undefined));
+    const tier = getFitTier(score).tier;
+    const matchesAiScore = aiScoreFilter === 'all' ||
+                          (aiScoreFilter === 'yes' && tier === 'yes') ||
+                          (aiScoreFilter === 'maybe' && tier === 'maybe') ||
+                          (aiScoreFilter === 'no' && tier === 'no') ||
+                          (aiScoreFilter === 'not_scored' && tier === 'not_scored');
 
     // Requirements filter
     const breakdown = app.screening_scores?.rubric_breakdown;
