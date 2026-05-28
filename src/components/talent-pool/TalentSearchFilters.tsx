@@ -13,12 +13,16 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Search, Filter, X, Grid3x3, List, Building2, Globe } from "lucide-react";
+import { Search, Filter, X, Grid3x3, List, Building2, Globe, Check, ChevronsUpDown } from "lucide-react";
 import { SearchFilters } from "@/pages/TalentPool";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+import { UN_REGIONAL_GROUPS, UN_MEMBER_STATES } from "@/lib/unRegions";
 
 interface TalentSearchFiltersProps {
   filters: SearchFilters;
