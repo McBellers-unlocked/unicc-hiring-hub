@@ -1109,23 +1109,18 @@ export default function AdminApplications() {
     showLonglistNotification;
 
   const getScoreBadge = (application: Application) => {
-    // Get the score directly from the screening_scores object
     const score = application.screening_scores?.ai_score;
-    if (score === null || score === undefined) {
+    const info = getFitTier(score);
+    if (info.tier === 'not_scored') {
       return (
-        <Badge className="bg-gray-100 text-gray-800 text-xs">
+        <Badge className={`${info.badgeClass} text-xs`}>
           Match: N/A
         </Badge>
       );
     }
-    
-    const color = score >= 80 ? 'bg-green-100 text-green-800' : 
-                  score >= 60 ? 'bg-yellow-100 text-yellow-800' : 
-                  'bg-red-100 text-red-800';
-    
     return (
-      <Badge className={`${color} text-xs`}>
-        Match: {score}%
+      <Badge className={`${info.badgeClass} text-xs font-semibold`}>
+        {info.shortLabel} · {score}%
       </Badge>
     );
   };
