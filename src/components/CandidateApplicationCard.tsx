@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
+import { getFitTier } from '@/lib/fitTier';
 
 interface CandidateApplicationCardProps {
   application: any;
