@@ -20,6 +20,8 @@ import { InterviewTimingOverview } from '@/components/InterviewTimingOverview';
 import { StandardInterviewIntro } from '@/components/StandardInterviewIntro';
 import { StandardInterviewWrapUp } from '@/components/StandardInterviewWrapUp';
 import { Slider } from '@/components/ui/slider';
+import { AIGenerateInterviewQuestions, type GeneratedQuestion } from '@/components/interview/AIGenerateInterviewQuestions';
+import { InterviewQuestionLibraryDialog } from '@/components/interview/InterviewQuestionLibraryDialog';
 
 interface InterviewQuestion {
   id?: string;
@@ -346,6 +348,38 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
     setQuestions(updated);
   };
 
+  const appendGenerated = (gens: GeneratedQuestion[]) => {
+    const start = questions.length;
+    const additions: InterviewQuestion[] = gens.map((g, i) => ({
+      question_text: g.question_text,
+      order_index: start + i,
+      assigned_to: null,
+      requirement_ids: g.requirement_ids || [],
+      competency_ids: g.competency_ids || [],
+      estimated_minutes: g.estimated_minutes || 4,
+    }));
+    setQuestions([...questions, ...additions]);
+  };
+
+  const appendFromLibrary = (items: Array<{ question_text: string; competency_names: string[]; requirement_titles: string[]; estimated_minutes: number | null }>) => {
+    const compIdByName = new Map(competencies.map(c => [c.competency_name.toLowerCase(), c.id]));
+    const reqIdByTitle = new Map(requirements.map(r => [r.title.toLowerCase(), r.id]));
+    const start = questions.length;
+    const additions: InterviewQuestion[] = items.map((it, i) => ({
+      question_text: it.question_text,
+      order_index: start + i,
+      assigned_to: null,
+      competency_ids: (it.competency_names || [])
+        .map(n => compIdByName.get(n.toLowerCase()))
+        .filter((v): v is string => !!v),
+      requirement_ids: (it.requirement_titles || [])
+        .map(t => reqIdByTitle.get(t.toLowerCase()))
+        .filter((v): v is string => !!v),
+      estimated_minutes: it.estimated_minutes || 4,
+    }));
+    setQuestions([...questions, ...additions]);
+  };
+
   const saveQuestions = async () => {
     setSaving(true);
     try {
@@ -415,6 +449,63 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
           .insert(competencyAssociations);
 
         if (compError) throw compError;
+      }
+
+      // Upsert each saved question into the global library
+      try {
+        const compNameById = new Map(competencies.map(c => [c.id, c.competency_name]));
+        const reqTitleById = new Map(requirements.map(r => [r.id, r.title]));
+        for (const q of questions) {
+          const text = (q.question_text || '').trim();
+          if (!text) continue;
+          const normalized = text.toLowerCase().replace(/\s+/g, ' ');
+          const compNames = (q.competency_ids || [])
+            .map(id => compNameById.get(id))
+            .filter((v): v is string => !!v);
+          const reqTitles = Array.from(new Set(
+            (q.requirement_ids || [])
+              .map(cid => reqTitleById.get(cid.split(':')[0]))
+              .filter((v): v is string => !!v)
+          ));
+
+          const { data: existing } = await supabase
+            .from('interview_questions_library' as any)
+            .select('id, usage_count, used_in_jobs, competency_names, requirement_titles')
+            .eq('question_text_normalized', normalized)
+            .maybeSingle();
+
+          if (existing) {
+            const ex: any = existing;
+            const mergedJobs = Array.from(new Set([...(ex.used_in_jobs || []), jobId]));
+            const mergedComps = Array.from(new Set([...(ex.competency_names || []), ...compNames]));
+            const mergedReqs = Array.from(new Set([...(ex.requirement_titles || []), ...reqTitles]));
+            await supabase
+              .from('interview_questions_library' as any)
+              .update({
+                usage_count: (ex.usage_count || 1) + 1,
+                last_used_at: new Date().toISOString(),
+                used_in_jobs: mergedJobs,
+                competency_names: mergedComps,
+                requirement_titles: mergedReqs,
+                estimated_minutes: q.estimated_minutes,
+              })
+              .eq('id', ex.id);
+          } else {
+            await supabase
+              .from('interview_questions_library' as any)
+              .insert({
+                question_text: text,
+                question_text_normalized: normalized,
+                competency_names: compNames,
+                requirement_titles: reqTitles,
+                estimated_minutes: q.estimated_minutes,
+                used_in_jobs: [jobId],
+                created_by: user?.id ?? null,
+              });
+          }
+        }
+      } catch (libErr) {
+        console.error('Library upsert failed (non-fatal):', libErr);
       }
 
       toast({
@@ -771,7 +862,14 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Interview Questions</CardTitle>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <AIGenerateInterviewQuestions
+              jobId={jobId}
+              disabled={requirements.length === 0 && competencies.length === 0}
+              disabledReason="Add requirements or competencies to the job first"
+              onAdd={appendGenerated}
+            />
+            <InterviewQuestionLibraryDialog onAdd={appendFromLibrary} />
             <Button onClick={addQuestion} variant="outline">
               <Plus className="w-4 h-4 mr-2" />
               Add Question
