@@ -400,6 +400,9 @@ const getStatusBadge = (status: string) => {
           </div>
         </div>
 
+        {/* Candidate Fit Summary — essential vs desirable criteria */}
+        <CandidateFitSummary application={application} />
+
         {/* Experience - Prominent metric cards */}
         <div className="p-3 bg-muted/30 rounded-lg my-4">
           <div className="flex items-center gap-2 mb-3">
