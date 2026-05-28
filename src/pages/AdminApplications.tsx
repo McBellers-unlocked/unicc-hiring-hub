@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Search, Filter, User, FileText, Calendar, AlertCircle, Trash2, Eye, ChevronDown, ChevronRight, GraduationCap, Briefcase, Languages, Plus, Check, X, Edit, Users, ArrowLeft, Video } from 'lucide-react';
 import { format } from 'date-fns';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
+import { getFitTier, FIT_TIER_LEGEND } from '@/lib/fitTier';
 import { CandidateApplicationCard } from '@/components/CandidateApplicationCard';
 import { ActionConfirmationDialog } from '@/components/ActionConfirmationDialog';
 import { VideoAssignmentDialog } from '@/components/VideoAssignmentDialog';
