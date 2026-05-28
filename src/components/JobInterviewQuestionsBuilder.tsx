@@ -419,6 +419,63 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
         if (compError) throw compError;
       }
 
+      // Upsert each saved question into the global library
+      try {
+        const compNameById = new Map(competencies.map(c => [c.id, c.competency_name]));
+        const reqTitleById = new Map(requirements.map(r => [r.id, r.title]));
+        for (const q of questions) {
+          const text = (q.question_text || '').trim();
+          if (!text) continue;
+          const normalized = text.toLowerCase().replace(/\s+/g, ' ');
+          const compNames = (q.competency_ids || [])
+            .map(id => compNameById.get(id))
+            .filter((v): v is string => !!v);
+          const reqTitles = Array.from(new Set(
+            (q.requirement_ids || [])
+              .map(cid => reqTitleById.get(cid.split(':')[0]))
+              .filter((v): v is string => !!v)
+          ));
+
+          const { data: existing } = await supabase
+            .from('interview_questions_library' as any)
+            .select('id, usage_count, used_in_jobs, competency_names, requirement_titles')
+            .eq('question_text_normalized', normalized)
+            .maybeSingle();
+
+          if (existing) {
+            const ex: any = existing;
+            const mergedJobs = Array.from(new Set([...(ex.used_in_jobs || []), jobId]));
+            const mergedComps = Array.from(new Set([...(ex.competency_names || []), ...compNames]));
+            const mergedReqs = Array.from(new Set([...(ex.requirement_titles || []), ...reqTitles]));
+            await supabase
+              .from('interview_questions_library' as any)
+              .update({
+                usage_count: (ex.usage_count || 1) + 1,
+                last_used_at: new Date().toISOString(),
+                used_in_jobs: mergedJobs,
+                competency_names: mergedComps,
+                requirement_titles: mergedReqs,
+                estimated_minutes: q.estimated_minutes,
+              })
+              .eq('id', ex.id);
+          } else {
+            await supabase
+              .from('interview_questions_library' as any)
+              .insert({
+                question_text: text,
+                question_text_normalized: normalized,
+                competency_names: compNames,
+                requirement_titles: reqTitles,
+                estimated_minutes: q.estimated_minutes,
+                used_in_jobs: [jobId],
+                created_by: user?.id ?? null,
+              });
+          }
+        }
+      } catch (libErr) {
+        console.error('Library upsert failed (non-fatal):', libErr);
+      }
+
       toast({
         title: "Success",
         description: "Interview questions saved and feedback template updated",
