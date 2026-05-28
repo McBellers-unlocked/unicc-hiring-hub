@@ -2043,6 +2043,15 @@ export default function AdminApplications() {
                 </Select>
               </div>
 
+              {/* Fit tier legend */}
+              <div className="mb-3 text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+                <span className="font-medium">Fit tier:</span>
+                <Badge className="bg-green-100 text-green-800 text-xs">Yes ≥75%</Badge>
+                <Badge className="bg-amber-100 text-amber-800 text-xs">Maybe 50–74%</Badge>
+                <Badge className="bg-red-100 text-red-800 text-xs">No &lt;50%</Badge>
+                <span>— "No" indicates the candidate does not meet education / essential experience requirements.</span>
+              </div>
+
               {/* New AI Screening Filters Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <Select value={aiScoreFilter} onValueChange={setAiScoreFilter}>
