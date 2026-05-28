@@ -28,26 +28,68 @@ interface Props {
   getContext: () => ContextInput;
   currentPurpose: string;
   currentDuties: string;
-  onApply: (result: { purpose_of_position: string; main_duties_responsibilities: string }, mode: "overwrite" | "fillEmpty") => void;
+  canGenerate: boolean;
+  missingFieldsLabel?: string;
+  onApply: (
+    result: { purpose_of_position: string; main_duties_responsibilities: string },
+    mode: "overwrite" | "fillEmpty",
+  ) => void;
 }
 
-const ACCEPT = ".pdf,.docx,.doc,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain";
+const ACCEPT = ".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain";
 const MAX_BYTES = 5 * 1024 * 1024;
 
-async function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      const comma = result.indexOf(",");
-      resolve(comma >= 0 ? result.slice(comma + 1) : result);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+async function extractPdfText(file: File): Promise<string> {
+  // pdfjs-dist v5 ESM build
+  const pdfjs: any = await import("pdfjs-dist/build/pdf.mjs");
+  // Use CDN worker to avoid bundling worker file
+  try {
+    pdfjs.GlobalWorkerOptions.workerSrc =
+      `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+  } catch {}
+  const arrayBuffer = await file.arrayBuffer();
+  const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+  const pdf = await loadingTask.promise;
+  const out: string[] = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    const pageText = content.items.map((it: any) => (typeof it.str === "string" ? it.str : "")).join(" ");
+    out.push(pageText);
+  }
+  return out.join("\n\n");
 }
 
-export function AIGeneratePositionDescription({ getContext, currentPurpose, currentDuties, onApply }: Props) {
+async function extractDocxText(file: File): Promise<string> {
+  const mammoth: any = await import("mammoth/mammoth.browser");
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer });
+  return result.value || "";
+}
+
+async function extractFileText(file: File): Promise<string> {
+  const name = file.name.toLowerCase();
+  const type = (file.type || "").toLowerCase();
+  if (name.endsWith(".txt") || type.startsWith("text/")) {
+    return await file.text();
+  }
+  if (name.endsWith(".pdf") || type === "application/pdf") {
+    return await extractPdfText(file);
+  }
+  if (name.endsWith(".docx") || type.includes("officedocument.wordprocessingml")) {
+    return await extractDocxText(file);
+  }
+  throw new Error("Unsupported file type. Use PDF, DOCX, or TXT.");
+}
+
+export function AIGeneratePositionDescription({
+  getContext,
+  currentPurpose,
+  currentDuties,
+  canGenerate,
+  missingFieldsLabel,
+  onApply,
+}: Props) {
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
@@ -78,13 +120,20 @@ export function AIGeneratePositionDescription({ getContext, currentPurpose, curr
     }
     setLoading(true);
     try {
-      const attachments = await Promise.all(
-        files.map(async (f) => ({
-          filename: f.name,
-          mimeType: f.type || "application/octet-stream",
-          base64: await fileToBase64(f),
-        }))
-      );
+      const attachments: { filename: string; text: string }[] = [];
+      for (const f of files) {
+        try {
+          const text = await extractFileText(f);
+          if (text && text.trim()) {
+            attachments.push({ filename: f.name, text });
+          } else {
+            toast({ title: "No text extracted", description: `${f.name} produced no text and was skipped.`, variant: "destructive" });
+          }
+        } catch (err: any) {
+          console.error("extract failed", f.name, err);
+          toast({ title: "Could not read file", description: `${f.name}: ${err?.message || "parse error"}`, variant: "destructive" });
+        }
+      }
 
       const { data, error } = await supabase.functions.invoke("generate-position-description", {
         body: { ...ctx, attachments },
@@ -96,8 +145,8 @@ export function AIGeneratePositionDescription({ getContext, currentPurpose, curr
           status === 402
             ? "AI credits exhausted. Add credits in workspace settings."
             : status === 429
-            ? "AI rate limit reached. Please try again shortly."
-            : error.message || "Generation failed";
+              ? "AI rate limit reached. Please try again shortly."
+              : error.message || "Generation failed";
         toast({ title: "AI generation failed", description: msg, variant: "destructive" });
         return;
       }
@@ -133,18 +182,9 @@ export function AIGeneratePositionDescription({ getContext, currentPurpose, curr
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+      {/* Attach JD first */}
       <div className="flex flex-wrap items-center gap-2">
-        <Button
-          type="button"
-          size="sm"
-          onClick={handleGenerateClick}
-          disabled={loading}
-          className="gap-2"
-        >
-          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-          {loading ? "Generating…" : "Generate with AI"}
-        </Button>
         <Button
           type="button"
           size="sm"
@@ -165,14 +205,14 @@ export function AIGeneratePositionDescription({ getContext, currentPurpose, curr
           onChange={handlePickFiles}
         />
         <span className="text-xs text-muted-foreground">
-          Optional: attach PDF/DOCX/TXT job descriptions to ground the AI output.
+          Optional: attach PDF, DOCX, or TXT job descriptions to ground the AI output.
         </span>
       </div>
       {files.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {files.map((f, i) => (
             <Badge key={`${f.name}-${i}`} variant="secondary" className="gap-1 pr-1">
-              <span className="max-w-[200px] truncate">{f.name}</span>
+              <span className="max-w-[220px] truncate">{f.name}</span>
               <button
                 type="button"
                 onClick={() => removeFile(i)}
@@ -185,6 +225,25 @@ export function AIGeneratePositionDescription({ getContext, currentPurpose, curr
           ))}
         </div>
       )}
+
+      {/* Then Generate */}
+      <div className="flex flex-wrap items-center gap-2 pt-1">
+        <Button
+          type="button"
+          size="sm"
+          onClick={handleGenerateClick}
+          disabled={loading || !canGenerate}
+          className="gap-2"
+        >
+          {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+          {loading ? "Generating…" : "Generate with AI"}
+        </Button>
+        {!canGenerate && (
+          <span className="text-xs text-muted-foreground">
+            {missingFieldsLabel || "Fill position title, grade, and division to enable AI generation."}
+          </span>
+        )}
+      </div>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
