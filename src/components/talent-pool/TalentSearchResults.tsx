@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { JobMatchingService } from "@/lib/jobMatching";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { getRegionForCountry, resolveCountryName, extractCountriesFromLocation } from "@/lib/unRegions";
 
 const PAGE_SIZE = 50;
 
