@@ -2047,13 +2047,13 @@ export default function AdminApplications() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <Select value={aiScoreFilter} onValueChange={setAiScoreFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="AI Score Range" />
+                    <SelectValue placeholder="Candidate Fit" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All AI Scores</SelectItem>
-                    <SelectItem value="high">High Score (80-100)</SelectItem>
-                    <SelectItem value="medium">Medium Score (70-79)</SelectItem>
-                    <SelectItem value="low">Low Score (&lt;70)</SelectItem>
+                    <SelectItem value="all">All Fit Tiers</SelectItem>
+                    <SelectItem value="yes">✅ Yes (≥75%)</SelectItem>
+                    <SelectItem value="maybe">🟡 Maybe (50–74%)</SelectItem>
+                    <SelectItem value="no">🔴 No (&lt;50%)</SelectItem>
                     <SelectItem value="not_scored">Not Yet Scored</SelectItem>
                   </SelectContent>
                 </Select>
