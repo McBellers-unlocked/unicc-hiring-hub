@@ -215,6 +215,7 @@ export function TalentSearchResults({
         current_grade: s.current_grade,
         entry_on_duty_date: s.entry_on_duty_date,
         line_manager: s.line_manager,
+        nationality: (s as any).nationality ?? null,
       });
     });
   }
