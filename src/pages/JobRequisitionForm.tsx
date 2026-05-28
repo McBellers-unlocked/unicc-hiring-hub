@@ -27,6 +27,7 @@ import { EssentialExperienceTemplateModal } from '@/components/EssentialExperien
 import { StaffEssentialEducationTemplateModal } from '@/components/StaffEssentialEducationTemplateModal';
 import TurndownService from 'turndown';
 import { Label } from "@/components/ui/label";
+import { AIGeneratePositionDescription } from "@/components/requisition/AIGeneratePositionDescription";
 
 // Organizational structure
 const DIVISIONS = {
