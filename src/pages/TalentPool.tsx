@@ -77,7 +77,7 @@ export default function TalentPool() {
   // Clear selection when filters change
   useEffect(() => {
     setSelectedIds([]);
-  }, [filters.talentSource, filters.skills, filters.searchText, filters.divisions, filters.dutyStations, filters.grades]);
+  }, [filters.talentSource, filters.skills, filters.searchText, filters.divisions, filters.dutyStations, filters.grades, filters.regions, filters.memberStates, filters.nationalities]);
 
   // Fetch selected staff details for email dialog
   const { data: selectedStaff } = useQuery({
