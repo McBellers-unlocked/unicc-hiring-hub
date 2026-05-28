@@ -87,13 +87,9 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
   const aiScore = screeningScore?.ai_score;
   const rubricBreakdown = screeningScore?.rubric_breakdown;
 
-  // Get color-coded border based on AI score
-  const getCardBorderClass = () => {
-    if (!aiScore) return '';
-    if (aiScore >= 80) return 'border-l-4 border-l-green-500';
-    if (aiScore >= 70) return 'border-l-4 border-l-yellow-500';
-    return 'border-l-4 border-l-red-400';
-  };
+  // Get color-coded border based on AI fit tier
+  const fitTierInfo = getFitTier(aiScore);
+  const getCardBorderClass = () => fitTierInfo.borderClass;
 
   const allEducation = getEducationSummary(application.candidate.education);
   
