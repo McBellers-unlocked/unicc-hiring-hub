@@ -20,6 +20,8 @@ import { InterviewTimingOverview } from '@/components/InterviewTimingOverview';
 import { StandardInterviewIntro } from '@/components/StandardInterviewIntro';
 import { StandardInterviewWrapUp } from '@/components/StandardInterviewWrapUp';
 import { Slider } from '@/components/ui/slider';
+import { AIGenerateInterviewQuestions, type GeneratedQuestion } from '@/components/interview/AIGenerateInterviewQuestions';
+import { InterviewQuestionLibraryDialog } from '@/components/interview/InterviewQuestionLibraryDialog';
 
 interface InterviewQuestion {
   id?: string;
