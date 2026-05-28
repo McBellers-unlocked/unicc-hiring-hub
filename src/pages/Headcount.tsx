@@ -6,6 +6,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts';
 import { Layout } from '@/components/Layout';
+import { NationalityReport } from '@/components/analytics/NationalityReport';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -560,44 +561,28 @@ export default function Headcount() {
           </CardContent>
         </Card>
 
-        {/* Nationality + Division × Gender */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Top 10 Nationalities</CardTitle></CardHeader>
-            <CardContent>
-              {isLoading ? <Skeleton className="h-72 w-full" /> : (
-                <ResponsiveContainer width="100%" height={Math.max(280, agg.nationality.length * 28)}>
-                  <BarChart data={agg.nationality} layout="vertical" margin={{ left: 60 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" allowDecimals={false} />
-                    <YAxis type="category" dataKey="name" width={120} />
-                    <Tooltip />
-                    <Bar dataKey="value" fill={PALETTE[1]} radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
+        {/* Division × Gender */}
+        <Card>
+          <CardHeader><CardTitle className="text-base">Headcount per Division × Gender</CardTitle></CardHeader>
+          <CardContent>
+            {isLoading ? <Skeleton className="h-72 w-full" /> : (
+              <ResponsiveContainer width="100%" height={Math.max(280, agg.divisionGender.length * 36)}>
+                <BarChart data={agg.divisionGender} layout="vertical" margin={{ left: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" width={120} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="Man" fill={GENDER_COLORS.Man} />
+                  <Bar dataKey="Woman" fill={GENDER_COLORS.Woman} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader><CardTitle className="text-base">Headcount per Division × Gender</CardTitle></CardHeader>
-            <CardContent>
-              {isLoading ? <Skeleton className="h-72 w-full" /> : (
-                <ResponsiveContainer width="100%" height={Math.max(280, agg.divisionGender.length * 36)}>
-                  <BarChart data={agg.divisionGender} layout="vertical" margin={{ left: 60 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" allowDecimals={false} />
-                    <YAxis type="category" dataKey="name" width={120} />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="Man" fill={GENDER_COLORS.Man} />
-                    <Bar dataKey="Woman" fill={GENDER_COLORS.Woman} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        {/* Nationality reporting */}
+        <NationalityReport rows={rows} isLoading={isLoading} />
       </div>
     </Layout>
   );
