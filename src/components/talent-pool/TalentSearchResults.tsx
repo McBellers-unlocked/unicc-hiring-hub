@@ -47,6 +47,9 @@ interface NormalizedTalent {
   has_security_clearance?: boolean;
   work_experience?: any[];
   professional_summary?: string | null;
+  // Geographic
+  present_nationality?: string | null;
+  nationality?: string | null;
 }
 
 export function TalentSearchResults({
