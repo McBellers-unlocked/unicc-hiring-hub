@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Search, Filter, User, FileText, Calendar, AlertCircle, Trash2, Eye, ChevronDown, ChevronRight, GraduationCap, Briefcase, Languages, Plus, Check, X, Edit, Users, ArrowLeft, Video } from 'lucide-react';
 import { format } from 'date-fns';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
+import { getFitTier, FIT_TIER_LEGEND } from '@/lib/fitTier';
 import { CandidateApplicationCard } from '@/components/CandidateApplicationCard';
 import { ActionConfirmationDialog } from '@/components/ActionConfirmationDialog';
 import { VideoAssignmentDialog } from '@/components/VideoAssignmentDialog';
@@ -994,13 +995,14 @@ export default function AdminApplications() {
     const matchesLanguage = languageFilter === 'all' || 
                            languages.toLowerCase().includes(languageFilter.toLowerCase());
 
-    // AI Score filter
+    // AI Score / Fit tier filter
     const score = app.screening_scores?.ai_score;
-    const matchesAiScore = aiScoreFilter === 'all' || 
-                          (aiScoreFilter === 'high' && score !== null && score !== undefined && score >= 80) ||
-                          (aiScoreFilter === 'medium' && score !== null && score !== undefined && score >= 70 && score < 80) ||
-                          (aiScoreFilter === 'low' && score !== null && score !== undefined && score < 70) ||
-                          (aiScoreFilter === 'not_scored' && (score === null || score === undefined));
+    const tier = getFitTier(score).tier;
+    const matchesAiScore = aiScoreFilter === 'all' ||
+                          (aiScoreFilter === 'yes' && tier === 'yes') ||
+                          (aiScoreFilter === 'maybe' && tier === 'maybe') ||
+                          (aiScoreFilter === 'no' && tier === 'no') ||
+                          (aiScoreFilter === 'not_scored' && tier === 'not_scored');
 
     // Requirements filter
     const breakdown = app.screening_scores?.rubric_breakdown;
@@ -1020,9 +1022,13 @@ export default function AdminApplications() {
       case 'updated_at':
         return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
       case 'ai_score':
-        const scoreA = a.screening_scores?.ai_score || 0;
-        const scoreB = b.screening_scores?.ai_score || 0;
-        return scoreB - scoreA; // Higher scores first
+        const tierRank: Record<string, number> = { yes: 0, maybe: 1, no: 2, not_scored: 3 };
+        const scoreA = a.screening_scores?.ai_score ?? null;
+        const scoreB = b.screening_scores?.ai_score ?? null;
+        const rankA = tierRank[getFitTier(scoreA).tier];
+        const rankB = tierRank[getFitTier(scoreB).tier];
+        if (rankA !== rankB) return rankA - rankB;
+        return (scoreB ?? 0) - (scoreA ?? 0);
       case 'video_score':
         const videoA = a.videoScore || 0;
         const videoB = b.videoScore || 0;
@@ -1107,23 +1113,18 @@ export default function AdminApplications() {
     showLonglistNotification;
 
   const getScoreBadge = (application: Application) => {
-    // Get the score directly from the screening_scores object
     const score = application.screening_scores?.ai_score;
-    if (score === null || score === undefined) {
+    const info = getFitTier(score);
+    if (info.tier === 'not_scored') {
       return (
-        <Badge className="bg-gray-100 text-gray-800 text-xs">
+        <Badge className={`${info.badgeClass} text-xs`}>
           Match: N/A
         </Badge>
       );
     }
-    
-    const color = score >= 80 ? 'bg-green-100 text-green-800' : 
-                  score >= 60 ? 'bg-yellow-100 text-yellow-800' : 
-                  'bg-red-100 text-red-800';
-    
     return (
-      <Badge className={`${color} text-xs`}>
-        Match: {score}%
+      <Badge className={`${info.badgeClass} text-xs font-semibold`}>
+        {info.shortLabel} · {score}%
       </Badge>
     );
   };
@@ -2041,22 +2042,31 @@ export default function AdminApplications() {
                     <SelectItem value="name">Candidate Name</SelectItem>
                     <SelectItem value="status">Status</SelectItem>
                     <SelectItem value="updated_at">Last Updated</SelectItem>
-                    <SelectItem value="ai_score">AI Score (High to Low)</SelectItem>
+                    <SelectItem value="ai_score">Fit Tier (Yes → No)</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Fit tier legend */}
+              <div className="mb-3 text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+                <span className="font-medium">Fit tier:</span>
+                <Badge className="bg-green-100 text-green-800 text-xs">Yes ≥75%</Badge>
+                <Badge className="bg-amber-100 text-amber-800 text-xs">Maybe 50–74%</Badge>
+                <Badge className="bg-red-100 text-red-800 text-xs">No &lt;50%</Badge>
+                <span>— "No" indicates the candidate does not meet education / essential experience requirements.</span>
               </div>
 
               {/* New AI Screening Filters Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <Select value={aiScoreFilter} onValueChange={setAiScoreFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="AI Score Range" />
+                    <SelectValue placeholder="Candidate Fit" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All AI Scores</SelectItem>
-                    <SelectItem value="high">High Score (80-100)</SelectItem>
-                    <SelectItem value="medium">Medium Score (70-79)</SelectItem>
-                    <SelectItem value="low">Low Score (&lt;70)</SelectItem>
+                    <SelectItem value="all">All Fit Tiers</SelectItem>
+                    <SelectItem value="yes">✅ Yes (≥75%)</SelectItem>
+                    <SelectItem value="maybe">🟡 Maybe (50–74%)</SelectItem>
+                    <SelectItem value="no">🔴 No (&lt;50%)</SelectItem>
                     <SelectItem value="not_scored">Not Yet Scored</SelectItem>
                   </SelectContent>
                 </Select>

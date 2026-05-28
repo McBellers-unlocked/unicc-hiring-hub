@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
+import { getFitTier } from '@/lib/fitTier';
 
 interface CandidateApplicationCardProps {
   application: any;
@@ -87,13 +88,9 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
   const aiScore = screeningScore?.ai_score;
   const rubricBreakdown = screeningScore?.rubric_breakdown;
 
-  // Get color-coded border based on AI score
-  const getCardBorderClass = () => {
-    if (!aiScore) return '';
-    if (aiScore >= 80) return 'border-l-4 border-l-green-500';
-    if (aiScore >= 70) return 'border-l-4 border-l-yellow-500';
-    return 'border-l-4 border-l-red-400';
-  };
+  // Get color-coded border based on AI fit tier
+  const fitTierInfo = getFitTier(aiScore);
+  const getCardBorderClass = () => fitTierInfo.borderClass;
 
   const allEducation = getEducationSummary(application.candidate.education);
   
@@ -136,21 +133,13 @@ const getStatusBadge = (status: string) => {
   };
 
   const getScoreBadge = (app: any) => {
-    if (!application.screening_scores?.ai_score) {
+    const info = fitTierInfo;
+    if (info.tier === 'not_scored') {
       return <Badge variant="outline" className="text-xs">No Score</Badge>;
     }
-
-    const score = application.screening_scores.ai_score;
-    let colorClass = 'bg-gray-100 text-gray-700';
-    
-    if (score >= 80) colorClass = 'bg-green-100 text-green-700';
-    else if (score >= 60) colorClass = 'bg-yellow-100 text-yellow-700';
-    else if (score >= 40) colorClass = 'bg-orange-100 text-orange-700';
-    else colorClass = 'bg-red-100 text-red-700';
-
     return (
-      <Badge className={`${colorClass} text-xs px-2 py-1`}>
-        Match: {score}%
+      <Badge className={`${info.badgeClass} text-xs px-2 py-1 font-semibold`}>
+        {info.shortLabel} · {aiScore}%
       </Badge>
     );
   };
