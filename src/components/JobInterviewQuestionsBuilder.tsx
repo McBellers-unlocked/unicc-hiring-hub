@@ -862,7 +862,14 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Interview Questions</CardTitle>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <AIGenerateInterviewQuestions
+              jobId={jobId}
+              disabled={requirements.length === 0 && competencies.length === 0}
+              disabledReason="Add requirements or competencies to the job first"
+              onAdd={appendGenerated}
+            />
+            <InterviewQuestionLibraryDialog onAdd={appendFromLibrary} />
             <Button onClick={addQuestion} variant="outline">
               <Plus className="w-4 h-4 mr-2" />
               Add Question
