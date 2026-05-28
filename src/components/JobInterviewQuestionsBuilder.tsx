@@ -348,6 +348,38 @@ export function JobInterviewQuestionsBuilder({ jobId, jobTitle }: JobInterviewQu
     setQuestions(updated);
   };
 
+  const appendGenerated = (gens: GeneratedQuestion[]) => {
+    const start = questions.length;
+    const additions: InterviewQuestion[] = gens.map((g, i) => ({
+      question_text: g.question_text,
+      order_index: start + i,
+      assigned_to: null,
+      requirement_ids: g.requirement_ids || [],
+      competency_ids: g.competency_ids || [],
+      estimated_minutes: g.estimated_minutes || 4,
+    }));
+    setQuestions([...questions, ...additions]);
+  };
+
+  const appendFromLibrary = (items: Array<{ question_text: string; competency_names: string[]; requirement_titles: string[]; estimated_minutes: number | null }>) => {
+    const compIdByName = new Map(competencies.map(c => [c.competency_name.toLowerCase(), c.id]));
+    const reqIdByTitle = new Map(requirements.map(r => [r.title.toLowerCase(), r.id]));
+    const start = questions.length;
+    const additions: InterviewQuestion[] = items.map((it, i) => ({
+      question_text: it.question_text,
+      order_index: start + i,
+      assigned_to: null,
+      competency_ids: (it.competency_names || [])
+        .map(n => compIdByName.get(n.toLowerCase()))
+        .filter((v): v is string => !!v),
+      requirement_ids: (it.requirement_titles || [])
+        .map(t => reqIdByTitle.get(t.toLowerCase()))
+        .filter((v): v is string => !!v),
+      estimated_minutes: it.estimated_minutes || 4,
+    }));
+    setQuestions([...questions, ...additions]);
+  };
+
   const saveQuestions = async () => {
     setSaving(true);
     try {
