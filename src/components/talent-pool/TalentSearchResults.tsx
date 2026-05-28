@@ -303,6 +303,34 @@ export function TalentSearchResults({
       }
     }
 
+    // Geographic filters (Region / Member State / Nationality) — applied to all sources
+    if (
+      filters.regions.length > 0 ||
+      filters.memberStates.length > 0 ||
+      filters.nationalities.length > 0
+    ) {
+      const personCountries = new Set<string>();
+      const natRaw = person._source === "internal" ? person.nationality : person.present_nationality;
+      const natResolved = resolveCountryName(natRaw);
+      if (natResolved) personCountries.add(natResolved);
+      for (const c of extractCountriesFromLocation(person.location)) {
+        personCountries.add(c);
+      }
+
+      if (filters.nationalities.length > 0) {
+        if (!filters.nationalities.some((n) => personCountries.has(n))) return false;
+      }
+      if (filters.memberStates.length > 0) {
+        if (!filters.memberStates.some((n) => personCountries.has(n))) return false;
+      }
+      if (filters.regions.length > 0) {
+        const personRegions = [...personCountries]
+          .map((c) => getRegionForCountry(c))
+          .filter((r): r is NonNullable<typeof r> => Boolean(r));
+        if (!filters.regions.some((r) => personRegions.includes(r as any))) return false;
+      }
+    }
+
     return true;
   });
 
