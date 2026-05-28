@@ -2038,7 +2038,7 @@ export default function AdminApplications() {
                     <SelectItem value="name">Candidate Name</SelectItem>
                     <SelectItem value="status">Status</SelectItem>
                     <SelectItem value="updated_at">Last Updated</SelectItem>
-                    <SelectItem value="ai_score">AI Score (High to Low)</SelectItem>
+                    <SelectItem value="ai_score">Fit Tier (Yes → No)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
