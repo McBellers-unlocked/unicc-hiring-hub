@@ -1022,9 +1022,13 @@ export default function AdminApplications() {
       case 'updated_at':
         return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
       case 'ai_score':
-        const scoreA = a.screening_scores?.ai_score || 0;
-        const scoreB = b.screening_scores?.ai_score || 0;
-        return scoreB - scoreA; // Higher scores first
+        const tierRank: Record<string, number> = { yes: 0, maybe: 1, no: 2, not_scored: 3 };
+        const scoreA = a.screening_scores?.ai_score ?? null;
+        const scoreB = b.screening_scores?.ai_score ?? null;
+        const rankA = tierRank[getFitTier(scoreA).tier];
+        const rankB = tierRank[getFitTier(scoreB).tier];
+        if (rankA !== rankB) return rankA - rankB;
+        return (scoreB ?? 0) - (scoreA ?? 0);
       case 'video_score':
         const videoA = a.videoScore || 0;
         const videoB = b.videoScore || 0;
