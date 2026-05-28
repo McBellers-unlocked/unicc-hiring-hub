@@ -62,6 +62,9 @@ export default function TalentPool() {
     divisions: [],
     dutyStations: [],
     grades: [],
+    regions: [],
+    memberStates: [],
+    nationalities: [],
   });
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<string>("updated_desc");
