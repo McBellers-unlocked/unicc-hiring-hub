@@ -1,39 +1,50 @@
-# Add Yes / Maybe / No fit tiers for AI match scores
+## Candidate Fit Summary
 
-Introduce a simple "fit tier" derived from the AI match score, shown wherever candidates are listed in Application Management, plus a new filter and sort option.
+Add a new panel inside `CandidateApplicationCard.tsx`, inserted between the "Languages / Skills / Certs" bordered block (ends at line ~400) and the "Experience" metric cards (starts at line ~402). It uses the already-stored AI scoring data, so no backend or schema changes.
 
-## Tier definition
+### What it shows
 
-Single shared helper so the rule lives in one place:
+A compact card titled **"Candidate Fit"** with the overall tier (Yes / Maybe / No from `fitTier.ts`) and two columns:
 
-- **Yes** — score ≥ 75% (green)
-- **Maybe** — 50% ≤ score < 75% (amber)
-- **No** — score < 50% (red) — does not meet education / essential experience
-- **Not scored** — no AI score yet (neutral)
+```text
+┌─ Candidate Fit ─── [Yes · 82%] ─────────────────────────────┐
+│  ESSENTIAL CRITERIA           DESIRABLE CRITERIA            │
+│  ✓ Master's in Info Systems   ✓ UN system experience        │
+│  ✓ 10+ yrs product mgmt       — French (working knowledge)  │
+│  ✗ PMP certification          ✓ Digital payments exposure   │
+│  3 of 4 met · must-haves ✓    2 of 3 met                    │
+└─────────────────────────────────────────────────────────────┘
+```
 
-New file: `src/lib/fitTier.ts` exporting `getFitTier(score)` returning `{ tier, label, badgeClass, borderClass }`.
+Each row = one criterion with:
+- ✓ green if `passed === true`
+- ✗ red if `passed === false`
+- — muted if `score == null` / not assessed
+- Truncated `criterionText` (one line, tooltip on hover with full text + evidence quote)
 
-## UI changes
+Footer per column: "X of Y met" and a small "must-haves ✓ / ✗" pill on the essential side.
 
-1. **`src/components/CandidateApplicationCard.tsx`**
-   - Replace the existing 4-bucket `getScoreBadge` and `getCardBorderClass` with the shared helper.
-   - Render the fit tier as a prominent pill (e.g. `Yes · 82%`) next to the existing match score, using the tier color.
-   - Left border color follows the tier (green / amber / red / neutral).
+If no AI scoring exists yet → render a single muted line "Awaiting AI scoring" and skip the columns.
 
-2. **`src/pages/AdminApplications.tsx`**
-   - Update `getScoreBadge` to use the shared helper so admin list, kanban cards, and any score chips render the same Yes/Maybe/No pill.
-   - Add a new **Fit** filter (`yes` / `maybe` / `no` / `not_scored`) alongside the existing AI score filter, or replace the current `aiScoreFilter` thresholds with the new tier thresholds (recommended: replace, since tiers supersede the old 80/70 cutoffs). Filter options: All / Yes (≥75%) / Maybe (50–74%) / No (<50%) / Not scored.
-   - Add a "Fit tier (Yes → No)" option to the sort dropdown.
-   - When grouping by phase, optionally show small tier counters (e.g. `Yes 4 · Maybe 7 · No 12`) under the Applications and Longlist phase cards.
+### Data source
 
-3. **Legend** — add a one-line legend above the application list explaining the thresholds so reviewers understand the cutoffs.
+All from `application.screening_scores.rubric_breakdown` (already loaded for the existing Match badge):
+- **Essential column**: `rubric_breakdown.criteria` (these are parsed from the "Essential Criteria" requirements) plus `educationScore` appended.
+- **Must-haves pill**: derived from `criteria.filter(c => c.type === 'years_experience' || c.type === 'education').every(c => c.passed)` (same `corePass` logic the scorer uses).
+- **Desirable column**: the current `score-application` function only evaluates essential criteria, so there is no AI-scored desirable data yet. For v1 the desirable column shows criteria parsed from the job's `requirements_md` "Desirable" sections as **— Not assessed** rows (read-only). A note "Desirable criteria not yet AI-scored" appears under the column. Wiring up AI scoring for desirables is out of scope here and can be a follow-up.
 
-## Non-goals
+### Files touched
 
-- No DB schema change — tiers are derived from the existing `screening_scores.ai_score`.
-- No change to the AI scoring pipeline, longlist tier_1/tier_2 ratings, or panel interview recommendation logic.
-- No automated stage transitions based on tier (manual review still required).
+- `src/components/CandidateApplicationCard.tsx` — add the new panel block + a small helper to read desirable bullets from `application.jobs?.requirements_md` (parse "Desirable Experience" / "Desirable Education" sections with the same bullet-line regex the scorer uses). Reuse `getFitTier` for the header pill.
+- `src/lib/fitTier.ts` — no change.
+- No new files unless the panel grows beyond ~80 lines; in that case extract `CandidateFitSummary.tsx` in the same folder.
 
-## Open question
+### Non-goals
 
-Thresholds proposed: **≥75 Yes, 50–74 Maybe, <50 No**. Confirm or adjust before implementation. WIPO's message said "above 75%" and "50% is Maybe" so this matches; flag if you want strict `>75` instead of `≥75`.
+- No DB / edge-function changes.
+- No change to the existing Match badge, action row, or filters.
+- No AI scoring of desirable criteria in this pass.
+
+### Open question
+
+Confirm placement: **between the Languages/Skills/Certs block and the Experience metric cards** (your suggestion). I'll keep it directly above Experience so it reads top-down as: profile → criteria fit → years summary.
