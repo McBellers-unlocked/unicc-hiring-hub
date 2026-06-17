@@ -55,6 +55,16 @@ function bandConfidence(c: number): number {
   return 0.9;
 }
 
+// Logic-aware pass ratio — toggleable, default OFF.
+// When true, subPassRatio for an OR-style recombine_logic is computed against
+// the minimal satisfying set instead of total sub count, so a fully-satisfied
+// OR scores like a fully-satisfied requirement.
+const LOGIC_AWARE_PASS_RATIO = false;
+
+// Symmetric verifier band: re-check borderline NEGATIVES in [LOW, HIGH).
+const VERIFIER_NEG_LOW = 0.50;
+const VERIFIER_NEG_HIGH = 0.80;
+
 // Stable, dependency-free string hash (djb2). Used to fingerprint
 // decompositions and PHF inputs for the verdict cache.
 function shortHash(s: string): string {
@@ -837,6 +847,29 @@ function checkEducationEligibility(
   return { eligible, candidateLevel, details };
 }
 
+// Detects "or equivalent (professional|work|practical) experience" phrasing.
+// When present and the deterministic level check fails, the equivalency route
+// hands off to the LLM instead of auto-failing the candidate.
+function hasEquivalencyClause(text: string): boolean {
+  if (!text) return false;
+  const t = text.toLowerCase();
+  return /\bor\s+equivalent\b/.test(t) && /(experience|professional|work|practical|qualification)/.test(t);
+}
+
+// Extracts the field-of-study mentioned in the criterion, e.g.
+// "advanced degree in HR or a related field" → "HR".
+function extractEducationField(text: string): string | null {
+  if (!text) return null;
+  const m = text.match(
+    /\b(?:degree|diploma|bachelor'?s?|master'?s?|phd|doctorate|qualification|education|studies)\b[^.,;]*?\s+in\s+([^.,;()]+?)(?:\s+or\s+(?:a\s+)?(?:related|similar|equivalent)\s+(?:field|discipline|area)|\s+or\s+equivalent|[.,;()]|$)/i
+  );
+  if (!m) return null;
+  const raw = m[1].trim().replace(/\s+/g, ' ');
+  if (raw.length < 2) return null;
+  if (/^(a|an|the|any|relevant)$/i.test(raw)) return null;
+  return raw;
+}
+
 // =============================================================================
 // STEP 2: Criterion Decomposer (cached per job) — now uses preloaded map
 // =============================================================================
@@ -1039,6 +1072,66 @@ Check:
   };
 }
 
+// Symmetric verifier: look for missed evidence on borderline NEGATIVES.
+// Returns either { recovered:true, evidence } if the verifier finds clear
+// verbatim evidence supporting the requirement, or { recovered:false }.
+async function verifyNegative(
+  subText: string,
+  candidateDuties: string,
+  motivationLetter: string,
+  experienceBullets: string
+): Promise<{ recovered: boolean; evidence: EvidenceQuote[] }> {
+  const bulletSection = experienceBullets ? `\n${experienceBullets}\n\n` : '';
+  const prompt = `A prior assessment concluded the candidate does NOT demonstrate this requirement, but the confidence was borderline. Re-check ONLY for missed VERBATIM evidence.
+
+REQUIREMENT: "${subText}"
+${bulletSection}
+CANDIDATE WORK EXPERIENCE:
+${candidateDuties || 'Not provided'}
+
+MOTIVATION LETTER:
+${motivationLetter || 'Not provided'}
+
+Rules:
+- Set recovered=true ONLY if you can quote VERBATIM text above that clearly supports the requirement.
+- Evidence quotes must be exact copy-paste, max 280 chars each, max 3 quotes.
+- If no clear verbatim evidence exists, set recovered=false and return an empty evidence array.
+- Do NOT infer, paraphrase, or rely on the motivation letter alone unless no work-experience text exists.`;
+
+  const result = await callAIWithToolCalling(
+    VERIFIER_SYSTEM_PROMPT,
+    prompt,
+    'verify_negative',
+    'Second-look check for missed evidence on a borderline negative assessment',
+    {
+      recovered: { type: 'boolean' },
+      evidence: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            source: { type: 'string', enum: ['work_experience', 'motivation_letter'] },
+            quote: { type: 'string' }
+          },
+          required: ['source', 'quote']
+        }
+      }
+    }
+  );
+
+  if (!result) return { recovered: false, evidence: [] };
+  const data = result.data;
+  const evidence: EvidenceQuote[] = (data.evidence || [])
+    .slice(0, 3)
+    .map((e: any) => ({
+      source: e.source || 'work_experience',
+      quote: typeof e.quote === 'string' ? e.quote.substring(0, 280) : ''
+    }))
+    .filter((e: EvidenceQuote) => e.quote.length > 0);
+  return { recovered: !!data.recovered && evidence.length > 0, evidence };
+}
+
+
 // =============================================================================
 // STEP 5: Recombine Logic Parser (safe, strict) — unchanged
 // =============================================================================
@@ -1158,6 +1251,207 @@ function extractCandidateDuties(workExperience: any[]): string {
     .join('\n\n');
 }
 
+// Reusable LLM-sub scoring: verdict-cache lookup → evaluator (on miss) → cache
+// write → symmetric verifier (positives AND borderline negatives) → confidence
+// banding. Used by scoreCriterionV4 and by the education-criterion enhancements
+// (equivalency & field-relevance checks).
+interface ScoreLlmSubArgs {
+  subReq: SubRequirement;
+  criterionId: string;
+  decompositionVersion: string;
+  applicationId: string;
+  phfHash: string;
+  candidateDuties: string;
+  motivationLetter: string;
+  experienceBullets: string;
+  modelUsedTracker: Set<string>;
+}
+
+async function scoreLlmSubWithCache(args: ScoreLlmSubArgs): Promise<SubRequirementScore> {
+  const {
+    subReq, criterionId, decompositionVersion, applicationId, phfHash,
+    candidateDuties, motivationLetter, experienceBullets, modelUsedTracker,
+  } = args;
+
+  // ---- Verdict cache lookup ----
+  let evalResult: EvaluatorResult | null = null;
+  let cacheHit = false;
+  try {
+    const { data: cachedVerdict } = await supabase
+      .from('subrequirement_verdicts')
+      .select('demonstrated, evidence, missing, confidence, model_version')
+      .eq('application_id', applicationId)
+      .eq('criterion_id', criterionId)
+      .eq('sub_id', subReq.id)
+      .eq('decomposition_version', decompositionVersion)
+      .eq('phf_hash', phfHash)
+      .maybeSingle();
+
+    if (cachedVerdict) {
+      cacheHit = true;
+      evalResult = {
+        demonstrated: !!cachedVerdict.demonstrated,
+        evidence: (cachedVerdict.evidence as EvidenceQuote[]) || [],
+        missing: cachedVerdict.missing ?? null,
+        confidence: typeof cachedVerdict.confidence === 'number' ? cachedVerdict.confidence : 0,
+        flags: ['CACHED_VERDICT'],
+        modelUsed: cachedVerdict.model_version || undefined,
+        fromCache: true,
+      };
+      if (cachedVerdict.model_version) modelUsedTracker.add(cachedVerdict.model_version);
+    }
+  } catch (e) {
+    console.warn('Verdict cache lookup failed (continuing without cache):', e);
+  }
+
+  // ---- Evaluator (cache miss) ----
+  if (!evalResult) {
+    evalResult = await evaluateSubRequirement(subReq, candidateDuties, motivationLetter, experienceBullets);
+    if (evalResult.modelUsed) modelUsedTracker.add(evalResult.modelUsed);
+
+    const isParseFailure = evalResult.flags?.includes('AI_PARSE_FAILURE');
+    if (!isParseFailure) {
+      try {
+        await supabase
+          .from('subrequirement_verdicts')
+          .upsert({
+            application_id: applicationId,
+            criterion_id: criterionId,
+            sub_id: subReq.id,
+            decomposition_version: decompositionVersion,
+            phf_hash: phfHash,
+            demonstrated: evalResult.demonstrated,
+            evidence: evalResult.evidence,
+            missing: evalResult.missing,
+            confidence: evalResult.confidence,
+            model_version: evalResult.modelUsed ?? MODEL,
+            prompt_version: PROMPT_VERSION,
+          }, { onConflict: 'application_id,criterion_id,sub_id,decomposition_version,phf_hash' });
+      } catch (e) {
+        console.warn('Verdict cache write failed (continuing):', e);
+      }
+    }
+  }
+
+  // ---- Symmetric verifier ----
+  // Skip verifier on cache hits (already accounted for in the cached confidence)
+  // and on high-confidence results in BOTH directions to save tokens.
+  let verification: VerifierResult | undefined;
+  const flags = [...(evalResult.flags || [])];
+
+  if (!cacheHit) {
+    // (a) Borderline POSITIVE second-look (existing behavior)
+    if (evalResult.demonstrated && evalResult.confidence < 0.80) {
+      verification = await verifyEvidence(
+        subReq.text,
+        evalResult.demonstrated,
+        evalResult.evidence,
+        evalResult.confidence
+      );
+
+      if (!verification.valid) {
+        evalResult.demonstrated = false;
+        evalResult.confidence = Math.min(evalResult.confidence, 0.49);
+        flags.push('VERIFIER_INVALIDATED');
+      } else {
+        evalResult.confidence = Math.max(0, Math.min(1,
+          evalResult.confidence + verification.confidence_adjustment
+        ));
+      }
+    }
+    // (b) Borderline NEGATIVE second-look — guard against missed-evidence false negatives
+    else if (!evalResult.demonstrated &&
+             evalResult.confidence >= VERIFIER_NEG_LOW &&
+             evalResult.confidence < VERIFIER_NEG_HIGH) {
+      const neg = await verifyNegative(
+        subReq.text,
+        candidateDuties,
+        motivationLetter,
+        experienceBullets
+      );
+      if (neg.recovered) {
+        evalResult.demonstrated = true;
+        evalResult.evidence = neg.evidence;
+        evalResult.confidence = Math.min(evalResult.confidence, 0.60);
+        evalResult.missing = null;
+        flags.push('VERIFIER_RECOVERED');
+      }
+    }
+  }
+
+  if (evalResult.confidence < 0.6 &&
+      !flags.includes('VERIFIER_INVALIDATED') &&
+      !flags.includes('CRITICAL_NO_EVIDENCE') &&
+      !flags.includes('VERIFIER_RECOVERED')) {
+    flags.push('REVIEW');
+  }
+
+  const rawConfidence = evalResult.confidence;
+  const usedConfidence = USE_BANDED_CONFIDENCE ? bandConfidence(rawConfidence) : rawConfidence;
+
+  return {
+    id: subReq.id,
+    text: subReq.text,
+    type: 'llm',
+    demonstrated: evalResult.demonstrated,
+    evidence: evalResult.evidence,
+    missing: evalResult.missing,
+    confidence: usedConfidence,
+    raw_confidence: rawConfidence,
+    flags,
+    verification,
+    model_version: evalResult.modelUsed,
+    from_cache: evalResult.fromCache,
+  };
+}
+
+// Minimal satisfying-set size for a recombine_logic expression given the
+// current demonstrated subs. Returns null if the logic is not satisfied at all.
+// Used by LOGIC_AWARE_PASS_RATIO so OR-style criteria are not penalised when
+// satisfied via a single path. Brute-force is fine: sub counts are tiny.
+function minimalSatisfyingSetSize(logic: string, subs: SubRequirementScore[]): number | null {
+  const truthy = subs.filter(s => s.demonstrated).map(s => s.id);
+  if (truthy.length === 0) return null;
+
+  const allIds = subs.map(s => s.id);
+
+  function check(subset: string[]): boolean {
+    const truth: Record<string, boolean> = {};
+    for (const id of allIds) truth[id] = subset.includes(id);
+    const { passed } = evaluateRecombineLogic(logic, truth);
+    return passed;
+  }
+
+  // Try smallest subsets first
+  for (let size = 1; size <= truthy.length; size++) {
+    const combos: string[][] = [];
+    (function pick(start: number, acc: string[]) {
+      if (acc.length === size) { combos.push(acc.slice()); return; }
+      for (let i = start; i < truthy.length; i++) {
+        acc.push(truthy[i]);
+        pick(i + 1, acc);
+        acc.pop();
+      }
+    })(0, []);
+    for (const c of combos) {
+      if (check(c)) return size;
+    }
+  }
+  return null;
+}
+
+
+  return workExperience
+    .map(exp => {
+      const title = exp.job_title || exp.position || '';
+      const employer = exp.employer || exp.company || exp.organisation || '';
+      const duties = exp.duties_and_responsibilities || exp.description || '';
+      return `${title} at ${employer}:\n${duties}`;
+    })
+    .filter(text => text.trim().length > 0)
+    .join('\n\n');
+}
+
 async function scoreCriterionV4(
   criterion: ParsedCriterion,
   jobId: string,
@@ -1204,117 +1498,17 @@ async function scoreCriterionV4(
 
   // v4.0 OPTIMIZATION: Process LLM subs in PARALLEL with concurrency limit
   if (llmSubs.length > 0) {
-    const evalTasks = llmSubs.map(subReq => async () => {
-      // ---- Verdict cache lookup (key: app + criterion + sub + decomp_version + phf_hash) ----
-      let evalResult: EvaluatorResult | null = null;
-      let cacheHit = false;
-      try {
-        const { data: cachedVerdict } = await supabase
-          .from('subrequirement_verdicts')
-          .select('demonstrated, evidence, missing, confidence, model_version')
-          .eq('application_id', applicationId)
-          .eq('criterion_id', criterion.id)
-          .eq('sub_id', subReq.id)
-          .eq('decomposition_version', decompositionVersion)
-          .eq('phf_hash', phfHash)
-          .maybeSingle();
-
-        if (cachedVerdict) {
-          cacheHit = true;
-          evalResult = {
-            demonstrated: !!cachedVerdict.demonstrated,
-            evidence: (cachedVerdict.evidence as EvidenceQuote[]) || [],
-            missing: cachedVerdict.missing ?? null,
-            confidence: typeof cachedVerdict.confidence === 'number' ? cachedVerdict.confidence : 0,
-            flags: ['CACHED_VERDICT'],
-            modelUsed: cachedVerdict.model_version || undefined,
-            fromCache: true,
-          };
-          if (cachedVerdict.model_version) modelUsedTracker.add(cachedVerdict.model_version);
-        }
-      } catch (e) {
-        console.warn('Verdict cache lookup failed (continuing without cache):', e);
-      }
-
-      // Step 3: Universal Evaluator (cache miss)
-      if (!evalResult) {
-        evalResult = await evaluateSubRequirement(subReq, candidateDuties, motivationLetter, experienceBullets);
-        if (evalResult.modelUsed) modelUsedTracker.add(evalResult.modelUsed);
-
-        // Persist verdict (only when not a parse failure, so we don't poison the cache)
-        const isParseFailure = evalResult.flags?.includes('AI_PARSE_FAILURE');
-        if (!isParseFailure) {
-          try {
-            await supabase
-              .from('subrequirement_verdicts')
-              .upsert({
-                application_id: applicationId,
-                criterion_id: criterion.id,
-                sub_id: subReq.id,
-                decomposition_version: decompositionVersion,
-                phf_hash: phfHash,
-                demonstrated: evalResult.demonstrated,
-                evidence: evalResult.evidence,
-                missing: evalResult.missing,
-                confidence: evalResult.confidence,
-                model_version: evalResult.modelUsed ?? MODEL,
-                prompt_version: PROMPT_VERSION,
-              }, { onConflict: 'application_id,criterion_id,sub_id,decomposition_version,phf_hash' });
-          } catch (e) {
-            console.warn('Verdict cache write failed (continuing):', e);
-          }
-        }
-      }
-
-      // Step 4: Verification Pass (v4.0: only verify borderline positives)
-      // Skip the verifier when we restored a verdict from cache — the verifier
-      // already ran during the original evaluation and its outcome is reflected
-      // in the cached confidence.
-      let verification: VerifierResult | undefined;
-      const flags = [...(evalResult.flags || [])];
-
-      if (!cacheHit && evalResult.demonstrated && evalResult.confidence < 0.80) {
-        verification = await verifyEvidence(
-          subReq.text,
-          evalResult.demonstrated,
-          evalResult.evidence,
-          evalResult.confidence
-        );
-
-        if (!verification.valid) {
-          evalResult.demonstrated = false;
-          evalResult.confidence = Math.min(evalResult.confidence, 0.49);
-          flags.push('VERIFIER_INVALIDATED');
-        } else {
-          evalResult.confidence = Math.max(0, Math.min(1,
-            evalResult.confidence + verification.confidence_adjustment
-          ));
-        }
-      }
-
-      // Determine flags
-      if (evalResult.confidence < 0.6 && !flags.includes('VERIFIER_INVALIDATED') && !flags.includes('CRITICAL_NO_EVIDENCE')) {
-        flags.push('REVIEW');
-      }
-
-      const rawConfidence = evalResult.confidence;
-      const usedConfidence = USE_BANDED_CONFIDENCE ? bandConfidence(rawConfidence) : rawConfidence;
-
-      return {
-        id: subReq.id,
-        text: subReq.text,
-        type: 'llm' as const,
-        demonstrated: evalResult.demonstrated,
-        evidence: evalResult.evidence,
-        missing: evalResult.missing,
-        confidence: usedConfidence,
-        raw_confidence: rawConfidence,
-        flags,
-        verification,
-        model_version: evalResult.modelUsed,
-        from_cache: evalResult.fromCache,
-      } as SubRequirementScore;
-    });
+    const evalTasks = llmSubs.map(subReq => async () => scoreLlmSubWithCache({
+      subReq,
+      criterionId: criterion.id,
+      decompositionVersion,
+      applicationId,
+      phfHash,
+      candidateDuties,
+      motivationLetter,
+      experienceBullets,
+      modelUsedTracker,
+    }));
 
     const llmResults = await runWithConcurrency(evalTasks, MAX_CONCURRENCY);
     for (const result of llmResults) {
@@ -1350,7 +1544,19 @@ async function scoreCriterionV4(
   // each sub. Raw LLM confidence remains available in sub.raw_confidence.
   const avgConfidence = subScores.reduce((sum, s) => sum + s.confidence, 0) / Math.max(1, subScores.length);
   const passedSubs = subScores.filter(s => s.demonstrated).length;
-  const subPassRatio = passedSubs / Math.max(1, subScores.length);
+
+  // (3) Logic-aware pass ratio: when enabled and the criterion was satisfied
+  // through an OR/minimal path, divide by the minimal satisfying set instead
+  // of total sub count so a fully-satisfied OR is not penalised.
+  let denominator = subScores.length;
+  if (LOGIC_AWARE_PASS_RATIO && passed && /\bOR\b/i.test(decomposition.recombine_logic)) {
+    const minSize = minimalSatisfyingSetSize(decomposition.recombine_logic, subScores);
+    if (minSize && minSize > 0) {
+      denominator = minSize;
+      criterionFlags.push('LOGIC_AWARE_RATIO');
+    }
+  }
+  const subPassRatio = Math.min(1, passedSubs / Math.max(1, denominator));
 
   let score: number;
   if (passed) {
@@ -1483,8 +1689,145 @@ function calculateScoringResultV4(
 }
 
 // =============================================================================
+// Education Criterion Builder
+// Primary: deterministic level check.
+// (a) Equivalency: when criterion text says "or equivalent experience" AND the
+//     candidate fails the level check, an LLM equivalency sub is added so the
+//     candidate isn't auto-failed.
+// (b) Field: when the criterion names a field ("...in HR or a related field"),
+//     an LLM sub checks the degree subject is relevant.
+// =============================================================================
+
+interface BuildEducationArgs {
+  criterionId: string;
+  criterionText: string;
+  requiredLevel: EducationLevel;
+  levelResult: { eligible: boolean; candidateLevel: EducationLevel; details: string };
+  eduField: string | null;
+  allowsEquivalency: boolean;
+  applicationId: string;
+  phfHash: string;
+  candidateDuties: string;
+  motivationLetter: string;
+  experienceBullets: string;
+  modelUsedTracker: Set<string>;
+}
+
+async function buildEducationCriterionScore(args: BuildEducationArgs): Promise<CriterionScoreV4> {
+  const {
+    criterionId, criterionText, requiredLevel, levelResult,
+    eduField, allowsEquivalency,
+    applicationId, phfHash, candidateDuties, motivationLetter, experienceBullets,
+    modelUsedTracker,
+  } = args;
+
+  const subs: SubRequirement[] = [
+    { id: 'S1', type: 'deterministic', text: `Required education: ${requiredLevel}` },
+  ];
+  const subScores: SubRequirementScore[] = [{
+    id: 'S1', text: subs[0].text, type: 'deterministic',
+    demonstrated: levelResult.eligible,
+    evidence: [{ source: 'work_experience', quote: levelResult.details }],
+    missing: levelResult.eligible ? null : levelResult.details,
+    confidence: 0.95, flags: [],
+  }];
+
+  // (a) Equivalency: only run when level check fails AND text allows it.
+  if (!levelResult.eligible && allowsEquivalency) {
+    const equivSub: SubRequirement = {
+      id: 'S2',
+      type: 'llm',
+      text: `Equivalent professional/work experience in lieu of a ${requiredLevel} degree (the requirement allows "or equivalent experience")`,
+    };
+    subs.push(equivSub);
+  }
+
+  // (b) Field relevance: only when a specific field was extracted.
+  if (eduField) {
+    const fieldSub: SubRequirement = {
+      id: subs.length === 1 ? 'S2' : 'S3',
+      type: 'llm',
+      text: `Degree subject/field of study is relevant to "${eduField}" (or a closely related field)`,
+    };
+    subs.push(fieldSub);
+  }
+
+  // Compose recombine_logic for whichever LLM subs were added.
+  const llmSubs = subs.filter(s => s.type === 'llm');
+  let recombineLogic = 'S1';
+  if (allowsEquivalency && !levelResult.eligible && eduField) {
+    // S1 OR S2 covers the level/equivalency choice; S3 (field) must also hold.
+    recombineLogic = '(S1 OR S2) AND S3';
+  } else if (allowsEquivalency && !levelResult.eligible) {
+    recombineLogic = 'S1 OR S2';
+  } else if (eduField) {
+    // Field check applies whether the level was met deterministically or not.
+    recombineLogic = 'S1 AND S2';
+  }
+
+  const decompositionVersion = computeDecompositionVersion({ subrequirements: subs, recombine_logic: recombineLogic });
+
+  // Run each LLM sub through the cached evaluator pipeline.
+  for (const subReq of llmSubs) {
+    try {
+      const scored = await scoreLlmSubWithCache({
+        subReq,
+        criterionId,
+        decompositionVersion,
+        applicationId,
+        phfHash,
+        candidateDuties,
+        motivationLetter,
+        experienceBullets,
+        modelUsedTracker,
+      });
+      subScores.push(scored);
+    } catch (e) {
+      console.error('Education LLM sub failed:', e);
+      subScores.push({
+        id: subReq.id, text: subReq.text, type: 'llm',
+        demonstrated: false, evidence: [],
+        missing: 'Evaluation error', confidence: 0,
+        flags: ['EVAL_ERROR'],
+      });
+    }
+  }
+
+  const truth: Record<string, boolean> = {};
+  for (const s of subScores) truth[s.id] = s.demonstrated;
+  const { passed } = evaluateRecombineLogic(recombineLogic, truth);
+
+  // Score: keep parity with prior deterministic-only education scoring (100/40)
+  // when no LLM subs were added; otherwise compute a confidence-weighted score.
+  let score: number;
+  if (llmSubs.length === 0) {
+    score = passed ? 100 : 40;
+  } else {
+    const avgConfidence = subScores.reduce((sum, s) => sum + s.confidence, 0) / Math.max(1, subScores.length);
+    const passedCount = subScores.filter(s => s.demonstrated).length;
+    const ratio = passedCount / Math.max(1, subScores.length);
+    score = passed
+      ? Math.round(70 + ratio * 30 * avgConfidence)
+      : Math.round(ratio * 60);
+  }
+
+  return {
+    criterionId,
+    criterionText,
+    type: 'education',
+    score,
+    passed,
+    confidence: subScores.reduce((s, x) => s + x.confidence, 0) / Math.max(1, subScores.length),
+    subrequirements: subScores,
+    recombine_logic: recombineLogic,
+    details: { required: requiredLevel, candidateHas: levelResult.candidateLevel },
+  };
+}
+
+// =============================================================================
 // Main Handler (v4.0: truncation, bullets, preloaded decompositions)
 // =============================================================================
+
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -1591,7 +1934,9 @@ Deno.serve(async (req) => {
     const educationCriteria = parsedCriteria.filter(c => c.type === 'education');
     const llmCriteria = parsedCriteria.filter(c => c.type !== 'education');
 
-    // Handle education criteria immediately (no AI needed)
+    // Handle education criteria — deterministic level check is the primary
+    // path; LLM sub-checks are added only when the criterion text calls for
+    // them: (a) "or equivalent experience" phrasing, (b) field-of-study.
     for (const criterion of educationCriteria) {
       console.log(`Scoring: ${criterion.type} - "${criterion.text.substring(0, 60)}..."`);
       const normalizedEdu = education.map((edu: any) => ({
@@ -1599,24 +1944,25 @@ Deno.serve(async (req) => {
         is_completed: edu.is_completed ?? edu.isCompleted ?? edu.completed ?? true
       }));
       const requiredLevel = criterion.requiredEducationLevel || 'First Level University';
-      const result = checkEducationEligibility(normalizedEdu, requiredLevel);
-      educationScore = {
+      const levelResult = checkEducationEligibility(normalizedEdu, requiredLevel);
+
+      const eduField = extractEducationField(criterion.text);
+      const allowsEquivalency = hasEquivalencyClause(criterion.text);
+
+      educationScore = await buildEducationCriterionScore({
         criterionId: criterion.id,
         criterionText: criterion.text,
-        type: 'education',
-        score: result.eligible ? 100 : 40,
-        passed: result.eligible,
-        confidence: 0.95,
-        subrequirements: [{
-          id: 'S1', text: criterion.text, type: 'deterministic',
-          demonstrated: result.eligible,
-          evidence: [{ source: 'work_experience', quote: result.details }],
-          missing: result.eligible ? null : result.details,
-          confidence: 0.95, flags: [],
-        }],
-        recombine_logic: 'S1',
-        details: { required: requiredLevel, candidateHas: result.candidateLevel }
-      };
+        requiredLevel,
+        levelResult,
+        eduField,
+        allowsEquivalency,
+        applicationId,
+        phfHash,
+        candidateDuties,
+        motivationLetter,
+        experienceBullets,
+        modelUsedTracker,
+      });
     }
 
     // v4.1 OPTIMIZATION: Score LLM criteria in parallel (cap MAX_CRITERIA_CONCURRENCY)
@@ -1651,31 +1997,28 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fallback education from job level
+    // Fallback education from job level (no criterion text, so no equivalency/field branches)
     if (!educationScore && application.jobs.essential_education_level) {
       const requiredLevel = application.jobs.essential_education_level as EducationLevel;
       const normalizedEdu = education.map((edu: any) => ({
         degree_type: edu.degree_type || edu.degree || edu.degree_or_certificate_title || '',
         is_completed: edu.is_completed ?? edu.isCompleted ?? edu.completed ?? true
       }));
-      const result = checkEducationEligibility(normalizedEdu, requiredLevel);
-      educationScore = {
+      const levelResult = checkEducationEligibility(normalizedEdu, requiredLevel);
+      educationScore = await buildEducationCriterionScore({
         criterionId: 'job-education-level',
         criterionText: `Required education: ${requiredLevel}`,
-        type: 'education',
-        score: result.eligible ? 100 : 40,
-        passed: result.eligible,
-        confidence: 0.95,
-        subrequirements: [{
-          id: 'S1', text: `Required education: ${requiredLevel}`, type: 'deterministic',
-          demonstrated: result.eligible,
-          evidence: [{ source: 'work_experience', quote: result.details }],
-          missing: result.eligible ? null : result.details,
-          confidence: 0.95, flags: [],
-        }],
-        recombine_logic: 'S1',
-        details: { required: requiredLevel, candidateHas: result.candidateLevel }
-      };
+        requiredLevel,
+        levelResult,
+        eduField: null,
+        allowsEquivalency: false,
+        applicationId,
+        phfHash,
+        candidateDuties,
+        motivationLetter,
+        experienceBullets,
+        modelUsedTracker,
+      });
     }
 
     // Calculate overall
