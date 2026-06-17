@@ -1239,7 +1239,196 @@ function buildYearsExperienceDecomposition(criterion: ParsedCriterion): Decompos
 // Scoring Functions (v4.0: parallel subrequirements, decomposition map)
 // =============================================================================
 
-function extractCandidateDuties(workExperience: any[]): string {
+// Reusable LLM-sub scoring: verdict-cache lookup → evaluator (on miss) → cache
+// write → symmetric verifier (positives AND borderline negatives) → confidence
+// banding. Used by scoreCriterionV4 and by the education-criterion enhancements
+// (equivalency & field-relevance checks).
+interface ScoreLlmSubArgs {
+  subReq: SubRequirement;
+  criterionId: string;
+  decompositionVersion: string;
+  applicationId: string;
+  phfHash: string;
+  candidateDuties: string;
+  motivationLetter: string;
+  experienceBullets: string;
+  modelUsedTracker: Set<string>;
+}
+
+async function scoreLlmSubWithCache(args: ScoreLlmSubArgs): Promise<SubRequirementScore> {
+  const {
+    subReq, criterionId, decompositionVersion, applicationId, phfHash,
+    candidateDuties, motivationLetter, experienceBullets, modelUsedTracker,
+  } = args;
+
+  // ---- Verdict cache lookup ----
+  let evalResult: EvaluatorResult | null = null;
+  let cacheHit = false;
+  try {
+    const { data: cachedVerdict } = await supabase
+      .from('subrequirement_verdicts')
+      .select('demonstrated, evidence, missing, confidence, model_version')
+      .eq('application_id', applicationId)
+      .eq('criterion_id', criterionId)
+      .eq('sub_id', subReq.id)
+      .eq('decomposition_version', decompositionVersion)
+      .eq('phf_hash', phfHash)
+      .maybeSingle();
+
+    if (cachedVerdict) {
+      cacheHit = true;
+      evalResult = {
+        demonstrated: !!cachedVerdict.demonstrated,
+        evidence: (cachedVerdict.evidence as EvidenceQuote[]) || [],
+        missing: cachedVerdict.missing ?? null,
+        confidence: typeof cachedVerdict.confidence === 'number' ? cachedVerdict.confidence : 0,
+        flags: ['CACHED_VERDICT'],
+        modelUsed: cachedVerdict.model_version || undefined,
+        fromCache: true,
+      };
+      if (cachedVerdict.model_version) modelUsedTracker.add(cachedVerdict.model_version);
+    }
+  } catch (e) {
+    console.warn('Verdict cache lookup failed (continuing without cache):', e);
+  }
+
+  // ---- Evaluator (cache miss) ----
+  if (!evalResult) {
+    evalResult = await evaluateSubRequirement(subReq, candidateDuties, motivationLetter, experienceBullets);
+    if (evalResult.modelUsed) modelUsedTracker.add(evalResult.modelUsed);
+
+    const isParseFailure = evalResult.flags?.includes('AI_PARSE_FAILURE');
+    if (!isParseFailure) {
+      try {
+        await supabase
+          .from('subrequirement_verdicts')
+          .upsert({
+            application_id: applicationId,
+            criterion_id: criterionId,
+            sub_id: subReq.id,
+            decomposition_version: decompositionVersion,
+            phf_hash: phfHash,
+            demonstrated: evalResult.demonstrated,
+            evidence: evalResult.evidence,
+            missing: evalResult.missing,
+            confidence: evalResult.confidence,
+            model_version: evalResult.modelUsed ?? MODEL,
+            prompt_version: PROMPT_VERSION,
+          }, { onConflict: 'application_id,criterion_id,sub_id,decomposition_version,phf_hash' });
+      } catch (e) {
+        console.warn('Verdict cache write failed (continuing):', e);
+      }
+    }
+  }
+
+  // ---- Symmetric verifier ----
+  // Skip verifier on cache hits (already accounted for in the cached confidence)
+  // and on high-confidence results in BOTH directions to save tokens.
+  let verification: VerifierResult | undefined;
+  const flags = [...(evalResult.flags || [])];
+
+  if (!cacheHit) {
+    // (a) Borderline POSITIVE second-look (existing behavior)
+    if (evalResult.demonstrated && evalResult.confidence < 0.80) {
+      verification = await verifyEvidence(
+        subReq.text,
+        evalResult.demonstrated,
+        evalResult.evidence,
+        evalResult.confidence
+      );
+
+      if (!verification.valid) {
+        evalResult.demonstrated = false;
+        evalResult.confidence = Math.min(evalResult.confidence, 0.49);
+        flags.push('VERIFIER_INVALIDATED');
+      } else {
+        evalResult.confidence = Math.max(0, Math.min(1,
+          evalResult.confidence + verification.confidence_adjustment
+        ));
+      }
+    }
+    // (b) Borderline NEGATIVE second-look — guard against missed-evidence false negatives
+    else if (!evalResult.demonstrated &&
+             evalResult.confidence >= VERIFIER_NEG_LOW &&
+             evalResult.confidence < VERIFIER_NEG_HIGH) {
+      const neg = await verifyNegative(
+        subReq.text,
+        candidateDuties,
+        motivationLetter,
+        experienceBullets
+      );
+      if (neg.recovered) {
+        evalResult.demonstrated = true;
+        evalResult.evidence = neg.evidence;
+        evalResult.confidence = Math.min(evalResult.confidence, 0.60);
+        evalResult.missing = null;
+        flags.push('VERIFIER_RECOVERED');
+      }
+    }
+  }
+
+  if (evalResult.confidence < 0.6 &&
+      !flags.includes('VERIFIER_INVALIDATED') &&
+      !flags.includes('CRITICAL_NO_EVIDENCE') &&
+      !flags.includes('VERIFIER_RECOVERED')) {
+    flags.push('REVIEW');
+  }
+
+  const rawConfidence = evalResult.confidence;
+  const usedConfidence = USE_BANDED_CONFIDENCE ? bandConfidence(rawConfidence) : rawConfidence;
+
+  return {
+    id: subReq.id,
+    text: subReq.text,
+    type: 'llm',
+    demonstrated: evalResult.demonstrated,
+    evidence: evalResult.evidence,
+    missing: evalResult.missing,
+    confidence: usedConfidence,
+    raw_confidence: rawConfidence,
+    flags,
+    verification,
+    model_version: evalResult.modelUsed,
+    from_cache: evalResult.fromCache,
+  };
+}
+
+// Minimal satisfying-set size for a recombine_logic expression given the
+// current demonstrated subs. Returns null if the logic is not satisfied at all.
+// Used by LOGIC_AWARE_PASS_RATIO so OR-style criteria are not penalised when
+// satisfied via a single path. Brute-force is fine: sub counts are tiny.
+function minimalSatisfyingSetSize(logic: string, subs: SubRequirementScore[]): number | null {
+  const truthy = subs.filter(s => s.demonstrated).map(s => s.id);
+  if (truthy.length === 0) return null;
+
+  const allIds = subs.map(s => s.id);
+
+  function check(subset: string[]): boolean {
+    const truth: Record<string, boolean> = {};
+    for (const id of allIds) truth[id] = subset.includes(id);
+    const { passed } = evaluateRecombineLogic(logic, truth);
+    return passed;
+  }
+
+  // Try smallest subsets first
+  for (let size = 1; size <= truthy.length; size++) {
+    const combos: string[][] = [];
+    (function pick(start: number, acc: string[]) {
+      if (acc.length === size) { combos.push(acc.slice()); return; }
+      for (let i = start; i < truthy.length; i++) {
+        acc.push(truthy[i]);
+        pick(i + 1, acc);
+        acc.pop();
+      }
+    })(0, []);
+    for (const c of combos) {
+      if (check(c)) return size;
+    }
+  }
+  return null;
+}
+
+
   return workExperience
     .map(exp => {
       const title = exp.job_title || exp.position || '';
