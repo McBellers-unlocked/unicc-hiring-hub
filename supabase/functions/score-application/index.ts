@@ -20,9 +20,51 @@ const MODEL = 'openai/gpt-5';
 
 const MAX_CONCURRENCY = 3;
 const MAX_TEXT_LENGTH = 6000;
-const MAX_CRITERIA_CONCURRENCY = 5;
+// v4.2: sub-requirements are batched into ONE LLM call per criterion, so we
+// can run more criteria concurrently per applicant. Paced by the token-bucket
+// limiter below so we stay under the gateway's rate limit.
+const MAX_CRITERIA_CONCURRENCY = 8;
 const MAX_SUBS_PER_CRITERION = 3;
 const AI_RETRY_ATTEMPTS = 3;
+
+// =============================================================================
+// Proactive client-side rate limiter (token bucket)
+// =============================================================================
+// Paces ALL requests to the Lovable AI Gateway so we stay under its rate limit
+// instead of relying solely on reactive 429 backoff. Backoff is preserved as
+// a fallback for any 429s that still slip through (e.g. workspace-wide spikes).
+//
+// Tunables: RATE_LIMIT_RPS = sustained requests/second, RATE_LIMIT_BURST =
+// max instantaneous burst. Keep BURST <= a few seconds' worth of RPS.
+const RATE_LIMIT_RPS = 8;
+const RATE_LIMIT_BURST = 8;
+const _bucket = { tokens: RATE_LIMIT_BURST, last: Date.now() };
+let _bucketLock: Promise<void> = Promise.resolve();
+
+async function acquireGatewaySlot(): Promise<void> {
+  // Serialize token accounting so concurrent callers don't all read the same
+  // stale token count and overshoot the budget.
+  const prev = _bucketLock;
+  let release: () => void = () => {};
+  _bucketLock = new Promise<void>((r) => { release = r; });
+  await prev;
+  try {
+    while (true) {
+      const now = Date.now();
+      const elapsed = (now - _bucket.last) / 1000;
+      _bucket.tokens = Math.min(RATE_LIMIT_BURST, _bucket.tokens + elapsed * RATE_LIMIT_RPS);
+      _bucket.last = now;
+      if (_bucket.tokens >= 1) {
+        _bucket.tokens -= 1;
+        return;
+      }
+      const waitMs = Math.max(5, Math.ceil(((1 - _bucket.tokens) / RATE_LIMIT_RPS) * 1000));
+      await new Promise(r => setTimeout(r, waitMs));
+    }
+  } finally {
+    release();
+  }
+}
 
 // =============================================================================
 // Scoring Reproducibility Constants
