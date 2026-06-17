@@ -1,45 +1,33 @@
-## Problem
+## Plan
 
-Clicking "Generate with AI" shows: *"AI generation failed — Failed to send a request to the Edge Function"*.
+The repeated error is a browser-side `FunctionsFetchError`: the request is failing before the app receives a normal HTTP response from the Edge Function. That usually means the function is not reachable/booting correctly or the browser preflight is failing, not that the AI prompt itself is wrong.
 
-This message from `supabase.functions.invoke` means the browser could not reach the function at all (boot failure, deploy failure, or unhandled CORS preflight), not an AI Gateway error.
+## What I will change
 
-## Root cause (likely)
+1. **Make the Edge Function boot-safe**
+   - Replace the SDK CORS helper import with a local `corsHeaders` object to remove a possible unsupported `@supabase/supabase-js/cors` subpath import at Edge runtime.
+   - Keep CORS headers on every response, including errors and OPTIONS preflight.
 
-`supabase/functions/generate-position-description/index.ts` uses legacy imports that frequently fail to boot in the current edge runtime:
+2. **Use the documented Lovable AI Gateway request pattern**
+   - Change the gateway header from `Authorization: Bearer <LOVABLE_API_KEY>` to `Lovable-API-Key: <LOVABLE_API_KEY>`.
+   - Switch the model to the current default `google/gemini-3-flash-preview`.
+   - Keep structured JSON output and the existing UN/UNICC prompt behavior.
 
-```ts
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-```
+3. **Improve client error visibility**
+   - In `AIGeneratePositionDescription.tsx`, distinguish fetch/relay/http failures.
+   - If the function returns JSON like `{ error: ... }`, show that actual message in the toast instead of only `Failed to send a request to the Edge Function`.
+   - Log the full function error object to the browser console for the next debugging pass if needed.
 
-It also defines its own ad-hoc `corsHeaders` instead of the canonical one and is not listed in `supabase/config.toml`.
+4. **Apply the same runtime-safe CORS pattern to the related interview-question function**
+   - It was changed in the same way previously, so I’ll make it consistent to avoid the same boot issue elsewhere.
 
-## Fix
+## Files to update
 
-Rewrite `supabase/functions/generate-position-description/index.ts` to the modern Lovable edge-function pattern, keeping the existing logic and request/response shape untouched:
+- `supabase/functions/generate-position-description/index.ts`
+- `supabase/functions/generate-interview-questions/index.ts`
+- `src/components/requisition/AIGeneratePositionDescription.tsx`
 
-1. Replace imports with:
-   - `import { createClient } from "npm:@supabase/supabase-js@2"`
-   - `import { corsHeaders } from "npm:@supabase/supabase-js@2/cors"`
-   - Drop the `xhr` polyfill (not needed).
-   - Use `Deno.serve` directly instead of `serve` from `std/http`.
-2. Remove the local `corsHeaders` declaration; use the imported one. Keep `Content-Type: application/json` and `corsHeaders` on every response (including errors).
-3. Keep the existing auth check (`Authorization` header + `supabase.auth.getUser()`), validation, attachment context build, AI Gateway call, and JSON parsing exactly as-is.
-4. Keep the model as `google/gemini-2.5-flash` (it's still supported); not changing models in this fix.
-5. Add an entry to `supabase/config.toml`:
-   ```toml
-   [functions.generate-position-description]
-   verify_jwt = false
-   ```
-   (The function validates the JWT in code.) Also add the same block for `generate-interview-questions` if it was created in the same batch and isn't listed.
+## Validation
 
-## Out of scope
-
-- No client changes — `AIGeneratePositionDescription.tsx` already invokes the function correctly.
-- No model swap and no prompt changes.
-
-## Verification
-
-After redeploy, click "Generate with AI" in `/requisitions/new` with title + grade + division filled and confirm the function returns a JSON body with `purpose_of_position` and `main_duties_responsibilities` (no toast error).
+- Check the edited files for the corrected imports/headers.
+- Re-test the AI generation button in preview if available; if it still fails, the improved toast/console will reveal whether the remaining issue is missing `LOVABLE_API_KEY`, auth/session, credits/rate limit, or deployment.

@@ -140,13 +140,24 @@ export function AIGeneratePositionDescription({
       });
 
       if (error) {
-        const status = (error as any).context?.status;
+        console.error("generate-position-description invoke error", error);
+        const ctxObj = (error as any).context;
+        const status = ctxObj?.status;
+        let serverMsg = "";
+        try {
+          if (ctxObj && typeof ctxObj.json === "function") {
+            const j = await ctxObj.json();
+            serverMsg = j?.error || j?.message || "";
+          } else if (ctxObj && typeof ctxObj.text === "function") {
+            serverMsg = await ctxObj.text();
+          }
+        } catch {}
         const msg =
           status === 402
             ? "AI credits exhausted. Add credits in workspace settings."
             : status === 429
               ? "AI rate limit reached. Please try again shortly."
-              : error.message || "Generation failed";
+              : serverMsg || error.message || "Generation failed";
         toast({ title: "AI generation failed", description: msg, variant: "destructive" });
         return;
       }
