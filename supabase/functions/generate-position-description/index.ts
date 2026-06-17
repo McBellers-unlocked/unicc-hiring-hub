@@ -21,8 +21,16 @@ interface RequestBody {
   attachments?: Attachment[];
 }
 
-const MAX_PER_FILE = 15000;
-const MAX_TOTAL_CONTEXT = 40000;
+const MAX_PER_FILE = 20000;
+const MAX_TOTAL_CONTEXT = 50000;
+
+const VALID_EDU_LEVELS = [
+  "Secondary",
+  "First Level University",
+  "Advanced University",
+  "Professional",
+];
+const VALID_LANG_LEVELS = ["beginner", "intermediate", "expert"];
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -62,11 +70,12 @@ Deno.serve(async (req) => {
       return json(400, { error: "positionTitle is required" });
     }
 
+    const hasAttachments = Array.isArray(body.attachments) && body.attachments.length > 0;
     let attachmentContext = "";
-    if (Array.isArray(body.attachments) && body.attachments.length > 0) {
+    if (hasAttachments) {
       const parts: string[] = [];
       let total = 0;
-      for (const att of body.attachments) {
+      for (const att of body.attachments!) {
         const text = (att.text || "").trim();
         if (!text) continue;
         const truncated = text.slice(0, MAX_PER_FILE);
@@ -87,17 +96,31 @@ Deno.serve(async (req) => {
 
     const systemPrompt = `You are an HR specialist drafting UN/UNICC position descriptions. Write in a professional UN tone, third person, present tense. Be specific and concise.
 
-Output STRICT JSON with exactly two keys:
-- "purpose_of_position": 2-4 sentences explaining the context and main purpose of the position.
-- "main_duties_responsibilities": Markdown text with a bulleted list of 6-10 duties. Structure each bullet to answer WHAT (active verb), WHY (purpose and scope), HOW (process and tasks). Use a single sentence or two per bullet.
+${hasAttachments
+  ? "You have one or more attached job descriptions. EXTRACT the requested fields from the attached JD(s) as faithfully as possible. Prefer the attached text verbatim or lightly edited; only synthesize when a field is genuinely missing."
+  : "No JD is attached. Generate plausible content from the position title, nature, and grade."}
+
+Output STRICT JSON with EXACTLY these keys (use empty string "" or empty array [] when a field cannot be determined):
+{
+  "purpose_of_position": "2-4 sentences, the context and main purpose",
+  "main_duties_responsibilities": "Markdown bulleted list of 6-10 duties. Each bullet: WHAT (active verb), WHY (purpose/scope), HOW (process/tasks)",
+  "essential_experience": "Plain text. Required minimum years and type of experience. Use UN phrasing.",
+  "desirable_experience": "Plain text. Preferred additional experience. Empty string if not stated.",
+  "essential_education": "Plain text. Required field(s) of study and any specifics, e.g. 'Advanced university degree in Computer Science, Information Systems, or related field.'",
+  "essential_education_level": "EXACTLY one of: 'Secondary', 'First Level University', 'Advanced University', 'Professional'. Empty string if not applicable.",
+  "desirable_education": "Plain text. Preferred additional education. Empty string if not stated.",
+  "additional_languages": [ { "name": "<Language>", "level": "beginner" | "intermediate" | "expert" } ]
+}
 
 Rules:
-- Ground content in any attached job descriptions when provided; otherwise infer from the position title, nature, and grade.
 - Do not invent specific project, client, donor, or person names.
 - Where a supervisor reference is needed, use the literal placeholder "[SUPERVISOR TITLE]".
-- Do not include headings, preambles, or commentary outside the JSON.`;
+- For essential_education_level, map: Bachelor/Licence/Undergraduate -> "First Level University"; Master/PhD/Doctorate/Advanced -> "Advanced University"; High School/Secondary -> "Secondary"; Professional Certification only -> "Professional".
+- For language levels: native/fluent/proficient/C1/C2 -> "expert"; working/B1/B2/intermediate -> "intermediate"; basic/A1/A2 -> "beginner".
+- Do NOT include English in additional_languages (English is handled separately). Only list OTHER languages mentioned in the JD.
+- Output ONLY the JSON object. No headings, no preambles, no commentary, no code fences.`;
 
-    const userPrompt = `Context:\n${ctx.join("\n")}\n\n${attachmentContext ? `Reference job descriptions:\n${attachmentContext}\n\n` : ""}Generate the purpose_of_position and main_duties_responsibilities JSON now.`;
+    const userPrompt = `Context:\n${ctx.join("\n")}\n\n${attachmentContext ? `Reference job description(s):\n${attachmentContext}\n\n` : ""}Return the JSON object now.`;
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -129,7 +152,7 @@ Rules:
 
     const data = await aiRes.json();
     const content: string = data.choices?.[0]?.message?.content || "";
-    let parsed: { purpose_of_position?: string; main_duties_responsibilities?: string } = {};
+    let parsed: Record<string, unknown> = {};
     try {
       let txt = content.trim();
       if (txt.includes("```")) {
@@ -142,9 +165,29 @@ Rules:
       return json(500, { error: "AI returned non-JSON response" });
     }
 
+    const str = (v: unknown) => (typeof v === "string" ? v : "");
+    const eduLevelRaw = str(parsed.essential_education_level).trim();
+    const eduLevel = VALID_EDU_LEVELS.includes(eduLevelRaw) ? eduLevelRaw : "";
+
+    const rawLangs = Array.isArray(parsed.additional_languages) ? parsed.additional_languages : [];
+    const additional_languages = rawLangs
+      .map((l: any) => ({
+        name: str(l?.name).trim(),
+        level: VALID_LANG_LEVELS.includes(str(l?.level).toLowerCase().trim())
+          ? str(l?.level).toLowerCase().trim()
+          : "",
+      }))
+      .filter((l) => l.name && l.name.toLowerCase() !== "english" && l.level);
+
     return json(200, {
-      purpose_of_position: parsed.purpose_of_position || "",
-      main_duties_responsibilities: parsed.main_duties_responsibilities || "",
+      purpose_of_position: str(parsed.purpose_of_position),
+      main_duties_responsibilities: str(parsed.main_duties_responsibilities),
+      essential_experience: str(parsed.essential_experience),
+      desirable_experience: str(parsed.desirable_experience),
+      essential_education: str(parsed.essential_education),
+      essential_education_level: eduLevel,
+      desirable_education: str(parsed.desirable_education),
+      additional_languages,
     });
   } catch (e) {
     console.error("generate-position-description error", e);
