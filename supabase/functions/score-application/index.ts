@@ -977,23 +977,28 @@ async function evaluateSubRequirement(
     ? `\n${experienceBullets}\n\n`
     : '';
 
-  const prompt = `Evaluate whether the candidate demonstrates this requirement:
+  // Prompt is ordered for prefix caching: STABLE content (task framing, the
+  // requirement text, the evaluator rules) comes FIRST so it can be reused
+  // across applicants for the same requirement; VARIABLE candidate context
+  // (bullets, work experience, motivation letter) is the suffix.
+  const prompt = `Evaluate whether the candidate demonstrates this requirement.
 
 REQUIREMENT: "${subReq.text}"
-${bulletSection}
-CANDIDATE WORK EXPERIENCE:
-${candidateDuties || 'Not provided'}
-
-MOTIVATION LETTER:
-${motivationLetter || 'Not provided'}
 
 Rules:
-- Evidence must be VERBATIM QUOTES from the text above (copy-paste exactly)
+- Evidence must be VERBATIM QUOTES from the candidate context below (copy-paste exactly)
 - Each quote max 280 characters. If longer, truncate with "..."
 - Max 3 evidence quotes
 - Prefer work experience evidence over motivation letter
 - Motivation letter alone is insufficient unless no work experience exists
-- If no explicit evidence, set demonstrated=false`;
+- If no explicit evidence, set demonstrated=false
+
+--- CANDIDATE CONTEXT (variable per applicant) ---
+${bulletSection}CANDIDATE WORK EXPERIENCE:
+${candidateDuties || 'Not provided'}
+
+MOTIVATION LETTER:
+${motivationLetter || 'Not provided'}`;
 
   const result = await callAIWithToolCalling(
     EVALUATOR_SYSTEM_PROMPT,
