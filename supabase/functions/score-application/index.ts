@@ -863,7 +863,8 @@ async function getOrCreateDecomposition(
     ? result
     : { subrequirements: [{ id: 'S1', type: 'llm', text: criterionText }], recombine_logic: 'S1' };
 
-  // Cache with upsert (idempotent)
+  // Cache with upsert (idempotent) — stamp version + model
+  const decomposition_version = computeDecompositionVersion(decomposition);
   await supabase
     .from('criterion_decompositions')
     .upsert({
@@ -872,6 +873,8 @@ async function getOrCreateDecomposition(
       criterion_text: criterionText,
       subrequirements: decomposition.subrequirements,
       recombine_logic: decomposition.recombine_logic,
+      decomposition_version,
+      model_version: decomposition.modelUsed ?? MODEL,
     }, { onConflict: 'job_id,criterion_id' });
 
   return decomposition;
