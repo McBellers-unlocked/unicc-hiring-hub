@@ -25,6 +25,12 @@ interface ContextInput {
 }
 
 export interface AIGeneratedPDResult {
+  position_title: string | null;
+  nature_of_position: string | null;
+  grade: string | null;
+  duty_station: string[];
+  division: string | null;
+  unit_section_division: string | null;
   purpose_of_position: string;
   main_duties_responsibilities: string;
   essential_experience: string;
@@ -33,6 +39,9 @@ export interface AIGeneratedPDResult {
   essential_education_level: string;
   desirable_education: string;
   additional_languages: Array<{ name: string; level: string }>;
+  core_competencies: string[];
+  management_competencies: string[];
+  leadership_competencies: string[];
 }
 
 interface Props {
