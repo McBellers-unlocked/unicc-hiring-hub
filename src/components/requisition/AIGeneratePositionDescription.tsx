@@ -145,8 +145,10 @@ export function AIGeneratePositionDescription({
 
   const runGeneration = async (mode: "overwrite" | "fillEmpty", filesOverride?: File[]) => {
     const ctx = getContext();
-    if (!ctx.positionTitle?.trim()) {
-      toast({ title: "Position title required", description: "Enter a position title before generating.", variant: "destructive" });
+    const filesToUse = filesOverride ?? files;
+    const hasAttachments = filesToUse.length > 0;
+    if (!hasAttachments && !ctx.positionTitle?.trim()) {
+      toast({ title: "Position title required", description: "Enter a position title or attach a JD before generating.", variant: "destructive" });
       return;
     }
     setLoading(true);
