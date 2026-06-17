@@ -1797,7 +1797,9 @@ Deno.serve(async (req) => {
     const educationCriteria = parsedCriteria.filter(c => c.type === 'education');
     const llmCriteria = parsedCriteria.filter(c => c.type !== 'education');
 
-    // Handle education criteria immediately (no AI needed)
+    // Handle education criteria — deterministic level check is the primary
+    // path; LLM sub-checks are added only when the criterion text calls for
+    // them: (a) "or equivalent experience" phrasing, (b) field-of-study.
     for (const criterion of educationCriteria) {
       console.log(`Scoring: ${criterion.type} - "${criterion.text.substring(0, 60)}..."`);
       const normalizedEdu = education.map((edu: any) => ({
@@ -1805,24 +1807,25 @@ Deno.serve(async (req) => {
         is_completed: edu.is_completed ?? edu.isCompleted ?? edu.completed ?? true
       }));
       const requiredLevel = criterion.requiredEducationLevel || 'First Level University';
-      const result = checkEducationEligibility(normalizedEdu, requiredLevel);
-      educationScore = {
+      const levelResult = checkEducationEligibility(normalizedEdu, requiredLevel);
+
+      const eduField = extractEducationField(criterion.text);
+      const allowsEquivalency = hasEquivalencyClause(criterion.text);
+
+      educationScore = await buildEducationCriterionScore({
         criterionId: criterion.id,
         criterionText: criterion.text,
-        type: 'education',
-        score: result.eligible ? 100 : 40,
-        passed: result.eligible,
-        confidence: 0.95,
-        subrequirements: [{
-          id: 'S1', text: criterion.text, type: 'deterministic',
-          demonstrated: result.eligible,
-          evidence: [{ source: 'work_experience', quote: result.details }],
-          missing: result.eligible ? null : result.details,
-          confidence: 0.95, flags: [],
-        }],
-        recombine_logic: 'S1',
-        details: { required: requiredLevel, candidateHas: result.candidateLevel }
-      };
+        requiredLevel,
+        levelResult,
+        eduField,
+        allowsEquivalency,
+        applicationId,
+        phfHash,
+        candidateDuties,
+        motivationLetter,
+        experienceBullets,
+        modelUsedTracker,
+      });
     }
 
     // v4.1 OPTIMIZATION: Score LLM criteria in parallel (cap MAX_CRITERIA_CONCURRENCY)
