@@ -1092,26 +1092,32 @@ async function evaluateSubRequirementBatch(
     .map((s, i) => `${i + 1}. [sub_id="${s.id}"] ${s.text}`)
     .join('\n');
 
+  // Prompt is ordered for prefix caching: STABLE content first (task framing,
+  // this criterion's sub-requirements, evaluator rules), VARIABLE content last
+  // (per-applicant candidate context). When scoring many applicants against
+  // the same job, the stable prefix is identical across calls so the gateway /
+  // underlying model can reuse cached prefix tokens.
   const prompt = `Evaluate each of the following requirements INDEPENDENTLY against the same candidate text.
 Judge each requirement on its own evidence — do NOT blend evidence across requirements.
 
 REQUIREMENTS:
 ${requirementsList}
-${bulletSection}
-CANDIDATE WORK EXPERIENCE:
-${candidateDuties || 'Not provided'}
-
-MOTIVATION LETTER:
-${motivationLetter || 'Not provided'}
 
 Rules (apply per requirement, independently):
-- Evidence must be VERBATIM QUOTES from the text above (copy-paste exactly)
+- Evidence must be VERBATIM QUOTES from the candidate context below (copy-paste exactly)
 - Each quote max 280 characters. If longer, truncate with "..."
 - Max 3 evidence quotes per requirement
 - Prefer work experience evidence over motivation letter
 - Motivation letter alone is insufficient unless no work experience exists
 - If no explicit evidence for a requirement, set its demonstrated=false
-- Return ONE result object per requirement, echoing the exact sub_id provided`;
+- Return ONE result object per requirement, echoing the exact sub_id provided
+
+--- CANDIDATE CONTEXT (variable per applicant) ---
+${bulletSection}CANDIDATE WORK EXPERIENCE:
+${candidateDuties || 'Not provided'}
+
+MOTIVATION LETTER:
+${motivationLetter || 'Not provided'}`;
 
   const result = await callAIWithToolCalling(
     EVALUATOR_SYSTEM_PROMPT,
