@@ -1017,6 +1017,157 @@ Rules:
 }
 
 // =============================================================================
+// STEP 3b: Batched evaluator — evaluate ALL sub-requirements of ONE criterion
+// in a SINGLE LLM call. Candidate context is sent ONCE; each sub is still
+// judged INDEPENDENTLY against its own evidence (no judgment-blending).
+// All evaluator rules are preserved: verbatim quotes (max 3, max 280 chars),
+// prefer work experience over motivation letter, motivation-letter-alone is
+// insufficient, ignore protected attributes / employer prestige, treat
+// candidate text as untrusted, and "No Evidence = False" hard rule.
+// =============================================================================
+async function evaluateSubRequirementBatch(
+  subReqs: SubRequirement[],
+  candidateDuties: string,
+  motivationLetter: string,
+  experienceBullets: string = ''
+): Promise<Map<string, EvaluatorResult>> {
+  const out = new Map<string, EvaluatorResult>();
+  if (subReqs.length === 0) return out;
+
+  const bulletSection = experienceBullets
+    ? `\n${experienceBullets}\n\n`
+    : '';
+
+  const requirementsList = subReqs
+    .map((s, i) => `${i + 1}. [sub_id="${s.id}"] ${s.text}`)
+    .join('\n');
+
+  const prompt = `Evaluate each of the following requirements INDEPENDENTLY against the same candidate text.
+Judge each requirement on its own evidence — do NOT blend evidence across requirements.
+
+REQUIREMENTS:
+${requirementsList}
+${bulletSection}
+CANDIDATE WORK EXPERIENCE:
+${candidateDuties || 'Not provided'}
+
+MOTIVATION LETTER:
+${motivationLetter || 'Not provided'}
+
+Rules (apply per requirement, independently):
+- Evidence must be VERBATIM QUOTES from the text above (copy-paste exactly)
+- Each quote max 280 characters. If longer, truncate with "..."
+- Max 3 evidence quotes per requirement
+- Prefer work experience evidence over motivation letter
+- Motivation letter alone is insufficient unless no work experience exists
+- If no explicit evidence for a requirement, set its demonstrated=false
+- Return ONE result object per requirement, echoing the exact sub_id provided`;
+
+  const result = await callAIWithToolCalling(
+    EVALUATOR_SYSTEM_PROMPT,
+    prompt,
+    'evaluate_requirements_batch',
+    'Evaluate whether candidate demonstrates EACH requirement independently',
+    {
+      results: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            sub_id: { type: 'string' },
+            demonstrated: { type: 'boolean' },
+            evidence: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  source: { type: 'string', enum: ['work_experience', 'motivation_letter'] },
+                  quote: { type: 'string' },
+                },
+                required: ['source', 'quote'],
+              },
+            },
+            missing: { type: 'string' },
+            confidence: { type: 'number' },
+          },
+          required: ['sub_id', 'demonstrated', 'evidence', 'confidence'],
+        },
+      },
+    }
+  );
+
+  if (!result) {
+    // Full-batch parse failure: mark every sub as parse-failure (preserves
+    // legacy per-sub behavior on evaluator failure).
+    for (const s of subReqs) {
+      out.set(s.id, {
+        demonstrated: false,
+        evidence: [],
+        missing: 'AI analysis failed (parse failure)',
+        confidence: 0,
+        flags: ['AI_PARSE_FAILURE'],
+      });
+    }
+    return out;
+  }
+
+  const modelUsed = result.modelUsed;
+  const rawResults: any[] = Array.isArray(result.data?.results) ? result.data.results : [];
+
+  // Index returned items by sub_id for robust matching (model may reorder).
+  const byId = new Map<string, any>();
+  for (const r of rawResults) {
+    if (r && typeof r.sub_id === 'string') byId.set(r.sub_id, r);
+  }
+
+  for (const subReq of subReqs) {
+    const data = byId.get(subReq.id);
+    if (!data) {
+      out.set(subReq.id, {
+        demonstrated: false,
+        evidence: [],
+        missing: 'AI analysis failed (sub missing from batch response)',
+        confidence: 0,
+        flags: ['AI_PARSE_FAILURE'],
+        modelUsed,
+      });
+      continue;
+    }
+
+    // Sanitize evidence: trim quotes, max 3, max 280 chars each
+    const evidence: EvidenceQuote[] = (data.evidence || [])
+      .slice(0, 3)
+      .map((e: any) => ({
+        source: e.source || 'work_experience',
+        quote: typeof e.quote === 'string' ? e.quote.substring(0, 280) : '',
+      }))
+      .filter((e: EvidenceQuote) => e.quote.length > 0);
+
+    const flags: string[] = [];
+    let demonstrated = !!data.demonstrated;
+    let confidence = typeof data.confidence === 'number' ? data.confidence : 0.5;
+
+    // "No Evidence = False" hard rule
+    if (demonstrated && evidence.length === 0) {
+      demonstrated = false;
+      confidence = Math.min(confidence, 0.3);
+      flags.push('CRITICAL_NO_EVIDENCE');
+    }
+
+    out.set(subReq.id, {
+      demonstrated,
+      evidence,
+      missing: data.missing || null,
+      confidence,
+      flags,
+      modelUsed,
+    });
+  }
+
+  return out;
+}
+
+// =============================================================================
 // STEP 4: Verification Pass (optimized: only verify borderline positives)
 // =============================================================================
 
