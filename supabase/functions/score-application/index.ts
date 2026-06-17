@@ -1860,31 +1860,28 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fallback education from job level
+    // Fallback education from job level (no criterion text, so no equivalency/field branches)
     if (!educationScore && application.jobs.essential_education_level) {
       const requiredLevel = application.jobs.essential_education_level as EducationLevel;
       const normalizedEdu = education.map((edu: any) => ({
         degree_type: edu.degree_type || edu.degree || edu.degree_or_certificate_title || '',
         is_completed: edu.is_completed ?? edu.isCompleted ?? edu.completed ?? true
       }));
-      const result = checkEducationEligibility(normalizedEdu, requiredLevel);
-      educationScore = {
+      const levelResult = checkEducationEligibility(normalizedEdu, requiredLevel);
+      educationScore = await buildEducationCriterionScore({
         criterionId: 'job-education-level',
         criterionText: `Required education: ${requiredLevel}`,
-        type: 'education',
-        score: result.eligible ? 100 : 40,
-        passed: result.eligible,
-        confidence: 0.95,
-        subrequirements: [{
-          id: 'S1', text: `Required education: ${requiredLevel}`, type: 'deterministic',
-          demonstrated: result.eligible,
-          evidence: [{ source: 'work_experience', quote: result.details }],
-          missing: result.eligible ? null : result.details,
-          confidence: 0.95, flags: [],
-        }],
-        recombine_logic: 'S1',
-        details: { required: requiredLevel, candidateHas: result.candidateLevel }
-      };
+        requiredLevel,
+        levelResult,
+        eduField: null,
+        allowsEquivalency: false,
+        applicationId,
+        phfHash,
+        candidateDuties,
+        motivationLetter,
+        experienceBullets,
+        modelUsedTracker,
+      });
     }
 
     // Calculate overall
