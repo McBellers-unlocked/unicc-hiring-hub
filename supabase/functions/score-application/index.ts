@@ -968,7 +968,15 @@ Check:
 // STEP 5: Recombine Logic Parser (safe, strict) — unchanged
 // =============================================================================
 
-function evaluateRecombineLogic(logic: string, results: Record<string, boolean>): boolean {
+function evaluateRecombineLogic(
+  logic: string,
+  results: Record<string, boolean>
+): { passed: boolean; parseFailed: boolean } {
+  const fallback = (): { passed: boolean; parseFailed: boolean } => ({
+    passed: Object.values(results).every(v => v),
+    parseFailed: true,
+  });
+
   const rawTokens = logic.trim().split(/\s+/);
   const tokens: string[] = [];
   for (const raw of rawTokens) {
@@ -981,7 +989,7 @@ function evaluateRecombineLogic(logic: string, results: Record<string, boolean>)
   for (const token of tokens) {
     if (!validToken.test(token)) {
       console.warn(`Invalid token in recombine_logic: "${token}", treating as AND-all`);
-      return Object.values(results).every(v => v);
+      return fallback();
     }
   }
 
@@ -997,12 +1005,13 @@ function evaluateRecombineLogic(logic: string, results: Record<string, boolean>)
       if (parts) exprTokens.push(...parts);
       else exprTokens.push(raw);
     }
-    return parseOrExpression(exprTokens, { pos: 0 });
+    return { passed: parseOrExpression(exprTokens, { pos: 0 }), parseFailed: false };
   } catch {
     console.warn('Recombine logic parse failed, defaulting to AND-all');
-    return Object.values(results).every(v => v);
+    return fallback();
   }
 }
+
 
 function parseOrExpression(tokens: string[], state: { pos: number }): boolean {
   let result = parseAndExpression(tokens, state);
