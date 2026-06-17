@@ -1239,6 +1239,18 @@ function buildYearsExperienceDecomposition(criterion: ParsedCriterion): Decompos
 // Scoring Functions (v4.0: parallel subrequirements, decomposition map)
 // =============================================================================
 
+function extractCandidateDuties(workExperience: any[]): string {
+  return workExperience
+    .map(exp => {
+      const title = exp.job_title || exp.position || '';
+      const employer = exp.employer || exp.company || exp.organisation || '';
+      const duties = exp.duties_and_responsibilities || exp.description || '';
+      return `${title} at ${employer}:\n${duties}`;
+    })
+    .filter(text => text.trim().length > 0)
+    .join('\n\n');
+}
+
 // Reusable LLM-sub scoring: verdict-cache lookup → evaluator (on miss) → cache
 // write → symmetric verifier (positives AND borderline negatives) → confidence
 // banding. Used by scoreCriterionV4 and by the education-criterion enhancements
