@@ -331,11 +331,12 @@ If the requirement is already atomic, return a single subrequirement with recomb
     }
   );
 
-  if (result && result.subrequirements?.length > 0) {
+  if (result && result.data?.subrequirements?.length > 0) {
     return {
-      subrequirements: result.subrequirements,
-      recombine_logic: result.recombine_logic || 'S1',
-    };
+      subrequirements: result.data.subrequirements,
+      recombine_logic: result.data.recombine_logic || 'S1',
+      modelUsed: result.modelUsed,
+    } as Decomposition;
   }
   return null;
 }
