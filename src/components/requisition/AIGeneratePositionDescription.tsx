@@ -154,7 +154,6 @@ export function AIGeneratePositionDescription({
     setLoading(true);
     try {
       const attachments: { filename: string; text: string }[] = [];
-      const filesToUse = filesOverride ?? files;
       for (const f of filesToUse) {
         try {
           const text = await extractFileText(f);
