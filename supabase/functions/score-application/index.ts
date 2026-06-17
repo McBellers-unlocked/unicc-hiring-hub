@@ -1427,44 +1427,59 @@ async function scoreLlmSubWithCache(args: ScoreLlmSubArgs): Promise<SubRequireme
   const {
     subReq, criterionId, decompositionVersion, applicationId, phfHash,
     candidateDuties, motivationLetter, experienceBullets, modelUsedTracker,
+    precomputedEval, skipCacheLookup,
   } = args;
 
   // ---- Verdict cache lookup ----
   let evalResult: EvaluatorResult | null = null;
   let cacheHit = false;
-  try {
-    const { data: cachedVerdict } = await supabase
-      .from('subrequirement_verdicts')
-      .select('demonstrated, evidence, missing, confidence, model_version')
-      .eq('application_id', applicationId)
-      .eq('criterion_id', criterionId)
-      .eq('sub_id', subReq.id)
-      .eq('decomposition_version', decompositionVersion)
-      .eq('phf_hash', phfHash)
-      .maybeSingle();
 
-    if (cachedVerdict) {
-      cacheHit = true;
-      evalResult = {
-        demonstrated: !!cachedVerdict.demonstrated,
-        evidence: (cachedVerdict.evidence as EvidenceQuote[]) || [],
-        missing: cachedVerdict.missing ?? null,
-        confidence: typeof cachedVerdict.confidence === 'number' ? cachedVerdict.confidence : 0,
-        flags: ['CACHED_VERDICT'],
-        modelUsed: cachedVerdict.model_version || undefined,
-        fromCache: true,
-      };
-      if (cachedVerdict.model_version) modelUsedTracker.add(cachedVerdict.model_version);
+  // If caller supplied a precomputed evaluator result (e.g. from the batched
+  // per-criterion evaluator), use it directly and skip both the cache lookup
+  // and the per-sub evaluator call. The cache write below still happens so
+  // batched results are persisted for future runs.
+  if (precomputedEval) {
+    evalResult = precomputedEval;
+    cacheHit = !!precomputedEval.fromCache;
+    if (evalResult.modelUsed) modelUsedTracker.add(evalResult.modelUsed);
+  } else if (!skipCacheLookup) {
+    try {
+      const { data: cachedVerdict } = await supabase
+        .from('subrequirement_verdicts')
+        .select('demonstrated, evidence, missing, confidence, model_version')
+        .eq('application_id', applicationId)
+        .eq('criterion_id', criterionId)
+        .eq('sub_id', subReq.id)
+        .eq('decomposition_version', decompositionVersion)
+        .eq('phf_hash', phfHash)
+        .maybeSingle();
+
+      if (cachedVerdict) {
+        cacheHit = true;
+        evalResult = {
+          demonstrated: !!cachedVerdict.demonstrated,
+          evidence: (cachedVerdict.evidence as EvidenceQuote[]) || [],
+          missing: cachedVerdict.missing ?? null,
+          confidence: typeof cachedVerdict.confidence === 'number' ? cachedVerdict.confidence : 0,
+          flags: ['CACHED_VERDICT'],
+          modelUsed: cachedVerdict.model_version || undefined,
+          fromCache: true,
+        };
+        if (cachedVerdict.model_version) modelUsedTracker.add(cachedVerdict.model_version);
+      }
+    } catch (e) {
+      console.warn('Verdict cache lookup failed (continuing without cache):', e);
     }
-  } catch (e) {
-    console.warn('Verdict cache lookup failed (continuing without cache):', e);
   }
 
-  // ---- Evaluator (cache miss) ----
+  // ---- Evaluator (cache miss, no precomputed result) ----
   if (!evalResult) {
     evalResult = await evaluateSubRequirement(subReq, candidateDuties, motivationLetter, experienceBullets);
     if (evalResult.modelUsed) modelUsedTracker.add(evalResult.modelUsed);
+  }
 
+  // ---- Cache write (for any freshly produced verdict, including batched) ----
+  if (!cacheHit) {
     const isParseFailure = evalResult.flags?.includes('AI_PARSE_FAILURE');
     if (!isParseFailure) {
       try {
