@@ -377,10 +377,47 @@ async function callAIWithToolCalling(
   toolName: string,
   toolDescription: string,
   parameters: Record<string, any>
-): Promise<any> {
+): Promise<{ data: any; modelUsed: string } | null> {
   if (!LOVABLE_API_KEY) {
     throw new Error('LOVABLE_API_KEY not configured');
   }
+
+  // Build a deterministic base body. temperature/top_p are only attached when
+  // the configured MODEL accepts them (see MODEL_SUPPORTS_TEMPERATURE).
+  const buildBody = (withTools: boolean, systemContent: string) => {
+    const body: Record<string, any> = {
+      model: MODEL,
+      messages: [
+        { role: 'system', content: systemContent },
+        { role: 'user', content: userPrompt },
+      ],
+    };
+    if (MODEL_SUPPORTS_TEMPERATURE) {
+      body.temperature = SCORING_TEMPERATURE;
+      body.top_p = SCORING_TOP_P;
+    }
+    if (withTools) {
+      body.tools = [{
+        type: 'function',
+        function: {
+          name: toolName,
+          description: toolDescription,
+          parameters: {
+            type: 'object',
+            properties: parameters,
+            required: Object.keys(parameters),
+            additionalProperties: false,
+          },
+        },
+      }];
+      body.tool_choice = { type: 'function', function: { name: toolName } };
+    }
+    return body;
+  };
+
+  const extractModelUsed = (data: any): string => {
+    return (data && typeof data.model === 'string' && data.model) || MODEL;
+  };
 
   // Primary: tool calling
   try {
@@ -390,32 +427,11 @@ async function callAIWithToolCalling(
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: toolName,
-            description: toolDescription,
-            parameters: {
-              type: 'object',
-              properties: parameters,
-              required: Object.keys(parameters),
-              additionalProperties: false,
-            }
-          }
-        }],
-        tool_choice: { type: 'function', function: { name: toolName } },
-      }),
+      body: JSON.stringify(buildBody(true, systemPrompt)),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      // Handle 429 rate limiting with exponential backoff
       if (response.status === 429) {
         throw new Error(`AI Gateway 429 rate limited`);
       }
@@ -424,24 +440,23 @@ async function callAIWithToolCalling(
     }
 
     const data = await response.json();
+    const modelUsed = extractModelUsed(data);
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (toolCall?.function?.arguments) {
-      return JSON.parse(toolCall.function.arguments);
+      return { data: JSON.parse(toolCall.function.arguments), modelUsed };
     }
 
-    // Fallback: try parsing content as JSON
     const content = data.choices?.[0]?.message?.content;
     if (content) {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) return JSON.parse(jsonMatch[0]);
+      if (jsonMatch) return { data: JSON.parse(jsonMatch[0]), modelUsed };
     }
 
     throw new Error('No tool call or parseable JSON in response');
   } catch (err: any) {
-    // Retry with exponential backoff for 429s and transient errors
     if (err?.message?.includes('429')) {
       for (let retryAttempt = 0; retryAttempt < AI_RETRY_ATTEMPTS; retryAttempt++) {
-        const backoffMs = Math.pow(2, retryAttempt + 1) * 1000; // 2s, 4s, 8s
+        const backoffMs = Math.pow(2, retryAttempt + 1) * 1000;
         console.log(`429 backoff: waiting ${backoffMs}ms (attempt ${retryAttempt + 1}/${AI_RETRY_ATTEMPTS})`);
         await new Promise(r => setTimeout(r, backoffMs));
         try {
@@ -451,36 +466,17 @@ async function callAIWithToolCalling(
               'Authorization': `Bearer ${LOVABLE_API_KEY}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              model: MODEL,
-              messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt }
-              ],
-              tools: [{
-                type: 'function',
-                function: {
-                  name: toolName,
-                  description: toolDescription,
-                  parameters: {
-                    type: 'object',
-                    properties: parameters,
-                    required: Object.keys(parameters),
-                    additionalProperties: false,
-                  }
-                }
-              }],
-              tool_choice: { type: 'function', function: { name: toolName } },
-            }),
+            body: JSON.stringify(buildBody(true, systemPrompt)),
           });
           if (retryResponse.ok) {
             const retryData = await retryResponse.json();
+            const modelUsed = extractModelUsed(retryData);
             const retryToolCall = retryData.choices?.[0]?.message?.tool_calls?.[0];
             if (retryToolCall?.function?.arguments) {
-              return JSON.parse(retryToolCall.function.arguments);
+              return { data: JSON.parse(retryToolCall.function.arguments), modelUsed };
             }
           }
-          if (retryResponse.status !== 429) break; // Only keep retrying on 429
+          if (retryResponse.status !== 429) break;
         } catch { /* continue retrying */ }
       }
     }
@@ -496,24 +492,18 @@ async function callAIWithToolCalling(
           'Authorization': `Bearer ${LOVABLE_API_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: MODEL,
-          messages: [
-            { role: 'system', content: systemPrompt + '\nReturn ONLY valid JSON. No markdown, no explanation.' },
-            { role: 'user', content: userPrompt }
-          ],
-          
-        }),
+        body: JSON.stringify(buildBody(false, systemPrompt + '\nReturn ONLY valid JSON. No markdown, no explanation.')),
       });
 
       if (!response.ok) continue;
 
       const data = await response.json();
+      const modelUsed = extractModelUsed(data);
       const content = data.choices?.[0]?.message?.content;
       if (!content) continue;
 
       const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) return JSON.parse(jsonMatch[0]);
+      if (jsonMatch) return { data: JSON.parse(jsonMatch[0]), modelUsed };
     } catch {
       if (attempt === 0) {
         await new Promise(r => setTimeout(r, 1000));
