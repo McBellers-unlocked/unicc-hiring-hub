@@ -550,6 +550,7 @@ async function callAIWithToolCalling(
   // Fallback: plain JSON request with retry
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
+      await acquireGatewaySlot();
       const response = await fetch(AI_GATEWAY_URL, {
         method: 'POST',
         headers: {
