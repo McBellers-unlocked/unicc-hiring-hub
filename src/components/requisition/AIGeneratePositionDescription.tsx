@@ -127,33 +127,19 @@ export function AIGeneratePositionDescription({
     setFiles(next);
     if (fileRef.current) fileRef.current.value = "";
     if (accepted.length > 0) {
-      const ctx = getContext();
-      const ready = canGenerate && !!ctx.positionTitle?.trim();
-      if (ready) {
-        setTimeout(() => runGeneration("fillEmpty", next), 0);
-      } else {
-        // Don't silently no-op: confirm the file was attached and explain what's missing.
-        toast({
-          title: `Attached ${accepted.length === 1 ? accepted[0].name : `${accepted.length} files`}`,
-          description:
-            missingFieldsLabel ||
-            "Fill position title, grade, and division to enable AI generation. We'll auto-run once they're set.",
-        });
-      }
+      // With a JD attached, the AI extracts every field — including title. Always auto-run.
+      setTimeout(() => runGeneration("fillEmpty", next), 0);
     }
   };
 
-  // Auto-run generation once prerequisites become satisfied after a file was attached.
+  // Auto-run once a file is present (in case the first auto-run didn't fire, e.g. after remount).
   const hasFiles = files.length > 0;
   useEffect(() => {
     if (!hasFiles || loading) return;
-    if (!canGenerate) return;
-    const ctx = getContext();
-    if (!ctx.positionTitle?.trim()) return;
     const t = setTimeout(() => runGeneration("fillEmpty"), 0);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasFiles, canGenerate]);
+  }, [hasFiles]);
 
   const removeFile = (idx: number) => setFiles((prev) => prev.filter((_, i) => i !== idx));
 
