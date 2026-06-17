@@ -114,8 +114,15 @@ export function AIGeneratePositionDescription({
       }
       accepted.push(f);
     }
-    setFiles((prev) => [...prev, ...accepted]);
+    const next = [...files, ...accepted];
+    setFiles(next);
     if (fileRef.current) fileRef.current.value = "";
+    if (accepted.length > 0 && canGenerate) {
+      const ctx = getContext();
+      if (ctx.positionTitle?.trim()) {
+        setTimeout(() => runGeneration("fillEmpty", next), 0);
+      }
+    }
   };
 
   const removeFile = (idx: number) => setFiles((prev) => prev.filter((_, i) => i !== idx));
