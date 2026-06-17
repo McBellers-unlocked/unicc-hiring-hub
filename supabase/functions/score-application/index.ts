@@ -1416,6 +1416,11 @@ interface ScoreLlmSubArgs {
   motivationLetter: string;
   experienceBullets: string;
   modelUsedTracker: Set<string>;
+  // When provided, skip cache lookup + per-sub evaluator call and use this
+  // result directly. Used by the per-criterion batched evaluator path.
+  precomputedEval?: EvaluatorResult;
+  // When true, skip the verdict-cache lookup (caller has already handled it).
+  skipCacheLookup?: boolean;
 }
 
 async function scoreLlmSubWithCache(args: ScoreLlmSubArgs): Promise<SubRequirementScore> {
