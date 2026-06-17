@@ -475,39 +475,54 @@ async function callAIWithToolCalling(
 // Criterion Parsing (unchanged from v3.0)
 // =============================================================================
 
+// Categorisation precedence (highest wins). When a bullet matches multiple
+// patterns (e.g. "5 years' experience drafting frameworks" matches both
+// years_experience and output_experience), the first match below is used:
+//   years_experience > education > output_experience > specific_experience
+//   > knowledge > skill > ability > attribute
+// Order is documented so multi-pattern bullets are categorised consistently.
 function categorizeCriterion(text: string): CriterionType {
   const lowerText = text.toLowerCase();
+  // 1) years_experience
   if (/(\d+)\s*[\(\)]*\s*years?\s*(of\s+)?(experience|work)/i.test(text) ||
       /at\s+least\s+\w+\s*\(\d+\)\s*years/i.test(text) ||
       /minimum\s+(of\s+)?\d+\s*years/i.test(text)) {
     return 'years_experience';
   }
+  // 2) education
   if (lowerText.includes('degree') || lowerText.includes('education') ||
       lowerText.includes('university') || lowerText.includes("bachelor") ||
       lowerText.includes("master") || lowerText.includes('phd')) {
     return 'education';
   }
-  if (lowerText.startsWith('proven experience') || lowerText.startsWith('demonstrated experience') ||
-      lowerText.includes('experience managing') || lowerText.includes('experience in ') ||
-      lowerText.includes('experience with ')) {
-    return 'specific_experience';
-  }
+  // 3) output_experience (checked BEFORE specific_experience so "experience drafting X"
+  //    is not swallowed by the broader "experience in/with" specific_experience pattern)
   if (lowerText.includes('experience preparing') || lowerText.includes('experience developing') ||
       lowerText.includes('experience drafting') || lowerText.includes('experience in the preparation') ||
       lowerText.includes('experience in the development')) {
     return 'output_experience';
   }
+  // 4) specific_experience
+  if (lowerText.startsWith('proven experience') || lowerText.startsWith('demonstrated experience') ||
+      lowerText.includes('experience managing') || lowerText.includes('experience in ') ||
+      lowerText.includes('experience with ')) {
+    return 'specific_experience';
+  }
+  // 5) knowledge
   if (lowerText.startsWith('knowledge of') || lowerText.startsWith('strong knowledge') ||
       lowerText.includes('understanding of')) {
     return 'knowledge';
   }
+  // 6) skill
   if (lowerText.includes('skills') || lowerText.startsWith('excellent') ||
       (lowerText.startsWith('strong') && !lowerText.includes('knowledge'))) {
     return 'skill';
   }
+  // 7) ability
   if (lowerText.startsWith('ability to') || lowerText.includes('able to')) {
     return 'ability';
   }
+  // 8) attribute (default)
   return 'attribute';
 }
 
