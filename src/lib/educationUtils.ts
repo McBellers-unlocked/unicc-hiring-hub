@@ -105,3 +105,27 @@ export function checkEducationEligibility(
   
   return { eligible, candidateLevel, details };
 }
+
+// Detects "or equivalent (professional|work|practical) experience" phrasing,
+// indicating the requirement allows experience-based equivalency to a degree.
+export function hasEquivalencyClause(text: string): boolean {
+  if (!text) return false;
+  const t = text.toLowerCase();
+  return /\bor\s+equivalent\b/.test(t) && /(experience|professional|work|practical|qualification)/.test(t);
+}
+
+// Extracts the field-of-study mentioned in the criterion, e.g.
+// "advanced degree in HR or a related field" → "HR".
+// Returns null when no specific field is named.
+export function extractEducationField(text: string): string | null {
+  if (!text) return null;
+  const m = text.match(
+    /\b(?:degree|diploma|bachelor'?s?|master'?s?|phd|doctorate|qualification|education|studies)\b[^.,;]*?\s+in\s+([^.,;()]+?)(?:\s+or\s+(?:a\s+)?(?:related|similar|equivalent)\s+(?:field|discipline|area)|\s+or\s+equivalent|[.,;()]|$)/i
+  );
+  if (!m) return null;
+  const raw = m[1].trim().replace(/\s+/g, ' ');
+  // Filter obvious noise / overly generic captures
+  if (raw.length < 2) return null;
+  if (/^(a|an|the|any|relevant)$/i.test(raw)) return null;
+  return raw;
+}
