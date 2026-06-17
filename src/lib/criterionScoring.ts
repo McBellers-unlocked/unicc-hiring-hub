@@ -42,6 +42,9 @@ export interface CriterionScore {
   };
 }
 
+/** Coverage-gated verdict (v4.3). */
+export type Recommendation = 'reject' | 'review' | 'recommend';
+
 export interface ScoringResult {
   criteria: CriterionScore[];
   educationScore: CriterionScore | null;
@@ -50,6 +53,14 @@ export interface ScoringResult {
   totalCount: number;
   recommendForLonglist: boolean;
   analysisVersion: string;
+  // --- v4.3 recommendation model (additions only; optional for backward-compat
+  // with rows scored before 4.3, which won't carry these fields) ---
+  recommendation?: Recommendation;
+  recommendation_reason?: string;
+  essentialMet?: number;
+  essentialTotal?: number;
+  coverageRatio?: number;
+  matchStrengthOnMet?: number | null;
 }
 
 /**
