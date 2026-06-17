@@ -1109,9 +1109,11 @@ async function scoreCriterionV4(
   let llmSubs = decomposition.subrequirements.filter(s => s.type === 'llm');
 
   // v4.1 COMPLEXITY GUARD: Cap LLM subrequirements to prevent timeout on heavy decompositions
+  const criterionFlags: string[] = [];
   if (llmSubs.length > MAX_SUBS_PER_CRITERION) {
     console.log(`Capping ${llmSubs.length} LLM subs to ${MAX_SUBS_PER_CRITERION} for criterion ${criterion.id}`);
     llmSubs = llmSubs.slice(0, MAX_SUBS_PER_CRITERION);
+    criterionFlags.push('SUBS_TRUNCATED');
   }
 
   // Process deterministic subs immediately (no AI needed)
