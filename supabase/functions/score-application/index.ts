@@ -82,8 +82,14 @@ const SCORING_TOP_P = 1;
 
 // Version stamps persisted with each score so results stay interpretable even
 // if the gateway's default model or our prompts change later.
-const PIPELINE_VERSION = '4.0';
+const PIPELINE_VERSION = '4.3';
 const PROMPT_VERSION = '2026-06-17.a';
+
+// v4.3 policy lever — SINGLE SOURCE OF TRUTH. The number of essential (must-have)
+// criteria a candidate may miss and still be auto-Recommended. 1 is the principled
+// must-have default (must-haves are must-haves); raise it only if a panel treats
+// some essentials as semi-negotiable. Do not scatter copies of this threshold.
+const MAX_ESSENTIAL_MISSES = 1;
 
 // (4) Confidence banding — toggleable, default OFF.
 // When true, each sub's raw confidence is snapped to a band before being used
@@ -220,6 +226,8 @@ interface CriterionScoreV4 {
   };
 }
 
+type Recommendation = 'reject' | 'review' | 'recommend';
+
 interface ScoringResultV4 {
   criteria: CriterionScoreV4[];
   educationScore: CriterionScoreV4 | null;
@@ -227,6 +235,13 @@ interface ScoringResultV4 {
   passedCount: number;
   totalCount: number;
   recommendForLonglist: boolean;
+  // --- v4.3 recommendation model (additions only) ---
+  recommendation: Recommendation;
+  recommendation_reason: string;
+  essentialMet: number;
+  essentialTotal: number;
+  coverageRatio: number;
+  matchStrengthOnMet: number | null;
   analysisVersion: string;
 }
 
@@ -1937,6 +1952,12 @@ function scoreDeterministicSub(
 // Overall Scoring (unchanged)
 // =============================================================================
 
+// Short, single-line criterion label for human-readable recommendation_reason.
+function shortCriterionLabel(text: string, maxLen = 60): string {
+  const clean = String(text || 'criterion').replace(/\s+/g, ' ').trim();
+  return clean.length > maxLen ? `${clean.slice(0, maxLen - 1).trimEnd()}…` : clean;
+}
+
 function calculateScoringResultV4(
   criteriaScores: CriterionScoreV4[],
   educationScore: CriterionScoreV4 | null
@@ -1957,12 +1978,57 @@ function calculateScoringResultV4(
   });
   const overallScore = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
 
+  // --- v4.3 recommendation model -------------------------------------------
+  // Coverage-gated, three-state verdict. The per-criterion formula, the ×2
+  // weights, the v4.2 failure floor, and `overallScore` above are ALL unchanged:
+  // overallScore is demoted to a breakdown metric and no longer drives the badge.
+  // All criteria are essential today, so essentialMet/Total mirror passed/total.
   const corePass = allScores
     .filter(s => s.type === 'years_experience' || s.type === 'education')
     .every(s => s.passed);
 
-  const passRatio = passedCount / Math.max(1, totalCount);
-  const recommendForLonglist = corePass && passRatio >= 0.6 && overallScore >= 60;
+  const essentialTotal = totalCount;
+  const essentialMet = passedCount;
+  const essentialMisses = essentialTotal - essentialMet;
+  const coverageRatio = essentialMet / Math.max(1, essentialTotal);
+
+  // Weighted match strength over PASSED criteria ONLY — a failed criterion can
+  // never raise it (same weights as overallScore). null when nothing passed.
+  let metWeight = 0;
+  let metWeightedSum = 0;
+  allScores.forEach(score => {
+    if (!score.passed) return;
+    const weight = score.type === 'years_experience' || score.type === 'education' ? 2 : 1;
+    metWeightedSum += score.score * weight;
+    metWeight += weight;
+  });
+  const matchStrengthOnMet = metWeight > 0 ? Math.round(metWeightedSum / metWeight) : null;
+
+  const recommendation: Recommendation =
+    !corePass ? 'reject'
+    : essentialMisses <= MAX_ESSENTIAL_MISSES ? 'recommend'
+    : 'review';
+
+  const missedLabels = allScores
+    .filter(s => !s.passed)
+    .map(s => shortCriterionLabel(s.criterionText));
+  const missedCoreLabels = allScores
+    .filter(s => !s.passed && (s.type === 'years_experience' || s.type === 'education'))
+    .map(s => shortCriterionLabel(s.criterionText));
+
+  let recommendation_reason: string;
+  if (recommendation === 'recommend') {
+    recommendation_reason = `Meets core requirements and ${essentialMet} of ${essentialTotal} essential criteria.`;
+  } else if (recommendation === 'review') {
+    recommendation_reason = `Clears core requirements but misses ${essentialMisses} essential criteria: ${missedLabels.join('; ')}. Flagged for human review.`;
+  } else {
+    recommendation_reason = `Does not meet a core requirement: ${missedCoreLabels.join('; ')}.`;
+  }
+
+  // Legacy verdict boolean, repointed at the new model (was:
+  // `corePass && passRatio >= 0.6 && overallScore >= 60`). `recommendation` is the
+  // single source of truth; this is derived from it, not computed independently.
+  const recommendForLonglist = recommendation === 'recommend';
 
   return {
     criteria: criteriaScores,
@@ -1971,6 +2037,13 @@ function calculateScoringResultV4(
     passedCount,
     totalCount,
     recommendForLonglist,
+    // --- v4.3 additions ---
+    recommendation,
+    recommendation_reason,
+    essentialMet,
+    essentialTotal,
+    coverageRatio,
+    matchStrengthOnMet,
     analysisVersion: '4.0-resumable-parallel-guarded'
   };
 }
@@ -2345,10 +2418,11 @@ Deno.serve(async (req) => {
       console.error('Error saving scores:', saveError);
     }
 
-    // Also update the suggested_for_longlist flag
+    // Also update the suggested_for_longlist flag — true only for a full Recommend
+    // (Review and Reject are false). v4.3: gated on the coverage-based verdict.
     await supabase
       .from('applications')
-      .update({ suggested_for_longlist: resultData.recommendForLonglist })
+      .update({ suggested_for_longlist: resultData.recommendation === 'recommend' })
       .eq('id', applicationId);
 
     return new Response(
