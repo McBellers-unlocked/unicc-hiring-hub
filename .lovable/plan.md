@@ -1,50 +1,34 @@
 ## Problem
 
-On `/requisitions/new`, the "Attach existing JD" feature only stages the file. Even after clicking **Generate with AI**, only **Purpose of the Position** and **Main Duties & Responsibilities** get filled. The other fields the attached JD almost always contains — Essential / Desirable Experience, Essential / Desirable Education, Languages — are left blank, so it feels like the upload "did nothing."
+On `/requisitions/new`, the "Attach existing JD" button in the Position Description card does technically accept the file, but nothing visibly happens. Reproduction is fully explained by the existing code:
 
-Two issues to fix:
+- `src/components/requisition/AIGeneratePositionDescription.tsx` (lines 107–126): after a file is picked, auto-generation only runs when `canGenerate` is true **and** `ctx.positionTitle?.trim()` is non-empty. Otherwise it silently does nothing — no toast, no badge guidance, no opening of an upload state.
+- `src/pages/JobRequisitionForm.tsx` (lines 1645–1667): `canGenerate` requires `position_title`, `grade`, and `unit_section_division` all to be filled. On a fresh requisition these are empty, so the auto-trigger short-circuits.
+- The "Generate with AI" button is also `disabled={!canGenerate}`, so clicking it after attaching the JD also appears to do nothing.
 
-1. The edge function only returns 2 keys (`purpose_of_position`, `main_duties_responsibilities`).
-2. The UI never auto-runs extraction on attach, and the apply callback only writes those 2 fields.
+Result: user attaches a JD on a new requisition, sees no toast, no error, no spinner, no extracted content. Exactly the reported symptom.
 
-## Plan
+## Fix (scoped, no refactor)
 
-### 1. Expand edge function output — `supabase/functions/generate-position-description/index.ts`
-Change the system prompt and response schema so the model returns **all** drafted fields in one JSON object:
+Only edit `src/components/requisition/AIGeneratePositionDescription.tsx`. No backend/edge-function changes — the upload+generate path itself works once fields are present.
 
-- `purpose_of_position` (string)
-- `main_duties_responsibilities` (markdown bullets)
-- `essential_experience` (string)
-- `desirable_experience` (string)
-- `essential_education` (string)
-- `essential_education_level` (string, normalized to one of the existing level options)
-- `desirable_education` (string)
-- `additional_languages` (array of `{ name, level }`)
+1. **Surface the missing prerequisites when a JD is attached** — in `handlePickFiles`, after `setFiles(next)`:
+   - If `accepted.length > 0` and either `!canGenerate` or `!ctx.positionTitle?.trim()`, fire an informational toast (not destructive) showing the file is attached but generation is blocked, naming the missing fields (reuse `missingFieldsLabel` already passed in from the parent, with a sensible default).
+   - Keep the existing auto-run path when everything is ready.
 
-When an attached JD is present, instruct the model to **extract verbatim where possible** instead of inventing. When no attachment, fall back to generation as today.
+2. **Confirm the attachment visually even when auto-run is blocked** — the badge list at lines 252–268 already renders once `files.length > 0`, so the toast plus the badge gives clear feedback that the file was accepted and what's needed next.
 
-### 2. Update client component — `src/components/requisition/AIGeneratePositionDescription.tsx`
-- Widen the `onApply` result type to include the new fields.
-- Add an **auto-extract on attach** path: as soon as files are attached, automatically call the edge function in "extract-only" mode (no overwrite of non-empty fields). The existing **Generate with AI** button stays for the no-attachment / regenerate flow and keeps the overwrite confirmation dialog.
-- Toast clearly when extraction completes ("Extracted N fields from <filename>").
+3. **Re-trigger when prerequisites become ready** — add a small `useEffect` that watches `canGenerate` + the result of `getContext().positionTitle`: when both flip to truthy while `files.length > 0` and the component is not already loading, run `runGeneration("fillEmpty")` automatically. This makes "attach JD first, then type the title" Just Work.
 
-### 3. Wire new fields into the form — `src/pages/JobRequisitionForm.tsx`
-Extend the `onApply` handler at line ~1668 to also write:
-- `essential_experience`, `desirable_experience`
-- `essential_education`, `essential_education_level`, `desirable_education`
-- `additional_languages` (and sync the local `additionalLanguages` state used by the languages UI)
+4. **No change** to: `getContext`, `runGeneration` body, the edge-function payload, file parsing (pdfjs/mammoth), accepted MIME types, size limits, the AlertDialog overwrite flow, or `JobRequisitionForm.tsx`. The `rubric_breakdown`/scoring engine is untouched.
 
-Respect the same `overwrite` vs `fillEmpty` rule per field that already exists for purpose/duties.
+## Verification
 
-### 4. Keep the rest of the requisition form untouched
-No schema, routing, or other field changes. Competencies are intentionally **not** auto-filled — they're a controlled taxonomy (selected via checklists), and free-text extraction would create invalid values.
-
-## Technical Notes
-- Education level must be coerced to one of the form's existing dropdown options; if the model returns something else, drop it and leave the field empty.
-- `additional_languages` levels must match the existing language-level options used elsewhere in the form; unknown levels get dropped.
-- Auto-extract on attach uses `mode: "fillEmpty"` so the user never loses typed content silently.
-- Increase `MAX_PER_FILE` budget if needed for longer JDs (current 15k chars is usually enough for one JD).
+- Load `/requisitions/new`, attach a JD with the form empty → expect a non-destructive toast naming the missing fields (e.g. "Fill position title, grade, division to enable AI generation"), and the file badge to appear.
+- Then type the position title, pick a grade and division → generation should kick off automatically (effect from step 3), spinner appears on the Generate button, fields populate from the JD.
+- Existing flow on an in-progress requisition where title/grade/division are already filled → unchanged: attach JD → auto-runs immediately, same as today.
 
 ## Out of scope
-- Parsing scanned/image-only PDFs (still relies on `pdfjs-dist` text extraction).
-- Filling competencies, grade, duty station, or other structural fields.
+
+- Auto-inferring `position_title`/`grade`/`division` from the JD text (could be a follow-up — would require parent-side `onApply` extension).
+- Any change to the `generate-position-description` edge function, scoring engine, or rubric contract.
