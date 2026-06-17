@@ -226,11 +226,9 @@ Deno.serve(async (req) => {
       .map(([k, units]) => `${k}: [${units.map((u) => `"${u}"`).join(", ")}]`)
       .join("\n  ");
 
-    const systemPrompt = `You are an HR specialist drafting UN/UNICC position descriptions. Write in a professional UN tone, third person, present tense. Be specific and concise.
+    const systemPromptWithJD = `You are an HR specialist drafting UN/UNICC position descriptions. Write in a professional UN tone, third person, present tense. Be specific and concise.
 
-${hasAttachments
-  ? "You have one or more attached job descriptions. EXTRACT the requested fields from the attached JD(s) as faithfully as possible. Prefer the attached text verbatim or lightly edited. Only return null for a field if it is genuinely absent from the JD and cannot be inferred with high confidence."
-  : "No JD is attached. Generate plausible content from the position title, nature, and grade. For closed-list fields (nature_of_position, grade, duty_station, division, unit_section_division, competencies) return null unless you are confident."}
+You have one or more attached job descriptions. EXTRACT the requested fields from the attached JD(s) as faithfully as possible. Prefer the attached text verbatim or lightly edited. Only return null for a field if it is genuinely absent from the JD and cannot be inferred with high confidence.
 
 Output STRICT JSON with EXACTLY these keys. Use null for any field you cannot determine. Use [] for empty arrays.
 {
@@ -262,6 +260,38 @@ Rules:
 - Competencies: pick only those clearly evidenced in the JD. Match the listed names by meaning if the JD uses synonyms.
 - Output ONLY the JSON object. No headings, no preambles, no commentary, no code fences.`;
 
+    const systemPromptNoJD = `You are an HR specialist drafting UN/UNICC position descriptions. Write in a professional UN tone, third person, present tense. Be specific and concise.
+
+No JD is attached. Based on the position title, nature, grade, division and unit provided, draft ONLY the four free-text sections below. Do NOT attempt to fill any closed-list field — leave them all null/[].
+
+Output STRICT JSON with EXACTLY these keys (all other PD keys must be null or []):
+{
+  "purpose_of_position": "2-4 sentences describing the context and main purpose of the role, anchored to the given division/unit and grade seniority.",
+  "main_duties_responsibilities": "Markdown bulleted list of 6-10 duties. Each bullet: WHAT (active verb), WHY (purpose/scope), HOW (process/tasks).",
+  "essential_experience": "Plain text describing ONLY the FIELD/AREA of required experience (e.g. 'in cybersecurity operations, incident response, and SOC management'). Do NOT state a number of years — the form already sets the years based on grade. Phrase it so it can be appended to an existing 'X+ years of experience' sentence.",
+  "desirable_experience": "Plain text describing additional desirable FIELDS/AREAS of experience. Do NOT state a number of years.",
+  "essential_education": "Plain text describing ONLY the field(s) of study (e.g. 'in Computer Science, Information Systems, Cybersecurity, or a related field'). Do NOT name a degree level (Bachelor, Master, Advanced, etc.) — the form already sets the level based on grade.",
+  "desirable_education": "Plain text describing additional desirable fields of study or professional certifications. Do NOT name a degree level.",
+  "position_title": null,
+  "nature_of_position": null,
+  "grade": null,
+  "duty_station": [],
+  "division": null,
+  "unit_section_division": null,
+  "essential_education_level": null,
+  "additional_languages": [],
+  "core_competencies": [],
+  "management_competencies": [],
+  "leadership_competencies": []
+}
+
+Rules:
+- Do not invent specific project, client, donor, or person names.
+- Where a supervisor reference is needed, use the literal placeholder "[SUPERVISOR TITLE]".
+- Output ONLY the JSON object. No headings, no preambles, no commentary, no code fences.`;
+
+    const systemPrompt = hasAttachments ? systemPromptWithJD : systemPromptNoJD;
+
     const userPrompt = `Context:\n${ctx.length ? ctx.join("\n") : "(no metadata entered yet — extract everything from the JD)"}\n\n${attachmentContext ? `Reference job description(s):\n${attachmentContext}\n\n` : ""}Return the JSON object now.`;
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -271,7 +301,7 @@ Rules:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -289,7 +319,7 @@ Rules:
     if (!aiRes.ok) {
       const errText = await aiRes.text();
       console.error("AI gateway error", aiRes.status, errText);
-      return json(500, { error: `AI error ${aiRes.status}` });
+      return json(500, { error: `AI gateway ${aiRes.status}: ${errText.slice(0, 400)}` });
     }
 
     const data = await aiRes.json();
