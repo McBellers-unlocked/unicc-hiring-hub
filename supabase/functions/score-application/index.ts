@@ -1689,8 +1689,145 @@ function calculateScoringResultV4(
 }
 
 // =============================================================================
+// Education Criterion Builder
+// Primary: deterministic level check.
+// (a) Equivalency: when criterion text says "or equivalent experience" AND the
+//     candidate fails the level check, an LLM equivalency sub is added so the
+//     candidate isn't auto-failed.
+// (b) Field: when the criterion names a field ("...in HR or a related field"),
+//     an LLM sub checks the degree subject is relevant.
+// =============================================================================
+
+interface BuildEducationArgs {
+  criterionId: string;
+  criterionText: string;
+  requiredLevel: EducationLevel;
+  levelResult: { eligible: boolean; candidateLevel: EducationLevel; details: string };
+  eduField: string | null;
+  allowsEquivalency: boolean;
+  applicationId: string;
+  phfHash: string;
+  candidateDuties: string;
+  motivationLetter: string;
+  experienceBullets: string;
+  modelUsedTracker: Set<string>;
+}
+
+async function buildEducationCriterionScore(args: BuildEducationArgs): Promise<CriterionScoreV4> {
+  const {
+    criterionId, criterionText, requiredLevel, levelResult,
+    eduField, allowsEquivalency,
+    applicationId, phfHash, candidateDuties, motivationLetter, experienceBullets,
+    modelUsedTracker,
+  } = args;
+
+  const subs: SubRequirement[] = [
+    { id: 'S1', type: 'deterministic', text: `Required education: ${requiredLevel}` },
+  ];
+  const subScores: SubRequirementScore[] = [{
+    id: 'S1', text: subs[0].text, type: 'deterministic',
+    demonstrated: levelResult.eligible,
+    evidence: [{ source: 'work_experience', quote: levelResult.details }],
+    missing: levelResult.eligible ? null : levelResult.details,
+    confidence: 0.95, flags: [],
+  }];
+
+  // (a) Equivalency: only run when level check fails AND text allows it.
+  if (!levelResult.eligible && allowsEquivalency) {
+    const equivSub: SubRequirement = {
+      id: 'S2',
+      type: 'llm',
+      text: `Equivalent professional/work experience in lieu of a ${requiredLevel} degree (the requirement allows "or equivalent experience")`,
+    };
+    subs.push(equivSub);
+  }
+
+  // (b) Field relevance: only when a specific field was extracted.
+  if (eduField) {
+    const fieldSub: SubRequirement = {
+      id: subs.length === 1 ? 'S2' : 'S3',
+      type: 'llm',
+      text: `Degree subject/field of study is relevant to "${eduField}" (or a closely related field)`,
+    };
+    subs.push(fieldSub);
+  }
+
+  // Compose recombine_logic for whichever LLM subs were added.
+  const llmSubs = subs.filter(s => s.type === 'llm');
+  let recombineLogic = 'S1';
+  if (allowsEquivalency && !levelResult.eligible && eduField) {
+    // S1 OR S2 covers the level/equivalency choice; S3 (field) must also hold.
+    recombineLogic = '(S1 OR S2) AND S3';
+  } else if (allowsEquivalency && !levelResult.eligible) {
+    recombineLogic = 'S1 OR S2';
+  } else if (eduField) {
+    // Field check applies whether the level was met deterministically or not.
+    recombineLogic = 'S1 AND S2';
+  }
+
+  const decompositionVersion = computeDecompositionVersion({ subrequirements: subs, recombine_logic: recombineLogic });
+
+  // Run each LLM sub through the cached evaluator pipeline.
+  for (const subReq of llmSubs) {
+    try {
+      const scored = await scoreLlmSubWithCache({
+        subReq,
+        criterionId,
+        decompositionVersion,
+        applicationId,
+        phfHash,
+        candidateDuties,
+        motivationLetter,
+        experienceBullets,
+        modelUsedTracker,
+      });
+      subScores.push(scored);
+    } catch (e) {
+      console.error('Education LLM sub failed:', e);
+      subScores.push({
+        id: subReq.id, text: subReq.text, type: 'llm',
+        demonstrated: false, evidence: [],
+        missing: 'Evaluation error', confidence: 0,
+        flags: ['EVAL_ERROR'],
+      });
+    }
+  }
+
+  const truth: Record<string, boolean> = {};
+  for (const s of subScores) truth[s.id] = s.demonstrated;
+  const { passed } = evaluateRecombineLogic(recombineLogic, truth);
+
+  // Score: keep parity with prior deterministic-only education scoring (100/40)
+  // when no LLM subs were added; otherwise compute a confidence-weighted score.
+  let score: number;
+  if (llmSubs.length === 0) {
+    score = passed ? 100 : 40;
+  } else {
+    const avgConfidence = subScores.reduce((sum, s) => sum + s.confidence, 0) / Math.max(1, subScores.length);
+    const passedCount = subScores.filter(s => s.demonstrated).length;
+    const ratio = passedCount / Math.max(1, subScores.length);
+    score = passed
+      ? Math.round(70 + ratio * 30 * avgConfidence)
+      : Math.round(ratio * 60);
+  }
+
+  return {
+    criterionId,
+    criterionText,
+    type: 'education',
+    score,
+    passed,
+    confidence: subScores.reduce((s, x) => s + x.confidence, 0) / Math.max(1, subScores.length),
+    subrequirements: subScores,
+    recombine_logic: recombineLogic,
+    details: { required: requiredLevel, candidateHas: levelResult.candidateLevel },
+  };
+}
+
+// =============================================================================
 // Main Handler (v4.0: truncation, bullets, preloaded decompositions)
 // =============================================================================
+
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
