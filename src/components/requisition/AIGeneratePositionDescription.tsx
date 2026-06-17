@@ -195,7 +195,13 @@ export function AIGeneratePositionDescription({
       }
 
       const result = data as Partial<AIGeneratedPDResult>;
-      const filled = {
+      const filled: AIGeneratedPDResult = {
+        position_title: result.position_title ?? null,
+        nature_of_position: result.nature_of_position ?? null,
+        grade: result.grade ?? null,
+        duty_station: Array.isArray(result.duty_station) ? result.duty_station : [],
+        division: result.division ?? null,
+        unit_section_division: result.unit_section_division ?? null,
         purpose_of_position: result.purpose_of_position || "",
         main_duties_responsibilities: result.main_duties_responsibilities || "",
         essential_experience: result.essential_experience || "",
@@ -204,13 +210,24 @@ export function AIGeneratePositionDescription({
         essential_education_level: result.essential_education_level || "",
         desirable_education: result.desirable_education || "",
         additional_languages: Array.isArray(result.additional_languages) ? result.additional_languages : [],
+        core_competencies: Array.isArray(result.core_competencies) ? result.core_competencies : [],
+        management_competencies: Array.isArray(result.management_competencies) ? result.management_competencies : [],
+        leadership_competencies: Array.isArray(result.leadership_competencies) ? result.leadership_competencies : [],
       };
       const anyContent =
-        filled.purpose_of_position ||
-        filled.main_duties_responsibilities ||
-        filled.essential_experience ||
-        filled.essential_education ||
-        filled.additional_languages.length > 0;
+        !!filled.position_title ||
+        !!filled.nature_of_position ||
+        !!filled.grade ||
+        filled.duty_station.length > 0 ||
+        !!filled.unit_section_division ||
+        !!filled.purpose_of_position ||
+        !!filled.main_duties_responsibilities ||
+        !!filled.essential_experience ||
+        !!filled.essential_education ||
+        filled.additional_languages.length > 0 ||
+        filled.core_competencies.length > 0 ||
+        filled.management_competencies.length > 0 ||
+        filled.leadership_competencies.length > 0;
       if (!anyContent) {
         toast({ title: "Empty response", description: "AI did not return content. Try again.", variant: "destructive" });
         return;
