@@ -20,9 +20,62 @@ const MODEL = 'openai/gpt-5';
 
 const MAX_CONCURRENCY = 3;
 const MAX_TEXT_LENGTH = 6000;
-const MAX_CRITERIA_CONCURRENCY = 5; // Score 5 criteria in parallel (2 rounds for 7 criteria → ~40-50s)
-const MAX_SUBS_PER_CRITERION = 3; // Cap LLM subrequirements per criterion (most have 2-3 anyway)
-const AI_RETRY_ATTEMPTS = 3; // Retry on 429 with exponential backoff
+const MAX_CRITERIA_CONCURRENCY = 5;
+const MAX_SUBS_PER_CRITERION = 3;
+const AI_RETRY_ATTEMPTS = 3;
+
+// =============================================================================
+// Scoring Reproducibility Constants
+// =============================================================================
+
+// Determinism: send temperature=0 / top_p=1 to scoring LLM calls so the same
+// inputs produce the same outputs across runs.
+// NOTE: The Lovable AI Gateway rejects custom temperatures on openai/gpt-5
+// (see core memory). We therefore only attach these params on models that
+// accept them. If MODEL is changed to a non-gpt-5 model, determinism kicks in
+// automatically.
+const MODEL_SUPPORTS_TEMPERATURE = !/^openai\/gpt-5(\b|[-/])/i.test(MODEL);
+const SCORING_TEMPERATURE = 0;
+const SCORING_TOP_P = 1;
+
+// Version stamps persisted with each score so results stay interpretable even
+// if the gateway's default model or our prompts change later.
+const PIPELINE_VERSION = '4.0';
+const PROMPT_VERSION = '2026-06-17.a';
+
+// (4) Confidence banding — toggleable, default OFF.
+// When true, each sub's raw confidence is snapped to a band before being used
+// in the per-criterion score formula. Raw confidence is always kept in
+// rubric_breakdown for transparency.
+const USE_BANDED_CONFIDENCE = false;
+function bandConfidence(c: number): number {
+  if (!isFinite(c)) return 0.4;
+  if (c < 0.5) return 0.4;
+  if (c < 0.8) return 0.7;
+  return 0.9;
+}
+
+// Stable, dependency-free string hash (djb2). Used to fingerprint
+// decompositions and PHF inputs for the verdict cache.
+function shortHash(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h) ^ s.charCodeAt(i);
+  }
+  return (h >>> 0).toString(16);
+}
+
+function computeDecompositionVersion(d: { subrequirements: SubRequirement[]; recombine_logic: string }): string {
+  const norm = {
+    s: d.subrequirements.map(s => ({ id: s.id, type: s.type, text: s.text })),
+    r: d.recombine_logic,
+  };
+  return shortHash(JSON.stringify(norm));
+}
+
+function computePhfHash(candidateDuties: string, motivationLetter: string, experienceBullets: string): string {
+  return shortHash(`${candidateDuties}\u0001${motivationLetter}\u0001${experienceBullets}`);
+}
 
 // =============================================================================
 // Types
