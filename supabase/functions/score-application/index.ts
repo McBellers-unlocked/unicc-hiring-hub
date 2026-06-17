@@ -1544,7 +1544,19 @@ async function scoreCriterionV4(
   // each sub. Raw LLM confidence remains available in sub.raw_confidence.
   const avgConfidence = subScores.reduce((sum, s) => sum + s.confidence, 0) / Math.max(1, subScores.length);
   const passedSubs = subScores.filter(s => s.demonstrated).length;
-  const subPassRatio = passedSubs / Math.max(1, subScores.length);
+
+  // (3) Logic-aware pass ratio: when enabled and the criterion was satisfied
+  // through an OR/minimal path, divide by the minimal satisfying set instead
+  // of total sub count so a fully-satisfied OR is not penalised.
+  let denominator = subScores.length;
+  if (LOGIC_AWARE_PASS_RATIO && passed && /\bOR\b/i.test(decomposition.recombine_logic)) {
+    const minSize = minimalSatisfyingSetSize(decomposition.recombine_logic, subScores);
+    if (minSize && minSize > 0) {
+      denominator = minSize;
+      criterionFlags.push('LOGIC_AWARE_RATIO');
+    }
+  }
+  const subPassRatio = Math.min(1, passedSubs / Math.max(1, denominator));
 
   let score: number;
   if (passed) {
