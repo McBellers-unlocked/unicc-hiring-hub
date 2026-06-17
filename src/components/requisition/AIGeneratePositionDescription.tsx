@@ -24,16 +24,24 @@ interface ContextInput {
   objectivesOfProgramme?: string;
 }
 
+export interface AIGeneratedPDResult {
+  purpose_of_position: string;
+  main_duties_responsibilities: string;
+  essential_experience: string;
+  desirable_experience: string;
+  essential_education: string;
+  essential_education_level: string;
+  desirable_education: string;
+  additional_languages: Array<{ name: string; level: string }>;
+}
+
 interface Props {
   getContext: () => ContextInput;
   currentPurpose: string;
   currentDuties: string;
   canGenerate: boolean;
   missingFieldsLabel?: string;
-  onApply: (
-    result: { purpose_of_position: string; main_duties_responsibilities: string },
-    mode: "overwrite" | "fillEmpty",
-  ) => void;
+  onApply: (result: AIGeneratedPDResult, mode: "overwrite" | "fillEmpty") => void;
 }
 
 const ACCEPT = ".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain";
@@ -106,13 +114,20 @@ export function AIGeneratePositionDescription({
       }
       accepted.push(f);
     }
-    setFiles((prev) => [...prev, ...accepted]);
+    const next = [...files, ...accepted];
+    setFiles(next);
     if (fileRef.current) fileRef.current.value = "";
+    if (accepted.length > 0 && canGenerate) {
+      const ctx = getContext();
+      if (ctx.positionTitle?.trim()) {
+        setTimeout(() => runGeneration("fillEmpty", next), 0);
+      }
+    }
   };
 
   const removeFile = (idx: number) => setFiles((prev) => prev.filter((_, i) => i !== idx));
 
-  const runGeneration = async (mode: "overwrite" | "fillEmpty") => {
+  const runGeneration = async (mode: "overwrite" | "fillEmpty", filesOverride?: File[]) => {
     const ctx = getContext();
     if (!ctx.positionTitle?.trim()) {
       toast({ title: "Position title required", description: "Enter a position title before generating.", variant: "destructive" });
@@ -121,7 +136,8 @@ export function AIGeneratePositionDescription({
     setLoading(true);
     try {
       const attachments: { filename: string; text: string }[] = [];
-      for (const f of files) {
+      const filesToUse = filesOverride ?? files;
+      for (const f of filesToUse) {
         try {
           const text = await extractFileText(f);
           if (text && text.trim()) {
@@ -162,20 +178,34 @@ export function AIGeneratePositionDescription({
         return;
       }
 
-      const result = data as { purpose_of_position?: string; main_duties_responsibilities?: string };
-      if (!result?.purpose_of_position && !result?.main_duties_responsibilities) {
+      const result = data as Partial<AIGeneratedPDResult>;
+      const filled = {
+        purpose_of_position: result.purpose_of_position || "",
+        main_duties_responsibilities: result.main_duties_responsibilities || "",
+        essential_experience: result.essential_experience || "",
+        desirable_experience: result.desirable_experience || "",
+        essential_education: result.essential_education || "",
+        essential_education_level: result.essential_education_level || "",
+        desirable_education: result.desirable_education || "",
+        additional_languages: Array.isArray(result.additional_languages) ? result.additional_languages : [],
+      };
+      const anyContent =
+        filled.purpose_of_position ||
+        filled.main_duties_responsibilities ||
+        filled.essential_experience ||
+        filled.essential_education ||
+        filled.additional_languages.length > 0;
+      if (!anyContent) {
         toast({ title: "Empty response", description: "AI did not return content. Try again.", variant: "destructive" });
         return;
       }
 
-      onApply(
-        {
-          purpose_of_position: result.purpose_of_position || "",
-          main_duties_responsibilities: result.main_duties_responsibilities || "",
-        },
-        mode,
-      );
-      toast({ title: "Position description generated", description: "Review and refine the AI-generated content." });
+      onApply(filled, mode);
+      const fieldCount = Object.values(filled).filter((v) => (Array.isArray(v) ? v.length > 0 : !!v)).length;
+      toast({
+        title: mode === "fillEmpty" ? "Extracted from JD" : "Position description generated",
+        description: `${fieldCount} field${fieldCount === 1 ? "" : "s"} ${mode === "fillEmpty" ? "filled" : "drafted"}. Review and refine as needed.`,
+      });
     } catch (e: any) {
       toast({ title: "AI generation failed", description: e?.message || "Unknown error", variant: "destructive" });
     } finally {

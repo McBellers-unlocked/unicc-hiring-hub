@@ -1,33 +1,50 @@
+## Problem
+
+On `/requisitions/new`, the "Attach existing JD" feature only stages the file. Even after clicking **Generate with AI**, only **Purpose of the Position** and **Main Duties & Responsibilities** get filled. The other fields the attached JD almost always contains — Essential / Desirable Experience, Essential / Desirable Education, Languages — are left blank, so it feels like the upload "did nothing."
+
+Two issues to fix:
+
+1. The edge function only returns 2 keys (`purpose_of_position`, `main_duties_responsibilities`).
+2. The UI never auto-runs extraction on attach, and the apply callback only writes those 2 fields.
+
 ## Plan
 
-The repeated error is a browser-side `FunctionsFetchError`: the request is failing before the app receives a normal HTTP response from the Edge Function. That usually means the function is not reachable/booting correctly or the browser preflight is failing, not that the AI prompt itself is wrong.
+### 1. Expand edge function output — `supabase/functions/generate-position-description/index.ts`
+Change the system prompt and response schema so the model returns **all** drafted fields in one JSON object:
 
-## What I will change
+- `purpose_of_position` (string)
+- `main_duties_responsibilities` (markdown bullets)
+- `essential_experience` (string)
+- `desirable_experience` (string)
+- `essential_education` (string)
+- `essential_education_level` (string, normalized to one of the existing level options)
+- `desirable_education` (string)
+- `additional_languages` (array of `{ name, level }`)
 
-1. **Make the Edge Function boot-safe**
-   - Replace the SDK CORS helper import with a local `corsHeaders` object to remove a possible unsupported `@supabase/supabase-js/cors` subpath import at Edge runtime.
-   - Keep CORS headers on every response, including errors and OPTIONS preflight.
+When an attached JD is present, instruct the model to **extract verbatim where possible** instead of inventing. When no attachment, fall back to generation as today.
 
-2. **Use the documented Lovable AI Gateway request pattern**
-   - Change the gateway header from `Authorization: Bearer <LOVABLE_API_KEY>` to `Lovable-API-Key: <LOVABLE_API_KEY>`.
-   - Switch the model to the current default `google/gemini-3-flash-preview`.
-   - Keep structured JSON output and the existing UN/UNICC prompt behavior.
+### 2. Update client component — `src/components/requisition/AIGeneratePositionDescription.tsx`
+- Widen the `onApply` result type to include the new fields.
+- Add an **auto-extract on attach** path: as soon as files are attached, automatically call the edge function in "extract-only" mode (no overwrite of non-empty fields). The existing **Generate with AI** button stays for the no-attachment / regenerate flow and keeps the overwrite confirmation dialog.
+- Toast clearly when extraction completes ("Extracted N fields from <filename>").
 
-3. **Improve client error visibility**
-   - In `AIGeneratePositionDescription.tsx`, distinguish fetch/relay/http failures.
-   - If the function returns JSON like `{ error: ... }`, show that actual message in the toast instead of only `Failed to send a request to the Edge Function`.
-   - Log the full function error object to the browser console for the next debugging pass if needed.
+### 3. Wire new fields into the form — `src/pages/JobRequisitionForm.tsx`
+Extend the `onApply` handler at line ~1668 to also write:
+- `essential_experience`, `desirable_experience`
+- `essential_education`, `essential_education_level`, `desirable_education`
+- `additional_languages` (and sync the local `additionalLanguages` state used by the languages UI)
 
-4. **Apply the same runtime-safe CORS pattern to the related interview-question function**
-   - It was changed in the same way previously, so I’ll make it consistent to avoid the same boot issue elsewhere.
+Respect the same `overwrite` vs `fillEmpty` rule per field that already exists for purpose/duties.
 
-## Files to update
+### 4. Keep the rest of the requisition form untouched
+No schema, routing, or other field changes. Competencies are intentionally **not** auto-filled — they're a controlled taxonomy (selected via checklists), and free-text extraction would create invalid values.
 
-- `supabase/functions/generate-position-description/index.ts`
-- `supabase/functions/generate-interview-questions/index.ts`
-- `src/components/requisition/AIGeneratePositionDescription.tsx`
+## Technical Notes
+- Education level must be coerced to one of the form's existing dropdown options; if the model returns something else, drop it and leave the field empty.
+- `additional_languages` levels must match the existing language-level options used elsewhere in the form; unknown levels get dropped.
+- Auto-extract on attach uses `mode: "fillEmpty"` so the user never loses typed content silently.
+- Increase `MAX_PER_FILE` budget if needed for longer JDs (current 15k chars is usually enough for one JD).
 
-## Validation
-
-- Check the edited files for the corrected imports/headers.
-- Re-test the AI generation button in preview if available; if it still fails, the improved toast/console will reveal whether the remaining issue is missing `LOVABLE_API_KEY`, auth/session, credits/rate limit, or deployment.
+## Out of scope
+- Parsing scanned/image-only PDFs (still relies on `pdfjs-dist` text extraction).
+- Filling competencies, grade, duty station, or other structural fields.
