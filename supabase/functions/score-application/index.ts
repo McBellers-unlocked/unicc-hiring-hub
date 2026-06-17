@@ -847,6 +847,29 @@ function checkEducationEligibility(
   return { eligible, candidateLevel, details };
 }
 
+// Detects "or equivalent (professional|work|practical) experience" phrasing.
+// When present and the deterministic level check fails, the equivalency route
+// hands off to the LLM instead of auto-failing the candidate.
+function hasEquivalencyClause(text: string): boolean {
+  if (!text) return false;
+  const t = text.toLowerCase();
+  return /\bor\s+equivalent\b/.test(t) && /(experience|professional|work|practical|qualification)/.test(t);
+}
+
+// Extracts the field-of-study mentioned in the criterion, e.g.
+// "advanced degree in HR or a related field" → "HR".
+function extractEducationField(text: string): string | null {
+  if (!text) return null;
+  const m = text.match(
+    /\b(?:degree|diploma|bachelor'?s?|master'?s?|phd|doctorate|qualification|education|studies)\b[^.,;]*?\s+in\s+([^.,;()]+?)(?:\s+or\s+(?:a\s+)?(?:related|similar|equivalent)\s+(?:field|discipline|area)|\s+or\s+equivalent|[.,;()]|$)/i
+  );
+  if (!m) return null;
+  const raw = m[1].trim().replace(/\s+/g, ' ');
+  if (raw.length < 2) return null;
+  if (/^(a|an|the|any|relevant)$/i.test(raw)) return null;
+  return raw;
+}
+
 // =============================================================================
 // STEP 2: Criterion Decomposer (cached per job) — now uses preloaded map
 // =============================================================================
