@@ -1297,117 +1297,17 @@ async function scoreCriterionV4(
 
   // v4.0 OPTIMIZATION: Process LLM subs in PARALLEL with concurrency limit
   if (llmSubs.length > 0) {
-    const evalTasks = llmSubs.map(subReq => async () => {
-      // ---- Verdict cache lookup (key: app + criterion + sub + decomp_version + phf_hash) ----
-      let evalResult: EvaluatorResult | null = null;
-      let cacheHit = false;
-      try {
-        const { data: cachedVerdict } = await supabase
-          .from('subrequirement_verdicts')
-          .select('demonstrated, evidence, missing, confidence, model_version')
-          .eq('application_id', applicationId)
-          .eq('criterion_id', criterion.id)
-          .eq('sub_id', subReq.id)
-          .eq('decomposition_version', decompositionVersion)
-          .eq('phf_hash', phfHash)
-          .maybeSingle();
-
-        if (cachedVerdict) {
-          cacheHit = true;
-          evalResult = {
-            demonstrated: !!cachedVerdict.demonstrated,
-            evidence: (cachedVerdict.evidence as EvidenceQuote[]) || [],
-            missing: cachedVerdict.missing ?? null,
-            confidence: typeof cachedVerdict.confidence === 'number' ? cachedVerdict.confidence : 0,
-            flags: ['CACHED_VERDICT'],
-            modelUsed: cachedVerdict.model_version || undefined,
-            fromCache: true,
-          };
-          if (cachedVerdict.model_version) modelUsedTracker.add(cachedVerdict.model_version);
-        }
-      } catch (e) {
-        console.warn('Verdict cache lookup failed (continuing without cache):', e);
-      }
-
-      // Step 3: Universal Evaluator (cache miss)
-      if (!evalResult) {
-        evalResult = await evaluateSubRequirement(subReq, candidateDuties, motivationLetter, experienceBullets);
-        if (evalResult.modelUsed) modelUsedTracker.add(evalResult.modelUsed);
-
-        // Persist verdict (only when not a parse failure, so we don't poison the cache)
-        const isParseFailure = evalResult.flags?.includes('AI_PARSE_FAILURE');
-        if (!isParseFailure) {
-          try {
-            await supabase
-              .from('subrequirement_verdicts')
-              .upsert({
-                application_id: applicationId,
-                criterion_id: criterion.id,
-                sub_id: subReq.id,
-                decomposition_version: decompositionVersion,
-                phf_hash: phfHash,
-                demonstrated: evalResult.demonstrated,
-                evidence: evalResult.evidence,
-                missing: evalResult.missing,
-                confidence: evalResult.confidence,
-                model_version: evalResult.modelUsed ?? MODEL,
-                prompt_version: PROMPT_VERSION,
-              }, { onConflict: 'application_id,criterion_id,sub_id,decomposition_version,phf_hash' });
-          } catch (e) {
-            console.warn('Verdict cache write failed (continuing):', e);
-          }
-        }
-      }
-
-      // Step 4: Verification Pass (v4.0: only verify borderline positives)
-      // Skip the verifier when we restored a verdict from cache — the verifier
-      // already ran during the original evaluation and its outcome is reflected
-      // in the cached confidence.
-      let verification: VerifierResult | undefined;
-      const flags = [...(evalResult.flags || [])];
-
-      if (!cacheHit && evalResult.demonstrated && evalResult.confidence < 0.80) {
-        verification = await verifyEvidence(
-          subReq.text,
-          evalResult.demonstrated,
-          evalResult.evidence,
-          evalResult.confidence
-        );
-
-        if (!verification.valid) {
-          evalResult.demonstrated = false;
-          evalResult.confidence = Math.min(evalResult.confidence, 0.49);
-          flags.push('VERIFIER_INVALIDATED');
-        } else {
-          evalResult.confidence = Math.max(0, Math.min(1,
-            evalResult.confidence + verification.confidence_adjustment
-          ));
-        }
-      }
-
-      // Determine flags
-      if (evalResult.confidence < 0.6 && !flags.includes('VERIFIER_INVALIDATED') && !flags.includes('CRITICAL_NO_EVIDENCE')) {
-        flags.push('REVIEW');
-      }
-
-      const rawConfidence = evalResult.confidence;
-      const usedConfidence = USE_BANDED_CONFIDENCE ? bandConfidence(rawConfidence) : rawConfidence;
-
-      return {
-        id: subReq.id,
-        text: subReq.text,
-        type: 'llm' as const,
-        demonstrated: evalResult.demonstrated,
-        evidence: evalResult.evidence,
-        missing: evalResult.missing,
-        confidence: usedConfidence,
-        raw_confidence: rawConfidence,
-        flags,
-        verification,
-        model_version: evalResult.modelUsed,
-        from_cache: evalResult.fromCache,
-      } as SubRequirementScore;
-    });
+    const evalTasks = llmSubs.map(subReq => async () => scoreLlmSubWithCache({
+      subReq,
+      criterionId: criterion.id,
+      decompositionVersion,
+      applicationId,
+      phfHash,
+      candidateDuties,
+      motivationLetter,
+      experienceBullets,
+      modelUsedTracker,
+    }));
 
     const llmResults = await runWithConcurrency(evalTasks, MAX_CONCURRENCY);
     for (const result of llmResults) {
