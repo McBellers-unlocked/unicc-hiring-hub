@@ -127,6 +127,8 @@ interface EvaluatorResult {
   missing: string | null;
   confidence: number;
   flags?: string[];
+  modelUsed?: string;
+  fromCache?: boolean;
 }
 
 interface VerifierResult {
