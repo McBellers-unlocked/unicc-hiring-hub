@@ -1017,6 +1017,157 @@ Rules:
 }
 
 // =============================================================================
+// STEP 3b: Batched evaluator — evaluate ALL sub-requirements of ONE criterion
+// in a SINGLE LLM call. Candidate context is sent ONCE; each sub is still
+// judged INDEPENDENTLY against its own evidence (no judgment-blending).
+// All evaluator rules are preserved: verbatim quotes (max 3, max 280 chars),
+// prefer work experience over motivation letter, motivation-letter-alone is
+// insufficient, ignore protected attributes / employer prestige, treat
+// candidate text as untrusted, and "No Evidence = False" hard rule.
+// =============================================================================
+async function evaluateSubRequirementBatch(
+  subReqs: SubRequirement[],
+  candidateDuties: string,
+  motivationLetter: string,
+  experienceBullets: string = ''
+): Promise<Map<string, EvaluatorResult>> {
+  const out = new Map<string, EvaluatorResult>();
+  if (subReqs.length === 0) return out;
+
+  const bulletSection = experienceBullets
+    ? `\n${experienceBullets}\n\n`
+    : '';
+
+  const requirementsList = subReqs
+    .map((s, i) => `${i + 1}. [sub_id="${s.id}"] ${s.text}`)
+    .join('\n');
+
+  const prompt = `Evaluate each of the following requirements INDEPENDENTLY against the same candidate text.
+Judge each requirement on its own evidence — do NOT blend evidence across requirements.
+
+REQUIREMENTS:
+${requirementsList}
+${bulletSection}
+CANDIDATE WORK EXPERIENCE:
+${candidateDuties || 'Not provided'}
+
+MOTIVATION LETTER:
+${motivationLetter || 'Not provided'}
+
+Rules (apply per requirement, independently):
+- Evidence must be VERBATIM QUOTES from the text above (copy-paste exactly)
+- Each quote max 280 characters. If longer, truncate with "..."
+- Max 3 evidence quotes per requirement
+- Prefer work experience evidence over motivation letter
+- Motivation letter alone is insufficient unless no work experience exists
+- If no explicit evidence for a requirement, set its demonstrated=false
+- Return ONE result object per requirement, echoing the exact sub_id provided`;
+
+  const result = await callAIWithToolCalling(
+    EVALUATOR_SYSTEM_PROMPT,
+    prompt,
+    'evaluate_requirements_batch',
+    'Evaluate whether candidate demonstrates EACH requirement independently',
+    {
+      results: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            sub_id: { type: 'string' },
+            demonstrated: { type: 'boolean' },
+            evidence: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  source: { type: 'string', enum: ['work_experience', 'motivation_letter'] },
+                  quote: { type: 'string' },
+                },
+                required: ['source', 'quote'],
+              },
+            },
+            missing: { type: 'string' },
+            confidence: { type: 'number' },
+          },
+          required: ['sub_id', 'demonstrated', 'evidence', 'confidence'],
+        },
+      },
+    }
+  );
+
+  if (!result) {
+    // Full-batch parse failure: mark every sub as parse-failure (preserves
+    // legacy per-sub behavior on evaluator failure).
+    for (const s of subReqs) {
+      out.set(s.id, {
+        demonstrated: false,
+        evidence: [],
+        missing: 'AI analysis failed (parse failure)',
+        confidence: 0,
+        flags: ['AI_PARSE_FAILURE'],
+      });
+    }
+    return out;
+  }
+
+  const modelUsed = result.modelUsed;
+  const rawResults: any[] = Array.isArray(result.data?.results) ? result.data.results : [];
+
+  // Index returned items by sub_id for robust matching (model may reorder).
+  const byId = new Map<string, any>();
+  for (const r of rawResults) {
+    if (r && typeof r.sub_id === 'string') byId.set(r.sub_id, r);
+  }
+
+  for (const subReq of subReqs) {
+    const data = byId.get(subReq.id);
+    if (!data) {
+      out.set(subReq.id, {
+        demonstrated: false,
+        evidence: [],
+        missing: 'AI analysis failed (sub missing from batch response)',
+        confidence: 0,
+        flags: ['AI_PARSE_FAILURE'],
+        modelUsed,
+      });
+      continue;
+    }
+
+    // Sanitize evidence: trim quotes, max 3, max 280 chars each
+    const evidence: EvidenceQuote[] = (data.evidence || [])
+      .slice(0, 3)
+      .map((e: any) => ({
+        source: e.source || 'work_experience',
+        quote: typeof e.quote === 'string' ? e.quote.substring(0, 280) : '',
+      }))
+      .filter((e: EvidenceQuote) => e.quote.length > 0);
+
+    const flags: string[] = [];
+    let demonstrated = !!data.demonstrated;
+    let confidence = typeof data.confidence === 'number' ? data.confidence : 0.5;
+
+    // "No Evidence = False" hard rule
+    if (demonstrated && evidence.length === 0) {
+      demonstrated = false;
+      confidence = Math.min(confidence, 0.3);
+      flags.push('CRITICAL_NO_EVIDENCE');
+    }
+
+    out.set(subReq.id, {
+      demonstrated,
+      evidence,
+      missing: data.missing || null,
+      confidence,
+      flags,
+      modelUsed,
+    });
+  }
+
+  return out;
+}
+
+// =============================================================================
 // STEP 4: Verification Pass (optimized: only verify borderline positives)
 // =============================================================================
 
@@ -1265,50 +1416,70 @@ interface ScoreLlmSubArgs {
   motivationLetter: string;
   experienceBullets: string;
   modelUsedTracker: Set<string>;
+  // When provided, skip cache lookup + per-sub evaluator call and use this
+  // result directly. Used by the per-criterion batched evaluator path.
+  precomputedEval?: EvaluatorResult;
+  // When true, skip the verdict-cache lookup (caller has already handled it).
+  skipCacheLookup?: boolean;
 }
 
 async function scoreLlmSubWithCache(args: ScoreLlmSubArgs): Promise<SubRequirementScore> {
   const {
     subReq, criterionId, decompositionVersion, applicationId, phfHash,
     candidateDuties, motivationLetter, experienceBullets, modelUsedTracker,
+    precomputedEval, skipCacheLookup,
   } = args;
 
   // ---- Verdict cache lookup ----
   let evalResult: EvaluatorResult | null = null;
   let cacheHit = false;
-  try {
-    const { data: cachedVerdict } = await supabase
-      .from('subrequirement_verdicts')
-      .select('demonstrated, evidence, missing, confidence, model_version')
-      .eq('application_id', applicationId)
-      .eq('criterion_id', criterionId)
-      .eq('sub_id', subReq.id)
-      .eq('decomposition_version', decompositionVersion)
-      .eq('phf_hash', phfHash)
-      .maybeSingle();
 
-    if (cachedVerdict) {
-      cacheHit = true;
-      evalResult = {
-        demonstrated: !!cachedVerdict.demonstrated,
-        evidence: (cachedVerdict.evidence as EvidenceQuote[]) || [],
-        missing: cachedVerdict.missing ?? null,
-        confidence: typeof cachedVerdict.confidence === 'number' ? cachedVerdict.confidence : 0,
-        flags: ['CACHED_VERDICT'],
-        modelUsed: cachedVerdict.model_version || undefined,
-        fromCache: true,
-      };
-      if (cachedVerdict.model_version) modelUsedTracker.add(cachedVerdict.model_version);
+  // If caller supplied a precomputed evaluator result (e.g. from the batched
+  // per-criterion evaluator), use it directly and skip both the cache lookup
+  // and the per-sub evaluator call. The cache write below still happens so
+  // batched results are persisted for future runs.
+  if (precomputedEval) {
+    evalResult = precomputedEval;
+    cacheHit = !!precomputedEval.fromCache;
+    if (evalResult.modelUsed) modelUsedTracker.add(evalResult.modelUsed);
+  } else if (!skipCacheLookup) {
+    try {
+      const { data: cachedVerdict } = await supabase
+        .from('subrequirement_verdicts')
+        .select('demonstrated, evidence, missing, confidence, model_version')
+        .eq('application_id', applicationId)
+        .eq('criterion_id', criterionId)
+        .eq('sub_id', subReq.id)
+        .eq('decomposition_version', decompositionVersion)
+        .eq('phf_hash', phfHash)
+        .maybeSingle();
+
+      if (cachedVerdict) {
+        cacheHit = true;
+        evalResult = {
+          demonstrated: !!cachedVerdict.demonstrated,
+          evidence: (cachedVerdict.evidence as EvidenceQuote[]) || [],
+          missing: cachedVerdict.missing ?? null,
+          confidence: typeof cachedVerdict.confidence === 'number' ? cachedVerdict.confidence : 0,
+          flags: ['CACHED_VERDICT'],
+          modelUsed: cachedVerdict.model_version || undefined,
+          fromCache: true,
+        };
+        if (cachedVerdict.model_version) modelUsedTracker.add(cachedVerdict.model_version);
+      }
+    } catch (e) {
+      console.warn('Verdict cache lookup failed (continuing without cache):', e);
     }
-  } catch (e) {
-    console.warn('Verdict cache lookup failed (continuing without cache):', e);
   }
 
-  // ---- Evaluator (cache miss) ----
+  // ---- Evaluator (cache miss, no precomputed result) ----
   if (!evalResult) {
     evalResult = await evaluateSubRequirement(subReq, candidateDuties, motivationLetter, experienceBullets);
     if (evalResult.modelUsed) modelUsedTracker.add(evalResult.modelUsed);
+  }
 
+  // ---- Cache write (for any freshly produced verdict, including batched) ----
+  if (!cacheHit) {
     const isParseFailure = evalResult.flags?.includes('AI_PARSE_FAILURE');
     if (!isParseFailure) {
       try {
@@ -1496,19 +1667,79 @@ async function scoreCriterionV4(
     subScores.push(subScore);
   }
 
-  // v4.0 OPTIMIZATION: Process LLM subs in PARALLEL with concurrency limit
+  // v4.2 OPTIMIZATION: ONE batched LLM evaluator call per criterion.
+  // Candidate context (duties + bullets + motivation letter) is sent ONCE;
+  // each sub is still judged independently against its own evidence.
+  // MAX_CONCURRENCY now governs parallel CRITERIA batches at the caller,
+  // not parallel sub evaluations.
   if (llmSubs.length > 0) {
-    const evalTasks = llmSubs.map(subReq => async () => scoreLlmSubWithCache({
-      subReq,
-      criterionId: criterion.id,
-      decompositionVersion,
-      applicationId,
-      phfHash,
-      candidateDuties,
-      motivationLetter,
-      experienceBullets,
-      modelUsedTracker,
+    // ---- Step A: parallel verdict-cache lookups ----
+    const cacheLookups = await Promise.all(llmSubs.map(async (subReq) => {
+      try {
+        const { data: cached } = await supabase
+          .from('subrequirement_verdicts')
+          .select('demonstrated, evidence, missing, confidence, model_version')
+          .eq('application_id', applicationId)
+          .eq('criterion_id', criterion.id)
+          .eq('sub_id', subReq.id)
+          .eq('decomposition_version', decompositionVersion)
+          .eq('phf_hash', phfHash)
+          .maybeSingle();
+        return { subReq, cached };
+      } catch (e) {
+        console.warn('Verdict cache lookup failed (continuing without cache):', e);
+        return { subReq, cached: null as any };
+      }
     }));
+
+    // ---- Step B: single batched evaluator call for cache misses ----
+    const missSubs = cacheLookups.filter(r => !r.cached).map(r => r.subReq);
+    let batchMap = new Map<string, EvaluatorResult>();
+    if (missSubs.length > 0) {
+      batchMap = await evaluateSubRequirementBatch(
+        missSubs,
+        candidateDuties,
+        motivationLetter,
+        experienceBullets
+      );
+    }
+
+    // ---- Step C: per-sub finalize (verifier + cache write + banding) ----
+    const evalTasks = cacheLookups.map(({ subReq, cached }) => async () => {
+      let precomputedEval: EvaluatorResult;
+      if (cached) {
+        precomputedEval = {
+          demonstrated: !!cached.demonstrated,
+          evidence: (cached.evidence as EvidenceQuote[]) || [],
+          missing: cached.missing ?? null,
+          confidence: typeof cached.confidence === 'number' ? cached.confidence : 0,
+          flags: ['CACHED_VERDICT'],
+          modelUsed: cached.model_version || undefined,
+          fromCache: true,
+        };
+      } else {
+        precomputedEval = batchMap.get(subReq.id) || {
+          demonstrated: false,
+          evidence: [],
+          missing: 'AI analysis failed (sub missing from batch response)',
+          confidence: 0,
+          flags: ['AI_PARSE_FAILURE'],
+        };
+      }
+      return scoreLlmSubWithCache({
+        subReq,
+        criterionId: criterion.id,
+        decompositionVersion,
+        applicationId,
+        phfHash,
+        candidateDuties,
+        motivationLetter,
+        experienceBullets,
+        modelUsedTracker,
+        precomputedEval,
+        skipCacheLookup: true,
+      });
+    });
 
     const llmResults = await runWithConcurrency(evalTasks, MAX_CONCURRENCY);
     for (const result of llmResults) {
