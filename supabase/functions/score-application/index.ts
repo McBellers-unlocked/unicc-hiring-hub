@@ -20,9 +20,51 @@ const MODEL = 'openai/gpt-5';
 
 const MAX_CONCURRENCY = 3;
 const MAX_TEXT_LENGTH = 6000;
-const MAX_CRITERIA_CONCURRENCY = 5;
+// v4.2: sub-requirements are batched into ONE LLM call per criterion, so we
+// can run more criteria concurrently per applicant. Paced by the token-bucket
+// limiter below so we stay under the gateway's rate limit.
+const MAX_CRITERIA_CONCURRENCY = 8;
 const MAX_SUBS_PER_CRITERION = 3;
 const AI_RETRY_ATTEMPTS = 3;
+
+// =============================================================================
+// Proactive client-side rate limiter (token bucket)
+// =============================================================================
+// Paces ALL requests to the Lovable AI Gateway so we stay under its rate limit
+// instead of relying solely on reactive 429 backoff. Backoff is preserved as
+// a fallback for any 429s that still slip through (e.g. workspace-wide spikes).
+//
+// Tunables: RATE_LIMIT_RPS = sustained requests/second, RATE_LIMIT_BURST =
+// max instantaneous burst. Keep BURST <= a few seconds' worth of RPS.
+const RATE_LIMIT_RPS = 8;
+const RATE_LIMIT_BURST = 8;
+const _bucket = { tokens: RATE_LIMIT_BURST, last: Date.now() };
+let _bucketLock: Promise<void> = Promise.resolve();
+
+async function acquireGatewaySlot(): Promise<void> {
+  // Serialize token accounting so concurrent callers don't all read the same
+  // stale token count and overshoot the budget.
+  const prev = _bucketLock;
+  let release: () => void = () => {};
+  _bucketLock = new Promise<void>((r) => { release = r; });
+  await prev;
+  try {
+    while (true) {
+      const now = Date.now();
+      const elapsed = (now - _bucket.last) / 1000;
+      _bucket.tokens = Math.min(RATE_LIMIT_BURST, _bucket.tokens + elapsed * RATE_LIMIT_RPS);
+      _bucket.last = now;
+      if (_bucket.tokens >= 1) {
+        _bucket.tokens -= 1;
+        return;
+      }
+      const waitMs = Math.max(5, Math.ceil(((1 - _bucket.tokens) / RATE_LIMIT_RPS) * 1000));
+      await new Promise(r => setTimeout(r, waitMs));
+    }
+  } finally {
+    release();
+  }
+}
 
 // =============================================================================
 // Scoring Reproducibility Constants
@@ -441,6 +483,7 @@ async function callAIWithToolCalling(
 
   // Primary: tool calling
   try {
+    await acquireGatewaySlot();
     const response = await fetch(AI_GATEWAY_URL, {
       method: 'POST',
       headers: {
@@ -480,6 +523,7 @@ async function callAIWithToolCalling(
         console.log(`429 backoff: waiting ${backoffMs}ms (attempt ${retryAttempt + 1}/${AI_RETRY_ATTEMPTS})`);
         await new Promise(r => setTimeout(r, backoffMs));
         try {
+          await acquireGatewaySlot();
           const retryResponse = await fetch(AI_GATEWAY_URL, {
             method: 'POST',
             headers: {
@@ -506,6 +550,7 @@ async function callAIWithToolCalling(
   // Fallback: plain JSON request with retry
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
+      await acquireGatewaySlot();
       const response = await fetch(AI_GATEWAY_URL, {
         method: 'POST',
         headers: {
@@ -932,23 +977,28 @@ async function evaluateSubRequirement(
     ? `\n${experienceBullets}\n\n`
     : '';
 
-  const prompt = `Evaluate whether the candidate demonstrates this requirement:
+  // Prompt is ordered for prefix caching: STABLE content (task framing, the
+  // requirement text, the evaluator rules) comes FIRST so it can be reused
+  // across applicants for the same requirement; VARIABLE candidate context
+  // (bullets, work experience, motivation letter) is the suffix.
+  const prompt = `Evaluate whether the candidate demonstrates this requirement.
 
 REQUIREMENT: "${subReq.text}"
-${bulletSection}
-CANDIDATE WORK EXPERIENCE:
-${candidateDuties || 'Not provided'}
-
-MOTIVATION LETTER:
-${motivationLetter || 'Not provided'}
 
 Rules:
-- Evidence must be VERBATIM QUOTES from the text above (copy-paste exactly)
+- Evidence must be VERBATIM QUOTES from the candidate context below (copy-paste exactly)
 - Each quote max 280 characters. If longer, truncate with "..."
 - Max 3 evidence quotes
 - Prefer work experience evidence over motivation letter
 - Motivation letter alone is insufficient unless no work experience exists
-- If no explicit evidence, set demonstrated=false`;
+- If no explicit evidence, set demonstrated=false
+
+--- CANDIDATE CONTEXT (variable per applicant) ---
+${bulletSection}CANDIDATE WORK EXPERIENCE:
+${candidateDuties || 'Not provided'}
+
+MOTIVATION LETTER:
+${motivationLetter || 'Not provided'}`;
 
   const result = await callAIWithToolCalling(
     EVALUATOR_SYSTEM_PROMPT,
@@ -1042,26 +1092,32 @@ async function evaluateSubRequirementBatch(
     .map((s, i) => `${i + 1}. [sub_id="${s.id}"] ${s.text}`)
     .join('\n');
 
+  // Prompt is ordered for prefix caching: STABLE content first (task framing,
+  // this criterion's sub-requirements, evaluator rules), VARIABLE content last
+  // (per-applicant candidate context). When scoring many applicants against
+  // the same job, the stable prefix is identical across calls so the gateway /
+  // underlying model can reuse cached prefix tokens.
   const prompt = `Evaluate each of the following requirements INDEPENDENTLY against the same candidate text.
 Judge each requirement on its own evidence — do NOT blend evidence across requirements.
 
 REQUIREMENTS:
 ${requirementsList}
-${bulletSection}
-CANDIDATE WORK EXPERIENCE:
-${candidateDuties || 'Not provided'}
-
-MOTIVATION LETTER:
-${motivationLetter || 'Not provided'}
 
 Rules (apply per requirement, independently):
-- Evidence must be VERBATIM QUOTES from the text above (copy-paste exactly)
+- Evidence must be VERBATIM QUOTES from the candidate context below (copy-paste exactly)
 - Each quote max 280 characters. If longer, truncate with "..."
 - Max 3 evidence quotes per requirement
 - Prefer work experience evidence over motivation letter
 - Motivation letter alone is insufficient unless no work experience exists
 - If no explicit evidence for a requirement, set its demonstrated=false
-- Return ONE result object per requirement, echoing the exact sub_id provided`;
+- Return ONE result object per requirement, echoing the exact sub_id provided
+
+--- CANDIDATE CONTEXT (variable per applicant) ---
+${bulletSection}CANDIDATE WORK EXPERIENCE:
+${candidateDuties || 'Not provided'}
+
+MOTIVATION LETTER:
+${motivationLetter || 'Not provided'}`;
 
   const result = await callAIWithToolCalling(
     EVALUATOR_SYSTEM_PROMPT,
