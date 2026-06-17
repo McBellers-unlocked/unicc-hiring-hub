@@ -1029,11 +1029,12 @@ Check:
     return { valid: true, issues: ['Verifier unavailable'], confidence_adjustment: 0 };
   }
 
+  const data = result.data;
   return {
-    valid: !!result.valid,
-    issues: Array.isArray(result.issues) ? result.issues : [],
-    confidence_adjustment: typeof result.confidence_adjustment === 'number'
-      ? Math.max(-0.5, Math.min(0.5, result.confidence_adjustment))
+    valid: !!data.valid,
+    issues: Array.isArray(data.issues) ? data.issues : [],
+    confidence_adjustment: typeof data.confidence_adjustment === 'number'
+      ? Math.max(-0.5, Math.min(0.5, data.confidence_adjustment))
       : 0
   };
 }
