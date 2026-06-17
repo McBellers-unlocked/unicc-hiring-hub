@@ -1,26 +1,45 @@
 ## Problem
 
-On `/requisitions/new`, the "AI Generate Position Description" button stays disabled with "Fill grade…" even after the user selects a grade.
+Clicking "Generate with AI" shows: *"AI generation failed — Failed to send a request to the Edge Function"*.
 
-## Root cause
+This message from `supabase.functions.invoke` means the browser could not reach the function at all (boot failure, deploy failure, or unhandled CORS preflight), not an AI Gateway error.
 
-In `src/pages/JobRequisitionForm.tsx` (lines 1645–1663), the gating logic watches a non-existent form field `level`:
+## Root cause (likely)
+
+`supabase/functions/generate-position-description/index.ts` uses legacy imports that frequently fail to boot in the current edge runtime:
 
 ```ts
-const wLevel = (form.watch as any)('level');
-...
-if (!wLevel?.toString().trim()) missing.push('grade');
-...
-gradeLevel: ((form.getValues as any)('level') || '').toString(),
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 ```
 
-The actual form field is `grade` (defined at line 113, registered at line 1231). `level` is never set, so the check always fails.
+It also defines its own ad-hoc `corsHeaders` instead of the canonical one and is not listed in `supabase/config.toml`.
 
 ## Fix
 
-In `src/pages/JobRequisitionForm.tsx`, replace the two `'level'` references in the Position Description card with `'grade'`:
+Rewrite `supabase/functions/generate-position-description/index.ts` to the modern Lovable edge-function pattern, keeping the existing logic and request/response shape untouched:
 
-- `form.watch('level')` → `form.watch('grade')`
-- `form.getValues('level')` → `form.getValues('grade')`
+1. Replace imports with:
+   - `import { createClient } from "npm:@supabase/supabase-js@2"`
+   - `import { corsHeaders } from "npm:@supabase/supabase-js@2/cors"`
+   - Drop the `xhr` polyfill (not needed).
+   - Use `Deno.serve` directly instead of `serve` from `std/http`.
+2. Remove the local `corsHeaders` declaration; use the imported one. Keep `Content-Type: application/json` and `corsHeaders` on every response (including errors).
+3. Keep the existing auth check (`Authorization` header + `supabase.auth.getUser()`), validation, attachment context build, AI Gateway call, and JSON parsing exactly as-is.
+4. Keep the model as `google/gemini-2.5-flash` (it's still supported); not changing models in this fix.
+5. Add an entry to `supabase/config.toml`:
+   ```toml
+   [functions.generate-position-description]
+   verify_jwt = false
+   ```
+   (The function validates the JWT in code.) Also add the same block for `generate-interview-questions` if it was created in the same batch and isn't listed.
 
-This is the only change. The button will then enable as soon as title, grade, and division are filled, and the correct grade gets passed to the AI generator as `gradeLevel`.
+## Out of scope
+
+- No client changes — `AIGeneratePositionDescription.tsx` already invokes the function correctly.
+- No model swap and no prompt changes.
+
+## Verification
+
+After redeploy, click "Generate with AI" in `/requisitions/new` with title + grade + division filled and confirm the function returns a JSON body with `purpose_of_position` and `main_duties_responsibilities` (no toast error).
