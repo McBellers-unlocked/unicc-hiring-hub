@@ -523,6 +523,7 @@ async function callAIWithToolCalling(
         console.log(`429 backoff: waiting ${backoffMs}ms (attempt ${retryAttempt + 1}/${AI_RETRY_ATTEMPTS})`);
         await new Promise(r => setTimeout(r, backoffMs));
         try {
+          await acquireGatewaySlot();
           const retryResponse = await fetch(AI_GATEWAY_URL, {
             method: 'POST',
             headers: {
