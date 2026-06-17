@@ -162,7 +162,7 @@ const detectDutyStations = (source: string, nature: string) => {
     Brindisi: ["brindisi", "bri"],
     Geneva: ["geneva", "gva"],
     Lyon: ["lyon", "lyo"],
-    "New York": ["new york", "nyc", "\bny\b"],
+    "New York": ["new york", "nyc", "ny"],
     Rome: ["rome", "rom"],
     Valencia: ["valencia", "val"],
   };
@@ -224,7 +224,7 @@ const detectLanguages = (source: string) => {
 };
 
 const detectCompetencies = (source: string, nature: string) => {
-  const find = (items: string[]) => items.filter((item) => new RegExp(escapeRegExp(item).replace(/\\ /g, "\\s+"), "i").test(source));
+  const find = (items: string[]) => items.filter((item) => new RegExp(escapeRegExp(item).replace(/\s+/g, "\\s+"), "i").test(source));
   let core = find(CORE_COMPETENCIES);
   let management = find(MANAGEMENT_COMPETENCIES);
   let leadership = find(LEADERSHIP_COMPETENCIES);
@@ -356,15 +356,6 @@ export function AIGeneratePositionDescription({
       setTimeout(() => runGeneration("fillEmpty", next), 0);
     }
   };
-
-  // Auto-run once a file is present (in case the first auto-run didn't fire, e.g. after remount).
-  const hasFiles = files.length > 0;
-  useEffect(() => {
-    if (!hasFiles || loading) return;
-    const t = setTimeout(() => runGeneration("fillEmpty"), 0);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasFiles]);
 
   const removeFile = (idx: number) => setFiles((prev) => prev.filter((_, i) => i !== idx));
 
