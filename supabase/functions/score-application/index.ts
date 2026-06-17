@@ -1578,6 +1578,11 @@ Deno.serve(async (req) => {
     const decompositionMap = await preloadDecompositions(jobId, parsedCriteria);
     console.log(`Preloaded ${decompositionMap.size} decompositions`);
 
+    // Reproducibility: PHF hash invalidates the per-sub verdict cache on edits,
+    // and modelUsedTracker captures the actual model id(s) used this run.
+    const phfHash = computePhfHash(candidateDuties, motivationLetter, experienceBullets);
+    const modelUsedTracker = new Set<string>();
+
     // Score criteria through v4.1 pipeline
     const criteriaScores: CriterionScoreV4[] = [];
     let educationScore: CriterionScoreV4 | null = null;
@@ -1621,7 +1626,8 @@ Deno.serve(async (req) => {
       return scoreCriterionV4(
         criterion, jobId, workExperience, education,
         candidateDuties, motivationLetter,
-        decompositionMap, experienceBullets
+        decompositionMap, experienceBullets,
+        applicationId, phfHash, modelUsedTracker
       );
     });
 
