@@ -144,9 +144,12 @@ interface SubRequirementScore {
   demonstrated: boolean;
   evidence: EvidenceQuote[];
   missing: string | null;
-  confidence: number;
+  confidence: number;        // value used in score formula (banded if USE_BANDED_CONFIDENCE)
+  raw_confidence?: number;   // pre-banding LLM confidence, kept for transparency
   flags: string[];
   verification?: VerifierResult;
+  model_version?: string;
+  from_cache?: boolean;
 }
 
 interface CriterionScoreV4 {
