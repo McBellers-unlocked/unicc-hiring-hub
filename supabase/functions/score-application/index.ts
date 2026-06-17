@@ -1667,19 +1667,79 @@ async function scoreCriterionV4(
     subScores.push(subScore);
   }
 
-  // v4.0 OPTIMIZATION: Process LLM subs in PARALLEL with concurrency limit
+  // v4.2 OPTIMIZATION: ONE batched LLM evaluator call per criterion.
+  // Candidate context (duties + bullets + motivation letter) is sent ONCE;
+  // each sub is still judged independently against its own evidence.
+  // MAX_CONCURRENCY now governs parallel CRITERIA batches at the caller,
+  // not parallel sub evaluations.
   if (llmSubs.length > 0) {
-    const evalTasks = llmSubs.map(subReq => async () => scoreLlmSubWithCache({
-      subReq,
-      criterionId: criterion.id,
-      decompositionVersion,
-      applicationId,
-      phfHash,
-      candidateDuties,
-      motivationLetter,
-      experienceBullets,
-      modelUsedTracker,
+    // ---- Step A: parallel verdict-cache lookups ----
+    const cacheLookups = await Promise.all(llmSubs.map(async (subReq) => {
+      try {
+        const { data: cached } = await supabase
+          .from('subrequirement_verdicts')
+          .select('demonstrated, evidence, missing, confidence, model_version')
+          .eq('application_id', applicationId)
+          .eq('criterion_id', criterion.id)
+          .eq('sub_id', subReq.id)
+          .eq('decomposition_version', decompositionVersion)
+          .eq('phf_hash', phfHash)
+          .maybeSingle();
+        return { subReq, cached };
+      } catch (e) {
+        console.warn('Verdict cache lookup failed (continuing without cache):', e);
+        return { subReq, cached: null as any };
+      }
     }));
+
+    // ---- Step B: single batched evaluator call for cache misses ----
+    const missSubs = cacheLookups.filter(r => !r.cached).map(r => r.subReq);
+    let batchMap = new Map<string, EvaluatorResult>();
+    if (missSubs.length > 0) {
+      batchMap = await evaluateSubRequirementBatch(
+        missSubs,
+        candidateDuties,
+        motivationLetter,
+        experienceBullets
+      );
+    }
+
+    // ---- Step C: per-sub finalize (verifier + cache write + banding) ----
+    const evalTasks = cacheLookups.map(({ subReq, cached }) => async () => {
+      let precomputedEval: EvaluatorResult;
+      if (cached) {
+        precomputedEval = {
+          demonstrated: !!cached.demonstrated,
+          evidence: (cached.evidence as EvidenceQuote[]) || [],
+          missing: cached.missing ?? null,
+          confidence: typeof cached.confidence === 'number' ? cached.confidence : 0,
+          flags: ['CACHED_VERDICT'],
+          modelUsed: cached.model_version || undefined,
+          fromCache: true,
+        };
+      } else {
+        precomputedEval = batchMap.get(subReq.id) || {
+          demonstrated: false,
+          evidence: [],
+          missing: 'AI analysis failed (sub missing from batch response)',
+          confidence: 0,
+          flags: ['AI_PARSE_FAILURE'],
+        };
+      }
+      return scoreLlmSubWithCache({
+        subReq,
+        criterionId: criterion.id,
+        decompositionVersion,
+        applicationId,
+        phfHash,
+        candidateDuties,
+        motivationLetter,
+        experienceBullets,
+        modelUsedTracker,
+        precomputedEval,
+        skipCacheLookup: true,
+      });
+    });
 
     const llmResults = await runWithConcurrency(evalTasks, MAX_CONCURRENCY);
     for (const result of llmResults) {
