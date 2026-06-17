@@ -127,7 +127,7 @@ export function AIGeneratePositionDescription({
 
   const removeFile = (idx: number) => setFiles((prev) => prev.filter((_, i) => i !== idx));
 
-  const runGeneration = async (mode: "overwrite" | "fillEmpty") => {
+  const runGeneration = async (mode: "overwrite" | "fillEmpty", filesOverride?: File[]) => {
     const ctx = getContext();
     if (!ctx.positionTitle?.trim()) {
       toast({ title: "Position title required", description: "Enter a position title before generating.", variant: "destructive" });
@@ -136,7 +136,8 @@ export function AIGeneratePositionDescription({
     setLoading(true);
     try {
       const attachments: { filename: string; text: string }[] = [];
-      for (const f of files) {
+      const filesToUse = filesOverride ?? files;
+      for (const f of filesToUse) {
         try {
           const text = await extractFileText(f);
           if (text && text.trim()) {
