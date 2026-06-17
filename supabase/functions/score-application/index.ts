@@ -1049,6 +1049,66 @@ Check:
   };
 }
 
+// Symmetric verifier: look for missed evidence on borderline NEGATIVES.
+// Returns either { recovered:true, evidence } if the verifier finds clear
+// verbatim evidence supporting the requirement, or { recovered:false }.
+async function verifyNegative(
+  subText: string,
+  candidateDuties: string,
+  motivationLetter: string,
+  experienceBullets: string
+): Promise<{ recovered: boolean; evidence: EvidenceQuote[] }> {
+  const bulletSection = experienceBullets ? `\n${experienceBullets}\n\n` : '';
+  const prompt = `A prior assessment concluded the candidate does NOT demonstrate this requirement, but the confidence was borderline. Re-check ONLY for missed VERBATIM evidence.
+
+REQUIREMENT: "${subText}"
+${bulletSection}
+CANDIDATE WORK EXPERIENCE:
+${candidateDuties || 'Not provided'}
+
+MOTIVATION LETTER:
+${motivationLetter || 'Not provided'}
+
+Rules:
+- Set recovered=true ONLY if you can quote VERBATIM text above that clearly supports the requirement.
+- Evidence quotes must be exact copy-paste, max 280 chars each, max 3 quotes.
+- If no clear verbatim evidence exists, set recovered=false and return an empty evidence array.
+- Do NOT infer, paraphrase, or rely on the motivation letter alone unless no work-experience text exists.`;
+
+  const result = await callAIWithToolCalling(
+    VERIFIER_SYSTEM_PROMPT,
+    prompt,
+    'verify_negative',
+    'Second-look check for missed evidence on a borderline negative assessment',
+    {
+      recovered: { type: 'boolean' },
+      evidence: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            source: { type: 'string', enum: ['work_experience', 'motivation_letter'] },
+            quote: { type: 'string' }
+          },
+          required: ['source', 'quote']
+        }
+      }
+    }
+  );
+
+  if (!result) return { recovered: false, evidence: [] };
+  const data = result.data;
+  const evidence: EvidenceQuote[] = (data.evidence || [])
+    .slice(0, 3)
+    .map((e: any) => ({
+      source: e.source || 'work_experience',
+      quote: typeof e.quote === 'string' ? e.quote.substring(0, 280) : ''
+    }))
+    .filter((e: EvidenceQuote) => e.quote.length > 0);
+  return { recovered: !!data.recovered && evidence.length > 0, evidence };
+}
+
+
 // =============================================================================
 // STEP 5: Recombine Logic Parser (safe, strict) — unchanged
 // =============================================================================
