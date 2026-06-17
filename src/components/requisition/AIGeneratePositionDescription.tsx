@@ -25,6 +25,12 @@ interface ContextInput {
 }
 
 export interface AIGeneratedPDResult {
+  position_title: string | null;
+  nature_of_position: string | null;
+  grade: string | null;
+  duty_station: string[];
+  division: string | null;
+  unit_section_division: string | null;
   purpose_of_position: string;
   main_duties_responsibilities: string;
   essential_experience: string;
@@ -33,6 +39,9 @@ export interface AIGeneratedPDResult {
   essential_education_level: string;
   desirable_education: string;
   additional_languages: Array<{ name: string; level: string }>;
+  core_competencies: string[];
+  management_competencies: string[];
+  leadership_competencies: string[];
 }
 
 interface Props {
@@ -118,46 +127,33 @@ export function AIGeneratePositionDescription({
     setFiles(next);
     if (fileRef.current) fileRef.current.value = "";
     if (accepted.length > 0) {
-      const ctx = getContext();
-      const ready = canGenerate && !!ctx.positionTitle?.trim();
-      if (ready) {
-        setTimeout(() => runGeneration("fillEmpty", next), 0);
-      } else {
-        // Don't silently no-op: confirm the file was attached and explain what's missing.
-        toast({
-          title: `Attached ${accepted.length === 1 ? accepted[0].name : `${accepted.length} files`}`,
-          description:
-            missingFieldsLabel ||
-            "Fill position title, grade, and division to enable AI generation. We'll auto-run once they're set.",
-        });
-      }
+      // With a JD attached, the AI extracts every field — including title. Always auto-run.
+      setTimeout(() => runGeneration("fillEmpty", next), 0);
     }
   };
 
-  // Auto-run generation once prerequisites become satisfied after a file was attached.
+  // Auto-run once a file is present (in case the first auto-run didn't fire, e.g. after remount).
   const hasFiles = files.length > 0;
   useEffect(() => {
     if (!hasFiles || loading) return;
-    if (!canGenerate) return;
-    const ctx = getContext();
-    if (!ctx.positionTitle?.trim()) return;
     const t = setTimeout(() => runGeneration("fillEmpty"), 0);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasFiles, canGenerate]);
+  }, [hasFiles]);
 
   const removeFile = (idx: number) => setFiles((prev) => prev.filter((_, i) => i !== idx));
 
   const runGeneration = async (mode: "overwrite" | "fillEmpty", filesOverride?: File[]) => {
     const ctx = getContext();
-    if (!ctx.positionTitle?.trim()) {
-      toast({ title: "Position title required", description: "Enter a position title before generating.", variant: "destructive" });
+    const filesToUse = filesOverride ?? files;
+    const hasAttachments = filesToUse.length > 0;
+    if (!hasAttachments && !ctx.positionTitle?.trim()) {
+      toast({ title: "Position title required", description: "Enter a position title or attach a JD before generating.", variant: "destructive" });
       return;
     }
     setLoading(true);
     try {
       const attachments: { filename: string; text: string }[] = [];
-      const filesToUse = filesOverride ?? files;
       for (const f of filesToUse) {
         try {
           const text = await extractFileText(f);
@@ -200,7 +196,13 @@ export function AIGeneratePositionDescription({
       }
 
       const result = data as Partial<AIGeneratedPDResult>;
-      const filled = {
+      const filled: AIGeneratedPDResult = {
+        position_title: result.position_title ?? null,
+        nature_of_position: result.nature_of_position ?? null,
+        grade: result.grade ?? null,
+        duty_station: Array.isArray(result.duty_station) ? result.duty_station : [],
+        division: result.division ?? null,
+        unit_section_division: result.unit_section_division ?? null,
         purpose_of_position: result.purpose_of_position || "",
         main_duties_responsibilities: result.main_duties_responsibilities || "",
         essential_experience: result.essential_experience || "",
@@ -209,13 +211,24 @@ export function AIGeneratePositionDescription({
         essential_education_level: result.essential_education_level || "",
         desirable_education: result.desirable_education || "",
         additional_languages: Array.isArray(result.additional_languages) ? result.additional_languages : [],
+        core_competencies: Array.isArray(result.core_competencies) ? result.core_competencies : [],
+        management_competencies: Array.isArray(result.management_competencies) ? result.management_competencies : [],
+        leadership_competencies: Array.isArray(result.leadership_competencies) ? result.leadership_competencies : [],
       };
       const anyContent =
-        filled.purpose_of_position ||
-        filled.main_duties_responsibilities ||
-        filled.essential_experience ||
-        filled.essential_education ||
-        filled.additional_languages.length > 0;
+        !!filled.position_title ||
+        !!filled.nature_of_position ||
+        !!filled.grade ||
+        filled.duty_station.length > 0 ||
+        !!filled.unit_section_division ||
+        !!filled.purpose_of_position ||
+        !!filled.main_duties_responsibilities ||
+        !!filled.essential_experience ||
+        !!filled.essential_education ||
+        filled.additional_languages.length > 0 ||
+        filled.core_competencies.length > 0 ||
+        filled.management_competencies.length > 0 ||
+        filled.leadership_competencies.length > 0;
       if (!anyContent) {
         toast({ title: "Empty response", description: "AI did not return content. Try again.", variant: "destructive" });
         return;
@@ -294,15 +307,15 @@ export function AIGeneratePositionDescription({
           type="button"
           size="sm"
           onClick={handleGenerateClick}
-          disabled={loading || !canGenerate}
+          disabled={loading || (!canGenerate && !hasFiles)}
           className="gap-2"
         >
           {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
           {loading ? "Generating…" : "Generate with AI"}
         </Button>
-        {!canGenerate && (
+        {!canGenerate && !hasFiles && (
           <span className="text-xs text-muted-foreground">
-            {missingFieldsLabel || "Fill position title, grade, and division to enable AI generation."}
+            {missingFieldsLabel || "Fill position title, grade, and division — or attach a JD — to enable AI generation."}
           </span>
         )}
       </div>

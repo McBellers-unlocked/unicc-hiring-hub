@@ -1682,6 +1682,9 @@ export default function JobRequisitionForm() {
                           );
                         }
                       };
+
+                      // Simple string PD fields
+                      setIfApplicable('position_title', 'position_title');
                       setIfApplicable('purpose_of_position', 'purpose_of_position');
                       setIfApplicable('main_duties_responsibilities', 'main_duties_responsibilities', fixMarkdownFormatting);
                       setIfApplicable('essential_experience', 'essential_experience');
@@ -1689,6 +1692,68 @@ export default function JobRequisitionForm() {
                       setIfApplicable('essential_education', 'essential_education');
                       setIfApplicable('essential_education_level', 'essential_education_level');
                       setIfApplicable('desirable_education', 'desirable_education');
+
+                      // Enum: nature of position
+                      if (result.nature_of_position) {
+                        const currentNature = (form.getValues('nature_of_position') || '') as string;
+                        if (mode === 'overwrite' || !currentNature.trim()) {
+                          form.setValue('nature_of_position', result.nature_of_position, { shouldDirty: true, shouldValidate: true });
+                        }
+                      }
+
+                      // Enum: grade
+                      if (result.grade) {
+                        const currentGrade = (form.getValues('grade') || '') as string;
+                        if (mode === 'overwrite' || !currentGrade.trim()) {
+                          form.setValue('grade', result.grade, { shouldDirty: true, shouldValidate: true });
+                        }
+                      }
+
+                      // Duty station (array of strings)
+                      if (Array.isArray(result.duty_station) && result.duty_station.length > 0) {
+                        const currentDuty = (form.getValues('duty_station') as string[]) || [];
+                        if (mode === 'overwrite' || currentDuty.length === 0) {
+                          form.setValue('duty_station', result.duty_station, { shouldDirty: true, shouldValidate: true });
+                        }
+                      }
+
+                      // Division + unit (interdependent — must set local division state first)
+                      if (result.division || result.unit_section_division) {
+                        const currentUnit = (form.getValues('unit_section_division') || '') as string;
+                        if (mode === 'overwrite' || !currentUnit.trim()) {
+                          if (result.division && DIVISION_UNITS[result.division]) {
+                            setSelectedDivision(result.division);
+                          }
+                          if (result.unit_section_division) {
+                            setSelectedUnit(result.unit_section_division);
+                            form.setValue('unit_section_division', result.unit_section_division, { shouldDirty: true, shouldValidate: true });
+                          }
+                        }
+                      }
+
+                      // Competencies — arrays of catalog keys
+                      const applyCompetency = (
+                        key: 'core_competencies' | 'management_competencies' | 'leadership_competencies',
+                        setter: (v: string[]) => void,
+                      ) => {
+                        const incoming = (result as any)[key] as string[] | undefined;
+                        if (!Array.isArray(incoming) || incoming.length === 0) return;
+                        const current = (form.getValues(key) as string[]) || [];
+                        let merged: string[];
+                        if (mode === 'overwrite') {
+                          merged = incoming;
+                        } else if (current.length === 0) {
+                          merged = incoming;
+                        } else {
+                          const existing = new Set(current);
+                          merged = [...current, ...incoming.filter((v) => !existing.has(v))];
+                        }
+                        setter(merged);
+                        form.setValue(key, merged, { shouldDirty: true, shouldValidate: true });
+                      };
+                      applyCompetency('core_competencies', setSelectedCoreCompetencies);
+                      applyCompetency('management_competencies', setSelectedManagementCompetencies);
+                      applyCompetency('leadership_competencies', setSelectedLeadershipCompetencies);
 
                       // Languages: merge by name (case-insensitive); never overwrite an existing entry in fillEmpty mode
                       const incomingLangs = Array.isArray(result.additional_languages) ? result.additional_languages : [];
