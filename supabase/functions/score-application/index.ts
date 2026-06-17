@@ -483,6 +483,7 @@ async function callAIWithToolCalling(
 
   // Primary: tool calling
   try {
+    await acquireGatewaySlot();
     const response = await fetch(AI_GATEWAY_URL, {
       method: 'POST',
       headers: {
