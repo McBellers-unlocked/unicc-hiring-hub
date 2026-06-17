@@ -270,7 +270,8 @@ async function preloadDecompositions(
 
       map.set(criterion.id, decomposition);
 
-      // Cache to DB
+      // Cache to DB (stamp with decomposition_version + model_version)
+      const decomposition_version = computeDecompositionVersion(decomposition);
       await supabase
         .from('criterion_decompositions')
         .upsert({
@@ -279,6 +280,8 @@ async function preloadDecompositions(
           criterion_text: criterion.text,
           subrequirements: decomposition.subrequirements,
           recombine_logic: decomposition.recombine_logic,
+          decomposition_version,
+          model_version: decomposition.modelUsed ?? MODEL,
         }, { onConflict: 'job_id,criterion_id' });
     }
   }
