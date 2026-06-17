@@ -1681,7 +1681,19 @@ Deno.serve(async (req) => {
     // Calculate overall
     const resultData = calculateScoringResultV4(criteriaScores, educationScore);
 
-    console.log(`Scoring complete: ${resultData.passedCount}/${resultData.totalCount} passed, overall: ${resultData.overallScore}, recommend: ${resultData.recommendForLonglist}`);
+    // Stamp the model(s) and prompt/pipeline versions actually used this run.
+    // Kept inside rubric_breakdown so historical scores stay interpretable even
+    // if MODEL or the gateway's default model changes later.
+    const modelsUsed = Array.from(modelUsedTracker);
+    const primaryModelVersion = modelsUsed[0] || MODEL;
+    (resultData as any).model_version = primaryModelVersion;
+    (resultData as any).models_used = modelsUsed;
+    (resultData as any).pipeline_version = PIPELINE_VERSION;
+    (resultData as any).prompt_version = PROMPT_VERSION;
+    (resultData as any).use_banded_confidence = USE_BANDED_CONFIDENCE;
+    (resultData as any).phf_hash = phfHash;
+
+    console.log(`Scoring complete: ${resultData.passedCount}/${resultData.totalCount} passed, overall: ${resultData.overallScore}, recommend: ${resultData.recommendForLonglist}, model=${primaryModelVersion}`);
 
     // Save with idempotent upsert
     const { error: saveError } = await supabase
@@ -1690,8 +1702,10 @@ Deno.serve(async (req) => {
         application_id: applicationId,
         rubric_breakdown: resultData,
         ai_score: resultData.overallScore,
-        version: '4.0',
-        pipeline_version: '4.0',
+        version: PIPELINE_VERSION,
+        pipeline_version: PIPELINE_VERSION,
+        model_version: primaryModelVersion,
+        prompt_version: PROMPT_VERSION,
         created_at: new Date().toISOString()
       }, {
         onConflict: 'application_id,pipeline_version'
