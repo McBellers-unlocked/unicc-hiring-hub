@@ -628,7 +628,12 @@ function parseEssentialCriteria(requirements: any[]): ParsedCriterion[] {
 
 function calculateTotalExperienceYears(experience: any[]): number {
   if (!experience || !Array.isArray(experience)) return 0;
-  let totalMonths = 0;
+
+  // Build [start, end] ranges from each entry, then merge overlapping/adjacent
+  // ranges before summing. This prevents concurrent/overlapping employment from
+  // being double-counted (interval union, not naive sum-of-spans).
+  const ranges: Array<[number, number]> = [];
+
   for (const exp of experience) {
     let startDate: Date | null = null;
     let endDate: Date | null = null;
@@ -667,11 +672,31 @@ function calculateTotalExperienceYears(experience: any[]): number {
     }
     if (!startDate || isNaN(startDate.getTime())) continue;
     if (!endDate || isNaN(endDate.getTime())) continue;
-    const months = (endDate.getFullYear() - startDate.getFullYear()) * 12
-      + (endDate.getMonth() - startDate.getMonth());
-    totalMonths += Math.max(0, months);
+    if (endDate.getTime() < startDate.getTime()) continue;
+    ranges.push([startDate.getTime(), endDate.getTime()]);
   }
-  return Math.round(totalMonths / 12 * 10) / 10;
+
+  if (ranges.length === 0) return 0;
+
+  ranges.sort((a, b) => a[0] - b[0]);
+  const ADJACENT_GAP_MS = 24 * 60 * 60 * 1000; // ranges within 1 day are adjacent
+  const merged: Array<[number, number]> = [ranges[0]];
+  for (let i = 1; i < ranges.length; i++) {
+    const last = merged[merged.length - 1];
+    const [s, e] = ranges[i];
+    if (s <= last[1] + ADJACENT_GAP_MS) {
+      last[1] = Math.max(last[1], e);
+    } else {
+      merged.push([s, e]);
+    }
+  }
+
+  const MS_PER_MONTH = (365.25 / 12) * 24 * 60 * 60 * 1000;
+  let totalMonths = 0;
+  for (const [s, e] of merged) {
+    totalMonths += Math.max(0, (e - s) / MS_PER_MONTH);
+  }
+  return Math.round((totalMonths / 12) * 10) / 10;
 }
 
 // =============================================================================
