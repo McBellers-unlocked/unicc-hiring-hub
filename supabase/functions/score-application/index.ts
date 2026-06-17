@@ -102,6 +102,7 @@ interface CriterionScoreV4 {
   confidence: number;
   subrequirements: SubRequirementScore[];
   recombine_logic: string;
+  flags?: string[]; // criterion-level flags: SUBS_TRUNCATED, AI_PARSE_FAILURE, ...
   details?: {
     required?: string;
     candidateHas?: string;
