@@ -1,11 +1,5 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 interface Attachment {
   filename: string;
@@ -25,52 +19,50 @@ interface RequestBody {
 const MAX_PER_FILE = 15000;
 const MAX_TOTAL_CONTEXT = 40000;
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+const json = (status: number, body: unknown) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return json(401, { error: "Missing authorization" });
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const anon = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, anon, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims) {
+      return json(401, { error: "Unauthorized" });
     }
 
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableApiKey) {
-      return new Response(JSON.stringify({ error: 'LOVABLE_API_KEY not configured' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return json(500, { error: "LOVABLE_API_KEY not configured" });
     }
 
     const body = (await req.json()) as RequestBody;
     if (!body.positionTitle || body.positionTitle.trim().length < 2) {
-      return new Response(JSON.stringify({ error: 'positionTitle is required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return json(400, { error: "positionTitle is required" });
     }
 
-    // Build attachment context from pre-extracted text
-    let attachmentContext = '';
+    let attachmentContext = "";
     if (Array.isArray(body.attachments) && body.attachments.length > 0) {
       const parts: string[] = [];
       let total = 0;
       for (const att of body.attachments) {
-        const text = (att.text || '').trim();
+        const text = (att.text || "").trim();
         if (!text) continue;
         const truncated = text.slice(0, MAX_PER_FILE);
         const block = `--- Attached JD: ${att.filename} ---\n${truncated}\n`;
@@ -78,12 +70,10 @@ serve(async (req) => {
         parts.push(block);
         total += block.length;
       }
-      attachmentContext = parts.join('\n');
+      attachmentContext = parts.join("\n");
     }
 
-    const ctx: string[] = [
-      `Position Title: ${body.positionTitle}`,
-    ];
+    const ctx: string[] = [`Position Title: ${body.positionTitle}`];
     if (body.natureOfPosition) ctx.push(`Nature of Position: ${body.natureOfPosition}`);
     if (body.gradeLevel) ctx.push(`Grade/Level: ${body.gradeLevel}`);
     if (body.dutyStation) ctx.push(`Duty Station: ${body.dutyStation}`);
@@ -102,69 +92,57 @@ Rules:
 - Where a supervisor reference is needed, use the literal placeholder "[SUPERVISOR TITLE]".
 - Do not include headings, preambles, or commentary outside the JSON.`;
 
-    const userPrompt = `Context:\n${ctx.join('\n')}\n\n${attachmentContext ? `Reference job descriptions:\n${attachmentContext}\n\n` : ''}Generate the purpose_of_position and main_duties_responsibilities JSON now.`;
+    const userPrompt = `Context:\n${ctx.join("\n")}\n\n${attachmentContext ? `Reference job descriptions:\n${attachmentContext}\n\n` : ""}Generate the purpose_of_position and main_duties_responsibilities JSON now.`;
 
-    const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
+    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${lovableApiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: "google/gemini-2.5-flash",
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
         ],
-        response_format: { type: 'json_object' },
+        response_format: { type: "json_object" },
       }),
     });
 
     if (aiRes.status === 429) {
-      return new Response(JSON.stringify({ error: 'Rate limited. Please try again shortly.' }), {
-        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return json(429, { error: "Rate limited. Please try again shortly." });
     }
     if (aiRes.status === 402) {
-      return new Response(JSON.stringify({ error: 'AI credits exhausted. Add credits to your workspace.' }), {
-        status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return json(402, { error: "AI credits exhausted. Add credits to your workspace." });
     }
     if (!aiRes.ok) {
       const errText = await aiRes.text();
-      console.error('AI gateway error', aiRes.status, errText);
-      return new Response(JSON.stringify({ error: `AI error ${aiRes.status}` }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      console.error("AI gateway error", aiRes.status, errText);
+      return json(500, { error: `AI error ${aiRes.status}` });
     }
 
     const data = await aiRes.json();
-    const content: string = data.choices?.[0]?.message?.content || '';
+    const content: string = data.choices?.[0]?.message?.content || "";
     let parsed: { purpose_of_position?: string; main_duties_responsibilities?: string } = {};
     try {
       let txt = content.trim();
-      if (txt.includes('```')) {
+      if (txt.includes("```")) {
         const m = txt.match(/```(?:json)?\s*([\s\S]*?)```/);
         if (m) txt = m[1].trim();
       }
       parsed = JSON.parse(txt);
     } catch (e) {
-      console.error('JSON parse failed', e, content);
-      return new Response(JSON.stringify({ error: 'AI returned non-JSON response' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      console.error("JSON parse failed", e, content);
+      return json(500, { error: "AI returned non-JSON response" });
     }
 
-    return new Response(JSON.stringify({
-      purpose_of_position: parsed.purpose_of_position || '',
-      main_duties_responsibilities: parsed.main_duties_responsibilities || '',
-    }), {
-      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    return json(200, {
+      purpose_of_position: parsed.purpose_of_position || "",
+      main_duties_responsibilities: parsed.main_duties_responsibilities || "",
     });
   } catch (e) {
-    console.error('generate-position-description error', e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : 'Unknown error' }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error("generate-position-description error", e);
+    return json(500, { error: e instanceof Error ? e.message : "Unknown error" });
   }
 });
