@@ -24,16 +24,24 @@ interface ContextInput {
   objectivesOfProgramme?: string;
 }
 
+export interface AIGeneratedPDResult {
+  purpose_of_position: string;
+  main_duties_responsibilities: string;
+  essential_experience: string;
+  desirable_experience: string;
+  essential_education: string;
+  essential_education_level: string;
+  desirable_education: string;
+  additional_languages: Array<{ name: string; level: string }>;
+}
+
 interface Props {
   getContext: () => ContextInput;
   currentPurpose: string;
   currentDuties: string;
   canGenerate: boolean;
   missingFieldsLabel?: string;
-  onApply: (
-    result: { purpose_of_position: string; main_duties_responsibilities: string },
-    mode: "overwrite" | "fillEmpty",
-  ) => void;
+  onApply: (result: AIGeneratedPDResult, mode: "overwrite" | "fillEmpty") => void;
 }
 
 const ACCEPT = ".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain";
