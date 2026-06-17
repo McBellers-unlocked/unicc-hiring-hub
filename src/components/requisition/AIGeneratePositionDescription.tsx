@@ -307,15 +307,15 @@ export function AIGeneratePositionDescription({
           type="button"
           size="sm"
           onClick={handleGenerateClick}
-          disabled={loading || !canGenerate}
+          disabled={loading || (!canGenerate && !hasFiles)}
           className="gap-2"
         >
           {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
           {loading ? "Generating…" : "Generate with AI"}
         </Button>
-        {!canGenerate && (
+        {!canGenerate && !hasFiles && (
           <span className="text-xs text-muted-foreground">
-            {missingFieldsLabel || "Fill position title, grade, and division to enable AI generation."}
+            {missingFieldsLabel || "Fill position title, grade, and division — or attach a JD — to enable AI generation."}
           </span>
         )}
       </div>
