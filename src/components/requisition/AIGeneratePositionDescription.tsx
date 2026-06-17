@@ -385,12 +385,29 @@ export function AIGeneratePositionDescription({
         }
       }
 
+      if (hasAttachments && attachments.length === 0) {
+        toast({ title: "No readable text", description: "The uploaded JD could not be parsed. Please upload a text-based PDF, DOCX, or TXT file.", variant: "destructive" });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke("generate-position-description", {
         body: { ...ctx, attachments },
       });
 
       if (error) {
         console.error("generate-position-description invoke error", error);
+        if (hasAttachments && attachments.length > 0) {
+          const fallback = parseAttachedJobDescription(attachments, ctx);
+          if (hasExtractedContent(fallback)) {
+            onApply(fallback, mode);
+            const fieldCount = Object.values(fallback).filter((v) => (Array.isArray(v) ? v.length > 0 : !!v)).length;
+            toast({
+              title: "Extracted from JD",
+              description: `${fieldCount} field${fieldCount === 1 ? "" : "s"} filled from the uploaded document. Review and refine as needed.`,
+            });
+            return;
+          }
+        }
         const ctxObj = (error as any).context;
         const status = ctxObj?.status;
         let serverMsg = "";
