@@ -20,9 +20,62 @@ const MODEL = 'openai/gpt-5';
 
 const MAX_CONCURRENCY = 3;
 const MAX_TEXT_LENGTH = 6000;
-const MAX_CRITERIA_CONCURRENCY = 5; // Score 5 criteria in parallel (2 rounds for 7 criteria → ~40-50s)
-const MAX_SUBS_PER_CRITERION = 3; // Cap LLM subrequirements per criterion (most have 2-3 anyway)
-const AI_RETRY_ATTEMPTS = 3; // Retry on 429 with exponential backoff
+const MAX_CRITERIA_CONCURRENCY = 5;
+const MAX_SUBS_PER_CRITERION = 3;
+const AI_RETRY_ATTEMPTS = 3;
+
+// =============================================================================
+// Scoring Reproducibility Constants
+// =============================================================================
+
+// Determinism: send temperature=0 / top_p=1 to scoring LLM calls so the same
+// inputs produce the same outputs across runs.
+// NOTE: The Lovable AI Gateway rejects custom temperatures on openai/gpt-5
+// (see core memory). We therefore only attach these params on models that
+// accept them. If MODEL is changed to a non-gpt-5 model, determinism kicks in
+// automatically.
+const MODEL_SUPPORTS_TEMPERATURE = !/^openai\/gpt-5(\b|[-/])/i.test(MODEL);
+const SCORING_TEMPERATURE = 0;
+const SCORING_TOP_P = 1;
+
+// Version stamps persisted with each score so results stay interpretable even
+// if the gateway's default model or our prompts change later.
+const PIPELINE_VERSION = '4.0';
+const PROMPT_VERSION = '2026-06-17.a';
+
+// (4) Confidence banding — toggleable, default OFF.
+// When true, each sub's raw confidence is snapped to a band before being used
+// in the per-criterion score formula. Raw confidence is always kept in
+// rubric_breakdown for transparency.
+const USE_BANDED_CONFIDENCE = false;
+function bandConfidence(c: number): number {
+  if (!isFinite(c)) return 0.4;
+  if (c < 0.5) return 0.4;
+  if (c < 0.8) return 0.7;
+  return 0.9;
+}
+
+// Stable, dependency-free string hash (djb2). Used to fingerprint
+// decompositions and PHF inputs for the verdict cache.
+function shortHash(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h) ^ s.charCodeAt(i);
+  }
+  return (h >>> 0).toString(16);
+}
+
+function computeDecompositionVersion(d: { subrequirements: SubRequirement[]; recombine_logic: string }): string {
+  const norm = {
+    s: d.subrequirements.map(s => ({ id: s.id, type: s.type, text: s.text })),
+    r: d.recombine_logic,
+  };
+  return shortHash(JSON.stringify(norm));
+}
+
+function computePhfHash(candidateDuties: string, motivationLetter: string, experienceBullets: string): string {
+  return shortHash(`${candidateDuties}\u0001${motivationLetter}\u0001${experienceBullets}`);
+}
 
 // =============================================================================
 // Types
@@ -60,6 +113,7 @@ interface SubRequirement {
 interface Decomposition {
   subrequirements: SubRequirement[];
   recombine_logic: string;
+  modelUsed?: string;
 }
 
 interface EvidenceQuote {
@@ -73,6 +127,8 @@ interface EvaluatorResult {
   missing: string | null;
   confidence: number;
   flags?: string[];
+  modelUsed?: string;
+  fromCache?: boolean;
 }
 
 interface VerifierResult {
@@ -88,9 +144,12 @@ interface SubRequirementScore {
   demonstrated: boolean;
   evidence: EvidenceQuote[];
   missing: string | null;
-  confidence: number;
+  confidence: number;        // value used in score formula (banded if USE_BANDED_CONFIDENCE)
+  raw_confidence?: number;   // pre-banding LLM confidence, kept for transparency
   flags: string[];
   verification?: VerifierResult;
+  model_version?: string;
+  from_cache?: boolean;
 }
 
 interface CriterionScoreV4 {
@@ -216,7 +275,8 @@ async function preloadDecompositions(
 
       map.set(criterion.id, decomposition);
 
-      // Cache to DB
+      // Cache to DB (stamp with decomposition_version + model_version)
+      const decomposition_version = computeDecompositionVersion(decomposition);
       await supabase
         .from('criterion_decompositions')
         .upsert({
@@ -225,6 +285,8 @@ async function preloadDecompositions(
           criterion_text: criterion.text,
           subrequirements: decomposition.subrequirements,
           recombine_logic: decomposition.recombine_logic,
+          decomposition_version,
+          model_version: decomposition.modelUsed ?? MODEL,
         }, { onConflict: 'job_id,criterion_id' });
     }
   }
@@ -278,11 +340,12 @@ If the requirement is already atomic, return a single subrequirement with recomb
     }
   );
 
-  if (result && result.subrequirements?.length > 0) {
+  if (result && result.data?.subrequirements?.length > 0) {
     return {
-      subrequirements: result.subrequirements,
-      recombine_logic: result.recombine_logic || 'S1',
-    };
+      subrequirements: result.data.subrequirements,
+      recombine_logic: result.data.recombine_logic || 'S1',
+      modelUsed: result.modelUsed,
+    } as Decomposition;
   }
   return null;
 }
@@ -324,10 +387,47 @@ async function callAIWithToolCalling(
   toolName: string,
   toolDescription: string,
   parameters: Record<string, any>
-): Promise<any> {
+): Promise<{ data: any; modelUsed: string } | null> {
   if (!LOVABLE_API_KEY) {
     throw new Error('LOVABLE_API_KEY not configured');
   }
+
+  // Build a deterministic base body. temperature/top_p are only attached when
+  // the configured MODEL accepts them (see MODEL_SUPPORTS_TEMPERATURE).
+  const buildBody = (withTools: boolean, systemContent: string) => {
+    const body: Record<string, any> = {
+      model: MODEL,
+      messages: [
+        { role: 'system', content: systemContent },
+        { role: 'user', content: userPrompt },
+      ],
+    };
+    if (MODEL_SUPPORTS_TEMPERATURE) {
+      body.temperature = SCORING_TEMPERATURE;
+      body.top_p = SCORING_TOP_P;
+    }
+    if (withTools) {
+      body.tools = [{
+        type: 'function',
+        function: {
+          name: toolName,
+          description: toolDescription,
+          parameters: {
+            type: 'object',
+            properties: parameters,
+            required: Object.keys(parameters),
+            additionalProperties: false,
+          },
+        },
+      }];
+      body.tool_choice = { type: 'function', function: { name: toolName } };
+    }
+    return body;
+  };
+
+  const extractModelUsed = (data: any): string => {
+    return (data && typeof data.model === 'string' && data.model) || MODEL;
+  };
 
   // Primary: tool calling
   try {
@@ -337,32 +437,11 @@ async function callAIWithToolCalling(
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: toolName,
-            description: toolDescription,
-            parameters: {
-              type: 'object',
-              properties: parameters,
-              required: Object.keys(parameters),
-              additionalProperties: false,
-            }
-          }
-        }],
-        tool_choice: { type: 'function', function: { name: toolName } },
-      }),
+      body: JSON.stringify(buildBody(true, systemPrompt)),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      // Handle 429 rate limiting with exponential backoff
       if (response.status === 429) {
         throw new Error(`AI Gateway 429 rate limited`);
       }
@@ -371,24 +450,23 @@ async function callAIWithToolCalling(
     }
 
     const data = await response.json();
+    const modelUsed = extractModelUsed(data);
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (toolCall?.function?.arguments) {
-      return JSON.parse(toolCall.function.arguments);
+      return { data: JSON.parse(toolCall.function.arguments), modelUsed };
     }
 
-    // Fallback: try parsing content as JSON
     const content = data.choices?.[0]?.message?.content;
     if (content) {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) return JSON.parse(jsonMatch[0]);
+      if (jsonMatch) return { data: JSON.parse(jsonMatch[0]), modelUsed };
     }
 
     throw new Error('No tool call or parseable JSON in response');
   } catch (err: any) {
-    // Retry with exponential backoff for 429s and transient errors
     if (err?.message?.includes('429')) {
       for (let retryAttempt = 0; retryAttempt < AI_RETRY_ATTEMPTS; retryAttempt++) {
-        const backoffMs = Math.pow(2, retryAttempt + 1) * 1000; // 2s, 4s, 8s
+        const backoffMs = Math.pow(2, retryAttempt + 1) * 1000;
         console.log(`429 backoff: waiting ${backoffMs}ms (attempt ${retryAttempt + 1}/${AI_RETRY_ATTEMPTS})`);
         await new Promise(r => setTimeout(r, backoffMs));
         try {
@@ -398,36 +476,17 @@ async function callAIWithToolCalling(
               'Authorization': `Bearer ${LOVABLE_API_KEY}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              model: MODEL,
-              messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt }
-              ],
-              tools: [{
-                type: 'function',
-                function: {
-                  name: toolName,
-                  description: toolDescription,
-                  parameters: {
-                    type: 'object',
-                    properties: parameters,
-                    required: Object.keys(parameters),
-                    additionalProperties: false,
-                  }
-                }
-              }],
-              tool_choice: { type: 'function', function: { name: toolName } },
-            }),
+            body: JSON.stringify(buildBody(true, systemPrompt)),
           });
           if (retryResponse.ok) {
             const retryData = await retryResponse.json();
+            const modelUsed = extractModelUsed(retryData);
             const retryToolCall = retryData.choices?.[0]?.message?.tool_calls?.[0];
             if (retryToolCall?.function?.arguments) {
-              return JSON.parse(retryToolCall.function.arguments);
+              return { data: JSON.parse(retryToolCall.function.arguments), modelUsed };
             }
           }
-          if (retryResponse.status !== 429) break; // Only keep retrying on 429
+          if (retryResponse.status !== 429) break;
         } catch { /* continue retrying */ }
       }
     }
@@ -443,24 +502,18 @@ async function callAIWithToolCalling(
           'Authorization': `Bearer ${LOVABLE_API_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: MODEL,
-          messages: [
-            { role: 'system', content: systemPrompt + '\nReturn ONLY valid JSON. No markdown, no explanation.' },
-            { role: 'user', content: userPrompt }
-          ],
-          
-        }),
+        body: JSON.stringify(buildBody(false, systemPrompt + '\nReturn ONLY valid JSON. No markdown, no explanation.')),
       });
 
       if (!response.ok) continue;
 
       const data = await response.json();
+      const modelUsed = extractModelUsed(data);
       const content = data.choices?.[0]?.message?.content;
       if (!content) continue;
 
       const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) return JSON.parse(jsonMatch[0]);
+      if (jsonMatch) return { data: JSON.parse(jsonMatch[0]), modelUsed };
     } catch {
       if (attempt === 0) {
         await new Promise(r => setTimeout(r, 1000));
@@ -815,7 +868,8 @@ async function getOrCreateDecomposition(
     ? result
     : { subrequirements: [{ id: 'S1', type: 'llm', text: criterionText }], recombine_logic: 'S1' };
 
-  // Cache with upsert (idempotent)
+  // Cache with upsert (idempotent) — stamp version + model
+  const decomposition_version = computeDecompositionVersion(decomposition);
   await supabase
     .from('criterion_decompositions')
     .upsert({
@@ -824,6 +878,8 @@ async function getOrCreateDecomposition(
       criterion_text: criterionText,
       subrequirements: decomposition.subrequirements,
       recombine_logic: decomposition.recombine_logic,
+      decomposition_version,
+      model_version: decomposition.modelUsed ?? MODEL,
     }, { onConflict: 'job_id,criterion_id' });
 
   return decomposition;
@@ -894,8 +950,10 @@ Rules:
     };
   }
 
+  const data = result.data;
+
   // Sanitize evidence: trim quotes, max 3, max 280 chars each
-  const evidence: EvidenceQuote[] = (result.evidence || [])
+  const evidence: EvidenceQuote[] = (data.evidence || [])
     .slice(0, 3)
     .map((e: any) => ({
       source: e.source || 'work_experience',
@@ -906,8 +964,8 @@ Rules:
   const flags: string[] = [];
 
   // No Evidence = False hard rule
-  let demonstrated = !!result.demonstrated;
-  let confidence = typeof result.confidence === 'number' ? result.confidence : 0.5;
+  let demonstrated = !!data.demonstrated;
+  let confidence = typeof data.confidence === 'number' ? data.confidence : 0.5;
 
   if (demonstrated && evidence.length === 0) {
     demonstrated = false;
@@ -918,9 +976,10 @@ Rules:
   return {
     demonstrated,
     evidence,
-    missing: result.missing || null,
+    missing: data.missing || null,
     confidence,
-    flags
+    flags,
+    modelUsed: result.modelUsed,
   };
 }
 
@@ -970,11 +1029,12 @@ Check:
     return { valid: true, issues: ['Verifier unavailable'], confidence_adjustment: 0 };
   }
 
+  const data = result.data;
   return {
-    valid: !!result.valid,
-    issues: Array.isArray(result.issues) ? result.issues : [],
-    confidence_adjustment: typeof result.confidence_adjustment === 'number'
-      ? Math.max(-0.5, Math.min(0.5, result.confidence_adjustment))
+    valid: !!data.valid,
+    issues: Array.isArray(data.issues) ? data.issues : [],
+    confidence_adjustment: typeof data.confidence_adjustment === 'number'
+      ? Math.max(-0.5, Math.min(0.5, data.confidence_adjustment))
       : 0
   };
 }
@@ -1106,7 +1166,10 @@ async function scoreCriterionV4(
   candidateDuties: string,
   motivationLetter: string,
   decompositionMap: Map<string, Decomposition>,
-  experienceBullets: string
+  experienceBullets: string,
+  applicationId: string,
+  phfHash: string,
+  modelUsedTracker: Set<string>
 ): Promise<CriterionScoreV4> {
   // Step 2: Get decomposition — use synthetic for years_experience, preloaded map, or DB fallback
   let decomposition: Decomposition;
@@ -1116,6 +1179,8 @@ async function scoreCriterionV4(
     decomposition = decompositionMap.get(criterion.id)
       || await getOrCreateDecomposition(jobId, criterion.id, criterion.text);
   }
+
+  const decompositionVersion = computeDecompositionVersion(decomposition);
 
   const subScores: SubRequirementScore[] = [];
 
@@ -1140,15 +1205,75 @@ async function scoreCriterionV4(
   // v4.0 OPTIMIZATION: Process LLM subs in PARALLEL with concurrency limit
   if (llmSubs.length > 0) {
     const evalTasks = llmSubs.map(subReq => async () => {
-      // Step 3: Universal Evaluator (with experience bullets)
-      const evalResult = await evaluateSubRequirement(subReq, candidateDuties, motivationLetter, experienceBullets);
+      // ---- Verdict cache lookup (key: app + criterion + sub + decomp_version + phf_hash) ----
+      let evalResult: EvaluatorResult | null = null;
+      let cacheHit = false;
+      try {
+        const { data: cachedVerdict } = await supabase
+          .from('subrequirement_verdicts')
+          .select('demonstrated, evidence, missing, confidence, model_version')
+          .eq('application_id', applicationId)
+          .eq('criterion_id', criterion.id)
+          .eq('sub_id', subReq.id)
+          .eq('decomposition_version', decompositionVersion)
+          .eq('phf_hash', phfHash)
+          .maybeSingle();
+
+        if (cachedVerdict) {
+          cacheHit = true;
+          evalResult = {
+            demonstrated: !!cachedVerdict.demonstrated,
+            evidence: (cachedVerdict.evidence as EvidenceQuote[]) || [],
+            missing: cachedVerdict.missing ?? null,
+            confidence: typeof cachedVerdict.confidence === 'number' ? cachedVerdict.confidence : 0,
+            flags: ['CACHED_VERDICT'],
+            modelUsed: cachedVerdict.model_version || undefined,
+            fromCache: true,
+          };
+          if (cachedVerdict.model_version) modelUsedTracker.add(cachedVerdict.model_version);
+        }
+      } catch (e) {
+        console.warn('Verdict cache lookup failed (continuing without cache):', e);
+      }
+
+      // Step 3: Universal Evaluator (cache miss)
+      if (!evalResult) {
+        evalResult = await evaluateSubRequirement(subReq, candidateDuties, motivationLetter, experienceBullets);
+        if (evalResult.modelUsed) modelUsedTracker.add(evalResult.modelUsed);
+
+        // Persist verdict (only when not a parse failure, so we don't poison the cache)
+        const isParseFailure = evalResult.flags?.includes('AI_PARSE_FAILURE');
+        if (!isParseFailure) {
+          try {
+            await supabase
+              .from('subrequirement_verdicts')
+              .upsert({
+                application_id: applicationId,
+                criterion_id: criterion.id,
+                sub_id: subReq.id,
+                decomposition_version: decompositionVersion,
+                phf_hash: phfHash,
+                demonstrated: evalResult.demonstrated,
+                evidence: evalResult.evidence,
+                missing: evalResult.missing,
+                confidence: evalResult.confidence,
+                model_version: evalResult.modelUsed ?? MODEL,
+                prompt_version: PROMPT_VERSION,
+              }, { onConflict: 'application_id,criterion_id,sub_id,decomposition_version,phf_hash' });
+          } catch (e) {
+            console.warn('Verdict cache write failed (continuing):', e);
+          }
+        }
+      }
 
       // Step 4: Verification Pass (v4.0: only verify borderline positives)
+      // Skip the verifier when we restored a verdict from cache — the verifier
+      // already ran during the original evaluation and its outcome is reflected
+      // in the cached confidence.
       let verification: VerifierResult | undefined;
       const flags = [...(evalResult.flags || [])];
 
-      // v4.0 CHANGE: demonstrated && confidence < 0.80 (was: demonstrated || confidence < 0.75)
-      if (evalResult.demonstrated && evalResult.confidence < 0.80) {
+      if (!cacheHit && evalResult.demonstrated && evalResult.confidence < 0.80) {
         verification = await verifyEvidence(
           subReq.text,
           evalResult.demonstrated,
@@ -1172,6 +1297,9 @@ async function scoreCriterionV4(
         flags.push('REVIEW');
       }
 
+      const rawConfidence = evalResult.confidence;
+      const usedConfidence = USE_BANDED_CONFIDENCE ? bandConfidence(rawConfidence) : rawConfidence;
+
       return {
         id: subReq.id,
         text: subReq.text,
@@ -1179,9 +1307,12 @@ async function scoreCriterionV4(
         demonstrated: evalResult.demonstrated,
         evidence: evalResult.evidence,
         missing: evalResult.missing,
-        confidence: evalResult.confidence,
+        confidence: usedConfidence,
+        raw_confidence: rawConfidence,
         flags,
         verification,
+        model_version: evalResult.modelUsed,
+        from_cache: evalResult.fromCache,
       } as SubRequirementScore;
     });
 
@@ -1190,7 +1321,6 @@ async function scoreCriterionV4(
       if (result.status === 'fulfilled') {
         subScores.push(result.value);
       } else {
-        // If a sub fails entirely, mark as not demonstrated
         console.error('LLM sub evaluation failed:', result.reason);
         subScores.push({
           id: 'unknown',
@@ -1216,7 +1346,8 @@ async function scoreCriterionV4(
     criterionFlags.push('AI_PARSE_FAILURE');
   }
 
-  // Calculate score
+  // Calculate score using the (possibly banded) confidence values stored on
+  // each sub. Raw LLM confidence remains available in sub.raw_confidence.
   const avgConfidence = subScores.reduce((sum, s) => sum + s.confidence, 0) / Math.max(1, subScores.length);
   const passedSubs = subScores.filter(s => s.demonstrated).length;
   const subPassRatio = passedSubs / Math.max(1, subScores.length);
@@ -1447,6 +1578,11 @@ Deno.serve(async (req) => {
     const decompositionMap = await preloadDecompositions(jobId, parsedCriteria);
     console.log(`Preloaded ${decompositionMap.size} decompositions`);
 
+    // Reproducibility: PHF hash invalidates the per-sub verdict cache on edits,
+    // and modelUsedTracker captures the actual model id(s) used this run.
+    const phfHash = computePhfHash(candidateDuties, motivationLetter, experienceBullets);
+    const modelUsedTracker = new Set<string>();
+
     // Score criteria through v4.1 pipeline
     const criteriaScores: CriterionScoreV4[] = [];
     let educationScore: CriterionScoreV4 | null = null;
@@ -1490,7 +1626,8 @@ Deno.serve(async (req) => {
       return scoreCriterionV4(
         criterion, jobId, workExperience, education,
         candidateDuties, motivationLetter,
-        decompositionMap, experienceBullets
+        decompositionMap, experienceBullets,
+        applicationId, phfHash, modelUsedTracker
       );
     });
 
@@ -1544,7 +1681,19 @@ Deno.serve(async (req) => {
     // Calculate overall
     const resultData = calculateScoringResultV4(criteriaScores, educationScore);
 
-    console.log(`Scoring complete: ${resultData.passedCount}/${resultData.totalCount} passed, overall: ${resultData.overallScore}, recommend: ${resultData.recommendForLonglist}`);
+    // Stamp the model(s) and prompt/pipeline versions actually used this run.
+    // Kept inside rubric_breakdown so historical scores stay interpretable even
+    // if MODEL or the gateway's default model changes later.
+    const modelsUsed = Array.from(modelUsedTracker);
+    const primaryModelVersion = modelsUsed[0] || MODEL;
+    (resultData as any).model_version = primaryModelVersion;
+    (resultData as any).models_used = modelsUsed;
+    (resultData as any).pipeline_version = PIPELINE_VERSION;
+    (resultData as any).prompt_version = PROMPT_VERSION;
+    (resultData as any).use_banded_confidence = USE_BANDED_CONFIDENCE;
+    (resultData as any).phf_hash = phfHash;
+
+    console.log(`Scoring complete: ${resultData.passedCount}/${resultData.totalCount} passed, overall: ${resultData.overallScore}, recommend: ${resultData.recommendForLonglist}, model=${primaryModelVersion}`);
 
     // Save with idempotent upsert
     const { error: saveError } = await supabase
@@ -1553,8 +1702,10 @@ Deno.serve(async (req) => {
         application_id: applicationId,
         rubric_breakdown: resultData,
         ai_score: resultData.overallScore,
-        version: '4.0',
-        pipeline_version: '4.0',
+        version: PIPELINE_VERSION,
+        pipeline_version: PIPELINE_VERSION,
+        model_version: primaryModelVersion,
+        prompt_version: PROMPT_VERSION,
         created_at: new Date().toISOString()
       }, {
         onConflict: 'application_id,pipeline_version'
