@@ -1644,7 +1644,7 @@ export default function JobRequisitionForm() {
             <CardContent className="space-y-4">
               {(() => {
                 const wTitle = form.watch('position_title');
-                const wLevel = (form.watch as any)('level');
+                const wLevel = form.watch('grade');
                 const wDiv = form.watch('unit_section_division');
                 const canGen = !!(wTitle?.trim() && wLevel?.toString().trim() && wDiv?.trim());
                 const missing: string[] = [];
@@ -1656,7 +1656,7 @@ export default function JobRequisitionForm() {
                     getContext={() => ({
                       positionTitle: form.getValues('position_title') || '',
                       natureOfPosition: form.getValues('nature_of_position') || '',
-                      gradeLevel: ((form.getValues as any)('level') || '').toString(),
+                      gradeLevel: (form.getValues('grade') || '').toString(),
                       dutyStation: (form.getValues('duty_station') || []).join(', '),
                       unitSectionDivision: form.getValues('unit_section_division') || '',
                       objectivesOfProgramme: (form.getValues as any)('objectives_of_programme') || '',
