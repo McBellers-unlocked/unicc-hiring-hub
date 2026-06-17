@@ -1666,21 +1666,46 @@ export default function JobRequisitionForm() {
                     canGenerate={canGen}
                     missingFieldsLabel={missing.length ? `Fill ${missing.join(', ')} to enable AI generation.` : undefined}
                     onApply={(result, mode) => {
-                      const curP = form.getValues('purpose_of_position') || '';
-                      const curD = form.getValues('main_duties_responsibilities') || '';
-                      if (mode === 'overwrite' || !curP.trim()) {
-                        if (result.purpose_of_position) {
-                          form.setValue('purpose_of_position', result.purpose_of_position, { shouldDirty: true, shouldValidate: true });
-                        }
-                      }
-                      if (mode === 'overwrite' || !curD.trim()) {
-                        if (result.main_duties_responsibilities) {
+                      const setIfApplicable = (
+                        key: keyof typeof result,
+                        formKey: any,
+                        transform?: (v: string) => string,
+                      ) => {
+                        const incoming = (result as any)[key];
+                        if (typeof incoming !== 'string' || !incoming.trim()) return;
+                        const current = (form.getValues(formKey) || '') as string;
+                        if (mode === 'overwrite' || !current.trim()) {
                           form.setValue(
-                            'main_duties_responsibilities',
-                            fixMarkdownFormatting(result.main_duties_responsibilities),
+                            formKey,
+                            transform ? transform(incoming) : incoming,
                             { shouldDirty: true, shouldValidate: true },
                           );
                         }
+                      };
+                      setIfApplicable('purpose_of_position', 'purpose_of_position');
+                      setIfApplicable('main_duties_responsibilities', 'main_duties_responsibilities', fixMarkdownFormatting);
+                      setIfApplicable('essential_experience', 'essential_experience');
+                      setIfApplicable('desirable_experience', 'desirable_experience');
+                      setIfApplicable('essential_education', 'essential_education');
+                      setIfApplicable('essential_education_level', 'essential_education_level');
+                      setIfApplicable('desirable_education', 'desirable_education');
+
+                      // Languages: merge by name (case-insensitive); never overwrite an existing entry in fillEmpty mode
+                      const incomingLangs = Array.isArray(result.additional_languages) ? result.additional_languages : [];
+                      if (incomingLangs.length > 0) {
+                        const current = (form.getValues('additional_languages') as Array<{ name: string; level: string }>) || [];
+                        let merged: Array<{ name: string; level: string }>;
+                        if (mode === 'overwrite') {
+                          merged = incomingLangs;
+                        } else {
+                          const existingNames = new Set(current.map((l) => (l.name || '').toLowerCase().trim()));
+                          merged = [
+                            ...current,
+                            ...incomingLangs.filter((l) => l.name && !existingNames.has(l.name.toLowerCase().trim())),
+                          ];
+                        }
+                        setAdditionalLanguages(merged);
+                        form.setValue('additional_languages', merged, { shouldDirty: true });
                       }
                     }}
                   />
