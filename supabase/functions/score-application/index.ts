@@ -950,8 +950,10 @@ Rules:
     };
   }
 
+  const data = result.data;
+
   // Sanitize evidence: trim quotes, max 3, max 280 chars each
-  const evidence: EvidenceQuote[] = (result.evidence || [])
+  const evidence: EvidenceQuote[] = (data.evidence || [])
     .slice(0, 3)
     .map((e: any) => ({
       source: e.source || 'work_experience',
@@ -962,8 +964,8 @@ Rules:
   const flags: string[] = [];
 
   // No Evidence = False hard rule
-  let demonstrated = !!result.demonstrated;
-  let confidence = typeof result.confidence === 'number' ? result.confidence : 0.5;
+  let demonstrated = !!data.demonstrated;
+  let confidence = typeof data.confidence === 'number' ? data.confidence : 0.5;
 
   if (demonstrated && evidence.length === 0) {
     demonstrated = false;
@@ -974,9 +976,10 @@ Rules:
   return {
     demonstrated,
     evidence,
-    missing: result.missing || null,
+    missing: data.missing || null,
     confidence,
-    flags
+    flags,
+    modelUsed: result.modelUsed,
   };
 }
 
