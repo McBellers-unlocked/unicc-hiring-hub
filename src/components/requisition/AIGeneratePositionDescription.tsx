@@ -390,6 +390,19 @@ export function AIGeneratePositionDescription({
         return;
       }
 
+      if (hasAttachments && attachments.length > 0) {
+        const extracted = parseAttachedJobDescription(attachments, ctx);
+        if (hasExtractedContent(extracted)) {
+          onApply(extracted, mode);
+          const fieldCount = Object.values(extracted).filter((v) => (Array.isArray(v) ? v.length > 0 : !!v)).length;
+          toast({
+            title: "Extracted from JD",
+            description: `${fieldCount} field${fieldCount === 1 ? "" : "s"} filled from the uploaded document. Review and refine as needed.`,
+          });
+          return;
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke("generate-position-description", {
         body: { ...ctx, attachments },
       });
