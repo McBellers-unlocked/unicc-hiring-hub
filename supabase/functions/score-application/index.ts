@@ -55,6 +55,16 @@ function bandConfidence(c: number): number {
   return 0.9;
 }
 
+// Logic-aware pass ratio — toggleable, default OFF.
+// When true, subPassRatio for an OR-style recombine_logic is computed against
+// the minimal satisfying set instead of total sub count, so a fully-satisfied
+// OR scores like a fully-satisfied requirement.
+const LOGIC_AWARE_PASS_RATIO = false;
+
+// Symmetric verifier band: re-check borderline NEGATIVES in [LOW, HIGH).
+const VERIFIER_NEG_LOW = 0.50;
+const VERIFIER_NEG_HIGH = 0.80;
+
 // Stable, dependency-free string hash (djb2). Used to fingerprint
 // decompositions and PHF inputs for the verdict cache.
 function shortHash(s: string): string {
