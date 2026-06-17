@@ -55,18 +55,24 @@ export interface ScoringResult {
 /**
  * Categorize a criterion bullet by pattern matching
  */
+// Categorisation precedence (highest wins). When a bullet matches multiple
+// patterns (e.g. "5 years' experience drafting frameworks" matches both
+// years_experience and output_experience), the first match below is used:
+//   years_experience > education > output_experience > specific_experience
+//   > knowledge > skill > ability > attribute
+// Order is documented so multi-pattern bullets are categorised consistently.
 export function categorizeCriterion(text: string): CriterionType {
   const lowerText = text.toLowerCase();
-  
-  // Years experience patterns - most specific first
+
+  // 1) years_experience — most specific first
   if (/(\d+)\s*[\(\)]*\s*years?\s*(of\s+)?(experience|work)/i.test(text) ||
       /at\s+least\s+\w+\s*\(\d+\)\s*years/i.test(text) ||
       /minimum\s+(of\s+)?\d+\s*years/i.test(text)) {
     return 'years_experience';
   }
-  
-  // Education patterns
-  if (lowerText.includes('degree') || 
+
+  // 2) education
+  if (lowerText.includes('degree') ||
       lowerText.includes('education') ||
       lowerText.includes('university') ||
       lowerText.includes("bachelor") ||
@@ -76,17 +82,10 @@ export function categorizeCriterion(text: string): CriterionType {
       lowerText.includes('secondary school')) {
     return 'education';
   }
-  
-  // Specific experience patterns
-  if (lowerText.startsWith('proven experience') ||
-      lowerText.startsWith('demonstrated experience') ||
-      lowerText.includes('experience managing') ||
-      lowerText.includes('experience in ') ||
-      lowerText.includes('experience with ')) {
-    return 'specific_experience';
-  }
-  
-  // Output/deliverable experience patterns
+
+  // 3) output_experience — checked BEFORE specific_experience because
+  //    "experience drafting/preparing/developing X" would otherwise be
+  //    swallowed by the broader "experience in/with" specific pattern.
   if (lowerText.includes('experience preparing') ||
       lowerText.includes('experience developing') ||
       lowerText.includes('experience drafting') ||
@@ -94,30 +93,39 @@ export function categorizeCriterion(text: string): CriterionType {
       lowerText.includes('experience in the development')) {
     return 'output_experience';
   }
-  
-  // Knowledge patterns
+
+  // 4) specific_experience
+  if (lowerText.startsWith('proven experience') ||
+      lowerText.startsWith('demonstrated experience') ||
+      lowerText.includes('experience managing') ||
+      lowerText.includes('experience in ') ||
+      lowerText.includes('experience with ')) {
+    return 'specific_experience';
+  }
+
+  // 5) knowledge
   if (lowerText.startsWith('knowledge of') ||
       lowerText.startsWith('strong knowledge') ||
       lowerText.includes('understanding of') ||
       lowerText.includes('familiarity with')) {
     return 'knowledge';
   }
-  
-  // Skill patterns
+
+  // 6) skill
   if (lowerText.includes('skills') ||
       lowerText.startsWith('excellent') ||
-      lowerText.startsWith('strong') && !lowerText.includes('knowledge')) {
+      (lowerText.startsWith('strong') && !lowerText.includes('knowledge'))) {
     return 'skill';
   }
-  
-  // Ability patterns
+
+  // 7) ability
   if (lowerText.startsWith('ability to') ||
       lowerText.startsWith('capable of') ||
       lowerText.includes('able to')) {
     return 'ability';
   }
-  
-  // Default to attribute (integrity, diplomatic, etc.)
+
+  // 8) attribute (default: integrity, diplomatic, etc.)
   return 'attribute';
 }
 

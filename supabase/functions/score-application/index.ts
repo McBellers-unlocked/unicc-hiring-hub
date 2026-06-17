@@ -102,6 +102,7 @@ interface CriterionScoreV4 {
   confidence: number;
   subrequirements: SubRequirementScore[];
   recombine_logic: string;
+  flags?: string[]; // criterion-level flags: SUBS_TRUNCATED, AI_PARSE_FAILURE, ...
   details?: {
     required?: string;
     candidateHas?: string;
@@ -474,39 +475,54 @@ async function callAIWithToolCalling(
 // Criterion Parsing (unchanged from v3.0)
 // =============================================================================
 
+// Categorisation precedence (highest wins). When a bullet matches multiple
+// patterns (e.g. "5 years' experience drafting frameworks" matches both
+// years_experience and output_experience), the first match below is used:
+//   years_experience > education > output_experience > specific_experience
+//   > knowledge > skill > ability > attribute
+// Order is documented so multi-pattern bullets are categorised consistently.
 function categorizeCriterion(text: string): CriterionType {
   const lowerText = text.toLowerCase();
+  // 1) years_experience
   if (/(\d+)\s*[\(\)]*\s*years?\s*(of\s+)?(experience|work)/i.test(text) ||
       /at\s+least\s+\w+\s*\(\d+\)\s*years/i.test(text) ||
       /minimum\s+(of\s+)?\d+\s*years/i.test(text)) {
     return 'years_experience';
   }
+  // 2) education
   if (lowerText.includes('degree') || lowerText.includes('education') ||
       lowerText.includes('university') || lowerText.includes("bachelor") ||
       lowerText.includes("master") || lowerText.includes('phd')) {
     return 'education';
   }
-  if (lowerText.startsWith('proven experience') || lowerText.startsWith('demonstrated experience') ||
-      lowerText.includes('experience managing') || lowerText.includes('experience in ') ||
-      lowerText.includes('experience with ')) {
-    return 'specific_experience';
-  }
+  // 3) output_experience (checked BEFORE specific_experience so "experience drafting X"
+  //    is not swallowed by the broader "experience in/with" specific_experience pattern)
   if (lowerText.includes('experience preparing') || lowerText.includes('experience developing') ||
       lowerText.includes('experience drafting') || lowerText.includes('experience in the preparation') ||
       lowerText.includes('experience in the development')) {
     return 'output_experience';
   }
+  // 4) specific_experience
+  if (lowerText.startsWith('proven experience') || lowerText.startsWith('demonstrated experience') ||
+      lowerText.includes('experience managing') || lowerText.includes('experience in ') ||
+      lowerText.includes('experience with ')) {
+    return 'specific_experience';
+  }
+  // 5) knowledge
   if (lowerText.startsWith('knowledge of') || lowerText.startsWith('strong knowledge') ||
       lowerText.includes('understanding of')) {
     return 'knowledge';
   }
+  // 6) skill
   if (lowerText.includes('skills') || lowerText.startsWith('excellent') ||
       (lowerText.startsWith('strong') && !lowerText.includes('knowledge'))) {
     return 'skill';
   }
+  // 7) ability
   if (lowerText.startsWith('ability to') || lowerText.includes('able to')) {
     return 'ability';
   }
+  // 8) attribute (default)
   return 'attribute';
 }
 
@@ -628,7 +644,12 @@ function parseEssentialCriteria(requirements: any[]): ParsedCriterion[] {
 
 function calculateTotalExperienceYears(experience: any[]): number {
   if (!experience || !Array.isArray(experience)) return 0;
-  let totalMonths = 0;
+
+  // Build [start, end] ranges from each entry, then merge overlapping/adjacent
+  // ranges before summing. This prevents concurrent/overlapping employment from
+  // being double-counted (interval union, not naive sum-of-spans).
+  const ranges: Array<[number, number]> = [];
+
   for (const exp of experience) {
     let startDate: Date | null = null;
     let endDate: Date | null = null;
@@ -667,11 +688,31 @@ function calculateTotalExperienceYears(experience: any[]): number {
     }
     if (!startDate || isNaN(startDate.getTime())) continue;
     if (!endDate || isNaN(endDate.getTime())) continue;
-    const months = (endDate.getFullYear() - startDate.getFullYear()) * 12
-      + (endDate.getMonth() - startDate.getMonth());
-    totalMonths += Math.max(0, months);
+    if (endDate.getTime() < startDate.getTime()) continue;
+    ranges.push([startDate.getTime(), endDate.getTime()]);
   }
-  return Math.round(totalMonths / 12 * 10) / 10;
+
+  if (ranges.length === 0) return 0;
+
+  ranges.sort((a, b) => a[0] - b[0]);
+  const ADJACENT_GAP_MS = 24 * 60 * 60 * 1000; // ranges within 1 day are adjacent
+  const merged: Array<[number, number]> = [ranges[0]];
+  for (let i = 1; i < ranges.length; i++) {
+    const last = merged[merged.length - 1];
+    const [s, e] = ranges[i];
+    if (s <= last[1] + ADJACENT_GAP_MS) {
+      last[1] = Math.max(last[1], e);
+    } else {
+      merged.push([s, e]);
+    }
+  }
+
+  const MS_PER_MONTH = (365.25 / 12) * 24 * 60 * 60 * 1000;
+  let totalMonths = 0;
+  for (const [s, e] of merged) {
+    totalMonths += Math.max(0, (e - s) / MS_PER_MONTH);
+  }
+  return Math.round((totalMonths / 12) * 10) / 10;
 }
 
 // =============================================================================
@@ -942,7 +983,15 @@ Check:
 // STEP 5: Recombine Logic Parser (safe, strict) — unchanged
 // =============================================================================
 
-function evaluateRecombineLogic(logic: string, results: Record<string, boolean>): boolean {
+function evaluateRecombineLogic(
+  logic: string,
+  results: Record<string, boolean>
+): { passed: boolean; parseFailed: boolean } {
+  const fallback = (): { passed: boolean; parseFailed: boolean } => ({
+    passed: Object.values(results).every(v => v),
+    parseFailed: true,
+  });
+
   const rawTokens = logic.trim().split(/\s+/);
   const tokens: string[] = [];
   for (const raw of rawTokens) {
@@ -955,7 +1004,7 @@ function evaluateRecombineLogic(logic: string, results: Record<string, boolean>)
   for (const token of tokens) {
     if (!validToken.test(token)) {
       console.warn(`Invalid token in recombine_logic: "${token}", treating as AND-all`);
-      return Object.values(results).every(v => v);
+      return fallback();
     }
   }
 
@@ -971,12 +1020,13 @@ function evaluateRecombineLogic(logic: string, results: Record<string, boolean>)
       if (parts) exprTokens.push(...parts);
       else exprTokens.push(raw);
     }
-    return parseOrExpression(exprTokens, { pos: 0 });
+    return { passed: parseOrExpression(exprTokens, { pos: 0 }), parseFailed: false };
   } catch {
     console.warn('Recombine logic parse failed, defaulting to AND-all');
-    return Object.values(results).every(v => v);
+    return fallback();
   }
 }
+
 
 function parseOrExpression(tokens: string[], state: { pos: number }): boolean {
   let result = parseAndExpression(tokens, state);
@@ -1074,9 +1124,11 @@ async function scoreCriterionV4(
   let llmSubs = decomposition.subrequirements.filter(s => s.type === 'llm');
 
   // v4.1 COMPLEXITY GUARD: Cap LLM subrequirements to prevent timeout on heavy decompositions
+  const criterionFlags: string[] = [];
   if (llmSubs.length > MAX_SUBS_PER_CRITERION) {
     console.log(`Capping ${llmSubs.length} LLM subs to ${MAX_SUBS_PER_CRITERION} for criterion ${criterion.id}`);
     llmSubs = llmSubs.slice(0, MAX_SUBS_PER_CRITERION);
+    criterionFlags.push('SUBS_TRUNCATED');
   }
 
   // Process deterministic subs immediately (no AI needed)
@@ -1159,7 +1211,10 @@ async function scoreCriterionV4(
   for (const sub of subScores) {
     subResults[sub.id] = sub.demonstrated;
   }
-  const passed = evaluateRecombineLogic(decomposition.recombine_logic, subResults);
+  const { passed, parseFailed } = evaluateRecombineLogic(decomposition.recombine_logic, subResults);
+  if (parseFailed) {
+    criterionFlags.push('AI_PARSE_FAILURE');
+  }
 
   // Calculate score
   const avgConfidence = subScores.reduce((sum, s) => sum + s.confidence, 0) / Math.max(1, subScores.length);
@@ -1182,6 +1237,7 @@ async function scoreCriterionV4(
     confidence: avgConfidence,
     subrequirements: subScores,
     recombine_logic: decomposition.recombine_logic,
+    flags: criterionFlags.length > 0 ? criterionFlags : undefined,
   };
 }
 
