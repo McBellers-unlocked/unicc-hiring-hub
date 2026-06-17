@@ -108,24 +108,29 @@ export function parseExperienceYears(text: string): number {
 }
 
 /**
- * Calculate total years of experience from work history
+ * Calculate total years of experience from work history using INTERVAL UNION.
+ *
+ * Builds [start, end] ranges from each entry (using today's date when is_present/isCurrent),
+ * merges overlapping OR adjacent ranges, and sums durations of the merged ranges.
+ * This prevents concurrent/overlapping employment from being double-counted.
+ *
  * Handles multiple data formats:
  * - PHF format: period_from_year/month, period_to_year/month, is_present
  * - Profile format: startDate, endDate, isCurrent (camelCase)
  * - Standard format: start_date, end_date, is_current (snake_case)
  */
 export function calculateTotalExperienceYears(experience: any[]): number {
-  let totalMonths = 0;
-  
+  const ranges: Array<[number, number]> = []; // [startMs, endMs]
+
   for (const exp of experience) {
     let startDate: Date | null = null;
     let endDate: Date | null = null;
-    
+
     // Handle PHF format (period_from_year, period_from_month)
     if (exp.period_from_year) {
       const month = exp.period_from_month ? parseInt(exp.period_from_month) - 1 : 0;
       startDate = new Date(parseInt(exp.period_from_year), month, 1);
-      
+
       if (exp.is_present) {
         endDate = new Date();
       } else if (exp.period_to_year) {
@@ -143,16 +148,38 @@ export function calculateTotalExperienceYears(experience: any[]): number {
       startDate = new Date(exp.start_date);
       endDate = exp.is_current || !exp.end_date ? new Date() : new Date(exp.end_date);
     }
-    
+
     if (!startDate || isNaN(startDate.getTime())) continue;
     if (!endDate || isNaN(endDate.getTime())) continue;
-    
-    const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 
-      + (endDate.getMonth() - startDate.getMonth());
-    totalMonths += Math.max(0, months);
+    if (endDate.getTime() < startDate.getTime()) continue;
+
+    ranges.push([startDate.getTime(), endDate.getTime()]);
   }
-  
-  return Math.round(totalMonths / 12 * 10) / 10; // Round to 1 decimal
+
+  if (ranges.length === 0) return 0;
+
+  // Sort by start, then merge overlapping or adjacent (gap <= 1 day) ranges
+  ranges.sort((a, b) => a[0] - b[0]);
+  const ADJACENT_GAP_MS = 24 * 60 * 60 * 1000; // 1 day treated as adjacent
+  const merged: Array<[number, number]> = [ranges[0]];
+  for (let i = 1; i < ranges.length; i++) {
+    const last = merged[merged.length - 1];
+    const [s, e] = ranges[i];
+    if (s <= last[1] + ADJACENT_GAP_MS) {
+      last[1] = Math.max(last[1], e);
+    } else {
+      merged.push([s, e]);
+    }
+  }
+
+  // Sum merged spans in months (average month = 30.4375 days)
+  const MS_PER_MONTH = (365.25 / 12) * 24 * 60 * 60 * 1000;
+  let totalMonths = 0;
+  for (const [s, e] of merged) {
+    totalMonths += Math.max(0, (e - s) / MS_PER_MONTH);
+  }
+
+  return Math.round((totalMonths / 12) * 10) / 10; // Round to 1 decimal
 }
 
 /**
