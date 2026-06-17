@@ -113,6 +113,7 @@ interface SubRequirement {
 interface Decomposition {
   subrequirements: SubRequirement[];
   recombine_logic: string;
+  modelUsed?: string;
 }
 
 interface EvidenceQuote {
