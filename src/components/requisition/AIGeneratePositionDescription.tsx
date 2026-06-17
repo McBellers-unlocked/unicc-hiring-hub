@@ -337,6 +337,7 @@ export function AIGeneratePositionDescription({
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const hasFiles = files.length > 0;
 
   const handlePickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const incoming = Array.from(e.target.files || []);
