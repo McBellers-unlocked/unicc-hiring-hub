@@ -1,68 +1,42 @@
-# Fix JD upload + expand auto-fill on `/requisitions/new`
+## Goal
+When the user fills Position Title + Nature + Grade + Division and clicks **Generate with AI** (no JD attached), reliably produce:
 
-## Root cause of "AI generation failed"
+- **Purpose of position** (2–4 sentences)
+- **Main duties & responsibilities** (6–10 bullets)
+- **Essential & desirable experience** — only the "field/area" wording; do NOT overwrite the years-of-experience number auto-set from grade
+- **Essential & desirable education** — only the field-of-study wording; do NOT overwrite `essential_education_level` auto-set from grade
 
-The previous CORS "fix" introduced an import that doesn't exist:
+All closed-list fields (Duty Station, Unit/Section, Competencies, Languages, Nature, Grade, Division) stay untouched on the no-JD path.
 
-```ts
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-```
+## Root cause
+Two issues in `supabase/functions/generate-position-description/index.ts`:
 
-The `/cors` sub-path is not exported by `@supabase/supabase-js`. The function fails to load in Deno, so every `supabase.functions.invoke("generate-position-description", …)` returns a network-style "Failed to send a request" error — regardless of the JD content.
-
-Every other edge function in this repo declares CORS inline; we'll do the same.
-
-## What the AI currently fills vs. what you want
-
-| Field | Today | After this change |
-|---|---|---|
-| Position Title | — | Auto |
-| Nature of position | — | Auto (mapped to enum) |
-| Grade | — | Auto (mapped to enum) |
-| Unit / Section / Division | — | Auto (mapped to catalogue) |
-| Duty station | — | Auto (mapped to enum) |
-| Purpose of position | Auto | Auto |
-| Main duties & responsibilities | Auto | Auto |
-| Essential / desirable experience | Auto | Auto |
-| Essential / desirable education (+ level) | Auto | Auto |
-| Additional languages | Auto | Auto |
-| Core / Management / Leadership competencies | — | Auto (checked from catalogue) |
+1. Model `google/gemini-2.5-flash` may be deprecated/unavailable on the Lovable AI Gateway, returning a 4xx that the client surfaces as the generic "AI generation failed" toast.
+2. The system prompt instructs the model to return `null` for most fields when no JD is attached, so even on success the response is often empty enough to confuse the user.
 
 ## Changes
 
 ### 1. `supabase/functions/generate-position-description/index.ts`
-- Remove the broken `npm:@supabase/supabase-js@2/cors` import.
-- Restore an inline `corsHeaders` object (same shape used by every other function in the repo) and keep it spread into every response, including the OPTIONS preflight and all error returns.
-- Extend the system prompt and the JSON schema the model must return to also include:
-  - `position_title`
-  - `nature_of_position` — must be one of: `Fixed term | Temporary | Individual Consultant | STDA | Intern`
-  - `grade` — must be one of: `G3 G4 G5 G6 G7 P1 P2 P3 P4 P5 D1 D2`
-  - `duty_station` — must be one of: `Brindisi | Geneva | Lyon | New York | Rome | Valencia` (plus `Remote` only for Intern / Individual Consultant)
-  - `division` — one of: `CS | DD | DS | DO | MS | OP` (key only)
-  - `unit_section_division` — must be one of the unit strings defined in `DIVISION_UNITS` for the chosen division (full string, e.g. `"CISO Section (CISO)"`)
-  - `core_competencies[]`, `management_competencies[]`, `leadership_competencies[]` — each value must be the exact key portion (text before the first colon) from the inline catalogue in `JobRequisitionForm.tsx` (lines 2302–2306, 2355–2358, 2405–2408)
-- Server-side validation: any value the model returns that is not in the allowed enum/catalogue is dropped (returned as `null` / removed from the array) so we never store junk.
-- For competencies, enforce the form's rule (max 3 across all three groups for non-Intern; max 2 core for Intern) on the server by truncating.
-- If the model cannot determine a field, it must return `null` for that field — we never invent values.
+- Switch model to `google/gemini-3-flash-preview` (the documented default chat model).
+- Split the prompt into two modes:
+  - **JD-attached mode**: unchanged behavior (extraction).
+  - **No-JD mode**: ask only for `purpose_of_position`, `main_duties_responsibilities`, `essential_experience`, `desirable_experience`, `essential_education`, `desirable_education`. Force all other keys to `null` / `[]` server-side. Add explicit instruction: do not state a number of years of experience and do not name a degree level (Bachelor/Master/etc.) — only describe the field/area of experience and field of study.
+- Improve error logging: include the gateway response status + body in the JSON returned to the client (truncated) so the toast shows the real reason instead of "AI generation failed".
 
-### 2. `src/components/requisition/AIGeneratePositionDescription.tsx` and the `onApply` callback in `src/pages/JobRequisitionForm.tsx`
-- Extend the `onApply` handler so that, in addition to the existing keys, it sets the new fields via `form.setValue(...)` with `shouldValidate: true`:
-  - `position_title`, `nature_of_position`, `grade`, `duty_station`
-  - `division`, then `unit_section_division` (in that order — division must be set first so the unit dropdown's options resolve)
-  - `core_competencies`, `management_competencies`, `leadership_competencies`
-- "fillEmpty" mode (the default after a JD upload) only writes a field if the current form value is empty / unselected. "Overwrite" replaces.
-- Keep the existing auto-trigger from the previous turn (upload JD → generation kicks off as soon as it has any text), but no longer require the user to have typed a Position Title first — title is now an output, not a prerequisite. The button stays available for manual re-runs.
+### 2. `src/components/requisition/AIGeneratePositionDescription.tsx`
+No behavior change to the JD path. For the no-JD path, ensure `onApply` is called with `mode: "fillEmpty"` by default (no overwriting of years/level the form pre-populated from grade).
 
-### 3. No DB / RLS / schema changes
-All affected fields already exist on the form and on the requisition row. No migration is needed.
+### 3. `src/pages/JobRequisitionForm.tsx` — `onApply` handler
+- In `"fillEmpty"` mode, only write `essential_experience` / `desirable_experience` / `essential_education` / `desirable_education` when the current field is empty OR contains only the grade-derived stub (e.g. "X+ years of …" boilerplate with no field/area). Concretely: if the existing value matches `/^\s*\d+\+?\s*years?/i` and has no "in <field>" clause, append the AI's field/area phrase to it rather than replacing.
+- Never call `setSelectedCoreCompetencies` / `setSelectedDivision` / `setSelectedUnit` / duty-station setters on the no-JD path (the AI returns null/[] for these so this is already a no-op, but make it explicit by short-circuiting on falsy values).
+- Leave `essential_education_level` untouched in fillEmpty mode if the form already has it set from grade.
 
 ## Verification
-1. Reload `/requisitions/new`, attach the same JD you've been testing with, no toast errors.
-2. Within ~10s the form should populate: title, nature, grade, division+unit, duty station, purpose, duties, experience, education, languages, and the relevant competency checkboxes.
-3. Manually changing any field before generation finishes is preserved (fillEmpty won't overwrite).
-4. Re-uploading a different JD on the same draft triggers another generation; only still-empty fields get filled.
+1. On `/requisitions/new` enter only Title / Nature=Fixed term / Grade=P3 / Division=DD.
+2. Click **Generate with AI** — within ~10 s the four target fields populate, grade-derived years/level remain intact, no closed-list selections move.
+3. If the gateway errors, the toast shows the real status + message (e.g. "AI error 404: model not found") instead of the generic failure string.
 
 ## Out of scope
-- OCR fallback for image-only / scanned PDFs (current pdf.js extraction is text-layer only — if a JD has no text layer the model will still get little context). Happy to add Vision-based OCR as a follow-up if you hit a scanned JD.
-- Changing the underlying model (`google/gemini-2.5-flash`) or any scoring / rubric logic.
-- The Job Wizard's separate `CompetenciesList` catalogue — only the requisition form's inline catalogue is targeted.
+- JD-upload extraction path (working, per user instruction "don't touch this").
+- Auto-suggesting closed-list fields without a JD.
+- Changing form validation of grade-derived defaults.
