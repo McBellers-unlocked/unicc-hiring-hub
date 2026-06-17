@@ -1196,7 +1196,10 @@ async function scoreCriterionV4(
   for (const sub of subScores) {
     subResults[sub.id] = sub.demonstrated;
   }
-  const passed = evaluateRecombineLogic(decomposition.recombine_logic, subResults);
+  const { passed, parseFailed } = evaluateRecombineLogic(decomposition.recombine_logic, subResults);
+  if (parseFailed) {
+    criterionFlags.push('AI_PARSE_FAILURE');
+  }
 
   // Calculate score
   const avgConfidence = subScores.reduce((sum, s) => sum + s.confidence, 0) / Math.max(1, subScores.length);
@@ -1219,6 +1222,7 @@ async function scoreCriterionV4(
     confidence: avgConfidence,
     subrequirements: subScores,
     recombine_logic: decomposition.recombine_logic,
+    flags: criterionFlags.length > 0 ? criterionFlags : undefined,
   };
 }
 
