@@ -2,9 +2,10 @@ import type { DataRecord } from './assessment-core.ts';
 import { ASSESSMENT_AI_BUDGET_MS, GATEWAY_REQUEST_TIMEOUT_MS } from './assessment-timing.ts';
 
 export const ASSESSMENT_MODEL = 'openai/gpt-5';
-export const ASSESSMENT_PROMPT_VERSION = '2026-09-07.evidence-workspace.2';
+export const ASSESSMENT_PROMPT_VERSION = '2026-09-07.evidence-workspace.3';
 export const ASSESSMENT_REASONING_EFFORT = 'low';
 export const ASSESSMENT_EXECUTION_CONFIG = {
+  source_format_version: '2.known-identical-aliases',
   reasoning_effort: ASSESSMENT_REASONING_EFFORT,
   gateway_request_timeout_ms: GATEWAY_REQUEST_TIMEOUT_MS,
   assessment_ai_budget_ms: ASSESSMENT_AI_BUDGET_MS,

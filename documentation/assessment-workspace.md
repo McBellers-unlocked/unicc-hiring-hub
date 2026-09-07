@@ -31,7 +31,9 @@ Use **Prepare manual review snapshot** to inspect frozen submitted evidence befo
 
 ## Assessment execution
 
-The evaluator and verifier use the configured `openai/gpt-5` model with explicit `reasoning_effort: low`, the complete criteria and saved source records. Prompt version `2026-09-07.evidence-workspace.2` identifies this execution change. Each gateway request can take up to 50 seconds, within a shared 80-second AI budget for the assessment. Later attempts are capped by the remaining budget, with a 500-millisecond completion margin; no new attempt starts with less than one second remaining. The immutable result records the reasoning effort and both limits in `execution_config`, and the input hash includes this configuration.
+The evaluator and verifier use the configured `openai/gpt-5` model with explicit `reasoning_effort: low`, the complete criteria and saved source records. Prompt version `2026-09-07.evidence-workspace.3` also identifies the revised source formatting: identical values in known profile aliases appear once with their original labels, while conflicting values and the raw submitted snapshot remain intact. This prevents duplicated storage fields from making otherwise exact citations ambiguous. The evaluator must choose a unique continuous source passage; exact-quote validation and the second evidence check remain mandatory.
+
+Each gateway request can take up to 50 seconds, within a shared 80-second AI budget for the assessment. Later attempts are capped by the remaining budget, with a 500-millisecond completion margin; no new attempt starts with less than one second remaining. The immutable result records the source format, reasoning effort and both limits in `execution_config`, and the input hash includes this configuration.
 
 Batch scoring processes up to four applications concurrently per slice. Every outcome in the slice settles before its saved counters advance and the next slice starts. Failed requests remain visible in the batch record. Assessment runs do not change application stages or human decisions.
 
