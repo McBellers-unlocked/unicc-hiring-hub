@@ -413,7 +413,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in import-affiliate-personnel:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,

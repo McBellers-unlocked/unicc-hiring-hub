@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
       }
     )
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ PDF processing error:', error)
     return new Response(
       JSON.stringify({ error: 'Failed to process PDF', details: error.message }),

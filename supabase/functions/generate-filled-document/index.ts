@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
         "Content-Disposition": `attachment; filename="${fileName}"`,
       },
     });
-  } catch (err) {
+  } catch (err: any) {
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

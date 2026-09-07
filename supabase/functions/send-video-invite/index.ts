@@ -142,7 +142,7 @@ serve(async (req) => {
         subject = template.subject?.replace('{{jobTitle}}', data.jobTitle) || subject;
         // Generate HTML with custom template values if provided
         // For now, we'll use the default HTML generator
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error parsing template:', error);
       }
     }
@@ -183,7 +183,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending video invite:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(

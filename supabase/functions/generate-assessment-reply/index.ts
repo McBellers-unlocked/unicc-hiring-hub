@@ -206,7 +206,7 @@ Generate a follow-up reply email. Address the candidate by their first name if a
         status: 200 
       }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in generate-assessment-reply:", error);
     return new Response(
       JSON.stringify({ error: error.message }),

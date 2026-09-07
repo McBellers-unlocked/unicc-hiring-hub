@@ -332,7 +332,7 @@ Rules:
         if (m) txt = m[1].trim();
       }
       parsed = JSON.parse(txt);
-    } catch (e) {
+    } catch (e: any) {
       console.error("JSON parse failed", e, content);
       return json(500, { error: "AI returned non-JSON response" });
     }
@@ -436,7 +436,7 @@ Rules:
       management_competencies,
       leadership_competencies,
     });
-  } catch (e) {
+  } catch (e: any) {
     console.error("generate-position-description error", e);
     return json(500, { error: e instanceof Error ? e.message : "Unknown error" });
   }

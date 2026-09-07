@@ -181,7 +181,7 @@ Deno.serve(async (req) => {
         const logoBytes = new Uint8Array(await logoData.arrayBuffer());
         logoImage = await pdfDoc.embedPng(logoBytes);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.log("Logo not found in storage, continuing without it:", e);
     }
 

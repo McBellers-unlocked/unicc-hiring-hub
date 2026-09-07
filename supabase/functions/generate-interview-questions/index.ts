@@ -160,7 +160,7 @@ Generate the JSON now.`;
         if (m) txt = m[1].trim();
       }
       parsed = JSON.parse(txt);
-    } catch (e) {
+    } catch (e: any) {
       console.error('JSON parse failed', e, content);
       return new Response(JSON.stringify({ error: 'AI returned non-JSON response' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -181,7 +181,7 @@ Generate the JSON now.`;
     return new Response(JSON.stringify({ questions }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  } catch (e) {
+  } catch (e: any) {
     console.error('generate-interview-questions error', e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : 'Unknown error' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

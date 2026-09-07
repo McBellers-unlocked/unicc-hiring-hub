@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
         } else {
           updated++;
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error(`Exception updating ${email}:`, err);
         errors++;
       }
@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Import error:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Internal server error' }),

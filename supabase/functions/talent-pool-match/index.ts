@@ -210,7 +210,7 @@ Candidate skills: ${JSON.stringify(candidateSkills)}`;
     for (const m of result.matches || []) {
       scoreMap.set(m.required_skill.toLowerCase(), Math.max(0, Math.min(1, m.similarity)));
     }
-  } catch (e) {
+  } catch (e: any) {
     console.error("Semantic skill matching failed, falling back to fuzzy:", e);
     // Fallback to fuzzy matching
     for (const req of requiredSkills) {
@@ -574,7 +574,7 @@ serve(async (req) => {
                 domain_keywords: result.domain_keywords || [],
                 completeness_score: Math.max(0, Math.min(1, result.completeness_score || 0)),
               });
-            } catch (e) {
+            } catch (e: any) {
               console.error(`Failed to embed candidate ${candidate.id}:`, e);
             }
           });
@@ -653,7 +653,7 @@ serve(async (req) => {
           try {
             const scores = await getSemanticSkillScores(apiKey, requiredSkills, candidateSkills);
             semanticScoresMap.set(c.candidate_id, scores);
-          } catch (e) {
+          } catch (e: any) {
             console.error(`Semantic matching failed for ${c.candidate_id}:`, e);
           }
         });
@@ -784,7 +784,7 @@ serve(async (req) => {
           result.gaps = explanation.gaps_or_unknowns || [];
           // Use the AI-suggested tier if higher confidence
           if (explanation.tier) result.tier = explanation.tier;
-        } catch (e) {
+        } catch (e: any) {
           console.error(`Explanation failed for ${result.candidate_id}:`, e);
           result.reasons = [{ label: "Score-based match", detail: `Match score: ${result.match_score}%` }];
           result.gaps = [{ label: "Explanation unavailable", detail: "Could not generate detailed explanation" }];
@@ -842,7 +842,7 @@ serve(async (req) => {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (e) {
+  } catch (e: any) {
     console.error("talent-pool-match error:", e);
     const status = (e as any)?.message?.includes("429") ? 429 : (e as any)?.message?.includes("402") ? 402 : 500;
     return new Response(
