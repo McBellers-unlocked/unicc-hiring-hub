@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -15,17 +15,9 @@ interface BulkRejectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedCount: number;
-  onConfirm: (reason: string) => void;
+  onConfirm: (reason: string) => void | Promise<void>;
   isLoading?: boolean;
 }
-
-const QUICK_REASONS = [
-  "Does not meet minimum education requirements",
-  "Does not meet minimum experience requirements",
-  "Incomplete application",
-  "Does not meet language requirements",
-  "Does not meet essential qualifications",
-];
 
 export function BulkRejectDialog({
   open,
@@ -36,17 +28,11 @@ export function BulkRejectDialog({
 }: BulkRejectDialogProps) {
   const [reason, setReason] = useState("");
 
-  const handleConfirm = () => {
-    if (reason.trim()) {
-      onConfirm(reason.trim());
-      setReason("");
-    }
-  };
+  useEffect(() => { if (!open) setReason(""); }, [open]);
 
-  const handleQuickSelect = (quickReason: string) => {
-    setReason(quickReason);
+  const handleConfirm = async () => {
+    if (reason.trim()) await onConfirm(reason.trim());
   };
-
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       setReason("");
@@ -63,37 +49,17 @@ export function BulkRejectDialog({
             Reject {selectedCount} Application{selectedCount !== 1 ? "s" : ""}
           </DialogTitle>
           <DialogDescription>
-            Please provide a reason for rejecting these applications. This will be recorded for audit purposes.
+            Record the evidence and criteria supporting your exclusion decision for every selected application. Each decision is saved against its assessment version. Missing evidence alone does not establish that a requirement is unmet.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              Quick select a reason:
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {QUICK_REASONS.map((quickReason) => (
-                <Button
-                  key={quickReason}
-                  type="button"
-                  variant={reason === quickReason ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleQuickSelect(quickReason)}
-                  className="text-xs"
-                >
-                  {quickReason}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
             <label className="text-sm font-medium">
               Rejection Reason <span className="text-destructive">*</span>
             </label>
             <Textarea
-              placeholder="Enter the rejection reason..."
+              placeholder="Explain the criterion and source evidence supporting exclusion for each selected application..."
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               maxLength={500}

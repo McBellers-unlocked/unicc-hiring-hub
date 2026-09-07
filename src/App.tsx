@@ -18,6 +18,7 @@ import { PanelInterviewFeedback } from "./pages/PanelInterviewFeedback";
 import { Analytics } from "./pages/Analytics";
 import JobWizard from "./pages/JobWizard";
 import ApplicationScoringTest from "./pages/ApplicationScoringTest";
+import AssessmentWorkspaceDemo from "./pages/AssessmentWorkspaceDemo";
 import VideoTestInterface from "./pages/VideoTestInterface";
 import JobRequisitions from "./pages/JobRequisitions";
 import AdminRequisitions from "./pages/AdminRequisitions";
@@ -151,6 +152,7 @@ const App = () => (
             <Route path="/admin/applications/:id" element={<ApplicationDetail />} />
             <Route path="/admin/video-test" element={<VideoTestInterface />} />
             <Route path="/admin/scoring" element={<ApplicationScoringTest />} />
+            <Route path="/assessment-demo" element={<AssessmentWorkspaceDemo />} />
             <Route path="/requisitions" element={<JobRequisitions />} />
             <Route path="/admin/requisitions" element={<AdminRequisitions />} />
             <Route path="/admin/chief-hr-review" element={<ChiefHRReview />} />

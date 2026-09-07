@@ -16,11 +16,11 @@ import { cn } from '@/lib/utils';
 interface ActionConfirmationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  action: 'longlist' | 'reject' | 'add-to-video' | 'move-to-panel-interview' | 'move-to-panel-from-longlist' | 'move-to-recommended' | 'move-to-roster';
+  action: 'longlist' | 'reject' | 'clarify' | 'add-to-video' | 'move-to-panel-interview' | 'move-to-panel-from-longlist' | 'move-to-recommended' | 'move-to-roster';
   candidateName: string;
   currentStatus: string;
   isToggleAction?: boolean; // For longlist toggle
-  onConfirm: (reason: string, rating?: string) => void;
+  onConfirm: (reason: string, rating?: string) => void | Promise<void>;
 }
 
 const ratingOptions = [
@@ -51,14 +51,6 @@ const ratingOptions = [
   }
 ];
 
-const QUICK_REJECT_REASONS = [
-  "Does not meet minimum education requirements",
-  "Does not meet minimum experience requirements",
-  "Incomplete application",
-  "Does not meet language requirements",
-  "Does not meet essential qualifications",
-];
-
 export function ActionConfirmationDialog({
   open,
   onOpenChange,
@@ -71,18 +63,24 @@ export function ActionConfirmationDialog({
   const [reason, setReason] = useState('');
   const [rating, setRating] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleConfirm = async () => {
+    if ((action === 'longlist' || action === 'reject' || action === 'clarify') && !reason.trim()) return;
+    setError(null);
     setIsSubmitting(true);
     try {
       await onConfirm(reason, rating || undefined);
       handleClose();
+    } catch (err) {
+      setError(err && typeof err === 'object' && 'message' in err ? String(err.message) : 'The decision could not be saved. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleClose = () => {
+    setError(null);
     setReason('');
     setRating(null);
     onOpenChange(false);
@@ -97,6 +95,8 @@ export function ActionConfirmationDialog({
     placeholder: string;
   } => {
     switch (action) {
+      case 'clarify':
+        return { title: 'Request clarification', description: `Record why ${candidateName}'s application needs further review.`, icon: <AlertCircle className="w-5 h-5" />, buttonText: 'Save review decision', buttonVariant: 'outline', placeholder: 'Which evidence or criterion needs clarification?' };
       case 'longlist':
         return {
           title: isToggleAction ? 'Remove from Longlist' : 'Add to Longlist',
@@ -107,8 +107,8 @@ export function ActionConfirmationDialog({
           buttonText: isToggleAction ? 'Remove' : 'Add to Longlist',
           buttonVariant: isToggleAction ? 'outline' : 'default',
           placeholder: isToggleAction 
-            ? 'Optional: Reason for removal...'
-            : 'Optional: Reason for adding to longlist...'
+            ? 'Explain why this application needs further review...'
+            : 'Explain your inclusion decision with reference to the criteria and evidence...'
         };
       case 'reject':
         return {
@@ -136,15 +136,6 @@ export function ActionConfirmationDialog({
           buttonText: 'Move to Panel Interview',
           buttonVariant: 'default',
           placeholder: 'Reason for moving to panel interview (optional)...'
-        };
-      case 'add-to-video':
-        return {
-          title: 'Add to Video Interview',
-          description: `Move ${candidateName} from Longlist to Video Interview stage?`,
-          icon: <Video className="w-5 h-5" />,
-          buttonText: 'Add to Video',
-          buttonVariant: 'default',
-          placeholder: 'Reason for moving to video interview...'
         };
       case 'move-to-panel-interview':
         return {
@@ -186,7 +177,7 @@ export function ActionConfirmationDialog({
   };
 
   const config = getActionConfig();
-  const isRequired = action === 'reject'; // Only rejection requires a reason
+  const isRequired = action === 'reject' || action === 'longlist' || action === 'clarify';
   const showRatingSelector = action === 'longlist' && !isToggleAction;
 
   return (
@@ -213,7 +204,7 @@ export function ActionConfirmationDialog({
           {showRatingSelector && (
             <div className="space-y-3">
               <label className="text-sm font-medium">
-                Candidate Rating <span className="text-destructive">*</span>
+                Reviewer priority (optional)
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {ratingOptions.map((option) => {
@@ -245,28 +236,8 @@ export function ActionConfirmationDialog({
             </div>
           )}
           
-          {action === 'reject' && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">
-                Quick select a reason:
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {QUICK_REJECT_REASONS.map((quickReason) => (
-                  <Button
-                    key={quickReason}
-                    type="button"
-                    variant={reason === quickReason ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setReason(quickReason)}
-                    className="text-xs"
-                  >
-                    {quickReason}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-          
+          {isRequired && <p className="text-sm text-muted-foreground">This records your decision separately from the AI assessment. Missing evidence alone is not evidence that a requirement is unmet.</p>}
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <div className="space-y-2">
             <label htmlFor="reason" className="text-sm font-medium">
               Rationale {isRequired && <span className="text-destructive">*</span>}
@@ -296,7 +267,7 @@ export function ActionConfirmationDialog({
           <Button
             variant={config.buttonVariant}
             onClick={handleConfirm}
-            disabled={isSubmitting || (isRequired && !reason.trim()) || (showRatingSelector && !rating)}
+            disabled={isSubmitting || (isRequired && !reason.trim())}
             className="min-w-[100px]"
           >
             {isSubmitting ? 'Processing...' : config.buttonText}

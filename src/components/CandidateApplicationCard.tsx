@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
-import { getFitTier } from '@/lib/fitTier';
+import { getAssessmentView } from '@/lib/assessmentView';
 import { CandidateFitSummary } from './CandidateFitSummary';
 
 interface CandidateApplicationCardProps {
@@ -84,14 +84,7 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
 }) => {
   const navigate = useNavigate();
   
-  // Extract AI scoring data (screening_scores is now a single object after transformation)
-  const screeningScore = application.screening_scores;
-  const aiScore = screeningScore?.ai_score;
-  const rubricBreakdown = screeningScore?.rubric_breakdown;
-
-  // Get color-coded border based on AI fit tier
-  const fitTierInfo = getFitTier(aiScore);
-  const getCardBorderClass = () => fitTierInfo.borderClass;
+  const assessment = getAssessmentView(application.screening_scores);
 
   const allEducation = getEducationSummary(application.candidate.education);
   
@@ -129,18 +122,6 @@ const getStatusBadge = (status: string) => {
     return (
       <Badge className={`${config.color} text-xs px-2 py-1`}>
         {config.label}
-      </Badge>
-    );
-  };
-
-  const getScoreBadge = (app: any) => {
-    const info = fitTierInfo;
-    if (info.tier === 'not_scored') {
-      return <Badge variant="outline" className="text-xs">No Score</Badge>;
-    }
-    return (
-      <Badge className={`${info.badgeClass} text-xs px-2 py-1 font-semibold`}>
-        {info.shortLabel} · {aiScore}%
       </Badge>
     );
   };
@@ -249,6 +230,8 @@ const getStatusBadge = (status: string) => {
             </div>
           </div>
         </div>
+
+        <CandidateFitSummary application={application} />
 
         {/* Main content grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
@@ -400,9 +383,6 @@ const getStatusBadge = (status: string) => {
           </div>
         </div>
 
-        {/* Candidate Fit Summary — essential vs desirable criteria */}
-        <CandidateFitSummary application={application} />
-
         {/* Experience - Prominent metric cards */}
         <div className="p-3 bg-muted/30 rounded-lg my-4">
           <div className="flex items-center gap-2 mb-3">
@@ -495,7 +475,7 @@ const getStatusBadge = (status: string) => {
           {/* Left side - Status */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Status:</span>
+              <span className="text-sm text-muted-foreground">Recruitment stage:</span>
               {getStatusBadge(application.status)}
             </div>
           </div>
@@ -515,42 +495,7 @@ const getStatusBadge = (status: string) => {
               </Badge>
             )}
 
-            {/* Main Match Score Badge */}
-            {aiScore !== null && aiScore !== undefined ? (
-              <Badge 
-                variant={aiScore >= 80 ? 'default' : aiScore >= 70 ? 'secondary' : 'destructive'}
-                className="whitespace-nowrap font-semibold"
-              >
-                Match: {aiScore}%
-              </Badge>
-            ) : (
-              getScoreBadge(application)
-            )}
-            
-            {/* Brief feedback indicators */}
-            {rubricBreakdown?.candidateAnalysis?.detailedScores && (
-              <>
-                {/* Education Match */}
-                <Badge variant="outline" className="whitespace-nowrap text-xs">
-                  {rubricBreakdown.candidateAnalysis.detailedScores.education_match >= 70 ? '✓' : '✗'} Education
-                </Badge>
-                
-                {/* Experience Match */}
-                <Badge variant="outline" className="whitespace-nowrap text-xs">
-                  {rubricBreakdown.candidateAnalysis.detailedScores.experience_match >= 70 ? '✓' : '✗'} Experience
-                </Badge>
-                
-                {/* Must-haves */}
-                {rubricBreakdown.passedMustHaves !== undefined && (
-                  <Badge 
-                    variant={rubricBreakdown.passedMustHaves ? 'default' : 'destructive'}
-                    className="whitespace-nowrap text-xs"
-                  >
-                    {rubricBreakdown.passedMustHaves ? '✓' : '✗'} Must-haves
-                  </Badge>
-                )}
-              </>
-            )}
+            <Badge variant="outline" className={assessment.badgeClass}>{assessment.label}</Badge>
           </div>
 
           {/* Right side - Action buttons */}
@@ -579,7 +524,7 @@ const getStatusBadge = (status: string) => {
                   className="whitespace-nowrap"
                 >
                   <Eye className="w-3 h-3 mr-1" />
-                  View
+                  Review evidence
                 </Button>
 
                 {/* Add to Video Interview button */}
@@ -646,7 +591,7 @@ const getStatusBadge = (status: string) => {
                   className="whitespace-nowrap"
                 >
                   <Eye className="w-3 h-3 mr-1" />
-                  View
+                  Review evidence
                 </Button>
 
                 {/* HR Admin specific actions */}
@@ -711,7 +656,7 @@ const getStatusBadge = (status: string) => {
                   className="whitespace-nowrap"
                 >
                   <Eye className="w-3 h-3 mr-1" />
-                  View
+                  Review evidence
                 </Button>
 
                 {/* Show interview score if available */}
@@ -787,11 +732,11 @@ const getStatusBadge = (status: string) => {
                   className="whitespace-nowrap"
                 >
                   <Eye className="w-3 h-3 mr-1" />
-                  View
+                  Review evidence
                 </Button>
 
                 {/* Add to Longlist button - only show if not already on longlist */}
-                {!application.suggested_for_longlist && (
+                {['Application', 'Rejected'].includes(application.status) && (userRoles.includes('Admin') || userRoles.includes('HR Assistant') || userRoles.includes('Chief of HR')) && (
                   <Button
                     size="sm"
                     variant="default"

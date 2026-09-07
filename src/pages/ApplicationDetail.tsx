@@ -4,6 +4,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { ApplicationScoring } from '@/components/ApplicationScoring';
+import { getAssessmentView, latestApplicationAssessment } from '@/lib/assessmentView';
+import { recordApplicationDecision } from '@/lib/assessmentReview';
 import { RequirementsChecklist } from '@/components/RequirementsChecklist';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -92,6 +94,10 @@ interface ApplicationData {
     location: string | null;
   };
   screening_scores?: {
+    id: string;
+    assessment_run_id?: string | null;
+    pipeline_version?: string;
+    created_at: string;
     ai_score: number | null;
     rubric_breakdown: any;
   }[] | null;
@@ -106,9 +112,7 @@ export default function ApplicationDetail() {
   
   const [application, setApplication] = useState<ApplicationData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [statusChangeReason, setStatusChangeReason] = useState('');
-  const [showStatusDialog, setShowStatusDialog] = useState(false);
-  const [pendingStatus, setPendingStatus] = useState('');
+  const [showClarificationDialog, setShowClarificationDialog] = useState(false);
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "overview");
   const [showScheduler, setShowScheduler] = useState(false);
   const [videoQuestions, setVideoQuestions] = useState<any[]>([]);
@@ -172,6 +176,14 @@ export default function ApplicationDetail() {
     }
   }, [id, hasAccess]);
 
+  useEffect(() => {
+    const refresh = (event: Event) => {
+      if (hasAccess && (event as CustomEvent).detail?.applicationId === id) fetchApplication();
+    };
+    window.addEventListener('application-decision-recorded', refresh);
+    return () => window.removeEventListener('application-decision-recorded', refresh);
+  }, [id, hasAccess]);
+
   // Early return AFTER all hooks have been called
   if (!hasAccess) {
     return (
@@ -195,13 +207,15 @@ export default function ApplicationDetail() {
           *,
           candidate:candidates(*),
           job:jobs(id, title, org_unit, location),
-          screening_scores(ai_score, rubric_breakdown)
+          screening_scores(id, assessment_run_id, pipeline_version, created_at, ai_score, rubric_breakdown),
+          assessment_runs(id, created_at, pipeline_version, rubric_breakdown)
         `)
         .eq('id', id)
         .single();
 
       if (error) throw error;
-      setApplication(data);
+      const latest = latestApplicationAssessment(data);
+      setApplication({ ...data, screening_scores: latest ? [latest] : [] } as unknown as ApplicationData);
     } catch (error) {
       console.error('Error fetching application:', error);
       toast({
@@ -279,24 +293,20 @@ export default function ApplicationDetail() {
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    if (newStatus === 'Longlist' && application?.status === 'Application' && !canMoveToLonglist) {
-      toast({
-        title: "Access Denied",
-        description: "Only HR Assistants can move applications to Longlist",
-        variant: "destructive",
-      });
+    if (newStatus === 'Longlist') {
+      if (!canMoveToLonglist) return;
+      setShowLonglistDialog(true);
       return;
     }
-
-    // If moving from Application to Longlist and overriding AI suggestion, require reason
-    if (newStatus === 'Longlist' && application?.status === 'Application' && 
-        !application.suggested_for_longlist && !statusChangeReason.trim()) {
-      setPendingStatus(newStatus);
-      setShowStatusDialog(true);
+    if (newStatus === 'Rejected') {
+      setShowRejectDialog(true);
       return;
     }
-
-    await updateStatus(newStatus, statusChangeReason);
+    if (newStatus === 'Application' && ['Application', 'Screening', 'Longlist', 'Rejected'].includes(application?.status || '')) {
+      setShowClarificationDialog(true);
+      return;
+    }
+    try { await updateStatus(newStatus); } catch { /* updateStatus already displays the error. */ }
   };
 
   const updateStatus = async (newStatus: string, reason?: string) => {
@@ -327,9 +337,6 @@ export default function ApplicationDetail() {
         description: `Application moved to ${newStatus}`,
       });
 
-      setShowStatusDialog(false);
-      setStatusChangeReason('');
-      setPendingStatus('');
       fetchApplication();
     } catch (error) {
       console.error('Error updating status:', error);
@@ -338,87 +345,31 @@ export default function ApplicationDetail() {
         description: "Failed to update application status",
         variant: "destructive",
       });
+      throw error;
     }
+  };
+
+  const saveRecruiterDecision = async (decision: 'included' | 'excluded' | 'needs_clarification', reason: string, rating?: string) => {
+    const assessment = getAssessmentView(application?.screening_scores);
+    if (!id) throw new Error('No application is selected.');
+    await recordApplicationDecision({ applicationId: id, decision, reason, assessmentRunId: assessment.assessmentId, rating });
+    toast({ title: 'Recruiter decision recorded', description: 'Your rationale and the assessment version have been saved.' });
+    await fetchApplication();
   };
 
   const handleAddToLonglistConfirm = async (reason: string, rating?: string) => {
-    try {
-      const { error: updateError } = await supabase
-        .from('applications')
-        .update({ 
-          status: 'Longlist' as any,
-          suggested_for_longlist: true,
-          longlist_rating: rating || null
-        })
-        .eq('id', id);
-
-      if (updateError) throw updateError;
-
-      const { error: logError } = await supabase
-        .from('stage_events')
-        .insert({
-          application_id: id!,
-          from_stage: application?.status as any,
-          to_stage: 'Longlist' as any,
-          by_user: (await supabase.auth.getUser()).data.user?.id,
-          reason: reason || null
-        });
-
-      if (logError) throw logError;
-
-      toast({
-        title: "Success",
-        description: "Application added to longlist",
-      });
-
-      setShowLonglistDialog(false);
-      fetchApplication();
-    } catch (error) {
-      console.error('Error adding to longlist:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add to longlist",
-        variant: "destructive",
-      });
-    }
+    await saveRecruiterDecision('included', reason, rating);
+    setShowLonglistDialog(false);
   };
 
   const handleRejectConfirm = async (reason: string) => {
-    try {
-      const { error: updateError } = await supabase
-        .from('applications')
-        .update({ status: 'Rejected' as any })
-        .eq('id', id);
-
-      if (updateError) throw updateError;
-
-      const { error: logError } = await supabase
-        .from('stage_events')
-        .insert({
-          application_id: id!,
-          from_stage: application?.status as any,
-          to_stage: 'Rejected' as any,
-          by_user: (await supabase.auth.getUser()).data.user?.id,
-          reason: reason || null
-        });
-
-      if (logError) throw logError;
-
-      toast({
-        title: "Success",
-        description: "Application rejected",
-      });
-
-      setShowRejectDialog(false);
-      fetchApplication();
-    } catch (error) {
-      console.error('Error rejecting application:', error);
-      toast({
-        title: "Error",
-        description: "Failed to reject application",
-        variant: "destructive",
-      });
+    if (!reason.trim()) throw new Error('A rationale is required for every decision.');
+    if (application && !['Application', 'Screening', 'Longlist', 'Rejected'].includes(application.status)) {
+      await updateStatus('Rejected', reason);
+    } else {
+      await saveRecruiterDecision('excluded', reason);
     }
+    setShowRejectDialog(false);
   };
 
   const getStatusBadge = (status: string) => {
@@ -612,6 +563,7 @@ export default function ApplicationDetail() {
     
     return Math.round(totalYears);
   };
+  const assessment = getAssessmentView(application.screening_scores);
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -628,12 +580,7 @@ export default function ApplicationDetail() {
           </div>
           <div className="flex items-center space-x-2">
             {getStatusBadge(application.status)}
-            {application.suggested_for_longlist && (
-              <Badge className="bg-green-100 text-green-800">
-                <CheckCircle className="w-3 h-3 mr-1" />
-                AI Suggested
-              </Badge>
-            )}
+            <Badge variant="outline" className={assessment.badgeClass}>{assessment.label}</Badge>
             {application.source === 'manual_entry' && (userRoles.includes('Admin') || userRoles.includes('HR Assistant')) && (
               <Button 
                 variant="outline" 
@@ -648,8 +595,13 @@ export default function ApplicationDetail() {
           </div>
         </div>
 
-        {/* Status Management */}
-        <Card className="mb-6">
+        <section className="rounded-lg border bg-slate-50 p-4 mb-4 text-sm" aria-label="Assessment scope">
+          <p><strong>AI assessment:</strong> {assessment.current ? 'available submitted application text assessed against criteria.' : 'no current AI recommendation. You can review the source evidence manually or request an assessment.'} <strong>Not verified:</strong> the truth of candidate claims or missing information. <strong>You decide:</strong> inclusion, exclusion or clarification, with a recorded rationale.</p>
+        </section>
+        {/* Recruitment stage controls are secondary to reviewing evidence. */}
+        <details className="mb-6 rounded-lg border p-3">
+        <summary className="cursor-pointer font-medium">Recruitment stage controls · {application.status}</summary>
+        <Card className="mt-3">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="w-5 h-5" />
@@ -663,12 +615,6 @@ export default function ApplicationDetail() {
                 <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Current Status</h4>
                 <div className="flex items-center gap-3">
                   {getStatusBadge(application.status)}
-                  {application.suggested_for_longlist && (
-                    <Badge variant="outline" className="text-green-700 border-green-300">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      AI Recommended
-                    </Badge>
-                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Last updated: {format(new Date(application.updated_at || application.submitted_at), 'dd/MM/yyyy HH:mm')}
@@ -786,14 +732,15 @@ export default function ApplicationDetail() {
             </div>
           </CardContent>
         </Card>
+        </details>
 
         <Tabs value={activeTab} onValueChange={(value) => {
           setActiveTab(value);
           // Update URL with tab parameter for better navigation
           navigate(`/admin/applications/${id}?tab=${value}`, { replace: true });
         }} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-9">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsList className="flex w-full justify-start overflow-x-auto">
+            <TabsTrigger value="overview">Evidence review</TabsTrigger>
             <TabsTrigger value="motivation">Motivation</TabsTrigger>
             <TabsTrigger value="emails">Emails</TabsTrigger>
             <TabsTrigger value="video">Video</TabsTrigger>
@@ -1741,40 +1688,6 @@ export default function ApplicationDetail() {
           </Button>
         </div>
 
-        {/* Status Change Dialog */}
-        <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Override AI Recommendation</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2 p-3 bg-yellow-50 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-yellow-600" />
-                <div>
-                  <p className="text-sm font-medium">AI did not recommend this candidate for longlist</p>
-                  <p className="text-xs text-muted-foreground">Please provide a reason for overriding this recommendation</p>
-                </div>
-              </div>
-              <Textarea
-                placeholder="Reason for moving to longlist despite AI recommendation..."
-                value={statusChangeReason}
-                onChange={(e) => setStatusChangeReason(e.target.value)}
-                className="min-h-[100px]"
-              />
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setShowStatusDialog(false)}>
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={() => updateStatus(pendingStatus, statusChangeReason)}
-                  disabled={!statusChangeReason.trim()}
-                >
-                  Confirm Move to Longlist
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
 
       {/* Floating Action Bar */}
@@ -1787,6 +1700,15 @@ export default function ApplicationDetail() {
 
       {/* Scroll to Top Button */}
       <ScrollToTopButton threshold={300} />
+
+      <ActionConfirmationDialog
+        open={showClarificationDialog}
+        onOpenChange={setShowClarificationDialog}
+        action="clarify"
+        candidateName={application.candidate.name}
+        currentStatus={application.status}
+        onConfirm={async (reason) => { await saveRecruiterDecision('needs_clarification', reason); setShowClarificationDialog(false); }}
+      />
 
       {/* Add to Longlist Dialog */}
       <ActionConfirmationDialog

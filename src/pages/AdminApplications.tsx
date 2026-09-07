@@ -15,7 +15,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Search, Filter, User, FileText, Calendar, AlertCircle, Trash2, Eye, ChevronDown, ChevronRight, GraduationCap, Briefcase, Languages, Plus, Check, X, Edit, Users, ArrowLeft, Video } from 'lucide-react';
 import { format } from 'date-fns';
 import { getCountryFlagUrl } from '@/lib/countryFlags';
-import { getFitTier, FIT_TIER_LEGEND } from '@/lib/fitTier';
+import { getAssessmentView, latestApplicationAssessment, reviewPriority } from '@/lib/assessmentView';
+import { recordApplicationDecision } from '@/lib/assessmentReview';
+import { CriteriaPolicyPanel } from '@/components/assessment/CriteriaPolicyPanel';
 import { CandidateApplicationCard } from '@/components/CandidateApplicationCard';
 import { ActionConfirmationDialog } from '@/components/ActionConfirmationDialog';
 import { VideoAssignmentDialog } from '@/components/VideoAssignmentDialog';
@@ -54,6 +56,9 @@ interface Application {
     org_unit: string | null;
   };
   screening_scores?: {
+    id: string;
+    assessment_run_id?: string | null;
+    pipeline_version?: string;
     ai_score: number | null;
     created_at: string;
     rubric_breakdown?: any;
@@ -73,7 +78,7 @@ export default function AdminApplications() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all');
   const [completionFilter, setCompletionFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('submitted_at');
+  const [sortBy, setSortBy] = useState('review_priority');
   const [selectedJobId, setSelectedJobId] = useState(searchParams.get('job') || '');
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [jobs, setJobs] = useState<any[]>([]);
@@ -90,7 +95,7 @@ export default function AdminApplications() {
   // Dialog state
   const [dialogState, setDialogState] = useState<{
     open: boolean;
-    action: 'longlist' | 'reject' | 'add-to-video' | 'move-to-panel-interview' | 'move-to-panel-from-longlist' | 'move-to-recommended' | 'move-to-roster';
+    action: 'longlist' | 'reject' | 'clarify' | 'add-to-video' | 'move-to-panel-interview' | 'move-to-panel-from-longlist' | 'move-to-recommended' | 'move-to-roster';
     applicationId: string;
     candidateName: string;
     currentStatus: string;
@@ -133,6 +138,12 @@ export default function AdminApplications() {
   const hasAccess = userRoles.includes('Admin') || userRoles.includes('HR Assistant') || 
                    userRoles.includes('Chief of HR') || userRoles.includes('Hiring Manager') || 
                    userRoles.includes('Panel Member');
+
+  useEffect(() => {
+    const refresh = () => { if (hasAccess && selectedJobId) fetchApplications(selectedJobId); };
+    window.addEventListener('application-decision-recorded', refresh);
+    return () => window.removeEventListener('application-decision-recorded', refresh);
+  }, [hasAccess, selectedJobId]);
   
   useEffect(() => {
     if (hasAccess) {
@@ -211,9 +222,7 @@ export default function AdminApplications() {
       
       return {
         ...app,
-        screening_scores: Array.isArray(app.screening_scores) 
-          ? app.screening_scores[0] || null 
-          : app.screening_scores,
+        screening_scores: latestApplicationAssessment(app),
         longlister_comment: latestEvent ? {
           reason: latestEvent.reason,
           to_stage: latestEvent.to_stage,
@@ -258,8 +267,9 @@ export default function AdminApplications() {
             languages, years_of_experience, un_experience, skills,
             present_city, present_country, permanent_city, permanent_country
           ),
-          job:jobs(id, title, org_unit),
-          screening_scores(ai_score, created_at, rubric_breakdown)
+          job:jobs(id, title, org_unit, requirements_md),
+          screening_scores(id, assessment_run_id, pipeline_version, ai_score, created_at, rubric_breakdown),
+          assessment_runs(id, created_at, pipeline_version, rubric_breakdown)
         `)
         .eq('job_id', jobId)
         .neq('status', 'Draft')
@@ -311,8 +321,9 @@ export default function AdminApplications() {
                     languages, years_of_experience, un_experience, skills,
                     present_city, present_country, permanent_city, permanent_country
                   ),
-                  job:jobs(id, title, org_unit),
-                  screening_scores(ai_score, created_at, rubric_breakdown)
+                  job:jobs(id, title, org_unit, requirements_md),
+                  screening_scores(id, assessment_run_id, pipeline_version, ai_score, created_at, rubric_breakdown),
+                  assessment_runs(id, created_at, pipeline_version, rubric_breakdown)
                 `)
                 .eq('job_id', jobId)
                 .neq('status', 'Draft')
@@ -995,22 +1006,11 @@ export default function AdminApplications() {
     const matchesLanguage = languageFilter === 'all' || 
                            languages.toLowerCase().includes(languageFilter.toLowerCase());
 
-    // AI Score / Fit tier filter
-    const score = app.screening_scores?.ai_score;
-    const tier = getFitTier(score).tier;
-    const matchesAiScore = aiScoreFilter === 'all' ||
-                          (aiScoreFilter === 'yes' && tier === 'yes') ||
-                          (aiScoreFilter === 'maybe' && tier === 'maybe') ||
-                          (aiScoreFilter === 'no' && tier === 'no') ||
-                          (aiScoreFilter === 'not_scored' && tier === 'not_scored');
-
-    // Requirements filter
-    const breakdown = app.screening_scores?.rubric_breakdown;
+    const assessment = getAssessmentView(app.screening_scores);
+    const matchesAiScore = aiScoreFilter === 'all' || assessment.state === aiScoreFilter;
     const matchesRequirements = requirementsFilter === 'all' ||
-                               (requirementsFilter === 'recommended' && breakdown?.recommendForLonglist) ||
-                               (requirementsFilter === 'meets_all' && breakdown?.passedMustHaves && breakdown?.overallScore >= 70) ||
-                               (requirementsFilter === 'meets_some' && breakdown && (!breakdown.passedMustHaves || breakdown.overallScore < 70)) ||
-                               (requirementsFilter === 'not_scored' && !breakdown);
+      (requirementsFilter === 'unresolved' && assessment.unresolved > 0) ||
+      (requirementsFilter === 'unassessed' && ['legacy', 'unassessed'].includes(assessment.state));
     
     return matchesSearch && matchesStatus && matchesCompletion && matchesEducation && matchesExperience && matchesLanguage && matchesAiScore && matchesRequirements;
   }).sort((a, b) => {
@@ -1021,14 +1021,11 @@ export default function AdminApplications() {
         return a.status.localeCompare(b.status);
       case 'updated_at':
         return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-      case 'ai_score':
-        const tierRank: Record<string, number> = { yes: 0, maybe: 1, no: 2, not_scored: 3 };
-        const scoreA = a.screening_scores?.ai_score ?? null;
-        const scoreB = b.screening_scores?.ai_score ?? null;
-        const rankA = tierRank[getFitTier(scoreA).tier];
-        const rankB = tierRank[getFitTier(scoreB).tier];
-        if (rankA !== rankB) return rankA - rankB;
-        return (scoreB ?? 0) - (scoreA ?? 0);
+      case 'review_priority': {
+        const undecidedA = a.status === 'Application' ? 0 : 1;
+        const undecidedB = b.status === 'Application' ? 0 : 1;
+        return undecidedA - undecidedB || reviewPriority(a.screening_scores) - reviewPriority(b.screening_scores) || new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime();
+      }
       case 'video_score':
         const videoA = a.videoScore || 0;
         const videoB = b.videoScore || 0;
@@ -1112,23 +1109,6 @@ export default function AdminApplications() {
     (longlistPhase?.count || 0) > 0 &&
     showLonglistNotification;
 
-  const getScoreBadge = (application: Application) => {
-    const score = application.screening_scores?.ai_score;
-    const info = getFitTier(score);
-    if (info.tier === 'not_scored') {
-      return (
-        <Badge className={`${info.badgeClass} text-xs`}>
-          Match: N/A
-        </Badge>
-      );
-    }
-    return (
-      <Badge className={`${info.badgeClass} text-xs font-semibold`}>
-        {info.shortLabel} · {score}%
-      </Badge>
-    );
-  };
-
   const getStatusBadge = (status: string) => {
     const variants = {
       'Application': 'bg-blue-100 text-blue-800',
@@ -1176,144 +1156,33 @@ export default function AdminApplications() {
     }
   };
 
-  const addToLonglist = async (applicationIds: string[], reason?: string, rating?: string) => {
-    try {
-      // Get current user
-      const { data: user } = await supabase.auth.getUser();
-      const currentUserId = user?.user?.id;
-
-      // For single application, toggle the status
-      if (applicationIds.length === 1) {
-        const currentApp = applications.find(app => app.id === applicationIds[0]);
-        const isCurrentlyLonglisted = currentApp?.suggested_for_longlist;
-        
-        const newStatus = isCurrentlyLonglisted ? 'Application' : 'Longlist';
-        
-        const { error } = await supabase
-          .from('applications')
-          .update({ 
-            suggested_for_longlist: !isCurrentlyLonglisted,
-            status: newStatus,
-            longlist_rating: isCurrentlyLonglisted ? null : (rating || null)
-          })
-          .eq('id', applicationIds[0]);
-
-        if (error) throw error;
-
-        // Log stage change with reason and proper user attribution
-        if (currentUserId) {
-          await supabase
-            .from('stage_events')
-            .insert({
-              application_id: applicationIds[0],
-              from_stage: currentApp?.status as any,
-              to_stage: newStatus as any,
-              by_user: currentUserId,
-              reason: reason || null
-            });
-        }
-
-        toast({
-          title: "Success",
-          description: isCurrentlyLonglisted 
-            ? "Application removed from longlist" 
-            : "Application added to longlist",
-        });
-      } else {
-        // For multiple applications, just add them to longlist
-        const { error } = await supabase
-          .from('applications')
-          .update({ 
-            suggested_for_longlist: true, 
-            status: 'Longlist',
-            longlist_rating: rating || null
-          })
-          .in('id', applicationIds);
-
-        if (error) throw error;
-
-        // Log stage changes for bulk operations
-        if (currentUserId) {
-          const stageEvents = applicationIds.map(appId => {
-            const currentApp = applications.find(app => app.id === appId);
-            return {
-              application_id: appId,
-              from_stage: currentApp?.status as any,
-              to_stage: 'Longlist' as any,
-              by_user: currentUserId,
-              reason: reason || 'Bulk longlist operation'
-            };
-          });
-
-          await supabase
-            .from('stage_events')
-            .insert(stageEvents);
-        }
-
-        toast({
-          title: "Success",
-          description: `${applicationIds.length} application(s) added to longlist`,
-        });
-      }
-
-      fetchApplications(selectedJobId);
-      setSelectedApplications(new Set());
-    } catch (error) {
-      console.error('Error updating longlist:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update longlist",
-        variant: "destructive",
+  const recordDecision = async (applicationId: string, decision: 'included' | 'excluded' | 'needs_clarification', reason: string, rating?: string) => {
+    const app = applications.find(a => a.id === applicationId);
+    const assessment = getAssessmentView(app?.screening_scores);
+    if (!reason.trim()) throw new Error('A rationale is required for every decision.');
+    if (app && !['Application', 'Screening', 'Longlist', 'Rejected'].includes(app.status)) {
+      const toStage = decision === 'excluded' ? 'Rejected' : decision === 'included' ? 'Longlist' : 'Application';
+      const { error } = await supabase.from('applications').update({ status: toStage }).eq('id', applicationId);
+      if (error) throw error;
+      const { data: auth } = await supabase.auth.getUser();
+      const { error: auditError } = await supabase.from('stage_events').insert({
+        application_id: applicationId, from_stage: app.status as any, to_stage: toStage as any,
+        by_user: auth.user?.id, reason: reason.trim(),
       });
+      if (auditError) throw auditError;
+    } else {
+      await recordApplicationDecision({ applicationId, decision, reason, assessmentRunId: assessment.assessmentId, rating });
     }
+    await fetchApplications(selectedJobId);
   };
 
-  const removeFromLonglist = async (applicationIds: string[]) => {
-    try {
-      // Get current user
-      const { data: user } = await supabase.auth.getUser();
-      const currentUserId = user?.user?.id;
-
-      const { error } = await supabase
-        .from('applications')
-        .update({ suggested_for_longlist: false, status: 'Application' })
-        .in('id', applicationIds);
-
-      if (error) throw error;
-
-      // Log stage changes for bulk operations with proper user attribution
-      if (currentUserId) {
-        const stageEvents = applicationIds.map(appId => {
-          const currentApp = applications.find(app => app.id === appId);
-          return {
-            application_id: appId,
-            from_stage: currentApp?.status as any,
-            to_stage: 'Application' as any,
-            by_user: currentUserId,
-            reason: 'Bulk removal from longlist'
-          };
-        });
-
-        await supabase
-          .from('stage_events')
-          .insert(stageEvents);
-      }
-
-      toast({
-        title: "Success",
-        description: `${applicationIds.length} application(s) removed from longlist`,
-      });
-
-      fetchApplications(selectedJobId);
-      setSelectedApplications(new Set());
-    } catch (error) {
-      console.error('Error removing from longlist:', error);
-      toast({
-        title: "Error",
-        description: "Failed to remove from longlist",
-        variant: "destructive",
-      });
+  const addToLonglist = async (applicationIds: string[], reason: string, rating?: string) => {
+    for (const applicationId of applicationIds) {
+      const app = applications.find(a => a.id === applicationId);
+      await recordDecision(applicationId, app?.status === 'Longlist' ? 'needs_clarification' : 'included', reason, rating);
     }
+    setSelectedApplications(new Set());
+    toast({ title: 'Recruiter decision recorded', description: 'Your rationale and the assessment version have been saved.' });
   };
 
   // Move directly from Longlist to Panel Interview (skipping video)
@@ -1409,57 +1278,8 @@ export default function AdminApplications() {
 
 
   const rejectApplication = async (applicationId: string, reason: string) => {
-    try {
-      // Get current user
-      const { data: user } = await supabase.auth.getUser();
-      const currentUserId = user?.user?.id;
-
-      // Get current application status for logging
-      const currentApp = applications.find(app => app.id === applicationId);
-      const currentStatus = currentApp?.status;
-
-      // Update application status
-      const { error } = await supabase
-        .from('applications')
-        .update({ 
-          status: 'Rejected',
-          suggested_for_longlist: false
-        })
-        .eq('id', applicationId);
-
-      if (error) throw error;
-
-      // Log the stage change with provided reason and proper user attribution
-      if (currentUserId) {
-        const { error: stageError } = await supabase
-          .from('stage_events')
-          .insert({
-            application_id: applicationId,
-            from_stage: currentStatus as any,
-            to_stage: 'Rejected' as any,
-            by_user: currentUserId,
-            reason: reason || 'Rejected by hiring manager'
-          });
-
-        if (stageError) {
-          console.error('Error logging stage change:', stageError);
-        }
-      }
-
-      toast({
-        title: "Success",
-        description: "Application rejected successfully",
-      });
-
-      fetchApplications(selectedJobId);
-    } catch (error) {
-      console.error('Error rejecting application:', error);
-      toast({
-        title: "Error",
-        description: "Failed to reject application",
-        variant: "destructive",
-      });
-    }
+    await recordDecision(applicationId, 'excluded', reason);
+    toast({ title: 'Exclusion decision recorded', description: 'Your rationale and the assessment version have been saved.' });
   };
 
   // Dialog action handlers
@@ -1473,7 +1293,7 @@ export default function AdminApplications() {
       applicationId,
       candidateName: app.candidate.name,
       currentStatus: app.status,
-      isToggleAction: app.suggested_for_longlist
+      isToggleAction: app.status === 'Longlist'
     });
   };
 
@@ -1584,52 +1404,10 @@ export default function AdminApplications() {
     }
   };
 
-  const moveToApplications = async (applicationId: string) => {
-    try {
-      // Get current user
-      const { data: user } = await supabase.auth.getUser();
-      const currentUserId = user?.user?.id;
-
-      // Get current application
-      const currentApp = applications.find(app => app.id === applicationId);
-      
-      const { error } = await supabase
-        .from('applications')
-        .update({ 
-          status: 'Application',
-          suggested_for_longlist: false
-        })
-        .eq('id', applicationId);
-
-      if (error) throw error;
-
-      // Log stage change
-      if (currentUserId) {
-        await supabase
-          .from('stage_events')
-          .insert({
-            application_id: applicationId,
-            from_stage: currentApp?.status as any,
-            to_stage: 'Application' as any,
-            by_user: currentUserId,
-            reason: 'Moved back to Applications by HR'
-          });
-      }
-
-      toast({
-        title: "Success",
-        description: "Candidate moved back to Applications",
-      });
-
-      fetchApplications(selectedJobId);
-    } catch (error) {
-      console.error('Error moving to applications:', error);
-      toast({
-        title: "Error",
-        description: "Failed to move to applications",
-        variant: "destructive",
-      });
-    }
+  const moveToApplications = (applicationId: string) => {
+    const app = applications.find(a => a.id === applicationId);
+    if (!app) return;
+    setDialogState({ open: true, action: 'clarify', applicationId, candidateName: app.candidate.name, currentStatus: app.status });
   };
 
   const moveToRecommended = async (applicationId: string, reason?: string) => {
@@ -1747,6 +1525,9 @@ export default function AdminApplications() {
       case 'longlist':
         await addToLonglist([applicationId], reason, rating);
         break;
+      case 'clarify':
+        await recordDecision(applicationId, 'needs_clarification', reason);
+        break;
       case 'reject':
         await rejectApplication(applicationId, reason);
         break;
@@ -1784,7 +1565,7 @@ export default function AdminApplications() {
         
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Application Management</h1>
+            <h1 className="text-3xl font-bold text-foreground">Assessment workspace</h1>
             <p className="text-muted-foreground mt-2">
               {selectedJobId ? `Applications for ${selectedJob?.title || 'Selected Job'}` : 'Select a job to view applications'}
             </p>
@@ -1839,6 +1620,14 @@ export default function AdminApplications() {
             </CardContent>
           </Card>
         )}
+
+        {selectedJobId && <section className="rounded-lg border bg-slate-50 p-5 mb-6 space-y-3" aria-label="Assessment scope">
+          <div className="grid gap-4 md:grid-cols-3 text-sm">
+            <div><h2 className="font-semibold">What AI has assessed</h2><p className="text-muted-foreground mt-1">Submitted application evidence against the saved criteria. {applications.filter(a => getAssessmentView(a.screening_scores).current).length} of {applications.length} applications have an evidence assessment. Changes to the criteria or application require reassessment.</p></div>
+            <div><h2 className="font-semibold">What remains uncertain</h2><p className="text-muted-foreground mt-1">Claims are not independently verified. Missing evidence and unavailable assessments need review. {applications.filter(a => getAssessmentView(a.screening_scores).state === 'review').length} applications need clarification or review.</p></div>
+            <div><h2 className="font-semibold">Your decision</h2><p className="text-muted-foreground mt-1">Review the source evidence, resolve uncertainty, and record inclusion, exclusion or a request for clarification. AI recommendations do not change recruitment stages.</p></div>
+          </div>
+        </section>}
 
         {/* Total Analytics Summary */}
         {selectedJobId && applications.length > 0 && (
@@ -1912,6 +1701,11 @@ export default function AdminApplications() {
             onDismiss={() => setShowLonglistNotification(false)}
           />
         )}
+
+        {selectedJobId && <details className="mb-6 rounded-lg border p-4">
+          <summary className="cursor-pointer font-semibold">Review and approve the role’s criterion policy</summary>
+          <div className="mt-4"><CriteriaPolicyPanel jobId={selectedJobId} onPolicyChanged={() => fetchApplications(selectedJobId)} /></div>
+        </details>}
 
         {/* Application List */}
         {selectedJobId && (
@@ -2042,45 +1836,29 @@ export default function AdminApplications() {
                     <SelectItem value="name">Candidate Name</SelectItem>
                     <SelectItem value="status">Status</SelectItem>
                     <SelectItem value="updated_at">Last Updated</SelectItem>
-                    <SelectItem value="ai_score">Fit Tier (Yes → No)</SelectItem>
+                    <SelectItem value="review_priority">Review work first</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Fit tier legend */}
-              <div className="mb-3 text-xs text-muted-foreground flex flex-wrap items-center gap-2">
-                <span className="font-medium">Fit tier:</span>
-                <Badge className="bg-green-100 text-green-800 text-xs">Yes ≥75%</Badge>
-                <Badge className="bg-amber-100 text-amber-800 text-xs">Maybe 50–74%</Badge>
-                <Badge className="bg-red-100 text-red-800 text-xs">No &lt;50%</Badge>
-                <span>— "No" indicates the candidate does not meet education / essential experience requirements.</span>
-              </div>
-
-              {/* New AI Screening Filters Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <Select value={aiScoreFilter} onValueChange={setAiScoreFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Candidate Fit" />
-                  </SelectTrigger>
+                  <SelectTrigger aria-label="AI assessment filter"><SelectValue placeholder="AI assessment" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Fit Tiers</SelectItem>
-                    <SelectItem value="yes">✅ Yes (≥75%)</SelectItem>
-                    <SelectItem value="maybe">🟡 Maybe (50–74%)</SelectItem>
-                    <SelectItem value="no">🔴 No (&lt;50%)</SelectItem>
-                    <SelectItem value="not_scored">Not Yet Scored</SelectItem>
+                    <SelectItem value="all">All AI assessments</SelectItem>
+                    <SelectItem value="review">Review needed</SelectItem>
+                    <SelectItem value="recommend">Evidence supports inclusion</SelectItem>
+                    <SelectItem value="reject">Evidence indicates gate not met</SelectItem>
+                    <SelectItem value="legacy">Reassessment required</SelectItem>
+                    <SelectItem value="unassessed">Not assessed</SelectItem>
                   </SelectContent>
                 </Select>
-
                 <Select value={requirementsFilter} onValueChange={setRequirementsFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Requirements Match" />
-                  </SelectTrigger>
+                  <SelectTrigger aria-label="Evidence review filter"><SelectValue placeholder="Evidence review" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Applications</SelectItem>
-                    <SelectItem value="recommended">⭐ AI Recommended</SelectItem>
-                    <SelectItem value="meets_all">✓ Meets All Requirements</SelectItem>
-                    <SelectItem value="meets_some">~ Some Gaps Found</SelectItem>
-                    <SelectItem value="not_scored">? Not Yet Scored</SelectItem>
+                    <SelectItem value="all">All evidence states</SelectItem>
+                    <SelectItem value="unresolved">Missing or unavailable evidence</SelectItem>
+                    <SelectItem value="unassessed">Needs assessment or reassessment</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -2121,8 +1899,10 @@ export default function AdminApplications() {
                       await rejectApplication(appId, reason);
                     }
                     setSelectedApplications(new Set());
-                    fetchApplications();
+                    fetchApplications(selectedJobId);
                     setShowBulkRejectDialog(false);
+                  } catch (err) {
+                    toast({ title: 'Decision not saved', description: err && typeof err === 'object' && 'message' in err ? String(err.message) : 'Please try again.', variant: 'destructive' });
                   } finally {
                     setBulkRejectLoading(false);
                   }
@@ -2226,4 +2006,3 @@ export default function AdminApplications() {
     </Layout>
   );
 }
-

@@ -1,0 +1,7 @@
+{
+  "name": "assessment-workspace-tests",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test *.test.mjs ../supabase/functions/_shared/*.test.ts" },
+  "devDependencies": { "@electric-sql/pglite": "0.5.8" }
+}
