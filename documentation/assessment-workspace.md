@@ -31,9 +31,11 @@ Use **Prepare manual review snapshot** to inspect frozen submitted evidence befo
 
 ## Assessment execution
 
-The evaluator and verifier use the configured `openai/gpt-5` model with explicit `reasoning_effort: low`, the complete criteria and saved source records. Prompt version `2026-09-07.evidence-workspace.3` also identifies the revised source formatting: identical values in known profile aliases appear once with their original labels, while conflicting values and the raw submitted snapshot remain intact. This prevents duplicated storage fields from making otherwise exact citations ambiguous. The evaluator must choose a unique continuous source passage; exact-quote validation and the second evidence check remain mandatory.
+The evaluator and verifier use the configured `openai/gpt-5` model with explicit `reasoning_effort: low`, the complete criteria and saved source records. Identical values in known profile aliases appear once with their original labels, while conflicting values and the raw submitted snapshot remain intact.
 
-Each gateway request can take up to 50 seconds, within a shared 80-second AI budget for the assessment. Later attempts are capped by the remaining budget, with a 500-millisecond completion margin; no new attempt starts with less than one second remaining. The immutable result records the source format, reasoning effort and both limits in `execution_config`, and the input hash includes this configuration.
+Prompt version `2026-09-07.evidence-workspace.4` uses server-prepared passage citations. The evaluator receives every source character exactly once in continuous passages of at most 1,000 UTF-16 characters and returns source/passage IDs instead of copying quotation text. The server resolves each pair to its original text and offsets before the existing evidence checks. Unknown or malformed references make the affected criterion unavailable, including an invalid reference within qualifying employment. The verifier still receives the full original sources and resolved judgements; finding a real passage does not establish that it supports the complete criterion. Saved results retain the original source format and exact-quote references used by the source viewer.
+
+Each gateway request can take up to 50 seconds, within a shared 80-second AI budget for the assessment. Later attempts are capped by the remaining budget, with a 500-millisecond completion margin; no new attempt starts with less than one second remaining. The immutable result records source and citation formats, passage size, reasoning effort and both timing limits in `execution_config`, and the input hash includes this configuration.
 
 Batch scoring processes up to four applications concurrently per slice. Every outcome in the slice settles before its saved counters advance and the next slice starts. Failed requests remain visible in the batch record. Assessment runs do not change application stages or human decisions.
 
@@ -49,7 +51,7 @@ npm run test:assessment
 npm run build
 ```
 
-The isolated test package pins PGlite to execute the actual migration and decision functions against a disposable matching schema. It covers the metadata-column repair on an older schema, preservation of existing scores and immutable runs, gateway deadline limits and bounded batch concurrency. It does not replay the repository’s complete historical migration chain. The tests use synthetic records and stubbed model responses; they never connect to the production database or scoring gateway.
+The isolated test package pins PGlite to execute the actual migration and decision functions against a disposable matching schema. It covers the metadata-column repair on an older schema, preservation of existing scores and immutable runs, gateway deadline limits, bounded batch concurrency and passage resolution. Passage tests check exact UTF-16 coverage, repeated text, invalid references, full-criterion verification, overlapping employment and standalone education alternatives. It does not replay the repository’s complete historical migration chain. The tests use synthetic records and stubbed model responses; they never connect to the production database or scoring gateway.
 
 The assessment regression workflow runs this isolated suite on relevant pull requests and main-branch changes, with read-only repository access and no production credentials.
 

@@ -21,11 +21,12 @@ test('both gateway stages request low reasoning with the unchanged model and com
   }
 });
 
-test('recorded execution settings identify the low-effort revision without changing deadlines', () => {
+test('recorded execution settings identify passage citations without changing model or deadlines', () => {
   assert.equal(ASSESSMENT_MODEL, 'openai/gpt-5');
-  assert.equal(ASSESSMENT_PROMPT_VERSION, '2026-09-07.evidence-workspace.3');
+  assert.equal(ASSESSMENT_PROMPT_VERSION, '2026-09-07.evidence-workspace.4');
   assert.deepEqual(ASSESSMENT_EXECUTION_CONFIG, {
     source_format_version: '2.known-identical-aliases',
+    citation_format_version: '1.contiguous-source-passages', max_passage_characters: 1_000,
     reasoning_effort: 'low', gateway_request_timeout_ms: 50_000, assessment_ai_budget_ms: 80_000,
   });
 });
