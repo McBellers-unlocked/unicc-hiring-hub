@@ -138,6 +138,79 @@ test('ambiguous repeated quotes require explicit valid offsets; Unicode offsets 
   assert.equal(unicode.text.slice(quotation.startOffset, quotation.endOffset), quotation.quote);
 });
 
+test('identical PHF work aliases produce one traceable value with every original label and record retained', () => {
+  const description = '📄 Built the digital payment roadmap and delivered RSI services for multilingual events.';
+  const record = { duties_and_responsibilities: description, position: 'Delivery officer', title: 'Delivery officer', exact_title: 'Delivery officer',
+    exact_title_of_post: 'Delivery officer', description, startDate: '2022-01-01', start_date: '2022-01-01' };
+  const application = { phf_data: { _workExperiences: [record, { ...record }] }, answers: {} };
+  const before = structuredClone(application);
+  const { sources, workExperience } = submittedApplicationInputs(application);
+  assert.deepEqual(application, before, 'source formatting must not mutate the raw submitted snapshot');
+  assert.deepEqual(workExperience, before.phf_data._workExperiences);
+  assert.equal(sources.length, 2, 'identical records remain distinct named sources');
+  sources.forEach((source, index) => {
+    assert.equal(source.id, `work-experience-${index}`);
+    assert.equal(source.label, `Work experience ${index + 1}`);
+    assert.equal(source.recordIndex, index);
+    assert.ok(source.text.includes(`description / duties_and_responsibilities: ${description}`));
+    assert.ok(source.text.includes('position / title / exact_title / exact_title_of_post: Delivery officer'));
+    assert.equal(source.text.split(description).length - 1, 1);
+    const checked = validateEvidence([{ sourceId: source.id, quote: description }], sources);
+    assert.equal(checked.issues.length, 0);
+    const citation = checked.evidence[0];
+    assert.equal(source.text.slice(citation.startOffset, citation.endOffset), description);
+    const assessment = normaliseJudgement(def(), { status: 'supported', evidence: [{ sourceId: source.id, quote: description }], confidence: 1 }, sources);
+    assert.equal(assessment.status, 'supported');
+    assert.ok(!assessment.flags.includes('EVIDENCE_NOT_VERIFIED'));
+  });
+});
+
+test('different alias values and unrelated repeated fields remain intact without weakening exact-quote validation', () => {
+  const record = { description: 'I delivered RSI operations.', duties_and_responsibilities: 'I did not deliver payment operations.',
+    position: 'Assistant', exact_title_of_post: 'Consultant', isCurrent: true, is_present: false,
+    additional_statement: 'This sentence appears twice.', unrelated_statement: 'This sentence appears twice.' };
+  const [source] = buildEvidenceSources({ workExperience: [record], education: [], motivationLetter: '' });
+  for (const [key, value] of Object.entries(record)) assert.ok(source.text.includes(`${key}: ${value}`));
+  for (const quote of [record.description, record.duties_and_responsibilities]) {
+    assert.equal(validateEvidence([{ sourceId: source.id, quote }], [source]).evidence.length, 1);
+  }
+  assert.equal(validateEvidence([{ sourceId: source.id, quote: record.additional_statement }], [source]).evidence.length, 0);
+  const startOffset = source.text.indexOf(record.additional_statement);
+  assert.equal(validateEvidence([{ sourceId: source.id, quote: record.additional_statement, startOffset,
+    endOffset: startOffset + record.additional_statement.length }], [source]).evidence.length, 1);
+});
+
+test('education aliases retain all labels and distinct qualifications with stable browser-compatible citation offsets', () => {
+  const record = { institution: 'Université Exemple', institution_name: 'Université Exemple',
+    degree_type: 'B.Sc. Computer Science', degree: 'B.Sc. Computer Science', degree_or_certificate_title: 'B.Sc. Computer Science',
+    field_of_study: 'Distributed systems', field: 'Distributed systems', main_course_of_study: 'Information security',
+    is_completed: false, completed: true };
+  const sources = buildEvidenceSources({ workExperience: [], education: [record], motivationLetter: '' });
+  const source = sources[0];
+  assert.ok(source.text.includes('degree_type / degree / degree_or_certificate_title: B.Sc. Computer Science'));
+  assert.ok(source.text.includes('field_of_study / field: Distributed systems'));
+  assert.ok(source.text.includes('main_course_of_study: Information security'));
+  assert.ok(source.text.includes('is_completed: false'));assert.ok(source.text.includes('completed: true'));
+  for (const quote of ['Université Exemple', 'B.Sc. Computer Science', 'Distributed systems', 'Information security']) {
+    const checked = validateEvidence([{ sourceId: source.id, quote }], sources);
+    assert.equal(checked.issues.length, 0);
+    assert.equal(source.text.slice(checked.evidence[0].startOffset, checked.evidence[0].endOffset), quote);
+  }
+  const reverse = Object.fromEntries(Object.entries(record).reverse());
+  assert.equal(buildEvidenceSources({ workExperience: [], education: [reverse], motivationLetter: '' })[0].text, source.text);
+});
+
+test('alias normalization uses exact typed values and retains genuine repetition within submitted prose', () => {
+  const sources = buildEvidenceSources({ workExperience: [{ description: 'Yes. Yes.', duties_and_responsibilities: 'Yes. Yes.',
+    position: 'Officer', exact_title_of_post: 'Officer ', isCurrent: true, is_present: 'true' }], education: [], motivationLetter: '' });
+  const lines = sources[0].text.split('\n');
+  assert.ok(lines.includes('position: Officer'));
+  assert.ok(lines.includes('exact_title_of_post: Officer '));
+  assert.ok(lines.includes('isCurrent: true'));assert.ok(lines.includes('is_present: true'));
+  assert.equal(validateEvidence([{ sourceId: sources[0].id, quote: 'Yes.' }], sources).evidence.length, 0);
+  assert.equal(validateEvidence([{ sourceId: sources[0].id, quote: 'Yes. Yes.' }], sources).evidence.length, 1);
+});
+
 test('missing or invented quotes cannot become supported or contradicted judgements', () => {
   for (const status of ['supported', 'contradicted']) {
     assert.equal(normaliseJudgement(def(), { status, evidence: [], confidence: 1 }, [source]).status, 'insufficient_evidence');
