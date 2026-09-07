@@ -1,0 +1,39 @@
+name: Assessment workspace regressions
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/assessment-workspace-tests.yml'
+      - 'src/**'
+      - 'supabase/functions/**'
+      - 'supabase/migrations/**'
+      - 'tests/**'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/assessment-workspace-tests.yml'
+      - 'src/**'
+      - 'supabase/functions/**'
+      - 'supabase/migrations/**'
+      - 'tests/**'
+      - 'package.json'
+
+permissions:
+  contents: read
+
+jobs:
+  assessment-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: tests/package-lock.json
+      - name: Install isolated test dependencies
+        run: npm --prefix tests ci --ignore-scripts --no-audit --no-fund
+      - name: Test evidence, assessment logic and PostgreSQL controls
+        run: npm run test:assessment
