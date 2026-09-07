@@ -172,7 +172,7 @@ serve(async (req) => {
       },
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ File proxy error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(`Server error: ${message}`, { 

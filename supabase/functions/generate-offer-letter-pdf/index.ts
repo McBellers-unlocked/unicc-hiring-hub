@@ -181,7 +181,7 @@ Deno.serve(async (req) => {
         const logoBytes = new Uint8Array(await logoData.arrayBuffer());
         logoImage = await pdfDoc.embedPng(logoBytes);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.log("Logo not found in storage, continuing without it:", e);
     }
 
@@ -416,7 +416,7 @@ Deno.serve(async (req) => {
     const pdfBytes = await pdfDoc.save();
     const fileName = `Offer_Letter_${surname}_${firstname}`.replace(/\s+/g, "_");
 
-    return new Response(pdfBytes, {
+    return new Response(pdfBytes as unknown as BodyInit, {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/pdf",

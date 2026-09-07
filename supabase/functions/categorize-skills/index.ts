@@ -173,7 +173,7 @@ Be consistent: All certifications should be category "Certifications & Licenses"
         const classifications: SkillClassification[] = JSON.parse(jsonContent);
         results.push(...classifications);
 
-      } catch (batchError) {
+      } catch (batchError: any) {
         console.error(`Error processing batch: ${batchError}`);
         errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${batchError.message}`);
       }
@@ -229,7 +229,7 @@ Be consistent: All certifications should be category "Certifications & Licenses"
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in categorize-skills:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,

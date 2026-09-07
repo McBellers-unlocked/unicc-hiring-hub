@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
       }
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Error generating page image:', error)
     return new Response('Error generating image', { 
       status: 500, 

@@ -225,7 +225,7 @@ Extract each bullet point as a separate item. For criteria, the title should be 
       JSON.stringify({ success: true, parsed }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Migration error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),

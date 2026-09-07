@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
       },
     )
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Document parsing error:', error)
     const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
@@ -142,7 +142,7 @@ async function parsePDFPlaceholder(arrayBuffer: ArrayBuffer): Promise<string> {
     
     return `Document parsed successfully (${arrayBuffer.byteLength} bytes), but no readable text could be extracted. This may be a scanned document or image-based PDF that requires OCR processing.`
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error parsing PDF:', error)
     return `Failed to parse PDF document: ${error instanceof Error ? error.message : 'Unknown error'}`
   }
@@ -207,7 +207,7 @@ async function parseDOCXPlaceholder(arrayBuffer: ArrayBuffer): Promise<string> {
     
     return `Document parsed successfully (${arrayBuffer.byteLength} bytes), but no readable text could be extracted from the DOCX structure.`
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error parsing DOCX:', error)
     return `Failed to parse DOCX document: ${error instanceof Error ? error.message : 'Unknown error'}`
   }

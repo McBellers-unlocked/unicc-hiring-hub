@@ -210,7 +210,7 @@ Candidate skills: ${JSON.stringify(candidateSkills)}`;
     for (const m of result.matches || []) {
       scoreMap.set(m.required_skill.toLowerCase(), Math.max(0, Math.min(1, m.similarity)));
     }
-  } catch (e) {
+  } catch (e: any) {
     console.error("Semantic skill matching failed, falling back to fuzzy:", e);
     // Fallback to fuzzy matching
     for (const req of requiredSkills) {
@@ -574,7 +574,7 @@ serve(async (req) => {
                 domain_keywords: result.domain_keywords || [],
                 completeness_score: Math.max(0, Math.min(1, result.completeness_score || 0)),
               });
-            } catch (e) {
+            } catch (e: any) {
               console.error(`Failed to embed candidate ${candidate.id}:`, e);
             }
           });
@@ -653,7 +653,7 @@ serve(async (req) => {
           try {
             const scores = await getSemanticSkillScores(apiKey, requiredSkills, candidateSkills);
             semanticScoresMap.set(c.candidate_id, scores);
-          } catch (e) {
+          } catch (e: any) {
             console.error(`Semantic matching failed for ${c.candidate_id}:`, e);
           }
         });
@@ -726,10 +726,10 @@ serve(async (req) => {
       });
 
       // Sort by match_score desc
-      scored.sort((a, b) => b.match_score - a.match_score);
+      scored.sort((a: any, b: any) => b.match_score - a.match_score);
 
       // Assign ranks
-      scored.forEach((s, i) => (s as any).rank = i + 1);
+      scored.forEach((s: any, i: number) => (s as any).rank = i + 1);
 
       // Create run record
       const { data: run, error: runErr } = await supabase
@@ -748,7 +748,7 @@ serve(async (req) => {
       // Step E: LLM explanations for top 10
       console.log("[talent-pool-match] Step E: Generating explanations for top 10 candidates");
       const top10 = scored.slice(0, 10);
-      const explanationPromises = top10.map(async (result) => {
+      const explanationPromises = top10.map(async (result: any) => {
         try {
           const emb = embMap.get(result.candidate_id);
           const cand = candMap.get(result.candidate_id);
@@ -784,7 +784,7 @@ serve(async (req) => {
           result.gaps = explanation.gaps_or_unknowns || [];
           // Use the AI-suggested tier if higher confidence
           if (explanation.tier) result.tier = explanation.tier;
-        } catch (e) {
+        } catch (e: any) {
           console.error(`Explanation failed for ${result.candidate_id}:`, e);
           result.reasons = [{ label: "Score-based match", detail: `Match score: ${result.match_score}%` }];
           result.gaps = [{ label: "Explanation unavailable", detail: "Could not generate detailed explanation" }];
@@ -800,7 +800,7 @@ serve(async (req) => {
       }
 
       // Bulk insert results
-      const insertRows = scored.map((s, i) => ({
+      const insertRows = scored.map((s: any, i: number) => ({
         run_id: run.id,
         candidate_id: s.candidate_id,
         text_similarity: s.text_similarity,
@@ -829,7 +829,7 @@ serve(async (req) => {
         JSON.stringify({
           run_id: run.id,
           total: scored.length,
-          top_results: scored.slice(0, 20).map((s) => ({
+          top_results: scored.slice(0, 20).map((s: any) => ({
             ...s,
             candidate_name: candMap.get(s.candidate_id)?.name || "Unknown",
           })),
@@ -842,7 +842,7 @@ serve(async (req) => {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (e) {
+  } catch (e: any) {
     console.error("talent-pool-match error:", e);
     const status = (e as any)?.message?.includes("429") ? 429 : (e as any)?.message?.includes("402") ? 402 : 500;
     return new Response(

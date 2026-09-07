@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
         page++;
       }
       console.log('Cached', authUserMap.size, 'auth users for import');
-    } catch (authCacheError) {
+    } catch (authCacheError: any) {
       console.error('Error building auth user cache:', authCacheError);
     }
 
@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
                 authUserMap.set(user.email, authUserId);
                 console.log(`Created auth account for ${user.email}`);
               }
-            } catch (createError) {
+            } catch (createError: any) {
               console.error('Exception creating auth user:', user.email, createError);
               errors++;
               continue;
@@ -289,7 +289,7 @@ Deno.serve(async (req) => {
               }
             }
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error processing user:', user.email, error);
           errors++;
         }
@@ -310,7 +310,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error importing users:', error);
     return new Response(
       JSON.stringify({ error: error.message }),

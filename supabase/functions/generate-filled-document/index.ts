@@ -98,14 +98,14 @@ Deno.serve(async (req) => {
 
     const fileName = `${template.name.replace(/\.[^.]+$/, "")}_filled.docx`;
 
-    return new Response(outputBuffer, {
+    return new Response(outputBuffer as unknown as BodyInit, {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "Content-Disposition": `attachment; filename="${fileName}"`,
       },
     });
-  } catch (err) {
+  } catch (err: any) {
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

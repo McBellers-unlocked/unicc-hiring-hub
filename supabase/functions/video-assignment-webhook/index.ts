@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating video assignment:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(

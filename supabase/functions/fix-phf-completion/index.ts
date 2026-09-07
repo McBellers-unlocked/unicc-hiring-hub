@@ -82,7 +82,7 @@ serve(async (req) => {
       }
     )
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in fix-phf-completion function:', error)
     const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(

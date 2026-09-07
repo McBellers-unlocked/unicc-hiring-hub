@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
           );
           formattedLocation = JSON.stringify(updatedStations);
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error('Error formatting location:', e);
       }
     }
@@ -331,7 +331,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ success: true, jobId: newJob.id, message: 'Requisition successfully converted to job posting' }), 
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error converting requisition:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), 
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

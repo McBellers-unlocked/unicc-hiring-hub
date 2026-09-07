@@ -6,10 +6,10 @@ import { PDFDocument, PDFRawStream, PDFName, StandardFonts, rgb } from "https://
 async function decompressStream(rawBytes: Uint8Array): Promise<Uint8Array | null> {
   for (const format of ["deflate", "raw"] as const) {
     try {
-      const ds = new DecompressionStream(format as string);
+      const ds = new DecompressionStream(format as CompressionFormat);
       const writer = ds.writable.getWriter();
       const reader = ds.readable.getReader();
-      writer.write(rawBytes).catch(() => {});
+      writer.write(rawBytes as any).catch(() => {});
       writer.close().catch(() => {});
       const chunks: Uint8Array[] = [];
       try {
@@ -30,10 +30,10 @@ async function decompressStream(rawBytes: Uint8Array): Promise<Uint8Array | null
   }
   if (rawBytes.length > 2) {
     try {
-      const ds = new DecompressionStream("deflate" as string);
+      const ds = new DecompressionStream("deflate" as CompressionFormat);
       const writer = ds.writable.getWriter();
       const reader = ds.readable.getReader();
-      writer.write(rawBytes.slice(2)).catch(() => {});
+      writer.write(rawBytes.slice(2) as any).catch(() => {});
       writer.close().catch(() => {});
       const chunks: Uint8Array[] = [];
       try {
@@ -144,8 +144,9 @@ async function fillPDF(fileBytes: Uint8Array, fieldValues: Record<string, string
     const contentRefs: any[] = [];
     if (contentsEntry) {
       const resolved = context.lookup(contentsEntry);
-      if (resolved && typeof resolved.size === "function") {
-        for (let ci = 0; ci < resolved.size(); ci++) { contentRefs.push(resolved.get(ci)); }
+      const resolvedAny = resolved as any;
+      if (resolvedAny && typeof resolvedAny.size === "function") {
+        for (let ci = 0; ci < resolvedAny.size(); ci++) { contentRefs.push(resolvedAny.get(ci)); }
       } else { contentRefs.push(contentsEntry); }
     }
     for (const ref of contentRefs) {
@@ -284,13 +285,13 @@ Deno.serve(async (req) => {
     }
 
     const fileName = file_path.split("/").pop()?.replace(/\.[^.]+$/, "") || "document";
-    return new Response(outputBuffer, {
+    return new Response(outputBuffer as unknown as BodyInit, {
       headers: {
         ...corsHeaders, "Content-Type": contentType,
         "Content-Disposition": `attachment; filename="${fileName}_filled.${fileExtension}"`,
       },
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("generate-repo-document error:", err);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },

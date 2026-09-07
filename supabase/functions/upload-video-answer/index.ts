@@ -193,7 +193,7 @@ Deno.serve(async (req) => {
       }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in upload-video-answer:', error);
     const message = error instanceof Error ? error.message : 'Failed to upload video';
     

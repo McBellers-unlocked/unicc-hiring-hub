@@ -289,7 +289,7 @@ async function runWithConcurrency<T>(
       try {
         const value = await tasks[index]();
         results[index] = { status: 'fulfilled', value };
-      } catch (reason) {
+      } catch (reason: any) {
         results[index] = { status: 'rejected', reason };
       }
     }
@@ -1538,7 +1538,7 @@ async function scoreLlmSubWithCache(args: ScoreLlmSubArgs): Promise<SubRequireme
         };
         if (cachedVerdict.model_version) modelUsedTracker.add(cachedVerdict.model_version);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Verdict cache lookup failed (continuing without cache):', e);
     }
   }
@@ -1569,7 +1569,7 @@ async function scoreLlmSubWithCache(args: ScoreLlmSubArgs): Promise<SubRequireme
             model_version: evalResult.modelUsed ?? MODEL,
             prompt_version: PROMPT_VERSION,
           }, { onConflict: 'application_id,criterion_id,sub_id,decomposition_version,phf_hash' });
-      } catch (e) {
+      } catch (e: any) {
         console.warn('Verdict cache write failed (continuing):', e);
       }
     }
@@ -1757,7 +1757,7 @@ async function scoreCriterionV4(
           .eq('phf_hash', phfHash)
           .maybeSingle();
         return { subReq, cached };
-      } catch (e) {
+      } catch (e: any) {
         console.warn('Verdict cache lookup failed (continuing without cache):', e);
         return { subReq, cached: null as any };
       }
@@ -2142,7 +2142,7 @@ async function buildEducationCriterionScore(args: BuildEducationArgs): Promise<C
         modelUsedTracker,
       });
       subScores.push(scored);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Education LLM sub failed:', e);
       subScores.push({
         id: subReq.id, text: subReq.text, type: 'llm',
@@ -2434,7 +2434,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Scoring error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),

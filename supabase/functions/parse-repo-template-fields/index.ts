@@ -20,7 +20,7 @@ async function extractFieldsFromPDF(fileBytes: Uint8Array): Promise<string[]> {
         fields.push(match[1]);
       }
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error("pdf-parse failed:", err.message);
     
     // Fallback: raw text search
@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ fields }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err) {
+  } catch (err: any) {
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
