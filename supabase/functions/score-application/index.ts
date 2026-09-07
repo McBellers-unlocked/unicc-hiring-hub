@@ -1,9 +1,10 @@
+import { createPassageCatalog, passageEvidenceSchema } from '../_shared/assessment-passages.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import {
   asRecord, combineCriterion, parseAssessmentCriteria, rawCriteriaSnapshot, recordedSubmissionCutoff, submittedApplicationInputs,
   summariseAssessment, unavailableSub,
 } from '../_shared/assessment-core.ts';
-import type { AssessmentScope, CriterionDefinition, DataRecord, EvidenceSource, ProposedJudgement } from '../_shared/assessment-core.ts';
+import type { AssessmentScope, CriterionDefinition, DataRecord, EvidenceSource } from '../_shared/assessment-core.ts';
 import { assessCriteria } from '../_shared/assessment-engine.ts';
 import type { AssessmentGateway } from '../_shared/assessment-engine.ts';
 import { ASSESSMENT_AI_BUDGET_MS, gatewayAttemptTimeoutMs } from '../_shared/assessment-timing.ts';
@@ -24,11 +25,7 @@ const MAX_SOURCE_CHARACTERS = 100_000;
 const MAX_CRITERIA_CHARACTERS = 40_000;
 const MAX_CRITERIA = 80;
 
-const evidenceSchema = {
-  type: 'array', items: { type: 'object', properties: {
-    sourceId: { type: 'string' }, quote: { type: 'string' },
-  }, required: ['sourceId', 'quote'], additionalProperties: false },
-};
+const evidenceSchema = passageEvidenceSchema;
 
 const EVALUATOR_PROMPT = `You assist a recruiter by assessing supplied application evidence against the COMPLETE approved criterion text.
 You do not select, rank, include, or exclude candidates. Return one judgement for EVERY supplied criterionId, with no additions or omissions.
@@ -40,9 +37,9 @@ Statuses:
 - contradicted: explicit candidate evidence directly contradicts the criterion. A missing keyword, unlisted qualification, shorter listed employment history, unknown date or ambiguous degree is NOT contradiction. A candidate reporting a lower degree does not prove that no other qualification exists.
 - insufficient_evidence: the supplied material cannot establish the criterion, or evidence conflicts, is ambiguous, has missing dates or requires interpretation. This does not imply the candidate lacks the requirement.
 - assessment_unavailable: the criterion could not be evaluated.
-For supported AND contradicted, cite exact verbatim source spans with sourceId and quote. Never put a paraphrase, calculation or explanation in a quote. Do not truncate or insert ellipses. Empty or non-verbatim evidence cannot support a decisive judgement.
-Each quote must identify a unique continuous span within its named source. If words appear more than once, include enough surrounding source text or the field label to identify the specific passage; never invent or change that context.
-Specific experience duration: do not combine unrelated years with a brief relevant task. For each qualifying employment record, return sourceId, wholeIntervalSupported=true ONLY when the evidence establishes that the requested work covered the whole employment interval, and verbatim evidence for that scope. Otherwise omit that record or set false. The system separately calculates the union of evidenced relevant intervals. Do not assume a missing end date means a current role.
+Each source is supplied as continuous passages containing its COMPLETE original text exactly once. For supported AND contradicted, cite one or more listed passages using sourceId and passageId only. Copy IDs exactly. Do not return quotation text, offsets or invented passage IDs. Select passages whose actual contents establish the whole requirement; a valid ID alone does not establish support. The server will resolve those passages to exact immutable text for a separate verifier.
+Passage identity is the pair of sourceId and passageId. When similar words occur in several passages, select the specific listed passage that supports your finding; do not reconstruct or rewrite the passage.
+Specific experience duration: do not combine unrelated years with a brief relevant task. For each qualifying employment record, return sourceId, wholeIntervalSupported=true ONLY when the evidence establishes that the requested work covered the whole employment interval, and listed passage references for that scope. Otherwise omit that record or set false. The system separately calculates the union of evidenced relevant intervals. Do not assume a missing end date means a current role.
 Education: use the actual education sources for degree subject and completion. Do not require a degree field to be repeated in a motivation letter or work history. Unknown qualification equivalence requires review.
 If an OR criterion is satisfied by a standalone education alternative, set satisfiedAlternative to the exact complete alternative text copied from the criterion. Otherwise return an empty string. An education branch nested inside a condition that still requires years is not a standalone alternative.
 Motivation-letter claims may contribute, but do not establish a verified qualification or duration by themselves. A missing desirable criterion is not a zero or a failure; use insufficient_evidence.
@@ -113,9 +110,10 @@ async function callGateway(system: string, payload: unknown, name: string, prope
   throw lastError;
 }
 
-function createGateway(deadline: number): AssessmentGateway { return {
+function createGateway(deadline: number, citationIssues: string[]): AssessmentGateway { return {
   async evaluate(criteria: CriterionDefinition[], sources: EvidenceSource[]) {
-    const result = await callGateway(EVALUATOR_PROMPT, { criteria, sources }, 'assess_criteria', {
+    const catalog = createPassageCatalog(sources);
+    const result = await callGateway(EVALUATOR_PROMPT, { criteria, sources: catalog.evaluatorSources }, 'assess_criteria', {
       judgements: { type: 'array', items: { type: 'object', properties: {
         criterionId: { type: 'string' }, status: { type: 'string', enum: ['supported', 'contradicted', 'insufficient_evidence', 'assessment_unavailable'] },
         evidence: evidenceSchema, missing: { type: 'string' }, rationale: { type: 'string' }, confidence: { type: 'number' }, satisfiedAlternative: { type: 'string' },
@@ -125,7 +123,11 @@ function createGateway(deadline: number): AssessmentGateway { return {
       }, required: ['criterionId', 'status', 'evidence', 'missing', 'rationale', 'confidence', 'qualifyingEmployment', 'satisfiedAlternative'], additionalProperties: false } },
     }, deadline);
     if (!Array.isArray(result.data.judgements)) throw new Error('Assessment response is incomplete.');
-    return { judgements: result.data.judgements as ProposedJudgement[], model: result.model };
+    const resolved = catalog.resolveJudgements(result.data.judgements);
+    for (const criterionId of new Set(resolved.issues.map(issue => issue.criterionId))) {
+      citationIssues.push(criterionId ? `The assessment returned an invalid source passage reference for criterion ${criterionId}.` : 'The assessment returned an invalid source passage reference.');
+    }
+    return { judgements: resolved.judgements, model: result.model };
   },
   async verify(criteria: CriterionDefinition[], sources: EvidenceSource[], judgements: DataRecord[]) {
     const result = await callGateway(VERIFIER_PROMPT, { criteria, sources, judgements }, 'verify_assessments', {
@@ -206,6 +208,7 @@ Deno.serve(async req => {
     if (!input.workExperience.length) scope.missingSources.push('Work experience');
     if (!input.education.length) scope.missingSources.push('Education');
     if (!input.sources.some(source => source.kind === 'motivation_letter')) scope.missingSources.push('Motivation letter');
+    const citationIssues: string[] = [];
     let assessed: Awaited<ReturnType<typeof assessCriteria>>;
     if (inputTooLarge) {
       const reason = 'The complete input exceeds the assessment service limit. Nothing was silently omitted; recruiter review is required.';
@@ -215,9 +218,9 @@ Deno.serve(async req => {
       assessed = { criteria: [], models: [], processingErrors: [] };
     } else {
       assessed = await assessCriteria({ criteria: parsed.criteria, sources: input.sources, workExperience: input.workExperience,
-        education: input.education, asOf: experienceCutoff ?? 'unavailable', gateway: createGateway(Date.now() + ASSESSMENT_AI_BUDGET_MS) });
+        education: input.education, asOf: experienceCutoff ?? 'unavailable', gateway: createGateway(Date.now() + ASSESSMENT_AI_BUDGET_MS, citationIssues) });
     }
-    scope.processingErrors.push(...assessed.processingErrors);
+    scope.processingErrors.push(...assessed.processingErrors, ...citationIssues);
     scope.blockingProcessingErrors = assessed.criteria.some(criterion =>
       (criterion.category === 'essential' || criterion.assessmentMode === 'gate') && criterion.status === 'assessment_unavailable')
       ? [...scope.processingErrors] : [];
