@@ -6,25 +6,23 @@ import {
 import type { AssessmentScope, CriterionDefinition, DataRecord, EvidenceSource, ProposedJudgement } from '../_shared/assessment-core.ts';
 import { assessCriteria } from '../_shared/assessment-engine.ts';
 import type { AssessmentGateway } from '../_shared/assessment-engine.ts';
-import { ASSESSMENT_AI_BUDGET_MS, GATEWAY_REQUEST_TIMEOUT_MS, gatewayAttemptTimeoutMs } from '../_shared/assessment-timing.ts';
+import { ASSESSMENT_AI_BUDGET_MS, gatewayAttemptTimeoutMs } from '../_shared/assessment-timing.ts';
+import {
+  ASSESSMENT_MODEL as MODEL, ASSESSMENT_PROMPT_VERSION as PROMPT_VERSION,
+  ASSESSMENT_EXECUTION_CONFIG as EXECUTION_CONFIG, buildAssessmentRequest,
+} from '../_shared/assessment-request.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
-const MODEL = 'openai/gpt-5';
 const PIPELINE_VERSION = '5.0';
-const PROMPT_VERSION = '2026-09-07.evidence-workspace.1';
 const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 // Over-limit input is retained in the run but marked unavailable, never silently cut.
 const MAX_SOURCE_CHARACTERS = 100_000;
 const MAX_CRITERIA_CHARACTERS = 40_000;
 const MAX_CRITERIA = 80;
-const EXECUTION_CONFIG = {
-  gateway_request_timeout_ms: GATEWAY_REQUEST_TIMEOUT_MS,
-  assessment_ai_budget_ms: ASSESSMENT_AI_BUDGET_MS,
-};
 
 const evidenceSchema = {
   type: 'array', items: { type: 'object', properties: {
@@ -82,12 +80,7 @@ async function callGateway(system: string, payload: unknown, name: string, prope
       const response = await fetch(AI_GATEWAY_URL, {
         method: 'POST', signal: controller.signal,
         headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: MODEL,
-          messages: [{ role: 'system', content: system }, { role: 'user', content: JSON.stringify(payload) }],
-          tools: [{ type: 'function', function: { name, description: 'Return complete evidence assessments using the given schema.',
-            parameters: { type: 'object', properties, required: Object.keys(properties), additionalProperties: false } } }],
-          tool_choice: { type: 'function', function: { name } },
-        }),
+        body: JSON.stringify(buildAssessmentRequest(system, payload, name, properties)),
       });
       responseStatus = response.status;
       if (!response.ok) {

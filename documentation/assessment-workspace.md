@@ -31,7 +31,7 @@ Use **Prepare manual review snapshot** to inspect frozen submitted evidence befo
 
 ## Assessment execution
 
-The evaluator and verifier use the configured `openai/gpt-5` model with the complete criteria and saved source records. Each gateway request can take up to 50 seconds, within a shared 80-second AI budget for the assessment. Later attempts are capped by the remaining budget, with a 500-millisecond completion margin; no new attempt starts with less than one second remaining. The immutable result records both limits in `execution_config`, and the input hash includes this configuration.
+The evaluator and verifier use the configured `openai/gpt-5` model with explicit `reasoning_effort: low`, the complete criteria and saved source records. Prompt version `2026-09-07.evidence-workspace.2` identifies this execution change. Each gateway request can take up to 50 seconds, within a shared 80-second AI budget for the assessment. Later attempts are capped by the remaining budget, with a 500-millisecond completion margin; no new attempt starts with less than one second remaining. The immutable result records the reasoning effort and both limits in `execution_config`, and the input hash includes this configuration.
 
 Batch scoring processes up to four applications concurrently per slice. Every outcome in the slice settles before its saved counters advance and the next slice starts. Failed requests remain visible in the batch record. Assessment runs do not change application stages or human decisions.
 
