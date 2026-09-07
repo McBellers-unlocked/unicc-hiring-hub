@@ -6,6 +6,7 @@ import {
 import type { AssessmentScope, CriterionDefinition, DataRecord, EvidenceSource, ProposedJudgement } from '../_shared/assessment-core.ts';
 import { assessCriteria } from '../_shared/assessment-engine.ts';
 import type { AssessmentGateway } from '../_shared/assessment-engine.ts';
+import { ASSESSMENT_AI_BUDGET_MS, GATEWAY_REQUEST_TIMEOUT_MS, gatewayAttemptTimeoutMs } from '../_shared/assessment-timing.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,7 +21,10 @@ const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const MAX_SOURCE_CHARACTERS = 100_000;
 const MAX_CRITERIA_CHARACTERS = 40_000;
 const MAX_CRITERIA = 80;
-const ASSESSMENT_AI_BUDGET_MS = 80_000;
+const EXECUTION_CONFIG = {
+  gateway_request_timeout_ms: GATEWAY_REQUEST_TIMEOUT_MS,
+  assessment_ai_budget_ms: ASSESSMENT_AI_BUDGET_MS,
+};
 
 const evidenceSchema = {
   type: 'array', items: { type: 'object', properties: {
@@ -61,10 +65,19 @@ async function callGateway(system: string, payload: unknown, name: string, prope
   if (!key) throw new Error('Assessment service is not configured.');
   let lastError: Error = new Error('Assessment service is unavailable.');
   for (let attempt = 0; attempt < 3; attempt++) {
-    const remaining = deadline - Date.now();
-    if (remaining < 1000) throw new Error('The assessment time budget was exhausted; reviewer attention is required.');
+    const attemptTimeoutMs = gatewayAttemptTimeoutMs(deadline, Date.now());
+    if (attemptTimeoutMs === null) {
+      console.warn('Assessment gateway attempt unavailable:', {
+        stage: name, attempt: attempt + 1, status: null, timeout: true,
+        errorName: 'AssessmentBudgetExhausted', elapsedMs: 0,
+      });
+      throw new Error('The assessment time budget was exhausted; reviewer attention is required.');
+    }
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), Math.min(35_000, remaining - 500));
+    const attemptStartedAt = Date.now();
+    let responseStatus: number | null = null;
+    let timedOut = false;
+    const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, attemptTimeoutMs);
     try {
       const response = await fetch(AI_GATEWAY_URL, {
         method: 'POST', signal: controller.signal,
@@ -76,6 +89,7 @@ async function callGateway(system: string, payload: unknown, name: string, prope
           tool_choice: { type: 'function', function: { name } },
         }),
       });
+      responseStatus = response.status;
       if (!response.ok) {
         lastError = new Error(`Assessment service returned status ${response.status}.`);
         throw lastError;
@@ -84,8 +98,18 @@ async function callGateway(system: string, payload: unknown, name: string, prope
       const argument = body?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
       if (typeof argument !== 'string') throw new Error('Assessment service did not return structured evidence.');
       const data = asRecord(JSON.parse(argument));
+      console.info('Assessment gateway attempt completed:', {
+        stage: name, attempt: attempt + 1, status: responseStatus, timeout: false,
+        errorName: null, elapsedMs: Date.now() - attemptStartedAt,
+      });
       return { data, model: typeof body.model === 'string' ? body.model : MODEL };
     } catch (error) {
+      // Deliberately exclude response bodies, error messages, request payloads,
+      // evidence and credentials from gateway diagnostics.
+      console.warn('Assessment gateway attempt failed:', {
+        stage: name, attempt: attempt + 1, status: responseStatus, timeout: timedOut,
+        errorName: error instanceof Error ? error.name : 'UnknownError', elapsedMs: Date.now() - attemptStartedAt,
+      });
       lastError = error instanceof Error ? error : new Error('Assessment service is unavailable.');
     } finally {
       clearTimeout(timeout);
@@ -214,8 +238,10 @@ Deno.serve(async req => {
       criteriaIssues: parsed.issues, assessedAt: asOf,
       model_version: modelVersion, configured_model: MODEL, models_used: assessed.models,
       pipeline_version: PIPELINE_VERSION, prompt_version: PROMPT_VERSION,
+      execution_config: EXECUTION_CONFIG,
       input_hash: await sha256({ sources: input.sources, criteria: parsed.snapshot, experienceCutoff,
-        pipeline: PIPELINE_VERSION, prompt: PROMPT_VERSION, configuredModel: MODEL, modelsUsed: assessed.models }),
+        pipeline: PIPELINE_VERSION, prompt: PROMPT_VERSION, configuredModel: MODEL, modelsUsed: assessed.models,
+        executionConfig: EXECUTION_CONFIG }),
       cache_used: false, force_rescore_requested: forceRescore,
     };
     // The service-only RPC checks the frozen inputs under locks and atomically
@@ -225,6 +251,15 @@ Deno.serve(async req => {
       p_application_id: applicationId, p_rubric_breakdown: result, p_pipeline_version: PIPELINE_VERSION,
       p_prompt_version: PROMPT_VERSION, p_model_version: modelVersion,
     });
+    if (saveError) {
+      // Log only database diagnostics, never the rubric, source evidence,
+      // credentials, or PostgREST details that can contain a failing row.
+      console.error('Assessment save failed:', { code: saveError.code, message: saveError.message });
+    } else if (savedAssessmentId !== assessmentId) {
+      console.error('Assessment save failed:', {
+        code: 'UNEXPECTED_RPC_RESULT', message: 'The save function did not return the generated assessment identifier.',
+      });
+    }
     if (saveError?.code === '40001') return json({ error: 'Application evidence or criteria changed during assessment. Reload and assess the current version.' }, 409);
     if (saveError || savedAssessmentId !== assessmentId) throw new Error('The immutable assessment and current view could not be saved together.');
     // Human decisions are separate, auditable actions. Assessment never changes

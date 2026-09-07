@@ -24,7 +24,7 @@ const fixture = `
   CREATE TABLE public.jobs(id uuid PRIMARY KEY, title text, essential_education_level text);
   CREATE TABLE public.candidates(id uuid PRIMARY KEY, phf_work_experience jsonb, work_experience jsonb, phf_education jsonb, education jsonb, motivation_letter text);
   CREATE TABLE public.applications(id uuid PRIMARY KEY, job_id uuid REFERENCES public.jobs(id), candidate_id uuid REFERENCES public.candidates(id), status public.application_status NOT NULL DEFAULT 'Application', suggested_for_longlist boolean DEFAULT false, longlist_rating text, answers jsonb, phf_data jsonb, phf_completed boolean DEFAULT true, submitted_at timestamptz DEFAULT now(), files jsonb);
-  CREATE TABLE public.screening_scores(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), application_id uuid REFERENCES public.applications(id), rubric_breakdown jsonb, ai_score numeric, version text, pipeline_version text, prompt_version text, model_version text, created_at timestamptz, UNIQUE(application_id,pipeline_version));
+  CREATE TABLE public.screening_scores(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), application_id uuid REFERENCES public.applications(id), rubric_breakdown jsonb, ai_score integer CHECK(ai_score >= 0 AND ai_score <= 100), version text, pipeline_version text, prompt_version text, model_version text, created_at timestamptz, UNIQUE(application_id,pipeline_version));
   CREATE TABLE public.batch_scoring_jobs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),job_id uuid REFERENCES public.jobs(id),status text CHECK(status IN('pending','processing','completed','failed')));
   ALTER TABLE public.batch_scoring_jobs ENABLE ROW LEVEL SECURITY;
   CREATE TABLE public.stage_events(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), application_id uuid REFERENCES public.applications(id), from_stage public.application_status, to_stage public.application_status, by_user uuid REFERENCES public.users(id), reason text);
@@ -248,4 +248,54 @@ test('assessment controls execute transactionally in isolated PostgreSQL', async
     await assert.rejects(query("SELECT save_assessment_run($1,$2,'5.0','fixture','fixture')",[ids.app,rubric]),/submitted, completed/);
     await db.exec('RESET ROLE');
   });
+});
+
+test('score metadata migration repairs the older baseline and preserves historical scores', async t => {
+  const db = new PGlite();
+  t.after(() => db.close());
+  // Match the deployed pre-June schema, including the integer score and the
+  // application/pipeline unique key, rather than pre-creating the missing fields.
+  await db.exec(fixture.replace(', prompt_version text, model_version text', ''));
+  await db.exec(await readFile(new URL('../supabase/migrations/20260907120000_assessment_workspace_controls.sql', import.meta.url), 'utf8'));
+  const query = async (sql, args = []) => (await db.query(sql, args)).rows;
+  const legacy = (await query("INSERT INTO screening_scores(application_id,ai_score,rubric_breakdown,version,pipeline_version,created_at) VALUES ($1,44,'{\"legacy\":true}','4.0','4.0',now()) RETURNING *", [ids.app]))[0];
+  const rubric = (await query(`SELECT jsonb_build_object('jobId',a.job_id,'rawJobEducationLevel',j.essential_education_level,
+    'rawApplicationSnapshot',jsonb_build_object('phf_data',a.phf_data,'answers',a.answers,'phf_completed',a.phf_completed,'submitted_at',a.submitted_at),
+    'rawCriteriaSnapshot',(SELECT jsonb_agg(to_jsonb(r)-ARRAY['created_at','job_id','policy_approval_event_id']) FROM job_requirements r WHERE r.job_id=a.job_id),
+    'allCriteria','[]'::jsonb,'sources','[]'::jsonb,'overallScore',75) AS value
+    FROM applications a JOIN jobs j ON j.id=a.job_id WHERE a.id=$1`, [ids.app]))[0].value;
+  const save = async () => {
+    await db.exec('SET ROLE service_role');
+    try {
+      return (await query("SELECT save_assessment_run($1,$2,'5.0','prompt-fixture-v1','model-fixture-v1') AS id", [ids.app, rubric]))[0].id;
+    } finally { await db.exec('RESET ROLE'); }
+  };
+  await assert.rejects(save(), error => error.code === '42703' && /model_version|prompt_version/.test(error.message));
+  assert.equal((await query('SELECT count(*)::int AS count FROM assessment_runs'))[0].count, 0,
+    'a missing projection column must roll back the immutable run too');
+  assert.deepEqual((await query('SELECT * FROM screening_scores'))[0], legacy);
+
+  const repair = await readFile(new URL('../supabase/migrations/20260907143000_assessment_score_metadata_columns.sql', import.meta.url), 'utf8');
+  await db.exec(repair);
+  const firstId = await save();
+  const firstRun = (await query('SELECT * FROM assessment_runs WHERE id=$1', [firstId]))[0];
+  assert.equal(firstRun.model_version, 'model-fixture-v1');
+  assert.equal(firstRun.prompt_version, 'prompt-fixture-v1');
+  const projection = (await query("SELECT * FROM screening_scores WHERE application_id=$1 AND pipeline_version='5.0'", [ids.app]))[0];
+  assert.equal(projection.assessment_run_id, firstId);
+  assert.equal(projection.ai_score, 75);
+  assert.equal(projection.model_version, 'model-fixture-v1');
+  assert.equal(projection.prompt_version, 'prompt-fixture-v1');
+  assert.deepEqual((await query('SELECT * FROM screening_scores WHERE id=$1', [legacy.id]))[0],
+    { ...legacy, model_version: null, prompt_version: null }, 'legacy scores retain their values and unknown metadata');
+
+  await db.exec(repair);
+  assert.deepEqual((await query('SELECT * FROM assessment_runs WHERE id=$1', [firstId]))[0], firstRun);
+  assert.deepEqual((await query("SELECT * FROM screening_scores WHERE application_id=$1 AND pipeline_version='5.0'", [ids.app]))[0], projection);
+  const secondId = await save();
+  assert.notEqual(secondId, firstId);
+  assert.equal((await query('SELECT count(*)::int AS count FROM assessment_runs'))[0].count, 2);
+  assert.equal((await query("SELECT assessment_run_id FROM screening_scores WHERE application_id=$1 AND pipeline_version='5.0'", [ids.app]))[0].assessment_run_id, secondId);
+  assert.deepEqual((await query('SELECT * FROM assessment_runs WHERE id=$1', [firstId]))[0], firstRun,
+    'subsequent saves retain the prior immutable assessment');
 });

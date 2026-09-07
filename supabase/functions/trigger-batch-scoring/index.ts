@@ -1,5 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { validateBatchContinuation } from '../_shared/batch-assessment-core.ts';
+import { ASSESSMENT_SLICE_SIZE, assessBatchSlice, validateBatchContinuation } from '../_shared/batch-assessment-core.ts';
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
@@ -66,24 +66,23 @@ async function processSlice(supabase: Client, batchJobId: string, applicationIds
       .catch(() => console.error('Batch heartbeat could not be written.'));
   }, HEARTBEAT_MS);
   try {
-    const applicationId = applicationIds[sliceIndex];
-    const failure = await scoreApplication(applicationId, forceRescore);
+    const slice = await assessBatchSlice(applicationIds, sliceIndex, applicationId => scoreApplication(applicationId, forceRescore));
     const { data: batch, error: readError } = await supabase.from('batch_scoring_jobs')
       .select('scored_count,error_count,error_message,status').eq('id', batchJobId).single();
-    if (readError || !batch || batch.status !== 'processing') throw new Error('The active batch could not be read.');
-    const nextIndex = sliceIndex + 1;
-    const complete = nextIndex === applicationIds.length;
-    const { error: updateError } = await supabase.from('batch_scoring_jobs').update({
-      scored_count: batch.scored_count + (failure ? 0 : 1),
-      error_count: batch.error_count + (failure ? 1 : 0),
-      error_message: failure ? [batch.error_message, `${applicationId}: ${failure}`].filter(Boolean).join(' | ').slice(0, 2000) : batch.error_message,
-      status: complete ? 'completed' : 'pending',
-      completed_at: complete ? new Date().toISOString() : null,
+    if (readError || !batch || batch.status !== 'processing' || batch.scored_count + batch.error_count !== sliceIndex) {
+      throw new Error('The active batch progress no longer matches this slice.');
+    }
+    const { data: updated, error: updateError } = await supabase.from('batch_scoring_jobs').update({
+      scored_count: batch.scored_count + slice.scoredCount,
+      error_count: batch.error_count + slice.errorCount,
+      error_message: slice.failures.length ? [batch.error_message, ...slice.failures.map(failure => `${failure.applicationId}: ${failure.reason}`)].filter(Boolean).join(' | ').slice(0, 2000) : batch.error_message,
+      status: slice.complete ? 'completed' : 'pending',
+      completed_at: slice.complete ? new Date().toISOString() : null,
       last_updated_at: new Date().toISOString(),
-    }).eq('id', batchJobId).eq('status', 'processing');
-    if (updateError) throw new Error('The batch result could not be recorded.');
+    }).eq('id', batchJobId).eq('status', 'processing').eq('scored_count', batch.scored_count).eq('error_count', batch.error_count).select('id').maybeSingle();
+    if (updateError || !updated) throw new Error('The batch result could not be recorded.');
     clearInterval(heartbeat);
-    if (!complete) await dispatchContinuation(supabase, batchJobId, applicationIds, nextIndex, forceRescore);
+    if (!slice.complete) await dispatchContinuation(supabase, batchJobId, applicationIds, slice.nextIndex, forceRescore);
   } catch {
     await markFailed(supabase, batchJobId, 'Assessment processing stopped before the batch finished. Review saved results and check progress before retrying.');
   } finally {
@@ -161,7 +160,7 @@ Deno.serve(async req => {
     // tracked by EdgeRuntime.waitUntil. HTTP failures become visible terminal state.
     await dispatchContinuation(supabase, batch.id, applicationIds, 0, body.forceRescore === true);
     return json({ batchJobId: batch.id, total: applicationIds.length, toScore: applicationIds.length, skipped: 0,
-      sliceSize: 1, message: 'Fresh evidence assessments have started.' });
+      sliceSize: ASSESSMENT_SLICE_SIZE, message: 'Fresh evidence assessments have started.' });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Assessment batch could not be started.';
     console.error('Batch assessment failed:', message);
