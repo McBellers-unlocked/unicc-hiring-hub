@@ -29,6 +29,14 @@ Reviewer findings and disagreements add history entries rather than replacing th
 
 Use **Prepare manual review snapshot** to inspect frozen submitted evidence before a human finding or decision when there is no AI run. If the application or criteria change, explicitly prepare and inspect the current manual snapshot; a decision cannot silently substitute new evidence for a previously selected snapshot.
 
+## Assessment execution
+
+The evaluator and verifier use the configured `openai/gpt-5` model with the complete criteria and saved source records. Each gateway request can take up to 50 seconds, within a shared 80-second AI budget for the assessment. Later attempts are capped by the remaining budget, with a 500-millisecond completion margin; no new attempt starts with less than one second remaining. The immutable result records both limits in `execution_config`, and the input hash includes this configuration.
+
+Batch scoring processes up to four applications concurrently per slice. Every outcome in the slice settles before its saved counters advance and the next slice starts. Failed requests remain visible in the batch record. Assessment runs do not change application stages or human decisions.
+
+A saved assessment can contain unavailable findings, so a completed batch count alone does not establish that AI evaluation succeeded. Operational checks should inspect the saved run's `models_used`, `scope.processingErrors` and criterion findings, together with policy approval and source coverage. These checks establish processing completeness, not candidate suitability. Gateway diagnostics record attempt timing, status and error type; save failures record the database error code and message. They do not log request or response bodies, submitted evidence or credentials.
+
 ## Validation
 
 Use Node.js 24 or later for the native TypeScript regression tests:
@@ -39,7 +47,7 @@ npm run test:assessment
 npm run build
 ```
 
-The isolated test package pins PGlite to execute the actual migration and decision functions against a disposable matching schema. It does not replay the repository’s complete historical migration chain. The tests use synthetic records and stubbed model responses; they never connect to the production database or scoring gateway.
+The isolated test package pins PGlite to execute the actual migration and decision functions against a disposable matching schema. It covers the metadata-column repair on an older schema, preservation of existing scores and immutable runs, gateway deadline limits and bounded batch concurrency. It does not replay the repository’s complete historical migration chain. The tests use synthetic records and stubbed model responses; they never connect to the production database or scoring gateway.
 
 The assessment regression workflow runs this isolated suite on relevant pull requests and main-branch changes, with read-only repository access and no production credentials.
 
@@ -51,7 +59,7 @@ Browser checks should cover all three synthetic applicants, opening exact eviden
 
 This is a database, edge-function and frontend change. Release these components together in staging before production:
 
-1. Apply `supabase/migrations/20260907120000_assessment_workspace_controls.sql` using the normal migration process. It adds immutable runs, review/policy events, guarded decision functions and criterion policy fields.
+1. Apply `supabase/migrations/20260907120000_assessment_workspace_controls.sql`, followed by `supabase/migrations/20260907143000_assessment_score_metadata_columns.sql`, using the normal migration process. The first adds immutable runs, review/policy events, guarded decision functions and criterion policy fields. The second ensures older deployments have the model/prompt metadata columns required by the atomic save function, without changing existing score data or inventing historical provenance.
 2. Deploy `score-application` and `trigger-batch-scoring`, including their shared assessment modules. Retain the existing gateway configuration and service credentials.
 3. Deploy the frontend and refresh active recruiter sessions. Older clients cannot bypass the new decision rationale/history requirements.
 4. Review the complete criteria set for each active role and approve its treatment. Run fresh assessments; older scores remain available as historical information.

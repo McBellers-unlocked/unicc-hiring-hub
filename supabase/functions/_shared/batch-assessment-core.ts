@@ -9,3 +9,40 @@ export function validateBatchContinuation(batch: {
   if (sliceIndex !== batch.scored_count + batch.error_count) return 'The continuation does not match the recorded progress.';
   return null;
 }
+
+export const ASSESSMENT_SLICE_SIZE = 4;
+
+export interface AssessmentSliceResult {
+  nextIndex: number;
+  complete: boolean;
+  scoredCount: number;
+  errorCount: number;
+  failures: Array<{ applicationId: string; reason: string }>;
+}
+
+/** Finish at most four independent saves before advancing durable batch progress. */
+export async function assessBatchSlice(
+  applicationIds: string[],
+  sliceIndex: number,
+  score: (applicationId: string) => Promise<string | null>,
+): Promise<AssessmentSliceResult> {
+  if (!Number.isInteger(sliceIndex) || sliceIndex < 0 || sliceIndex >= applicationIds.length) {
+    throw new Error('The assessment slice offset is invalid.');
+  }
+  const slice = applicationIds.slice(sliceIndex, sliceIndex + ASSESSMENT_SLICE_SIZE);
+  const outcomes = await Promise.all(slice.map(async applicationId => {
+    try {
+      const result = await score(applicationId);
+      return { applicationId, reason: result === null ? null
+        : typeof result === 'string' && result.trim() ? result : 'Assessment did not report a saved result.' };
+    } catch {
+      // One unexpected rejection must not discard the other saved results or
+      // expose arbitrary exception details through the recruiter progress UI.
+      return { applicationId, reason: 'Assessment request did not complete.' };
+    }
+  }));
+  const failures = outcomes.filter((outcome): outcome is { applicationId: string; reason: string } => outcome.reason !== null);
+  const nextIndex = sliceIndex + slice.length;
+  return { nextIndex, complete: nextIndex === applicationIds.length,
+    scoredCount: slice.length - failures.length, errorCount: failures.length, failures };
+}
