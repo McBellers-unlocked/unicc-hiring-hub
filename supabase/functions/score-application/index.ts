@@ -6,25 +6,23 @@ import {
 import type { AssessmentScope, CriterionDefinition, DataRecord, EvidenceSource, ProposedJudgement } from '../_shared/assessment-core.ts';
 import { assessCriteria } from '../_shared/assessment-engine.ts';
 import type { AssessmentGateway } from '../_shared/assessment-engine.ts';
-import { ASSESSMENT_AI_BUDGET_MS, GATEWAY_REQUEST_TIMEOUT_MS, gatewayAttemptTimeoutMs } from '../_shared/assessment-timing.ts';
+import { ASSESSMENT_AI_BUDGET_MS, gatewayAttemptTimeoutMs } from '../_shared/assessment-timing.ts';
+import {
+  ASSESSMENT_MODEL as MODEL, ASSESSMENT_PROMPT_VERSION as PROMPT_VERSION,
+  ASSESSMENT_EXECUTION_CONFIG as EXECUTION_CONFIG, buildAssessmentRequest,
+} from '../_shared/assessment-request.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
-const MODEL = 'openai/gpt-5';
 const PIPELINE_VERSION = '5.0';
-const PROMPT_VERSION = '2026-09-07.evidence-workspace.1';
 const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 // Over-limit input is retained in the run but marked unavailable, never silently cut.
 const MAX_SOURCE_CHARACTERS = 100_000;
 const MAX_CRITERIA_CHARACTERS = 40_000;
 const MAX_CRITERIA = 80;
-const EXECUTION_CONFIG = {
-  gateway_request_timeout_ms: GATEWAY_REQUEST_TIMEOUT_MS,
-  assessment_ai_budget_ms: ASSESSMENT_AI_BUDGET_MS,
-};
 
 const evidenceSchema = {
   type: 'array', items: { type: 'object', properties: {
@@ -43,6 +41,7 @@ Statuses:
 - insufficient_evidence: the supplied material cannot establish the criterion, or evidence conflicts, is ambiguous, has missing dates or requires interpretation. This does not imply the candidate lacks the requirement.
 - assessment_unavailable: the criterion could not be evaluated.
 For supported AND contradicted, cite exact verbatim source spans with sourceId and quote. Never put a paraphrase, calculation or explanation in a quote. Do not truncate or insert ellipses. Empty or non-verbatim evidence cannot support a decisive judgement.
+Each quote must identify a unique continuous span within its named source. If words appear more than once, include enough surrounding source text or the field label to identify the specific passage; never invent or change that context.
 Specific experience duration: do not combine unrelated years with a brief relevant task. For each qualifying employment record, return sourceId, wholeIntervalSupported=true ONLY when the evidence establishes that the requested work covered the whole employment interval, and verbatim evidence for that scope. Otherwise omit that record or set false. The system separately calculates the union of evidenced relevant intervals. Do not assume a missing end date means a current role.
 Education: use the actual education sources for degree subject and completion. Do not require a degree field to be repeated in a motivation letter or work history. Unknown qualification equivalence requires review.
 If an OR criterion is satisfied by a standalone education alternative, set satisfiedAlternative to the exact complete alternative text copied from the criterion. Otherwise return an empty string. An education branch nested inside a condition that still requires years is not a standalone alternative.
@@ -82,12 +81,7 @@ async function callGateway(system: string, payload: unknown, name: string, prope
       const response = await fetch(AI_GATEWAY_URL, {
         method: 'POST', signal: controller.signal,
         headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: MODEL,
-          messages: [{ role: 'system', content: system }, { role: 'user', content: JSON.stringify(payload) }],
-          tools: [{ type: 'function', function: { name, description: 'Return complete evidence assessments using the given schema.',
-            parameters: { type: 'object', properties, required: Object.keys(properties), additionalProperties: false } } }],
-          tool_choice: { type: 'function', function: { name } },
-        }),
+        body: JSON.stringify(buildAssessmentRequest(system, payload, name, properties)),
       });
       responseStatus = response.status;
       if (!response.ok) {

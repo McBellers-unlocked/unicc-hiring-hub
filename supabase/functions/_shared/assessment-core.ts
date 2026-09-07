@@ -197,10 +197,38 @@ export function parseAssessmentCriteria(rows: unknown, fallbackEducation?: unkno
   return { criteria, issues, snapshot };
 }
 
-export function recordText(record: DataRecord): string {
+// These pairs come from the profile/PHF mappings. Collapse only identical scalar
+// values within a known alias group; conflicting values and unrelated fields stay.
+// All original labels remain beside the shared value in the immutable source.
+const WORK_SOURCE_ALIASES = [
+  ['description', 'duties_and_responsibilities'],
+  ['position', 'title', 'exact_title', 'exact_title_of_post'], ['company', 'employer_name'],
+  ['location', 'employer_address'], ['type', 'type_of_business'],
+  ['startDate', 'start_date'], ['endDate', 'end_date'],
+  ['isCurrent', 'is_current', 'is_present'], ['isUNExperience', 'is_un_system_post'],
+] as const;
+const EDUCATION_SOURCE_ALIASES = [
+  ['institution', 'institution_name'],
+  ['degree_type', 'degree', 'degree_or_certificate_title'],
+  ['field_of_study', 'field', 'main_course_of_study'],
+  ['start_date', 'startDate'], ['end_date', 'endDate'],
+  ['is_current', 'isCurrent', 'is_present'], ['is_completed', 'completed'],
+] as const;
+
+export function recordText(record: DataRecord, aliasGroups: readonly (readonly string[])[] = []): string {
+  const emitted = new Set<string>();
   return Object.entries(record)
     .filter(([, value]) => value !== null && value !== undefined)
-    .map(([key, value]) => `${key}: ${typeof value === 'string' ? value : JSON.stringify(value)}`)
+    // Stable source text must not depend on the producer's object-key ordering.
+    .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+    .flatMap(([key, value]) => {
+      if (emitted.has(key)) return [];
+      const aliases = aliasGroups.find(group => group.includes(key));
+      const identical = aliases && ['string', 'number', 'boolean'].includes(typeof value)
+        ? aliases.filter(alias => Object.hasOwn(record, alias) && Object.is(record[alias], value)) : [key];
+      identical.forEach(alias => emitted.add(alias));
+      return [`${identical.join(' / ')}: ${typeof value === 'string' ? value : JSON.stringify(value)}`];
+    })
     .join('\n');
 }
 
@@ -213,11 +241,11 @@ export function buildEvidenceSources(input: {
   const sources: EvidenceSource[] = [];
   for (const [recordIndex, record] of input.workExperience.entries()) sources.push({
     id: `work-experience-${recordIndex}`, kind: 'work_experience', label: `Work experience ${recordIndex + 1}`,
-    text: recordText(record), recordIndex,
+    text: recordText(record, WORK_SOURCE_ALIASES), recordIndex,
   });
   for (const [recordIndex, record] of input.education.entries()) sources.push({
     id: `education-${recordIndex}`, kind: 'education', label: `Education ${recordIndex + 1}`,
-    text: recordText(record), recordIndex,
+    text: recordText(record, EDUCATION_SOURCE_ALIASES), recordIndex,
   });
   if (input.motivationLetter.trim()) sources.push({ id: 'motivation-letter', kind: 'motivation_letter', label: 'Motivation letter', text: input.motivationLetter });
   if (input.applicationEvidence && Object.keys(input.applicationEvidence).length) sources.push({

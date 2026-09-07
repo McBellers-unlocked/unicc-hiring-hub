@@ -6,6 +6,7 @@ import { Layout } from '@/components/Layout';
 import { ApplicationScoring } from '@/components/ApplicationScoring';
 import { getAssessmentView, latestApplicationAssessment } from '@/lib/assessmentView';
 import { recordApplicationDecision } from '@/lib/assessmentReview';
+import { applicationDisplayLanguages, applicationDisplaySkills } from '@/lib/applicationProfileDisplay';
 import { RequirementsChecklist } from '@/components/RequirementsChecklist';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -860,8 +861,7 @@ export default function ApplicationDetail() {
               </CardHeader>
               <CardContent>
                 {application.phf_data?.languages && (() => {
-                  const unLangs = application.phf_data.languages.un_languages || {};
-                  const otherLangs = application.phf_data.languages.other_languages || [];
+                  const { un_languages: unLangs, other_languages: otherLangs } = applicationDisplayLanguages(application.phf_data.languages);
                   
                   // Helper to check if a language has any selected level
                   const hasSelectedLevel = (prof: any) => {
@@ -1247,20 +1247,7 @@ export default function ApplicationDetail() {
               </CardHeader>
               <CardContent>
                 {(() => {
-                  const skillsArray = [
-                    ...(application.phf_data?._skills || []),
-                    ...(application.phf_data?.skills || [])
-                  ];
-                  
-                  // Also include additional_skills from additionalInformation (stored as comma-separated string)
-                  const additionalSkillsStr = application.phf_data?.additionalInformation?.additional_skills;
-                  if (additionalSkillsStr && typeof additionalSkillsStr === 'string') {
-                    const additionalSkillsArray = additionalSkillsStr.split(',').map((s: string) => s.trim()).filter(Boolean);
-                    skillsArray.push(...additionalSkillsArray);
-                  }
-                  
-                  // Remove duplicates
-                  const allSkills = [...new Set(skillsArray.map((s: any) => typeof s === 'string' ? s : s.name))];
+                  const allSkills = applicationDisplaySkills(application.phf_data);
                   
                   return allSkills.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
