@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
 
     const fileName = `${template.name.replace(/\.[^.]+$/, "")}_filled.docx`;
 
-    return new Response(outputBuffer, {
+    return new Response(outputBuffer as unknown as BodyInit, {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

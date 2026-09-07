@@ -726,10 +726,10 @@ serve(async (req) => {
       });
 
       // Sort by match_score desc
-      scored.sort((a, b) => b.match_score - a.match_score);
+      scored.sort((a: any, b: any) => b.match_score - a.match_score);
 
       // Assign ranks
-      scored.forEach((s, i) => (s as any).rank = i + 1);
+      scored.forEach((s: any, i: number) => (s as any).rank = i + 1);
 
       // Create run record
       const { data: run, error: runErr } = await supabase
@@ -748,7 +748,7 @@ serve(async (req) => {
       // Step E: LLM explanations for top 10
       console.log("[talent-pool-match] Step E: Generating explanations for top 10 candidates");
       const top10 = scored.slice(0, 10);
-      const explanationPromises = top10.map(async (result) => {
+      const explanationPromises = top10.map(async (result: any) => {
         try {
           const emb = embMap.get(result.candidate_id);
           const cand = candMap.get(result.candidate_id);
@@ -800,7 +800,7 @@ serve(async (req) => {
       }
 
       // Bulk insert results
-      const insertRows = scored.map((s, i) => ({
+      const insertRows = scored.map((s: any, i: number) => ({
         run_id: run.id,
         candidate_id: s.candidate_id,
         text_similarity: s.text_similarity,
@@ -829,7 +829,7 @@ serve(async (req) => {
         JSON.stringify({
           run_id: run.id,
           total: scored.length,
-          top_results: scored.slice(0, 20).map((s) => ({
+          top_results: scored.slice(0, 20).map((s: any) => ({
             ...s,
             candidate_name: candMap.get(s.candidate_id)?.name || "Unknown",
           })),

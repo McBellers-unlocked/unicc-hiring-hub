@@ -144,7 +144,7 @@ const handler = async (req: Request): Promise<Response> => {
     await supabase.from('audit_logs').insert({
       action: 'BULK_TEST_DATA_CLEANUP',
       entity: 'candidates',
-      entity_id: candidateIds[0],
+      entity_id: testCandidates[0]?.id,
       after: {
         candidates_deleted: testCandidates.length,
         timestamp: new Date().toISOString()

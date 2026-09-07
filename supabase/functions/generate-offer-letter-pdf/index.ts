@@ -416,7 +416,7 @@ Deno.serve(async (req) => {
     const pdfBytes = await pdfDoc.save();
     const fileName = `Offer_Letter_${surname}_${firstname}`.replace(/\s+/g, "_");
 
-    return new Response(pdfBytes, {
+    return new Response(pdfBytes as unknown as BodyInit, {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/pdf",
