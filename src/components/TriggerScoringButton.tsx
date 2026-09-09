@@ -130,7 +130,8 @@ export function TriggerScoringButton({ jobId, onComplete, forceRescore = false }
       }
       const { data, error } = await supabase.functions.invoke('trigger-batch-scoring', {
         body: { jobId, forceRescore }, signal: controller.signal,
-      });
+      } as Parameters<typeof supabase.functions.invoke>[1]);
+
       if (epoch !== epochRef.current) return;
       if (error) throw error;
       const start = classifyBatchStart(data);
